@@ -1,0 +1,24 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "type": "npm",
+            "script": "compile",
+            "path": "client",
+            "group": "build",
+            "problemMatcher": [
+                "$tsc"
+            ],
+            "label": "npm: compile"
+        },
+        {
+            "type": "shell",
+            "command": "cargo build",
+            "options": {
+                "cwd": "${workspaceRoot}/server"
+            },
+            "group": "build",
+            "label": "cargo build"
+        }
+    ]
+}
