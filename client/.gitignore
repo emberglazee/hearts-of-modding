@@ -1,0 +1,6 @@
+node_modules
+out
+.vscode-test
+target
+!../server/target/release/server
+!../server/target/debug/server

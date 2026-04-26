@@ -1,0 +1,112 @@
+{
+    "name": "hearts-of-modding",
+    "displayName": "Hearts of Modding",
+    "description": "VS Code extension for Hearts of Iron IV modding",
+    "version": "0.0.1",
+    "publisher": "emberglazee",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/emberglazee/Hearts-of-Modding"
+    },
+    "engines": {
+        "vscode": "^1.75.0"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "activationEvents": [
+        "onFileSystem:**/localisation/*.yml",
+        "workspaceContains:**/common/scripted_triggers/*.txt",
+        "onStartupFinished"
+    ],
+    "main": "./out/extension.js",
+    "contributes": {
+        "configuration": {
+            "type": "object",
+            "title": "Hearts of Modding",
+            "properties": {
+                "hoi4.gamePath": {
+                    "type": "string",
+                    "default": "",
+                    "description": "The absolute path to your Hearts of Iron IV installation directory."
+                },
+                "hoi4.validator.ignoreLocalization": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [],
+                    "description": "List of regex patterns for localization keys that should be ignored if missing."
+                },
+                "hoi4.styling.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable cosmetic and styling checks (casing convention, mixed indentation, trailing whitespace)."
+                }
+            }
+        },
+        "commands": [
+            {
+                "command": "hearts-of-modding.activate",
+                "title": "HOI4: Activate Extension"
+            },
+            {
+                "command": "hearts-of-modding.setGamePath",
+                "title": "HOI4: Set Game Path"
+            },
+            {
+                "command": "hearts-of-modding.toggleStyling",
+                "title": "HOI4: Toggle Styling Checks"
+            }
+        ],
+        "languages": [
+            {
+                "id": "hoi4",
+                "aliases": [
+                    "Hearts of Iron IV",
+                    "hoi4"
+                ],
+                "extensions": [
+                    ".txt",
+                    ".gui",
+                    ".gfx",
+                    ".asset"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "hoi4",
+                "scopeName": "source.hoi4",
+                "path": "./syntaxes/hoi4.tmLanguage.json"
+            }
+        ]
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "pretest": "npm run compile && npm run lint",
+        "lint": "eslint src --ext ts",
+        "test": "node ./out/test/runTest.js",
+        "package": "cd ../server && cargo build --release && cargo build --target x86_64-pc-windows-gnu --release && mkdir -p ../client/server-bin && cp target/release/server ../client/server-bin/server-linux && cp target/x86_64-pc-windows-gnu/release/server.exe ../client/server-bin/server-win.exe && cd ../client && npm run compile && vsce package"
+    },
+    "dependencies": {
+        "vscode-languageclient": "^9.0.1"
+    },
+    "devDependencies": {
+        "@types/glob": "^8.0.0",
+        "@types/mocha": "^10.0.1",
+        "@types/node": "16.x",
+        "@types/vscode": "^1.75.0",
+        "@typescript-eslint/eslint-plugin": "^8.59.0",
+        "@typescript-eslint/parser": "^8.59.0",
+        "@vscode/test-electron": "^2.2.0",
+        "@vscode/vsce": "^3.9.1",
+        "eslint": "^10.2.1",
+        "glob": "^13.0.6",
+        "mocha": "^11.7.5",
+        "typescript": "^6.0.3"
+    }
+}

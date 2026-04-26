@@ -1,0 +1,25 @@
+# This is a test HOI4 script
+country_event = {
+    id = test.1
+    title = test.1.t
+    desc = test.1.d
+    picture = GFX_report_event_generic_read_writing
+
+    is_triggered_only = yes
+
+    trigger = {
+        tag = GER
+        has_war = no
+    }
+
+    option = {
+        name = test.1.a
+        add_political_power = 100
+        set_country_flag = test_flag
+    }
+}
+
+modifier = {
+    political_power_factor = 0.15
+    stability_factor = -0.1
+}
