@@ -1,0 +1,74 @@
+name: Create Release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-and-release:
+    name: Build and Create Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get Version
+        id: get_version
+        run: |
+          VERSION=$(node -p "require('./client/package.json').version")
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-gnu, x86_64-pc-windows-gnu
+
+      - name: Install Cross-Compilation Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-mingw-w64-x86-64
+
+      - name: Build Server (Linux)
+        run: |
+          cd server
+          cargo build --release --target x86_64-unknown-linux-gnu
+
+      - name: Build Server (Windows)
+        run: |
+          cd server
+          cargo build --release --target x86_64-pc-windows-gnu
+
+      - name: Prepare Binaries
+        run: |
+          mkdir -p client/server-bin
+          cp server/target/x86_64-unknown-linux-gnu/release/server client/server-bin/server-linux
+          cp server/target/x86_64-pc-windows-gnu/release/server.exe client/server-bin/server-win.exe
+          chmod +x client/server-bin/server-linux
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install Node Dependencies
+        run: |
+          cd client
+          npm install
+
+      - name: Package VSIX
+        run: |
+          cd client
+          npx vsce package -o ../hearts-of-modding-${{ steps.get_version.outputs.VERSION }}.vsix
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.get_version.outputs.VERSION }}
+          name: Release v${{ steps.get_version.outputs.VERSION }}
+          files: hearts-of-modding-${{ steps.get_version.outputs.VERSION }}.vsix
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
