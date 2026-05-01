@@ -16,6 +16,8 @@ All notable changes to the **Hearts of Modding** extension will be documented in
 
 ### Fixed
 
+- Fixed not being able to parse bookmark files due to quoted identifiers for country tags.
+
 #### Styling
 
 - Fixed code action "Convert indentation to tabs" not doing anything.

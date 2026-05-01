@@ -173,7 +173,7 @@ fn parse_block(input: Span) -> IResult<Span, (Vec<Entry>, crate::ast::Range)> {
 }
 
 fn parse_assignment(input: Span) -> IResult<Span, Assignment> {
-    let (input, (key, key_range)) = identifier(input)?;
+    let (input, (key, key_range)) = alt((identifier, quoted_string))(input)?;
     let (input, (op, op_range)) = preceded(multispace0, operator)(input)?;
     let (input, val) = preceded(multispace0, parse_value)(input)?;
     
