@@ -2,7 +2,7 @@
     "name": "hearts-of-modding",
     "displayName": "Hearts of Modding",
     "description": "VS Code extension for Hearts of Iron IV modding",
-    "version": "0.0.1",
+    "version": "0.1.0",
     "publisher": "emberglazee",
     "repository": {
         "type": "git",

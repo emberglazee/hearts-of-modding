@@ -13,6 +13,7 @@ mod variable_scanner;
 mod province_scanner;
 mod modifier_scanner;
 mod event_scanner;
+mod schema;
 
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
@@ -48,6 +49,7 @@ struct Backend {
     modifier_mappings: Arc<RwLock<HashMap<String, String>>>,
     events: Arc<RwLock<HashMap<String, event_scanner::Event>>>,
     ignored_loc_regex: Arc<RwLock<Vec<regex::Regex>>>,
+    schema: Arc<RwLock<schema::Schema>>,
     styling_enabled: Arc<RwLock<bool>>,
     game_path: Arc<RwLock<Option<String>>>,
 }
@@ -139,6 +141,7 @@ impl LanguageServer for Backend {
 
         tokio::join!(
             self.load_localization(&roots),
+            self.load_schema(),
             self.scan_scripted(&roots),
             self.scan_ideologies(&roots),
             self.scan_traits(&roots),
@@ -276,7 +279,15 @@ impl LanguageServer for Backend {
                     push_section(&mut hover_text, &scope_text);
 
                     // Check triggers/effects
-                    if let Some(entity) = TRIGGERS.get(identifier.as_str()).or_else(|| EFFECTS.get(identifier.as_str())) {
+                    let schema = futures::executor::block_on(self.schema.read());
+                    if let Some(rule) = schema.triggers.get(&identifier).or_else(|| schema.effects.get(&identifier)) {
+                        let mut text = format!("### Rule: {}\n", identifier);
+                        if let Some(desc) = &rule.description {
+                            text.push_str(&format!("\n{}\n", desc));
+                        }
+                        text.push_str(&format!("\nExpected Value: `{:?}`", rule.value_type));
+                        push_section(&mut hover_text, &text);
+                    } else if let Some(entity) = TRIGGERS.get(identifier.as_str()).or_else(|| EFFECTS.get(identifier.as_str())) {
                         push_section(&mut hover_text, entity.description);
                     } else if SCOPES.contains(&identifier.to_uppercase().as_str()) {
                          push_section(&mut hover_text, &format!("### Scope: {}\n\nStandard Paradox scope.", identifier.to_uppercase()));
@@ -439,6 +450,26 @@ impl LanguageServer for Backend {
         }
 
         let mut items = Vec::new();
+
+        let schema = futures::executor::block_on(self.schema.read());
+        for trigger in schema.triggers.values() {
+            items.push(CompletionItem {
+                label: trigger.key.clone(),
+                kind: Some(CompletionItemKind::KEYWORD),
+                detail: Some("Trigger (Schema)".to_string()),
+                documentation: trigger.description.as_ref().map(|d| Documentation::String(d.clone())),
+                ..Default::default()
+            });
+        }
+        for effect in schema.effects.values() {
+            items.push(CompletionItem {
+                label: effect.key.clone(),
+                kind: Some(CompletionItemKind::FUNCTION),
+                detail: Some("Effect (Schema)".to_string()),
+                documentation: effect.description.as_ref().map(|d| Documentation::String(d.clone())),
+                ..Default::default()
+            });
+        }
 
         for trigger in TRIGGERS.values() {
             items.push(CompletionItem {
@@ -721,6 +752,8 @@ impl LanguageServer for Backend {
     async fn code_action(&self, params: CodeActionParams) -> Result<Option<CodeActionResponse>> {
         let mut actions = Vec::new();
         let mut has_casing_diagnostic = false;
+        let mut has_trailing_whitespace_diagnostic = false;
+        let mut has_mixed_indentation_diagnostic = false;
 
         for diagnostic in &params.context.diagnostics {
             if let Some(target_casing) = diagnostic.data.as_ref().and_then(|v| v.as_str()) {
@@ -753,6 +786,7 @@ impl LanguageServer for Backend {
                 // Check other styling codes
                 if let Some(NumberOrString::String(code)) = &diagnostic.code {
                     if code == "styling_trailing" {
+                        has_trailing_whitespace_diagnostic = true;
                         let mut changes = HashMap::new();
                         changes.insert(params.text_document.uri.clone(), vec![TextEdit {
                             range: diagnostic.range,
@@ -771,12 +805,16 @@ impl LanguageServer for Backend {
                             ..Default::default()
                         }));
                     } else if code == "styling_indent" {
+                        has_mixed_indentation_diagnostic = true;
                         if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
                             let line_idx = diagnostic.range.start.line as usize;
                             if let Some(line) = content.lines().nth(line_idx) {
                                 let leading = line.chars().take_while(|c| c.is_whitespace()).collect::<String>();
-                                // Convert all spaces to tabs in the leading whitespace
-                                let new_indent = leading.replace("    ", "\t").replace("  ", "\t"); // Simple heuristic
+                                // Convert spaces to tabs with a more robust heuristic
+                                let mut new_indent = leading.replace("    ", "\t").replace("  ", "\t").replace(" ", "");
+                                if new_indent.is_empty() && !leading.is_empty() {
+                                    new_indent = "\t".to_string();
+                                }
                                 
                                 let mut changes = HashMap::new();
                                 changes.insert(params.text_document.uri.clone(), vec![TextEdit {
@@ -829,6 +867,64 @@ impl LanguageServer for Backend {
                             ..Default::default()
                         }));
                     }
+                }
+            }
+        }
+
+        // Add "Remove all trailing whitespace" if any such diagnostic is present
+        if has_trailing_whitespace_diagnostic {
+            if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
+                let mut all_fixes = Vec::new();
+                self.collect_styling_fixes(&content, &mut all_fixes);
+
+                if !all_fixes.is_empty() {
+                    let mut changes = HashMap::new();
+                    let edits: Vec<TextEdit> = all_fixes.into_iter().map(|(range, text)| TextEdit {
+                        range,
+                        new_text: text,
+                    }).collect();
+                    
+                    changes.insert(params.text_document.uri.clone(), edits);
+
+                    actions.push(CodeActionOrCommand::CodeAction(CodeAction {
+                        title: "Remove all trailing whitespaces in this file".to_string(),
+                        kind: Some(CodeActionKind::QUICKFIX),
+                        edit: Some(WorkspaceEdit {
+                            changes: Some(changes),
+                            ..Default::default()
+                        }),
+                        is_preferred: Some(false),
+                        ..Default::default()
+                    }));
+                }
+            }
+        }
+
+        // Add "Convert all mixed indentation to tabs" if any such diagnostic is present
+        if has_mixed_indentation_diagnostic {
+            if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
+                let mut all_fixes = Vec::new();
+                self.collect_indentation_fixes(&content, &mut all_fixes);
+
+                if !all_fixes.is_empty() {
+                    let mut changes = HashMap::new();
+                    let edits: Vec<TextEdit> = all_fixes.into_iter().map(|(range, text)| TextEdit {
+                        range,
+                        new_text: text,
+                    }).collect();
+                    
+                    changes.insert(params.text_document.uri.clone(), edits);
+
+                    actions.push(CodeActionOrCommand::CodeAction(CodeAction {
+                        title: "Convert all mixed indentation to tabs in this file".to_string(),
+                        kind: Some(CodeActionKind::QUICKFIX),
+                        edit: Some(WorkspaceEdit {
+                            changes: Some(changes),
+                            ..Default::default()
+                        }),
+                        is_preferred: Some(false),
+                        ..Default::default()
+                    }));
                 }
             }
         }
@@ -909,7 +1005,7 @@ impl Backend {
 
     async fn scan_variables(&self, roots: &[std::path::PathBuf]) {
         let result = variable_scanner::scan_roots(roots);
-        
+
         let mut vars = self.variables.write().await;
         *vars = result.variables;
 
@@ -919,8 +1015,41 @@ impl Backend {
         self.client.log_message(MessageType::INFO, format!("Total: Loaded {} variables and {} event targets", vars.len(), targets.len())).await;
     }
 
-    fn collect_casing_fixes(&self, entries: &[ast::Entry], fixes: &mut Vec<(ast::Range, String)>) {
-        let keywords = [
+    fn collect_styling_fixes(&self, content: &str, fixes: &mut Vec<(Range, String)>) {
+        for (line_idx, line) in content.lines().enumerate() {
+            if line.ends_with(' ') || line.ends_with('\t') {
+                let start_col = line.trim_end().len() as u32;
+                fixes.push((
+                    Range {
+                        start: Position { line: line_idx as u32, character: start_col },
+                        end: Position { line: line_idx as u32, character: line.len() as u32 },
+                    },
+                    "".to_string(),
+                ));
+            }
+        }
+    }
+
+    fn collect_indentation_fixes(&self, content: &str, fixes: &mut Vec<(Range, String)>) {
+        for (line_idx, line) in content.lines().enumerate() {
+            let leading = line.chars().take_while(|c| c.is_whitespace()).collect::<String>();
+            if leading.contains(' ') && leading.contains('\t') {
+                let mut new_indent = leading.replace("    ", "\t").replace("  ", "\t").replace(" ", "");
+                if new_indent.is_empty() && !leading.is_empty() {
+                    new_indent = "\t".to_string();
+                }
+                fixes.push((
+                    Range {
+                        start: Position { line: line_idx as u32, character: 0 },
+                        end: Position { line: line_idx as u32, character: leading.len() as u32 },
+                    },
+                    new_indent,
+                ));
+            }
+        }
+    }
+
+    fn collect_casing_fixes(&self, entries: &[ast::Entry], fixes: &mut Vec<(ast::Range, String)>) {        let keywords = [
             "spriteTypes", "spriteType", "name", "texturefile", 
             "ideologies", "types", "ideas", "country", "national_focus",
             "leader_traits", "country_leader_traits", "traits"
@@ -1139,6 +1268,46 @@ impl Backend {
         self.client.log_message(MessageType::INFO, format!("Total: Loaded {} ideas", i_map.len())).await;
     }
 
+    async fn load_schema(&self) {
+        let mut schema = schema::Schema::new();
+        
+        // Load from server/Config (Ported from CWTools HOI4 Config)
+        let triggers_path = std::path::PathBuf::from("server/Config/triggers.cwt");
+        let effects_path = std::path::PathBuf::from("server/Config/effects.cwt");
+
+        if triggers_path.exists() {
+            if let Ok(content) = std::fs::read_to_string(&triggers_path) {
+                schema.parse_cwt(&content, true);
+            }
+        }
+
+        if effects_path.exists() {
+            if let Ok(content) = std::fs::read_to_string(&effects_path) {
+                schema.parse_cwt(&content, false);
+            }
+        }
+
+        self.client.log_message(MessageType::INFO, format!("Schema loaded: {} triggers, {} effects", 
+            schema.triggers.len(), schema.effects.len())).await;
+
+        let mut s = self.schema.write().await;
+        *s = schema;
+
+        // Load modifier mappings from server/assets (Ported from VModer)
+        let mapping_path = std::path::PathBuf::from("server/assets/modifier_mappings.json");
+        if mapping_path.exists() {
+            if let Ok(content) = std::fs::read_to_string(&mapping_path) {
+                if let Ok(mappings) = serde_json::from_str::<HashMap<String, String>>(&content) {
+                    let mut m = self.modifier_mappings.write().await;
+                    for (k, v) in mappings {
+                        m.insert(k, v);
+                    }
+                    self.client.log_message(MessageType::INFO, format!("Loaded {} modifier mappings from VModer assets", m.len())).await;
+                }
+            }
+        }
+    }
+
     async fn find_references_in_root(&self, root: &std::path::Path, identifier: &str, locations: &mut Vec<Location>) {
         let mut dirs_to_check = vec![root.to_path_buf()];
         let extensions = ["txt", "yml", "gfx", "gui", "asset"];
@@ -1341,8 +1510,13 @@ impl Backend {
             }
         }
 
+        let comments = comments;
+        let styling_enabled = styling_enabled;
+
+        let schema = futures::executor::block_on(self.schema.read());
+
         for entry in &script.entries {
-            self.check_entry_semantic(entry, diagnostics, &loc, &st, &se, &id, &sid, &tr, &sp, &ids, &provs, &comments, styling_enabled);
+            self.check_entry_semantic(entry, diagnostics, &loc, &st, &se, &id, &sid, &tr, &sp, &ids, &provs, &comments, styling_enabled, &schema);
         }
     }
 
@@ -1361,10 +1535,53 @@ impl Backend {
         provs: &HashSet<u32>,
         comments: &[ (String, ast::Range) ],
         styling_enabled: bool,
+        schema: &schema::Schema,
     ) {
         match entry {
             ast::Entry::Assignment(ass) => {
                 let key_lower = ass.key.to_lowercase();
+
+                // Schema validation for triggers and effects
+                if let Some(rule) = schema.triggers.get(&ass.key).or_else(|| schema.effects.get(&ass.key)) {
+                    // Type checking
+                    match rule.value_type {
+                        schema::ValueType::Bool => {
+                            match &ass.value.value {
+                                ast::Value::Boolean(_) => {},
+                                ast::Value::String(s) if s == "yes" || s == "no" => {},
+                                _ => {
+                                    diagnostics.push(Diagnostic {
+                                        range: ast_range_to_lsp(&ass.value.range),
+                                        severity: Some(DiagnosticSeverity::ERROR),
+                                        message: format!("Expected boolean (yes/no) for '{}'", ass.key),
+                                        ..Default::default()
+                                    });
+                                }
+                            }
+                        },
+                        schema::ValueType::Int => {
+                            if let ast::Value::Number(_) = &ass.value.value {
+                            } else if let ast::Value::String(s) = &ass.value.value {
+                                if s.parse::<i64>().is_err() {
+                                    diagnostics.push(Diagnostic {
+                                        range: ast_range_to_lsp(&ass.value.range),
+                                        severity: Some(DiagnosticSeverity::ERROR),
+                                        message: format!("Expected integer for '{}'", ass.key),
+                                        ..Default::default()
+                                    });
+                                }
+                            } else {
+                                diagnostics.push(Diagnostic {
+                                    range: ast_range_to_lsp(&ass.value.range),
+                                    severity: Some(DiagnosticSeverity::ERROR),
+                                    message: format!("Expected integer for '{}'", ass.key),
+                                    ..Default::default()
+                                });
+                            }
+                        },
+                        _ => {}
+                    }
+                }
 
                 // Casing checks for keywords
                 if styling_enabled {
@@ -1522,10 +1739,10 @@ impl Backend {
                 }
 
                 // Check value recursively
-                self.check_value_semantic(&ass.value, diagnostics, loc, st, se, id, sid, tr, sp, ids, provs, comments, styling_enabled);
+                self.check_value_semantic(&ass.value, diagnostics, loc, st, se, id, sid, tr, sp, ids, provs, comments, styling_enabled, schema);
             }
             ast::Entry::Value(val) => {
-                self.check_value_semantic(val, diagnostics, loc, st, se, id, sid, tr, sp, ids, provs, comments, styling_enabled);
+                self.check_value_semantic(val, diagnostics, loc, st, se, id, sid, tr, sp, ids, provs, comments, styling_enabled, schema);
             }
             _ => {}
         }
@@ -1546,16 +1763,17 @@ impl Backend {
         provs: &HashSet<u32>,
         comments: &[ (String, ast::Range) ],
         styling_enabled: bool,
+        schema: &schema::Schema,
     ) {
         match &val.value {
             ast::Value::Block(entries) => {
                 for entry in entries {
-                    self.check_entry_semantic(entry, diagnostics, loc, st, se, id, sid, tr, sp, ids, provs, comments, styling_enabled);
+                    self.check_entry_semantic(entry, diagnostics, loc, st, se, id, sid, tr, sp, ids, provs, comments, styling_enabled, schema);
                 }
             }
             ast::Value::TaggedBlock(_, entries) => {
                 for entry in entries {
-                    self.check_entry_semantic(entry, diagnostics, loc, st, se, id, sid, tr, sp, ids, provs, comments, styling_enabled);
+                    self.check_entry_semantic(entry, diagnostics, loc, st, se, id, sid, tr, sp, ids, provs, comments, styling_enabled, schema);
                 }
             }
             _ => {}
@@ -1586,6 +1804,7 @@ async fn main() {
         modifier_mappings: Arc::new(RwLock::new(HashMap::new())),
         events: Arc::new(RwLock::new(HashMap::new())),
         ignored_loc_regex: Arc::new(RwLock::new(Vec::new())),
+        schema: Arc::new(RwLock::new(schema::Schema::new())),
         styling_enabled: Arc::new(RwLock::new(true)),
         game_path: Arc::new(RwLock::new(None)),
     });

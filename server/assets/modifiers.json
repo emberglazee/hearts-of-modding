@@ -1,0 +1,4594 @@
+[
+  {
+    "name": "annex_cost_factor",
+    "categories": [
+      "peace",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "army_armor_attack_factor",
+    "categories": [
+      "army",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "army_armor_speed_factor",
+    "categories": [
+      "army",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "army_artillery_attack_factor",
+    "categories": [
+      "army",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "army_attack_against_major_factor",
+    "categories": [
+      "army",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "army_attack_against_minor_factor",
+    "categories": [
+      "army",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "army_attack_factor",
+    "categories": [
+      "army",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "army_claim_attack_factor",
+    "categories": [
+      "army",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "army_core_attack_factor",
+    "categories": [
+      "army",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "army_infantry_attack_factor",
+    "categories": [
+      "army",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "army_morale",
+    "categories": [
+      "army",
+      "defensive",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "army_morale_factor",
+    "categories": [
+      "army",
+      "defensive",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "army_org",
+    "categories": [
+      "army",
+      "defensive",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "army_org_factor",
+    "categories": [
+      "army",
+      "defensive",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "attrition",
+    "categories": [
+      "army",
+      "defensive",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "attrition_for_controller",
+    "categories": [
+      "army",
+      "defensive",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "breakthrough_factor",
+    "categories": [
+      "army",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "carrier_capacity_penalty_reduction",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "carrier_sortie_hours_delay",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "carrier_traffic",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "cavalry_attack_factor",
+    "categories": [
+      "army",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "combat_width_factor",
+    "categories": [
+      "army",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "convoy_raiding_efficiency_factor",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "coordination_bonus",
+    "categories": [
+      "army",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "decryption",
+    "categories": [
+      "country",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "decryption_factor",
+    "categories": [
+      "country",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "enemy_attrition",
+    "categories": [
+      "state",
+      "army",
+      "defensive",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "enemy_declare_war_tension",
+    "categories": [
+      "country",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "enemy_justify_war_goal_time",
+    "categories": [
+      "country",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "fighter_sortie_efficiency",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "ground_attack",
+    "categories": [
+      "air",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "ground_attack_factor",
+    "categories": [
+      "air",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "heat_attrition",
+    "categories": [
+      "army",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "heat_attrition_factor",
+    "categories": [
+      "army",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "justify_war_goal_time",
+    "categories": [
+      "country",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "justify_war_goal_when_in_major_war_time",
+    "categories": [
+      "country",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "land_night_attack",
+    "categories": [
+      "army",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "max_planning",
+    "categories": [
+      "army",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "max_planning_factor",
+    "categories": [
+      "army",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "max_training",
+    "categories": [
+      "army",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "mechanized_attack_factor",
+    "categories": [
+      "army",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "motorized_attack_factor",
+    "categories": [
+      "army",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "naval_critical_score_chance_factor",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "naval_critical_score_chance_factor_against",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "naval_damage_factor",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "naval_enemy_fleet_size_ratio_penalty_factor",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "naval_enemy_positioning_in_initial_attack",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "naval_has_potf_in_combat_attack",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "naval_has_potf_in_combat_defense",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "naval_heavy_gun_hit_chance_factor",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "naval_hit_chance",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "naval_invasion_planning_bonus_speed",
+    "categories": [
+      "army",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "naval_light_gun_hit_chance_factor",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "naval_night_attack",
+    "categories": [
+      "naval",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "naval_strike",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "naval_supply_consumption_factor",
+    "categories": [
+      "naval",
+      "defensive",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "naval_torpedo_cooldown_factor",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "naval_torpedo_hit_chance_factor",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "naval_torpedo_screen_penetration_factor",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "navy_capital_ship_attack_factor",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "navy_capital_ship_attack_factor_against",
+    "categories": [
+      "naval",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "navy_carrier_air_agility_factor",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "navy_carrier_air_attack_factor",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "navy_carrier_air_targetting_factor",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "navy_screen_attack_factor",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "navy_screen_attack_factor_against",
+    "categories": [
+      "naval",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "navy_submarine_attack_factor",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "navy_submarine_attack_factor_against",
+    "categories": [
+      "naval",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "no_supply_grace",
+    "categories": [
+      "army",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "offence",
+    "categories": [
+      "army",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "org_loss_when_moving",
+    "categories": [
+      "army",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "out_of_supply_factor",
+    "categories": [
+      "army",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "planning_decay_rate_factor",
+    "categories": [
+      "army",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "planning_speed",
+    "categories": [
+      "army",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "pocket_penalty",
+    "categories": [
+      "army",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "port_strike",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "rocket_attack_factor",
+    "categories": [
+      "army",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "sortie_efficiency",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "special_forces_attack_factor",
+    "categories": [
+      "army",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "special_forces_no_supply_grace",
+    "categories": [
+      "army",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "special_forces_out_of_supply_factor",
+    "categories": [
+      "army",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "strike_force_movement_org_loss",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "submarine_attack",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "supply_combat_penalties_on_core_factor",
+    "categories": [
+      "army",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "supply_consumption_factor",
+    "categories": [
+      "army",
+      "defensive",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "training_time_factor",
+    "categories": [
+      "army",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "winter_attrition",
+    "categories": [
+      "army",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "winter_attrition_factor",
+    "categories": [
+      "army",
+      "aggressive"
+    ]
+  },
+  {
+    "name": "ai_badass_factor",
+    "categories": [
+      "ai"
+    ]
+  },
+  {
+    "name": "ai_call_ally_desire_factor",
+    "categories": [
+      "ai"
+    ]
+  },
+  {
+    "name": "ai_desired_divisions_factor",
+    "categories": [
+      "ai"
+    ]
+  },
+  {
+    "name": "ai_focus_aggressive_factor",
+    "categories": [
+      "ai"
+    ]
+  },
+  {
+    "name": "ai_focus_aviation_factor",
+    "categories": [
+      "ai"
+    ]
+  },
+  {
+    "name": "ai_focus_defense_factor",
+    "categories": [
+      "ai"
+    ]
+  },
+  {
+    "name": "ai_focus_military_advancements_factor",
+    "categories": [
+      "ai"
+    ]
+  },
+  {
+    "name": "ai_focus_military_equipment_factor",
+    "categories": [
+      "ai"
+    ]
+  },
+  {
+    "name": "ai_focus_naval_air_factor",
+    "categories": [
+      "ai"
+    ]
+  },
+  {
+    "name": "ai_focus_naval_factor",
+    "categories": [
+      "ai"
+    ]
+  },
+  {
+    "name": "ai_focus_peaceful_factor",
+    "categories": [
+      "ai"
+    ]
+  },
+  {
+    "name": "ai_focus_war_production_factor",
+    "categories": [
+      "ai"
+    ]
+  },
+  {
+    "name": "ai_get_ally_desire_factor",
+    "categories": [
+      "ai"
+    ]
+  },
+  {
+    "name": "ai_join_ally_desire_factor",
+    "categories": [
+      "ai"
+    ]
+  },
+  {
+    "name": "ai_license_acceptance",
+    "categories": [
+      "ai"
+    ]
+  },
+  {
+    "name": "ace_effectiveness_factor",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "air_accidents",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "air_accidents_factor",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "air_ace_bonuses_factor",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "air_ace_generation_chance_factor",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "air_advisor_cost_factor",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "air_agility_factor",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "air_attack_factor",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "air_bombing_targetting",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "air_carrier_night_penalty_reduction_factor",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "air_cas_efficiency",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "air_cas_present_factor",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "air_close_air_support_org_damage_factor",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "air_defence_factor",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "air_detection",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "air_escort_efficiency",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "air_fuel_consumption_factor",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "air_home_defence_factor",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "air_intercept_efficiency",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "air_interception_detect_factor",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "air_invasion_division_cap",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "air_invasion_preparation",
+    "categories": [
+      "air",
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "air_manpower_requirement_factor",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "air_maximum_speed_factor",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "air_mission_efficiency",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "air_mission_xp_gain_factor",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "air_nav_efficiency",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "air_night_penalty",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "air_power_projection_factor",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "air_range_factor",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "air_strategic_bomber_bombing_factor",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "air_strategic_bomber_defence_factor",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "air_strategic_bomber_night_penalty",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "air_superiority_detect_factor",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "air_superiority_efficiency",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "air_training_xp_gain_factor",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "air_untrained_pilots_penalty_factor",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "air_weather_penalty",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "air_wing_xp_loss_when_killed_factor",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "army_bonus_air_superiority_factor",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "carrier_night_traffic",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "enemy_army_bonus_air_superiority_factor",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "experience_gain_air",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "experience_gain_air_factor",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "mines_planting_by_air_factor",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "mines_sweeping_by_air_factor",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "naval_strike_agility_factor",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "naval_strike_attack_factor",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "naval_strike_targetting_factor",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "navy_weather_penalty",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "strategic_bomb_visibility",
+    "categories": [
+      "air"
+    ]
+  },
+  {
+    "name": "acclimatization_cold_climate_gain_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "acclimatization_hot_climate_gain_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "air_superiority_bonus_in_combat",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "armor_factor",
+    "categories": [
+      "army",
+      "defensive"
+    ]
+  },
+  {
+    "name": "army_advisor_cost_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "army_armor_defence_factor",
+    "categories": [
+      "army",
+      "defensive"
+    ]
+  },
+  {
+    "name": "army_artillery_defence_factor",
+    "categories": [
+      "army",
+      "defensive"
+    ]
+  },
+  {
+    "name": "army_attack_speed_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "army_breakthrough_against_major_factor",
+    "categories": [
+      "army",
+      "defensive"
+    ]
+  },
+  {
+    "name": "army_breakthrough_against_minor_factor",
+    "categories": [
+      "army",
+      "defensive"
+    ]
+  },
+  {
+    "name": "army_claim_defence_factor",
+    "categories": [
+      "army",
+      "defensive"
+    ]
+  },
+  {
+    "name": "army_core_defence_factor",
+    "categories": [
+      "army",
+      "defensive"
+    ]
+  },
+  {
+    "name": "army_defence_against_major_factor",
+    "categories": [
+      "army",
+      "defensive"
+    ]
+  },
+  {
+    "name": "army_defence_against_minor_factor",
+    "categories": [
+      "army",
+      "defensive"
+    ]
+  },
+  {
+    "name": "army_defence_factor",
+    "categories": [
+      "army",
+      "defensive"
+    ]
+  },
+  {
+    "name": "army_experience_from_volunteers",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "army_fuel_capacity_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "army_fuel_consumption_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "army_infantry_defence_factor",
+    "categories": [
+      "army",
+      "defensive"
+    ]
+  },
+  {
+    "name": "army_org_regain",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "army_retreat_speed_factor",
+    "categories": [
+      "army",
+      "defensive"
+    ]
+  },
+  {
+    "name": "army_speed_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "army_speed_factor_for_controller",
+    "categories": [
+      "state",
+      "army"
+    ]
+  },
+  {
+    "name": "army_strength_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "assign_army_leader_cp_cost",
+    "categories": [
+      "country",
+      "army"
+    ]
+  },
+  {
+    "name": "attack_bonus_against",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "attack_bonus_against_cores",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "breakthrough_bonus_against",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "cas_damage_reduction",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "cavalry_defence_factor",
+    "categories": [
+      "army",
+      "defensive"
+    ]
+  },
+  {
+    "name": "command_abilities_cost_factor",
+    "categories": [
+      "country",
+      "army"
+    ]
+  },
+  {
+    "name": "command_power_gain",
+    "categories": [
+      "country",
+      "army"
+    ]
+  },
+  {
+    "name": "command_power_gain_mult",
+    "categories": [
+      "country",
+      "army"
+    ]
+  },
+  {
+    "name": "defence",
+    "categories": [
+      "army",
+      "defensive"
+    ]
+  },
+  {
+    "name": "defense_bonus_against",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "dig_in_speed",
+    "categories": [
+      "army",
+      "defensive"
+    ]
+  },
+  {
+    "name": "dig_in_speed_factor",
+    "categories": [
+      "army",
+      "defensive"
+    ]
+  },
+  {
+    "name": "disable_strategic_redeployment",
+    "categories": [
+      "state",
+      "army"
+    ]
+  },
+  {
+    "name": "disable_strategic_redeployment_for_controller",
+    "categories": [
+      "state",
+      "army"
+    ]
+  },
+  {
+    "name": "dont_lose_dig_in_on_attack",
+    "categories": [
+      "army",
+      "defensive"
+    ]
+  },
+  {
+    "name": "enemy_army_speed_factor",
+    "categories": [
+      "state",
+      "army"
+    ]
+  },
+  {
+    "name": "experience_gain_army",
+    "categories": [
+      "army",
+      "military_advancements"
+    ]
+  },
+  {
+    "name": "experience_gain_army_factor",
+    "categories": [
+      "army",
+      "military_advancements"
+    ]
+  },
+  {
+    "name": "experience_gain_army_unit",
+    "categories": [
+      "army",
+      "military_advancements"
+    ]
+  },
+  {
+    "name": "experience_gain_army_unit_factor",
+    "categories": [
+      "army",
+      "military_advancements"
+    ]
+  },
+  {
+    "name": "extra_marine_supply_grace",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "extra_paratrooper_supply_grace",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "female_random_army_leader_chance",
+    "categories": [
+      "country",
+      "army"
+    ]
+  },
+  {
+    "name": "local_org_regain",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "marines_special_forces_contribution_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "max_command_power",
+    "categories": [
+      "country",
+      "army"
+    ]
+  },
+  {
+    "name": "max_command_power_mult",
+    "categories": [
+      "country",
+      "army"
+    ]
+  },
+  {
+    "name": "max_commander_army_size",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "max_dig_in",
+    "categories": [
+      "army",
+      "defensive"
+    ]
+  },
+  {
+    "name": "max_dig_in_factor",
+    "categories": [
+      "army",
+      "defensive"
+    ]
+  },
+  {
+    "name": "mechanized_defence_factor",
+    "categories": [
+      "army",
+      "defensive"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_armored_car_attack_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_armored_car_defence_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_armored_car_max_org_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_armored_car_recon_attack_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_armored_car_recon_defence_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_armored_car_recon_max_org_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_armored_car_recon_speed_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_armored_car_speed_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_blackshirt_assault_battalion_attack_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_blackshirt_assault_battalion_defence_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_blackshirt_assault_battalion_max_org_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_blackshirt_assault_battalion_speed_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_camelry_attack_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_camelry_defence_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_camelry_speed_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_category_rocket_artillery_attack_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_category_special_forces_max_org_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_cavalry_attack_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_cavalry_defence_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_cavalry_speed_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_infantry_attack_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_infantry_defence_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_infantry_speed_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_irregular_infantry_attack_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_irregular_infantry_defence_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_irregular_infantry_max_org_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_irregular_infantry_speed_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_light_tank_recon_attack_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_light_tank_recon_defence_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_light_tank_recon_max_org_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_light_tank_recon_speed_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_long_range_patrol_support_attack_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_long_range_patrol_support_defence_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_marine_attack_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_marine_defence_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_marine_max_org_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_marine_speed_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_military_police_attack_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_military_police_defence_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_military_police_max_org_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_military_police_speed_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_militia_attack_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_militia_defence_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_militia_max_org_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_militia_org_recovery_cap_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_militia_speed_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_mountaineers_attack_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_mountaineers_defence_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_mountaineers_max_org_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_mountaineers_speed_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_paratrooper_attack_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_paratrooper_defence_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_paratrooper_max_org_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "modifier_army_sub_unit_paratrooper_speed_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "motorized_defence_factor",
+    "categories": [
+      "army",
+      "defensive"
+    ]
+  },
+  {
+    "name": "mountaineers_special_forces_contribution_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "org_loss_at_low_org_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "paratroopers_special_forces_contribution_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "rangers_special_forces_contribution_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "recon_factor",
+    "categories": [
+      "army",
+      "defensive"
+    ]
+  },
+  {
+    "name": "recon_factor_while_entrenched",
+    "categories": [
+      "army",
+      "defensive"
+    ]
+  },
+  {
+    "name": "river_crossing_factor_against",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "shore_bombardment_bonus",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "special_forces_cap",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "special_forces_cap_flat",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "special_forces_defence_factor",
+    "categories": [
+      "army",
+      "defensive"
+    ]
+  },
+  {
+    "name": "special_forces_min",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "special_forces_training_time_factor",
+    "categories": [
+      "army",
+      "war_production"
+    ]
+  },
+  {
+    "name": "terrain_penalty_reduction",
+    "categories": [
+      "army",
+      "defensive"
+    ]
+  },
+  {
+    "name": "terrain_trait_xp_gain_factor",
+    "categories": [
+      "naval",
+      "country",
+      "army"
+    ]
+  },
+  {
+    "name": "training_time_army",
+    "categories": [
+      "army",
+      "war_production"
+    ]
+  },
+  {
+    "name": "training_time_army_factor",
+    "categories": [
+      "army",
+      "war_production"
+    ]
+  },
+  {
+    "name": "unit_upkeep_attrition_factor",
+    "categories": [
+      "army"
+    ]
+  },
+  {
+    "name": "autonomy_gain",
+    "categories": [
+      "autonomy"
+    ]
+  },
+  {
+    "name": "autonomy_gain_global_factor",
+    "categories": [
+      "autonomy"
+    ]
+  },
+  {
+    "name": "autonomy_gain_ll_to_overlord",
+    "categories": [
+      "autonomy"
+    ]
+  },
+  {
+    "name": "autonomy_gain_ll_to_overlord_factor",
+    "categories": [
+      "autonomy"
+    ]
+  },
+  {
+    "name": "autonomy_gain_ll_to_subject",
+    "categories": [
+      "autonomy"
+    ]
+  },
+  {
+    "name": "autonomy_gain_ll_to_subject_factor",
+    "categories": [
+      "autonomy"
+    ]
+  },
+  {
+    "name": "autonomy_gain_trade",
+    "categories": [
+      "autonomy"
+    ]
+  },
+  {
+    "name": "autonomy_gain_trade_factor",
+    "categories": [
+      "autonomy"
+    ]
+  },
+  {
+    "name": "autonomy_gain_warscore",
+    "categories": [
+      "autonomy"
+    ]
+  },
+  {
+    "name": "autonomy_gain_warscore_factor",
+    "categories": [
+      "autonomy"
+    ]
+  },
+  {
+    "name": "autonomy_manpower_share",
+    "categories": [
+      "autonomy"
+    ]
+  },
+  {
+    "name": "autonomy_manpower_share_from_subjects",
+    "categories": [
+      "autonomy"
+    ]
+  },
+  {
+    "name": "can_master_build_for_us",
+    "categories": [
+      "autonomy"
+    ]
+  },
+  {
+    "name": "cic_to_overlord_factor",
+    "categories": [
+      "autonomy"
+    ]
+  },
+  {
+    "name": "extra_trade_to_overlord_factor",
+    "categories": [
+      "autonomy"
+    ]
+  },
+  {
+    "name": "license_subject_master_purchase_cost",
+    "categories": [
+      "autonomy"
+    ]
+  },
+  {
+    "name": "master_build_autonomy_factor",
+    "categories": [
+      "autonomy"
+    ]
+  },
+  {
+    "name": "mic_to_overlord_factor",
+    "categories": [
+      "autonomy"
+    ]
+  },
+  {
+    "name": "overlord_trade_cost_factor",
+    "categories": [
+      "autonomy"
+    ]
+  },
+  {
+    "name": "resources_to_overlord_factor",
+    "categories": [
+      "autonomy"
+    ]
+  },
+  {
+    "name": "subjects_autonomy_gain",
+    "categories": [
+      "autonomy"
+    ]
+  },
+  {
+    "name": "scientist_breakthrough_bonus_factor",
+    "categories": [
+      "character"
+    ]
+  },
+  {
+    "name": "scientist_research_bonus_factor",
+    "categories": [
+      "character"
+    ]
+  },
+  {
+    "name": "scientist_xp_gain_factor",
+    "categories": [
+      "character"
+    ]
+  },
+  {
+    "name": "additional_brigade_column_size",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "agency_upgrade_time",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "air_doctrine_cost_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "air_equipment_upgrade_xp_cost",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "air_invasion_plan_cap",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "air_invasion_prep_days",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "air_volunteer_cap",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "airforce_intel_to_others",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "annex_subject_cost_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "army_intel_to_others",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "assign_navy_leader_cp_cost",
+    "categories": [
+      "naval",
+      "country"
+    ]
+  },
+  {
+    "name": "automatic_grant_medal_chance",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "base_fuel_gain",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "base_fuel_gain_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "can_guarantee_other_ideologies",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "choose_preferred_tactics_cost",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "cic_construction_boost",
+    "categories": [
+      "country",
+      "war_production"
+    ]
+  },
+  {
+    "name": "cic_construction_boost_factor",
+    "categories": [
+      "country",
+      "war_production"
+    ]
+  },
+  {
+    "name": "cic_to_target_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "civil_war_involvement_tension",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "civilian_factory_use",
+    "categories": [
+      "country",
+      "war_production"
+    ]
+  },
+  {
+    "name": "civilian_intel_to_others",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "coastal_bunker_effectiveness_factor",
+    "categories": [
+      "country",
+      "state"
+    ]
+  },
+  {
+    "name": "compliance_gain",
+    "categories": [
+      "country",
+      "state"
+    ]
+  },
+  {
+    "name": "compliance_growth",
+    "categories": [
+      "country",
+      "state"
+    ]
+  },
+  {
+    "name": "compliance_growth_on_our_occupied_states",
+    "categories": [
+      "country",
+      "state"
+    ]
+  },
+  {
+    "name": "conscription",
+    "categories": [
+      "country",
+      "war_production"
+    ]
+  },
+  {
+    "name": "conscription_factor",
+    "categories": [
+      "country",
+      "war_production"
+    ]
+  },
+  {
+    "name": "consumer_goods_expected_value",
+    "categories": [
+      "country",
+      "war_production"
+    ]
+  },
+  {
+    "name": "consumer_goods_factor",
+    "categories": [
+      "country",
+      "war_production"
+    ]
+  },
+  {
+    "name": "conversion_cost_civ_to_mil_factor",
+    "categories": [
+      "country",
+      "war_production"
+    ]
+  },
+  {
+    "name": "conversion_cost_mil_to_civ_factor",
+    "categories": [
+      "country",
+      "war_production"
+    ]
+  },
+  {
+    "name": "critical_receive_chance",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "country"
+    ]
+  },
+  {
+    "name": "defensive_war_stability_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "disabled_ideas",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "embargo_cost_factor",
+    "categories": [
+      "country",
+      "politics"
+    ]
+  },
+  {
+    "name": "embargo_threshold_factor",
+    "categories": [
+      "country",
+      "politics"
+    ]
+  },
+  {
+    "name": "encryption",
+    "categories": [
+      "country",
+      "defensive"
+    ]
+  },
+  {
+    "name": "encryption_factor",
+    "categories": [
+      "country",
+      "defensive"
+    ]
+  },
+  {
+    "name": "enemy_operative_capture_chance_factor",
+    "categories": [
+      "unit_leader",
+      "country"
+    ]
+  },
+  {
+    "name": "enemy_operative_detection_chance",
+    "categories": [
+      "unit_leader",
+      "country"
+    ]
+  },
+  {
+    "name": "enemy_operative_detection_chance_factor",
+    "categories": [
+      "unit_leader",
+      "country"
+    ]
+  },
+  {
+    "name": "enemy_operative_detection_chance_factor_over_occupied_tag",
+    "categories": [
+      "unit_leader",
+      "country"
+    ]
+  },
+  {
+    "name": "enemy_operative_detection_chance_over_occupied_tag",
+    "categories": [
+      "unit_leader",
+      "country"
+    ]
+  },
+  {
+    "name": "enemy_operative_forced_into_hiding_time_factor",
+    "categories": [
+      "unit_leader",
+      "country"
+    ]
+  },
+  {
+    "name": "enemy_operative_harmed_time_factor",
+    "categories": [
+      "unit_leader",
+      "country"
+    ]
+  },
+  {
+    "name": "enemy_operative_intel_extraction_rate",
+    "categories": [
+      "unit_leader",
+      "country"
+    ]
+  },
+  {
+    "name": "enemy_spy_negative_status_factor",
+    "categories": [
+      "country",
+      "state"
+    ]
+  },
+  {
+    "name": "equipment_capture",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "equipment_capture_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "equipment_conversion_speed",
+    "categories": [
+      "country",
+      "war_production"
+    ]
+  },
+  {
+    "name": "equipment_upgrade_xp_cost",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "exiled_government_weekly_manpower",
+    "categories": [
+      "country",
+      "war_production"
+    ]
+  },
+  {
+    "name": "experience_loss_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "extra_trade_to_target_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "faction_trade_opinion_factor",
+    "categories": [
+      "country",
+      "war_production"
+    ]
+  },
+  {
+    "name": "factory_energy_consumption",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "female_divisional_commander_chance",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "female_random_admiral_chance",
+    "categories": [
+      "naval",
+      "country"
+    ]
+  },
+  {
+    "name": "female_random_country_leader_chance",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "female_random_operative_chance",
+    "categories": [
+      "country",
+      "intelligence_agency"
+    ]
+  },
+  {
+    "name": "female_random_scientist_chance",
+    "categories": [
+      "country",
+      "scientist"
+    ]
+  },
+  {
+    "name": "field_officer_promotion_penalty",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "floating_harbor_duration",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "floating_harbor_range",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "floating_harbor_supply",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "forced_surrender_limit",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "foreign_subversive_activites",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "fuel_cost",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "fuel_gain",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "fuel_gain_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "fuel_gain_factor_from_states",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "fuel_gain_from_states",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "generate_wargoal_tension",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "generate_wargoal_tension_against",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "global_building_slots",
+    "categories": [
+      "country",
+      "war_production"
+    ]
+  },
+  {
+    "name": "global_building_slots_factor",
+    "categories": [
+      "country",
+      "war_production"
+    ]
+  },
+  {
+    "name": "grant_medal_cost_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "guarantee_cost",
+    "categories": [
+      "country",
+      "politics"
+    ]
+  },
+  {
+    "name": "guarantee_tension",
+    "categories": [
+      "country",
+      "defensive"
+    ]
+  },
+  {
+    "name": "improve_relations_maintain_cost_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "industrial_capacity_dockyard",
+    "categories": [
+      "country",
+      "war_production"
+    ]
+  },
+  {
+    "name": "industrial_capacity_dockyard_powered",
+    "categories": [
+      "country",
+      "war_production"
+    ]
+  },
+  {
+    "name": "industrial_capacity_factory",
+    "categories": [
+      "country",
+      "war_production"
+    ]
+  },
+  {
+    "name": "industrial_capacity_factory_powered",
+    "categories": [
+      "country",
+      "war_production"
+    ]
+  },
+  {
+    "name": "industry_air_damage_factor",
+    "categories": [
+      "country",
+      "war_production"
+    ]
+  },
+  {
+    "name": "industry_free_repair_factor",
+    "categories": [
+      "country",
+      "war_production"
+    ]
+  },
+  {
+    "name": "industry_repair_factor",
+    "categories": [
+      "country",
+      "war_production"
+    ]
+  },
+  {
+    "name": "initiative_factor",
+    "categories": [
+      "unit_leader",
+      "country"
+    ]
+  },
+  {
+    "name": "intel_from_combat_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "intel_network_gain",
+    "categories": [
+      "unit_leader",
+      "country",
+      "state",
+      "intelligence_agency"
+    ]
+  },
+  {
+    "name": "intel_network_gain_factor",
+    "categories": [
+      "unit_leader",
+      "country",
+      "state",
+      "intelligence_agency"
+    ]
+  },
+  {
+    "name": "join_faction_tension",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "land_bunker_effectiveness_factor",
+    "categories": [
+      "country",
+      "state"
+    ]
+  },
+  {
+    "name": "land_equipment_upgrade_xp_cost",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "land_reinforce_rate",
+    "categories": [
+      "country",
+      "war_production"
+    ]
+  },
+  {
+    "name": "lend_lease_tension",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "lend_lease_tension_with_overlord",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "license_air_purchase_cost",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "license_anti_tank_eq_cost_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "license_anti_tank_eq_production_speed_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "license_anti_tank_eq_tech_difference_speed_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "license_armor_purchase_cost",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "license_artillery_eq_cost_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "license_artillery_eq_production_speed_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "license_artillery_eq_tech_difference_speed_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "license_infantry_eq_cost_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "license_infantry_eq_production_speed_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "license_infantry_eq_tech_difference_speed_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "license_infantry_purchase_cost",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "license_light_tank_eq_cost_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "license_light_tank_eq_production_speed_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "license_light_tank_eq_tech_difference_speed_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "license_naval_purchase_cost",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "license_production_speed",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "license_purchase_cost",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "license_tech_difference_speed",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "line_change_production_efficiency_factor",
+    "categories": [
+      "country",
+      "war_production"
+    ]
+  },
+  {
+    "name": "max_fuel",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "max_fuel_building",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "max_fuel_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "max_surrender_limit_offset",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "mic_to_target_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "min_export",
+    "categories": [
+      "country",
+      "war_production"
+    ]
+  },
+  {
+    "name": "minimum_training_level",
+    "categories": [
+      "country",
+      "war_production"
+    ]
+  },
+  {
+    "name": "monthly_population",
+    "categories": [
+      "country",
+      "war_production"
+    ]
+  },
+  {
+    "name": "naval_equipment_upgrade_xp_cost",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "naval_invasion_plan_cap",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "naval_invasion_prep_days",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "navy_intel_to_others",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "no_compliance_gain",
+    "categories": [
+      "country",
+      "state"
+    ]
+  },
+  {
+    "name": "nuclear_production",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "nuclear_production_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "offensive_war_stability_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "opinion_gain_monthly",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "opinion_gain_monthly_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "opinion_gain_monthly_same_ideology",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "opinion_gain_monthly_same_ideology_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "out_of_power_impact_factor",
+    "categories": [
+      "country",
+      "war_production"
+    ]
+  },
+  {
+    "name": "own_operative_capture_chance_factor",
+    "categories": [
+      "unit_leader",
+      "country"
+    ]
+  },
+  {
+    "name": "own_operative_detection_chance",
+    "categories": [
+      "unit_leader",
+      "country"
+    ]
+  },
+  {
+    "name": "own_operative_detection_chance_factor",
+    "categories": [
+      "unit_leader",
+      "country"
+    ]
+  },
+  {
+    "name": "own_operative_forced_into_hiding_time_factor",
+    "categories": [
+      "unit_leader",
+      "country"
+    ]
+  },
+  {
+    "name": "own_operative_harmed_time_factor",
+    "categories": [
+      "unit_leader",
+      "country"
+    ]
+  },
+  {
+    "name": "own_operative_intel_extraction_rate",
+    "categories": [
+      "unit_leader",
+      "country"
+    ]
+  },
+  {
+    "name": "paradrop_organization_factor",
+    "categories": [
+      "unit_leader",
+      "country"
+    ]
+  },
+  {
+    "name": "paratrooper_aa_defense",
+    "categories": [
+      "unit_leader",
+      "country"
+    ]
+  },
+  {
+    "name": "paratrooper_weight_factor",
+    "categories": [
+      "unit_leader",
+      "country"
+    ]
+  },
+  {
+    "name": "party_popularity_stability_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "political_power_cost",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "political_power_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "political_power_gain",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "power_balance_daily",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "power_balance_weekly",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "production_factory_efficiency_gain_factor",
+    "categories": [
+      "country",
+      "war_production"
+    ]
+  },
+  {
+    "name": "production_factory_max_efficiency_factor",
+    "categories": [
+      "country",
+      "war_production"
+    ]
+  },
+  {
+    "name": "production_factory_start_efficiency_factor",
+    "categories": [
+      "country",
+      "war_production"
+    ]
+  },
+  {
+    "name": "production_lack_of_resource_penalty_factor",
+    "categories": [
+      "country",
+      "war_production"
+    ]
+  },
+  {
+    "name": "production_oil_factor",
+    "categories": [
+      "country",
+      "war_production"
+    ]
+  },
+  {
+    "name": "production_speed_buildings_factor",
+    "categories": [
+      "country",
+      "war_production"
+    ]
+  },
+  {
+    "name": "production_speed_buildings_powered_factor",
+    "categories": [
+      "country",
+      "war_production"
+    ]
+  },
+  {
+    "name": "production_speed_facility_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "railway_gun_bombardment_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "refit_ic_cost",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "refit_speed",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "repair_speed_factor",
+    "categories": [
+      "naval",
+      "country"
+    ]
+  },
+  {
+    "name": "request_lease_tension",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "required_garrison_factor",
+    "categories": [
+      "country",
+      "state"
+    ]
+  },
+  {
+    "name": "research_sharing_per_country_bonus",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "research_sharing_per_country_bonus_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "research_speed_factor",
+    "categories": [
+      "country",
+      "military_advancements"
+    ]
+  },
+  {
+    "name": "resistance_activity",
+    "categories": [
+      "country",
+      "state"
+    ]
+  },
+  {
+    "name": "resistance_damage_to_garrison",
+    "categories": [
+      "country",
+      "state"
+    ]
+  },
+  {
+    "name": "resistance_damage_to_garrison_on_our_occupied_states",
+    "categories": [
+      "country",
+      "state"
+    ]
+  },
+  {
+    "name": "resistance_decay",
+    "categories": [
+      "country",
+      "state"
+    ]
+  },
+  {
+    "name": "resistance_decay_on_our_occupied_states",
+    "categories": [
+      "country",
+      "state"
+    ]
+  },
+  {
+    "name": "resistance_garrison_penetration_chance",
+    "categories": [
+      "country",
+      "state"
+    ]
+  },
+  {
+    "name": "resistance_growth",
+    "categories": [
+      "country",
+      "state"
+    ]
+  },
+  {
+    "name": "resistance_growth_on_our_occupied_states",
+    "categories": [
+      "country",
+      "state"
+    ]
+  },
+  {
+    "name": "resistance_target",
+    "categories": [
+      "country",
+      "state"
+    ]
+  },
+  {
+    "name": "resistance_target_on_our_occupied_states",
+    "categories": [
+      "country",
+      "state"
+    ]
+  },
+  {
+    "name": "resource_trade_cost_bonus_per_factory",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "screening_without_screens",
+    "categories": [
+      "naval",
+      "country"
+    ]
+  },
+  {
+    "name": "send_volunteer_divisions_required",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "send_volunteer_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "send_volunteer_size",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "send_volunteers_tension",
+    "categories": [
+      "country",
+      "defensive"
+    ]
+  },
+  {
+    "name": "shore_bombardment_collateral_damage_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "special_forces_doctrine_cost_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "special_project_facility_supply_consumption_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "special_project_speed_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "stability_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "stability_weekly",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "stability_weekly_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "starting_compliance",
+    "categories": [
+      "country",
+      "state"
+    ]
+  },
+  {
+    "name": "subversive_activites_upkeep",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "supply_factor",
+    "categories": [
+      "country",
+      "state"
+    ]
+  },
+  {
+    "name": "supply_node_range",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "surrender_limit",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "tech_air_damage_factor",
+    "categories": [
+      "country",
+      "war_production"
+    ]
+  },
+  {
+    "name": "thermonuclear_production",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "thermonuclear_production_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "trade_cost_for_target_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "trade_opinion_factor",
+    "categories": [
+      "country",
+      "war_production"
+    ]
+  },
+  {
+    "name": "truck_attrition",
+    "categories": [
+      "country",
+      "state"
+    ]
+  },
+  {
+    "name": "truck_attrition_factor",
+    "categories": [
+      "country",
+      "state"
+    ]
+  },
+  {
+    "name": "underway_replenishment_convoy_cost",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "underway_replenishment_range",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "unit_leader_as_advisor_cp_cost_factor",
+    "categories": [
+      "unit_leader",
+      "country"
+    ]
+  },
+  {
+    "name": "unit_medal_effectiveness",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "war_stability_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "war_support_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "war_support_weekly",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "war_support_weekly_factor",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "weekly_bombing_war_support",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "weekly_casualties_war_support",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "weekly_convoys_war_support",
+    "categories": [
+      "country"
+    ]
+  },
+  {
+    "name": "weekly_manpower",
+    "categories": [
+      "country",
+      "war_production"
+    ]
+  },
+  {
+    "name": "convoy_escort_efficiency",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "defensive"
+    ]
+  },
+  {
+    "name": "convoy_retreat_speed",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "defensive"
+    ]
+  },
+  {
+    "name": "local_intel_to_enemies",
+    "categories": [
+      "state",
+      "defensive"
+    ]
+  },
+  {
+    "name": "naval_retreat_chance",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "defensive"
+    ]
+  },
+  {
+    "name": "naval_retreat_chance_after_initial_combat",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "defensive"
+    ]
+  },
+  {
+    "name": "naval_retreat_speed",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "defensive"
+    ]
+  },
+  {
+    "name": "naval_retreat_speed_after_initial_combat",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "defensive"
+    ]
+  },
+  {
+    "name": "naval_torpedo_damage_reduction_factor",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "defensive"
+    ]
+  },
+  {
+    "name": "naval_torpedo_enemy_critical_chance_factor",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "defensive"
+    ]
+  },
+  {
+    "name": "navy_capital_ship_defence_factor",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "defensive"
+    ]
+  },
+  {
+    "name": "navy_capital_ship_defence_factor_against",
+    "categories": [
+      "naval",
+      "defensive"
+    ]
+  },
+  {
+    "name": "navy_screen_defence_factor",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "defensive"
+    ]
+  },
+  {
+    "name": "navy_screen_defence_factor_against",
+    "categories": [
+      "naval",
+      "defensive"
+    ]
+  },
+  {
+    "name": "navy_submarine_defence_factor",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "defensive"
+    ]
+  },
+  {
+    "name": "navy_submarine_defence_factor_against",
+    "categories": [
+      "naval",
+      "defensive"
+    ]
+  },
+  {
+    "name": "navy_submarine_detection_factor",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "defensive"
+    ]
+  },
+  {
+    "name": "puppet_cost_factor",
+    "categories": [
+      "peace",
+      "defensive"
+    ]
+  },
+  {
+    "name": "static_anti_air_damage_factor",
+    "categories": [
+      "defensive"
+    ]
+  },
+  {
+    "name": "static_anti_air_hit_chance_factor",
+    "categories": [
+      "defensive"
+    ]
+  },
+  {
+    "name": "sub_retreat_speed",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "defensive"
+    ]
+  },
+  {
+    "name": "faction_influence_contribution_factor",
+    "categories": [
+      "faction"
+    ]
+  },
+  {
+    "name": "faction_influence_war_score_factor",
+    "categories": [
+      "faction"
+    ]
+  },
+  {
+    "name": "faction_subject_contribution_gain",
+    "categories": [
+      "faction"
+    ]
+  },
+  {
+    "name": "dockyard_donations",
+    "categories": [
+      "government_in_exile"
+    ]
+  },
+  {
+    "name": "exile_manpower_factor",
+    "categories": [
+      "government_in_exile"
+    ]
+  },
+  {
+    "name": "industrial_factory_donations",
+    "categories": [
+      "government_in_exile"
+    ]
+  },
+  {
+    "name": "legitimacy_daily",
+    "categories": [
+      "government_in_exile"
+    ]
+  },
+  {
+    "name": "legitimacy_gain_factor",
+    "categories": [
+      "government_in_exile"
+    ]
+  },
+  {
+    "name": "military_factory_donations",
+    "categories": [
+      "government_in_exile"
+    ]
+  },
+  {
+    "name": "targeted_legitimacy_daily",
+    "categories": [
+      "government_in_exile"
+    ]
+  },
+  {
+    "name": "airforce_intel_decryption_bonus",
+    "categories": [
+      "intelligence_agency"
+    ]
+  },
+  {
+    "name": "airforce_intel_factor",
+    "categories": [
+      "intelligence_agency"
+    ]
+  },
+  {
+    "name": "army_intel_decryption_bonus",
+    "categories": [
+      "intelligence_agency"
+    ]
+  },
+  {
+    "name": "army_intel_factor",
+    "categories": [
+      "intelligence_agency"
+    ]
+  },
+  {
+    "name": "boost_ideology_mission_factor",
+    "categories": [
+      "intelligence_agency"
+    ]
+  },
+  {
+    "name": "boost_resistance_factor",
+    "categories": [
+      "intelligence_agency"
+    ]
+  },
+  {
+    "name": "civilian_intel_decryption_bonus",
+    "categories": [
+      "intelligence_agency"
+    ]
+  },
+  {
+    "name": "civilian_intel_factor",
+    "categories": [
+      "intelligence_agency"
+    ]
+  },
+  {
+    "name": "commando_trait_chance_factor",
+    "categories": [
+      "intelligence_agency"
+    ]
+  },
+  {
+    "name": "control_trade_mission_factor",
+    "categories": [
+      "intelligence_agency"
+    ]
+  },
+  {
+    "name": "crypto_department_enabled",
+    "categories": [
+      "intelligence_agency"
+    ]
+  },
+  {
+    "name": "crypto_strength",
+    "categories": [
+      "intelligence_agency"
+    ]
+  },
+  {
+    "name": "decryption_power",
+    "categories": [
+      "intelligence_agency"
+    ]
+  },
+  {
+    "name": "decryption_power_factor",
+    "categories": [
+      "intelligence_agency"
+    ]
+  },
+  {
+    "name": "defense_impact_on_blueprint_stealing",
+    "categories": [
+      "intelligence_agency"
+    ]
+  },
+  {
+    "name": "diplomatic_pressure_mission_factor",
+    "categories": [
+      "intelligence_agency"
+    ]
+  },
+  {
+    "name": "enemy_operative_recruitment_chance",
+    "categories": [
+      "intelligence_agency"
+    ]
+  },
+  {
+    "name": "intel_from_operatives_factor",
+    "categories": [
+      "intelligence_agency"
+    ]
+  },
+  {
+    "name": "intelligence_agency_defense",
+    "categories": [
+      "intelligence_agency"
+    ]
+  },
+  {
+    "name": "intelligence_operation_speed",
+    "categories": [
+      "intelligence_agency"
+    ]
+  },
+  {
+    "name": "navy_intel_decryption_bonus",
+    "categories": [
+      "intelligence_agency"
+    ]
+  },
+  {
+    "name": "navy_intel_factor",
+    "categories": [
+      "intelligence_agency"
+    ]
+  },
+  {
+    "name": "new_operative_slot_bonus",
+    "categories": [
+      "intelligence_agency"
+    ]
+  },
+  {
+    "name": "occupied_operative_recruitment_chance",
+    "categories": [
+      "intelligence_agency"
+    ]
+  },
+  {
+    "name": "operation_cost",
+    "categories": [
+      "intelligence_agency"
+    ]
+  },
+  {
+    "name": "operation_infiltrate_outcome",
+    "categories": [
+      "intelligence_agency"
+    ]
+  },
+  {
+    "name": "operation_outcome",
+    "categories": [
+      "intelligence_agency"
+    ]
+  },
+  {
+    "name": "operative_death_on_capture_chance",
+    "categories": [
+      "intelligence_agency"
+    ]
+  },
+  {
+    "name": "operative_slot",
+    "categories": [
+      "intelligence_agency"
+    ]
+  },
+  {
+    "name": "propaganda_mission_factor",
+    "categories": [
+      "intelligence_agency"
+    ]
+  },
+  {
+    "name": "root_out_resistance_effectiveness_factor",
+    "categories": [
+      "intelligence_agency"
+    ]
+  },
+  {
+    "name": "target_sabotage_factor",
+    "categories": [
+      "intelligence_agency"
+    ]
+  },
+  {
+    "name": "experience_gain_factor",
+    "categories": [
+      "unit_leader",
+      "military_advancements"
+    ]
+  },
+  {
+    "name": "experience_gain_navy",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "military_advancements"
+    ]
+  },
+  {
+    "name": "experience_gain_navy_factor",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "military_advancements"
+    ]
+  },
+  {
+    "name": "experience_gain_navy_unit",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "military_advancements"
+    ]
+  },
+  {
+    "name": "experience_gain_navy_unit_factor",
+    "categories": [
+      "naval",
+      "unit_leader",
+      "military_advancements"
+    ]
+  },
+  {
+    "name": "amphibious_invasion",
+    "categories": [
+      "naval",
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "amphibious_invasion_against",
+    "categories": [
+      "naval"
+    ]
+  },
+  {
+    "name": "amphibious_invasion_defence",
+    "categories": [
+      "naval",
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "headquarters_experience_gain_factor",
+    "categories": [
+      "naval"
+    ]
+  },
+  {
+    "name": "invasion_preparation",
+    "categories": [
+      "naval",
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "invasion_preparation_against",
+    "categories": [
+      "naval"
+    ]
+  },
+  {
+    "name": "max_organisation",
+    "categories": [
+      "naval"
+    ]
+  },
+  {
+    "name": "mines_planting_by_fleets_factor",
+    "categories": [
+      "naval"
+    ]
+  },
+  {
+    "name": "mines_sweeping_by_fleets_factor",
+    "categories": [
+      "naval"
+    ]
+  },
+  {
+    "name": "naval_accidents_chance",
+    "categories": [
+      "naval"
+    ]
+  },
+  {
+    "name": "naval_attrition",
+    "categories": [
+      "naval"
+    ]
+  },
+  {
+    "name": "naval_commando_raid_distance",
+    "categories": [
+      "naval"
+    ]
+  },
+  {
+    "name": "naval_coordination",
+    "categories": [
+      "naval",
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "naval_critical_effect_factor",
+    "categories": [
+      "naval",
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "naval_defense_factor",
+    "categories": [
+      "naval",
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "naval_detection",
+    "categories": [
+      "naval",
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "naval_enemy_retreat_chance",
+    "categories": [
+      "naval",
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "naval_hit_chance_against",
+    "categories": [
+      "naval"
+    ]
+  },
+  {
+    "name": "naval_invasion_capacity",
+    "categories": [
+      "naval"
+    ]
+  },
+  {
+    "name": "naval_invasion_division_cap",
+    "categories": [
+      "naval"
+    ]
+  },
+  {
+    "name": "naval_invasion_penalty",
+    "categories": [
+      "naval",
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "naval_mine_hit_chance",
+    "categories": [
+      "naval"
+    ]
+  },
+  {
+    "name": "naval_mines_damage_factor",
+    "categories": [
+      "naval"
+    ]
+  },
+  {
+    "name": "naval_mines_effect_reduction",
+    "categories": [
+      "naval"
+    ]
+  },
+  {
+    "name": "naval_mission_xp_factor",
+    "categories": [
+      "naval"
+    ]
+  },
+  {
+    "name": "naval_morale",
+    "categories": [
+      "naval",
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "naval_morale_factor",
+    "categories": [
+      "naval",
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "naval_ship_recovery_chance",
+    "categories": [
+      "naval"
+    ]
+  },
+  {
+    "name": "naval_ship_recovery_chance_factor",
+    "categories": [
+      "naval"
+    ]
+  },
+  {
+    "name": "naval_speed_factor",
+    "categories": [
+      "naval",
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "naval_torpedo_reveal_chance_factor",
+    "categories": [
+      "naval",
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "navy_advisor_cost_factor",
+    "categories": [
+      "naval"
+    ]
+  },
+  {
+    "name": "navy_anti_air_attack",
+    "categories": [
+      "naval",
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "navy_anti_air_attack_factor",
+    "categories": [
+      "naval",
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "navy_casualty_on_hit",
+    "categories": [
+      "naval"
+    ]
+  },
+  {
+    "name": "navy_casualty_on_sink",
+    "categories": [
+      "naval"
+    ]
+  },
+  {
+    "name": "navy_fuel_consumption_factor",
+    "categories": [
+      "naval"
+    ]
+  },
+  {
+    "name": "navy_max_range",
+    "categories": [
+      "naval",
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "navy_max_range_factor",
+    "categories": [
+      "naval",
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "navy_org",
+    "categories": [
+      "naval",
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "navy_org_factor",
+    "categories": [
+      "naval",
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "navy_visibility",
+    "categories": [
+      "naval"
+    ]
+  },
+  {
+    "name": "night_spotting_chance",
+    "categories": [
+      "naval"
+    ]
+  },
+  {
+    "name": "positioning",
+    "categories": [
+      "naval",
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "screening_efficiency",
+    "categories": [
+      "naval",
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "ships_at_battle_start",
+    "categories": [
+      "naval",
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "spotting_chance",
+    "categories": [
+      "naval",
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "spotting_chance_against",
+    "categories": [
+      "naval"
+    ]
+  },
+  {
+    "name": "transport_capacity",
+    "categories": [
+      "naval"
+    ]
+  },
+  {
+    "name": "peace_score_ratio_transferred_to_overlord",
+    "categories": [
+      "peace"
+    ]
+  },
+  {
+    "name": "peace_score_ratio_transferred_to_players",
+    "categories": [
+      "peace"
+    ]
+  },
+  {
+    "name": "drift_defence_factor",
+    "categories": [
+      "politics"
+    ]
+  },
+  {
+    "name": "master_ideology_drift",
+    "categories": [
+      "politics"
+    ]
+  },
+  {
+    "name": "enemy_intel_network_gain_factor_over_occupied_tag",
+    "categories": [
+      "state"
+    ]
+  },
+  {
+    "name": "enemy_local_supplies",
+    "categories": [
+      "state",
+      "war_production"
+    ]
+  },
+  {
+    "name": "enemy_truck_attrition_factor",
+    "categories": [
+      "state"
+    ]
+  },
+  {
+    "name": "equipment_capture_factor_for_controller",
+    "categories": [
+      "state"
+    ]
+  },
+  {
+    "name": "equipment_capture_for_controller",
+    "categories": [
+      "state"
+    ]
+  },
+  {
+    "name": "local_building_slots",
+    "categories": [
+      "state",
+      "war_production"
+    ]
+  },
+  {
+    "name": "local_building_slots_factor",
+    "categories": [
+      "state",
+      "war_production"
+    ]
+  },
+  {
+    "name": "local_factories",
+    "categories": [
+      "state",
+      "war_production"
+    ]
+  },
+  {
+    "name": "local_factory_energy_consumption",
+    "categories": [
+      "state"
+    ]
+  },
+  {
+    "name": "local_factory_sabotage",
+    "categories": [
+      "state"
+    ]
+  },
+  {
+    "name": "local_manpower",
+    "categories": [
+      "state",
+      "war_production"
+    ]
+  },
+  {
+    "name": "local_non_core_manpower",
+    "categories": [
+      "state",
+      "war_production"
+    ]
+  },
+  {
+    "name": "local_non_core_supply_impact_factor",
+    "categories": [
+      "state"
+    ]
+  },
+  {
+    "name": "local_resources",
+    "categories": [
+      "state",
+      "war_production"
+    ]
+  },
+  {
+    "name": "local_resources_factor",
+    "categories": [
+      "state",
+      "war_production"
+    ]
+  },
+  {
+    "name": "local_supplies",
+    "categories": [
+      "state",
+      "war_production"
+    ]
+  },
+  {
+    "name": "local_supplies_for_controller",
+    "categories": [
+      "state",
+      "war_production"
+    ]
+  },
+  {
+    "name": "local_supply_impact_factor",
+    "categories": [
+      "state"
+    ]
+  },
+  {
+    "name": "mobilization_speed",
+    "categories": [
+      "state",
+      "war_production"
+    ]
+  },
+  {
+    "name": "non_core_manpower",
+    "categories": [
+      "state",
+      "war_production"
+    ]
+  },
+  {
+    "name": "recruitable_population",
+    "categories": [
+      "state"
+    ]
+  },
+  {
+    "name": "recruitable_population_factor",
+    "categories": [
+      "state"
+    ]
+  },
+  {
+    "name": "state_production_speed_buildings_factor",
+    "categories": [
+      "state",
+      "war_production"
+    ]
+  },
+  {
+    "name": "state_production_speed_facility_factor",
+    "categories": [
+      "state"
+    ]
+  },
+  {
+    "name": "state_resources_factor",
+    "categories": [
+      "state",
+      "war_production"
+    ]
+  },
+  {
+    "name": "army_leader_cost_factor",
+    "categories": [
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "army_leader_start_attack_level",
+    "categories": [
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "army_leader_start_defense_level",
+    "categories": [
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "army_leader_start_level",
+    "categories": [
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "army_leader_start_logistics_level",
+    "categories": [
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "army_leader_start_planning_level",
+    "categories": [
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "cannot_use_abilities",
+    "categories": [
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "exiled_divisions_attack_factor",
+    "categories": [
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "exiled_divisions_defense_factor",
+    "categories": [
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "fortification_collateral_chance",
+    "categories": [
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "fortification_damage",
+    "categories": [
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "max_army_group_size",
+    "categories": [
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "military_leader_cost_factor",
+    "categories": [
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "naval_invasion_prep_speed",
+    "categories": [
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "navy_leader_cost_factor",
+    "categories": [
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "navy_leader_start_attack_level",
+    "categories": [
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "navy_leader_start_coordination_level",
+    "categories": [
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "navy_leader_start_defense_level",
+    "categories": [
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "navy_leader_start_level",
+    "categories": [
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "navy_leader_start_maneuvering_level",
+    "categories": [
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "own_exiled_divisions_attack_factor",
+    "categories": [
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "own_exiled_divisions_defense_factor",
+    "categories": [
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "promote_cost_factor",
+    "categories": [
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "reassignment_duration_factor",
+    "categories": [
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "river_crossing_factor",
+    "categories": [
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "sickness_chance",
+    "categories": [
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "skill_bonus_factor",
+    "categories": [
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "wounded_chance_factor",
+    "categories": [
+      "unit_leader"
+    ]
+  },
+  {
+    "name": "military_industrial_organization_design_team_assign_cost",
+    "categories": [
+      "war_production"
+    ]
+  },
+  {
+    "name": "military_industrial_organization_design_team_change_cost",
+    "categories": [
+      "war_production"
+    ]
+  },
+  {
+    "name": "military_industrial_organization_funds_gain",
+    "categories": [
+      "war_production"
+    ]
+  },
+  {
+    "name": "military_industrial_organization_industrial_manufacturer_assign_cost",
+    "categories": [
+      "war_production"
+    ]
+  },
+  {
+    "name": "military_industrial_organization_policy_cooldown",
+    "categories": [
+      "war_production"
+    ]
+  },
+  {
+    "name": "military_industrial_organization_policy_cost",
+    "categories": [
+      "war_production"
+    ]
+  },
+  {
+    "name": "military_industrial_organization_research_bonus",
+    "categories": [
+      "war_production"
+    ]
+  },
+  {
+    "name": "military_industrial_organization_size_up_requirement",
+    "categories": [
+      "war_production"
+    ]
+  },
+  {
+    "name": "military_industrial_organization_task_capacity",
+    "categories": [
+      "war_production"
+    ]
+  }
+]

@@ -1,0 +1,266 @@
+enums = {
+	enum[dlc] = {
+		"Poland: United and Ready"
+		"Together for Victory"
+		"Axis Armor Pack"
+		"Death or Dishonor"
+		"Waking the Tiger"
+		"Man the Guns"
+		"La Resistance"
+		"Battle for the Bosporus"
+		"No Step Back"
+		"By Blood Alone"
+		"Arms Against Tyranny"
+		"Trial of Allegiance"
+		"Gotterdammerung"
+		"Graveyard of Empires"
+		"Expansion Pass 1: Supporter Pack"
+		"No Compromise, No Surrender"
+	}
+
+	enum[tech_bonus] = {
+		bonus
+		ahead_reduction
+	}
+
+	enum[gender] = {
+		male
+		female
+	}
+
+	enum[diplomatic_relations] = {
+		non_aggression_pact
+		guarantee
+		puppet
+		military_access
+		offer_military_access
+		docking_rights
+		offer_docking_rights
+		declare_war
+		join_allies
+		call_allies
+		improve_relation
+		befriend
+		market_access_rights
+		embargo
+		create_faction
+		offer_join_faction
+		join_faction
+		request_access_to_licence_production
+		send_volunteers
+		give_state_control
+		air_base_access
+		lend_lease
+		incoming_lend_lease
+	}
+
+	enum[add_factor] = {
+		add
+		factor
+	}
+
+	enum[base_factor] = {
+		base
+		factor
+	}
+
+	enum[naval_missions] = {
+		"MISSION_TRAINING"
+		"MISSION_PATROL"
+		"MISSION_STRIKE_FORCE"
+		"MISSION_CONVOY_ESCORT"
+		"MISSION_CONVOY_RAIDING"
+		"MISSION_MINES_PLANTING"
+		"MISSION_MINES_SWEEPING"
+	}
+
+	enum[equipment_categories] = {
+		naval
+		land
+		air
+	}
+
+	enum[experience_types] = {
+		army
+		navy
+		air
+	}
+
+	enum[command_cap_increase] = {
+		@tier1_cp_cap_increase
+		@tier2_cp_cap_increase
+		@tier3_cp_cap_increase
+	}
+
+	enum[command_power_cost] = {
+		@tier1_cp_cost
+		@tier2_cp_cost
+		@tier3_cp_cost
+	}
+
+	enum[md_unique_dupe_archetypes] = {
+		# TODO: We need to create a system for validating the unique type of airframes. MD uses this in our plane designer where a sub category can be a different version i.e. small_plane_strike_airframe_1
+		small_plane_airframe_0
+		small_plane_airframe_1
+		small_plane_airframe_2
+		small_plane_airframe_3
+		small_plane_airframe_4
+		cv_small_plane_airframe_0
+		cv_small_plane_airframe_1
+		cv_small_plane_airframe_2
+		cv_small_plane_airframe_3
+		cv_small_plane_airframe_4
+		small_plane_cas_airframe_0
+		small_plane_cas_airframe_1
+		small_plane_cas_airframe_2
+		small_plane_cas_airframe_3
+		small_plane_cas_airframe_4
+		cv_small_plane_cas_airframe_0
+		cv_small_plane_cas_airframe_1
+		cv_small_plane_cas_airframe_2
+		cv_small_plane_cas_airframe_3
+		cv_small_plane_cas_airframe_4
+		small_plane_naval_bomber_airframe_0
+		small_plane_naval_bomber_airframe_1
+		small_plane_naval_bomber_airframe_2
+		small_plane_naval_bomber_airframe_3
+		small_plane_naval_bomber_airframe_4
+		cv_small_plane_naval_bomber_airframe_0
+		cv_small_plane_naval_bomber_airframe_1
+		cv_small_plane_naval_bomber_airframe_2
+		cv_small_plane_naval_bomber_airframe_3
+		cv_small_plane_naval_bomber_airframe_4
+		small_plane_suicide_airframe
+		small_plane_suicide_airframe_0
+		small_plane_suicide_airframe_1
+		small_plane_suicide_airframe_2
+		small_plane_suicide_airframe_3
+		small_plane_suicide_airframe_4
+		small_plane_strike_airframe
+		small_plane_strike_airframe_0
+		small_plane_strike_airframe_1
+		small_plane_strike_airframe_2
+		small_plane_strike_airframe_3
+		small_plane_strike_airframe_4
+		cv_small_plane_strike_airframe
+		cv_small_plane_strike_airframe_0
+		cv_small_plane_strike_airframe_1
+		cv_small_plane_strike_airframe_2
+		cv_small_plane_strike_airframe_3
+		cv_small_plane_strike_airframe_4
+		cv_small_plane_suicide_airframe
+		cv_small_plane_suicide_airframe_0
+		cv_small_plane_suicide_airframe_1
+		cv_small_plane_suicide_airframe_2
+		cv_small_plane_suicide_airframe_3
+		cv_small_plane_suicide_airframe_4
+		medium_plane_airframe_0
+		medium_plane_airframe_1
+		medium_plane_airframe_2
+		medium_plane_airframe_3
+		medium_plane_airframe_4
+		medium_plane_fighter_airframe_0
+		medium_plane_fighter_airframe_1
+		medium_plane_fighter_airframe_2
+		medium_plane_fighter_airframe_3
+		medium_plane_fighter_airframe_4
+		medium_plane_cas_airframe
+		medium_plane_cas_airframe_0
+		medium_plane_cas_airframe_1
+		medium_plane_cas_airframe_2
+		medium_plane_cas_airframe_3
+		medium_plane_cas_airframe_4
+		cv_medium_plane_cas_airframe
+		cv_medium_plane_cas_airframe_0
+		cv_medium_plane_cas_airframe_1
+		cv_medium_plane_cas_airframe_2
+		cv_medium_plane_cas_airframe_3
+		cv_medium_plane_cas_airframe_4
+		medium_plane_suicide_airframe
+		medium_plane_suicide_airframe_0
+		medium_plane_suicide_airframe_1
+		medium_plane_suicide_airframe_2
+		medium_plane_suicide_airframe_3
+		medium_plane_suicide_airframe_4
+		medium_plane_maritime_patrol_airframe
+		medium_plane_maritime_patrol_airframe_0
+		medium_plane_maritime_patrol_airframe_1
+		medium_plane_maritime_patrol_airframe_2
+		medium_plane_maritime_patrol_airframe_3
+		medium_plane_maritime_patrol_airframe_4
+		medium_plane_air_transport_airframe
+		medium_plane_air_transport_airframe_0
+		medium_plane_air_transport_airframe_1
+		medium_plane_air_transport_airframe_2
+		medium_plane_air_transport_airframe_3
+		medium_plane_air_transport_airframe_4
+		cv_medium_plane_scout_airframe
+		cv_medium_plane_scout_airframe_0
+		cv_medium_plane_scout_airframe_1
+		cv_medium_plane_scout_airframe_2
+		cv_medium_plane_scout_airframe_3
+		cv_medium_plane_scout_airframe_4
+		cv_medium_plane_maritime_patrol_airframe
+		cv_medium_plane_maritime_patrol_airframe_0
+		cv_medium_plane_maritime_patrol_airframe_1
+		cv_medium_plane_maritime_patrol_airframe_2
+		cv_medium_plane_maritime_patrol_airframe_3
+		cv_medium_plane_maritime_patrol_airframe_4
+		cv_medium_plane_air_transport_airframe
+		cv_medium_plane_air_transport_airframe_0
+		cv_medium_plane_air_transport_airframe_1
+		cv_medium_plane_air_transport_airframe_2
+		cv_medium_plane_air_transport_airframe_3
+		cv_medium_plane_air_transport_airframe_4
+		cv_medium_plane_fighter_airframe
+		cv_medium_plane_fighter_airframe_0
+		cv_medium_plane_fighter_airframe_1
+		cv_medium_plane_fighter_airframe_2
+		cv_medium_plane_fighter_airframe_3
+		cv_medium_plane_fighter_airframe_4
+		cv_medium_plane_airframe
+		cv_medium_plane_airframe_0
+		cv_medium_plane_airframe_1
+		cv_medium_plane_airframe_2
+		cv_medium_plane_airframe_3
+		cv_medium_plane_airframe_4
+		large_plane_airframe_0
+		large_plane_airframe_1
+		large_plane_airframe_2
+		large_plane_airframe_3
+		large_plane_airframe_4
+		large_plane_air_transport_airframe
+		large_plane_air_transport_airframe_0
+		large_plane_air_transport_airframe_1
+		large_plane_air_transport_airframe_2
+		large_plane_air_transport_airframe_3
+		large_plane_air_transport_airframe_4
+		large_plane_awacs_airframe
+		large_plane_awacs_airframe_0
+		large_plane_awacs_airframe_1
+		large_plane_awacs_airframe_2
+		large_plane_awacs_airframe_3
+		large_plane_awacs_airframe_4
+		large_plane_maritime_patrol_airframe
+		large_plane_maritime_patrol_airframe_0
+		large_plane_maritime_patrol_airframe_1
+		large_plane_maritime_patrol_airframe_2
+		large_plane_maritime_patrol_airframe_3
+		large_plane_maritime_patrol_airframe_4
+		large_plane_cas_airframe
+		large_plane_cas_airframe_0
+		large_plane_cas_airframe_1
+		large_plane_cas_airframe_2
+		large_plane_cas_airframe_3
+		large_plane_cas_airframe_4
+	}
+
+	enum[country_scope_enum] = {
+		THIS
+		ROOT
+		FROM
+		PREV
+		FROM.FROM
+		FROM.FROM.FROM
+	}
+}

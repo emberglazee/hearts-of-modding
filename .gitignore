@@ -11,6 +11,7 @@ yarn-error.log*
 # Rust
 target/
 **/*.rs.bk
+client/server-bin/
 # Cargo.lock # Usually keep for binaries, but can ignore if preferred
 
 # VS Code

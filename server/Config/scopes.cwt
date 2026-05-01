@@ -1,0 +1,161 @@
+alias[trigger:scope_field] = { alias_name[trigger] = alias_match_left[trigger] }
+
+## scope = country
+## push_scope = country
+alias[trigger:OVERLORD] = { alias_name[trigger] = alias_match_left[trigger] }
+
+
+## scope = country
+## push_scope = state
+alias[trigger:capital_scope] = { alias_name[trigger] = alias_match_left[trigger] }
+
+## scope = country
+## push_scope = state
+alias[trigger:THIS.capital_scope] = { alias_name[trigger] = alias_match_left[trigger] }
+
+## scope = country
+## push_scope = state
+alias[trigger:FROM.capital_scope] = { alias_name[trigger] = alias_match_left[trigger] }
+
+## scope = country
+## push_scope = state
+alias[trigger:ROOT.capital_scope] = { alias_name[trigger] = alias_match_left[trigger] }
+
+## scope = country
+## push_scope = state
+alias[trigger:PREV.capital_scope] = { alias_name[trigger] = alias_match_left[trigger] }
+
+alias[effect:scope_field] = { alias_name[effect] = alias_match_left[effect] }
+
+alias[trigger:NOT] = {
+	alias_name[trigger] = alias_match_left[trigger]
+}
+
+#NOR and NAND are not available for use in HoI4; well NOR is, but that's Norway's TAG in base game
+#alias[trigger:NOR] = { alias_name[trigger] = alias_match_left[trigger] }
+#alias[trigger:NAND] = { alias_name[trigger] = alias_match_left[trigger] }
+alias[trigger:AND] = { alias_name[trigger] = alias_match_left[trigger] }
+alias[trigger:OR] = { alias_name[trigger] = alias_match_left[trigger] }
+
+alias[effect:NOT] = {
+	alias_name[effect] = alias_match_left[effect]
+}
+
+#NOR and NAND are not available for use in HoI4; well NOR is, but that's Norway's TAG in base game
+#alias[effect:NOR] = { alias_name[effect] = alias_match_left[effect] }
+#alias[effect:NAND] = { alias_name[effect] = alias_match_left[effect] }
+alias[effect:AND] = { alias_name[effect] = alias_match_left[effect] }
+alias[effect:OR] = { alias_name[effect] = alias_match_left[effect] }
+
+## scope = country
+## push_scope = country
+alias[effect:OVERLORD] = { alias_name[effect] = alias_match_left[effect] }
+## scope = state
+## push_scope = country
+alias[effect:CONTROLLER] = { alias_name[effect] = alias_match_left[effect] }
+
+## scope = country
+## push_scope = state
+alias[effect:capital_scope] = { alias_name[effect] = alias_match_left[effect] }
+
+## scope = country
+## push_scope = state
+alias[effect:THIS.capital_scope] = { alias_name[effect] = alias_match_left[effect] }
+
+## scope = country
+## push_scope = state
+alias[effect:FROM.capital_scope] = { alias_name[effect] = alias_match_left[effect] }
+
+## scope = country
+## push_scope = state
+alias[effect:ROOT.capital_scope] = { alias_name[effect] = alias_match_left[effect] }
+
+## scope = country
+## push_scope = state
+alias[effect:PREV.capital_scope] = { alias_name[effect] = alias_match_left[effect] }
+
+scopes = {
+	Country = {
+		aliases = { country }
+	}
+	State = {
+		aliases = { state }
+	}
+	Character = {
+		aliases = { character }
+		is_subscope_of = { country }
+	}
+	"Unit Leader" = {
+		aliases = { unit_leader unitleader }
+	}
+	Operative = {
+		aliases = { operative }
+	}
+	Combat = {
+		aliases = { combat }
+	}
+	Air = {
+		aliases = { air }
+	}
+	Aggressive = {
+		aliases = { aggressive }
+	}
+	Ai = {
+		aliases = { ai }
+	}
+	Army = {
+		aliases = { army }
+	}
+	Autonomy = {
+		aliases = { autonomy }
+	}
+	Defensive = {
+		aliases = { defensive }
+	}
+	Faction = {
+		aliases = { faction }
+	}
+	"Government in Exile" = {
+		aliases = { government_in_exile }
+	}
+	"Intelligence Agency" = {
+		aliases = { intelligence_agency }
+	}
+	"Military Advancements" = {
+		aliases = { military_advancements }
+	}
+	"Military Industrial Organizations" = {
+		aliases = { military_industrial_organization }
+	}
+	Naval = {
+		aliases = { naval }
+	}
+	Peace = {
+		aliases = { peace }
+	}
+	Politics = {
+		aliases = { politics }
+	}
+	"Purchase Contract" = {
+		aliases = { purchase_contract }
+	}
+	"War Production" = {
+		aliases = { war_production }
+	}
+	Operation = {
+		aliases = { operation }
+		is_subscope_of = { country }
+	}
+	Invalid = {
+		aliases = { invalid InvalidScope }
+	}
+	Unit = {
+		aliases = { unit }
+	}
+	Raid = {
+		aliases = { raid_instance raid }
+	}
+	"Special Project" = {
+		aliases = { special_project project }
+	}
+}
