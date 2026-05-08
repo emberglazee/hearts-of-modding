@@ -20,7 +20,7 @@ pub enum Value {
     Number(f64),
     Boolean(bool),
     Block(Vec<Entry>),
-    TaggedBlock(String, Vec<Entry>),
+    TaggedBlock(String, Vec<Entry>, Range),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -47,6 +47,14 @@ pub enum Entry {
     Assignment(Assignment),
     Value(NodeedValue),
     Comment(String, Range),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum DiagnosticSeverity {
+    Error,
+    Warning,
+    Information,
+    Hint,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

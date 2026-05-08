@@ -68,7 +68,7 @@ fn find_traits_in_entries(entries: &[ast::Entry], file_path: &str, trait_type: &
                     ast::Value::Block(inner_entries) => {
                         find_traits_in_entries(inner_entries, file_path, trait_type, map);
                     }
-                    ast::Value::TaggedBlock(_, inner_entries) => {
+                    ast::Value::TaggedBlock(_, inner_entries, _) => {
                         find_traits_in_entries(inner_entries, file_path, trait_type, map);
                     }
                     _ => {}

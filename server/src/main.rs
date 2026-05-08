@@ -13,6 +13,8 @@ mod variable_scanner;
 mod province_scanner;
 mod modifier_scanner;
 mod event_scanner;
+mod music_scanner;
+mod sound_scanner;
 mod schema;
 
 use tower_lsp::jsonrpc::Result;
@@ -47,10 +49,19 @@ struct Backend {
     provinces: Arc<RwLock<HashSet<u32>>>,
     custom_modifiers: Arc<RwLock<HashMap<String, modifier_scanner::Modifier>>>,
     modifier_mappings: Arc<RwLock<HashMap<String, String>>>,
+    modifier_formats: Arc<RwLock<HashMap<String, String>>>,
     events: Arc<RwLock<HashMap<String, event_scanner::Event>>>,
+    music_assets: Arc<RwLock<HashMap<String, music_scanner::MusicAsset>>>,
+    music_stations: Arc<RwLock<HashMap<String, music_scanner::MusicStation>>>,
+    songs: Arc<RwLock<HashMap<String, music_scanner::Song>>>,
+    sounds: Arc<RwLock<HashMap<String, sound_scanner::Sound>>>,
+    sound_effects: Arc<RwLock<HashMap<String, sound_scanner::SoundEffect>>>,
+    falloffs: Arc<RwLock<HashMap<String, sound_scanner::Falloff>>>,
+    sound_categories: Arc<RwLock<HashMap<String, sound_scanner::SoundCategory>>>,
     ignored_loc_regex: Arc<RwLock<Vec<regex::Regex>>>,
     schema: Arc<RwLock<schema::Schema>>,
     styling_enabled: Arc<RwLock<bool>>,
+    cosmetic_loc_indent: Arc<RwLock<bool>>,
     game_path: Arc<RwLock<Option<String>>>,
 }
 
@@ -79,6 +90,10 @@ impl LanguageServer for Backend {
             if let Some(enabled) = options.get("stylingEnabled").and_then(|v| v.as_bool()) {
                 let mut st = self.styling_enabled.write().await;
                 *st = enabled;
+            }
+            if let Some(enabled) = options.get("cosmeticLocIndent").and_then(|v| v.as_bool()) {
+                let mut ci = self.cosmetic_loc_indent.write().await;
+                *ci = enabled;
             }
         }
         Ok(InitializeResult {
@@ -114,11 +129,20 @@ impl LanguageServer for Backend {
                 color_provider: Some(ColorProviderCapability::Simple(true)),
                 completion_provider: Some(CompletionOptions {
                     resolve_provider: Some(true),
-                    trigger_characters: Some(vec!["=".to_string(), "{".to_string()]),
+                    trigger_characters: Some(vec![
+                        "=".to_string(),
+                        "{".to_string(),
+                        "[".to_string(),
+                        ".".to_string(),
+                    ]),
                     ..Default::default()
                 }),
+                document_formatting_provider: Some(OneOf::Left(true)),
                 execute_command_provider: Some(ExecuteCommandOptions {
-                    commands: vec!["hoi4.getEventGraph".to_string()],
+                    commands: vec![
+                        "hoi4.getEventGraph".to_string(),
+                        "hoi4/getMemoryUsage".to_string(),
+                    ],
                     ..Default::default()
                 }),
                 ..Default::default()
@@ -151,6 +175,8 @@ impl LanguageServer for Backend {
             self.scan_provinces(&roots),
             self.scan_modifiers(&roots),
             self.scan_events(&roots),
+            self.scan_music(&roots),
+            self.scan_sounds(&roots),
         );
 
         // Re-validate all open documents now that we have all data
@@ -182,6 +208,10 @@ impl LanguageServer for Backend {
                     if let Some(enabled) = styling.get("enabled").and_then(|v| v.as_bool()) {
                         let mut st = self.styling_enabled.write().await;
                         *st = enabled;
+                    }
+                    if let Some(enabled) = styling.get("cosmeticLocalizationIndentation").and_then(|v| v.as_bool()) {
+                        let mut ci = self.cosmetic_loc_indent.write().await;
+                        *ci = enabled;
                     }
                 }
                 // Re-validate all documents
@@ -253,14 +283,78 @@ impl LanguageServer for Backend {
         }])
     }
 
+    async fn formatting(
+        &self,
+        params: DocumentFormattingParams,
+    ) -> Result<Option<Vec<TextEdit>>> {
+        let uri = params.text_document.uri.to_string();
+        if let Some(content) = self.documents.get(&uri) {
+            if uri.ends_with(".yml") {
+                let cosmetic_indent = *self.cosmetic_loc_indent.read().await;
+                let formatted = loc_parser::format_loc_file(&content, cosmetic_indent);
+                let full_range = Range {
+                    start: Position { line: 0, character: 0 },
+                    end: Position {
+                        line: content.lines().count() as u32,
+                        character: content.lines().last().unwrap_or("").len() as u32,
+                    },
+                };
+                return Ok(Some(vec![TextEdit {
+                    range: full_range,
+                    new_text: formatted,
+                }]));
+            }
+        }
+        Ok(None)
+    }
+
     async fn hover(&self, params: HoverParams) -> Result<Option<Hover>> {
         let uri = params.text_document_position_params.text_document.uri.to_string();
         let position = params.text_document_position_params.position;
 
         if let Some(content) = self.documents.get(&uri) {
+            if uri.ends_with(".yml") {
+                 let (locs, _) = loc_parser::parse_loc_file(&content, &uri);
+                 let global_loc = self.localization.read().await;
+                 for entry in locs.values() {
+                     // Check key
+                     if position.line == entry.range.start_line && position.character >= entry.range.start_col && position.character <= entry.range.end_col {
+                         let mut hover_text = format!("### 🌐 Localization: {}\n\n", entry.key);
+                         hover_text.push_str(&format!("**Raw:** `{}`\n\n", entry.value));
+                         hover_text.push_str("**Preview:**\n\n");
+                         hover_text.push_str(&paradox_to_markdown(&entry.value, Some(&global_loc)));
+                         
+                         return Ok(Some(Hover {
+                             contents: HoverContents::Markup(MarkupContent {
+                                 kind: MarkupKind::Markdown,
+                                 value: hover_text,
+                             }),
+                             range: Some(ast_range_to_lsp(&entry.range)),
+                         }));
+                     }
+                     // Check value
+                     if position.line == entry.range.start_line && position.character >= entry.value_start_col && position.character <= entry.value_start_col + entry.value.len() as u32 {
+                         let mut hover_text = format!("### 👁️ Localization Preview\n\n");
+                         hover_text.push_str(&paradox_to_markdown(&entry.value, Some(&global_loc)));
+                         
+                         return Ok(Some(Hover {
+                             contents: HoverContents::Markup(MarkupContent {
+                                 kind: MarkupKind::Markdown,
+                                 value: hover_text,
+                             }),
+                             range: Some(Range {
+                                 start: Position { line: entry.range.start_line, character: entry.value_start_col },
+                                 end: Position { line: entry.range.start_line, character: entry.value_start_col + entry.value.len() as u32 },
+                             }),
+                         }));
+                     }
+                 }
+                 return Ok(None);
+            }
+
             if let Ok(script) = parser::parse_script(&content) {
                 let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
-                if let Some((identifier, final_scopes)) = find_identifier_at(&script, position, &mut scope_stack) {
+                if let Some((identifier, final_scopes, assigned_value)) = find_identifier_at(&script, position, &mut scope_stack) {
                     let mut hover_text = String::new();
                     
                     fn push_section(full_text: &mut String, section: &str) {
@@ -271,51 +365,58 @@ impl LanguageServer for Backend {
                     }
 
                     // Show scope stack
-                    let mut scope_text = String::from("### Scope Stack\n");
+                    let is_music = final_scopes.iter().any(|s| *s == scope::Scope::MusicTrack || *s == scope::Scope::MusicStation);
+                    let mut scope_text = String::from(if is_music { "### 🎵 Music Definition Stack\n" } else { "### 🔍 Scope Stack\n" });
                     for (i, s) in final_scopes.iter().enumerate() {
                         if i > 0 { scope_text.push_str(" > "); }
                         scope_text.push_str(s.as_str());
                     }
                     push_section(&mut hover_text, &scope_text);
 
-                    // Check triggers/effects
-                    let schema = futures::executor::block_on(self.schema.read());
-                    if let Some(rule) = schema.triggers.get(&identifier).or_else(|| schema.effects.get(&identifier)) {
-                        let mut text = format!("### Rule: {}\n", identifier);
+                    // Check triggers/effects/links
+                    let schema = self.schema.read().await;
+                    if let Some(rule) = schema.triggers.get(&identifier).or_else(|| schema.effects.get(&identifier)).or_else(|| schema.links.get(&identifier)) {
+                        let mut text = format!("### 📜 Rule: {}\n", identifier);
                         if let Some(desc) = &rule.description {
                             text.push_str(&format!("\n{}\n", desc));
                         }
                         text.push_str(&format!("\nExpected Value: `{:?}`", rule.value_type));
                         push_section(&mut hover_text, &text);
-                    } else if let Some(entity) = TRIGGERS.get(identifier.as_str()).or_else(|| EFFECTS.get(identifier.as_str())) {
-                        push_section(&mut hover_text, entity.description);
+                    } else if let Some(entity) = TRIGGERS.get(identifier.as_str()) {
+                        push_section(&mut hover_text, &format!("### 🔍 Trigger: {}\n\n{}", entity.name, entity.description));
+                    } else if let Some(entity) = EFFECTS.get(identifier.as_str()) {
+                        push_section(&mut hover_text, &format!("### ⚡ Effect: {}\n\n{}", entity.name, entity.description));
                     } else if SCOPES.contains(&identifier.to_uppercase().as_str()) {
-                         push_section(&mut hover_text, &format!("### Scope: {}\n\nStandard Paradox scope.", identifier.to_uppercase()));
+                         push_section(&mut hover_text, &format!("### 🎯 Scope: {}\n\nStandard Paradox scope.", identifier.to_uppercase()));
                     } else if LOC_COMMANDS.contains(&identifier.as_str()) {
-                         push_section(&mut hover_text, &format!("### Localization Command: {}\n\nStandard localization command.", identifier));
-                    } else {
-                        // Check localization
-                        let loc = self.localization.read().await;
-                        // Try exact match first, then try keys starting with ID:
-                        let entry = loc.get(&identifier).or_else(|| {
-                            // Find any key that starts with "identifier:"
-                            let target = format!("{}:", identifier);
-                            loc.iter().find(|(k, _)| k.starts_with(&target)).map(|(_, e)| e)
-                        });
+                         push_section(&mut hover_text, &format!("### 🛠️ Localization Command: {}\n\nStandard localization command.", identifier));
+                    } 
+                    
+                    // Check localization
+                    let loc = self.localization.read().await;
+                    // Try exact match first, then try keys starting with ID:
+                    let entry = loc.get(&identifier).or_else(|| {
+                        // Find any key that starts with "identifier:"
+                        let target = format!("{}:", identifier);
+                        loc.iter().find(|(k, _)| k.starts_with(&target)).map(|(_, e)| e)
+                    });
 
-                        if let Some(e) = entry {
-                            push_section(&mut hover_text, &format!("**Localization:**\n\n{}", e.value));
+                    if let Some(e) = entry {
+                        let mut text = format!("### 🌐 Localization: {}\n\n", e.key);
+                        text.push_str(&format!("**Raw:** `{}`\n\n", e.value));
+                        text.push_str("**Preview:**\n\n");
+                        text.push_str(&paradox_to_markdown(&e.value, Some(&loc)));
+                        push_section(&mut hover_text, &text);
+                    } else {
+                        // Check scripted triggers
+                        let st = self.scripted_triggers.read().await;
+                        if let Some(entity) = st.get(&identifier) {
+                            push_section(&mut hover_text, &format!("### 📜 Scripted Trigger: {}\n\nDefined in: {}", identifier, self.make_file_link(&entity.path)));
                         } else {
-                            // Check scripted triggers
-                            let st = self.scripted_triggers.read().await;
-                            if let Some(entity) = st.get(&identifier) {
-                                push_section(&mut hover_text, &format!("**Scripted Trigger**\n\nDefined in: {}", self.make_file_link(&entity.path)));
-                            } else {
-                                // Check scripted effects
-                                let se = self.scripted_effects.read().await;
-                                if let Some(entity) = se.get(&identifier) {
-                                    push_section(&mut hover_text, &format!("**Scripted Effect**\n\nDefined in: {}", self.make_file_link(&entity.path)));
-                                }
+                            // Check scripted effects
+                            let se = self.scripted_effects.read().await;
+                            if let Some(entity) = se.get(&identifier) {
+                                push_section(&mut hover_text, &format!("### 🛠️ Scripted Effect: {}\n\nDefined in: {}", identifier, self.make_file_link(&entity.path)));
                             }
                         }
                     }
@@ -323,21 +424,21 @@ impl LanguageServer for Backend {
                     // Check ideologies
                     let id_map = self.ideologies.read().await;
                     if let Some(ideology) = id_map.get(&identifier) {
-                        push_section(&mut hover_text, &format!("### Ideology: {}\n\nDefined in: {}\n\nSub-ideologies: {}", 
+                        push_section(&mut hover_text, &format!("### 🗳️ Ideology: {}\n\nDefined in: {}\n\nSub-ideologies: {}", 
                             ideology.name, self.make_file_link(&ideology.path), ideology.sub_ideologies.join(", ")));
                     }
 
                     // Check sub-ideologies
                     let sid_map = self.sub_ideologies.read().await;
                     if let Some((parent, _, path)) = sid_map.get(&identifier) {
-                        push_section(&mut hover_text, &format!("### Sub-Ideology: {}\n\nParent Ideology: `{}`\n\nDefined in: {}", 
+                        push_section(&mut hover_text, &format!("### 🗳️ Sub-Ideology: {}\n\nParent Ideology: `{}`\n\nDefined in: {}", 
                             identifier, parent, self.make_file_link(path)));
                     }
 
                     // Check traits
                     let t_map = self.traits.read().await;
                     if let Some(trait_info) = t_map.get(&identifier) {
-                        push_section(&mut hover_text, &format!("### Trait: {}\n\nType: `{}`\n\nDefined in: {}", 
+                        push_section(&mut hover_text, &format!("### 🎖️ Trait: {}\n\nType: `{}`\n\nDefined in: {}", 
                             trait_info.name, trait_info.trait_type, self.make_file_link(&trait_info.path)));
                     }
 
@@ -359,14 +460,14 @@ impl LanguageServer for Backend {
                             root = r.parent();
                         }
 
-                        push_section(&mut hover_text, &format!("### Sprite: {}\n\nTexture: {}\n\nDefined in: {}", 
+                        push_section(&mut hover_text, &format!("### 🖼️ Sprite: {}\n\nTexture: {}\n\nDefined in: {}", 
                             sprite.name, texture_link, self.make_file_link(&sprite.path)));
                     }
 
                     // Check events
                     let e_map = self.events.read().await;
                     if let Some(event) = e_map.get(&identifier) {
-                        push_section(&mut hover_text, &format!("### Event: {}\n\nType: `{}`\n\nDefined in: {}\n\nTriggers: {}", 
+                        push_section(&mut hover_text, &format!("### 📅 Event: {}\n\nType: `{}`\n\nDefined in: {}\n\nTriggers: {}", 
                             event.id, event.event_type, self.make_file_link(&event.path), 
                             if event.triggered_events.is_empty() { "None".to_string() } else { event.triggered_events.join(", ") }));
                     }
@@ -374,27 +475,47 @@ impl LanguageServer for Backend {
                     // Check ideas
                     let idea_map = self.ideas.read().await;
                     if let Some(idea) = idea_map.get(&identifier) {
-                        push_section(&mut hover_text, &format!("### Idea: {}\n\nCategory: `{}`\n\nDefined in: {}",
+                        push_section(&mut hover_text, &format!("### 💡 Idea: {}\n\nCategory: `{}`\n\nDefined in: {}",
                             idea.name, idea.category, self.make_file_link(&idea.path)));
                     }
 
                     // Check modifiers
                     let custom_mods = self.custom_modifiers.read().await;
                     if let Some(modifier) = custom_mods.get(&identifier) {
-                        push_section(&mut hover_text, &format!("### Custom Modifier: {}\n\nDefined in: {}",
+                        push_section(&mut hover_text, &format!("### 🔧 Custom Modifier: {}\n\nDefined in: {}",
                             identifier, self.make_file_link(&modifier.path)));
                     }
                     let mappings = self.modifier_mappings.read().await;
                     if let Some(loc_key) = mappings.get(&identifier) {
-                        push_section(&mut hover_text, &format!("### Engine Modifier: {}\n\nMaps to localization: `{}`",
-                            identifier, loc_key));
+                        let loc = self.localization.read().await;
+                        let loc_text = if let Some(e) = loc.get(loc_key) {
+                            paradox_to_markdown(&e.value, Some(&loc))
+                        } else {
+                            loc_key.clone()
+                        };
+
+                        let formats = self.modifier_formats.read().await;
+                        let format_info = formats.get(loc_key);
+
+                        let parsed_val = match assigned_value {
+                            Some(ast::Value::Number(val)) => Some(val),
+                            Some(ast::Value::String(s)) => s.parse::<f64>().ok(),
+                            _ => None
+                        };
+
+                        if let Some(val) = parsed_val {
+                            let formatted_val = format_modifier_value(&identifier, val, format_info);
+                            push_section(&mut hover_text, &format!("### 📈 {}\n\n{}", loc_text, formatted_val));
+                        } else {
+                            push_section(&mut hover_text, &format!("### 📉 {}\n\nEngine Modifier: `{}`", loc_text, identifier));
+                        }
                     }
 
                     // Check variables
                     let var_map = self.variables.read().await;
                     if let Some(vars) = var_map.get(&identifier) {
                         let paths: Vec<String> = vars.iter().map(|v| self.make_file_link(&v.path)).collect();
-                        push_section(&mut hover_text, &format!("### Variable: {}\n\nUsed/Defined in:\n- {}", 
+                        push_section(&mut hover_text, &format!("### 🔢 Variable: {}\n\nUsed/Defined in:\n- {}", 
                             identifier, paths.join("\n- ")));
                     }
 
@@ -402,8 +523,62 @@ impl LanguageServer for Backend {
                     let target_map = self.event_targets.read().await;
                     if let Some(targets) = target_map.get(&identifier) {
                         let paths: Vec<String> = targets.iter().map(|t| format!("{} ({})", self.make_file_link(&t.path), if t.is_global { "Global" } else { "Local" })).collect();
-                        push_section(&mut hover_text, &format!("### Event Target: {}\n\nSaved in:\n- {}", 
+                        push_section(&mut hover_text, &format!("### 🎯 Event Target: {}\n\nSaved in:\n- {}", 
                             identifier, paths.join("\n- ")));
+                    }
+
+                    // Check music
+                    let m_assets = self.music_assets.read().await;
+                    if let Some(asset) = m_assets.get(&identifier) {
+                        push_section(&mut hover_text, &format!("### 🎵 Music Asset: {}\n\nFile: `{}`\n\nDefined in: {}", 
+                            asset.name, asset.file, self.make_file_link(&asset.path)));
+                    }
+
+                    let m_stations = self.music_stations.read().await;
+                    if let Some(station) = m_stations.get(&identifier) {
+                        push_section(&mut hover_text, &format!("### 📻 Music Station: {}\n\nDefined in: {}", 
+                            station.name, self.make_file_link(&station.path)));
+                    }
+
+                    let m_songs = self.songs.read().await;
+                    if let Some(song) = m_songs.get(&identifier) {
+                        push_section(&mut hover_text, &format!("### 🎶 Song: {}\n\nDefined in: {}", 
+                            song.name, self.make_file_link(&song.path)));
+                    }
+
+                    // Check sounds
+                    let s_sounds = self.sounds.read().await;
+                    if let Some(sound) = s_sounds.get(&identifier) {
+                        let mut file_link = sound.file.clone();
+                        // Try to resolve file link
+                        let asset_path = std::path::Path::new(&sound.path);
+                        if let Some(root) = asset_path.parent().and_then(|p| p.parent()) {
+                             let full_sound_path = root.join("sound").join(&sound.file);
+                             if full_sound_path.exists() {
+                                 file_link = self.make_file_link(&full_sound_path.to_string_lossy());
+                             }
+                        }
+
+                        push_section(&mut hover_text, &format!("### 🔊 Sound: {}\n\nFile: {}\n\nDefined in: {}", 
+                            sound.name, file_link, self.make_file_link(&sound.path)));
+                    }
+
+                    let s_effects = self.sound_effects.read().await;
+                    if let Some(effect) = s_effects.get(&identifier) {
+                        push_section(&mut hover_text, &format!("### 🔉 Sound Effect: {}\n\nSounds: `{}`\n\nDefined in: {}", 
+                            effect.name, effect.sounds.join(", "), self.make_file_link(&effect.path)));
+                    }
+
+                    let s_falloffs = self.falloffs.read().await;
+                    if let Some(falloff) = s_falloffs.get(&identifier) {
+                        push_section(&mut hover_text, &format!("### 📉 Sound Falloff: {}\n\nDefined in: {}", 
+                            falloff.name, self.make_file_link(&falloff.path)));
+                    }
+
+                    let s_categories = self.sound_categories.read().await;
+                    if let Some(category) = s_categories.get(&identifier) {
+                        push_section(&mut hover_text, &format!("### 📂 Sound Category: {}\n\nEffects: `{}`\n\nDefined in: {}", 
+                            category.name, category.soundeffects.join(", "), self.make_file_link(&category.path)));
                     }
 
                     if !hover_text.is_empty() {
@@ -425,7 +600,130 @@ impl LanguageServer for Backend {
         let uri = params.text_document_position.text_document.uri.to_string();
         let position = params.text_document_position.position;
         
-        // Try to find context
+        // Handle localization files
+        if uri.ends_with(".yml") {
+            if let Some(content) = self.documents.get(&uri) {
+                let lines: Vec<&str> = content.lines().collect();
+                if let Some(line) = lines.get(position.line as usize) {
+                    let prefix = &line[..position.character as usize];
+                    
+                    // Check if we are inside a bracketed scope [Root.GetTag]
+                    if let Some(bracket_start) = prefix.rfind('[') {
+                        if prefix.rfind(']').map_or(true, |i| i < bracket_start) {
+                            let _inner_prefix = &prefix[bracket_start + 1..];
+                            let mut items = Vec::new();
+
+                            // Provide scopes, commands, and event targets
+                            for scope in SCOPES.iter() {
+                                items.push(CompletionItem {
+                                    label: scope.to_string(),
+                                    kind: Some(CompletionItemKind::CLASS),
+                                    detail: Some("Paradox Scope".to_string()),
+                                    ..Default::default()
+                                });
+                            }
+                            for command in LOC_COMMANDS.iter() {
+                                items.push(CompletionItem {
+                                    label: command.to_string(),
+                                    kind: Some(CompletionItemKind::FUNCTION),
+                                    detail: Some("Localization Command".to_string()),
+                                    ..Default::default()
+                                });
+                            }
+                            let target_map = self.event_targets.read().await;
+                            for target_name in target_map.keys() {
+                                items.push(CompletionItem {
+                                    label: target_name.clone(),
+                                    kind: Some(CompletionItemKind::VARIABLE),
+                                    detail: Some("Event Target".to_string()),
+                                    ..Default::default()
+                                });
+                            }
+
+                            return Ok(Some(CompletionResponse::Array(items)));
+                        }
+                    }
+                }
+            }
+            return Ok(None);
+        }
+
+        // Handle music/sound files
+        let is_asset_file = uri.ends_with(".asset");
+        let is_music_file = is_asset_file || uri.contains("/music/");
+        let is_sound_file = is_asset_file || uri.contains("/sound/");
+        
+        if is_music_file || is_sound_file {
+            if let Some(content) = self.documents.get(&uri) {
+                if let Ok(script) = parser::parse_script(&content) {
+                    if let Some(context_key) = find_context_at(&script, position) {
+                        let mut completion_items = Vec::new();
+                        let key_lower = context_key.to_lowercase();
+                        
+                        if key_lower == "music" {
+                            if uri.ends_with(".asset") {
+                                completion_items.push(CompletionItem { label: "name".to_string(), kind: Some(CompletionItemKind::PROPERTY), detail: Some("Track ID".to_string()), ..Default::default() });
+                                completion_items.push(CompletionItem { label: "file".to_string(), kind: Some(CompletionItemKind::PROPERTY), detail: Some("OGG Filename".to_string()), ..Default::default() });
+                                completion_items.push(CompletionItem { label: "volume".to_string(), kind: Some(CompletionItemKind::PROPERTY), detail: Some("Volume Multiplier".to_string()), ..Default::default() });
+                            } else {
+                                completion_items.push(CompletionItem { label: "song".to_string(), kind: Some(CompletionItemKind::PROPERTY), detail: Some("Song ID".to_string()), ..Default::default() });
+                                completion_items.push(CompletionItem { label: "chance".to_string(), kind: Some(CompletionItemKind::PROPERTY), detail: Some("Weighting logic".to_string()), ..Default::default() });
+                            }
+                        } else if key_lower == "sound" {
+                            completion_items.push(CompletionItem { label: "name".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
+                            completion_items.push(CompletionItem { label: "file".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
+                            completion_items.push(CompletionItem { label: "always_load".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
+                            completion_items.push(CompletionItem { label: "volume".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
+                        } else if key_lower == "soundeffect" {
+                            completion_items.push(CompletionItem { label: "name".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
+                            completion_items.push(CompletionItem { label: "falloff".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
+                            completion_items.push(CompletionItem { label: "sounds".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
+                            completion_items.push(CompletionItem { label: "loop".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
+                            completion_items.push(CompletionItem { label: "is3d".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
+                            completion_items.push(CompletionItem { label: "volume".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
+                        } else if key_lower == "falloff" {
+                            completion_items.push(CompletionItem { label: "name".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
+                            completion_items.push(CompletionItem { label: "min_distance".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
+                            completion_items.push(CompletionItem { label: "max_distance".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
+                            completion_items.push(CompletionItem { label: "height_scale".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
+                        } else if key_lower == "category" {
+                            completion_items.push(CompletionItem { label: "name".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
+                            completion_items.push(CompletionItem { label: "soundeffects".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
+                            completion_items.push(CompletionItem { label: "compressor".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
+                        } else if key_lower == "chance" || key_lower == "modifier" {
+                            completion_items.push(CompletionItem { label: "factor".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
+                            completion_items.push(CompletionItem { label: "add".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
+                            completion_items.push(CompletionItem { label: "base".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
+                            if key_lower == "chance" {
+                                completion_items.push(CompletionItem { label: "modifier".to_string(), kind: Some(CompletionItemKind::CLASS), ..Default::default() });
+                            }
+                        }
+
+                        if !completion_items.is_empty() {
+                            return Ok(Some(CompletionResponse::Array(completion_items)));
+                        }
+                    } else {
+                        // Top level
+                        let mut top_items = Vec::new();
+                        if is_music_file {
+                            top_items.push(CompletionItem { label: "music".to_string(), kind: Some(CompletionItemKind::CLASS), ..Default::default() });
+                            if !uri.ends_with(".asset") {
+                                top_items.push(CompletionItem { label: "music_station".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
+                            }
+                        }
+                        if is_sound_file {
+                            top_items.push(CompletionItem { label: "sound".to_string(), kind: Some(CompletionItemKind::CLASS), ..Default::default() });
+                            top_items.push(CompletionItem { label: "soundeffect".to_string(), kind: Some(CompletionItemKind::CLASS), ..Default::default() });
+                            top_items.push(CompletionItem { label: "falloff".to_string(), kind: Some(CompletionItemKind::CLASS), ..Default::default() });
+                            top_items.push(CompletionItem { label: "category".to_string(), kind: Some(CompletionItemKind::CLASS), ..Default::default() });
+                        }
+                        return Ok(Some(CompletionResponse::Array(top_items)));
+                    }
+                }
+            }
+        }
+
+        // Try to find context for HOI4 scripts
         if let Some(content) = self.documents.get(&uri) {
             if let Ok(script) = parser::parse_script(&content) {
                 if let Some(context_key) = find_context_at(&script, position) {
@@ -451,7 +749,7 @@ impl LanguageServer for Backend {
 
         let mut items = Vec::new();
 
-        let schema = futures::executor::block_on(self.schema.read());
+        let schema = self.schema.read().await;
         for trigger in schema.triggers.values() {
             items.push(CompletionItem {
                 label: trigger.key.clone(),
@@ -467,6 +765,15 @@ impl LanguageServer for Backend {
                 kind: Some(CompletionItemKind::FUNCTION),
                 detail: Some("Effect (Schema)".to_string()),
                 documentation: effect.description.as_ref().map(|d| Documentation::String(d.clone())),
+                ..Default::default()
+            });
+        }
+        for link in schema.links.values() {
+            items.push(CompletionItem {
+                label: link.key.clone(),
+                kind: Some(CompletionItemKind::CLASS),
+                detail: Some(format!("Link / Scope (Push: {:?})", link.push_scope)),
+                documentation: link.description.as_ref().map(|d| Documentation::String(d.clone())),
                 ..Default::default()
             });
         }
@@ -593,6 +900,78 @@ impl LanguageServer for Backend {
             });
         }
 
+        let m_assets = self.music_assets.read().await;
+        for asset in m_assets.values() {
+            items.push(CompletionItem {
+                label: asset.name.clone(),
+                kind: Some(CompletionItemKind::FILE),
+                detail: Some("Music Asset".to_string()),
+                documentation: Some(Documentation::String(format!("File: {}", asset.file))),
+                ..Default::default()
+            });
+        }
+
+        let m_stations = self.music_stations.read().await;
+        for station in m_stations.values() {
+            items.push(CompletionItem {
+                label: station.name.clone(),
+                kind: Some(CompletionItemKind::FOLDER),
+                detail: Some("Music Station".to_string()),
+                ..Default::default()
+            });
+        }
+
+        let m_songs = self.songs.read().await;
+        for song in m_songs.values() {
+            items.push(CompletionItem {
+                label: song.name.clone(),
+                kind: Some(CompletionItemKind::FILE),
+                detail: Some("Song".to_string()),
+                ..Default::default()
+            });
+        }
+
+        let s_sounds = self.sounds.read().await;
+        for sound in s_sounds.values() {
+            items.push(CompletionItem {
+                label: sound.name.clone(),
+                kind: Some(CompletionItemKind::FILE),
+                detail: Some("Sound".to_string()),
+                documentation: Some(Documentation::String(format!("File: {}", sound.file))),
+                ..Default::default()
+            });
+        }
+
+        let s_effects = self.sound_effects.read().await;
+        for effect in s_effects.values() {
+            items.push(CompletionItem {
+                label: effect.name.clone(),
+                kind: Some(CompletionItemKind::EVENT),
+                detail: Some("Sound Effect".to_string()),
+                ..Default::default()
+            });
+        }
+
+        let s_falloffs = self.falloffs.read().await;
+        for falloff in s_falloffs.values() {
+            items.push(CompletionItem {
+                label: falloff.name.clone(),
+                kind: Some(CompletionItemKind::UNIT),
+                detail: Some("Sound Falloff".to_string()),
+                ..Default::default()
+            });
+        }
+
+        let s_categories = self.sound_categories.read().await;
+        for category in s_categories.values() {
+            items.push(CompletionItem {
+                label: category.name.clone(),
+                kind: Some(CompletionItemKind::FOLDER),
+                detail: Some("Sound Category".to_string()),
+                ..Default::default()
+            });
+        }
+
         Ok(Some(CompletionResponse::Array(items)))
     }
 
@@ -608,24 +987,31 @@ impl LanguageServer for Backend {
         let position = params.text_document_position_params.position;
 
         if let Some(content) = self.documents.get(&uri) {
-            if let Ok(script) = parser::parse_script(&content) {
+            let identifier = if uri.ends_with(".yml") {
+                find_identifier_in_loc(&content, position)
+            } else if let Ok(script) = parser::parse_script(&content) {
                 let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
-                if let Some((identifier, _)) = find_identifier_at(&script, position, &mut scope_stack) {
-                    let mut sources = Vec::new();
-                    let mut localizations = Vec::new();
+                find_identifier_at(&script, position, &mut scope_stack).map(|(id, _, _)| id)
+            } else {
+                None
+            };
 
-                    // 1. Check scripted elements
-                    let st = self.scripted_triggers.read().await;
-                    if let Some(entity) = st.get(&identifier) {
-                        sources.push(ast_range_to_lsp_location(&entity.range, &entity.path));
-                    }
+            if let Some(identifier) = identifier {
+                let mut sources = Vec::new();
+                let mut localizations = Vec::new();
 
-                    let se = self.scripted_effects.read().await;
-                    if let Some(entity) = se.get(&identifier) {
-                        sources.push(ast_range_to_lsp_location(&entity.range, &entity.path));
-                    }
+                // 1. Check scripted elements
+                let st = self.scripted_triggers.read().await;
+                if let Some(entity) = st.get(&identifier) {
+                    sources.push(ast_range_to_lsp_location(&entity.range, &entity.path));
+                }
 
-                    // 2. Check ideologies
+                let se = self.scripted_effects.read().await;
+                if let Some(entity) = se.get(&identifier) {
+                    sources.push(ast_range_to_lsp_location(&entity.range, &entity.path));
+                }
+
+                // 2. Check ideologies
                     let id_map = self.ideologies.read().await;
                     if let Some(ideology) = id_map.get(&identifier) {
                         sources.push(ast_range_to_lsp_location(&ideology.range, &ideology.path));
@@ -681,6 +1067,44 @@ impl LanguageServer for Backend {
                     if let Some(modifier) = custom_mods.get(&identifier) {
                         sources.push(ast_range_to_lsp_location(&modifier.range, &modifier.path));
                     }
+
+                    // 9. Check music
+                    let m_assets = self.music_assets.read().await;
+                    if let Some(asset) = m_assets.get(&identifier) {
+                        sources.push(ast_range_to_lsp_location(&asset.range, &asset.path));
+                    }
+
+                    let m_stations = self.music_stations.read().await;
+                    if let Some(station) = m_stations.get(&identifier) {
+                        sources.push(ast_range_to_lsp_location(&station.range, &station.path));
+                    }
+
+                    let m_songs = self.songs.read().await;
+                    if let Some(song) = m_songs.get(&identifier) {
+                        sources.push(ast_range_to_lsp_location(&song.range, &song.path));
+                    }
+
+                    // 10. Check sounds
+                    let s_sounds = self.sounds.read().await;
+                    if let Some(sound) = s_sounds.get(&identifier) {
+                        sources.push(ast_range_to_lsp_location(&sound.range, &sound.path));
+                    }
+
+                    let s_effects = self.sound_effects.read().await;
+                    if let Some(effect) = s_effects.get(&identifier) {
+                        sources.push(ast_range_to_lsp_location(&effect.range, &effect.path));
+                    }
+
+                    let s_falloffs = self.falloffs.read().await;
+                    if let Some(falloff) = s_falloffs.get(&identifier) {
+                        sources.push(ast_range_to_lsp_location(&falloff.range, &falloff.path));
+                    }
+
+                    let s_categories = self.sound_categories.read().await;
+                    if let Some(category) = s_categories.get(&identifier) {
+                        sources.push(ast_range_to_lsp_location(&category.range, &category.path));
+                    }
+
                     let mappings = self.modifier_mappings.read().await;
                     if let Some(loc_key) = mappings.get(&identifier) {
                         let loc = self.localization.read().await;
@@ -710,7 +1134,6 @@ impl LanguageServer for Backend {
                     if !all_locations.is_empty() {
                         return Ok(Some(GotoDefinitionResponse::Array(all_locations)));
                     }
-                }
             }
         }
         Ok(None)
@@ -726,7 +1149,7 @@ impl LanguageServer for Backend {
         if let Some(content) = self.documents.get(&uri) {
             if let Ok(script) = parser::parse_script(&content) {
                 let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
-                if let Some((identifier, _)) = find_identifier_at(&script, position, &mut scope_stack) {
+                if let Some((identifier, _, _)) = find_identifier_at(&script, position, &mut scope_stack) {
                     let mut locations = Vec::new();
                     
                     // Search in all roots
@@ -754,6 +1177,8 @@ impl LanguageServer for Backend {
         let mut has_casing_diagnostic = false;
         let mut has_trailing_whitespace_diagnostic = false;
         let mut has_mixed_indentation_diagnostic = false;
+        let mut has_assignment_space_diagnostic = false;
+        let mut has_brace_space_diagnostic = false;
 
         for diagnostic in &params.context.diagnostics {
             if let Some(target_casing) = diagnostic.data.as_ref().and_then(|v| v.as_str()) {
@@ -804,18 +1229,149 @@ impl LanguageServer for Backend {
                             is_preferred: Some(true),
                             ..Default::default()
                         }));
+                    } else if code == "styling_eof_newline" {
+                        let mut changes = HashMap::new();
+                        changes.insert(params.text_document.uri.clone(), vec![TextEdit {
+                            range: diagnostic.range,
+                            new_text: "\n".to_string(),
+                        }]);
+
+                        actions.push(CodeActionOrCommand::CodeAction(CodeAction {
+                            title: "Add empty newline at end of file".to_string(),
+                            kind: Some(CodeActionKind::QUICKFIX),
+                            edit: Some(WorkspaceEdit {
+                                changes: Some(changes),
+                                ..Default::default()
+                            }),
+                            diagnostics: Some(vec![diagnostic.clone()]),
+                            is_preferred: Some(true),
+                            ..Default::default()
+                        }));
+                    } else if code == "styling_assignment_space" {
+                        has_assignment_space_diagnostic = true;
+                        if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
+                            let line_idx = diagnostic.range.start.line as usize;
+                            if let Some(line) = content.lines().nth(line_idx) {
+                                let start = diagnostic.range.start.character as usize;
+                                let end = diagnostic.range.end.character as usize;
+                                if start <= end && end <= line.len() {
+                                    let op_str = &line[start..end];
+                                    let mut changes = HashMap::new();
+                                    changes.insert(params.text_document.uri.clone(), vec![TextEdit {
+                                        range: diagnostic.range,
+                                        new_text: format!(" {} ", op_str.trim()),
+                                    }]);
+
+                                    actions.push(CodeActionOrCommand::CodeAction(CodeAction {
+                                        title: "Surround with spaces".to_string(),
+                                        kind: Some(CodeActionKind::QUICKFIX),
+                                        edit: Some(WorkspaceEdit {
+                                            changes: Some(changes),
+                                            ..Default::default()
+                                        }),
+                                        diagnostics: Some(vec![diagnostic.clone()]),
+                                        is_preferred: Some(true),
+                                        ..Default::default()
+                                    }));
+                                }
+                            }
+                        }
+                    } else if code == "styling_brace_space" {
+                        has_brace_space_diagnostic = true;
+                        if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
+                            let line_idx = diagnostic.range.start.line as usize;
+                            if let Some(line) = content.lines().nth(line_idx) {
+                                let start = diagnostic.range.start.character as usize;
+                                let end = diagnostic.range.end.character as usize;
+                                if start < end && end <= line.len() {
+                                    let full_str = &line[start..end];
+                                    if let Some(brace_start_rel) = full_str.find('{') {
+                                        let brace_end_rel = full_str.rfind('}').unwrap_or(full_str.len() - 1);
+                                        let inner = &full_str[brace_start_rel+1..brace_end_rel];
+                                        
+                                        let before_brace = full_str[..brace_start_rel].trim();
+                                        
+                                        let new_text = if inner.trim().is_empty() {
+                                            if !before_brace.is_empty() { format!("{} {{}}", before_brace) } else { "{}".to_string() }
+                                        } else {
+                                            if !before_brace.is_empty() { format!("{} {{ {} }}", before_brace, inner.trim()) } else { format!("{{ {} }}", inner.trim()) }
+                                        };
+
+                                        let mut changes = HashMap::new();
+                                        changes.insert(params.text_document.uri.clone(), vec![TextEdit {
+                                            range: diagnostic.range,
+                                            new_text,
+                                        }]);
+
+                                        actions.push(CodeActionOrCommand::CodeAction(CodeAction {
+                                            title: "Fix curly brace spacing".to_string(),
+                                            kind: Some(CodeActionKind::QUICKFIX),
+                                            edit: Some(WorkspaceEdit {
+                                                changes: Some(changes),
+                                                ..Default::default()
+                                            }),
+                                            diagnostics: Some(vec![diagnostic.clone()]),
+                                            is_preferred: Some(true),
+                                            ..Default::default()
+                                        }));
+                                    }
+                                }
+                            }
+                        }
+                    } else if code == "styling_brace_newline" {
+                        has_brace_space_diagnostic = true;
+                        let mut changes = HashMap::new();
+                        changes.insert(params.text_document.uri.clone(), vec![TextEdit {
+                            range: diagnostic.range,
+                            new_text: " ".to_string(),
+                        }]);
+
+                        actions.push(CodeActionOrCommand::CodeAction(CodeAction {
+                            title: "Move curly brace to same line".to_string(),
+                            kind: Some(CodeActionKind::QUICKFIX),
+                            edit: Some(WorkspaceEdit {
+                                changes: Some(changes),
+                                ..Default::default()
+                            }),
+                            diagnostics: Some(vec![diagnostic.clone()]),
+                            is_preferred: Some(true),
+                            ..Default::default()
+                        }));
+                    } else if code == "duplicate_key" {
+                        let mut changes = HashMap::new();
+                        changes.insert(params.text_document.uri.clone(), vec![TextEdit {
+                            range: diagnostic.range,
+                            new_text: "".to_string(),
+                        }]);
+
+                        actions.push(CodeActionOrCommand::CodeAction(CodeAction {
+                            title: "Remove this duplicate modifier".to_string(),
+                            kind: Some(CodeActionKind::QUICKFIX),
+                            edit: Some(WorkspaceEdit {
+                                changes: Some(changes),
+                                ..Default::default()
+                            }),
+                            diagnostics: Some(vec![diagnostic.clone()]),
+                            is_preferred: Some(true),
+                            ..Default::default()
+                        }));
                     } else if code == "styling_indent" {
                         has_mixed_indentation_diagnostic = true;
                         if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
                             let line_idx = diagnostic.range.start.line as usize;
                             if let Some(line) = content.lines().nth(line_idx) {
                                 let leading = line.chars().take_while(|c| c.is_whitespace()).collect::<String>();
-                                // Convert spaces to tabs with a more robust heuristic
-                                let mut new_indent = leading.replace("    ", "\t").replace("  ", "\t").replace(" ", "");
-                                if new_indent.is_empty() && !leading.is_empty() {
-                                    new_indent = "\t".to_string();
-                                }
                                 
+                                let new_indent = if let Some(expected_tabs) = diagnostic.data.as_ref().and_then(|v| v.get("expected_tabs")).and_then(|v| v.as_u64()) {
+                                    "\t".repeat(expected_tabs as usize)
+                                } else {
+                                    let mut n = leading.replace("    ", "\t").replace("  ", "\t").replace(" ", "");
+                                    if n.is_empty() && !leading.is_empty() {
+                                        n = "\t".to_string();
+                                    }
+                                    n
+                                };
+
                                 let mut changes = HashMap::new();
                                 changes.insert(params.text_document.uri.clone(), vec![TextEdit {
                                     range: diagnostic.range,
@@ -903,8 +1459,11 @@ impl LanguageServer for Backend {
         // Add "Convert all mixed indentation to tabs" if any such diagnostic is present
         if has_mixed_indentation_diagnostic {
             if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
+                let parsed = parser::parse_script(&content);
+                let script_opt = parsed.as_ref().ok();
+                
                 let mut all_fixes = Vec::new();
-                self.collect_indentation_fixes(&content, &mut all_fixes);
+                self.collect_indentation_fixes(&content, script_opt, &mut all_fixes);
 
                 if !all_fixes.is_empty() {
                     let mut changes = HashMap::new();
@@ -929,6 +1488,69 @@ impl LanguageServer for Backend {
             }
         }
 
+        // Add "Surround all assignment operators with spaces" if any such diagnostic is present
+        if has_assignment_space_diagnostic {
+            if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
+                if let Ok(script) = parser::parse_script(&content) {
+                    let mut all_fixes = Vec::new();
+                    self.collect_assignment_space_fixes(&script.entries, &mut all_fixes, &content);
+
+                    if !all_fixes.is_empty() {
+                        let mut changes = HashMap::new();
+                        let edits: Vec<TextEdit> = all_fixes.into_iter().map(|(range, text)| TextEdit {
+                            range: ast_range_to_lsp(&range),
+                            new_text: text,
+                        }).collect();
+                        
+                        changes.insert(params.text_document.uri.clone(), edits);
+
+                        actions.push(CodeActionOrCommand::CodeAction(CodeAction {
+                            title: "Surround all assignment operators with spaces in this file".to_string(),
+                            kind: Some(CodeActionKind::QUICKFIX),
+                            edit: Some(WorkspaceEdit {
+                                changes: Some(changes),
+                                ..Default::default()
+                            }),
+                            is_preferred: Some(false),
+                            ..Default::default()
+                        }));
+                    }
+                }
+            }
+        }
+
+        // Add "Fix curly brace spacing" if any such diagnostic is present
+        if has_brace_space_diagnostic {
+            if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
+                if let Ok(script) = parser::parse_script(&content) {
+                    let mut all_fixes = Vec::new();
+                    self.collect_brace_space_fixes(&script.entries, &mut all_fixes, &content);
+                    self.collect_brace_newline_fixes(&script.entries, &mut all_fixes);
+
+                    if !all_fixes.is_empty() {
+                        let mut changes = HashMap::new();
+                        let edits: Vec<TextEdit> = all_fixes.into_iter().map(|(range, text)| TextEdit {
+                            range: ast_range_to_lsp(&range),
+                            new_text: text,
+                        }).collect();
+                        
+                        changes.insert(params.text_document.uri.clone(), edits);
+
+                        actions.push(CodeActionOrCommand::CodeAction(CodeAction {
+                            title: "Fix all curly brace issues in this file".to_string(),
+                            kind: Some(CodeActionKind::QUICKFIX),
+                            edit: Some(WorkspaceEdit {
+                                changes: Some(changes),
+                                ..Default::default()
+                            }),
+                            is_preferred: Some(false),
+                            ..Default::default()
+                        }));
+                    }
+                }
+            }
+        }
+
         if actions.is_empty() {
             Ok(None)
         } else {
@@ -941,6 +1563,19 @@ impl LanguageServer for Backend {
             let events = self.events.read().await;
             let json = serde_json::to_value(&*events).unwrap();
             return Ok(Some(json));
+        } else if params.command == "hoi4/getMemoryUsage" {
+            let mut sys = sysinfo::System::new();
+            sys.refresh_processes();
+            if let Ok(pid) = sysinfo::get_current_pid() {
+                if let Some(process) = sys.process(pid) {
+                    let memory = process.memory();
+                    let json = serde_json::json!({
+                        "memoryUsedBytes": memory
+                    });
+                    return Ok(Some(json));
+                }
+            }
+            return Ok(None);
         }
         Ok(None)
     }
@@ -991,6 +1626,39 @@ impl Backend {
         self.client.log_message(MessageType::INFO, format!("Total: Loaded {} event definitions", events.len())).await;
     }
 
+    async fn scan_music(&self, roots: &[std::path::PathBuf]) {
+        let result = music_scanner::scan_music(roots);
+        
+        let mut assets = self.music_assets.write().await;
+        *assets = result.assets;
+
+        let mut stations = self.music_stations.write().await;
+        *stations = result.stations;
+
+        let mut songs = self.songs.write().await;
+        *songs = result.songs;
+
+        self.client.log_message(MessageType::INFO, format!("Total: Loaded {} music assets, {} stations, and {} songs", assets.len(), stations.len(), songs.len())).await;
+    }
+
+    async fn scan_sounds(&self, roots: &[std::path::PathBuf]) {
+        let result = sound_scanner::scan_sounds(roots);
+        
+        let mut sounds = self.sounds.write().await;
+        *sounds = result.sounds;
+
+        let mut effects = self.sound_effects.write().await;
+        *effects = result.sound_effects;
+
+        let mut falloffs = self.falloffs.write().await;
+        *falloffs = result.falloffs;
+
+        let mut categories = self.sound_categories.write().await;
+        *categories = result.categories;
+
+        self.client.log_message(MessageType::INFO, format!("Total: Loaded {} sounds, {} sound effects, {} falloffs, and {} categories", sounds.len(), effects.len(), falloffs.len(), categories.len())).await;
+    }
+
     async fn scan_modifiers(&self, roots: &[std::path::PathBuf]) {
         let result = modifier_scanner::scan_modifiers(roots);
         
@@ -1030,22 +1698,248 @@ impl Backend {
         }
     }
 
-    fn collect_indentation_fixes(&self, content: &str, fixes: &mut Vec<(Range, String)>) {
+    fn collect_indentation_fixes(&self, content: &str, script_opt: Option<&ast::Script>, fixes: &mut Vec<(Range, String)>) {
+        let mut expected_indents = HashMap::new();
+        if let Some(script) = script_opt {
+            Self::compute_expected_indentations(&script.entries, 0, &mut expected_indents);
+        }
+
         for (line_idx, line) in content.lines().enumerate() {
             let leading = line.chars().take_while(|c| c.is_whitespace()).collect::<String>();
-            if leading.contains(' ') && leading.contains('\t') {
+            if line.trim().is_empty() { continue; }
+
+            if let Some(&expected_tabs) = expected_indents.get(&(line_idx as u32)) {
+                let expected_str = "\t".repeat(expected_tabs);
+                if leading != expected_str {
+                    fixes.push((
+                        Range {
+                            start: Position { line: line_idx as u32, character: 0 },
+                            end: Position { line: line_idx as u32, character: leading.len() as u32 },
+                        },
+                        expected_str,
+                    ));
+                }
+            } else if leading.contains(' ') {
                 let mut new_indent = leading.replace("    ", "\t").replace("  ", "\t").replace(" ", "");
                 if new_indent.is_empty() && !leading.is_empty() {
                     new_indent = "\t".to_string();
                 }
-                fixes.push((
-                    Range {
-                        start: Position { line: line_idx as u32, character: 0 },
-                        end: Position { line: line_idx as u32, character: leading.len() as u32 },
-                    },
-                    new_indent,
-                ));
+                if new_indent != leading {
+                    fixes.push((
+                        Range {
+                            start: Position { line: line_idx as u32, character: 0 },
+                            end: Position { line: line_idx as u32, character: leading.len() as u32 },
+                        },
+                        new_indent,
+                    ));
+                }
             }
+        }
+    }
+
+    fn collect_assignment_space_fixes(&self, entries: &[ast::Entry], fixes: &mut Vec<(ast::Range, String)>, content: &str) {
+        for entry in entries {
+            match entry {
+                ast::Entry::Assignment(ass) => {
+                    let mut needs_fix = false;
+                    if ass.key_range.end_line == ass.operator_range.start_line && ass.key_range.end_line == ass.value.range.start_line {
+                        if ass.operator_range.start_col > ass.key_range.end_col && ass.value.range.start_col > ass.operator_range.end_col {
+                            let space_before = ass.operator_range.start_col - ass.key_range.end_col;
+                            let space_after = ass.value.range.start_col - ass.operator_range.end_col;
+                            if space_before != 1 || space_after != 1 {
+                                needs_fix = true;
+                            }
+                        } else {
+                            needs_fix = true;
+                        }
+                    }
+
+                    if needs_fix {
+                        let line_idx = ass.key_range.end_line as usize;
+                        if let Some(line) = content.lines().nth(line_idx) {
+                            let start = ass.key_range.end_col as usize;
+                            let end = ass.value.range.start_col as usize;
+                            if start <= end && end <= line.len() {
+                                let op_str = &line[start..end];
+                                fixes.push((
+                                    ast::Range {
+                                        start_line: ass.key_range.end_line,
+                                        start_col: ass.key_range.end_col,
+                                        end_line: ass.value.range.start_line,
+                                        end_col: ass.value.range.start_col,
+                                    },
+                                    format!(" {} ", op_str.trim())
+                                ));
+                            }
+                        }
+                    }
+                    
+                    match &ass.value.value {
+                        ast::Value::Block(inner) => self.collect_assignment_space_fixes(inner, fixes, content),
+                        ast::Value::TaggedBlock(_, inner, _) => self.collect_assignment_space_fixes(inner, fixes, content),
+                        _ => {}
+                    }
+                }
+                ast::Entry::Value(val) => {
+                    match &val.value {
+                        ast::Value::Block(inner) => self.collect_assignment_space_fixes(inner, fixes, content),
+                        ast::Value::TaggedBlock(_, inner, _) => self.collect_assignment_space_fixes(inner, fixes, content),
+                        _ => {}
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    fn collect_brace_newline_fixes(&self, entries: &[ast::Entry], fixes: &mut Vec<(ast::Range, String)>) {
+        for entry in entries {
+            match entry {
+                ast::Entry::Assignment(ass) => {
+                    match &ass.value.value {
+                        ast::Value::Block(_) => {
+                            if ass.value.range.start_line > ass.operator_range.end_line {
+                                fixes.push((ast::Range {
+                                    start_line: ass.operator_range.end_line,
+                                    start_col: ass.operator_range.end_col,
+                                    end_line: ass.value.range.start_line,
+                                    end_col: ass.value.range.start_col,
+                                }, " ".to_string()));
+                            }
+                            self.collect_brace_newline_fixes(match &ass.value.value { ast::Value::Block(i) => i, _ => &[] }, fixes);
+                        }
+                        ast::Value::TaggedBlock(tag, inner, block_range) => {
+                            if block_range.start_line > ass.operator_range.end_line {
+                                fixes.push((ast::Range {
+                                    start_line: ass.operator_range.end_line,
+                                    start_col: ass.operator_range.end_col,
+                                    end_line: block_range.start_line,
+                                    end_col: block_range.start_col,
+                                }, " ".to_string()));
+                            } else {
+                                let tag_end_col = ass.value.range.start_col + tag.len() as u32;
+                                if block_range.start_col != tag_end_col + 1 {
+                                    fixes.push((ast::Range {
+                                        start_line: ass.value.range.start_line,
+                                        start_col: tag_end_col,
+                                        end_line: block_range.start_line,
+                                        end_col: block_range.start_col,
+                                    }, " ".to_string()));
+                                }
+                            }
+                            self.collect_brace_newline_fixes(inner, fixes);
+                        }
+                        _ => {}
+                    }
+                }
+                ast::Entry::Value(val) => {
+                    match &val.value {
+                        ast::Value::Block(inner) => self.collect_brace_newline_fixes(inner, fixes),
+                        ast::Value::TaggedBlock(tag, inner, block_range) => {
+                            if block_range.start_line > val.range.start_line {
+                                fixes.push((ast::Range {
+                                    start_line: val.range.start_line,
+                                    start_col: val.range.start_col + tag.len() as u32,
+                                    end_line: block_range.start_line,
+                                    end_col: block_range.start_col,
+                                }, " ".to_string()));
+                            } else {
+                                let tag_end_col = val.range.start_col + tag.len() as u32;
+                                if block_range.start_col != tag_end_col + 1 {
+                                    fixes.push((ast::Range {
+                                        start_line: val.range.start_line,
+                                        start_col: tag_end_col,
+                                        end_line: block_range.start_line,
+                                        end_col: block_range.start_col,
+                                    }, " ".to_string()));
+                                }
+                            }
+                            self.collect_brace_newline_fixes(inner, fixes);
+                        }
+                        _ => {}
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    fn collect_brace_space_fixes(&self, entries: &[ast::Entry], fixes: &mut Vec<(ast::Range, String)>, content: &str) {
+        for entry in entries {
+            match entry {
+                ast::Entry::Assignment(ass) => {
+                    Self::check_and_fix_brace(&ass.value.range, &ass.value.value, content, fixes);
+                    match &ass.value.value {
+                        ast::Value::Block(inner) => self.collect_brace_space_fixes(inner, fixes, content),
+                        ast::Value::TaggedBlock(_, inner, _) => self.collect_brace_space_fixes(inner, fixes, content),
+                        _ => {}
+                    }
+                }
+                ast::Entry::Value(val) => {
+                    Self::check_and_fix_brace(&val.range, &val.value, content, fixes);
+                    match &val.value {
+                        ast::Value::Block(inner) => self.collect_brace_space_fixes(inner, fixes, content),
+                        ast::Value::TaggedBlock(_, inner, _) => self.collect_brace_space_fixes(inner, fixes, content),
+                        _ => {}
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    fn check_and_fix_brace(range: &ast::Range, value: &ast::Value, content: &str, fixes: &mut Vec<(ast::Range, String)>) {
+        match value {
+            ast::Value::Block(_) | ast::Value::TaggedBlock(_, _, _) => {
+                if range.start_line == range.end_line {
+                    let line_idx = range.start_line as usize;
+                    if let Some(line) = content.lines().nth(line_idx) {
+                        let start = range.start_col as usize;
+                        let end = range.end_col as usize;
+                        if start < end && end <= line.len() {
+                            let full_str = &line[start..end];
+                            if let Some(brace_start_rel) = full_str.find('{') {
+                                let block_str = &full_str[brace_start_rel..];
+                                let mut needs_fix = false;
+                                
+                                // 1. Check space BEFORE { if it's a TaggedBlock
+                                if let ast::Value::TaggedBlock(tag, _, _) = value {
+                                    if &full_str[tag.len()..brace_start_rel] != " " {
+                                        needs_fix = true;
+                                    }
+                                }
+                                
+                                // 2. Check padding INSIDE
+                                if block_str.len() >= 2 {
+                                    let inner = &block_str[1..block_str.len()-1];
+                                    if inner.trim().is_empty() {
+                                        if block_str != "{}" { needs_fix = true; }
+                                    } else {
+                                        if !block_str.starts_with("{ ") || !block_str.ends_with(" }") || block_str.starts_with("{  ") || block_str.ends_with("  }") {
+                                            needs_fix = true;
+                                        }
+                                    }
+                                }
+
+                                if needs_fix {
+                                    let brace_end_rel = full_str.rfind('}').unwrap_or(full_str.len() - 1);
+                                    let inner = &full_str[brace_start_rel + 1 .. brace_end_rel];
+                                    
+                                    let before_brace = full_str[..brace_start_rel].trim();
+                                    
+                                    let new_text = if inner.trim().is_empty() {
+                                        if !before_brace.is_empty() { format!("{} {{}}", before_brace) } else { "{}".to_string() }
+                                    } else {
+                                        if !before_brace.is_empty() { format!("{} {{ {} }}", before_brace, inner.trim()) } else { format!("{{ {} }}", inner.trim()) }
+                                    };
+                                    fixes.push((range.clone(), new_text));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            _ => {}
         }
     }
 
@@ -1068,14 +1962,14 @@ impl Backend {
                     
                     match &ass.value.value {
                         ast::Value::Block(inner) => self.collect_casing_fixes(inner, fixes),
-                        ast::Value::TaggedBlock(_, inner) => self.collect_casing_fixes(inner, fixes),
+                        ast::Value::TaggedBlock(_, inner, _) => self.collect_casing_fixes(inner, fixes),
                         _ => {}
                     }
                 }
                 ast::Entry::Value(val) => {
                     match &val.value {
                         ast::Value::Block(inner) => self.collect_casing_fixes(inner, fixes),
-                        ast::Value::TaggedBlock(_, inner) => self.collect_casing_fixes(inner, fixes),
+                        ast::Value::TaggedBlock(_, inner, _) => self.collect_casing_fixes(inner, fixes),
                         _ => {}
                     }
                 }
@@ -1092,7 +1986,7 @@ impl Backend {
         for root in roots {
             let loc_dir = root.join("localisation");
             self.client.log_message(MessageType::INFO, format!("Checking for localization in: {:?}", loc_dir)).await;
-            
+
             if !loc_dir.exists() {
                 self.client.log_message(MessageType::INFO, format!("Directory does not exist: {:?}", loc_dir)).await;
                 continue;
@@ -1108,19 +2002,24 @@ impl Backend {
                         if path.is_dir() {
                             dirs_to_check.push(path);
                         } else if path.extension().map_or(false, |ext| ext == "yml") {
-                            files_to_scan.push(path);
+                            // By default, prefer english localization. Ignore other languages to prevent overwriting keys
+                            // with translated versions (e.g. Chinese or Russian)
+                            let path_str = path.to_string_lossy().to_lowercase();
+                            if path_str.contains("english") {
+                                files_to_scan.push(path);
+                            }
                         }
                     }
                 }
             }
 
-            self.client.log_message(MessageType::INFO, format!("Found {} .yml files in {:?}", files_to_scan.len(), loc_dir)).await;
+            self.client.log_message(MessageType::INFO, format!("Found {} english .yml files in {:?}", files_to_scan.len(), loc_dir)).await;
 
             for path in files_to_scan {
                 match std::fs::read_to_string(&path) {
                     Ok(content) => {
                         let path_str = path.to_string_lossy().to_string();
-                        let parsed = loc_parser::parse_loc_file(&content, &path_str);
+                        let (parsed, _) = loc_parser::parse_loc_file(&content, &path_str);
                         if parsed.is_empty() {
                             self.client.log_message(MessageType::LOG, format!("Warning: No keys found in localization file: {:?}", path)).await;
                         } else {
@@ -1134,7 +2033,6 @@ impl Backend {
                 }
             }
         }
-
         let mut loc = self.localization.write().await;
         *loc = all_locs;
         self.client.log_message(MessageType::INFO, format!("Total: Loaded {} localization keys", loc.len())).await;
@@ -1271,38 +2169,86 @@ impl Backend {
     async fn load_schema(&self) {
         let mut schema = schema::Schema::new();
         
-        // Load from server/Config (Ported from CWTools HOI4 Config)
-        let triggers_path = std::path::PathBuf::from("server/Config/triggers.cwt");
-        let effects_path = std::path::PathBuf::from("server/Config/effects.cwt");
+        // Resolve paths relative to executable (production) or CWD (development)
+        let exe_path = std::env::current_exe().unwrap_or_default();
+        let exe_dir = exe_path.parent().unwrap_or(std::path::Path::new("."));
+        
+        let possible_roots = vec![
+            std::path::PathBuf::from("."),
+            exe_dir.to_path_buf(),
+            exe_dir.join(".."), // Handle bin/server case
+        ];
 
-        if triggers_path.exists() {
-            if let Ok(content) = std::fs::read_to_string(&triggers_path) {
+        let mut triggers_path = None;
+        let mut effects_path = None;
+        let mut links_path = None;
+
+        for root in &possible_roots {
+            let t = root.join("Config/triggers.cwt");
+            let e = root.join("Config/effects.cwt");
+            let l = root.join("Config/links.cwt");
+            if t.exists() { triggers_path = Some(t); }
+            if e.exists() { effects_path = Some(e); }
+            if l.exists() { links_path = Some(l); }
+        }
+
+        if let Some(path) = triggers_path {
+            if let Ok(content) = std::fs::read_to_string(&path) {
                 schema.parse_cwt(&content, true);
             }
         }
 
-        if effects_path.exists() {
-            if let Ok(content) = std::fs::read_to_string(&effects_path) {
+        if let Some(path) = effects_path {
+            if let Ok(content) = std::fs::read_to_string(&path) {
                 schema.parse_cwt(&content, false);
             }
         }
 
-        self.client.log_message(MessageType::INFO, format!("Schema loaded: {} triggers, {} effects", 
-            schema.triggers.len(), schema.effects.len())).await;
+        if let Some(path) = links_path {
+            if let Ok(content) = std::fs::read_to_string(&path) {
+                if let Ok(parsed) = parser::parse_script(&content) {
+                    schema.parse_links(&parsed);
+                }
+            }
+        }
+
+        self.client.log_message(MessageType::INFO, format!("Schema loaded: {} triggers, {} effects, {} links", 
+            schema.triggers.len(), schema.effects.len(), schema.links.len())).await;
 
         let mut s = self.schema.write().await;
         *s = schema;
 
-        // Load modifier mappings from server/assets (Ported from VModer)
-        let mapping_path = std::path::PathBuf::from("server/assets/modifier_mappings.json");
-        if mapping_path.exists() {
-            if let Ok(content) = std::fs::read_to_string(&mapping_path) {
+        // Resolve assets
+        let mut mapping_path = None;
+        let mut formats_path = None;
+
+        for root in &possible_roots {
+            let m = root.join("assets/modifier_mappings.json");
+            let f = root.join("assets/modifier_formats.json");
+            if m.exists() { mapping_path = Some(m); }
+            if f.exists() { formats_path = Some(f); }
+        }
+
+        if let Some(path) = mapping_path {
+            if let Ok(content) = std::fs::read_to_string(&path) {
                 if let Ok(mappings) = serde_json::from_str::<HashMap<String, String>>(&content) {
                     let mut m = self.modifier_mappings.write().await;
                     for (k, v) in mappings {
                         m.insert(k, v);
                     }
-                    self.client.log_message(MessageType::INFO, format!("Loaded {} modifier mappings from VModer assets", m.len())).await;
+                    self.client.log_message(MessageType::INFO, format!("Loaded {} modifier mappings from assets", m.len())).await;
+                }
+            }
+        }
+
+        if let Some(path) = formats_path {
+            if let Ok(content) = std::fs::read_to_string(&path) {
+                if let Ok(formats) = serde_json::from_str::<HashMap<String, String>>(&content) {
+                    let mut f = self.modifier_formats.write().await;
+                    for (k, v) in formats {
+                        f.insert(k, v);
+                    }
+                    self.client.log_message(MessageType::INFO, format!("Loaded {} modifier formats from assets", f.len())).await;
                 }
             }
         }
@@ -1359,6 +2305,7 @@ impl Backend {
         let mut diagnostics = Vec::new();
 
         let styling_enabled = *self.styling_enabled.read().await;
+        let mut script_opt = None;
 
         if uri.as_str().ends_with(".yml") {
             self.validate_localization_content(&content, &mut diagnostics).await;
@@ -1367,6 +2314,7 @@ impl Backend {
                 Ok(script) => {
                     // Semantic validation
                     self.check_semantic(&script, &mut diagnostics, styling_enabled).await;
+                    script_opt = Some(script);
                 }
                 Err((msg, range)) => {
                     diagnostics.push(Diagnostic {
@@ -1380,83 +2328,212 @@ impl Backend {
         }
 
         if styling_enabled {
-            self.check_styling(&content, &mut diagnostics);
+            self.check_styling(&content, script_opt.as_ref(), &mut diagnostics);
         }
 
         self.client.publish_diagnostics(uri, diagnostics, None).await;
     }
 
     async fn validate_localization_content(&self, content: &str, diagnostics: &mut Vec<Diagnostic>) {
-        let parsed = loc_parser::parse_loc_file(content, "");
+        let (parsed, loc_diagnostics_structural) = loc_parser::parse_loc_file(content, "");
         let event_targets = self.event_targets.read().await;
 
+        // Add structural diagnostics
+        for d in loc_diagnostics_structural {
+            diagnostics.push(Diagnostic {
+                range: ast_range_to_lsp(&d.range),
+                severity: Some(match d.severity {
+                    ast::DiagnosticSeverity::Error => DiagnosticSeverity::ERROR,
+                    ast::DiagnosticSeverity::Warning => DiagnosticSeverity::WARNING,
+                    ast::DiagnosticSeverity::Information => DiagnosticSeverity::INFORMATION,
+                    ast::DiagnosticSeverity::Hint => DiagnosticSeverity::HINT,
+                }),
+                message: d.message,
+                code: d.code.map(NumberOrString::String),
+                source: Some("Hearts of Modding".to_string()),
+                ..Default::default()
+            });
+        }
+
         for entry in parsed.values() {
-            // 1. Check scopes [Root.GetName]
-            let re_scope = regex::Regex::new(r"\[([^\]]+)\]").unwrap();
-            for cap in re_scope.captures_iter(&entry.value) {
-                let inner = cap.get(1).unwrap().as_str();
-                let parts: Vec<&str> = inner.split('.').collect();
-                for (i, part) in parts.iter().enumerate() {
-                    let is_last = i == parts.len() - 1;
-                    let part_upper = part.to_uppercase();
-                    let mut valid = false;
-                    
-                    if is_last {
-                        if LOC_COMMANDS.contains(&part.to_string().as_str()) || 
-                           SCOPES.contains(&part_upper.as_str()) ||
-                           event_targets.contains_key(*part) {
-                            valid = true;
-                        }
-                    } else {
-                        if SCOPES.contains(&part_upper.as_str()) ||
-                           event_targets.contains_key(*part) {
-                            valid = true;
-                        }
-                    }
-
-                    if !valid {
-                        diagnostics.push(Diagnostic {
-                            range: ast_range_to_lsp(&entry.range),
-                            severity: Some(DiagnosticSeverity::WARNING),
-                            message: format!("Potential invalid localization scope or command: '{}' in '{}'", part, inner),
-                            ..Default::default()
-                        });
-                    }
-                }
-            }
-
-            // 2. Check color codes §Y...§!
-            let re_color = regex::Regex::new(r"§([a-zA-Z!])").unwrap();
-            let mut open_colors = 0;
-            for cap in re_color.captures_iter(&entry.value) {
-                let code = cap.get(1).unwrap().as_str();
-                if code == "!" {
-                    if open_colors > 0 {
-                        open_colors -= 1;
-                    } else {
-                        diagnostics.push(Diagnostic {
-                            range: ast_range_to_lsp(&entry.range),
-                            severity: Some(DiagnosticSeverity::INFORMATION),
-                            message: "Found color reset (§!) without matching color start.".to_string(),
-                            ..Default::default()
-                        });
-                    }
-                } else {
-                    open_colors += 1;
-                }
-            }
-            if open_colors > 0 {
+            let loc_diagnostics = loc_parser::validate_loc_string(entry, &event_targets);
+            for d in loc_diagnostics {
                 diagnostics.push(Diagnostic {
-                    range: ast_range_to_lsp(&entry.range),
-                    severity: Some(DiagnosticSeverity::INFORMATION),
-                    message: format!("Unclosed color code(s) in localization: {}", entry.key),
+                    range: ast_range_to_lsp(&d.range),
+                    severity: Some(match d.severity {
+                        ast::DiagnosticSeverity::Error => DiagnosticSeverity::ERROR,
+                        ast::DiagnosticSeverity::Warning => DiagnosticSeverity::WARNING,
+                        ast::DiagnosticSeverity::Information => DiagnosticSeverity::INFORMATION,
+                        ast::DiagnosticSeverity::Hint => DiagnosticSeverity::HINT,
+                    }),
+                    message: d.message,
+                    code: d.code.map(NumberOrString::String),
+                    source: Some("Hearts of Modding".to_string()),
                     ..Default::default()
                 });
             }
         }
     }
 
-    fn check_styling(&self, content: &str, diagnostics: &mut Vec<Diagnostic>) {
+    fn compute_expected_indentations(entries: &[ast::Entry], depth: usize, expected: &mut HashMap<u32, usize>) {
+        for entry in entries {
+            let start_line = match entry {
+                ast::Entry::Assignment(ass) => ass.key_range.start_line,
+                ast::Entry::Value(val) => val.range.start_line,
+                ast::Entry::Comment(_, r) => r.start_line,
+            };
+            
+            expected.entry(start_line).or_insert(depth);
+
+            match entry {
+                ast::Entry::Assignment(ass) => {
+                    match &ass.value.value {
+                        ast::Value::Block(inner) => {
+                            Self::compute_expected_indentations(inner, depth + 1, expected);
+                            let end_line = ass.value.range.end_line;
+                            if end_line != start_line {
+                                expected.entry(end_line).or_insert(depth);
+                            }
+                        }
+                        ast::Value::TaggedBlock(_, inner, _) => {
+                            Self::compute_expected_indentations(inner, depth + 1, expected);
+                            let end_line = ass.value.range.end_line;
+                            if end_line != start_line {
+                                expected.entry(end_line).or_insert(depth);
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+                ast::Entry::Value(val) => {
+                    match &val.value {
+                        ast::Value::Block(inner) => {
+                            Self::compute_expected_indentations(inner, depth + 1, expected);
+                            let end_line = val.range.end_line;
+                            if end_line != start_line {
+                                expected.entry(end_line).or_insert(depth);
+                            }
+                        }
+                        ast::Value::TaggedBlock(_, inner, _) => {
+                            Self::compute_expected_indentations(inner, depth + 1, expected);
+                            let end_line = val.range.end_line;
+                            if end_line != start_line {
+                                expected.entry(end_line).or_insert(depth);
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+                ast::Entry::Comment(_, _) => {}
+            }
+        }
+    }
+
+    fn check_single_line_braces(entries: &[ast::Entry], content: &str, diagnostics: &mut Vec<Diagnostic>) {
+        for entry in entries {
+            match entry {
+                ast::Entry::Assignment(ass) => {
+                    Self::check_brace_spacing_for_range(&ass.value.range, &ass.value.value, content, diagnostics);
+                    match &ass.value.value {
+                        ast::Value::Block(inner) => Self::check_single_line_braces(inner, content, diagnostics),
+                        ast::Value::TaggedBlock(_, inner, _) => Self::check_single_line_braces(inner, content, diagnostics),
+                        _ => {}
+                    }
+                }
+                ast::Entry::Value(val) => {
+                    Self::check_brace_spacing_for_range(&val.range, &val.value, content, diagnostics);
+                    match &val.value {
+                        ast::Value::Block(inner) => Self::check_single_line_braces(inner, content, diagnostics),
+                        ast::Value::TaggedBlock(_, inner, _) => Self::check_single_line_braces(inner, content, diagnostics),
+                        _ => {}
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    fn check_brace_spacing_for_range(range: &ast::Range, value: &ast::Value, content: &str, diagnostics: &mut Vec<Diagnostic>) {
+        match value {
+            ast::Value::Block(_) | ast::Value::TaggedBlock(_, _, _) => {
+                if range.start_line == range.end_line {
+                    let line_idx = range.start_line as usize;
+                    if let Some(line) = content.lines().nth(line_idx) {
+                        let start = range.start_col as usize;
+                        let end = range.end_col as usize;
+                        if start < end && end <= line.len() {
+                            let full_str = &line[start..end];
+                            if let Some(brace_start_rel) = full_str.find('{') {
+                                let mut needs_fix = false;
+                                let mut message = "Single-line block should have exactly one space padding inside curly braces.";
+                                
+                                // 1. Check space BEFORE { if it's a TaggedBlock
+                                if let ast::Value::TaggedBlock(tag, _, _) = value {
+                                    if &full_str[tag.len()..brace_start_rel] != " " {
+                                        needs_fix = true;
+                                        message = "Single-line block should have exactly one space around curly braces.";
+                                    }
+                                }
+
+                                // 2. Check padding INSIDE
+                                let block_str = &full_str[brace_start_rel..];
+                                if block_str.len() >= 2 {
+                                    let inner = &block_str[1..block_str.len()-1];
+                                    if inner.trim().is_empty() {
+                                        if block_str != "{}" {
+                                            needs_fix = true;
+                                            message = "Empty single-line block should be '{}' without spaces.";
+                                        }
+                                    } else {
+                                        if !block_str.starts_with("{ ") || !block_str.ends_with(" }") || block_str.starts_with("{  ") || block_str.ends_with("  }") {
+                                            needs_fix = true;
+                                        }
+                                    }
+                                }
+
+                                if needs_fix {
+                                    diagnostics.push(Diagnostic {
+                                        range: ast_range_to_lsp(range),
+                                        severity: Some(DiagnosticSeverity::INFORMATION),
+                                        code: Some(NumberOrString::String("styling_brace_space".to_string())),
+                                        message: message.to_string(),
+                                        source: Some("Hearts of Modding".to_string()),
+                                        ..Default::default()
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn check_styling(&self, content: &str, script_opt: Option<&ast::Script>, diagnostics: &mut Vec<Diagnostic>) {
+        if !content.is_empty() && !content.ends_with('\n') && !content.ends_with("\r\n") {
+            let line_count = content.lines().count();
+            let last_line = content.lines().last().unwrap_or("");
+            let line_idx = if line_count > 0 { line_count as u32 - 1 } else { 0 };
+            diagnostics.push(Diagnostic {
+                range: Range {
+                    start: Position { line: line_idx, character: last_line.len() as u32 },
+                    end: Position { line: line_idx, character: last_line.len() as u32 },
+                },
+                severity: Some(DiagnosticSeverity::INFORMATION),
+                code: Some(NumberOrString::String("styling_eof_newline".to_string())),
+                message: "File should end with an empty newline.".to_string(),
+                source: Some("Hearts of Modding".to_string()),
+                ..Default::default()
+            });
+        }
+
+        let mut expected_indents = HashMap::new();
+        if let Some(script) = script_opt {
+            Self::compute_expected_indentations(&script.entries, 0, &mut expected_indents);
+            Self::check_single_line_braces(&script.entries, content, diagnostics);
+        }
+
         for (line_idx, line) in content.lines().enumerate() {
             // 1. Trailing whitespace
             if line.ends_with(' ') || line.ends_with('\t') {
@@ -1474,9 +2551,33 @@ impl Backend {
                 });
             }
 
-            // 2. Mixed indentation
+            // 2. Indentation consistency
             let leading = line.chars().take_while(|c| c.is_whitespace()).collect::<String>();
-            if leading.contains(' ') && leading.contains('\t') {
+            if line.trim().is_empty() {
+                continue; // Skip empty lines for indentation checking
+            }
+
+            if let Some(&expected_tabs) = expected_indents.get(&(line_idx as u32)) {
+                let expected_str = "\t".repeat(expected_tabs);
+                if leading != expected_str {
+                    let mut data = serde_json::Map::new();
+                    data.insert("expected_tabs".to_string(), serde_json::Value::Number(expected_tabs.into()));
+                    
+                    diagnostics.push(Diagnostic {
+                        range: Range {
+                            start: Position { line: line_idx as u32, character: 0 },
+                            end: Position { line: line_idx as u32, character: leading.len() as u32 },
+                        },
+                        severity: Some(DiagnosticSeverity::INFORMATION),
+                        code: Some(NumberOrString::String("styling_indent".to_string())),
+                        message: format!("Inconsistent indentation. Expected {} tab(s).", expected_tabs),
+                        source: Some("Hearts of Modding".to_string()),
+                        data: Some(serde_json::Value::Object(data)),
+                        ..Default::default()
+                    });
+                }
+            } else if leading.contains(' ') {
+                // Fallback if line wasn't in AST (e.g. unparsed strings or comments)
                 diagnostics.push(Diagnostic {
                     range: Range {
                         start: Position { line: line_idx as u32, character: 0 },
@@ -1484,7 +2585,7 @@ impl Backend {
                     },
                     severity: Some(DiagnosticSeverity::INFORMATION),
                     code: Some(NumberOrString::String("styling_indent".to_string())),
-                    message: "Mixed tabs and spaces in indentation.".to_string(),
+                    message: "Spaces used in indentation. Please use tabs.".to_string(),
                     source: Some("Hearts of Modding".to_string()),
                     ..Default::default()
                 });
@@ -1502,6 +2603,9 @@ impl Backend {
         let sp = self.sprites.read().await;
         let ids = self.ideas.read().await;
         let provs = self.provinces.read().await;
+        let schema = self.schema.read().await;
+        let mod_maps = self.modifier_mappings.read().await;
+        let ig_loc = self.ignored_loc_regex.read().await;
 
         let mut comments = Vec::new();
         for entry in &script.entries {
@@ -1510,13 +2614,10 @@ impl Backend {
             }
         }
 
-        let comments = comments;
-        let styling_enabled = styling_enabled;
-
-        let schema = futures::executor::block_on(self.schema.read());
+        let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
 
         for entry in &script.entries {
-            self.check_entry_semantic(entry, diagnostics, &loc, &st, &se, &id, &sid, &tr, &sp, &ids, &provs, &comments, styling_enabled, &schema);
+            self.check_entry_semantic(entry, diagnostics, &loc, &st, &se, &id, &sid, &tr, &sp, &ids, &provs, &schema, &mod_maps, &ig_loc, &comments, styling_enabled, &mut scope_stack);
         }
     }
 
@@ -1533,16 +2634,45 @@ impl Backend {
         sp: &HashMap<String, sprite_scanner::Sprite>,
         ids: &HashMap<String, idea_scanner::Idea>,
         provs: &HashSet<u32>,
+        schema: &schema::Schema,
+        mod_maps: &HashMap<String, String>,
+        ig_loc: &[regex::Regex],
         comments: &[ (String, ast::Range) ],
         styling_enabled: bool,
-        schema: &schema::Schema,
+        scope_stack: &mut scope::ScopeStack,
     ) {
         match entry {
             ast::Entry::Assignment(ass) => {
                 let key_lower = ass.key.to_lowercase();
+                let mut pushed_scope = false;
 
-                // Schema validation for triggers and effects
-                if let Some(rule) = schema.triggers.get(&ass.key).or_else(|| schema.effects.get(&ass.key)) {
+                // Schema validation for triggers, effects, and links
+                if let Some(rule) = schema.triggers.get(&ass.key).or_else(|| schema.effects.get(&ass.key)).or_else(|| schema.links.get(&ass.key)) {
+                    if let Some(push) = &rule.push_scope {
+                        scope_stack.push(scope::Scope::from_str(push));
+                        pushed_scope = true;
+                    }
+
+                    if !rule.scopes.is_empty() {
+                        let current_scope = scope_stack.current();
+                        let current_str = current_scope.as_str().to_lowercase();
+                        let mut valid = false;
+                        for s in &rule.scopes {
+                            if s.to_lowercase() == "any" || s.to_lowercase() == "all" || s.to_lowercase() == current_str || current_scope == scope::Scope::Unknown || current_scope == scope::Scope::Global {
+                                valid = true;
+                                break;
+                            }
+                        }
+                        if !valid {
+                            diagnostics.push(Diagnostic {
+                                range: ast_range_to_lsp(&ass.key_range),
+                                severity: Some(DiagnosticSeverity::WARNING),
+                                message: format!("Invalid scope. '{}' is not supported in {:?} scope. Supported scopes: {:?}", ass.key, current_scope, rule.scopes),
+                                ..Default::default()
+                            });
+                        }
+                    }
+
                     // Type checking
                     match rule.value_type {
                         schema::ValueType::Bool => {
@@ -1581,10 +2711,103 @@ impl Backend {
                         },
                         _ => {}
                     }
+                } else {
+                    // Structural blocks that push scope but aren't in the schema
+                    let s = scope::Scope::from_str(&ass.key);
+                    if s != scope::Scope::Unknown || ass.key.contains(':') || ass.key.contains('.') {
+                        match &ass.value.value {
+                            ast::Value::Block(_) | ast::Value::TaggedBlock(_, _, _) => {
+                                scope_stack.push(s);
+                                pushed_scope = true;
+                            }
+                            _ => {}
+                        }
+                    }
                 }
 
                 // Casing checks for keywords
                 if styling_enabled {
+                    let mut needs_fix = false;
+                    if ass.key_range.end_line == ass.operator_range.start_line && ass.key_range.end_line == ass.value.range.start_line {
+                        if ass.operator_range.start_col > ass.key_range.end_col && ass.value.range.start_col > ass.operator_range.end_col {
+                            let space_before = ass.operator_range.start_col - ass.key_range.end_col;
+                            let space_after = ass.value.range.start_col - ass.operator_range.end_col;
+                            if space_before != 1 || space_after != 1 {
+                                needs_fix = true;
+                            }
+                        } else {
+                            needs_fix = true;
+                        }
+                    }
+
+                    if needs_fix {
+                        diagnostics.push(Diagnostic {
+                            range: Range {
+                                start: Position { line: ass.key_range.end_line, character: ass.key_range.end_col },
+                                end: Position { line: ass.value.range.start_line, character: ass.value.range.start_col },
+                            },
+                            severity: Some(DiagnosticSeverity::INFORMATION),
+                            code: Some(NumberOrString::String("styling_assignment_space".to_string())),
+                            message: "Assignment operator should be surrounded by exactly one space on each side.".to_string(),
+                            source: Some("Hearts of Modding".to_string()),
+                            ..Default::default()
+                        });
+                    }
+
+                    // Brace newline check
+                    match &ass.value.value {
+                        ast::Value::Block(_) => {
+                            if ass.value.range.start_line > ass.operator_range.end_line {
+                                diagnostics.push(Diagnostic {
+                                    range: Range {
+                                        start: Position { line: ass.operator_range.end_line, character: ass.operator_range.end_col },
+                                        end: Position { line: ass.value.range.start_line, character: ass.value.range.start_col },
+                                    },
+                                    severity: Some(DiagnosticSeverity::INFORMATION),
+                                    code: Some(NumberOrString::String("styling_brace_newline".to_string())),
+                                    message: "Curly brace should not be on a new line.".to_string(),
+                                    source: Some("Hearts of Modding".to_string()),
+                                    ..Default::default()
+                                });
+                            }
+                        }
+                        ast::Value::TaggedBlock(tag, _, block_range) => {
+                            // Check if the brace part of the tagged block is on a new line
+                            // Usually TaggedBlock range starts at the tag.
+                            // We check if the block_range starts on a new line compared to where the tag/operator is.
+                            if block_range.start_line > ass.operator_range.end_line {
+                                diagnostics.push(Diagnostic {
+                                    range: Range {
+                                        start: Position { line: ass.operator_range.end_line, character: ass.operator_range.end_col },
+                                        end: Position { line: block_range.start_line, character: block_range.start_col },
+                                    },
+                                    severity: Some(DiagnosticSeverity::INFORMATION),
+                                    code: Some(NumberOrString::String("styling_brace_newline".to_string())),
+                                    message: "Curly brace should not be on a new line.".to_string(),
+                                    source: Some("Hearts of Modding".to_string()),
+                                    ..Default::default()
+                                });
+                            } else {
+                                // Same line, check space between tag and brace
+                                let tag_end_col = ass.value.range.start_col + tag.len() as u32;
+                                if block_range.start_col != tag_end_col + 1 {
+                                    diagnostics.push(Diagnostic {
+                                        range: Range {
+                                            start: Position { line: ass.value.range.start_line, character: tag_end_col },
+                                            end: Position { line: block_range.start_line, character: block_range.start_col },
+                                        },
+                                        severity: Some(DiagnosticSeverity::INFORMATION),
+                                        code: Some(NumberOrString::String("styling_brace_newline".to_string())), // Also use this code for easy fix
+                                        message: "Exactly one space should separate the tag and the curly brace.".to_string(),
+                                        source: Some("Hearts of Modding".to_string()),
+                                        ..Default::default()
+                                    });
+                                }
+                            }
+                        }
+                        _ => {}
+                    }
+
                     let keywords = [
                         "spriteTypes", "spriteType", "name", "texturefile", 
                         "ideologies", "types", "ideas", "country", "national_focus",
@@ -1647,8 +2870,7 @@ impl Backend {
                                 let target = format!("{}:", val);
                                 if !loc.iter().any(|(k, _)| k.starts_with(&target)) {
                                     // Final check against regex
-                                    let ig = futures::executor::block_on(self.ignored_loc_regex.read());
-                                    let is_regex_ignored = ig.iter().any(|re| re.is_match(val));
+                                    let is_regex_ignored = ig_loc.iter().any(|re| re.is_match(val));
                                     
                                     if !is_regex_ignored {
                                         diagnostics.push(Diagnostic {
@@ -1739,10 +2961,14 @@ impl Backend {
                 }
 
                 // Check value recursively
-                self.check_value_semantic(&ass.value, diagnostics, loc, st, se, id, sid, tr, sp, ids, provs, comments, styling_enabled, schema);
+                self.check_value_semantic(&ass.value, diagnostics, loc, st, se, id, sid, tr, sp, ids, provs, schema, mod_maps, ig_loc, comments, styling_enabled, scope_stack);
+
+                if pushed_scope {
+                    scope_stack.pop();
+                }
             }
             ast::Entry::Value(val) => {
-                self.check_value_semantic(val, diagnostics, loc, st, se, id, sid, tr, sp, ids, provs, comments, styling_enabled, schema);
+                self.check_value_semantic(val, diagnostics, loc, st, se, id, sid, tr, sp, ids, provs, schema, mod_maps, ig_loc, comments, styling_enabled, scope_stack);
             }
             _ => {}
         }
@@ -1761,22 +2987,97 @@ impl Backend {
         sp: &HashMap<String, sprite_scanner::Sprite>,
         ids: &HashMap<String, idea_scanner::Idea>,
         provs: &HashSet<u32>,
+        schema: &schema::Schema,
+        mod_maps: &HashMap<String, String>,
+        ig_loc: &[regex::Regex],
         comments: &[ (String, ast::Range) ],
         styling_enabled: bool,
-        schema: &schema::Schema,
+        scope_stack: &mut scope::ScopeStack,
     ) {
         match &val.value {
             ast::Value::Block(entries) => {
+                self.check_duplicate_keys(entries, diagnostics, schema, mod_maps);
                 for entry in entries {
-                    self.check_entry_semantic(entry, diagnostics, loc, st, se, id, sid, tr, sp, ids, provs, comments, styling_enabled, schema);
+                    self.check_entry_semantic(entry, diagnostics, loc, st, se, id, sid, tr, sp, ids, provs, schema, mod_maps, ig_loc, comments, styling_enabled, scope_stack);
                 }
             }
-            ast::Value::TaggedBlock(_, entries) => {
+            ast::Value::TaggedBlock(tag, entries, block_range) => {
+                if styling_enabled {
+                    if block_range.start_line > val.range.start_line {
+                        diagnostics.push(Diagnostic {
+                            range: Range {
+                                start: Position { line: val.range.start_line, character: val.range.start_col + tag.len() as u32 },
+                                end: Position { line: block_range.start_line, character: block_range.start_col },
+                            },
+                            severity: Some(DiagnosticSeverity::INFORMATION),
+                            code: Some(NumberOrString::String("styling_brace_newline".to_string())),
+                            message: "Curly brace should not be on a new line.".to_string(),
+                            source: Some("Hearts of Modding".to_string()),
+                            ..Default::default()
+                        });
+                    } else {
+                        let tag_end_col = val.range.start_col + tag.len() as u32;
+                        if block_range.start_col != tag_end_col + 1 {
+                            diagnostics.push(Diagnostic {
+                                range: Range {
+                                    start: Position { line: val.range.start_line, character: tag_end_col },
+                                    end: Position { line: block_range.start_line, character: block_range.start_col },
+                                },
+                                severity: Some(DiagnosticSeverity::INFORMATION),
+                                code: Some(NumberOrString::String("styling_brace_newline".to_string())),
+                                message: "Exactly one space should separate the tag and the curly brace.".to_string(),
+                                source: Some("Hearts of Modding".to_string()),
+                                ..Default::default()
+                            });
+                        }
+                    }
+                }
+                self.check_duplicate_keys(entries, diagnostics, schema, mod_maps);
                 for entry in entries {
-                    self.check_entry_semantic(entry, diagnostics, loc, st, se, id, sid, tr, sp, ids, provs, comments, styling_enabled, schema);
+                    self.check_entry_semantic(entry, diagnostics, loc, st, se, id, sid, tr, sp, ids, provs, schema, mod_maps, ig_loc, comments, styling_enabled, scope_stack);
                 }
             }
             _ => {}
+        }
+    }
+
+    fn check_duplicate_keys(&self, entries: &[ast::Entry], diagnostics: &mut Vec<Diagnostic>, schema: &schema::Schema, mod_maps: &HashMap<String, String>) {
+        let mut seen_keys: HashMap<String, ast::Range> = HashMap::new();
+        
+        for entry in entries {
+            if let ast::Entry::Assignment(ass) = entry {
+                // We only care about duplicates if they are modifiers. 
+                // Some Paradox keys (like 'modifier = { ... }' or 'option = { ... }') are intended to be duplicates.
+                // But specific engine modifiers (like 'stability_factor') should NEVER be duplicated.
+                
+                let is_modifier = mod_maps.contains_key(&ass.key) ||
+                                 schema.triggers.contains_key(&ass.key) ||
+                                 schema.effects.contains_key(&ass.key);
+
+                // Exceptions: Some effects/triggers are specifically designed to be used multiple times
+                let is_exception = ass.key == "modifier" || ass.key == "option" || ass.key == "limit" || ass.key == "if" || ass.key == "else" || ass.key == "else_if" || ass.key == "variable_name";
+
+                if is_modifier && !is_exception {
+                    if let Some(prev_range) = seen_keys.get(&ass.key) {
+                        diagnostics.push(Diagnostic {
+                            range: ast_range_to_lsp(prev_range),
+                            severity: Some(DiagnosticSeverity::WARNING),
+                            code: Some(NumberOrString::String("duplicate_key".to_string())),
+                            message: format!("Duplicate modifier/key '{}' detected in the same scope. The game will ignore this value and use the last one.", ass.key),
+                            source: Some("Hearts of Modding".to_string()),
+                            ..Default::default()
+                        });
+                    }
+                    
+                    let full_range = ast::Range {
+                        start_line: ass.key_range.start_line,
+                        start_col: ass.key_range.start_col,
+                        end_line: ass.value.range.end_line,
+                        end_col: ass.value.range.end_col,
+                    };
+                    seen_keys.insert(ass.key.clone(), full_range);
+                }
+            }
         }
     }
 }
@@ -1802,10 +3103,19 @@ async fn main() {
         provinces: Arc::new(RwLock::new(HashSet::new())),
         custom_modifiers: Arc::new(RwLock::new(HashMap::new())),
         modifier_mappings: Arc::new(RwLock::new(HashMap::new())),
+        modifier_formats: Arc::new(RwLock::new(HashMap::new())),
         events: Arc::new(RwLock::new(HashMap::new())),
+        music_assets: Arc::new(RwLock::new(HashMap::new())),
+        music_stations: Arc::new(RwLock::new(HashMap::new())),
+        songs: Arc::new(RwLock::new(HashMap::new())),
+        sounds: Arc::new(RwLock::new(HashMap::new())),
+        sound_effects: Arc::new(RwLock::new(HashMap::new())),
+        falloffs: Arc::new(RwLock::new(HashMap::new())),
+        sound_categories: Arc::new(RwLock::new(HashMap::new())),
         ignored_loc_regex: Arc::new(RwLock::new(Vec::new())),
         schema: Arc::new(RwLock::new(schema::Schema::new())),
         styling_enabled: Arc::new(RwLock::new(true)),
+        cosmetic_loc_indent: Arc::new(RwLock::new(false)),
         game_path: Arc::new(RwLock::new(None)),
     });
     Server::new(stdin, stdout, socket).serve(service).await;
@@ -1869,7 +3179,7 @@ fn find_colors_in_value(val: &ast::NodeedValue, colors: &mut Vec<ColorInformatio
                 }
             }
         }
-        ast::Value::TaggedBlock(tag, entries) => {
+        ast::Value::TaggedBlock(tag, entries, _) => {
             let nums: Vec<f64> = entries.iter().filter_map(|e| {
                 if let ast::Entry::Value(v) = e {
                     match &v.value {
@@ -1933,6 +3243,7 @@ fn hsv_to_rgb(h: f64, s: f64, v: f64) -> (f64, f64, f64) {
     (r_prime + m, g_prime + m, b_prime + m)
 }
 
+#[allow(dead_code)]
 fn rgb_to_hsv(r: f64, g: f64, b: f64) -> (f64, f64, f64) {
     let max = r.max(g).max(b);
     let min = r.min(g).min(b);
@@ -1955,6 +3266,240 @@ fn rgb_to_hsv(r: f64, g: f64, b: f64) -> (f64, f64, f64) {
     (h / 360.0, s, v)
 }
 
+fn format_modifier_value(key: &str, val: f64, format_str: Option<&String>) -> String {
+    let mut is_percentage = key.ends_with("factor");
+    let mut display_digits = 1;
+    let mut is_double_percent = false;
+
+    if let Some(fmt) = format_str {
+        if fmt.contains("%%") {
+            is_double_percent = true;
+            is_percentage = false;
+        } else if fmt.contains('%') {
+            is_percentage = true;
+        } else {
+            is_percentage = false;
+        }
+
+        for c in fmt.chars().rev() {
+            if c.is_ascii_digit() {
+                display_digits = c.to_digit(10).unwrap() as usize;
+                break;
+            }
+        }
+    }
+
+    let mut actual_val = val;
+    if is_percentage && !is_double_percent {
+        actual_val *= 100.0;
+    }
+
+    let sign = if actual_val >= 0.0 { "+" } else { "" };
+
+    // In Rust, format!("{:.0}", 1.0) is "1", but we want to mimic C# '1' format which means 1 decimal place.
+    // If format string has `0`, it's 0 decimal places. If it has `1`, it's 1.
+    // However, if the value is an exact integer, C# often drops the .0
+    let mut formatted_num = format!("{}{:.*}", sign, display_digits, actual_val);
+
+    if is_percentage || is_double_percent {
+        formatted_num.push('%');
+    }
+
+    formatted_num
+}
+fn resolve_loc(input: &str, localization: &HashMap<String, loc_parser::LocEntry>, depth: u32) -> String {
+    if depth > 10 { return input.to_string(); }
+    let re_key = regex::Regex::new(r"\$([^\$]+)\$").unwrap();
+    let mut last_end = 0;
+    let mut result = String::new();
+    
+    for cap in re_key.captures_iter(input) {
+        let m = cap.get(0).unwrap();
+        let key = cap.get(1).unwrap().as_str();
+        
+        result.push_str(&input[last_end..m.start()]);
+        if let Some(entry) = localization.get(key) {
+            result.push_str(&resolve_loc(&entry.value, localization, depth + 1));
+        } else {
+            result.push_str(m.as_str());
+        }
+        last_end = m.end();
+    }
+    result.push_str(&input[last_end..]);
+    result
+}
+
+fn paradox_to_markdown(input: &str, localization: Option<&HashMap<String, loc_parser::LocEntry>>) -> String {
+    let mut resolved = if let Some(loc) = localization {
+        resolve_loc(input, loc, 0)
+    } else {
+        input.to_string()
+    };
+    
+    // Handle literal \n
+    resolved = resolved.replace("\\n", "\n").replace("\\r\\n", "\n");
+
+    let mut result = String::new();
+    let re_color = regex::Regex::new(r"§([a-zA-Z0-9!])").unwrap();
+    let mut last_end = 0;
+    
+    let mut segments = Vec::new();
+    let mut current_color = "#FFFFFF"; // Default white
+    
+    for cap in re_color.captures_iter(&resolved) {
+        let m = cap.get(0).unwrap();
+        let code = cap.get(1).unwrap().as_str();
+        
+        let text_segment = &resolved[last_end..m.start()];
+        if !text_segment.is_empty() {
+            segments.push((text_segment.to_string(), current_color));
+        }
+        
+        current_color = match code {
+            "!" => "#FFFFFF",
+            "C" => "#23CEFF", // Cyan
+            "L" => "#C3B091", // Lilac
+            "W" => "#FFFFFF", // White
+            "B" => "#0000FF", // Blue
+            "G" => "#009F03", // Green
+            "R" => "#FF3232", // Red
+            "b" => "#000000", // Black
+            "g" => "#B0B0B0", // Light Gray
+            "Y" | "H" => "#FFBD00", // Yellow / Header
+            "T" => "#FFFFFF", // Title (White)
+            "O" => "#FF7019", // Orange
+            "0" => "#CB00CB", // Gradient 0 (Purple)
+            "1" => "#8078D3", // Gradient 1 (Lilac)
+            "2" => "#5170F3", // Gradient 2 (Blue)
+            "3" => "#518FDC", // Gradient 3 (Gray-Blue)
+            "4" => "#5ABEE7", // Gradient 4 (Light Blue)
+            "5" => "#3FB5C2", // Gradient 5 (Dull Cyan)
+            "6" => "#77CCBA", // Gradient 6 (Turquoise)
+            "7" => "#99D199", // Gradient 7 (Light Green)
+            "8" => "#CCA333", // Gradient 8 (Orange-Yellow)
+            "9" => "#FCA97D", // Gradient 9 (White-Orange)
+            "t" => "#FF4C4D", // Gradient 10 (Vivid Red)
+            "M" => "#FF60FF", // Magenta (fallback)
+            "p" => "#FF80FF", // Pink (fallback)
+            _ => "#FFFFFF",
+        };
+        last_end = m.end();
+    }
+    
+    let last_segment = &resolved[last_end..];
+    if !last_segment.is_empty() {
+        segments.push((last_segment.to_string(), current_color));
+    }
+
+    for (text, color) in segments {
+        if text == "\n" {
+            result.push_str("  \n");
+            continue;
+        }
+        
+        let lines: Vec<&str> = text.split('\n').collect();
+        for (i, line) in lines.iter().enumerate() {
+            if i > 0 { result.push_str("  \n"); }
+            if line.is_empty() { continue; }
+            
+            let escaped_line = line.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;").replace('"', "&quot;").replace('\'', "&apos;").replace(' ', "&#160;");
+            // Estimate width for monospace font
+            let width = (line.len() as f64 * 8.5).ceil() as usize;
+            let svg = format!(
+                r#"<svg xmlns="http://www.w3.org/2000/svg" width="{}" height="18"><text x="0" y="14" fill="{}" font-family="monospace" font-size="14" font-weight="bold" xml:space="preserve">{}</text></svg>"#,
+                width, color, escaped_line
+            );
+            
+            use base64::{Engine as _, engine::general_purpose};
+            let b64 = general_purpose::STANDARD.encode(svg);
+            // CRITICAL: No space between ] and ( for Markdown images
+            result.push_str(&format!("![{}](data:image/svg+xml;base64,{})", line, b64));
+        }
+    }
+
+    
+    result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::loc_parser::LocEntry;
+    use crate::ast::Range;
+
+    #[test]
+    fn test_resolve_loc() {
+        let mut loc = HashMap::new();
+        loc.insert("KEY1".to_string(), LocEntry {
+            key: "KEY1".to_string(),
+            value: "Value 1".to_string(),
+            range: Range { start_line: 0, start_col: 0, end_line: 0, end_col: 0 },
+            path: "".to_string(),
+            value_start_col: 0,
+        });
+        loc.insert("KEY2".to_string(), LocEntry {
+            key: "KEY2".to_string(),
+            value: "Contains $KEY1$".to_string(),
+            range: Range { start_line: 0, start_col: 0, end_line: 0, end_col: 0 },
+            path: "".to_string(),
+            value_start_col: 0,
+        });
+
+        assert_eq!(resolve_loc("Hello $KEY1$", &loc, 0), "Hello Value 1");
+        assert_eq!(resolve_loc("Hello $KEY2$", &loc, 0), "Hello Contains Value 1");
+        assert_eq!(resolve_loc("Hello $UNKNOWN$", &loc, 0), "Hello $UNKNOWN$");
+    }
+
+    #[test]
+    fn test_paradox_to_markdown_newlines() {
+        use base64::Engine as _;
+        let loc = HashMap::new();
+        // Test literal \n
+        let input = "Line 1\\nLine 2";
+        let output = paradox_to_markdown(input, Some(&loc));
+        // It should contain two SVG segments (one for each line)
+        // SVG contains &#160; for spaces
+        let decoded = String::from_utf8(base64::engine::general_purpose::STANDARD.decode(output.split("base64,").nth(1).unwrap().split(')').next().unwrap()).unwrap()).unwrap();
+        assert!(decoded.contains("Line&#160;1"));
+        assert!(output.contains("  \n"));
+    }
+}
+
+fn find_identifier_in_loc(content: &str, pos: Position) -> Option<String> {
+    let lines: Vec<&str> = content.lines().collect();
+    let line = lines.get(pos.line as usize)?;
+    let char_offset = pos.character as usize;
+
+    // Check for bracketed scope [Root.GetTag]
+    let re_scope = regex::Regex::new(r"\[([^\]]+)\]").unwrap();
+    for cap in re_scope.captures_iter(line) {
+        let m = cap.get(0).unwrap();
+        if char_offset >= m.start() && char_offset < m.end() {
+            let inner = cap.get(1).unwrap().as_str();
+            let relative_offset = char_offset - m.start() - 1; // -1 for [
+            let parts: Vec<&str> = inner.split('.').collect();
+            let mut current_pos = 0;
+            for part in parts {
+                if relative_offset >= current_pos && relative_offset < current_pos + part.len() {
+                    return Some(part.to_string());
+                }
+                current_pos += part.len() + 1; // +1 for .
+            }
+        }
+    }
+
+    // Check for variables $VAR$
+    let re_var = regex::Regex::new(r"\$([^\$]+)\$").unwrap();
+    for cap in re_var.captures_iter(line) {
+        let m = cap.get(0).unwrap();
+        if char_offset >= m.start() && char_offset < m.end() {
+            return Some(cap.get(1).unwrap().as_str().to_string());
+        }
+    }
+
+    None
+}
+
 fn ast_range_to_lsp(range: &ast::Range) -> Range {
     Range {
         start: Position { line: range.start_line, character: range.start_col },
@@ -1969,7 +3514,7 @@ fn ast_range_to_lsp_location(range: &ast::Range, path: &str) -> Location {
     }
 }
 
-fn find_identifier_at(script: &ast::Script, pos: Position, scope_stack: &mut scope::ScopeStack) -> Option<(String, Vec<scope::Scope>)> {
+fn find_identifier_at(script: &ast::Script, pos: Position, scope_stack: &mut scope::ScopeStack) -> Option<(String, Vec<scope::Scope>, Option<ast::Value>)> {
     for entry in &script.entries {
         if let Some(res) = find_in_entry(entry, pos, scope_stack) {
             return Some(res);
@@ -1978,24 +3523,31 @@ fn find_identifier_at(script: &ast::Script, pos: Position, scope_stack: &mut sco
     None
 }
 
-fn find_in_entry(entry: &ast::Entry, pos: Position, scope_stack: &mut scope::ScopeStack) -> Option<(String, Vec<scope::Scope>)> {
+fn find_in_entry(entry: &ast::Entry, pos: Position, scope_stack: &mut scope::ScopeStack) -> Option<(String, Vec<scope::Scope>, Option<ast::Value>)> {
     match entry {
         ast::Entry::Assignment(ass) => {
             if is_pos_in_range(pos, &ass.key_range) {
-                return Some((ass.key.clone(), scope_stack.iter().cloned().collect()));
+                return Some((ass.key.clone(), scope_stack.iter().cloned().collect(), Some(ass.value.value.clone())));
             }
             
             // Push scope if it's a block
             let mut pushed = false;
-            if let ast::Value::Block(_) = &ass.value.value {
-                scope_stack.push(scope::Scope::from_str(&ass.key));
-                pushed = true;
-            } else if let ast::Value::TaggedBlock(_, _) = &ass.value.value {
-                scope_stack.push(scope::Scope::from_str(&ass.key));
-                pushed = true;
+            if let ast::Value::Block(_) | ast::Value::TaggedBlock(_, _, _) = &ass.value.value {
+                let s = scope::Scope::from_str(&ass.key);
+                if s != scope::Scope::Unknown || ass.key.contains(':') || ass.key.contains('.') {
+                    scope_stack.push(s);
+                    pushed = true;
+                }
             }
 
-            let res = find_in_value(&ass.value, pos, scope_stack);
+            let mut res = find_in_value(&ass.value, pos, scope_stack);
+
+            if let Some((ref mut id, _, ref mut val_opt)) = res {
+                if let ast::Value::Number(_) | ast::Value::Boolean(_) = &ass.value.value {
+                    *id = ass.key.clone();
+                    *val_opt = Some(ass.value.value.clone());
+                }
+            }
             
             if pushed {
                 scope_stack.pop();
@@ -2007,7 +3559,7 @@ fn find_in_entry(entry: &ast::Entry, pos: Position, scope_stack: &mut scope::Sco
     }
 }
 
-fn find_in_value(val: &ast::NodeedValue, pos: Position, scope_stack: &mut scope::ScopeStack) -> Option<(String, Vec<scope::Scope>)> {
+fn find_in_value(val: &ast::NodeedValue, pos: Position, scope_stack: &mut scope::ScopeStack) -> Option<(String, Vec<scope::Scope>, Option<ast::Value>)> {
     match &val.value {
         ast::Value::String(s) => {
             if is_pos_in_range(pos, &val.range) {
@@ -2030,17 +3582,17 @@ fn find_in_value(val: &ast::NodeedValue, pos: Position, scope_stack: &mut scope:
                                     let part_abs_start = abs_open + 1 + current_part_start;
                                     let part_abs_end = part_abs_start + part.len();
                                     if adj_offset >= part_abs_start && adj_offset < part_abs_end {
-                                        return Some((part.to_string(), scope_stack.iter().cloned().collect()));
+                                        return Some((part.to_string(), scope_stack.iter().cloned().collect(), None));
                                     }
                                     current_part_start += part.len() + 1;
                                 }
-                                return Some((inner.to_string(), scope_stack.iter().cloned().collect()));
+                                return Some((inner.to_string(), scope_stack.iter().cloned().collect(), None));
                             }
                             start_search = abs_close + 1;
                         } else { break; }
                     }
                 }
-                return Some((s.clone(), scope_stack.iter().cloned().collect()));
+                return Some((s.clone(), scope_stack.iter().cloned().collect(), None));
             }
             None
         }
@@ -2052,7 +3604,7 @@ fn find_in_value(val: &ast::NodeedValue, pos: Position, scope_stack: &mut scope:
             }
             None
         }
-        ast::Value::TaggedBlock(_, entries) => {
+        ast::Value::TaggedBlock(_, entries, _) => {
             for entry in entries {
                 if let Some(res) = find_in_entry(entry, pos, scope_stack) {
                     return Some(res);
@@ -2112,7 +3664,7 @@ fn find_context_in_value(val: &ast::NodeedValue, pos: Position) -> Option<String
             }
             None
         }
-        ast::Value::TaggedBlock(_, entries) => {
+        ast::Value::TaggedBlock(_, entries, _) => {
             for entry in entries {
                 if let Some(ctx) = find_context_in_entry(entry, pos) {
                     return Some(ctx);
@@ -2123,3 +3675,4 @@ fn find_context_in_value(val: &ast::NodeedValue, pos: Position) -> Option<String
         _ => None,
     }
 }
+

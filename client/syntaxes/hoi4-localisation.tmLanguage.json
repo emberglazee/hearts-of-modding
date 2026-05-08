@@ -1,0 +1,80 @@
+{
+    "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+    "name": "HOI4 Localisation",
+    "patterns": [
+        {
+            "include": "#comments"
+        },
+        {
+            "include": "#headers"
+        },
+        {
+            "include": "#entries"
+        }
+    ],
+    "repository": {
+        "comments": {
+            "patterns": [
+                {
+                    "name": "comment.line.number-sign.hoi4-loc",
+                    "match": "#.*$"
+                }
+            ]
+        },
+        "headers": {
+            "patterns": [
+                {
+                    "name": "keyword.control.header.hoi4-loc",
+                    "match": "^\\s*l_[a-z]+:"
+                }
+            ]
+        },
+        "entries": {
+            "patterns": [
+                {
+                    "begin": "^\\s*([a-zA-Z0-9_\\.]+)(?:(:)([0-9]*))?\\s*(\")",
+                    "beginCaptures": {
+                        "1": { "name": "entity.name.tag.yaml" },
+                        "2": { "name": "punctuation.separator.key-value.hoi4-loc" },
+                        "3": { "name": "constant.numeric.version.hoi4-loc" },
+                        "4": { "name": "punctuation.definition.string.begin.hoi4-loc" }
+                    },
+                    "end": "\"",
+                    "endCaptures": {
+                        "0": { "name": "punctuation.definition.string.end.hoi4-loc" }
+                    },
+                    "contentName": "string.quoted.double.hoi4-loc",
+                    "patterns": [
+                        {
+                            "include": "#color_codes"
+                        },
+                        {
+                            "include": "#bracket_scopes"
+                        },
+                        {
+                            "name": "constant.character.escape.hoi4-loc",
+                            "match": "\\\\."
+                        }
+                    ]
+                }
+            ]
+        },
+        "color_codes": {
+            "patterns": [
+                {
+                    "name": "constant.other.color.hoi4-loc",
+                    "match": "§[a-zA-Z!]"
+                }
+            ]
+        },
+        "bracket_scopes": {
+            "patterns": [
+                {
+                    "name": "variable.other.member.hoi4-loc",
+                    "match": "\\[[^\\]]+\\]"
+                }
+            ]
+        }
+    },
+    "scopeName": "source.hoi4-localisation"
+}

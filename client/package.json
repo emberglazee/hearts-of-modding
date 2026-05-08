@@ -15,9 +15,9 @@
         "Programming Languages"
     ],
     "activationEvents": [
-        "onFileSystem:**/localisation/*.yml",
-        "workspaceContains:**/common/scripted_triggers/*.txt",
-        "onStartupFinished"
+        "onLanguage:hoi4",
+        "onLanguage:hoi4-localisation",
+        "workspaceContains:descriptor.mod"
     ],
     "main": "./out/extension.js",
     "contributes": {
@@ -25,6 +25,10 @@
             "type": "object",
             "title": "Hearts of Modding",
             "properties": {
+                "hoi4.enabled": {
+                    "type": "boolean",
+                    "description": "Enable Hearts of Modding for this workspace. If unset, the extension will prompt to enable when a descriptor.mod file is found."
+                },
                 "hoi4.gamePath": {
                     "type": "string",
                     "default": "",
@@ -42,6 +46,16 @@
                     "type": "boolean",
                     "default": true,
                     "description": "Enable cosmetic and styling checks (casing convention, mixed indentation, trailing whitespace)."
+                },
+                "hoi4.styling.cosmeticLocalizationIndentation": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Indent variant localization keys (e.g., _DEF, _ADJ, _desc) with an additional tab to improve visual hierarchy."
+                },
+                "hoi4.showMemoryUsage.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Show language server memory usage in the status bar."
                 }
             }
         },
@@ -57,6 +71,10 @@
             {
                 "command": "hearts-of-modding.toggleStyling",
                 "title": "HOI4: Toggle Styling Checks"
+            },
+            {
+                "command": "hearts-of-modding.showMemoryUsage",
+                "title": "HOI4: Show Memory Usage"
             }
         ],
         "languages": [
@@ -67,10 +85,28 @@
                     "hoi4"
                 ],
                 "extensions": [
-                    ".txt",
                     ".gui",
                     ".gfx",
                     ".asset"
+                ],
+                "filenamePatterns": [
+                    "**/common/**/*.txt",
+                    "**/events/**/*.txt",
+                    "**/map/**/*.txt",
+                    "**/history/**/*.txt",
+                    "**/script/**/*.txt",
+                    "**/descriptor.mod"
+                ],
+                "configuration": "./language-configuration.json"
+            },
+            {
+                "id": "hoi4-localisation",
+                "aliases": [
+                    "HOI4 Localisation",
+                    "hoi4-localisation"
+                ],
+                "filenamePatterns": [
+                    "**/localisation/**/*.yml"
                 ],
                 "configuration": "./language-configuration.json"
             }
@@ -80,6 +116,11 @@
                 "language": "hoi4",
                 "scopeName": "source.hoi4",
                 "path": "./syntaxes/hoi4.tmLanguage.json"
+            },
+            {
+                "language": "hoi4-localisation",
+                "scopeName": "source.hoi4-localisation",
+                "path": "./syntaxes/hoi4-localisation.tmLanguage.json"
             }
         ]
     },

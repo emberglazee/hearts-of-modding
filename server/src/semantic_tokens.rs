@@ -115,7 +115,7 @@ fn push_value_tokens(val: &NodeedValue, tokens: &mut Vec<RawToken>) {
                 push_entry_tokens(entry, tokens);
             }
         }
-        Value::TaggedBlock(tag, entries) => {
+        Value::TaggedBlock(tag, entries, _) => {
             // Highlighting the tag (rgb/hsv) as a keyword
             tokens.push(RawToken {
                 line: val.range.start_line,

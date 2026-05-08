@@ -183,14 +183,14 @@ fn find_triggers_recursive(entries: &[ast::Entry], current_event_id: Option<&str
                 // Recurse
                 match &ass.value.value {
                     ast::Value::Block(inner) => find_triggers_recursive(inner, next_event_id, events),
-                    ast::Value::TaggedBlock(_, inner) => find_triggers_recursive(inner, next_event_id, events),
+                    ast::Value::TaggedBlock(_, inner, _) => find_triggers_recursive(inner, next_event_id, events),
                     _ => {}
                 }
             }
             ast::Entry::Value(val) => {
                 match &val.value {
                     ast::Value::Block(inner) => find_triggers_recursive(inner, current_event_id, events),
-                    ast::Value::TaggedBlock(_, inner) => find_triggers_recursive(inner, current_event_id, events),
+                    ast::Value::TaggedBlock(_, inner, _) => find_triggers_recursive(inner, current_event_id, events),
                     _ => {}
                 }
             }

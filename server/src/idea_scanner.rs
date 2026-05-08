@@ -1,7 +1,7 @@
 use crate::parser;
 use crate::ast;
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::fs;
 
 #[derive(Debug, Clone)]
@@ -56,7 +56,7 @@ fn find_ideas_in_entries(entries: &[ast::Entry], file_path: &str, map: &mut Hash
                     ast::Value::Block(inner_entries) => {
                         find_ideas_in_entries(inner_entries, file_path, map);
                     }
-                    ast::Value::TaggedBlock(_, inner_entries) => {
+                    ast::Value::TaggedBlock(_, inner_entries, _) => {
                         find_ideas_in_entries(inner_entries, file_path, map);
                     }
                     _ => {}

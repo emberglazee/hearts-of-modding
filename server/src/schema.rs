@@ -19,12 +19,14 @@ pub struct Rule {
     pub value_type: ValueType,
     pub description: Option<String>,
     pub scopes: Vec<String>,
+    pub push_scope: Option<String>,
 }
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Schema {
     pub triggers: HashMap<String, Rule>,
     pub effects: HashMap<String, Rule>,
+    pub links: HashMap<String, Rule>,
 }
 
 impl Schema {
@@ -32,9 +34,65 @@ impl Schema {
         Self::default()
     }
 
+    pub fn parse_links(&mut self, script: &crate::ast::Script) {
+        for entry in &script.entries {
+            if let crate::ast::Entry::Assignment(ass) = entry {
+                if ass.key == "links" {
+                    if let crate::ast::Value::Block(links_block) = &ass.value.value {
+                        for link_entry in links_block {
+                            if let crate::ast::Entry::Assignment(link_ass) = link_entry {
+                                let key = link_ass.key.clone();
+                                let mut output_scope = None;
+                                let mut input_scopes = Vec::new();
+
+                                if let crate::ast::Value::Block(link_props) = &link_ass.value.value {
+                                    for prop in link_props {
+                                        if let crate::ast::Entry::Assignment(prop_ass) = prop {
+                                            if prop_ass.key == "output_scope" {
+                                                if let crate::ast::Value::String(s) = &prop_ass.value.value {
+                                                    output_scope = Some(s.clone());
+                                                }
+                                            } else if prop_ass.key == "input_scopes" {
+                                                match &prop_ass.value.value {
+                                                    crate::ast::Value::String(s) => {
+                                                        input_scopes.push(s.clone());
+                                                    }
+                                                    crate::ast::Value::Block(items) | crate::ast::Value::TaggedBlock(_, items, _) => {
+                                                        for item in items {
+                                                            if let crate::ast::Entry::Value(v) = item {
+                                                                if let crate::ast::Value::String(s) = &v.value {
+                                                                    input_scopes.push(s.clone());
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                    _ => {}
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                let rule = Rule {
+                                    key: key.clone(),
+                                    value_type: ValueType::Block, // Links usually take blocks or are chained
+                                    description: None,
+                                    scopes: input_scopes,
+                                    push_scope: output_scope,
+                                };
+                                self.links.insert(key, rule);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     pub fn parse_cwt(&mut self, content: &str, is_trigger: bool) {
         let mut current_description = None;
         let mut current_scopes = Vec::new();
+        let mut current_push_scope = None;
 
         for line in content.lines() {
             let line = line.trim();
@@ -52,6 +110,14 @@ impl Schema {
                     } else {
                         current_scopes = vec![scopes_part.to_string()];
                     }
+                }
+                continue;
+            }
+
+            if line.starts_with("## push_scope") {
+                if let Some(eq) = line.find('=') {
+                    let push_scope_part = &line[eq + 1..].trim();
+                    current_push_scope = Some(push_scope_part.to_string());
                 }
                 continue;
             }
@@ -89,6 +155,7 @@ impl Schema {
                                 value_type,
                                 description: current_description.take(),
                                 scopes: current_scopes.clone(),
+                                push_scope: current_push_scope.clone(),
                             };
 
                             if is_trigger {
@@ -102,6 +169,7 @@ impl Schema {
             }
             current_description = None;
             current_scopes.clear();
+            current_push_scope = None;
         }
     }
 }

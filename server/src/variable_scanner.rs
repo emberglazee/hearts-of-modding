@@ -2,9 +2,9 @@ use crate::parser;
 use crate::ast;
 use std::collections::HashMap;
 use std::fs;
-
 #[derive(Debug, Clone)]
 pub struct Variable {
+    #[allow(dead_code)]
     pub name: String,
     pub path: String,
     pub range: ast::Range,
@@ -12,6 +12,7 @@ pub struct Variable {
 
 #[derive(Debug, Clone)]
 pub struct EventTarget {
+    #[allow(dead_code)]
     pub name: String,
     pub path: String,
     pub range: ast::Range,
@@ -77,7 +78,7 @@ fn scan_entries(
                         // Recurse into blocks
                         match &ass.value.value {
                             ast::Value::Block(inner) => scan_entries(inner, path, variables, event_targets),
-                            ast::Value::TaggedBlock(_, inner) => scan_entries(inner, path, variables, event_targets),
+                            ast::Value::TaggedBlock(_, inner, _) => scan_entries(inner, path, variables, event_targets),
                             _ => {}
                         }
                     }
@@ -86,7 +87,7 @@ fn scan_entries(
             ast::Entry::Value(val) => {
                 match &val.value {
                     ast::Value::Block(inner) => scan_entries(inner, path, variables, event_targets),
-                    ast::Value::TaggedBlock(_, inner) => scan_entries(inner, path, variables, event_targets),
+                    ast::Value::TaggedBlock(_, inner, _) => scan_entries(inner, path, variables, event_targets),
                     _ => {}
                 }
             }

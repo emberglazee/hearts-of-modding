@@ -48,4 +48,4 @@ Inspired by the extensions [CWTools](https://github.com/cwtools/cwtools) and [VM
 
 ---
 
-*Made with ❤️ by a Hearts of Minecraft mod developer*
+*Made with ❤️ by a [Hearts of Minecraft](https://steamcommunity.com/sharedfiles/filedetails/?id=2624254320) mod developer.*

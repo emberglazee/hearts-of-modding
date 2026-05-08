@@ -59,6 +59,14 @@
                 {
                     "name": "keyword.control.hoi4",
                     "match": "\\b(yes|no)\\b"
+                },
+                {
+                    "name": "keyword.other.hoi4",
+                    "match": "\\b(sound|soundeffect|falloff|category)\\b"
+                },
+                {
+                    "name": "keyword.other.hoi4",
+                    "match": "\\b(name|file|always_load|volume|sounds|loop|is3d|min_distance|max_distance|height_scale|soundeffects|compressor)\\b"
                 }
             ]
         }

@@ -88,6 +88,11 @@ jobs:
           find client/server-bin -name "server" -exec mv {} client/server-bin/server-linux \;
           find client/server-bin -name "server.exe" -exec mv {} client/server-bin/server-win.exe \;
           chmod +x client/server-bin/server-linux
+          
+      - name: Copy Resources
+        run: |
+          cp -r server/Config client/server-bin/
+          cp -r server/assets client/server-bin/
 
       - name: Package VSIX
         run: |

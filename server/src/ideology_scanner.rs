@@ -88,7 +88,7 @@ fn find_ideologies_in_entries(entries: &[ast::Entry], file_path: &str, map: &mut
                     ast::Value::Block(inner_entries) => {
                         find_ideologies_in_entries(inner_entries, file_path, map);
                     }
-                    ast::Value::TaggedBlock(_, inner_entries) => {
+                    ast::Value::TaggedBlock(_, inner_entries, _) => {
                         find_ideologies_in_entries(inner_entries, file_path, map);
                     }
                     _ => {}

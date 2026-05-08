@@ -1,11 +1,11 @@
 use crate::ast::*;
 use nom::{
     branch::alt,
-    bytes::complete::{tag, take_until, take_while1, take_while},
-    character::complete::{char, multispace0, none_of, anychar, one_of},
-    combinator::{map, opt, recognize, peek, eof},
+    bytes::complete::{tag, take_while1, take_while},
+    character::complete::{char, multispace0, anychar},
+    combinator::{map, opt, recognize},
     multi::many0,
-    sequence::{delimited, preceded, tuple},
+    sequence::{preceded, tuple},
     IResult,
 };
 use nom_locate::LocatedSpan;
@@ -44,7 +44,7 @@ fn to_range(span: Span) -> crate::ast::Range {
 }
 
 pub fn is_identifier_char(c: char) -> bool {
-    c.is_alphanumeric() || c == '_' || c == '.' || c == ':' || c == '@' || c == '[' || c == ']' || c == '?' || c == '^' || c == '$' || c == '/' || c == '-'
+    c.is_alphanumeric() || c == '_' || c == '.' || c == ':' || c == '@' || c == '[' || c == ']' || c == '?' || c == '^' || c == '$' || c == '/' || c == '-' || c == '\'' || c == '%'
 }
 
 fn identifier(input: Span) -> IResult<Span, (String, crate::ast::Range)> {
@@ -80,24 +80,18 @@ fn quoted_string(input: Span) -> IResult<Span, (String, crate::ast::Range)> {
 
 fn number(input: Span) -> IResult<Span, (f64, crate::ast::Range)> {
     let (input, s) = recognize(tuple((
-        opt(char('-')),
+        opt(alt((char('-'), char('+')))),
         alt((
             recognize(tuple((take_while1(|c: char| c.is_ascii_digit()), opt(tuple((char('.'), take_while(|c: char| c.is_ascii_digit()))))))),
             recognize(tuple((char('.'), take_while1(|c: char| c.is_ascii_digit())))),
         ))
     )))(input)?;
     
-    // Ensure we're not immediately followed by more identifier chars (like in "1.0.1")
-    let (input, _) = peek(alt((
-        recognize(eof),
-        recognize(multispace0::<Span, nom::error::Error<Span>>), // Should be at least one space if not eof or special char
-        recognize(one_of(" \t\r\n#{}<>=!")),
-    )))(input)?;
-    
-    // BUT, we must also ensure the NEXT char is definitely not an identifier char if it was a space
+    // Boundary check: next char should not be an alphanumeric char unless it's a known identifier char that is NOT part of a number
+    // Actually, in Paradox script, numbers are often followed by %, so we should allow that.
     let next_char = input.fragment().chars().next();
     if let Some(c) = next_char {
-        if is_identifier_char(c) && !c.is_ascii_whitespace() && c != '#' && c != '{' && c != '}' {
+        if c.is_alphanumeric() && c != '%' {
              return Err(nom::Err::Error(nom::error::Error::new(input, nom::error::ErrorKind::Tag)));
         }
     }
@@ -108,16 +102,18 @@ fn number(input: Span) -> IResult<Span, (f64, crate::ast::Range)> {
 fn boolean(input: Span) -> IResult<Span, (bool, crate::ast::Range)> {
     let (input, s) = alt((tag("yes"), tag("no")))(input)?;
     // Ensure boundary
-    let (input, _) = peek(alt((
-        recognize(eof),
-        recognize(one_of(" \t\r\n#{}<>=!")),
-    )))(input)?;
+    let next_char = input.fragment().chars().next();
+    if let Some(c) = next_char {
+        if c.is_alphanumeric() {
+             return Err(nom::Err::Error(nom::error::Error::new(input, nom::error::ErrorKind::Tag)));
+        }
+    }
     
     Ok((input, (*s.fragment() == "yes", to_range(s))))
 }
 
 fn comment(input: Span) -> IResult<Span, (String, crate::ast::Range)> {
-    let (input, s) = recognize(preceded(char('#'), take_until("\n")))(input)?;
+    let (input, s) = recognize(preceded(char('#'), take_while(|c| c != '\n' && c != '\r')))(input)?;
     Ok((input, (s.fragment()[1..].to_string(), to_range(s))))
 }
 
@@ -132,7 +128,7 @@ fn operator(input: Span) -> IResult<Span, (Operator, crate::ast::Range)> {
     ))(input)
 }
 
-fn parse_tagged_block(input: Span) -> IResult<Span, (String, Vec<Entry>, crate::ast::Range)> {
+fn parse_tagged_block(input: Span) -> IResult<Span, (String, Vec<Entry>, crate::ast::Range, crate::ast::Range)> {
     let (input, (tag, tag_range)) = identifier(input)?;
     let (input, (entries, block_range)) = preceded(multispace0, parse_block)(input)?;
     
@@ -143,14 +139,14 @@ fn parse_tagged_block(input: Span) -> IResult<Span, (String, Vec<Entry>, crate::
         end_col: block_range.end_col,
     };
     
-    Ok((input, (tag, entries, range)))
+    Ok((input, (tag, entries, block_range, range)))
 }
 
 fn parse_value(input: Span) -> IResult<Span, NodeedValue> {
     alt((
         map(quoted_string, |(s, r)| NodeedValue { value: Value::String(s), range: r }),
         map(boolean, |(b, r)| NodeedValue { value: Value::Boolean(b), range: r }),
-        map(parse_tagged_block, |(tag, entries, r)| NodeedValue { value: Value::TaggedBlock(tag, entries), range: r }),
+        map(parse_tagged_block, |(tag, entries, br, r)| NodeedValue { value: Value::TaggedBlock(tag, entries, br), range: r }),
         // Try identifier FIRST because it can contain dots and start with numbers (like 1.0.1)
         map(identifier, |(s, r)| NodeedValue { value: Value::String(s), range: r }),
         map(number, |(n, r)| NodeedValue { value: Value::Number(n), range: r }),
@@ -195,7 +191,8 @@ fn parse_entry(input: Span) -> IResult<Span, Entry> {
 }
 
 pub fn parse_script(input: &str) -> Result<Script, (String, crate::ast::Range)> {
-    let span = Span::new(input);
+    let input_clean = input.strip_prefix('\u{feff}').unwrap_or(input);
+    let span = Span::new(input_clean);
     match many0(preceded(multispace0, parse_entry))(span) {
         Ok((remainder, entries)) => {
             let (remainder, _) = multispace0::<Span, nom::error::Error<Span>>(remainder).unwrap();

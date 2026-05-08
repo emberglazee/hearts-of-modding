@@ -6,6 +6,7 @@ use std::fs;
 
 #[derive(Debug, Clone)]
 pub struct Modifier {
+    #[allow(dead_code)]
     pub name: String,
     pub path: String,
     pub range: ast::Range,
@@ -87,6 +88,8 @@ fn get_builtin_mappings() -> HashMap<String, String> {
         ("political_power_factor", "MODIFIER_POLITICAL_POWER_FACTOR"),
         ("stability_factor", "MODIFIER_STABILITY_FACTOR"),
         ("war_support_factor", "MODIFIER_WAR_SUPPORT_FACTOR"),
+        ("war_stability_factor", "MODIFIER_WAR_STABILITY_FACTOR"),
+        ("army_morale_factor", "MODIFIER_ARMY_MORALE_FACTOR"),
         ("industrial_capacity_factory", "MODIFIER_INDUSTRIAL_CAPACITY_FACTOR"),
         ("consumer_goods_factor", "MODIFIER_CONSUMER_GOODS_FACTOR"),
         ("local_resources_factor", "MODIFIER_LOCAL_RESOURCES_FACTOR"),

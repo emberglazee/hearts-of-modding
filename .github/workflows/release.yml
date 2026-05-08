@@ -43,6 +43,8 @@ jobs:
           mkdir -p client/server-bin
           cp server/target/x86_64-unknown-linux-gnu/release/server client/server-bin/server-linux
           cp server/target/x86_64-pc-windows-gnu/release/server.exe client/server-bin/server-win.exe
+          cp -r server/Config client/server-bin/
+          cp -r server/assets client/server-bin/
           chmod +x client/server-bin/server-linux
 
       - name: Use Node.js
