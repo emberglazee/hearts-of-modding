@@ -12,6 +12,7 @@ mod idea_scanner;
 mod variable_scanner;
 mod province_scanner;
 mod modifier_scanner;
+mod modifier_display;
 mod event_scanner;
 mod music_scanner;
 mod sound_scanner;
@@ -477,6 +478,28 @@ impl LanguageServer for Backend {
                     if let Some(idea) = idea_map.get(&identifier) {
                         push_section(&mut hover_text, &format!("### 💡 Idea: {}\n\nCategory: `{}`\n\nDefined in: {}",
                             idea.name, idea.category, self.make_file_link(&idea.path)));
+                    }
+
+                    // Check for modifier blocks (modifier = { ... } or modifiers = { ... })
+                    let identifier_lower = identifier.to_lowercase();
+                    if (identifier_lower == "modifier" || identifier_lower == "modifiers") && matches!(assigned_value, Some(ast::Value::Block(_))) {
+                        let mappings = self.modifier_mappings.read().await;
+                        let formats = self.modifier_formats.read().await;
+                        let loc = self.localization.read().await;
+
+                        let display_service = modifier_display::ModifierDisplayService::new(
+                            mappings.clone(),
+                            formats.clone(),
+                            loc.clone(),
+                        );
+
+                        if let Some(value) = &assigned_value {
+                            let blocks = display_service.extract_modifier_blocks(value);
+                            if !blocks.is_empty() {
+                                let formatted = display_service.format_all_blocks(&blocks);
+                                push_section(&mut hover_text, &format!("### 📊 Modifier Block\n\n{}", formatted));
+                            }
+                        }
                     }
 
                     // Check modifiers
