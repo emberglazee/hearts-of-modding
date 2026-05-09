@@ -8,6 +8,7 @@ pub const BUILDING_LEVEL_EXCEEDS_MAX: &str = "HOM1002";
 pub const CHARACTER_SKILL_EXCEEDS_MAX: &str = "HOM1004";
 pub const VICTORY_POINT_PROVINCE_NOT_IN_STATE: &str = "HOM2001";
 pub const ACHIEVEMENT_MISSING_LOCALIZATION: &str = "HOM3001";
+pub const SCHEMA_VALIDATION_ERROR: &str = "HOM4001";
 
 #[derive(Debug, Clone)]
 pub struct ValidationDiagnostic {
@@ -16,6 +17,178 @@ pub struct ValidationDiagnostic {
     pub message: String,
     pub code: String,
     pub fix_suggestion: Option<String>,
+}
+
+/// Validate entries against a schema rule
+pub fn validate_against_rule(
+    entries: &[ast::Entry],
+    rule: &crate::schema::Rule,
+    schema: &crate::schema::Schema,
+    diagnostics: &mut Vec<ValidationDiagnostic>,
+) {
+    let mut counts: HashMap<String, u32> = HashMap::new();
+
+    for entry in entries {
+        match entry {
+            ast::Entry::Assignment(ass) => {
+                let key = &ass.key;
+                *counts.entry(key.clone()).or_insert(0) += 1;
+
+                // Find matching child rule
+                if let Some(child_rule) = rule.children.iter().find(|r| r.key == *key || r.key == "alias_name[trigger]" || r.key == "alias_name[effect]") {
+                    validate_value_against_rule(&ass.value, child_rule, schema, diagnostics);
+                } else {
+                    // Try to find in global triggers/effects if it's an alias
+                    let global_rule = schema.triggers.get(key).or_else(|| schema.effects.get(key));
+                    if let Some(gr) = global_rule {
+                        validate_value_against_rule(&ass.value, gr, schema, diagnostics);
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    // Check cardinality
+    for child_rule in &rule.children {
+        let count = *counts.get(&child_rule.key).unwrap_or(&0);
+        if count < child_rule.cardinality.min {
+            diagnostics.push(ValidationDiagnostic {
+                range: rule_range_placeholder(), 
+                severity: child_rule.severity.clone().unwrap_or(ast::DiagnosticSeverity::Error),
+                message: format!("Missing required field: '{}' (expected at least {})", child_rule.key, child_rule.cardinality.min),
+                code: SCHEMA_VALIDATION_ERROR.to_string(),
+                fix_suggestion: None,
+            });
+        }
+        if let Some(max) = child_rule.cardinality.max {
+            if count > max {
+                diagnostics.push(ValidationDiagnostic {
+                    range: rule_range_placeholder(),
+                    severity: child_rule.severity.clone().unwrap_or(ast::DiagnosticSeverity::Error),
+                    message: format!("Too many occurrences of field: '{}' (expected at most {})", child_rule.key, max),
+                    code: SCHEMA_VALIDATION_ERROR.to_string(),
+                    fix_suggestion: None,
+                });
+            }
+        }
+    }
+}
+
+pub fn validate_value_against_rule(
+    node: &ast::NodeedValue,
+    rule: &crate::schema::Rule,
+    schema: &crate::schema::Schema,
+    diagnostics: &mut Vec<ValidationDiagnostic>,
+) {
+    match &rule.value_type {
+        crate::schema::ValueType::Enum(name) => {
+            if let ast::Value::String(s) = &node.value {
+                if let Some(values) = schema.enums.get(name) {
+                    if !values.contains(s) {
+                        diagnostics.push(ValidationDiagnostic {
+                            range: node.range.clone(),
+                            severity: rule.severity.clone().unwrap_or(ast::DiagnosticSeverity::Error),
+                            message: format!("Invalid value '{}' for enum '{}'. Expected one of: {:?}", s, name, values),
+                            code: SCHEMA_VALIDATION_ERROR.to_string(),
+                            fix_suggestion: None,
+                        });
+                    }
+                }
+            }
+        }
+        crate::schema::ValueType::Type(name) => {
+            if let ast::Value::String(s) = &node.value {
+                if s.is_empty() {
+                    diagnostics.push(ValidationDiagnostic {
+                        range: node.range.clone(),
+                        severity: rule.severity.clone().unwrap_or(ast::DiagnosticSeverity::Error),
+                        message: format!("Empty reference for type '{}'", name),
+                        code: SCHEMA_VALIDATION_ERROR.to_string(),
+                        fix_suggestion: None,
+                    });
+                }
+            }
+        }
+        crate::schema::ValueType::Bool => {
+            if !matches!(node.value, ast::Value::Boolean(_)) {
+                if let ast::Value::String(s) = &node.value {
+                    if s != "yes" && s != "no" {
+                        diagnostics.push(ValidationDiagnostic {
+                            range: node.range.clone(),
+                            severity: rule.severity.clone().unwrap_or(ast::DiagnosticSeverity::Error),
+                            message: "Expected boolean (yes/no)".to_string(),
+                            code: SCHEMA_VALIDATION_ERROR.to_string(),
+                            fix_suggestion: None,
+                        });
+                    }
+                } else {
+                    diagnostics.push(ValidationDiagnostic {
+                        range: node.range.clone(),
+                        severity: rule.severity.clone().unwrap_or(ast::DiagnosticSeverity::Error),
+                        message: "Expected boolean (yes/no)".to_string(),
+                        code: SCHEMA_VALIDATION_ERROR.to_string(),
+                        fix_suggestion: None,
+                    });
+                }
+            }
+        }
+        crate::schema::ValueType::Int | crate::schema::ValueType::Float => {
+            if !matches!(node.value, ast::Value::Number(_)) {
+                if let ast::Value::String(s) = &node.value {
+                    if s.parse::<f64>().is_err() {
+                        diagnostics.push(ValidationDiagnostic {
+                            range: node.range.clone(),
+                            severity: rule.severity.clone().unwrap_or(ast::DiagnosticSeverity::Error),
+                            message: "Expected a number".to_string(),
+                            code: SCHEMA_VALIDATION_ERROR.to_string(),
+                            fix_suggestion: None,
+                        });
+                    }
+                } else {
+                    diagnostics.push(ValidationDiagnostic {
+                        range: node.range.clone(),
+                        severity: rule.severity.clone().unwrap_or(ast::DiagnosticSeverity::Error),
+                        message: "Expected a number".to_string(),
+                        code: SCHEMA_VALIDATION_ERROR.to_string(),
+                        fix_suggestion: None,
+                    });
+                }
+            }
+        }
+        crate::schema::ValueType::Block => {
+            if let ast::Value::Block(entries) = &node.value {
+                validate_against_rule(entries, rule, schema, diagnostics);
+            } else {
+                diagnostics.push(ValidationDiagnostic {
+                    range: node.range.clone(),
+                    severity: rule.severity.clone().unwrap_or(ast::DiagnosticSeverity::Error),
+                    message: "Expected a block { ... }".to_string(),
+                    code: SCHEMA_VALIDATION_ERROR.to_string(),
+                    fix_suggestion: None,
+                });
+            }
+        }
+        crate::schema::ValueType::Alias(kind) => {
+            if let ast::Value::Block(entries) = &node.value {
+                for entry in entries {
+                    if let ast::Entry::Assignment(ass) = entry {
+                        let sub_rule = if kind == "trigger" { schema.triggers.get(&ass.key) }
+                                       else if kind == "effect" { schema.effects.get(&ass.key) }
+                                       else { None };
+                        if let Some(sr) = sub_rule {
+                            validate_value_against_rule(&ass.value, sr, schema, diagnostics);
+                        }
+                    }
+                }
+            }
+        }
+        _ => {}
+    }
+}
+
+fn rule_range_placeholder() -> ast::Range {
+    ast::Range { start_line: 0, start_col: 0, end_line: 0, end_col: 0 }
 }
 
 /// Validate achievements
@@ -304,23 +477,5 @@ fn validate_victory_points_recursive(
                 });
             }
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn test_building_validation() {
-        // Test would require mock AST and building data
-    }
-
-    #[test]
-    fn test_character_skill_validation() {
-        // Test would require mock AST and defines data
-    }
-
-    #[test]
-    fn test_victory_point_validation() {
-        // Test would require mock AST data
     }
 }

@@ -2562,14 +2562,25 @@ impl Backend {
         let mut triggers_path = None;
         let mut effects_path = None;
         let mut links_path = None;
+        let mut enums_path = None;
 
         for root in &possible_roots {
             let t = root.join("Config/triggers.cwt");
             let e = root.join("Config/effects.cwt");
             let l = root.join("Config/links.cwt");
+            let en = root.join("Config/shared_enums.cwt");
             if t.exists() { triggers_path = Some(t); }
             if e.exists() { effects_path = Some(e); }
             if l.exists() { links_path = Some(l); }
+            if en.exists() { enums_path = Some(en); }
+        }
+
+        if let Some(path) = enums_path {
+            if let Ok(content) = std::fs::read_to_string(&path) {
+                if let Ok(parsed) = parser::parse_script(&content) {
+                    schema.parse_cwt_ast(&parsed, None);
+                }
+            }
         }
 
         if let Some(path) = triggers_path {
@@ -2592,8 +2603,31 @@ impl Backend {
             }
         }
 
-        self.client.log_message(MessageType::INFO, format!("Schema loaded: {} triggers, {} effects, {} links", 
-            schema.triggers.len(), schema.effects.len(), schema.links.len())).await;
+        // Load custom project-level schemas
+        let project_root = std::path::PathBuf::from(".");
+        let custom_config_dir = project_root.join(".cwtools");
+        if custom_config_dir.exists() {
+            if let Ok(entries) = std::fs::read_dir(custom_config_dir) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if path.extension().map_or(false, |ext| ext == "cwt") {
+                        if let Ok(content) = std::fs::read_to_string(&path) {
+                            if let Ok(parsed) = parser::parse_script(&content) {
+                                // Try to determine kind from filename
+                                let filename = path.file_name().unwrap_or_default().to_string_lossy();
+                                let kind = if filename.contains("trigger") { Some("trigger") }
+                                           else if filename.contains("effect") { Some("effect") }
+                                           else { None };
+                                schema.parse_cwt_ast(&parsed, kind);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        self.client.log_message(MessageType::INFO, format!("Schema loaded: {} triggers, {} effects, {} links, {} enums", 
+            schema.triggers.len(), schema.effects.len(), schema.links.len(), schema.enums.len())).await;
 
         let mut s = self.schema.write().await;
         *s = schema;
@@ -2693,7 +2727,7 @@ impl Backend {
             match parser::parse_script(&content) {
                 Ok(script) => {
                     // Semantic validation
-                    self.check_semantic(&script, &mut diagnostics, styling_enabled).await;
+                    self.check_semantic(&script, &mut diagnostics, styling_enabled, uri.as_str()).await;
                     script_opt = Some(script);
                 }
                 Err((msg, range)) => {
@@ -3024,7 +3058,7 @@ impl Backend {
         }
     }
 
-    async fn check_semantic(&self, script: &ast::Script, diagnostics: &mut Vec<Diagnostic>, styling_enabled: bool) {
+    async fn check_semantic(&self, script: &ast::Script, diagnostics: &mut Vec<Diagnostic>, styling_enabled: bool, uri: &str) {
         let loc = self.localization.read().await;
         let st = self.scripted_triggers.read().await;
         let se = self.scripted_effects.read().await;
@@ -3055,6 +3089,44 @@ impl Backend {
         advanced_validation::validate_character_skills(&script.entries, &defines, &mut advanced_diags);
         advanced_validation::validate_victory_points(&script.entries, &mut advanced_diags);
         advanced_validation::validate_achievements(&script.entries, &loc, &mut advanced_diags);
+
+        // Schema-based validation
+        // Heuristic: determine which rule to apply based on file path
+        if uri.contains("common/scripted_triggers") {
+            for entry in &script.entries {
+                if let ast::Entry::Assignment(ass) = entry {
+                    if let ast::Value::Block(inner) = &ass.value.value {
+                        advanced_validation::validate_against_rule(inner, &crate::schema::Rule {
+                            key: "scripted_trigger".to_string(),
+                            value_type: crate::schema::ValueType::Alias("trigger".to_string()),
+                            description: None,
+                            scopes: Vec::new(),
+                            push_scope: None,
+                            cardinality: crate::schema::Cardinality::default(),
+                            severity: None,
+                            children: Vec::new(),
+                        }, &schema, &mut advanced_diags);
+                    }
+                }
+            }
+        } else if uri.contains("common/scripted_effects") {
+            for entry in &script.entries {
+                if let ast::Entry::Assignment(ass) = entry {
+                    if let ast::Value::Block(inner) = &ass.value.value {
+                        advanced_validation::validate_against_rule(inner, &crate::schema::Rule {
+                            key: "scripted_effect".to_string(),
+                            value_type: crate::schema::ValueType::Alias("effect".to_string()),
+                            description: None,
+                            scopes: Vec::new(),
+                            push_scope: None,
+                            cardinality: crate::schema::Cardinality::default(),
+                            severity: None,
+                            children: Vec::new(),
+                        }, &schema, &mut advanced_diags);
+                    }
+                }
+            }
+        }
 
         // Convert advanced diagnostics to LSP diagnostics
         for diag in advanced_diags {

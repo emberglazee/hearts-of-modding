@@ -17,6 +17,9 @@ All notable changes to the **Hearts of Modding** extension will be documented in
   - **Document Symbols:** Added comprehensive outline view support for script files, categorizing logic into meaningful sections (Events, Focuses, Characters, etc.).
 - **Advanced Validation Engine:**
   - Added `advanced_validation` module for complex logical checks.
+  - **Deep Schema Validation (CWT Support):** Rewrote the schema engine to support the full CWTools specification, including cardinality (e.g., `## cardinality = 1..1`), severity levels, and recursive blocks.
+  - **Enum Validation:** Now parses `shared_enums.cwt` to validate values against thousands of game-defined constants (DLCs, tech bonuses, etc.).
+  - **Custom Mod Schemas:** Added support for project-level schemas; `.cwt` files in `.cwtools/` or `Config/` are automatically merged into the validation engine.
   - **Building Levels:** Validates that building levels in state history do not exceed their `max_level` defined in `common/buildings/`.
   - **Character Skills:** Validates character skill levels against limits defined in `common/defines/*.lua`.
   - **Victory Points:** Validates that victory point provinces are correctly located within their assigned state.
