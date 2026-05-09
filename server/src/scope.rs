@@ -31,6 +31,7 @@ impl Scope {
         match s_lower.as_str() {
             "music_station" => Scope::MusicStation,
             "music" => Scope::MusicTrack,
+            "state" => Scope::State,
             "country" | "ger" | "eng" | "fra" | "ita" | "jap" | "sov" | "usa" |
             "focus_tree" | "focus" | "shared_focus" | "completion_reward" | "select_effect" | 
             "ai_will_do" | "available" | "bypass" | "allow_branch" | "will_lead_to_war_with" | 
