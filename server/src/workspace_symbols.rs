@@ -4,16 +4,6 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-/// Workspace symbol information
-#[derive(Debug, Clone)]
-pub struct WorkspaceSymbol {
-    pub name: String,
-    pub kind: SymbolKind,
-    pub location: String, // File path
-    pub range: Range,
-    pub container_name: Option<String>,
-}
-
 /// Generate workspace symbols from indexed data
 pub async fn generate_workspace_symbols(
     query: &str,
@@ -28,11 +18,12 @@ pub async fn generate_workspace_symbols(
 ) -> Vec<SymbolInformation> {
     let mut symbols = Vec::new();
     let query_lower = query.to_lowercase();
-    
+
     // Search events
     let events_lock = events.read().await;
     for (id, event) in events_lock.iter() {
         if fuzzy_match(&query_lower, &id.to_lowercase()) {
+            #[allow(deprecated)]
             symbols.push(SymbolInformation {
                 name: id.clone(),
                 kind: SymbolKind::EVENT,
@@ -48,11 +39,12 @@ pub async fn generate_workspace_symbols(
             });
         }
     }
-    
+
     // Search ideas
     let ideas_lock = ideas.read().await;
     for (name, idea) in ideas_lock.iter() {
         if fuzzy_match(&query_lower, &name.to_lowercase()) {
+            #[allow(deprecated)]
             symbols.push(SymbolInformation {
                 name: name.clone(),
                 kind: SymbolKind::CLASS,
@@ -68,11 +60,12 @@ pub async fn generate_workspace_symbols(
             });
         }
     }
-    
+
     // Search traits
     let traits_lock = traits.read().await;
     for (name, trait_data) in traits_lock.iter() {
         if fuzzy_match(&query_lower, &name.to_lowercase()) {
+            #[allow(deprecated)]
             symbols.push(SymbolInformation {
                 name: name.clone(),
                 kind: SymbolKind::STRUCT,
@@ -88,11 +81,12 @@ pub async fn generate_workspace_symbols(
             });
         }
     }
-    
+
     // Search scripted triggers
     let triggers_lock = scripted_triggers.read().await;
     for (name, trigger) in triggers_lock.iter() {
         if fuzzy_match(&query_lower, &name.to_lowercase()) {
+            #[allow(deprecated)]
             symbols.push(SymbolInformation {
                 name: name.clone(),
                 kind: SymbolKind::FUNCTION,
@@ -108,11 +102,12 @@ pub async fn generate_workspace_symbols(
             });
         }
     }
-    
+
     // Search scripted effects
     let effects_lock = scripted_effects.read().await;
     for (name, effect) in effects_lock.iter() {
         if fuzzy_match(&query_lower, &name.to_lowercase()) {
+            #[allow(deprecated)]
             symbols.push(SymbolInformation {
                 name: name.clone(),
                 kind: SymbolKind::FUNCTION,
@@ -128,11 +123,12 @@ pub async fn generate_workspace_symbols(
             });
         }
     }
-    
+
     // Search ideologies
     let ideologies_lock = ideologies.read().await;
     for (name, ideology) in ideologies_lock.iter() {
         if fuzzy_match(&query_lower, &name.to_lowercase()) {
+            #[allow(deprecated)]
             symbols.push(SymbolInformation {
                 name: name.clone(),
                 kind: SymbolKind::ENUM,
@@ -148,11 +144,12 @@ pub async fn generate_workspace_symbols(
             });
         }
     }
-    
+
     // Search sprites
     let sprites_lock = sprites.read().await;
     for (name, sprite) in sprites_lock.iter() {
         if fuzzy_match(&query_lower, &name.to_lowercase()) {
+            #[allow(deprecated)]
             symbols.push(SymbolInformation {
                 name: name.clone(),
                 kind: SymbolKind::CONSTANT,
@@ -168,13 +165,14 @@ pub async fn generate_workspace_symbols(
             });
         }
     }
-    
+
     // Search variables
     let variables_lock = variables.read().await;
     for (name, var_list) in variables_lock.iter() {
         if fuzzy_match(&query_lower, &name.to_lowercase()) {
             // Add the first occurrence
             if let Some(var) = var_list.first() {
+                #[allow(deprecated)]
                 symbols.push(SymbolInformation {
                     name: name.clone(),
                     kind: SymbolKind::VARIABLE,
@@ -191,7 +189,7 @@ pub async fn generate_workspace_symbols(
             }
         }
     }
-    
+
     symbols
 }
 
@@ -200,12 +198,12 @@ fn fuzzy_match(query: &str, target: &str) -> bool {
     if query.is_empty() {
         return true;
     }
-    
+
     // Exact substring match
     if target.contains(query) {
         return true;
     }
-    
+
     // Fuzzy match: all characters in query appear in order in target
     let mut target_chars = target.chars();
     for query_char in query.chars() {
@@ -213,7 +211,7 @@ fn fuzzy_match(query: &str, target: &str) -> bool {
             return false;
         }
     }
-    
+
     true
 }
 
@@ -234,7 +232,7 @@ fn range_to_lsp(range: &Range) -> LspRange {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_fuzzy_match() {
         assert!(fuzzy_match("", "anything"));
@@ -243,7 +241,7 @@ mod tests {
         assert!(fuzzy_match("mte", "my_test_event"));
         assert!(!fuzzy_match("xyz", "my_test_event"));
     }
-    
+
     #[test]
     fn test_fuzzy_match_case_insensitive() {
         assert!(fuzzy_match("test", "TEST"));
