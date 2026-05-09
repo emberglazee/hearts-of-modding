@@ -1,5 +1,5 @@
 use tower_lsp::lsp_types::{DocumentSymbol, SymbolKind, Range as LspRange, Position as LspPosition};
-use crate::ast::{Entry, Assignment, NodeedValue, Value, Range};
+use crate::ast::{Entry, NodeedValue, Value, Range};
 
 /// Generate document symbols for outline view
 pub fn generate_document_symbols(entries: &[Entry]) -> Vec<DocumentSymbol> {

@@ -1,9 +1,8 @@
 use tower_lsp::lsp_types::{
-    CallHierarchyIncomingCall, CallHierarchyIncomingCallsParams, CallHierarchyItem,
-    CallHierarchyOutgoingCall, CallHierarchyOutgoingCallsParams, CallHierarchyPrepareParams,
-    Range as LspRange, Position as LspPosition, SymbolKind, Url,
+    CallHierarchyIncomingCall, CallHierarchyItem,
+    CallHierarchyOutgoingCall, Range as LspRange, Position as LspPosition, SymbolKind, Url,
 };
-use crate::ast::{Entry, Assignment, Value, Range};
+use crate::ast::{Entry, Value, Range};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;

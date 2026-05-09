@@ -272,8 +272,6 @@ fn validate_victory_points_recursive(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[test]
     fn test_building_validation() {
         // Test would require mock AST and building data
