@@ -1228,6 +1228,7 @@ impl LanguageServer for Backend {
         let mut has_mixed_indentation_diagnostic = false;
         let mut has_assignment_space_diagnostic = false;
         let mut has_brace_space_diagnostic = false;
+        let mut has_unnecessary_version_diagnostic = false;
 
         for diagnostic in &params.context.diagnostics {
             if let Some(target_casing) = diagnostic.data.as_ref().and_then(|v| v.as_str()) {
@@ -1404,6 +1405,25 @@ impl LanguageServer for Backend {
                             is_preferred: Some(true),
                             ..Default::default()
                         }));
+                    } else if code == "unnecessary_version" {
+                        has_unnecessary_version_diagnostic = true;
+                        let mut changes = HashMap::new();
+                        changes.insert(params.text_document.uri.clone(), vec![TextEdit {
+                            range: diagnostic.range,
+                            new_text: "".to_string(),
+                        }]);
+
+                        actions.push(CodeActionOrCommand::CodeAction(CodeAction {
+                            title: "Remove unnecessary version number".to_string(),
+                            kind: Some(CodeActionKind::QUICKFIX),
+                            edit: Some(WorkspaceEdit {
+                                changes: Some(changes),
+                                ..Default::default()
+                            }),
+                            diagnostics: Some(vec![diagnostic.clone()]),
+                            is_preferred: Some(true),
+                            ..Default::default()
+                        }));
                     } else if code == "styling_indent" {
                         has_mixed_indentation_diagnostic = true;
                         if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
@@ -1514,8 +1534,9 @@ impl LanguageServer for Backend {
         // Add "Convert all mixed indentation to tabs" if any such diagnostic is present
         if has_mixed_indentation_diagnostic {
             if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
+                let is_yaml = params.text_document.uri.as_str().ends_with(".yml");
                 let parsed = parser::parse_script(&content);
-                let script_opt = parsed.as_ref().ok();
+                let script_opt = if is_yaml { None } else { parsed.as_ref().ok() };
 
                 let mut all_fixes = Vec::new();
                 self.collect_indentation_fixes(&content, script_opt, &mut all_fixes);
@@ -1602,6 +1623,41 @@ impl LanguageServer for Backend {
                             ..Default::default()
                         }));
                     }
+                }
+            }
+        }
+
+        // Add "Remove all unnecessary version numbers" if any such diagnostic is present
+        if has_unnecessary_version_diagnostic {
+            if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
+                let (parsed, _) = loc_parser::parse_loc_file(&content, "");
+                let mut all_fixes = Vec::new();
+
+                for entry in parsed.values() {
+                    if let Some(d) = loc_parser::check_unnecessary_version(entry, &parsed) {
+                        all_fixes.push((d.range, "".to_string()));
+                    }
+                }
+
+                if !all_fixes.is_empty() {
+                    let mut changes = HashMap::new();
+                    let edits: Vec<TextEdit> = all_fixes.into_iter().map(|(range, text)| TextEdit {
+                        range: ast_range_to_lsp(&range),
+                        new_text: text,
+                    }).collect();
+
+                    changes.insert(params.text_document.uri.clone(), edits);
+
+                    actions.push(CodeActionOrCommand::CodeAction(CodeAction {
+                        title: "Remove all unnecessary version numbers in this file".to_string(),
+                        kind: Some(CodeActionKind::QUICKFIX),
+                        edit: Some(WorkspaceEdit {
+                            changes: Some(changes),
+                            ..Default::default()
+                        }),
+                        is_preferred: Some(false),
+                        ..Default::default()
+                    }));
                 }
             }
         }
@@ -2548,6 +2604,23 @@ impl Backend {
         }
 
         for entry in parsed.values() {
+            // Check for unnecessary version numbers
+            if let Some(d) = loc_parser::check_unnecessary_version(entry, &parsed) {
+                diagnostics.push(Diagnostic {
+                    range: ast_range_to_lsp(&d.range),
+                    severity: Some(match d.severity {
+                        ast::DiagnosticSeverity::Error => DiagnosticSeverity::ERROR,
+                        ast::DiagnosticSeverity::Warning => DiagnosticSeverity::WARNING,
+                        ast::DiagnosticSeverity::Information => DiagnosticSeverity::INFORMATION,
+                        ast::DiagnosticSeverity::Hint => DiagnosticSeverity::HINT,
+                    }),
+                    message: d.message,
+                    code: d.code.map(NumberOrString::String),
+                    source: Some("Hearts of Modding".to_string()),
+                    ..Default::default()
+                });
+            }
+
             let loc_diagnostics = loc_parser::validate_loc_string(entry, &event_targets);
             for d in loc_diagnostics {
                 diagnostics.push(Diagnostic {
@@ -3705,6 +3778,8 @@ mod tests {
             range: Range { start_line: 0, start_col: 0, end_line: 0, end_col: 0 },
             path: "".to_string(),
             value_start_col: 0,
+            version: None,
+            version_range: None,
         });
         loc.insert("KEY2".to_string(), LocEntry {
             key: "KEY2".to_string(),
@@ -3712,6 +3787,8 @@ mod tests {
             range: Range { start_line: 0, start_col: 0, end_line: 0, end_col: 0 },
             path: "".to_string(),
             value_start_col: 0,
+            version: None,
+            version_range: None,
         });
 
         assert_eq!(resolve_loc("Hello $KEY1$", &loc, 0), "Hello Value 1");

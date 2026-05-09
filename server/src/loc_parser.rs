@@ -18,6 +18,8 @@ pub struct LocEntry {
     pub range: Range,
     pub path: String,
     pub value_start_col: u32,
+    pub version: Option<String>,
+    pub version_range: Option<Range>,
 }
 
 #[derive(Debug, Clone)]
@@ -140,6 +142,28 @@ pub fn validate_loc_string(entry: &LocEntry, event_targets: &HashMap<String, Vec
     diagnostics
 }
 
+pub fn check_unnecessary_version(entry: &LocEntry, all_entries: &HashMap<String, LocEntry>) -> Option<LocDiagnostic> {
+    // Only check if this entry has a version number
+    if let (Some(version), Some(version_range)) = (&entry.version, &entry.version_range) {
+        // Check if there are any other entries with the same key
+        let has_duplicates = all_entries.iter().any(|(k, e)| {
+            k == &entry.key && e.path != entry.path
+        });
+        
+        // If no duplicates exist, the version number is unnecessary
+        if !has_duplicates {
+            return Some(LocDiagnostic {
+                range: version_range.clone(),
+                message: format!("Version number '{}' is unnecessary. HOI4 ignores version numbers, and this key has no duplicates.", version),
+                severity: DiagnosticSeverity::Hint,
+                code: Some("unnecessary_version".to_string()),
+            });
+        }
+    }
+    
+    None
+}
+
 pub fn validate_loc_file_structure(input: &str) -> Vec<LocDiagnostic> {
     let mut diagnostics = Vec::new();
     
@@ -246,7 +270,7 @@ fn parse_loc_entry<'a>(input: Span<'a>, path: &'a str) -> IResult<Span<'a>, LocE
     let (input, _) = multispace0(input)?;
     let (input, key_span) = take_while1(|c: char| c.is_alphanumeric() || c == '_' || c == '.' || c == '-')(input)?;
     let (input, _) = char(':')(input)?;
-    let (input, _) = opt(digit1)(input)?;
+    let (input, version_span) = opt(digit1)(input)?;
     let (input, _) = space0(input)?;
     
     let (input, _) = char('"')(input)?;
@@ -256,12 +280,20 @@ fn parse_loc_entry<'a>(input: Span<'a>, path: &'a str) -> IResult<Span<'a>, LocE
     
     let value = value_chars.into_iter().collect::<String>();
     
+    let (version, version_range) = if let Some(v_span) = version_span {
+        (Some(v_span.fragment().to_string()), Some(to_range(v_span)))
+    } else {
+        (None, None)
+    };
+    
     Ok((input, LocEntry {
         key: key_span.fragment().to_string(),
         value,
         range: to_range(key_span),
         path: path.to_string(),
         value_start_col: start_val.get_column() as u32 - 1,
+        version,
+        version_range,
     }))
 }
 
