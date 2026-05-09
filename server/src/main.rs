@@ -17,6 +17,9 @@ mod event_scanner;
 mod music_scanner;
 mod sound_scanner;
 mod schema;
+mod building_scanner;
+mod defines_parser;
+mod advanced_validation;
 
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
@@ -59,6 +62,8 @@ struct Backend {
     sound_effects: Arc<RwLock<HashMap<String, sound_scanner::SoundEffect>>>,
     falloffs: Arc<RwLock<HashMap<String, sound_scanner::Falloff>>>,
     sound_categories: Arc<RwLock<HashMap<String, sound_scanner::SoundCategory>>>,
+    buildings: Arc<RwLock<HashMap<String, building_scanner::Building>>>,
+    defines: Arc<RwLock<defines_parser::GameDefines>>,
     ignored_loc_regex: Arc<RwLock<Vec<regex::Regex>>>,
     schema: Arc<RwLock<schema::Schema>>,
     styling_enabled: Arc<RwLock<bool>>,
@@ -175,6 +180,8 @@ impl LanguageServer for Backend {
             self.scan_variables(&roots),
             self.scan_provinces(&roots),
             self.scan_modifiers(&roots),
+            self.scan_buildings(&roots),
+            self.scan_defines(&roots),
             self.scan_events(&roots),
             self.scan_music(&roots),
             self.scan_sounds(&roots),
@@ -1694,6 +1701,24 @@ impl Backend {
         self.client.log_message(MessageType::INFO, format!("Total: Loaded {} custom modifiers and {} builtin mappings", custom.len(), mappings.len())).await;
     }
 
+    async fn scan_buildings(&self, roots: &[std::path::PathBuf]) {
+        let buildings = building_scanner::scan_buildings(roots);
+        
+        let mut b = self.buildings.write().await;
+        *b = buildings;
+
+        self.client.log_message(MessageType::INFO, format!("Total: Loaded {} buildings", b.len())).await;
+    }
+
+    async fn scan_defines(&self, roots: &[std::path::PathBuf]) {
+        let defines = defines_parser::scan_defines(roots);
+        
+        let mut d = self.defines.write().await;
+        *d = defines;
+
+        self.client.log_message(MessageType::INFO, "Loaded game defines").await;
+    }
+
     async fn scan_variables(&self, roots: &[std::path::PathBuf]) {
         let result = variable_scanner::scan_roots(roots);
 
@@ -2629,6 +2654,8 @@ impl Backend {
         let schema = self.schema.read().await;
         let mod_maps = self.modifier_mappings.read().await;
         let ig_loc = self.ignored_loc_regex.read().await;
+        let buildings = self.buildings.read().await;
+        let defines = self.defines.read().await;
 
         let mut comments = Vec::new();
         for entry in &script.entries {
@@ -2638,6 +2665,29 @@ impl Backend {
         }
 
         let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
+
+        // Run advanced validations
+        let mut advanced_diags = Vec::new();
+        advanced_validation::validate_building_levels(&script.entries, &buildings, &mut advanced_diags);
+        advanced_validation::validate_character_skills(&script.entries, &defines, &mut advanced_diags);
+        advanced_validation::validate_victory_points(&script.entries, &mut advanced_diags);
+        
+        // Convert advanced diagnostics to LSP diagnostics
+        for diag in advanced_diags {
+            diagnostics.push(Diagnostic {
+                range: ast_range_to_lsp(&diag.range),
+                severity: Some(match diag.severity {
+                    ast::DiagnosticSeverity::Error => DiagnosticSeverity::ERROR,
+                    ast::DiagnosticSeverity::Warning => DiagnosticSeverity::WARNING,
+                    ast::DiagnosticSeverity::Information => DiagnosticSeverity::INFORMATION,
+                    ast::DiagnosticSeverity::Hint => DiagnosticSeverity::HINT,
+                }),
+                message: diag.message,
+                code: Some(NumberOrString::String(diag.code)),
+                source: Some("Hearts of Modding".to_string()),
+                ..Default::default()
+            });
+        }
 
         for entry in &script.entries {
             self.check_entry_semantic(entry, diagnostics, &loc, &st, &se, &id, &sid, &tr, &sp, &ids, &provs, &schema, &mod_maps, &ig_loc, &comments, styling_enabled, &mut scope_stack);
@@ -3135,6 +3185,8 @@ async fn main() {
         sound_effects: Arc::new(RwLock::new(HashMap::new())),
         falloffs: Arc::new(RwLock::new(HashMap::new())),
         sound_categories: Arc::new(RwLock::new(HashMap::new())),
+        buildings: Arc::new(RwLock::new(HashMap::new())),
+        defines: Arc::new(RwLock::new(defines_parser::GameDefines::new())),
         ignored_loc_regex: Arc::new(RwLock::new(Vec::new())),
         schema: Arc::new(RwLock::new(schema::Schema::new())),
         styling_enabled: Arc::new(RwLock::new(true)),
@@ -3154,18 +3206,19 @@ fn find_colors(script: &ast::Script) -> Vec<ColorInformation> {
 
 fn find_colors_in_entry(entry: &ast::Entry, colors: &mut Vec<ColorInformation>) {
     if let ast::Entry::Assignment(ass) = entry {
-        if ass.key.to_lowercase().contains("color") {
-            find_colors_in_value(&ass.value, colors);
+        let key_lower = ass.key.to_lowercase();
+        if key_lower.contains("color") {
+            find_colors_in_value(&ass.value, colors, true);
         } else {
-            // Recurse into blocks even if key doesn't match
-            find_colors_in_value(&ass.value, colors);
+            // Recurse into blocks even if key doesn't match, but don't treat as color context
+            find_colors_in_value(&ass.value, colors, false);
         }
     } else if let ast::Entry::Value(val) = entry {
-        find_colors_in_value(val, colors);
+        find_colors_in_value(val, colors, false);
     }
 }
 
-fn find_colors_in_value(val: &ast::NodeedValue, colors: &mut Vec<ColorInformation>) {
+fn find_colors_in_value(val: &ast::NodeedValue, colors: &mut Vec<ColorInformation>, is_color_context: bool) {
     match &val.value {
         ast::Value::Block(entries) => {
             let nums: Vec<f64> = entries.iter().filter_map(|e| {
@@ -3180,7 +3233,8 @@ fn find_colors_in_value(val: &ast::NodeedValue, colors: &mut Vec<ColorInformatio
                 }
             }).collect();
 
-            if nums.len() == 3 {
+            // Only treat as color if we're in a color context (key contains "color")
+            if nums.len() == 3 && is_color_context {
                 // Determine if it's 0-1 or 0-255
                 // Most HOI4 color blocks are 0-255, but some might be 0-1
                 // If any value is > 1.0, it must be 0-255
@@ -3217,6 +3271,7 @@ fn find_colors_in_value(val: &ast::NodeedValue, colors: &mut Vec<ColorInformatio
 
             if nums.len() == 3 {
                 let tag_lower = tag.to_lowercase();
+                // Tagged blocks (rgb/hsv) are always colors regardless of context
                 if tag_lower == "rgb" {
                     let r = (nums[0] / 255.0) as f32;
                     let g = (nums[1] / 255.0) as f32;
