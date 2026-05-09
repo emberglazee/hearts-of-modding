@@ -21,6 +21,9 @@ mod building_scanner;
 mod defines_parser;
 mod advanced_validation;
 mod enhanced_color;
+mod document_symbols;
+mod workspace_symbols;
+mod call_hierarchy;
 
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
@@ -152,6 +155,9 @@ impl LanguageServer for Backend {
                     ],
                     ..Default::default()
                 }),
+                document_symbol_provider: Some(OneOf::Left(true)),
+                workspace_symbol_provider: Some(OneOf::Left(true)),
+                call_hierarchy_provider: Some(CallHierarchyServerCapability::Simple(true)),
                 ..Default::default()
             },
             ..Default::default()
@@ -1618,6 +1624,80 @@ impl LanguageServer for Backend {
         Ok(None)
     }
 
+    async fn document_symbol(&self, params: DocumentSymbolParams) -> Result<Option<DocumentSymbolResponse>> {
+        let uri = params.text_document.uri.as_str();
+
+        if let Some(entry) = self.documents.get(uri) {
+            let content = entry.value();
+            
+            // Parse the document
+            match parser::parse_script(content) {
+                Ok(script) => {
+                    let symbols = document_symbols::generate_document_symbols(&script.entries);
+                    Ok(Some(DocumentSymbolResponse::Nested(symbols)))
+                }
+                Err(_) => Ok(None),
+            }
+        } else {
+            Ok(None)
+        }
+    }
+
+    async fn symbol(&self, params: WorkspaceSymbolParams) -> Result<Option<Vec<SymbolInformation>>> {
+        let symbols = workspace_symbols::generate_workspace_symbols(
+            &params.query,
+            &self.events,
+            &self.ideas,
+            &self.traits,
+            &self.scripted_triggers,
+            &self.scripted_effects,
+            &self.ideologies,
+            &self.sprites,
+            &self.variables,
+        ).await;
+
+        Ok(Some(symbols))
+    }
+
+    async fn prepare_call_hierarchy(&self, params: CallHierarchyPrepareParams) -> Result<Option<Vec<CallHierarchyItem>>> {
+        let uri = params.text_document_position_params.text_document.uri.as_str();
+        let position = params.text_document_position_params.position;
+
+        let item = call_hierarchy::prepare_call_hierarchy(
+            uri,
+            position,
+            &self.events,
+            &self.scripted_triggers,
+            &self.scripted_effects,
+        ).await;
+
+        Ok(item.map(|i| vec![i]))
+    }
+
+    async fn incoming_calls(&self, params: CallHierarchyIncomingCallsParams) -> Result<Option<Vec<CallHierarchyIncomingCall>>> {
+        let calls = call_hierarchy::get_incoming_calls(
+            &params.item,
+            &self.events,
+            &self.scripted_triggers,
+            &self.scripted_effects,
+            &self.documents,
+        ).await;
+
+        Ok(Some(calls))
+    }
+
+    async fn outgoing_calls(&self, params: CallHierarchyOutgoingCallsParams) -> Result<Option<Vec<CallHierarchyOutgoingCall>>> {
+        let calls = call_hierarchy::get_outgoing_calls(
+            &params.item,
+            &self.events,
+            &self.scripted_triggers,
+            &self.scripted_effects,
+            &self.documents,
+        ).await;
+
+        Ok(Some(calls))
+    }
+
     async fn shutdown(&self) -> Result<()> {
         Ok(())
     }
@@ -2384,7 +2464,8 @@ impl Backend {
         }
 
         if styling_enabled {
-            self.check_styling(&content, script_opt.as_ref(), &mut diagnostics);
+            let is_yaml = uri.as_str().ends_with(".yml");
+            self.check_styling(&content, script_opt.as_ref(), &mut diagnostics, is_yaml);
         }
 
         self.client.publish_diagnostics(uri, diagnostics, None).await;
@@ -2566,7 +2647,7 @@ impl Backend {
         }
     }
 
-    fn check_styling(&self, content: &str, script_opt: Option<&ast::Script>, diagnostics: &mut Vec<Diagnostic>) {
+    fn check_styling(&self, content: &str, script_opt: Option<&ast::Script>, diagnostics: &mut Vec<Diagnostic>, is_yaml: bool) {
         if !content.is_empty() && !content.ends_with('\n') && !content.ends_with("\r\n") {
             let line_count = content.lines().count();
             let last_line = content.lines().last().unwrap_or("");
@@ -2613,12 +2694,21 @@ impl Backend {
                 continue; // Skip empty lines for indentation checking
             }
 
-            if let Some(&expected_tabs) = expected_indents.get(&(line_idx as u32)) {
-                let expected_str = "\t".repeat(expected_tabs);
-                if leading != expected_str {
-                    let mut data = serde_json::Map::new();
-                    data.insert("expected_tabs".to_string(), serde_json::Value::Number(expected_tabs.into()));
-
+            // For YAML localization files, allow flexible indentation after the first tab
+            if is_yaml {
+                // Skip header line (l_english:)
+                let trimmed = line.trim();
+                if trimmed.starts_with("l_") && trimmed.contains(':') {
+                    continue;
+                }
+                
+                // Skip comments
+                if trimmed.starts_with('#') {
+                    continue;
+                }
+                
+                // For content lines, require at least one tab at the start
+                if !leading.is_empty() && !leading.starts_with('\t') {
                     diagnostics.push(Diagnostic {
                         range: Range {
                             start: Position { line: line_idx as u32, character: 0 },
@@ -2626,25 +2716,47 @@ impl Backend {
                         },
                         severity: Some(DiagnosticSeverity::INFORMATION),
                         code: Some(NumberOrString::String("styling_indent".to_string())),
-                        message: format!("Inconsistent indentation. Expected {} tab(s).", expected_tabs),
+                        message: "Localization entries must start with at least one tab.".to_string(),
                         source: Some("Hearts of Modding".to_string()),
-                        data: Some(serde_json::Value::Object(data)),
                         ..Default::default()
                     });
                 }
-            } else if leading.contains(' ') {
-                // Fallback if line wasn't in AST (e.g. unparsed strings or comments)
-                diagnostics.push(Diagnostic {
-                    range: Range {
-                        start: Position { line: line_idx as u32, character: 0 },
-                        end: Position { line: line_idx as u32, character: leading.len() as u32 },
-                    },
-                    severity: Some(DiagnosticSeverity::INFORMATION),
-                    code: Some(NumberOrString::String("styling_indent".to_string())),
-                    message: "Spaces used in indentation. Please use tabs.".to_string(),
-                    source: Some("Hearts of Modding".to_string()),
-                    ..Default::default()
-                });
+                // Allow any additional indentation after the first tab for cosmetic alignment
+            } else {
+                // Regular script files: strict tab-only indentation
+                if let Some(&expected_tabs) = expected_indents.get(&(line_idx as u32)) {
+                    let expected_str = "\t".repeat(expected_tabs);
+                    if leading != expected_str {
+                        let mut data = serde_json::Map::new();
+                        data.insert("expected_tabs".to_string(), serde_json::Value::Number(expected_tabs.into()));
+
+                        diagnostics.push(Diagnostic {
+                            range: Range {
+                                start: Position { line: line_idx as u32, character: 0 },
+                                end: Position { line: line_idx as u32, character: leading.len() as u32 },
+                            },
+                            severity: Some(DiagnosticSeverity::INFORMATION),
+                            code: Some(NumberOrString::String("styling_indent".to_string())),
+                            message: format!("Inconsistent indentation. Expected {} tab(s).", expected_tabs),
+                            source: Some("Hearts of Modding".to_string()),
+                            data: Some(serde_json::Value::Object(data)),
+                            ..Default::default()
+                        });
+                    }
+                } else if leading.contains(' ') {
+                    // Fallback if line wasn't in AST (e.g. unparsed strings or comments)
+                    diagnostics.push(Diagnostic {
+                        range: Range {
+                            start: Position { line: line_idx as u32, character: 0 },
+                            end: Position { line: line_idx as u32, character: leading.len() as u32 },
+                        },
+                        severity: Some(DiagnosticSeverity::INFORMATION),
+                        code: Some(NumberOrString::String("styling_indent".to_string())),
+                        message: "Spaces used in indentation. Please use tabs.".to_string(),
+                        source: Some("Hearts of Modding".to_string()),
+                        ..Default::default()
+                    });
+                }
             }
         }
     }

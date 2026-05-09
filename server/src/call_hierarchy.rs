@@ -1,0 +1,459 @@
+use tower_lsp::lsp_types::{
+    CallHierarchyIncomingCall, CallHierarchyIncomingCallsParams, CallHierarchyItem,
+    CallHierarchyOutgoingCall, CallHierarchyOutgoingCallsParams, CallHierarchyPrepareParams,
+    Range as LspRange, Position as LspPosition, SymbolKind, Url,
+};
+use crate::ast::{Entry, Assignment, Value, Range};
+use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::sync::RwLock;
+
+/// Call hierarchy information for a symbol
+#[derive(Debug, Clone)]
+pub struct CallInfo {
+    pub name: String,
+    pub kind: CallKind,
+    pub path: String,
+    pub range: Range,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum CallKind {
+    Event,
+    ScriptedTrigger,
+    ScriptedEffect,
+}
+
+/// Prepare call hierarchy item at the given position
+pub async fn prepare_call_hierarchy(
+    uri: &str,
+    position: LspPosition,
+    events: &Arc<RwLock<HashMap<String, crate::event_scanner::Event>>>,
+    scripted_triggers: &Arc<RwLock<HashMap<String, crate::scripted_scanner::ScriptedEntity>>>,
+    scripted_effects: &Arc<RwLock<HashMap<String, crate::scripted_scanner::ScriptedEntity>>>,
+) -> Option<CallHierarchyItem> {
+    let path = uri.trim_start_matches("file://");
+    
+    // Check if position is on an event
+    let events_lock = events.read().await;
+    for (id, event) in events_lock.iter() {
+        if event.path == path && position_in_range(&position, &event.range) {
+            return Some(CallHierarchyItem {
+                name: id.clone(),
+                kind: SymbolKind::EVENT,
+                tags: None,
+                detail: Some(format!("{:?}", event.event_type)),
+                uri: Url::from_file_path(&event.path).unwrap_or_else(|_| {
+                    Url::parse(&format!("file://{}", event.path)).unwrap()
+                }),
+                range: range_to_lsp(&event.range),
+                selection_range: range_to_lsp(&event.range),
+                data: None,
+            });
+        }
+    }
+    drop(events_lock);
+    
+    // Check if position is on a scripted trigger
+    let triggers_lock = scripted_triggers.read().await;
+    for (name, trigger) in triggers_lock.iter() {
+        if trigger.path == path && position_in_range(&position, &trigger.range) {
+            return Some(CallHierarchyItem {
+                name: name.clone(),
+                kind: SymbolKind::FUNCTION,
+                tags: None,
+                detail: Some("Scripted Trigger".to_string()),
+                uri: Url::from_file_path(&trigger.path).unwrap_or_else(|_| {
+                    Url::parse(&format!("file://{}", trigger.path)).unwrap()
+                }),
+                range: range_to_lsp(&trigger.range),
+                selection_range: range_to_lsp(&trigger.range),
+                data: None,
+            });
+        }
+    }
+    drop(triggers_lock);
+    
+    // Check if position is on a scripted effect
+    let effects_lock = scripted_effects.read().await;
+    for (name, effect) in effects_lock.iter() {
+        if effect.path == path && position_in_range(&position, &effect.range) {
+            return Some(CallHierarchyItem {
+                name: name.clone(),
+                kind: SymbolKind::FUNCTION,
+                tags: None,
+                detail: Some("Scripted Effect".to_string()),
+                uri: Url::from_file_path(&effect.path).unwrap_or_else(|_| {
+                    Url::parse(&format!("file://{}", effect.path)).unwrap()
+                }),
+                range: range_to_lsp(&effect.range),
+                selection_range: range_to_lsp(&effect.range),
+                data: None,
+            });
+        }
+    }
+    
+    None
+}
+
+/// Get incoming calls (who calls this symbol)
+pub async fn get_incoming_calls(
+    item: &CallHierarchyItem,
+    events: &Arc<RwLock<HashMap<String, crate::event_scanner::Event>>>,
+    scripted_triggers: &Arc<RwLock<HashMap<String, crate::scripted_scanner::ScriptedEntity>>>,
+    scripted_effects: &Arc<RwLock<HashMap<String, crate::scripted_scanner::ScriptedEntity>>>,
+    documents: &dashmap::DashMap<String, String>,
+) -> Vec<CallHierarchyIncomingCall> {
+    let mut incoming = Vec::new();
+    let target_name = &item.name;
+    
+    // Search for references in all documents
+    for entry in documents.iter() {
+        let uri = entry.key();
+        let content = entry.value();
+        
+        // Parse the document
+        if let Ok(script) = crate::parser::parse_script(content) {
+            let references = find_references_in_entries(&script.entries, target_name);
+            
+            if !references.is_empty() {
+                // Try to find the containing symbol
+                if let Some(container) = find_container_symbol(uri, &references[0], events, scripted_triggers, scripted_effects).await {
+                    incoming.push(CallHierarchyIncomingCall {
+                        from: container,
+                        from_ranges: references.iter().map(range_to_lsp).collect(),
+                    });
+                }
+            }
+        }
+    }
+    
+    incoming
+}
+
+/// Get outgoing calls (what this symbol calls)
+pub async fn get_outgoing_calls(
+    item: &CallHierarchyItem,
+    events: &Arc<RwLock<HashMap<String, crate::event_scanner::Event>>>,
+    scripted_triggers: &Arc<RwLock<HashMap<String, crate::scripted_scanner::ScriptedEntity>>>,
+    scripted_effects: &Arc<RwLock<HashMap<String, crate::scripted_scanner::ScriptedEntity>>>,
+    documents: &dashmap::DashMap<String, String>,
+) -> Vec<CallHierarchyOutgoingCall> {
+    let mut outgoing = Vec::new();
+    
+    // Get the document content
+    if let Some(entry) = documents.get(item.uri.as_str()) {
+        let content = entry.value();
+        
+        // Parse the document
+        if let Ok(script) = crate::parser::parse_script(content) {
+            // Find all calls within this symbol's range
+            let calls = find_calls_in_range(&script.entries, &lsp_to_range(&item.range));
+            
+            for (call_name, call_ranges) in calls {
+                // Try to find the target symbol
+                if let Some(target) = find_symbol_by_name(&call_name, events, scripted_triggers, scripted_effects).await {
+                    outgoing.push(CallHierarchyOutgoingCall {
+                        to: target,
+                        from_ranges: call_ranges.iter().map(range_to_lsp).collect(),
+                    });
+                }
+            }
+        }
+    }
+    
+    outgoing
+}
+
+/// Find references to a symbol in AST entries
+fn find_references_in_entries(entries: &[Entry], target: &str) -> Vec<Range> {
+    let mut references = Vec::new();
+    
+    for entry in entries {
+        find_references_recursive(entry, target, &mut references);
+    }
+    
+    references
+}
+
+fn find_references_recursive(entry: &Entry, target: &str, references: &mut Vec<Range>) {
+    match entry {
+        Entry::Assignment(ass) => {
+            // Check for event triggers: country_event = { id = target }
+            if ass.key == "country_event" || ass.key == "state_event" || ass.key == "news_event" {
+                if let Value::Block(children) = &ass.value.value {
+                    for child in children {
+                        if let Entry::Assignment(child_ass) = child {
+                            if child_ass.key == "id" {
+                                if let Value::String(id) = &child_ass.value.value {
+                                    if id == target {
+                                        let range = Range {
+                                            start_line: ass.key_range.start_line,
+                                            start_col: ass.key_range.start_col,
+                                            end_line: ass.value.range.end_line,
+                                            end_col: ass.value.range.end_col,
+                                        };
+                                        references.push(range);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Check for scripted trigger/effect calls
+            if let Value::String(s) = &ass.value.value {
+                if s == target {
+                    let range = Range {
+                        start_line: ass.key_range.start_line,
+                        start_col: ass.key_range.start_col,
+                        end_line: ass.value.range.end_line,
+                        end_col: ass.value.range.end_col,
+                    };
+                    references.push(range);
+                }
+            }
+            
+            // Recurse into blocks
+            if let Value::Block(children) = &ass.value.value {
+                for child in children {
+                    find_references_recursive(child, target, references);
+                }
+            }
+        }
+        _ => {}
+    }
+}
+
+/// Find all calls within a specific range
+fn find_calls_in_range(entries: &[Entry], range: &Range) -> HashMap<String, Vec<Range>> {
+    let mut calls = HashMap::new();
+    
+    for entry in entries {
+        find_calls_recursive(entry, range, &mut calls);
+    }
+    
+    calls
+}
+
+fn find_calls_recursive(entry: &Entry, target_range: &Range, calls: &mut HashMap<String, Vec<Range>>) {
+    match entry {
+        Entry::Assignment(ass) => {
+            let range = Range {
+                start_line: ass.key_range.start_line,
+                start_col: ass.key_range.start_col,
+                end_line: ass.value.range.end_line,
+                end_col: ass.value.range.end_col,
+            };
+            
+            if !range_overlaps(&range, target_range) {
+                return;
+            }
+            
+            // Check for event triggers
+            if ass.key == "country_event" || ass.key == "state_event" || ass.key == "news_event" {
+                if let Value::Block(children) = &ass.value.value {
+                    for child in children {
+                        if let Entry::Assignment(child_ass) = child {
+                            if child_ass.key == "id" {
+                                if let Value::String(id) = &child_ass.value.value {
+                                    calls.entry(id.clone()).or_insert_with(Vec::new).push(range.clone());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Check for scripted trigger/effect calls
+            if let Value::String(s) = &ass.value.value {
+                calls.entry(s.clone()).or_insert_with(Vec::new).push(range.clone());
+            }
+            
+            // Recurse into blocks
+            if let Value::Block(children) = &ass.value.value {
+                for child in children {
+                    find_calls_recursive(child, target_range, calls);
+                }
+            }
+        }
+        _ => {}
+    }
+}
+
+/// Find the container symbol for a given position
+async fn find_container_symbol(
+    uri: &str,
+    range: &Range,
+    events: &Arc<RwLock<HashMap<String, crate::event_scanner::Event>>>,
+    scripted_triggers: &Arc<RwLock<HashMap<String, crate::scripted_scanner::ScriptedEntity>>>,
+    scripted_effects: &Arc<RwLock<HashMap<String, crate::scripted_scanner::ScriptedEntity>>>,
+) -> Option<CallHierarchyItem> {
+    let path = uri.trim_start_matches("file://");
+    
+    // Check events
+    let events_lock = events.read().await;
+    for (id, event) in events_lock.iter() {
+        if event.path == path && range_contains(&event.range, range) {
+            return Some(CallHierarchyItem {
+                name: id.clone(),
+                kind: SymbolKind::EVENT,
+                tags: None,
+                detail: Some(format!("{:?}", event.event_type)),
+                uri: Url::from_file_path(&event.path).unwrap_or_else(|_| {
+                    Url::parse(&format!("file://{}", event.path)).unwrap()
+                }),
+                range: range_to_lsp(&event.range),
+                selection_range: range_to_lsp(&event.range),
+                data: None,
+            });
+        }
+    }
+    drop(events_lock);
+    
+    // Check scripted triggers
+    let triggers_lock = scripted_triggers.read().await;
+    for (name, trigger) in triggers_lock.iter() {
+        if trigger.path == path && range_contains(&trigger.range, range) {
+            return Some(CallHierarchyItem {
+                name: name.clone(),
+                kind: SymbolKind::FUNCTION,
+                tags: None,
+                detail: Some("Scripted Trigger".to_string()),
+                uri: Url::from_file_path(&trigger.path).unwrap_or_else(|_| {
+                    Url::parse(&format!("file://{}", trigger.path)).unwrap()
+                }),
+                range: range_to_lsp(&trigger.range),
+                selection_range: range_to_lsp(&trigger.range),
+                data: None,
+            });
+        }
+    }
+    drop(triggers_lock);
+    
+    // Check scripted effects
+    let effects_lock = scripted_effects.read().await;
+    for (name, effect) in effects_lock.iter() {
+        if effect.path == path && range_contains(&effect.range, range) {
+            return Some(CallHierarchyItem {
+                name: name.clone(),
+                kind: SymbolKind::FUNCTION,
+                tags: None,
+                detail: Some("Scripted Effect".to_string()),
+                uri: Url::from_file_path(&effect.path).unwrap_or_else(|_| {
+                    Url::parse(&format!("file://{}", effect.path)).unwrap()
+                }),
+                range: range_to_lsp(&effect.range),
+                selection_range: range_to_lsp(&effect.range),
+                data: None,
+            });
+        }
+    }
+    
+    None
+}
+
+/// Find a symbol by name
+async fn find_symbol_by_name(
+    name: &str,
+    events: &Arc<RwLock<HashMap<String, crate::event_scanner::Event>>>,
+    scripted_triggers: &Arc<RwLock<HashMap<String, crate::scripted_scanner::ScriptedEntity>>>,
+    scripted_effects: &Arc<RwLock<HashMap<String, crate::scripted_scanner::ScriptedEntity>>>,
+) -> Option<CallHierarchyItem> {
+    // Check events
+    let events_lock = events.read().await;
+    if let Some(event) = events_lock.get(name) {
+        return Some(CallHierarchyItem {
+            name: name.to_string(),
+            kind: SymbolKind::EVENT,
+            tags: None,
+            detail: Some(format!("{:?}", event.event_type)),
+            uri: Url::from_file_path(&event.path).unwrap_or_else(|_| {
+                Url::parse(&format!("file://{}", event.path)).unwrap()
+            }),
+            range: range_to_lsp(&event.range),
+            selection_range: range_to_lsp(&event.range),
+            data: None,
+        });
+    }
+    drop(events_lock);
+    
+    // Check scripted triggers
+    let triggers_lock = scripted_triggers.read().await;
+    if let Some(trigger) = triggers_lock.get(name) {
+        return Some(CallHierarchyItem {
+            name: name.to_string(),
+            kind: SymbolKind::FUNCTION,
+            tags: None,
+            detail: Some("Scripted Trigger".to_string()),
+            uri: Url::from_file_path(&trigger.path).unwrap_or_else(|_| {
+                Url::parse(&format!("file://{}", trigger.path)).unwrap()
+            }),
+            range: range_to_lsp(&trigger.range),
+            selection_range: range_to_lsp(&trigger.range),
+            data: None,
+        });
+    }
+    drop(triggers_lock);
+    
+    // Check scripted effects
+    let effects_lock = scripted_effects.read().await;
+    if let Some(effect) = effects_lock.get(name) {
+        return Some(CallHierarchyItem {
+            name: name.to_string(),
+            kind: SymbolKind::FUNCTION,
+            tags: None,
+            detail: Some("Scripted Effect".to_string()),
+            uri: Url::from_file_path(&effect.path).unwrap_or_else(|_| {
+                Url::parse(&format!("file://{}", effect.path)).unwrap()
+            }),
+            range: range_to_lsp(&effect.range),
+            selection_range: range_to_lsp(&effect.range),
+            data: None,
+        });
+    }
+    
+    None
+}
+
+/// Helper functions
+fn position_in_range(position: &LspPosition, range: &Range) -> bool {
+    let line = position.line;
+    let character = position.character;
+    
+    (line > range.start_line || (line == range.start_line && character >= range.start_col))
+        && (line < range.end_line || (line == range.end_line && character <= range.end_col))
+}
+
+fn range_contains(outer: &Range, inner: &Range) -> bool {
+    (outer.start_line < inner.start_line || (outer.start_line == inner.start_line && outer.start_col <= inner.start_col))
+        && (outer.end_line > inner.end_line || (outer.end_line == inner.end_line && outer.end_col >= inner.end_col))
+}
+
+fn range_overlaps(a: &Range, b: &Range) -> bool {
+    !(a.end_line < b.start_line || (a.end_line == b.start_line && a.end_col < b.start_col)
+        || b.end_line < a.start_line || (b.end_line == a.start_line && b.end_col < a.start_col))
+}
+
+fn range_to_lsp(range: &Range) -> LspRange {
+    LspRange {
+        start: LspPosition {
+            line: range.start_line,
+            character: range.start_col,
+        },
+        end: LspPosition {
+            line: range.end_line,
+            character: range.end_col,
+        },
+    }
+}
+
+fn lsp_to_range(range: &LspRange) -> Range {
+    Range {
+        start_line: range.start.line,
+        start_col: range.start.character,
+        end_line: range.end.line,
+        end_col: range.end.character,
+    }
+}
