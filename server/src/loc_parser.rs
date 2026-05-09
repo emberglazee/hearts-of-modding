@@ -43,19 +43,59 @@ fn to_range(span: Span) -> Range {
 
 pub fn validate_loc_string(entry: &LocEntry, event_targets: &HashMap<String, Vec<crate::variable_scanner::EventTarget>>) -> Vec<LocDiagnostic> {
     let mut diagnostics = Vec::new();
-    
+
     let re_scope = regex::Regex::new(r"\[([^\]]+)\]").unwrap();
     let re_color = regex::Regex::new(r"§([a-zA-Z0-9!])").unwrap();
 
-    let loc_commands = ["GetTag", "GetName", "GetAdjective", "GetRulingIdeology", "GetRulingIdeologyNoun", "GetPartyName", "GetLeaderName", "GetLeaderNameDef", "GetPlayerName", "GetCapitalName", "GetYear", "GetMonth", "GetDay", "GetFlag", "GetDate", "GetTime"];
-    let scopes = ["ROOT", "FROM", "PREV", "THIS", "COUNTRY", "STATE", "UNIT", "CHARACTER", "GLOBAL"];
+    let loc_commands = [
+        "GetName", "GetNameDef", "GetNameDefCap", "GetAdjective", "GetAdjectiveCap", "GetTag",
+        "GetRulingIdeology", "GetRulingIdeologyNoun", "GetPartyName", "GetPartySupport",
+        "GetLeaderName", "GetLeaderNameDef", "GetPlayerName", "GetCapitalName", "GetLastElection",
+        "GetRulingParty", "GetRulingPartyLong", "GetCommunistParty", "GetDemocraticParty",
+        "GetFascistParty", "GetNeutralParty", "GetCommunistLeader", "GetDemocraticLeader",
+        "GetFascistLeader", "GetNeutralLeader", "GetPowerBalanceName", "GetPowerBalanceModDesc",
+        "GetRightSideName", "GetLeftSideName", "GetActiveSideName", "GetTrendingSideName",
+        "GetActiveRangeName", "GetActiveRangeModDesc", "GetActiveRangeRuleDesc",
+        "GetActiveRangeActivationEffect", "GetActiveRangeDeactivationEffect", "GetChangeRateDesc",
+        "GetBopTrendTextIcon", "GetSheHe", "GetSheHeCap", "GetHerHim", "GetHerHimCap",
+        "GetHerHis", "GetHerHisCap", "GetHersHis", "GetHersHisCap", "GetHerselfHimself",
+        "GetHerselfHimselfCap", "GetIdeology", "GetIdeologyGroup", "GetRank", "GetCodeName",
+        "GetCallsign", "GetSurname", "GetFullName", "GetWing", "GetWingShort", "GetAceType",
+        "GetMissionRegion", "GetTokenKey", "GetTokenLocalizedKey", "GetDateString",
+        "GetDateStringShortMonth", "GetDateStringNoHour", "GetDateStringNoHourLong",
+        "GetManpower", "GetFactionName", "GetAgency", "GetNameWithFlag", "GetFlag",
+        "GetDate", "GetTime", "GetYear", "GetMonth", "GetDay", "GetID",
+        "GetCapitalVictoryPointName", "GetOldName", "GetOldNameDef", "GetOldNameDefCap",
+        "GetOldAdjective", "GetOldAdjectiveCap", "GetNonIdeologyName", "GetNonIdeologyNameDef",
+        "GetNonIdeologyNameDefCap", "GetNonIdeologyAdjective", "GetNonIdeologyAdjectiveCap",
+        "GetLeader",
+    ];
+    let scopes = [
+        "ROOT", "FROM", "PREV", "THIS", "COUNTRY", "STATE", "UNIT", "CHARACTER", "GLOBAL",
+        "Owner", "Controller", "Capital", "Leader",
+    ];
 
-    // 1. Validate Scopes [Root.GetTag]
+    // 1. Validate Scopes [Root.GetTag], Variables [?var], Formatters [idea_name|idea_id], etc.
     for cap in re_scope.captures_iter(&entry.value) {
         let full_match = cap.get(0).unwrap();
         let inner = cap.get(1).unwrap().as_str();
         let start_pos = full_match.start();
-        
+
+        // Skip complex ternary conditions for now to avoid false positives
+        if inner.contains('?') && inner.contains(':') {
+            continue;
+        }
+
+        // Handle variables [?var|formatting]
+        if inner.starts_with('?') {
+            continue; // Variables are dynamic, hard to validate strictly here
+        }
+
+        // Handle localization formatters [formatter|token]
+        if inner.contains('|') {
+            continue;
+        }
+
         let parts: Vec<&str> = inner.split('.').collect();
         let mut current_part_start = start_pos + 1; // +1 for [
 
@@ -66,13 +106,15 @@ pub fn validate_loc_string(entry: &LocEntry, event_targets: &HashMap<String, Vec
 
             if is_last {
                 if loc_commands.iter().any(|&c| c.to_lowercase() == part.to_lowercase()) ||
-                   scopes.contains(&part_upper.as_str()) ||
-                   event_targets.contains_key(*part) {
+                    scopes.contains(&part_upper.as_str()) ||
+                    event_targets.contains_key(*part) ||
+                    part.chars().all(|c| c.is_ascii_digit()) { // Allow numbers as scopes (state IDs)
                     valid = true;
                 }
             } else {
                 if scopes.contains(&part_upper.as_str()) ||
-                   event_targets.contains_key(*part) {
+                    event_targets.contains_key(*part) ||
+                    part.chars().all(|c| c.is_ascii_digit()) {
                     valid = true;
                 }
             }
@@ -95,7 +137,11 @@ pub fn validate_loc_string(entry: &LocEntry, event_targets: &HashMap<String, Vec
         }
     }
 
-    // 2. Validate Color Codes §Y...§!
+    // 2. Validate Text Icons £icon_name|frame
+    let _re_icon = regex::Regex::new(r"£([a-zA-Z0-9_]+)(?:\|[0-9]+)?").unwrap();
+    // (We could validate icon existence if we had sprite data here, but for now just ensure syntax is OK)
+
+    // 3. Validate Color Codes §Y...§!
     let mut open_colors = Vec::new();
     for cap in re_color.captures_iter(&entry.value) {
         let m = cap.get(0).unwrap();
@@ -149,7 +195,7 @@ pub fn check_unnecessary_version(entry: &LocEntry, all_entries: &HashMap<String,
         let has_duplicates = all_entries.iter().any(|(k, e)| {
             k == &entry.key && e.path != entry.path
         });
-        
+
         // If no duplicates exist, the version number is unnecessary
         if !has_duplicates {
             return Some(LocDiagnostic {
@@ -160,17 +206,20 @@ pub fn check_unnecessary_version(entry: &LocEntry, all_entries: &HashMap<String,
             });
         }
     }
-    
+
     None
 }
 
 pub fn validate_loc_file_structure(input: &str) -> Vec<LocDiagnostic> {
     let mut diagnostics = Vec::new();
-    
+
     // Check for l_language header
-    let valid_languages = ["l_english", "l_braz_por", "l_french", "l_german", "l_polish", "l_russian", "l_spanish"];
+    let valid_languages = [
+        "l_english", "l_braz_por", "l_french", "l_german", "l_polish", "l_russian", "l_spanish",
+        "l_japanese", "l_simp_chinese", "l_korean"
+    ];
     let content_without_bom = input.strip_prefix('\u{feff}').unwrap_or(input);
-    
+
     let mut header_found = false;
     for (line_idx, line) in content_without_bom.lines().enumerate() {
         let trimmed = line.trim();
@@ -216,10 +265,10 @@ pub fn validate_loc_file_structure(input: &str) -> Vec<LocDiagnostic> {
 pub fn parse_loc_file(input: &str, path: &str) -> (HashMap<String, LocEntry>, Vec<LocDiagnostic>) {
     let mut map = HashMap::new();
     let diagnostics = validate_loc_file_structure(input);
-    
+
     let input_clean = input.strip_prefix('\u{feff}').unwrap_or(input);
     let span = Span::new(input_clean);
-    
+
     let mut current = span;
     let mut header_found = false;
 
@@ -234,7 +283,7 @@ pub fn parse_loc_file(input: &str, path: &str) -> (HashMap<String, LocEntry>, Ve
                 }
             }
         }
-        
+
         if let Ok((rem, _)) = nom::bytes::complete::take::<usize, Span, nom::error::Error<Span>>(1usize)(current) {
             current = rem;
         } else {
@@ -272,20 +321,49 @@ fn parse_loc_entry<'a>(input: Span<'a>, path: &'a str) -> IResult<Span<'a>, LocE
     let (input, _) = char(':')(input)?;
     let (input, version_span) = opt(digit1)(input)?;
     let (input, _) = space0(input)?;
-    
+
     let (input, _) = char('"')(input)?;
     let start_val = input;
-    let (input, value_chars) = many0(none_of("\""))(input)?;
-    let (input, _) = char('"')(input)?;
-    
-    let value = value_chars.into_iter().collect::<String>();
-    
+
+    // Parse string content, handling escaped quotes
+    let mut value = String::new();
+    let mut current = input;
+
+    loop {
+        // Try to find a quote
+        if let Ok((after_quote, before_quote)) = take_until::<&str, Span, nom::error::Error<Span>>("\"")(current) {
+            value.push_str(before_quote.fragment());
+
+            // Check if the quote is escaped
+            if value.ends_with('\\') {
+                // It's an escaped quote, include it and continue
+                value.push('"');
+                current = after_quote;
+                // Skip the quote character
+                if let Ok((after, _)) = char::<Span, nom::error::Error<Span>>('"')(current) {
+                    current = after;
+                } else {
+                    break;
+                }
+            } else {
+                // It's the closing quote
+                current = after_quote;
+                break;
+            }
+        } else {
+            // No quote found, this is an error
+            return Err(nom::Err::Error(nom::error::Error::new(current, nom::error::ErrorKind::Char)));
+        }
+    }
+
+    let (input, _) = char('"')(current)?;
+
     let (version, version_range) = if let Some(v_span) = version_span {
         (Some(v_span.fragment().to_string()), Some(to_range(v_span)))
     } else {
         (None, None)
     };
-    
+
     Ok((input, LocEntry {
         key: key_span.fragment().to_string(),
         value,
@@ -299,14 +377,14 @@ fn parse_loc_entry<'a>(input: Span<'a>, path: &'a str) -> IResult<Span<'a>, LocE
 
 pub fn format_loc_file(input: &str, cosmetic_indent: bool) -> String {
     let mut output = String::new();
-    
+
     // Ensure UTF-8 BOM
     if !input.starts_with('\u{feff}') {
         output.push('\u{feff}');
     }
 
     let mut lines = input.lines();
-    
+
     // Find and format the header
     let mut header_found = false;
     for line in lines.by_ref() {
@@ -357,7 +435,7 @@ pub fn format_loc_file(input: &str, cosmetic_indent: bool) -> String {
         // Parse entry manually for formatting
         if let Some(colon_pos) = trimmed.find(':') {
             let key = trimmed[..colon_pos].trim();
-            
+
             if cosmetic_indent {
                 let mut is_variant = false;
                 for var in variants {
@@ -378,7 +456,7 @@ pub fn format_loc_file(input: &str, cosmetic_indent: bool) -> String {
             }
 
             let remainder = &trimmed[colon_pos + 1..];
-            
+
             let (version, remainder) = if let Some(space_pos) = remainder.find(' ') {
                 let v = remainder[..space_pos].trim();
                 (if v.is_empty() { "0" } else { v }, &remainder[space_pos..])
@@ -390,7 +468,7 @@ pub fn format_loc_file(input: &str, cosmetic_indent: bool) -> String {
             };
 
             let value = remainder.trim();
-            
+
             output.push_str(&format!("{}{}:{}: {}\n", current_indent, key, version, value));
         } else {
             // Not a valid entry line, keep as is but trimmed

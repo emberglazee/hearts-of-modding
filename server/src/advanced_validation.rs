@@ -7,6 +7,7 @@ use std::collections::{HashMap, HashSet};
 pub const BUILDING_LEVEL_EXCEEDS_MAX: &str = "HOM1002";
 pub const CHARACTER_SKILL_EXCEEDS_MAX: &str = "HOM1004";
 pub const VICTORY_POINT_PROVINCE_NOT_IN_STATE: &str = "HOM2001";
+pub const ACHIEVEMENT_MISSING_LOCALIZATION: &str = "HOM3001";
 
 #[derive(Debug, Clone)]
 pub struct ValidationDiagnostic {
@@ -15,6 +16,42 @@ pub struct ValidationDiagnostic {
     pub message: String,
     pub code: String,
     pub fix_suggestion: Option<String>,
+}
+
+/// Validate achievements
+pub fn validate_achievements(
+    entries: &[ast::Entry],
+    localization: &HashMap<String, crate::loc_parser::LocEntry>,
+    diagnostics: &mut Vec<ValidationDiagnostic>,
+) {
+    for entry in entries {
+        if let ast::Entry::Assignment(ass) = entry {
+            let key_lower = ass.key.to_lowercase();
+            if key_lower == "custom_achievement" || key_lower == "custom_ribbon" {
+                let name_key = format!("{}_NAME", ass.key);
+                let desc_key = format!("{}_DESC", ass.key);
+
+                if !localization.contains_key(&name_key) {
+                    diagnostics.push(ValidationDiagnostic {
+                        range: ass.key_range.clone(),
+                        severity: ast::DiagnosticSeverity::Warning,
+                        message: format!("Achievement '{}' is missing localization key: '{}'", ass.key, name_key),
+                        code: ACHIEVEMENT_MISSING_LOCALIZATION.to_string(),
+                        fix_suggestion: None,
+                    });
+                }
+                if !localization.contains_key(&desc_key) {
+                    diagnostics.push(ValidationDiagnostic {
+                        range: ass.key_range.clone(),
+                        severity: ast::DiagnosticSeverity::Warning,
+                        message: format!("Achievement '{}' is missing localization key: '{}'", ass.key, desc_key),
+                        code: ACHIEVEMENT_MISSING_LOCALIZATION.to_string(),
+                        fix_suggestion: None,
+                    });
+                }
+            }
+        }
+    }
 }
 
 /// Validate building levels in state history files

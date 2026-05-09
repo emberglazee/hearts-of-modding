@@ -1,10 +1,11 @@
 use crate::ast::*;
 use tower_lsp::lsp_types::{SemanticToken, SemanticTokens, SemanticTokensResult};
+use std::collections::HashSet;
 
-pub fn get_semantic_tokens(script: &Script) -> SemanticTokensResult {
+pub fn get_semantic_tokens(script: &Script, keywords: &HashSet<String>) -> SemanticTokensResult {
     let mut tokens = Vec::new();
     for entry in &script.entries {
-        push_entry_tokens(entry, &mut tokens);
+        push_entry_tokens(entry, &mut tokens, keywords);
     }
 
     // Sort tokens by line and column
@@ -53,14 +54,15 @@ struct RawToken {
     token_type: u32,
 }
 
-fn push_entry_tokens(entry: &Entry, tokens: &mut Vec<RawToken>) {
+fn push_entry_tokens(entry: &Entry, tokens: &mut Vec<RawToken>, keywords: &HashSet<String>) {
     match entry {
         Entry::Assignment(ass) => {
+            let is_keyword = keywords.contains(&ass.key) || ass.key.chars().all(|c| c.is_lowercase() || c == '_');
             tokens.push(RawToken {
                 line: ass.key_range.start_line,
                 start: ass.key_range.start_col,
                 length: ass.key_range.end_col - ass.key_range.start_col,
-                token_type: 1, // VARIABLE
+                token_type: if is_keyword { 0 } else { 1 }, // KEYWORD (0) or VARIABLE (1)
             });
             tokens.push(RawToken {
                 line: ass.operator_range.start_line,
@@ -68,10 +70,10 @@ fn push_entry_tokens(entry: &Entry, tokens: &mut Vec<RawToken>) {
                 length: ass.operator_range.end_col - ass.operator_range.start_col,
                 token_type: 4, // OPERATOR
             });
-            push_value_tokens(&ass.value, tokens);
+            push_value_tokens(&ass.value, tokens, keywords);
         }
         Entry::Value(val) => {
-            push_value_tokens(val, tokens);
+            push_value_tokens(val, tokens, keywords);
         }
         Entry::Comment(_, range) => {
             tokens.push(RawToken {
@@ -84,7 +86,7 @@ fn push_entry_tokens(entry: &Entry, tokens: &mut Vec<RawToken>) {
     }
 }
 
-fn push_value_tokens(val: &NodeedValue, tokens: &mut Vec<RawToken>) {
+fn push_value_tokens(val: &NodeedValue, tokens: &mut Vec<RawToken>, keywords: &HashSet<String>) {
     match &val.value {
         Value::String(_) => {
             tokens.push(RawToken {
@@ -112,7 +114,7 @@ fn push_value_tokens(val: &NodeedValue, tokens: &mut Vec<RawToken>) {
         }
         Value::Block(entries) => {
             for entry in entries {
-                push_entry_tokens(entry, tokens);
+                push_entry_tokens(entry, tokens, keywords);
             }
         }
         Value::TaggedBlock(tag, entries, _) => {
@@ -124,7 +126,7 @@ fn push_value_tokens(val: &NodeedValue, tokens: &mut Vec<RawToken>) {
                 token_type: 0, // KEYWORD
             });
             for entry in entries {
-                push_entry_tokens(entry, tokens);
+                push_entry_tokens(entry, tokens, keywords);
             }
         }
     }

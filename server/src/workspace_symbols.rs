@@ -15,9 +15,31 @@ pub async fn generate_workspace_symbols(
     ideologies: &Arc<RwLock<HashMap<String, crate::ideology_scanner::Ideology>>>,
     sprites: &Arc<RwLock<HashMap<String, crate::sprite_scanner::Sprite>>>,
     variables: &Arc<RwLock<HashMap<String, Vec<crate::variable_scanner::Variable>>>>,
+    achievements: &Arc<RwLock<HashMap<String, crate::achievement_scanner::Achievement>>>,
 ) -> Vec<SymbolInformation> {
     let mut symbols = Vec::new();
     let query_lower = query.to_lowercase();
+
+    // Search achievements
+    let achievements_lock = achievements.read().await;
+    for (name, achievement) in achievements_lock.iter() {
+        if fuzzy_match(&query_lower, &name.to_lowercase()) {
+            #[allow(deprecated)]
+            symbols.push(SymbolInformation {
+                name: name.clone(),
+                kind: SymbolKind::EVENT,
+                tags: None,
+                deprecated: None,
+                location: Location {
+                    uri: Url::from_file_path(&achievement.path).unwrap_or_else(|_| {
+                        Url::parse(&format!("file://{}", achievement.path)).unwrap()
+                    }),
+                    range: range_to_lsp(&achievement.range),
+                },
+                container_name: Some("Achievement".to_string()),
+            });
+        }
+    }
 
     // Search events
     let events_lock = events.read().await;

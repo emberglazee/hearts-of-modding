@@ -34,7 +34,7 @@
                 {
                     "begin": "^\\s*([a-zA-Z0-9_\\.]+)(?:(:)([0-9]*))?\\s*(\")",
                     "beginCaptures": {
-                        "1": { "name": "entity.name.tag.yaml" },
+                        "1": { "name": "entity.name.tag" },
                         "2": { "name": "punctuation.separator.key-value.hoi4-loc" },
                         "3": { "name": "constant.numeric.version.hoi4-loc" },
                         "4": { "name": "punctuation.definition.string.begin.hoi4-loc" }
@@ -43,7 +43,7 @@
                     "endCaptures": {
                         "0": { "name": "punctuation.definition.string.end.hoi4-loc" }
                     },
-                    "contentName": "string.quoted.double.hoi4-loc",
+                    "contentName": "string.quoted.double",
                     "patterns": [
                         {
                             "include": "#color_codes"

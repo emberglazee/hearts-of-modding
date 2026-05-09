@@ -9,6 +9,8 @@ pub enum Scope {
     Character,
     MusicStation,
     MusicTrack,
+    Achievement,
+    Ribbon,
     Unknown,
 }
 
@@ -22,6 +24,8 @@ impl Scope {
             Scope::Character => "Character",
             Scope::MusicStation => "Music Station",
             Scope::MusicTrack => "Music Track",
+            Scope::Achievement => "Achievement",
+            Scope::Ribbon => "Ribbon",
             Scope::Unknown => "Unknown",
         }
     }

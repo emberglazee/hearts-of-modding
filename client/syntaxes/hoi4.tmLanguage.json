@@ -16,6 +16,9 @@
         },
         {
             "include": "#keywords"
+        },
+        {
+            "include": "#keys"
         }
     ],
     "repository": {
@@ -35,6 +38,14 @@
                 {
                     "name": "constant.character.escape.hoi4",
                     "match": "\\\\."
+                },
+                {
+                    "name": "variable.parameter.hoi4",
+                    "match": "\\[[^\\]]+\\]"
+                },
+                {
+                    "name": "entity.name.tag.hoi4",
+                    "match": "§[a-zA-Z0-9!]"
                 }
             ]
         },
@@ -58,7 +69,11 @@
             "patterns": [
                 {
                     "name": "keyword.control.hoi4",
-                    "match": "\\b(yes|no)\\b"
+                    "match": "\\b(yes|no|NOT|OR|AND)\\b"
+                },
+                {
+                    "name": "keyword.other.hoi4",
+                    "match": "\\b(unique_id|possible|happened|ribbon|frames|colors|tag|original_tag|date|difficulty|has_start_date|has_any_custom_difficulty_setting|game_rules_allow_achievements|all_country|has_government|all_core_state|is_owned_by|is_subject_of|has_terrain|is_puppet_of|is_villager_nation|owns_state|all_other_country|all_owned_state|is_coastal|is_on_continent|is_player_nation|has_global_flag|has_country_leader|character|ruling_only|custom_trigger_tooltip|tooltip|has_cosmetic_tag)\\b"
                 },
                 {
                     "name": "keyword.other.hoi4",
@@ -67,6 +82,14 @@
                 {
                     "name": "keyword.other.hoi4",
                     "match": "\\b(name|file|always_load|volume|sounds|loop|is3d|min_distance|max_distance|height_scale|soundeffects|compressor)\\b"
+                }
+            ]
+        },
+        "keys": {
+            "patterns": [
+                {
+                    "name": "variable.other.property.hoi4",
+                    "match": "\\b[a-zA-Z0-9_\\.-]+(?=\\s*(=|<|>|!|<=|>=))"
                 }
             ]
         }

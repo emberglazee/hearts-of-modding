@@ -76,10 +76,26 @@ pub fn get_scopes() -> Vec<&'static str> {
 
 pub fn get_loc_commands() -> Vec<&'static str> {
     vec![
-        "GetName", "GetNameDef", "GetAdjective", "GetAdjectiveCap", "GetTag",
-        "GetRulingIdeology", "GetRulingIdeologyNoun", "GetPartyName",
-        "GetLeaderName", "GetLeaderNameDef", "GetPlayerName",
-        "GetCapitalName", "GetYear", "GetMonth", "GetDay",
-        "GetFlag", "GetDate", "GetTime",
+        "GetName", "GetNameDef", "GetNameDefCap", "GetAdjective", "GetAdjectiveCap", "GetTag",
+        "GetRulingIdeology", "GetRulingIdeologyNoun", "GetPartyName", "GetPartySupport",
+        "GetLeaderName", "GetLeaderNameDef", "GetPlayerName", "GetCapitalName", "GetLastElection",
+        "GetRulingParty", "GetRulingPartyLong", "GetCommunistParty", "GetDemocraticParty",
+        "GetFascistParty", "GetNeutralParty", "GetCommunistLeader", "GetDemocraticLeader",
+        "GetFascistLeader", "GetNeutralLeader", "GetPowerBalanceName", "GetPowerBalanceModDesc",
+        "GetRightSideName", "GetLeftSideName", "GetActiveSideName", "GetTrendingSideName",
+        "GetActiveRangeName", "GetActiveRangeModDesc", "GetActiveRangeRuleDesc",
+        "GetActiveRangeActivationEffect", "GetActiveRangeDeactivationEffect", "GetChangeRateDesc",
+        "GetBopTrendTextIcon", "GetSheHe", "GetSheHeCap", "GetHerHim", "GetHerHimCap",
+        "GetHerHis", "GetHerHisCap", "GetHersHis", "GetHersHisCap", "GetHerselfHimself",
+        "GetHerselfHimselfCap", "GetIdeology", "GetIdeologyGroup", "GetRank", "GetCodeName",
+        "GetCallsign", "GetSurname", "GetFullName", "GetWing", "GetWingShort", "GetAceType",
+        "GetMissionRegion", "GetTokenKey", "GetTokenLocalizedKey", "GetDateString",
+        "GetDateStringShortMonth", "GetDateStringNoHour", "GetDateStringNoHourLong",
+        "GetManpower", "GetFactionName", "GetAgency", "GetNameWithFlag", "GetFlag",
+        "GetDate", "GetTime", "GetYear", "GetMonth", "GetDay", "GetID",
+        "GetCapitalVictoryPointName", "GetOldName", "GetOldNameDef", "GetOldNameDefCap",
+        "GetOldAdjective", "GetOldAdjectiveCap", "GetNonIdeologyName", "GetNonIdeologyNameDef",
+        "GetNonIdeologyNameDefCap", "GetNonIdeologyAdjective", "GetNonIdeologyAdjectiveCap",
+        "GetLeader",
     ]
 }

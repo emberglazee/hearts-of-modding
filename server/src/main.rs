@@ -4,6 +4,7 @@ mod semantic_tokens;
 mod hoi4_data;
 mod loc_parser;
 mod scripted_scanner;
+mod achievement_scanner;
 mod scope;
 mod ideology_scanner;
 mod trait_scanner;
@@ -41,6 +42,17 @@ static EFFECTS: Lazy<HashMap<&'static str, hoi4_data::HOI4Entity>> = Lazy::new(h
 static SCOPES: Lazy<Vec<&'static str>> = Lazy::new(hoi4_data::get_scopes);
 static LOC_COMMANDS: Lazy<Vec<&'static str>> = Lazy::new(hoi4_data::get_loc_commands);
 
+/// Convert a byte offset in a UTF-8 string to a UTF-16 code unit offset
+/// This is required because LSP uses UTF-16 positions, but Rust strings are UTF-8
+fn byte_offset_to_utf16(s: &str, byte_offset: usize) -> u32 {
+    s.chars().take(byte_offset).map(|c| c.len_utf16()).sum::<usize>() as u32
+}
+
+/// Get the UTF-16 length of a string
+fn utf16_len(s: &str) -> u32 {
+    s.chars().map(|c| c.len_utf16()).sum::<usize>() as u32
+}
+
 #[derive(Debug)]
 struct Backend {
     client: Client,
@@ -68,6 +80,7 @@ struct Backend {
     falloffs: Arc<RwLock<HashMap<String, sound_scanner::Falloff>>>,
     sound_categories: Arc<RwLock<HashMap<String, sound_scanner::SoundCategory>>>,
     buildings: Arc<RwLock<HashMap<String, building_scanner::Building>>>,
+    achievements: Arc<RwLock<HashMap<String, achievement_scanner::Achievement>>>,
     defines: Arc<RwLock<defines_parser::GameDefines>>,
     ignored_loc_regex: Arc<RwLock<Vec<regex::Regex>>>,
     schema: Arc<RwLock<schema::Schema>>,
@@ -193,6 +206,7 @@ impl LanguageServer for Backend {
             self.scan_provinces(&roots),
             self.scan_modifiers(&roots),
             self.scan_buildings(&roots),
+            self.scan_achievements(&roots),
             self.scan_defines(&roots),
             self.scan_events(&roots),
             self.scan_music(&roots),
@@ -263,9 +277,31 @@ impl LanguageServer for Backend {
         params: SemanticTokensParams,
     ) -> Result<Option<SemanticTokensResult>> {
         let uri = params.text_document.uri.to_string();
+
+        // Skip semantic tokens for YAML localization files
+        if uri.ends_with(".yml") {
+            return Ok(None);
+        }
+
         if let Some(content) = self.documents.get(&uri) {
             match parser::parse_script(&content) {
-                Ok(script) => Ok(Some(semantic_tokens::get_semantic_tokens(&script))),
+                Ok(script) => {
+                    let schema = self.schema.read().await;
+                    let mut keywords = HashSet::new();
+                    for k in schema.triggers.keys() { keywords.insert(k.clone()); }
+                    for k in schema.effects.keys() { keywords.insert(k.clone()); }
+                    for k in schema.links.keys() { keywords.insert(k.clone()); }
+                    
+                    // Add hardcoded achievement keywords
+                    keywords.insert("unique_id".to_string());
+                    keywords.insert("possible".to_string());
+                    keywords.insert("happened".to_string());
+                    keywords.insert("ribbon".to_string());
+                    keywords.insert("frames".to_string());
+                    keywords.insert("colors".to_string());
+
+                    Ok(Some(semantic_tokens::get_semantic_tokens(&script, &keywords)))
+                },
                 Err(_) => Ok(None),
             }
         } else {
@@ -347,6 +383,23 @@ impl LanguageServer for Backend {
                     // Check key
                     if position.line == entry.range.start_line && position.character >= entry.range.start_col && position.character <= entry.range.end_col {
                         let mut hover_text = format!("### 🌐 Localization: {}\n\n", entry.key);
+                        
+                        // Add achievement context
+                        let achievements = self.achievements.read().await;
+                        if entry.key.ends_with("_NAME") {
+                            let ach_id = &entry.key[..entry.key.len() - 5];
+                            if let Some(ach) = achievements.get(ach_id) {
+                                hover_text.push_str(&format!("**Context:** Name for {} `{}`\n\n", if ach.is_ribbon { "Ribbon" } else { "Achievement" }, ach_id));
+                                hover_text.push_str(&format!("Defined in: {}\n\n---\n\n", self.make_file_link(&ach.path)));
+                            }
+                        } else if entry.key.ends_with("_DESC") {
+                            let ach_id = &entry.key[..entry.key.len() - 5];
+                            if let Some(ach) = achievements.get(ach_id) {
+                                hover_text.push_str(&format!("**Context:** Description for {} `{}`\n\n", if ach.is_ribbon { "Ribbon" } else { "Achievement" }, ach_id));
+                                hover_text.push_str(&format!("Defined in: {}\n\n---\n\n", self.make_file_link(&ach.path)));
+                            }
+                        }
+
                         hover_text.push_str(&format!("**Raw:** `{}`\n\n", entry.value));
                         hover_text.push_str("**Preview:**\n\n");
                         hover_text.push_str(&paradox_to_markdown(&entry.value, Some(&global_loc)));
@@ -381,7 +434,8 @@ impl LanguageServer for Backend {
 
             if let Ok(script) = parser::parse_script(&content) {
                 let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
-                if let Some((identifier, final_scopes, assigned_value)) = find_identifier_at(&script, position, &mut scope_stack) {
+                let achievements = self.achievements.read().await;
+                if let Some((identifier, final_scopes, assigned_value)) = find_identifier_at(&script, position, &mut scope_stack, &achievements) {
                     let mut hover_text = String::new();
 
                     fn push_section(full_text: &mut String, section: &str) {
@@ -393,12 +447,49 @@ impl LanguageServer for Backend {
 
                     // Show scope stack
                     let is_music = final_scopes.iter().any(|s| *s == scope::Scope::MusicTrack || *s == scope::Scope::MusicStation);
-                    let mut scope_text = String::from(if is_music { "### 🎵 Music Definition Stack\n" } else { "### 🔍 Scope Stack\n" });
+                    let is_achievement = final_scopes.iter().any(|s| *s == scope::Scope::Achievement || *s == scope::Scope::Ribbon);
+                    
+                    let mut scope_text = String::from(if is_music { 
+                        "### 🎵 Music Definition Stack\n" 
+                    } else if is_achievement {
+                        "### 🏆 Achievement Context Stack\n"
+                    } else { 
+                        "### 🔍 Scope Stack\n" 
+                    });
+
                     for (i, s) in final_scopes.iter().enumerate() {
                         if i > 0 { scope_text.push_str(" > "); }
                         scope_text.push_str(s.as_str());
                     }
                     push_section(&mut hover_text, &scope_text);
+
+                    // Achievement specialized hover
+                    if let Some(achievement) = achievements.get(&identifier) {
+                        let mut ach_text = if achievement.is_ribbon {
+                            format!("### 🎀 Ribbon: `{}`\n", identifier)
+                        } else {
+                            format!("### 🏆 Achievement: `{}`\n", identifier)
+                        };
+
+                        let loc = self.localization.read().await;
+                        
+                        let name_key = format!("{}_NAME", identifier);
+                        if let Some(name_loc) = loc.get(&name_key) {
+                            ach_text.push_str(&format!("\n**Name (`{}`):** {}\n", name_key, paradox_to_markdown(&name_loc.value, Some(&loc))));
+                        } else {
+                            ach_text.push_str(&format!("\n**Name:** *Missing `{}`*\n", name_key));
+                        }
+
+                        let desc_key = format!("{}_DESC", identifier);
+                        if let Some(desc_loc) = loc.get(&desc_key) {
+                            ach_text.push_str(&format!("\n**Description (`{}`):** {}\n", desc_key, paradox_to_markdown(&desc_loc.value, Some(&loc))));
+                        } else {
+                            ach_text.push_str(&format!("\n**Description:** *Missing `{}`*\n", desc_key));
+                        }
+                        
+                        ach_text.push_str(&format!("\n---\nDefined in: {}", self.make_file_link(&achievement.path)));
+                        push_section(&mut hover_text, &ach_text);
+                    }
 
                     // Check triggers/effects/links
                     let schema = self.schema.read().await;
@@ -929,6 +1020,17 @@ impl LanguageServer for Backend {
             });
         }
 
+        let a_map = self.achievements.read().await;
+        for achievement in a_map.values() {
+            items.push(CompletionItem {
+                label: achievement.name.clone(),
+                kind: Some(CompletionItemKind::EVENT),
+                detail: Some("Achievement".to_string()),
+                documentation: Some(Documentation::String(format!("Defined in: {}", achievement.path))),
+                ..Default::default()
+            });
+        }
+
         let var_map = self.variables.read().await;
         for var_name in var_map.keys() {
             items.push(CompletionItem {
@@ -1040,7 +1142,8 @@ impl LanguageServer for Backend {
                 find_identifier_in_loc(&content, position)
             } else if let Ok(script) = parser::parse_script(&content) {
                 let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
-                find_identifier_at(&script, position, &mut scope_stack).map(|(id, _, _)| id)
+                let achievements = self.achievements.read().await;
+                find_identifier_at(&script, position, &mut scope_stack, &achievements).map(|(id, _, _)| id)
             } else {
                 None
             };
@@ -1093,6 +1196,12 @@ impl LanguageServer for Backend {
                     let idea_map = self.ideas.read().await;
                     if let Some(idea) = idea_map.get(&identifier) {
                         sources.push(ast_range_to_lsp_location(&idea.range, &idea.path));
+                    }
+
+                    // Check achievements
+                    let a_map = self.achievements.read().await;
+                    if let Some(achievement) = a_map.get(&identifier) {
+                        sources.push(ast_range_to_lsp_location(&achievement.range, &achievement.path));
                     }
 
                     // 6. Check variables
@@ -1198,7 +1307,8 @@ impl LanguageServer for Backend {
         if let Some(content) = self.documents.get(&uri) {
             if let Ok(script) = parser::parse_script(&content) {
                 let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
-                if let Some((identifier, _, _)) = find_identifier_at(&script, position, &mut scope_stack) {
+                let achievements = self.achievements.read().await;
+                if let Some((identifier, _, _)) = find_identifier_at(&script, position, &mut scope_stack, &achievements) {
                     let mut locations = Vec::new();
 
                     // Search in all roots
@@ -1721,6 +1831,7 @@ impl LanguageServer for Backend {
             &self.ideologies,
             &self.sprites,
             &self.variables,
+            &self.achievements,
         ).await;
 
         Ok(Some(symbols))
@@ -1902,6 +2013,15 @@ impl Backend {
         self.client.log_message(MessageType::INFO, format!("Total: Loaded {} buildings", b.len())).await;
     }
 
+    async fn scan_achievements(&self, roots: &[std::path::PathBuf]) {
+        let achievements = achievement_scanner::scan_achievements(roots);
+
+        let mut a = self.achievements.write().await;
+        *a = achievements;
+
+        self.client.log_message(MessageType::INFO, format!("Total: Loaded {} achievements", a.len())).await;
+    }
+
     async fn scan_defines(&self, roots: &[std::path::PathBuf]) {
         let defines = defines_parser::scan_defines(roots);
 
@@ -1926,11 +2046,13 @@ impl Backend {
     fn collect_styling_fixes(&self, content: &str, fixes: &mut Vec<(Range, String)>) {
         for (line_idx, line) in content.lines().enumerate() {
             if line.ends_with(' ') || line.ends_with('\t') {
-                let start_col = line.trim_end().len() as u32;
+                let trimmed_len = line.trim_end().len();
+                let start_col = utf16_len(&line[..trimmed_len]);
+                let end_col = utf16_len(line);
                 fixes.push((
                     Range {
                         start: Position { line: line_idx as u32, character: start_col },
-                        end: Position { line: line_idx as u32, character: line.len() as u32 },
+                        end: Position { line: line_idx as u32, character: end_col },
                     },
                     "".to_string(),
                 ));
@@ -2261,6 +2383,17 @@ impl Backend {
             }
 
             self.client.log_message(MessageType::INFO, format!("Found {} english .yml files in {:?}", files_to_scan.len(), loc_dir)).await;
+
+            // Sort files to ensure those in "replace" folders come last, correctly overriding other keys
+            files_to_scan.sort_by(|a, b| {
+                let a_is_replace = a.to_string_lossy().contains("replace");
+                let b_is_replace = b.to_string_lossy().contains("replace");
+                match (a_is_replace, b_is_replace) {
+                    (true, false) => std::cmp::Ordering::Greater,
+                    (false, true) => std::cmp::Ordering::Less,
+                    _ => a.cmp(b),
+                }
+            });
 
             for path in files_to_scan {
                 match std::fs::read_to_string(&path) {
@@ -2802,11 +2935,13 @@ impl Backend {
         for (line_idx, line) in content.lines().enumerate() {
             // 1. Trailing whitespace
             if line.ends_with(' ') || line.ends_with('\t') {
-                let start_col = line.trim_end().len() as u32;
+                let trimmed_len = line.trim_end().len();
+                let start_col = utf16_len(&line[..trimmed_len]);
+                let end_col = utf16_len(line);
                 diagnostics.push(Diagnostic {
                     range: Range {
                         start: Position { line: line_idx as u32, character: start_col },
-                        end: Position { line: line_idx as u32, character: line.len() as u32 },
+                        end: Position { line: line_idx as u32, character: end_col },
                     },
                     severity: Some(DiagnosticSeverity::INFORMATION),
                     code: Some(NumberOrString::String("styling_trailing".to_string())),
@@ -2919,6 +3054,7 @@ impl Backend {
         advanced_validation::validate_building_levels(&script.entries, &buildings, &mut advanced_diags);
         advanced_validation::validate_character_skills(&script.entries, &defines, &mut advanced_diags);
         advanced_validation::validate_victory_points(&script.entries, &mut advanced_diags);
+        advanced_validation::validate_achievements(&script.entries, &loc, &mut advanced_diags);
 
         // Convert advanced diagnostics to LSP diagnostics
         for diag in advanced_diags {
@@ -3434,6 +3570,7 @@ async fn main() {
         falloffs: Arc::new(RwLock::new(HashMap::new())),
         sound_categories: Arc::new(RwLock::new(HashMap::new())),
         buildings: Arc::new(RwLock::new(HashMap::new())),
+        achievements: Arc::new(RwLock::new(HashMap::new())),
         defines: Arc::new(RwLock::new(defines_parser::GameDefines::new())),
         ignored_loc_regex: Arc::new(RwLock::new(Vec::new())),
         schema: Arc::new(RwLock::new(schema::Schema::new())),
@@ -3656,32 +3793,70 @@ fn resolve_loc(input: &str, localization: &HashMap<String, loc_parser::LocEntry>
 }
 
 fn paradox_to_markdown(input: &str, localization: Option<&HashMap<String, loc_parser::LocEntry>>) -> String {
+    // Helper function to split leading punctuation from text
+    fn split_leading_punctuation(s: &str) -> (&str, &str) {
+        let punct_end = s.chars()
+            .take_while(|c| c.is_ascii_punctuation() || c.is_whitespace())
+            .map(|c| c.len_utf8())
+            .sum::<usize>();
+        
+        if punct_end > 0 {
+            (&s[..punct_end], &s[punct_end..])
+        } else {
+            ("", s)
+        }
+    }
+    
     let mut resolved = if let Some(loc) = localization {
         resolve_loc(input, loc, 0)
     } else {
         input.to_string()
     };
 
-    // Handle literal \n
-    resolved = resolved.replace("\\n", "\n").replace("\\r\\n", "\n");
+    // Handle literal \n and escaped quotes
+    resolved = resolved.replace("\\n", "\n").replace("\\r\\n", "\n").replace("\\\"", "\"").replace("$$", "$");
 
-    // Handle icon placeholders: £icon_name → [Icon: icon_name]
-    let re_icon = regex::Regex::new(r"£([a-zA-Z0-9_]+)").unwrap();
+    // Handle country flags: @TAG → [Flag: TAG]
+    let re_flag = regex::Regex::new(r"@([a-zA-Z0-9]{3})").unwrap();
+    resolved = re_flag.replace_all(&resolved, "**[Flag: $1]**").to_string();
+
+    // Handle icon placeholders: £icon_name|frame → [Icon: icon_name]
+    let re_icon = regex::Regex::new(r"£([a-zA-Z0-9_]+)(?:\|[0-9]+)?").unwrap();
     resolved = re_icon.replace_all(&resolved, "**[Icon: $1]**").to_string();
 
-    // Handle scope commands: [Root.GetName] → [Scope: Root.GetName]
+    // Handle scope commands, variables, and formatters: [Root.GetName], [?var], [idea_name|idea_id], etc.
     let re_scope = regex::Regex::new(r"\[([^\]]+)\]").unwrap();
     resolved = re_scope.replace_all(&resolved, |caps: &regex::Captures| {
         let inner = &caps[1];
+        
+        // Handle ternary contextual localization: [(OBJECT ? TRUE_CASE : FALSE_CASE)]
+        if inner.contains('?') && inner.contains(':') {
+             return format!("**[Condition: {}]**", inner);
+        }
+
+        // Handle variables: [?var|formatting]
+        if inner.starts_with('?') {
+            let var_inner = &inner[1..];
+            if let Some(pipe_pos) = var_inner.find('|') {
+                return format!("**[Variable: {}]**", &var_inner[..pipe_pos]);
+            }
+            return format!("**[Variable: {}]**", var_inner);
+        }
+
+        // Handle localization formatters: <formatter>|<token>
+        if let Some(_pipe_pos) = inner.find('|') {
+             return format!("**[Format: {}]**", inner);
+        }
+
         // Check if it looks like a scope command (contains . or uppercase words)
         if inner.contains('.') || inner.chars().any(|c| c.is_uppercase()) {
             format!("**[Scope: {}]**", inner)
         } else {
-            caps[0].to_string()
+            // Probably just a scripted loc or something else
+            format!("**[{}]**", inner)
         }
     }).to_string();
 
-    let mut result = String::new();
     let re_color = regex::Regex::new(r"§([a-zA-Z0-9!])").unwrap();
     let mut last_end = 0;
 
@@ -3693,8 +3868,18 @@ fn paradox_to_markdown(input: &str, localization: Option<&HashMap<String, loc_pa
         let code = cap.get(1).unwrap().as_str();
 
         let text_segment = &resolved[last_end..m.start()];
-        if !text_segment.is_empty() {
-            segments.push((text_segment.to_string(), current_color));
+        
+        // Split punctuation from the beginning of the segment
+        let (leading_punct, rest) = split_leading_punctuation(text_segment);
+        
+        // Add leading punctuation to the previous segment's color
+        if !leading_punct.is_empty() {
+            segments.push((leading_punct.to_string(), current_color));
+        }
+        
+        // Add the rest of the text (if any) with current color
+        if !rest.is_empty() {
+            segments.push((rest.to_string(), current_color));
         }
 
         current_color = match code {
@@ -3733,34 +3918,99 @@ fn paradox_to_markdown(input: &str, localization: Option<&HashMap<String, loc_pa
         segments.push((last_segment.to_string(), current_color));
     }
 
-    for (text, color) in segments {
-        if text == "\n" {
-            result.push_str("  \n");
-            continue;
+    // Wrap all tspans in a single SVG with manual word wrapping
+    if !segments.is_empty() {
+        // Configuration
+        let font_size = 12;
+        let char_width = 7.2; // Approximate width per character for 12px monospace
+        let max_width = 600; // Fixed max width in pixels
+        let line_height = 16; // Line height for readability
+        let chars_per_line = (max_width as f64 / char_width).floor() as usize;
+        
+        // Manually wrap text into lines
+        let mut lines: Vec<Vec<(String, &str)>> = Vec::new();
+        let mut current_line: Vec<(String, &str)> = Vec::new();
+        let mut current_line_chars = 0;
+        
+        for (text, color) in segments {
+            let parts: Vec<&str> = text.split('\n').collect();
+            for (i, part) in parts.iter().enumerate() {
+                if i > 0 {
+                    lines.push(current_line);
+                    current_line = Vec::new();
+                    current_line_chars = 0;
+                }
+                
+                let words: Vec<&str> = part.split(' ').collect();
+                for (word_idx, word) in words.iter().enumerate() {
+                    let word_len = word.chars().count();
+                    let has_space = word_idx > 0;
+                    
+                    if has_space {
+                        if current_line_chars + 1 + word_len > chars_per_line && !current_line.is_empty() {
+                            lines.push(current_line);
+                            current_line = Vec::new();
+                            current_line.push((word.to_string(), color));
+                            current_line_chars = word_len;
+                        } else {
+                            if !current_line.is_empty() {
+                                current_line.push((" ".to_string(), color));
+                                current_line_chars += 1;
+                            }
+                            current_line.push((word.to_string(), color));
+                            current_line_chars += word_len;
+                        }
+                    } else {
+                        if current_line_chars + word_len > chars_per_line && !current_line.is_empty() {
+                            lines.push(current_line);
+                            current_line = Vec::new();
+                            current_line.push((word.to_string(), color));
+                            current_line_chars = word_len;
+                        } else {
+                            current_line.push((word.to_string(), color));
+                            current_line_chars += word_len;
+                        }
+                    }
+                }
+            }
         }
-
-        let lines: Vec<&str> = text.split('\n').collect();
-        for (i, line) in lines.iter().enumerate() {
-            if i > 0 { result.push_str("  \n"); }
-            if line.is_empty() { continue; }
-
-            let escaped_line = line.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;").replace('"', "&quot;").replace('\'', "&apos;").replace(' ', "&#160;");
-            // Estimate width for monospace font
-            let width = (line.len() as f64 * 8.5).ceil() as usize;
-            let svg = format!(
-                r#"<svg xmlns="http://www.w3.org/2000/svg" width="{}" height="18"><text x="0" y="14" fill="{}" font-family="monospace" font-size="14" font-weight="bold" xml:space="preserve">{}</text></svg>"#,
-                width, color, escaped_line
-            );
-
-            use base64::{Engine as _, engine::general_purpose};
-            let b64 = general_purpose::STANDARD.encode(svg);
-            // CRITICAL: No space between ] and ( for Markdown images
-            result.push_str(&format!("![{}](data:image/svg+xml;base64,{})", line, b64));
+        
+        // Don't forget the last line
+        if !current_line.is_empty() {
+            lines.push(current_line);
         }
+        
+        // Build SVG with multiple text elements (one per line)
+        let svg_height = lines.len() * line_height + 4;
+        let mut svg_content = String::new();
+        
+        for (line_idx, line_segments) in lines.iter().enumerate() {
+            let y_pos = (line_idx + 1) * line_height;
+            svg_content.push_str(&format!(r#"<text x="2" y="{}" font-family="monospace" font-size="{}" font-weight="bold" xml:space="preserve">"#, y_pos, font_size));
+            
+            for (text, color) in line_segments {
+                let escaped_text = text.replace('&', "&amp;")
+                    .replace('<', "&lt;")
+                    .replace('>', "&gt;")
+                    .replace('"', "&quot;")
+                    .replace('\'', "&apos;");
+                svg_content.push_str(&format!(r#"<tspan fill="{}">{}</tspan>"#, color, escaped_text));
+            }
+            
+            svg_content.push_str("</text>");
+        }
+        
+        let svg = format!(
+            r#"<svg xmlns="http://www.w3.org/2000/svg" width="{}" height="{}" viewBox="0 0 {} {}">{}</svg>"#,
+            max_width, svg_height, max_width, svg_height, svg_content
+        );
+        
+        use base64::{Engine as _, engine::general_purpose};
+        let b64 = general_purpose::STANDARD.encode(svg);
+        return format!("![preview](data:image/svg+xml;base64,{})", b64);
     }
 
-
-    result
+    String::new()
 }
 
 #[cfg(test)]
@@ -3803,11 +4053,48 @@ mod tests {
         // Test literal \n
         let input = "Line 1\\nLine 2";
         let output = paradox_to_markdown(input, Some(&loc));
-        // It should contain two SVG segments (one for each line)
-        // SVG contains &#160; for spaces
         let decoded = String::from_utf8(base64::engine::general_purpose::STANDARD.decode(output.split("base64,").nth(1).unwrap().split(')').next().unwrap()).unwrap()).unwrap();
-        assert!(decoded.contains("Line&#160;1"));
-        assert!(output.contains("  \n"));
+        // It should contain two <text> elements for the two lines
+        assert_eq!(decoded.matches("<text ").count(), 2);
+        assert!(decoded.contains("Line"));
+        assert!(decoded.contains("1"));
+        assert!(decoded.contains("Line"));
+        assert!(decoded.contains("2"));
+    }
+
+    #[test]
+    fn test_paradox_to_markdown_real_newlines() {
+        use base64::Engine as _;
+        let input = "Line 1\nLine 2";
+        let output = paradox_to_markdown(input, None);
+        let decoded = String::from_utf8(base64::engine::general_purpose::STANDARD.decode(output.split("base64,").nth(1).unwrap().split(')').next().unwrap()).unwrap()).unwrap();
+        assert_eq!(decoded.matches("<text ").count(), 2);
+        assert!(decoded.contains("Line"));
+        assert!(decoded.contains("1"));
+        assert!(decoded.contains("Line"));
+        assert!(decoded.contains("2"));
+    }
+
+    #[test]
+    fn test_paradox_to_markdown_escaped_quotes() {
+        use base64::Engine as _;
+        let input = "Hello \\\"World\\\"";
+        let output = paradox_to_markdown(input, None);
+        let decoded = String::from_utf8(base64::engine::general_purpose::STANDARD.decode(output.split("base64,").nth(1).unwrap().split(')').next().unwrap()).unwrap()).unwrap();
+        // The SVG should contain the unescaped quote (which is escaped for XML as &quot;)
+        assert!(decoded.contains("&quot;World&quot;"));
+    }
+
+    #[test]
+    fn test_paradox_to_markdown_no_extra_space() {
+        use base64::Engine as _;
+        let input = "§Rfoo§Gbar";
+        let output = paradox_to_markdown(input, None);
+        let decoded = String::from_utf8(base64::engine::general_purpose::STANDARD.decode(output.split("base64,").nth(1).unwrap().split(')').next().unwrap()).unwrap()).unwrap();
+        // Should NOT contain a space between foo and bar
+        assert!(decoded.contains("foo</tspan><tspan"));
+        assert!(decoded.contains(">bar</tspan>"));
+        assert!(!decoded.contains("> <"));
     }
 }
 
@@ -3860,16 +4147,16 @@ fn ast_range_to_lsp_location(range: &ast::Range, path: &str) -> Location {
     }
 }
 
-fn find_identifier_at(script: &ast::Script, pos: Position, scope_stack: &mut scope::ScopeStack) -> Option<(String, Vec<scope::Scope>, Option<ast::Value>)> {
+fn find_identifier_at(script: &ast::Script, pos: Position, scope_stack: &mut scope::ScopeStack, achievements: &HashMap<String, achievement_scanner::Achievement>) -> Option<(String, Vec<scope::Scope>, Option<ast::Value>)> {
     for entry in &script.entries {
-        if let Some(res) = find_in_entry(entry, pos, scope_stack) {
+        if let Some(res) = find_in_entry(entry, pos, scope_stack, achievements) {
             return Some(res);
         }
     }
     None
 }
 
-fn find_in_entry(entry: &ast::Entry, pos: Position, scope_stack: &mut scope::ScopeStack) -> Option<(String, Vec<scope::Scope>, Option<ast::Value>)> {
+fn find_in_entry(entry: &ast::Entry, pos: Position, scope_stack: &mut scope::ScopeStack, achievements: &HashMap<String, achievement_scanner::Achievement>) -> Option<(String, Vec<scope::Scope>, Option<ast::Value>)> {
     match entry {
         ast::Entry::Assignment(ass) => {
             if is_pos_in_range(pos, &ass.key_range) {
@@ -3877,16 +4164,21 @@ fn find_in_entry(entry: &ast::Entry, pos: Position, scope_stack: &mut scope::Sco
             }
 
             // Push scope if it's a block
-            let mut pushed = false;
+            let mut pushed_scope = None;
             if let ast::Value::Block(_) | ast::Value::TaggedBlock(_, _, _) = &ass.value.value {
-                let s = scope::Scope::from_str(&ass.key);
+                let s = if let Some(achievement) = achievements.get(&ass.key) {
+                    if achievement.is_ribbon { scope::Scope::Ribbon } else { scope::Scope::Achievement }
+                } else {
+                    scope::Scope::from_str(&ass.key)
+                };
+
                 if s != scope::Scope::Unknown || ass.key.contains(':') || ass.key.contains('.') {
                     scope_stack.push(s);
-                    pushed = true;
+                    pushed_scope = Some(s);
                 }
             }
 
-            let mut res = find_in_value(&ass.value, pos, scope_stack);
+            let mut res = find_in_value(&ass.value, pos, scope_stack, achievements);
 
             if let Some((ref mut id, _, ref mut val_opt)) = res {
                 if let ast::Value::Number(_) | ast::Value::Boolean(_) = &ass.value.value {
@@ -3895,17 +4187,17 @@ fn find_in_entry(entry: &ast::Entry, pos: Position, scope_stack: &mut scope::Sco
                 }
             }
 
-            if pushed {
+            if pushed_scope.is_some() {
                 scope_stack.pop();
             }
             res
         }
-        ast::Entry::Value(val) => find_in_value(val, pos, scope_stack),
+        ast::Entry::Value(val) => find_in_value(val, pos, scope_stack, achievements),
         _ => None,
     }
 }
 
-fn find_in_value(val: &ast::NodeedValue, pos: Position, scope_stack: &mut scope::ScopeStack) -> Option<(String, Vec<scope::Scope>, Option<ast::Value>)> {
+fn find_in_value(val: &ast::NodeedValue, pos: Position, scope_stack: &mut scope::ScopeStack, achievements: &HashMap<String, achievement_scanner::Achievement>) -> Option<(String, Vec<scope::Scope>, Option<ast::Value>)> {
     match &val.value {
         ast::Value::String(s) => {
             if is_pos_in_range(pos, &val.range) {
@@ -3944,7 +4236,7 @@ fn find_in_value(val: &ast::NodeedValue, pos: Position, scope_stack: &mut scope:
         }
         ast::Value::Block(entries) => {
             for entry in entries {
-                if let Some(res) = find_in_entry(entry, pos, scope_stack) {
+                if let Some(res) = find_in_entry(entry, pos, scope_stack, achievements) {
                     return Some(res);
                 }
             }
@@ -3952,7 +4244,7 @@ fn find_in_value(val: &ast::NodeedValue, pos: Position, scope_stack: &mut scope:
         }
         ast::Value::TaggedBlock(_, entries, _) => {
             for entry in entries {
-                if let Some(res) = find_in_entry(entry, pos, scope_stack) {
+                if let Some(res) = find_in_entry(entry, pos, scope_stack, achievements) {
                     return Some(res);
                 }
             }
