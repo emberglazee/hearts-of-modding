@@ -20,6 +20,7 @@ mod schema;
 mod building_scanner;
 mod defines_parser;
 mod advanced_validation;
+mod enhanced_color;
 
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
@@ -161,7 +162,7 @@ impl LanguageServer for Backend {
         self.client
             .log_message(MessageType::INFO, "server initialized!")
             .await;
-        
+
         let mut roots = vec![std::path::PathBuf::from(".")];
         let gp = self.game_path.read().await;
         if let Some(ref path) = *gp {
@@ -275,20 +276,27 @@ impl LanguageServer for Backend {
         &self,
         params: ColorPresentationParams,
     ) -> Result<Vec<ColorPresentation>> {
-        let r = (params.color.red * 255.0) as u32;
-        let g = (params.color.green * 255.0) as u32;
-        let b = (params.color.blue * 255.0) as u32;
+        // Determine if this is a color_ui field by checking the document context
+        let uri = params.text_document.uri.to_string();
+        let is_ui = if let Some(content) = self.documents.get(&uri) {
+            // Simple heuristic: check if "color_ui" appears near the color range
+            // This is a basic implementation - could be improved with AST analysis
+            content.contains("color_ui")
+        } else {
+            false
+        };
 
-        let new_text = format!("{{ {} {} {} }}", r, g, b);
+        // Get color modifiers from defines
+        let defines = self.defines.read().await;
+        let modifiers = enhanced_color::ColorModifiers::from_defines(&defines);
 
-        Ok(vec![ColorPresentation {
-            label: new_text.clone(),
-            text_edit: Some(TextEdit {
-                range: params.range,
-                new_text,
-            }),
-            additional_text_edits: None,
-        }])
+        // Generate presentations for both RGB and HSV formats
+        Ok(enhanced_color::generate_color_presentations(
+            &params.color,
+            params.range,
+            is_ui,
+            &modifiers,
+        ))
     }
 
     async fn formatting(
@@ -322,49 +330,49 @@ impl LanguageServer for Backend {
 
         if let Some(content) = self.documents.get(&uri) {
             if uri.ends_with(".yml") {
-                 let (locs, _) = loc_parser::parse_loc_file(&content, &uri);
-                 let global_loc = self.localization.read().await;
-                 for entry in locs.values() {
-                     // Check key
-                     if position.line == entry.range.start_line && position.character >= entry.range.start_col && position.character <= entry.range.end_col {
-                         let mut hover_text = format!("### 🌐 Localization: {}\n\n", entry.key);
-                         hover_text.push_str(&format!("**Raw:** `{}`\n\n", entry.value));
-                         hover_text.push_str("**Preview:**\n\n");
-                         hover_text.push_str(&paradox_to_markdown(&entry.value, Some(&global_loc)));
-                         
-                         return Ok(Some(Hover {
-                             contents: HoverContents::Markup(MarkupContent {
-                                 kind: MarkupKind::Markdown,
-                                 value: hover_text,
-                             }),
-                             range: Some(ast_range_to_lsp(&entry.range)),
-                         }));
-                     }
+                let (locs, _) = loc_parser::parse_loc_file(&content, &uri);
+                let global_loc = self.localization.read().await;
+                for entry in locs.values() {
+                    // Check key
+                    if position.line == entry.range.start_line && position.character >= entry.range.start_col && position.character <= entry.range.end_col {
+                        let mut hover_text = format!("### 🌐 Localization: {}\n\n", entry.key);
+                        hover_text.push_str(&format!("**Raw:** `{}`\n\n", entry.value));
+                        hover_text.push_str("**Preview:**\n\n");
+                        hover_text.push_str(&paradox_to_markdown(&entry.value, Some(&global_loc)));
+
+                        return Ok(Some(Hover {
+                            contents: HoverContents::Markup(MarkupContent {
+                                kind: MarkupKind::Markdown,
+                                value: hover_text,
+                            }),
+                            range: Some(ast_range_to_lsp(&entry.range)),
+                        }));
+                    }
                      // Check value
-                     if position.line == entry.range.start_line && position.character >= entry.value_start_col && position.character <= entry.value_start_col + entry.value.len() as u32 {
-                         let mut hover_text = format!("### 👁️ Localization Preview\n\n");
-                         hover_text.push_str(&paradox_to_markdown(&entry.value, Some(&global_loc)));
-                         
-                         return Ok(Some(Hover {
-                             contents: HoverContents::Markup(MarkupContent {
-                                 kind: MarkupKind::Markdown,
-                                 value: hover_text,
-                             }),
-                             range: Some(Range {
-                                 start: Position { line: entry.range.start_line, character: entry.value_start_col },
-                                 end: Position { line: entry.range.start_line, character: entry.value_start_col + entry.value.len() as u32 },
-                             }),
-                         }));
-                     }
-                 }
-                 return Ok(None);
+                    if position.line == entry.range.start_line && position.character >= entry.value_start_col && position.character <= entry.value_start_col + entry.value.len() as u32 {
+                        let mut hover_text = format!("### 👁️ Localization Preview\n\n");
+                        hover_text.push_str(&paradox_to_markdown(&entry.value, Some(&global_loc)));
+
+                        return Ok(Some(Hover {
+                            contents: HoverContents::Markup(MarkupContent {
+                                kind: MarkupKind::Markdown,
+                                value: hover_text,
+                            }),
+                            range: Some(Range {
+                                start: Position { line: entry.range.start_line, character: entry.value_start_col },
+                                end: Position { line: entry.range.start_line, character: entry.value_start_col + entry.value.len() as u32 },
+                            }),
+                        }));
+                    }
+                }
+                return Ok(None);
             }
 
             if let Ok(script) = parser::parse_script(&content) {
                 let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
                 if let Some((identifier, final_scopes, assigned_value)) = find_identifier_at(&script, position, &mut scope_stack) {
                     let mut hover_text = String::new();
-                    
+
                     fn push_section(full_text: &mut String, section: &str) {
                         if !full_text.is_empty() && !full_text.ends_with("---\n\n") {
                             full_text.push_str("\n\n---\n\n");
@@ -395,11 +403,11 @@ impl LanguageServer for Backend {
                     } else if let Some(entity) = EFFECTS.get(identifier.as_str()) {
                         push_section(&mut hover_text, &format!("### ⚡ Effect: {}\n\n{}", entity.name, entity.description));
                     } else if SCOPES.contains(&identifier.to_uppercase().as_str()) {
-                         push_section(&mut hover_text, &format!("### 🎯 Scope: {}\n\nStandard Paradox scope.", identifier.to_uppercase()));
+                        push_section(&mut hover_text, &format!("### 🎯 Scope: {}\n\nStandard Paradox scope.", identifier.to_uppercase()));
                     } else if LOC_COMMANDS.contains(&identifier.as_str()) {
-                         push_section(&mut hover_text, &format!("### 🛠️ Localization Command: {}\n\nStandard localization command.", identifier));
-                    } 
-                    
+                        push_section(&mut hover_text, &format!("### 🛠️ Localization Command: {}\n\nStandard localization command.", identifier));
+                    }
+
                     // Check localization
                     let loc = self.localization.read().await;
                     // Try exact match first, then try keys starting with ID:
@@ -583,10 +591,10 @@ impl LanguageServer for Backend {
                         // Try to resolve file link
                         let asset_path = std::path::Path::new(&sound.path);
                         if let Some(root) = asset_path.parent().and_then(|p| p.parent()) {
-                             let full_sound_path = root.join("sound").join(&sound.file);
-                             if full_sound_path.exists() {
-                                 file_link = self.make_file_link(&full_sound_path.to_string_lossy());
-                             }
+                            let full_sound_path = root.join("sound").join(&sound.file);
+                            if full_sound_path.exists() {
+                                file_link = self.make_file_link(&full_sound_path.to_string_lossy());
+                            }
                         }
 
                         push_section(&mut hover_text, &format!("### 🔊 Sound: {}\n\nFile: {}\n\nDefined in: {}", 
@@ -629,14 +637,14 @@ impl LanguageServer for Backend {
     async fn completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
         let uri = params.text_document_position.text_document.uri.to_string();
         let position = params.text_document_position.position;
-        
+
         // Handle localization files
         if uri.ends_with(".yml") {
             if let Some(content) = self.documents.get(&uri) {
                 let lines: Vec<&str> = content.lines().collect();
                 if let Some(line) = lines.get(position.line as usize) {
                     let prefix = &line[..position.character as usize];
-                    
+
                     // Check if we are inside a bracketed scope [Root.GetTag]
                     if let Some(bracket_start) = prefix.rfind('[') {
                         if prefix.rfind(']').map_or(true, |i| i < bracket_start) {
@@ -682,14 +690,14 @@ impl LanguageServer for Backend {
         let is_asset_file = uri.ends_with(".asset");
         let is_music_file = is_asset_file || uri.contains("/music/");
         let is_sound_file = is_asset_file || uri.contains("/sound/");
-        
+
         if is_music_file || is_sound_file {
             if let Some(content) = self.documents.get(&uri) {
                 if let Ok(script) = parser::parse_script(&content) {
                     if let Some(context_key) = find_context_at(&script, position) {
                         let mut completion_items = Vec::new();
                         let key_lower = context_key.to_lowercase();
-                        
+
                         if key_lower == "music" {
                             if uri.ends_with(".asset") {
                                 completion_items.push(CompletionItem { label: "name".to_string(), kind: Some(CompletionItemKind::PROPERTY), detail: Some("Track ID".to_string()), ..Default::default() });
@@ -1181,7 +1189,7 @@ impl LanguageServer for Backend {
                 let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
                 if let Some((identifier, _, _)) = find_identifier_at(&script, position, &mut scope_stack) {
                     let mut locations = Vec::new();
-                    
+
                     // Search in all roots
                     let mut roots = vec![std::path::PathBuf::from(".")];
                     let gp = self.game_path.read().await;
@@ -1318,9 +1326,9 @@ impl LanguageServer for Backend {
                                     if let Some(brace_start_rel) = full_str.find('{') {
                                         let brace_end_rel = full_str.rfind('}').unwrap_or(full_str.len() - 1);
                                         let inner = &full_str[brace_start_rel+1..brace_end_rel];
-                                        
+
                                         let before_brace = full_str[..brace_start_rel].trim();
-                                        
+
                                         let new_text = if inner.trim().is_empty() {
                                             if !before_brace.is_empty() { format!("{} {{}}", before_brace) } else { "{}".to_string() }
                                         } else {
@@ -1391,7 +1399,7 @@ impl LanguageServer for Backend {
                             let line_idx = diagnostic.range.start.line as usize;
                             if let Some(line) = content.lines().nth(line_idx) {
                                 let leading = line.chars().take_while(|c| c.is_whitespace()).collect::<String>();
-                                
+
                                 let new_indent = if let Some(expected_tabs) = diagnostic.data.as_ref().and_then(|v| v.get("expected_tabs")).and_then(|v| v.as_u64()) {
                                     "\t".repeat(expected_tabs as usize)
                                 } else {
@@ -1439,7 +1447,7 @@ impl LanguageServer for Backend {
                             range: ast_range_to_lsp(&range),
                             new_text: text,
                         }).collect();
-                        
+
                         changes.insert(params.text_document.uri.clone(), edits);
 
                         actions.push(CodeActionOrCommand::CodeAction(CodeAction {
@@ -1469,7 +1477,7 @@ impl LanguageServer for Backend {
                         range,
                         new_text: text,
                     }).collect();
-                    
+
                     changes.insert(params.text_document.uri.clone(), edits);
 
                     actions.push(CodeActionOrCommand::CodeAction(CodeAction {
@@ -1491,7 +1499,7 @@ impl LanguageServer for Backend {
             if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
                 let parsed = parser::parse_script(&content);
                 let script_opt = parsed.as_ref().ok();
-                
+
                 let mut all_fixes = Vec::new();
                 self.collect_indentation_fixes(&content, script_opt, &mut all_fixes);
 
@@ -1501,7 +1509,7 @@ impl LanguageServer for Backend {
                         range,
                         new_text: text,
                     }).collect();
-                    
+
                     changes.insert(params.text_document.uri.clone(), edits);
 
                     actions.push(CodeActionOrCommand::CodeAction(CodeAction {
@@ -1531,7 +1539,7 @@ impl LanguageServer for Backend {
                             range: ast_range_to_lsp(&range),
                             new_text: text,
                         }).collect();
-                        
+
                         changes.insert(params.text_document.uri.clone(), edits);
 
                         actions.push(CodeActionOrCommand::CodeAction(CodeAction {
@@ -1563,7 +1571,7 @@ impl LanguageServer for Backend {
                             range: ast_range_to_lsp(&range),
                             new_text: text,
                         }).collect();
-                        
+
                         changes.insert(params.text_document.uri.clone(), edits);
 
                         actions.push(CodeActionOrCommand::CodeAction(CodeAction {
@@ -1658,7 +1666,7 @@ impl Backend {
 
     async fn scan_music(&self, roots: &[std::path::PathBuf]) {
         let result = music_scanner::scan_music(roots);
-        
+
         let mut assets = self.music_assets.write().await;
         *assets = result.assets;
 
@@ -1673,7 +1681,7 @@ impl Backend {
 
     async fn scan_sounds(&self, roots: &[std::path::PathBuf]) {
         let result = sound_scanner::scan_sounds(roots);
-        
+
         let mut sounds = self.sounds.write().await;
         *sounds = result.sounds;
 
@@ -1691,7 +1699,7 @@ impl Backend {
 
     async fn scan_modifiers(&self, roots: &[std::path::PathBuf]) {
         let result = modifier_scanner::scan_modifiers(roots);
-        
+
         let mut custom = self.custom_modifiers.write().await;
         *custom = result.custom_modifiers;
 
@@ -1703,7 +1711,7 @@ impl Backend {
 
     async fn scan_buildings(&self, roots: &[std::path::PathBuf]) {
         let buildings = building_scanner::scan_buildings(roots);
-        
+
         let mut b = self.buildings.write().await;
         *b = buildings;
 
@@ -1712,7 +1720,7 @@ impl Backend {
 
     async fn scan_defines(&self, roots: &[std::path::PathBuf]) {
         let defines = defines_parser::scan_defines(roots);
-        
+
         let mut d = self.defines.write().await;
         *d = defines;
 
@@ -1821,7 +1829,7 @@ impl Backend {
                             }
                         }
                     }
-                    
+
                     match &ass.value.value {
                         ast::Value::Block(inner) => self.collect_assignment_space_fixes(inner, fixes, content),
                         ast::Value::TaggedBlock(_, inner, _) => self.collect_assignment_space_fixes(inner, fixes, content),
@@ -1949,14 +1957,14 @@ impl Backend {
                             if let Some(brace_start_rel) = full_str.find('{') {
                                 let block_str = &full_str[brace_start_rel..];
                                 let mut needs_fix = false;
-                                
+
                                 // 1. Check space BEFORE { if it's a TaggedBlock
                                 if let ast::Value::TaggedBlock(tag, _, _) = value {
                                     if &full_str[tag.len()..brace_start_rel] != " " {
                                         needs_fix = true;
                                     }
                                 }
-                                
+
                                 // 2. Check padding INSIDE
                                 if block_str.len() >= 2 {
                                     let inner = &block_str[1..block_str.len()-1];
@@ -1972,9 +1980,9 @@ impl Backend {
                                 if needs_fix {
                                     let brace_end_rel = full_str.rfind('}').unwrap_or(full_str.len() - 1);
                                     let inner = &full_str[brace_start_rel + 1 .. brace_end_rel];
-                                    
+
                                     let before_brace = full_str[..brace_start_rel].trim();
-                                    
+
                                     let new_text = if inner.trim().is_empty() {
                                         if !before_brace.is_empty() { format!("{} {{}}", before_brace) } else { "{}".to_string() }
                                     } else {
@@ -2007,7 +2015,7 @@ impl Backend {
                             break;
                         }
                     }
-                    
+
                     match &ass.value.value {
                         ast::Value::Block(inner) => self.collect_casing_fixes(inner, fixes),
                         ast::Value::TaggedBlock(_, inner, _) => self.collect_casing_fixes(inner, fixes),
@@ -2108,7 +2116,7 @@ impl Backend {
 
         let mut t_map = self.scripted_triggers.write().await;
         *t_map = all_triggers;
-        
+
         let mut e_map = self.scripted_effects.write().await;
         *e_map = all_effects;
 
@@ -2146,7 +2154,7 @@ impl Backend {
 
     async fn scan_traits(&self, roots: &[std::path::PathBuf]) {
         let mut all_traits = HashMap::new();
-        
+
         for root in roots {
             let unit_leader_dir = root.join("common/unit_leader");
             if unit_leader_dir.exists() {
@@ -2154,7 +2162,7 @@ impl Backend {
                 self.client.log_message(MessageType::LOG, format!("Loaded {} unit leader traits from {:?}", found.len(), unit_leader_dir)).await;
                 all_traits.extend(found);
             }
-            
+
             let country_leader_dir = root.join("common/country_leader");
             if country_leader_dir.exists() {
                 let found = trait_scanner::scan_traits(&country_leader_dir, "Country Leader Trait");
@@ -2216,11 +2224,11 @@ impl Backend {
 
     async fn load_schema(&self) {
         let mut schema = schema::Schema::new();
-        
+
         // Resolve paths relative to executable (production) or CWD (development)
         let exe_path = std::env::current_exe().unwrap_or_default();
         let exe_dir = exe_path.parent().unwrap_or(std::path::Path::new("."));
-        
+
         let possible_roots = vec![
             std::path::PathBuf::from("."),
             exe_dir.to_path_buf(),
@@ -2320,14 +2328,14 @@ impl Backend {
                                     let mut start_search = 0;
                                     while let Some(pos) = line[start_search..].find(identifier) {
                                         let actual_pos = start_search + pos;
-                                        
+
                                         // Check word boundaries
                                         let before = if actual_pos > 0 { line.chars().nth(actual_pos - 1) } else { None };
                                         let after = line.chars().nth(actual_pos + identifier.len());
-                                        
+
                                         let is_word_start = before.map_or(true, |c| !parser::is_identifier_char(c));
                                         let is_word_end = after.map_or(true, |c| !parser::is_identifier_char(c));
-                                        
+
                                         if is_word_start && is_word_end {
                                             locations.push(Location {
                                                 uri: Url::from_file_path(path.canonicalize().unwrap_or_else(|_| path.clone())).unwrap(),
@@ -2430,7 +2438,7 @@ impl Backend {
                 ast::Entry::Value(val) => val.range.start_line,
                 ast::Entry::Comment(_, r) => r.start_line,
             };
-            
+
             expected.entry(start_line).or_insert(depth);
 
             match entry {
@@ -2514,7 +2522,7 @@ impl Backend {
                             if let Some(brace_start_rel) = full_str.find('{') {
                                 let mut needs_fix = false;
                                 let mut message = "Single-line block should have exactly one space padding inside curly braces.";
-                                
+
                                 // 1. Check space BEFORE { if it's a TaggedBlock
                                 if let ast::Value::TaggedBlock(tag, _, _) = value {
                                     if &full_str[tag.len()..brace_start_rel] != " " {
@@ -2610,7 +2618,7 @@ impl Backend {
                 if leading != expected_str {
                     let mut data = serde_json::Map::new();
                     data.insert("expected_tabs".to_string(), serde_json::Value::Number(expected_tabs.into()));
-                    
+
                     diagnostics.push(Diagnostic {
                         range: Range {
                             start: Position { line: line_idx as u32, character: 0 },
@@ -2671,7 +2679,7 @@ impl Backend {
         advanced_validation::validate_building_levels(&script.entries, &buildings, &mut advanced_diags);
         advanced_validation::validate_character_skills(&script.entries, &defines, &mut advanced_diags);
         advanced_validation::validate_victory_points(&script.entries, &mut advanced_diags);
-        
+
         // Convert advanced diagnostics to LSP diagnostics
         for diag in advanced_diags {
             diagnostics.push(Diagnostic {
@@ -2886,7 +2894,7 @@ impl Backend {
                         "ideologies", "types", "ideas", "country", "national_focus",
                         "leader_traits", "country_leader_traits", "traits"
                     ];
-                    
+
                     for kw in keywords {
                         if key_lower == kw.to_lowercase() && ass.key != kw {
                             let mut message = format!("Standard Paradox Script convention uses '{}' instead of '{}'.", kw, ass.key);
@@ -2907,7 +2915,7 @@ impl Backend {
                         }
                     }
                 }
-                
+
                 // Localization checks
                 if key_lower == "name" || key_lower == "desc" || key_lower == "text" || key_lower == "title" {
                     if let ast::Value::String(val) = &ass.value.value {
@@ -2944,7 +2952,7 @@ impl Backend {
                                 if !loc.iter().any(|(k, _)| k.starts_with(&target)) {
                                     // Final check against regex
                                     let is_regex_ignored = ig_loc.iter().any(|re| re.is_match(val));
-                                    
+
                                     if !is_regex_ignored {
                                         diagnostics.push(Diagnostic {
                                             range: ast_range_to_lsp(&ass.value.range),
@@ -2964,7 +2972,7 @@ impl Backend {
                 if key_lower == "ideology" || key_lower == "has_ideology" {
                     if let ast::Value::String(val) = &ass.value.value {
                         if !id.contains_key(val) && !sid.contains_key(val) {
-                             diagnostics.push(Diagnostic {
+                            diagnostics.push(Diagnostic {
                                 range: ast_range_to_lsp(&ass.value.range),
                                 severity: Some(DiagnosticSeverity::WARNING),
                                 message: format!("Unknown ideology: '{}'", val),
@@ -2978,7 +2986,7 @@ impl Backend {
                 if key_lower == "add_trait" || key_lower == "has_trait" || key_lower == "remove_trait" {
                     if let ast::Value::String(val) = &ass.value.value {
                         if !tr.contains_key(val) {
-                             diagnostics.push(Diagnostic {
+                            diagnostics.push(Diagnostic {
                                 range: ast_range_to_lsp(&ass.value.range),
                                 severity: Some(DiagnosticSeverity::WARNING),
                                 message: format!("Unknown trait: '{}'", val),
@@ -2992,7 +3000,7 @@ impl Backend {
                 if key_lower == "sprite" || key_lower == "icon" || key_lower == "sprite_name" || key_lower == "picture" {
                     if let ast::Value::String(val) = &ass.value.value {
                         if !sp.contains_key(val) && val.starts_with("GFX_") {
-                             diagnostics.push(Diagnostic {
+                            diagnostics.push(Diagnostic {
                                 range: ast_range_to_lsp(&ass.value.range),
                                 severity: Some(DiagnosticSeverity::WARNING),
                                 message: format!("Unknown sprite/GFX: '{}'", val),
@@ -3006,7 +3014,7 @@ impl Backend {
                 if key_lower == "add_ideas" || key_lower == "has_idea" || key_lower == "remove_ideas" {
                     if let ast::Value::String(val) = &ass.value.value {
                         if !ids.contains_key(val) {
-                             diagnostics.push(Diagnostic {
+                            diagnostics.push(Diagnostic {
                                 range: ast_range_to_lsp(&ass.value.range),
                                 severity: Some(DiagnosticSeverity::WARNING),
                                 message: format!("Unknown idea: '{}'", val),
@@ -3116,13 +3124,13 @@ impl Backend {
 
     fn check_duplicate_keys(&self, entries: &[ast::Entry], diagnostics: &mut Vec<Diagnostic>, schema: &schema::Schema, mod_maps: &HashMap<String, String>) {
         let mut seen_keys: HashMap<String, ast::Range> = HashMap::new();
-        
+
         for entry in entries {
             if let ast::Entry::Assignment(ass) = entry {
                 // We only care about duplicates if they are modifiers. 
                 // Some Paradox keys (like 'modifier = { ... }' or 'option = { ... }') are intended to be duplicates.
                 // But specific engine modifiers (like 'stability_factor') should NEVER be duplicated.
-                
+
                 let is_modifier = mod_maps.contains_key(&ass.key) ||
                                  schema.triggers.contains_key(&ass.key) ||
                                  schema.effects.contains_key(&ass.key);
@@ -3141,7 +3149,7 @@ impl Backend {
                             ..Default::default()
                         });
                     }
-                    
+
                     let full_range = ast::Range {
                         start_line: ass.key_range.start_line,
                         start_col: ass.key_range.start_col,
@@ -3239,13 +3247,13 @@ fn find_colors_in_value(val: &ast::NodeedValue, colors: &mut Vec<ColorInformatio
                 // Most HOI4 color blocks are 0-255, but some might be 0-1
                 // If any value is > 1.0, it must be 0-255
                 let is_255 = nums.iter().any(|&n| n > 1.0);
-                
+
                 let (r, g, b) = if is_255 {
                     ((nums[0] / 255.0) as f32, (nums[1] / 255.0) as f32, (nums[2] / 255.0) as f32)
                 } else {
                     (nums[0] as f32, nums[1] as f32, nums[2] as f32)
                 };
-                
+
                 colors.push(ColorInformation {
                     range: ast_range_to_lsp(&val.range),
                     color: Color { red: r, green: g, blue: b, alpha: 1.0 },
@@ -3390,11 +3398,11 @@ fn resolve_loc(input: &str, localization: &HashMap<String, loc_parser::LocEntry>
     let re_key = regex::Regex::new(r"\$([^\$]+)\$").unwrap();
     let mut last_end = 0;
     let mut result = String::new();
-    
+
     for cap in re_key.captures_iter(input) {
         let m = cap.get(0).unwrap();
         let key = cap.get(1).unwrap().as_str();
-        
+
         result.push_str(&input[last_end..m.start()]);
         if let Some(entry) = localization.get(key) {
             result.push_str(&resolve_loc(&entry.value, localization, depth + 1));
@@ -3413,26 +3421,26 @@ fn paradox_to_markdown(input: &str, localization: Option<&HashMap<String, loc_pa
     } else {
         input.to_string()
     };
-    
+
     // Handle literal \n
     resolved = resolved.replace("\\n", "\n").replace("\\r\\n", "\n");
 
     let mut result = String::new();
     let re_color = regex::Regex::new(r"§([a-zA-Z0-9!])").unwrap();
     let mut last_end = 0;
-    
+
     let mut segments = Vec::new();
     let mut current_color = "#FFFFFF"; // Default white
-    
+
     for cap in re_color.captures_iter(&resolved) {
         let m = cap.get(0).unwrap();
         let code = cap.get(1).unwrap().as_str();
-        
+
         let text_segment = &resolved[last_end..m.start()];
         if !text_segment.is_empty() {
             segments.push((text_segment.to_string(), current_color));
         }
-        
+
         current_color = match code {
             "!" => "#FFFFFF",
             "C" => "#23CEFF", // Cyan
@@ -3463,7 +3471,7 @@ fn paradox_to_markdown(input: &str, localization: Option<&HashMap<String, loc_pa
         };
         last_end = m.end();
     }
-    
+
     let last_segment = &resolved[last_end..];
     if !last_segment.is_empty() {
         segments.push((last_segment.to_string(), current_color));
@@ -3474,12 +3482,12 @@ fn paradox_to_markdown(input: &str, localization: Option<&HashMap<String, loc_pa
             result.push_str("  \n");
             continue;
         }
-        
+
         let lines: Vec<&str> = text.split('\n').collect();
         for (i, line) in lines.iter().enumerate() {
             if i > 0 { result.push_str("  \n"); }
             if line.is_empty() { continue; }
-            
+
             let escaped_line = line.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;").replace('"', "&quot;").replace('\'', "&apos;").replace(' ', "&#160;");
             // Estimate width for monospace font
             let width = (line.len() as f64 * 8.5).ceil() as usize;
@@ -3487,7 +3495,7 @@ fn paradox_to_markdown(input: &str, localization: Option<&HashMap<String, loc_pa
                 r#"<svg xmlns="http://www.w3.org/2000/svg" width="{}" height="18"><text x="0" y="14" fill="{}" font-family="monospace" font-size="14" font-weight="bold" xml:space="preserve">{}</text></svg>"#,
                 width, color, escaped_line
             );
-            
+
             use base64::{Engine as _, engine::general_purpose};
             let b64 = general_purpose::STANDARD.encode(svg);
             // CRITICAL: No space between ] and ( for Markdown images
@@ -3495,7 +3503,7 @@ fn paradox_to_markdown(input: &str, localization: Option<&HashMap<String, loc_pa
         }
     }
 
-    
+
     result
 }
 
@@ -3607,7 +3615,7 @@ fn find_in_entry(entry: &ast::Entry, pos: Position, scope_stack: &mut scope::Sco
             if is_pos_in_range(pos, &ass.key_range) {
                 return Some((ass.key.clone(), scope_stack.iter().cloned().collect(), Some(ass.value.value.clone())));
             }
-            
+
             // Push scope if it's a block
             let mut pushed = false;
             if let ast::Value::Block(_) | ast::Value::TaggedBlock(_, _, _) = &ass.value.value {
@@ -3626,7 +3634,7 @@ fn find_in_entry(entry: &ast::Entry, pos: Position, scope_stack: &mut scope::Sco
                     *val_opt = Some(ass.value.value.clone());
                 }
             }
-            
+
             if pushed {
                 scope_stack.pop();
             }
@@ -3753,4 +3761,3 @@ fn find_context_in_value(val: &ast::NodeedValue, pos: Position) -> Option<String
         _ => None,
     }
 }
-
