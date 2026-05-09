@@ -1414,11 +1414,17 @@ impl LanguageServer for Backend {
                                 let new_indent = if let Some(expected_tabs) = diagnostic.data.as_ref().and_then(|v| v.get("expected_tabs")).and_then(|v| v.as_u64()) {
                                     "\t".repeat(expected_tabs as usize)
                                 } else {
-                                    let mut n = leading.replace("    ", "\t").replace("  ", "\t").replace(" ", "");
-                                    if n.is_empty() && !leading.is_empty() {
-                                        n = "\t".to_string();
+                                    // For YAML files or other cases without expected_tabs
+                                    if leading.is_empty() {
+                                        String::new()
+                                    } else if leading.starts_with('\t') {
+                                        // Already has tabs, keep them
+                                        leading.clone()
+                                    } else {
+                                        // Has spaces, convert to at least one tab
+                                        // For YAML: any amount of leading spaces should become one tab
+                                        "\t".to_string()
                                     }
-                                    n
                                 };
 
                                 let mut changes = HashMap::new();
@@ -1898,10 +1904,17 @@ impl Backend {
                     ));
                 }
             } else if leading.contains(' ') {
-                let mut new_indent = leading.replace("    ", "\t").replace("  ", "\t").replace(" ", "");
-                if new_indent.is_empty() && !leading.is_empty() {
-                    new_indent = "\t".to_string();
-                }
+                // For files without expected_tabs (YAML, unparseable files, etc.)
+                let new_indent = if leading.is_empty() {
+                    String::new()
+                } else if leading.starts_with('\t') {
+                    // Already has tabs, keep them
+                    leading.clone()
+                } else {
+                    // Has spaces, convert to at least one tab
+                    "\t".to_string()
+                };
+
                 if new_indent != leading {
                     fixes.push((
                         Range {
@@ -2743,12 +2756,12 @@ impl Backend {
                 if trimmed.starts_with("l_") && trimmed.contains(':') {
                     continue;
                 }
-                
+
                 // Skip comments
                 if trimmed.starts_with('#') {
                     continue;
                 }
-                
+
                 // For content lines, require at least one tab at the start
                 if !leading.is_empty() && !leading.starts_with('\t') {
                     diagnostics.push(Diagnostic {
@@ -3578,6 +3591,22 @@ fn paradox_to_markdown(input: &str, localization: Option<&HashMap<String, loc_pa
 
     // Handle literal \n
     resolved = resolved.replace("\\n", "\n").replace("\\r\\n", "\n");
+
+    // Handle icon placeholders: £icon_name → [Icon: icon_name]
+    let re_icon = regex::Regex::new(r"£([a-zA-Z0-9_]+)").unwrap();
+    resolved = re_icon.replace_all(&resolved, "**[Icon: $1]**").to_string();
+
+    // Handle scope commands: [Root.GetName] → [Scope: Root.GetName]
+    let re_scope = regex::Regex::new(r"\[([^\]]+)\]").unwrap();
+    resolved = re_scope.replace_all(&resolved, |caps: &regex::Captures| {
+        let inner = &caps[1];
+        // Check if it looks like a scope command (contains . or uppercase words)
+        if inner.contains('.') || inner.chars().any(|c| c.is_uppercase()) {
+            format!("**[Scope: {}]**", inner)
+        } else {
+            caps[0].to_string()
+        }
+    }).to_string();
 
     let mut result = String::new();
     let re_color = regex::Regex::new(r"§([a-zA-Z0-9!])").unwrap();
