@@ -24,6 +24,7 @@ mod enhanced_color;
 mod document_symbols;
 mod workspace_symbols;
 mod call_hierarchy;
+mod rename;
 
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
@@ -158,6 +159,10 @@ impl LanguageServer for Backend {
                 document_symbol_provider: Some(OneOf::Left(true)),
                 workspace_symbol_provider: Some(OneOf::Left(true)),
                 call_hierarchy_provider: Some(CallHierarchyServerCapability::Simple(true)),
+                rename_provider: Some(OneOf::Right(RenameOptions {
+                    prepare_provider: Some(true),
+                    work_done_progress_options: WorkDoneProgressOptions::default(),
+                })),
                 ..Default::default()
             },
             ..Default::default()
@@ -1696,6 +1701,43 @@ impl LanguageServer for Backend {
         ).await;
 
         Ok(Some(calls))
+    }
+
+    async fn prepare_rename(&self, params: TextDocumentPositionParams) -> Result<Option<PrepareRenameResponse>> {
+        let uri = params.text_document.uri.as_str();
+        let position = params.position;
+
+        let result = rename::prepare_rename(
+            uri,
+            position,
+            &self.events,
+            &self.scripted_triggers,
+            &self.scripted_effects,
+            &self.ideas,
+            &self.variables,
+        ).await;
+
+        Ok(result)
+    }
+
+    async fn rename(&self, params: RenameParams) -> Result<Option<WorkspaceEdit>> {
+        let uri = params.text_document_position.text_document.uri.as_str();
+        let position = params.text_document_position.position;
+        let new_name = &params.new_name;
+
+        let result = rename::rename_symbol(
+            uri,
+            position,
+            new_name,
+            &self.events,
+            &self.scripted_triggers,
+            &self.scripted_effects,
+            &self.ideas,
+            &self.variables,
+            &self.documents,
+        ).await;
+
+        Ok(result)
     }
 
     async fn shutdown(&self) -> Result<()> {
