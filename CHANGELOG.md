@@ -2,6 +2,50 @@
 
 All notable changes to the **Hearts of Modding** extension will be documented in this file.
 
+## [0.2.0] - 2026-05-10
+
+### Added
+
+- **First-Class Achievement Support:**
+  - Implemented `achievement_scanner` to index achievements and ribbons from `common/achievements/`.
+  - Added specialized tooltips for achievements featuring custom headers (🏆/🎀), localized name/description previews, and direct definition links.
+  - Added validation for missing `_NAME` and `_DESC` localization keys.
+- **Workspace Intelligence & Navigation:**
+  - **LSP Rename:** Full support for renaming Events, Scripted Triggers, Scripted Effects, Ideas, and Variables across the entire mod.
+  - **Call Hierarchy:** Added support for visualizing incoming and outgoing relationships for events and scripted entities.
+  - **Workspace Symbols:** Added global fuzzy search (`Ctrl+T`) for all indexed HOI4 symbols (Events, Ideas, Traits, Achievements, Sprites, etc.).
+  - **Document Symbols:** Added comprehensive outline view support for script files, categorizing logic into meaningful sections (Events, Focuses, Characters, etc.).
+- **Advanced Validation Engine:**
+  - Added `advanced_validation` module for complex logical checks.
+  - **Building Levels:** Validates that building levels in state history do not exceed their `max_level` defined in `common/buildings/`.
+  - **Character Skills:** Validates character skill levels against limits defined in `common/defines/*.lua`.
+  - **Victory Points:** Validates that victory point provinces are correctly located within their assigned state.
+- **Rich Tooltips & Documentation:**
+  - **Modifier Display:** Implemented a sophisticated modifier formatting service that converts snake_case to Title Case, handles percentage formatting, and uses ✓/✗ indicators for beneficial/detrimental effects.
+  - **Enhanced Scopes:** Tooltips now show a "Scope Stack" to help track nested logic; added specialized headers for Achievement and Music contexts.
+- **Localization Improvements:**
+  - Expanded recognized localization commands from 15 to over 80 (e.g., `GetNameDefCap`, `GetPartySupport`).
+  - Added support for localization version numbers in the parser.
+  - Added detection and "Hint" diagnostics for unnecessary version numbers in localization files.
+- **Asset Visualization:**
+  - **Enhanced Color Picker:** Added support for RGB and HSV color formats with integrated color picker/presentation support.
+
+### Changed
+
+- **Improved Syntax Highlighting:**
+  - Updated semantic token engine to recognize thousands of game triggers, effects, and links as keywords.
+  - Achievement keywords (`possible`, `happened`, `ribbon`) now receive proper semantic highlighting.
+- **Refined Parser:**
+  - Improved identifier boundary checks and support for special characters.
+  - Enhanced robustness when handling large blocks and complex assignments.
+
+### Fixed
+
+- Fixed color picker appearing for arbitrary sets of three numbers that weren't intended as colors.
+- Fixed scope detection for state history files (properly identifying the `state` scope).
+- Removed redundant achievement hover blocks that caused duplicate tooltips.
+- Resolved various unused import and dead code warnings across the server.
+
 ## [0.1.0] - 2024-05-09
 
 ### Added
