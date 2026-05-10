@@ -1,9 +1,0 @@
-ideologies = {
-    test_ideology = {
-        types = {
-            test_sub = {
-                color = { 0 0 205 }
-            }
-        }
-    }
-}
