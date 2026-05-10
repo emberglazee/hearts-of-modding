@@ -2,6 +2,8 @@
 
 [![made-for-VSCode](https://img.shields.io/badge/Made%20for-VSCode-1f425f.svg)](https://code.visualstudio.com/) [![GitHub license](https://badgen.net/github/license/Naereen/Strapdown.js)](https://github.com/Naereen/StrapDown.js/blob/master/LICENSE) [![made-with-rust](https://img.shields.io/badge/Made%20with-Rust-1f425f.svg)](https://www.rust-lang.org/)
 
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/emberglazee/hearts-of-modding/.github%2Fworkflows%2Fbuild.yml?style=flat-square&link=https%3A%2F%2Fgithub.com%2Femberglazee%2Fhearts-of-modding%2Factions%2Fworkflows%2Fbuild.yml) ![GitHub Release](https://img.shields.io/github/v/release/emberglazee/hearts-of-modding?style=flat-square&label=release&link=https%3A%2F%2Fgithub.com%2Femberglazee%2Fhearts-of-modding%2Freleases)
+
 **Hearts of Modding** is a heavily work in progress, high-performance Visual Studio Code extension specifically tailored for **Hearts of Iron IV (HOI4)** modders. Powered by a specialized Language Server Protocol (LSP) written in Rust, it provides a responsive, accurate, and deeply integrated modding experience that goes beyond standard Paradox scripting tools.
 
 Inspired by the extensions [CWTools](https://github.com/cwtools/cwtools) and [VModer](https://github.com/textGamex/VModer).
