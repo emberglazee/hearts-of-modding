@@ -2,6 +2,16 @@
 
 All notable changes to the **Hearts of Modding** extension will be documented in this file.
 
+## [0.2.2] - 2026-05-10
+
+### Added
+
+- MacOS Support (Intel and Apple Silicon).
+
+### Changed
+
+- Move README.md and CHANGELOG.md files from root into `client/` during extension compilation/packaging, otherwise the Marketplace is oblivious to them.
+
 ## [0.2.1] - 2026-05-10
 
 ### Changed
