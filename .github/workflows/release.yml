@@ -1,4 +1,4 @@
-name: Create Release
+name: Release
 
 on:
   workflow_dispatch:
@@ -16,9 +16,6 @@ jobs:
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             suffix: win.exe
-          - os: macos-13
-            target: x86_64-apple-darwin
-            suffix: macos-x64
           - os: macos-latest
             target: aarch64-apple-darwin
             suffix: macos-arm64
@@ -86,11 +83,6 @@ jobs:
         with:
           name: server-win.exe
           path: client/server-bin/win/
-      - name: Download macOS x64 Binary
-        uses: actions/download-artifact@v4
-        with:
-          name: server-macos-x64
-          path: client/server-bin/macos-x64/
       - name: Download macOS ARM64 Binary
         uses: actions/download-artifact@v4
         with:
@@ -102,9 +94,8 @@ jobs:
           mkdir -p client/server-bin
           mv client/server-bin/linux/server client/server-bin/server-linux
           mv client/server-bin/win/server.exe client/server-bin/server-win.exe
-          mv client/server-bin/macos-x64/server client/server-bin/server-macos-x64
           mv client/server-bin/macos-arm64/server client/server-bin/server-macos-arm64
-          chmod +x client/server-bin/server-linux client/server-bin/server-macos-x64 client/server-bin/server-macos-arm64
+          chmod +x client/server-bin/server-linux client/server-bin/server-macos-arm64
           
           # Copy resources
           cp -r server/Config client/server-bin/

@@ -6,7 +6,7 @@ All notable changes to the **Hearts of Modding** extension will be documented in
 
 ### Added
 
-- MacOS Support (Intel and Apple Silicon).
+- MacOS ARM64 support.
 
 ### Changed
 
