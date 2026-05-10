@@ -117,7 +117,13 @@ async function startServer(context: ExtensionContext, statusBarItem: any) {
     outputChannel.appendLine('Hearts of Modding extension is now starting...');
 
     // The server is implemented in Rust
-    let osSuffix = process.platform === 'win32' ? '-win.exe' : '-linux';
+    let osSuffix = '-linux';
+    if (process.platform === 'win32') {
+        osSuffix = '-win.exe';
+    } else if (process.platform === 'darwin') {
+        osSuffix = process.arch === 'arm64' ? '-macos-arm64' : '-macos-x64';
+    }
+
     let serverModule = context.asAbsolutePath(
         path.join('server-bin', `server${osSuffix}`)
     );
