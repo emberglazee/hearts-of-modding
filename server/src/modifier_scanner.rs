@@ -17,18 +17,19 @@ pub struct ModifierResult {
     pub builtin_mappings: HashMap<String, String>,
 }
 
-pub fn scan_modifiers(roots: &[PathBuf]) -> ModifierResult {
+pub fn scan_modifiers<F>(roots: &[PathBuf], filter: &F) -> ModifierResult 
+where F: Fn(&std::path::Path) -> bool {
     let mut custom_modifiers = HashMap::new();
     
     for root in roots {
         let dir = root.join("common/modifiers");
         if dir.exists() {
-            let found = scan_directory(&dir);
+            let found = scan_directory(&dir, filter);
             custom_modifiers.extend(found);
         }
         let dynamic_dir = root.join("common/dynamic_modifiers");
         if dynamic_dir.exists() {
-            let found = scan_directory(&dynamic_dir);
+            let found = scan_directory(&dynamic_dir, filter);
             custom_modifiers.extend(found);
         }
     }
@@ -39,17 +40,26 @@ pub fn scan_modifiers(roots: &[PathBuf]) -> ModifierResult {
     }
 }
 
-fn scan_directory(dir_path: &Path) -> HashMap<String, Modifier> {
+fn scan_directory<F>(dir_path: &Path, filter: &F) -> HashMap<String, Modifier> 
+where F: Fn(&std::path::Path) -> bool {
     let mut map = HashMap::new();
     let mut dirs_to_check = vec![dir_path.to_path_buf()];
     
     while let Some(current_dir) = dirs_to_check.pop() {
+        if filter(&current_dir) {
+            continue;
+        }
         if let Ok(entries) = fs::read_dir(current_dir) {
             for entry in entries.flatten() {
                 let path = entry.path();
                 if path.is_dir() {
-                    dirs_to_check.push(path);
+                    if !filter(&path) {
+                        dirs_to_check.push(path);
+                    }
                 } else if path.extension().map_or(false, |ext| ext == "txt") {
+                    if filter(&path) {
+                        continue;
+                    }
                     if let Ok(content) = fs::read_to_string(&path) {
                         if let Ok(script) = parser::parse_script(&content) {
                             for entry_ast in script.entries {

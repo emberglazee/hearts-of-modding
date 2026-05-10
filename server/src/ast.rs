@@ -57,6 +57,24 @@ pub enum DiagnosticSeverity {
     Hint,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum DiagnosticTag {
+    Unnecessary,
+    Deprecated,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DiagnosticRelatedInformation {
+    pub location: Location,
+    pub message: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Location {
+    pub uri: String,
+    pub range: Range,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Script {
     pub entries: Vec<Entry>,

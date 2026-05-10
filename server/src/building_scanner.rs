@@ -6,19 +6,23 @@ use std::fs;
 
 #[derive(Debug, Clone)]
 pub struct Building {
+    #[allow(dead_code)]
     pub name: String,
     pub max_level: Option<i32>,
+    #[allow(dead_code)]
     pub path: String,
+    #[allow(dead_code)]
     pub range: ast::Range,
 }
 
-pub fn scan_buildings(roots: &[PathBuf]) -> HashMap<String, Building> {
+pub fn scan_buildings<F>(roots: &[PathBuf], filter: &F) -> HashMap<String, Building> 
+where F: Fn(&std::path::Path) -> bool {
     let mut buildings = HashMap::new();
     
     for root in roots {
         let dir = root.join("common/buildings");
         if dir.exists() {
-            let found = scan_directory(&dir);
+            let found = scan_directory(&dir, filter);
             buildings.extend(found);
         }
     }
@@ -26,17 +30,26 @@ pub fn scan_buildings(roots: &[PathBuf]) -> HashMap<String, Building> {
     buildings
 }
 
-fn scan_directory(dir_path: &Path) -> HashMap<String, Building> {
+fn scan_directory<F>(dir_path: &Path, filter: &F) -> HashMap<String, Building> 
+where F: Fn(&std::path::Path) -> bool {
     let mut map = HashMap::new();
     let mut dirs_to_check = vec![dir_path.to_path_buf()];
     
     while let Some(current_dir) = dirs_to_check.pop() {
+        if filter(&current_dir) {
+            continue;
+        }
         if let Ok(entries) = fs::read_dir(current_dir) {
             for entry in entries.flatten() {
                 let path = entry.path();
                 if path.is_dir() {
-                    dirs_to_check.push(path);
+                    if !filter(&path) {
+                        dirs_to_check.push(path);
+                    }
                 } else if path.extension().map_or(false, |ext| ext == "txt") {
+                    if filter(&path) {
+                        continue;
+                    }
                     if let Ok(content) = fs::read_to_string(&path) {
                         if let Ok(script) = parser::parse_script(&content) {
                             extract_buildings(&script.entries, &path, &mut map);
@@ -82,8 +95,6 @@ fn extract_buildings(entries: &[ast::Entry], path: &Path, map: &mut HashMap<Stri
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[test]
     fn test_extract_buildings() {
         // Test would require mock AST data

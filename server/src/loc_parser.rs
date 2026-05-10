@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 use nom::{
     bytes::complete::{tag, take_until, take_while1},
-    character::complete::{char, multispace0, none_of, digit1, space0},
+    character::complete::{char, multispace0, digit1, space0},
     combinator::opt,
-    multi::many0,
     IResult,
 };
 use nom_locate::LocatedSpan;
@@ -28,6 +27,8 @@ pub struct LocDiagnostic {
     pub message: String,
     pub severity: DiagnosticSeverity,
     pub code: Option<String>,
+    pub related_information: Vec<crate::ast::DiagnosticRelatedInformation>,
+    pub tags: Vec<crate::ast::DiagnosticTag>,
 }
 
 fn to_range(span: Span) -> Range {
@@ -131,6 +132,8 @@ pub fn validate_loc_string(entry: &LocEntry, event_targets: &HashMap<String, Vec
                     message: format!("Potential invalid localization scope or command: '{}'", part),
                     severity: DiagnosticSeverity::Warning,
                     code: Some("invalid_loc_scope".to_string()),
+                    related_information: Vec::new(),
+                    tags: Vec::new(),
                 });
             }
             current_part_start += part.len() + 1; // +1 for .
@@ -161,6 +164,8 @@ pub fn validate_loc_string(entry: &LocEntry, event_targets: &HashMap<String, Vec
                     message: "Dangling color reset symbol '§!' without an opening color code.".to_string(),
                     severity: DiagnosticSeverity::Information,
                     code: Some("dangling_color_reset".to_string()),
+                    related_information: Vec::new(),
+                    tags: Vec::new(),
                 });
             } else {
                 open_colors.pop();
@@ -182,6 +187,8 @@ pub fn validate_loc_string(entry: &LocEntry, event_targets: &HashMap<String, Vec
             message: format!("Unclosed color code '§{}'. Expected a matching '§!' reset.", code),
             severity: DiagnosticSeverity::Information,
             code: Some("unclosed_color_code".to_string()),
+            related_information: Vec::new(),
+            tags: Vec::new(),
         });
     }
 
@@ -203,6 +210,8 @@ pub fn check_unnecessary_version(entry: &LocEntry, all_entries: &HashMap<String,
                 message: format!("Version number '{}' is unnecessary. HOI4 ignores version numbers, and this key has no duplicates.", version),
                 severity: DiagnosticSeverity::Hint,
                 code: Some("unnecessary_version".to_string()),
+                related_information: Vec::new(),
+                tags: vec![crate::ast::DiagnosticTag::Unnecessary],
             });
         }
     }
@@ -243,6 +252,8 @@ pub fn validate_loc_file_structure(input: &str) -> Vec<LocDiagnostic> {
                     message: format!("Unknown Paradox language header: '{}'. Valid languages are: {}", lang, valid_languages.join(", ")),
                     severity: DiagnosticSeverity::Warning,
                     code: Some("unknown_language".to_string()),
+                    related_information: Vec::new(),
+                    tags: Vec::new(),
                 });
                 header_found = true; // Still found a header, just a weird one
             }
@@ -256,6 +267,8 @@ pub fn validate_loc_file_structure(input: &str) -> Vec<LocDiagnostic> {
             message: "Missing language header (e.g., 'l_english:'). Localization files must start with a supported language tag.".to_string(),
             severity: DiagnosticSeverity::Error,
             code: Some("missing_language_header".to_string()),
+            related_information: Vec::new(),
+            tags: Vec::new(),
         });
     }
 

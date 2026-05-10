@@ -42,7 +42,8 @@ pub struct SoundScanResult {
     pub categories: HashMap<String, SoundCategory>,
 }
 
-pub fn scan_sounds(roots: &[PathBuf]) -> SoundScanResult {
+pub fn scan_sounds<F>(roots: &[PathBuf], filter: &F) -> SoundScanResult 
+where F: Fn(&std::path::Path) -> bool {
     let mut sounds = HashMap::new();
     let mut sound_effects = HashMap::new();
     let mut falloffs = HashMap::new();
@@ -50,7 +51,7 @@ pub fn scan_sounds(roots: &[PathBuf]) -> SoundScanResult {
 
     for root in roots {
         let sound_dir = root.join("sound");
-        if !sound_dir.exists() {
+        if !sound_dir.exists() || filter(&sound_dir) {
             continue;
         }
 
@@ -60,8 +61,13 @@ pub fn scan_sounds(roots: &[PathBuf]) -> SoundScanResult {
                 for entry in entries.flatten() {
                     let path = entry.path();
                     if path.is_dir() {
-                        dirs_to_check.push(path);
+                        if !filter(&path) {
+                            dirs_to_check.push(path);
+                        }
                     } else {
+                        if filter(&path) {
+                            continue;
+                        }
                         let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
                         if ext == "asset" {
                             if let Ok(content) = fs::read_to_string(&path) {

@@ -32,7 +32,8 @@ impl Default for GameDefines {
 }
 
 /// Scan defines files from game/mod directories
-pub fn scan_defines(roots: &[PathBuf]) -> GameDefines {
+pub fn scan_defines<F>(roots: &[PathBuf], filter: &F) -> GameDefines 
+where F: Fn(&std::path::Path) -> bool {
     let mut defines = GameDefines::new();
     
     // Set default max skill levels (HOI4 defaults)
@@ -44,18 +45,27 @@ pub fn scan_defines(roots: &[PathBuf]) -> GameDefines {
     for root in roots {
         let dir = root.join("common/defines");
         if dir.exists() {
-            scan_defines_directory(&dir, &mut defines);
+            scan_defines_directory(&dir, &mut defines, filter);
         }
     }
     
     defines
 }
 
-fn scan_defines_directory(dir_path: &Path, defines: &mut GameDefines) {
+fn scan_defines_directory<F>(dir_path: &Path, defines: &mut GameDefines, filter: &F) 
+where F: Fn(&std::path::Path) -> bool {
+    if filter(dir_path) {
+        return;
+    }
     if let Ok(entries) = fs::read_dir(dir_path) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().map_or(false, |ext| ext == "lua") {
+            if path.is_dir() {
+                scan_defines_directory(&path, defines, filter);
+            } else if path.extension().map_or(false, |ext| ext == "lua") {
+                if filter(&path) {
+                    continue;
+                }
                 if let Ok(content) = fs::read_to_string(&path) {
                     parse_defines_lua(&content, defines);
                 }

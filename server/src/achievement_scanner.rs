@@ -12,26 +12,36 @@ pub struct Achievement {
     pub range: ast::Range,
 }
 
-pub fn scan_achievements(roots: &[PathBuf]) -> HashMap<String, Achievement> {
+pub fn scan_achievements<F>(roots: &[PathBuf], filter: &F) -> HashMap<String, Achievement> 
+where F: Fn(&std::path::Path) -> bool {
     let mut map = HashMap::new();
     for root in roots {
         let achievements_dir = root.join("common").join("achievements");
         if achievements_dir.exists() {
-            scan_dir(&achievements_dir, &mut map);
+            scan_dir(&achievements_dir, &mut map, filter);
         }
     }
     map
 }
 
-fn scan_dir(dir_path: &Path, map: &mut HashMap<String, Achievement>) {
+fn scan_dir<F>(dir_path: &Path, map: &mut HashMap<String, Achievement>, filter: &F) 
+where F: Fn(&std::path::Path) -> bool {
     let mut dirs_to_check = vec![dir_path.to_path_buf()];
     while let Some(current_dir) = dirs_to_check.pop() {
+        if filter(&current_dir) {
+            continue;
+        }
         if let Ok(entries) = fs::read_dir(current_dir) {
             for entry in entries.flatten() {
                 let path = entry.path();
                 if path.is_dir() {
-                    dirs_to_check.push(path);
+                    if !filter(&path) {
+                        dirs_to_check.push(path);
+                    }
                 } else if path.extension().map_or(false, |ext| ext == "txt") {
+                    if filter(&path) {
+                        continue;
+                    }
                     if let Ok(content) = fs::read_to_string(&path) {
                         if let Ok(script) = parser::parse_script(&content) {
                             find_achievements_in_entries(&script.entries, &path.to_string_lossy(), map);

@@ -221,14 +221,17 @@ fn fuzzy_match(query: &str, target: &str) -> bool {
         return true;
     }
 
+    let query_lower = query.to_lowercase();
+    let target_lower = target.to_lowercase();
+
     // Exact substring match
-    if target.contains(query) {
+    if target_lower.contains(&query_lower) {
         return true;
     }
 
     // Fuzzy match: all characters in query appear in order in target
-    let mut target_chars = target.chars();
-    for query_char in query.chars() {
+    let mut target_chars = target_lower.chars();
+    for query_char in query_lower.chars() {
         if !target_chars.any(|c| c == query_char) {
             return false;
         }

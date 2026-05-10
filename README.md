@@ -16,21 +16,24 @@ Inspired by the extensions [CWTools](https://github.com/cwtools/cwtools) and [VM
 - **Virtual File System (VFS):** Correctly respects mod loading priority, ensuring your mod's overrides are always accurately represented.
 
 ### 🔍 Specialized Discovery & Tracking
-- **Workspace-Wide Variables:** Track `set_variable` and `event_target` usage across your entire project.
-- **Event Graphing:** Visualize the complex trigger relationships between events to map out your mod's narrative flow.
+- **Achievement & Ribbon Indexing:** Comprehensive support for achievements and ribbons, featuring specialized tooltips (🏆/🎀) and direct definition linking.
+- **Workspace-Wide Symbols:** Global fuzzy search (`Ctrl+T`) for all indexed symbols (Events, Ideas, Achievements, Sprites, etc.).
+- **Call Hierarchy:** Visualize incoming and outgoing relationships for events and scripted entities to understand your mod's flow.
 - **Deep Modifier Detection:** Automatically indexes custom and dynamic modifiers, linking them directly to their source definitions.
-- **Sprite & GFX Indexing:** Hover over sprite names to see their texture paths and jump directly to the `.gfx` or texture file.
+- **Virtual File System (VFS):** Correctly respects mod loading priority, ensuring your mod's overrides are always accurately represented.
 
 ### 🛡️ Advanced Validation
-- **Real-Time Semantic Checking:** Catch unknown ideology, trait, idea, or GFX references as you type.
-- **Dynamic Data Validation:** Reads `map/definition.csv` to ensure every province ID you use actually exists.
-- **Localization Scopes:** Deep parsing and validation of complex localization chains like `[Root.GetTag]` or `[THIS.GetName]`.
+- **Deep Schema Validation (CWT):** Powered by an engine that supports the full CWTools specification, ensuring triggers, effects, and cardinality are correct.
+- **Logical Integrity Checks:** Validates character skills, building levels, and victory point locations against game definitions and defines.
+- **Proactive Workspace Scan:** Optionally scan your entire mod directory for errors upon initialization—no need to open every file manually.
+- **Localization Infrastructure:** Deep parsing and validation of over 80 localization commands and complex chains like `[Root.GetTag]`.
 - **Paradox Styling Rules:** Optional checks for standard Paradox casing conventions, indentation (tabs vs. spaces), and trailing whitespace.
 
 ### 🛠️ Developer Productivity
+- **Safe LSP Rename:** Rename Events, Scripted Triggers, Ideas, and Variables across your entire project with confidence.
+- **Diagnostic Enhancements:** Detailed error reporting with unique `HOM` codes, related information links, and "Unnecessary" tags for redundant code.
 - **Hyperlinked Tooltips:** All file and texture paths in hovers are clickable, allowing you to navigate your project at light speed.
 - **Smart Completion:** Context-aware suggestions for triggers, effects, scopes, and localization commands.
-- **Go to Definition:** Jump from a script directly to a trait definition, an event, or a localization key.
 - **Color Support:** Integrated color picker and previews for `rgb`, `hsv`, and Paradox ideology color formats.
 
 ## Getting Started
@@ -44,6 +47,8 @@ Inspired by the extensions [CWTools](https://github.com/cwtools/cwtools) and [VM
 - `HOI4: Activate Extension`: Manually starts the LSP server if it hasn't already.
 - `HOI4: Set Game Path`: Quickly update your game path for VFS merging.
 - `HOI4: Toggle Styling Checks`: Enable or disable cosmetic casing and whitespace diagnostics.
+- `HOI4: Toggle Workspace Scan`: Enable or disable automatic workspace-wide diagnostic scanning.
+- `HOI4: Show Memory Usage`: Toggle the real-time memory usage display in the status bar.
 
 ## Requirements
 

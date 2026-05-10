@@ -13,40 +13,44 @@ pub struct Event {
     pub triggered_events: Vec<String>, // IDs of events triggered BY this event
 }
 
-pub fn scan_events(roots: &[PathBuf]) -> HashMap<String, Event> {
+pub fn scan_events<F>(roots: &[PathBuf], filter: &F) -> HashMap<String, Event> 
+where F: Fn(&Path) -> bool {
     let mut events = HashMap::new();
     
     for root in roots {
         let events_dir = root.join("events");
         if events_dir.exists() {
-            scan_directory(&events_dir, &mut events);
+            scan_directory(&events_dir, &mut events, filter);
         }
-        
-        // Events can also be in common/on_actions or other places, 
-        // but for graphing we primarily care about the definitions in 'events/'
-        // and where they are called from.
-        // For now, let's focus on 'events/' folder for definitions.
     }
 
     // Second pass: Find where events are triggered
-    // We'll search in roots again for common patterns
     for root in roots {
-        scan_for_triggers(root, &mut events);
+        scan_for_triggers(root, &mut events, filter);
     }
 
     events
 }
 
-fn scan_directory(dir_path: &Path, events: &mut HashMap<String, Event>) {
+fn scan_directory<F>(dir_path: &Path, events: &mut HashMap<String, Event>, filter: &F) 
+where F: Fn(&Path) -> bool {
     let mut dirs_to_check = vec![dir_path.to_path_buf()];
     
     while let Some(current_dir) = dirs_to_check.pop() {
+        if filter(&current_dir) {
+            continue;
+        }
         if let Ok(entries) = fs::read_dir(current_dir) {
             for entry in entries.flatten() {
                 let path = entry.path();
                 if path.is_dir() {
-                    dirs_to_check.push(path);
+                    if !filter(&path) {
+                        dirs_to_check.push(path);
+                    }
                 } else if path.extension().map_or(false, |ext| ext == "txt") {
+                    if filter(&path) {
+                        continue;
+                    }
                     if let Ok(content) = fs::read_to_string(&path) {
                         if let Ok(script) = parser::parse_script(&content) {
                             find_event_definitions(&script.entries, &path.to_string_lossy(), events);
@@ -91,7 +95,8 @@ fn find_event_definitions(entries: &[ast::Entry], path: &str, events: &mut HashM
     }
 }
 
-fn scan_for_triggers(root: &Path, events: &mut HashMap<String, Event>) {
+fn scan_for_triggers<F>(root: &Path, events: &mut HashMap<String, Event>, filter: &F) 
+where F: Fn(&Path) -> bool {
     // We need to look through common/, events/, and potentially others
     let subdirs = ["common", "events"];
     for subdir in subdirs {
@@ -100,12 +105,20 @@ fn scan_for_triggers(root: &Path, events: &mut HashMap<String, Event>) {
         
         let mut dirs_to_check = vec![dir_path];
         while let Some(current_dir) = dirs_to_check.pop() {
+            if filter(&current_dir) {
+                continue;
+            }
             if let Ok(entries) = fs::read_dir(current_dir) {
                 for entry in entries.flatten() {
                     let path = entry.path();
                     if path.is_dir() {
-                        dirs_to_check.push(path);
+                        if !filter(&path) {
+                            dirs_to_check.push(path);
+                        }
                     } else if path.extension().map_or(false, |ext| ext == "txt") {
+                        if filter(&path) {
+                            continue;
+                        }
                         if let Ok(content) = fs::read_to_string(&path) {
                             if let Ok(script) = parser::parse_script(&content) {
                                 find_triggers_in_script(&script.entries, events);

@@ -2,7 +2,7 @@
     "name": "hearts-of-modding",
     "displayName": "Hearts of Modding",
     "description": "VS Code extension for Hearts of Iron IV modding",
-    "version": "0.2.2",
+    "version": "0.3.0",
     "publisher": "emberglaze",
     "repository": {
         "type": "git",
@@ -42,6 +42,19 @@
                     "default": [],
                     "description": "List of regex patterns for localization keys that should be ignored if missing."
                 },
+                "hoi4.validator.ignoreFiles": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [],
+                    "description": "List of regex patterns for files or directories that should be ignored during workspace-wide diagnostic scanning."
+                },
+                "hoi4.validator.workspaceScan.enabled": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Enable automatic workspace-wide diagnostic scanning upon initialization. Large mods may experience high CPU usage during the initial scan."
+                },
                 "hoi4.styling.enabled": {
                     "type": "boolean",
                     "default": true,
@@ -71,6 +84,11 @@
             {
                 "command": "hearts-of-modding.toggleStyling",
                 "title": "HOI4: Toggle Styling Checks"
+            },
+            {
+                "command": "hearts-of-modding.toggleWorkspaceScan",
+                "title": "HOI4: Toggle Workspace Scan",
+                "category": "Hearts of Modding"
             },
             {
                 "command": "hearts-of-modding.showMemoryUsage",
@@ -141,11 +159,11 @@
         "@types/mocha": "^10.0.1",
         "@types/node": "16.x",
         "@types/vscode": "^1.75.0",
-        "@typescript-eslint/eslint-plugin": "^8.59.0",
-        "@typescript-eslint/parser": "^8.59.0",
+        "@typescript-eslint/eslint-plugin": "^8.59.2",
+        "@typescript-eslint/parser": "^8.59.2",
         "@vscode/test-electron": "^2.2.0",
         "@vscode/vsce": "^3.9.1",
-        "eslint": "^10.2.1",
+        "eslint": "^10.3.0",
         "glob": "^13.0.6",
         "mocha": "^11.7.5",
         "typescript": "^6.0.3"

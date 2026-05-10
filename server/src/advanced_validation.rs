@@ -4,6 +4,14 @@ use crate::defines_parser;
 use std::collections::{HashMap, HashSet};
 
 /// Diagnostic codes for advanced validation
+pub const PARSE_ERROR: &str = "HOM001";
+pub const UNKNOWN_TRIGGER: &str = "HOM002";
+#[allow(dead_code)]
+pub const UNKNOWN_EFFECT: &str = "HOM003";
+#[allow(dead_code)]
+pub const SCOPE_MISMATCH: &str = "HOM004";
+pub const MISSING_LOCALIZATION: &str = "HOM005";
+
 pub const BUILDING_LEVEL_EXCEEDS_MAX: &str = "HOM1002";
 pub const CHARACTER_SKILL_EXCEEDS_MAX: &str = "HOM1004";
 pub const VICTORY_POINT_PROVINCE_NOT_IN_STATE: &str = "HOM2001";
@@ -16,7 +24,10 @@ pub struct ValidationDiagnostic {
     pub severity: ast::DiagnosticSeverity,
     pub message: String,
     pub code: String,
+    #[allow(dead_code)]
     pub fix_suggestion: Option<String>,
+    pub related_information: Vec<ast::DiagnosticRelatedInformation>,
+    pub tags: Vec<ast::DiagnosticTag>,
 }
 
 /// Validate entries against a schema rule
@@ -59,6 +70,8 @@ pub fn validate_against_rule(
                 message: format!("Missing required field: '{}' (expected at least {})", child_rule.key, child_rule.cardinality.min),
                 code: SCHEMA_VALIDATION_ERROR.to_string(),
                 fix_suggestion: None,
+                related_information: Vec::new(),
+                tags: Vec::new(),
             });
         }
         if let Some(max) = child_rule.cardinality.max {
@@ -69,6 +82,8 @@ pub fn validate_against_rule(
                     message: format!("Too many occurrences of field: '{}' (expected at most {})", child_rule.key, max),
                     code: SCHEMA_VALIDATION_ERROR.to_string(),
                     fix_suggestion: None,
+                    related_information: Vec::new(),
+                    tags: Vec::new(),
                 });
             }
         }
@@ -92,6 +107,8 @@ pub fn validate_value_against_rule(
                             message: format!("Invalid value '{}' for enum '{}'. Expected one of: {:?}", s, name, values),
                             code: SCHEMA_VALIDATION_ERROR.to_string(),
                             fix_suggestion: None,
+                            related_information: Vec::new(),
+                            tags: Vec::new(),
                         });
                     }
                 }
@@ -106,6 +123,8 @@ pub fn validate_value_against_rule(
                         message: format!("Empty reference for type '{}'", name),
                         code: SCHEMA_VALIDATION_ERROR.to_string(),
                         fix_suggestion: None,
+                        related_information: Vec::new(),
+                        tags: Vec::new(),
                     });
                 }
             }
@@ -120,6 +139,8 @@ pub fn validate_value_against_rule(
                             message: "Expected boolean (yes/no)".to_string(),
                             code: SCHEMA_VALIDATION_ERROR.to_string(),
                             fix_suggestion: None,
+                            related_information: Vec::new(),
+                            tags: Vec::new(),
                         });
                     }
                 } else {
@@ -129,6 +150,8 @@ pub fn validate_value_against_rule(
                         message: "Expected boolean (yes/no)".to_string(),
                         code: SCHEMA_VALIDATION_ERROR.to_string(),
                         fix_suggestion: None,
+                        related_information: Vec::new(),
+                        tags: Vec::new(),
                     });
                 }
             }
@@ -143,6 +166,8 @@ pub fn validate_value_against_rule(
                             message: "Expected a number".to_string(),
                             code: SCHEMA_VALIDATION_ERROR.to_string(),
                             fix_suggestion: None,
+                            related_information: Vec::new(),
+                            tags: Vec::new(),
                         });
                     }
                 } else {
@@ -152,6 +177,8 @@ pub fn validate_value_against_rule(
                         message: "Expected a number".to_string(),
                         code: SCHEMA_VALIDATION_ERROR.to_string(),
                         fix_suggestion: None,
+                        related_information: Vec::new(),
+                        tags: Vec::new(),
                     });
                 }
             }
@@ -166,6 +193,8 @@ pub fn validate_value_against_rule(
                     message: "Expected a block { ... }".to_string(),
                     code: SCHEMA_VALIDATION_ERROR.to_string(),
                     fix_suggestion: None,
+                    related_information: Vec::new(),
+                    tags: Vec::new(),
                 });
             }
         }
@@ -211,6 +240,8 @@ pub fn validate_achievements(
                         message: format!("Achievement '{}' is missing localization key: '{}'", ass.key, name_key),
                         code: ACHIEVEMENT_MISSING_LOCALIZATION.to_string(),
                         fix_suggestion: None,
+                        related_information: Vec::new(),
+                        tags: Vec::new(),
                     });
                 }
                 if !localization.contains_key(&desc_key) {
@@ -220,6 +251,8 @@ pub fn validate_achievements(
                         message: format!("Achievement '{}' is missing localization key: '{}'", ass.key, desc_key),
                         code: ACHIEVEMENT_MISSING_LOCALIZATION.to_string(),
                         fix_suggestion: None,
+                        related_information: Vec::new(),
+                        tags: Vec::new(),
                     });
                 }
             }
@@ -244,14 +277,14 @@ fn validate_buildings_recursive(
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
             let key_lower = ass.key.to_lowercase();
-            
+
             // Check if we're in a buildings block
             if key_lower == "buildings" {
                 if let ast::Value::Block(building_entries) = &ass.value.value {
                     validate_building_block(building_entries, buildings, diagnostics);
                 }
             }
-            
+
             // Recurse into nested blocks
             match &ass.value.value {
                 ast::Value::Block(inner) => {
@@ -274,14 +307,14 @@ fn validate_building_block(
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
             let building_name = &ass.key;
-            
+
             // Get the level value
             let level = match &ass.value.value {
                 ast::Value::Number(n) => Some(*n as i32),
                 ast::Value::String(s) => s.parse::<i32>().ok(),
                 _ => None,
             };
-            
+
             if let Some(level) = level {
                 // Check if building exists and has max_level
                 if let Some(building) = buildings.get(building_name) {
@@ -296,6 +329,8 @@ fn validate_building_block(
                                 ),
                                 code: BUILDING_LEVEL_EXCEEDS_MAX.to_string(),
                                 fix_suggestion: Some(format!("Set to maximum level: {}", max_level)),
+                                related_information: Vec::new(),
+                                tags: Vec::new(),
                             });
                         }
                     }
@@ -323,7 +358,7 @@ fn validate_character_skills_recursive(
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
             let key_lower = ass.key.to_lowercase();
-            
+
             // Detect character type
             let mut char_type = current_character_type;
             if key_lower == "create_field_marshal" {
@@ -335,7 +370,7 @@ fn validate_character_skills_recursive(
             } else if key_lower == "create_operative_leader" {
                 char_type = Some("operative");
             }
-            
+
             // Check skill field
             if key_lower == "skill" {
                 if let Some(ct) = char_type {
@@ -357,12 +392,14 @@ fn validate_character_skills_recursive(
                                 ),
                                 code: CHARACTER_SKILL_EXCEEDS_MAX.to_string(),
                                 fix_suggestion: Some(format!("Set to maximum skill: {}", max_skill)),
+                                related_information: Vec::new(),
+                                tags: Vec::new(),
                             });
                         }
                     }
                 }
             }
-            
+
             // Recurse into nested blocks
             match &ass.value.value {
                 ast::Value::Block(inner) => {
@@ -394,7 +431,7 @@ fn validate_victory_points_recursive(
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
             let key_lower = ass.key.to_lowercase();
-            
+
             // Collect provinces in state
             if key_lower == "provinces" {
                 if let ast::Value::Block(province_entries) = &ass.value.value {
@@ -413,7 +450,7 @@ fn validate_victory_points_recursive(
                     *state_provinces = Some(provs);
                 }
             }
-            
+
             // Collect victory points
             // Format: victory_points = { province_id vp_value province_id vp_value ... }
             if key_lower == "victory_points" {
@@ -447,7 +484,7 @@ fn validate_victory_points_recursive(
                     *victory_points = Some(vps);
                 }
             }
-            
+
             // Recurse into nested blocks
             match &ass.value.value {
                 ast::Value::Block(inner) => {
@@ -460,7 +497,7 @@ fn validate_victory_points_recursive(
             }
         }
     }
-    
+
     // After processing all entries, validate victory points against provinces
     if let (Some(provs), Some(vps)) = (state_provinces, victory_points) {
         for (vp_province, range) in vps {
@@ -474,6 +511,8 @@ fn validate_victory_points_recursive(
                     ),
                     code: VICTORY_POINT_PROVINCE_NOT_IN_STATE.to_string(),
                     fix_suggestion: Some("Remove this victory point or add the province to the state".to_string()),
+                    related_information: Vec::new(),
+                    tags: Vec::new(),
                 });
             }
         }

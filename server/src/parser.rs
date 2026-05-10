@@ -44,7 +44,7 @@ fn to_range(span: Span) -> crate::ast::Range {
 }
 
 pub fn is_identifier_char(c: char) -> bool {
-    c.is_alphanumeric() || c == '_' || c == '.' || c == ':' || c == '@' || c == '[' || c == ']' || c == '?' || c == '^' || c == '$' || c == '/' || c == '-' || c == '\'' || c == '%'
+    c.is_alphanumeric() || c == '_' || c == '.' || c == ':' || c == '@' || c == '[' || c == ']' || c == '?' || c == '^' || c == '$' || c == '/' || c == '-' || c == '\'' || c == '%' || c == '|' || c == '*'
 }
 
 fn identifier(input: Span) -> IResult<Span, (String, crate::ast::Range)> {
@@ -275,5 +275,12 @@ mod tests {
                 panic!("Value should be a string/identifier");
             }
         }
+    }
+
+    #[test]
+    fn test_parse_pipe_in_value() {
+        let input = r#"custom_effect_tooltip = tech_effect|sp_naval_support_ships_pick_a"#;
+        let result = parse_script(input);
+        assert!(result.is_ok());
     }
 }

@@ -1,4 +1,4 @@
-use tower_lsp::lsp_types::{Color, ColorInformation, ColorPresentation, TextEdit, Range as LspRange};
+use tower_lsp::lsp_types::{Color, ColorPresentation, TextEdit, Range as LspRange};
 use crate::ast;
 use crate::defines_parser::GameDefines;
 
@@ -41,6 +41,7 @@ impl ColorModifiers {
 
 /// Enhanced color information with context
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct EnhancedColorInfo {
     pub range: ast::Range,
     pub color: Color,
@@ -49,12 +50,14 @@ pub struct EnhancedColorInfo {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[allow(dead_code)]
 pub enum ColorFormat {
     RGB,
     HSV,
 }
 
 /// Apply game color modifiers to RGB values
+#[allow(dead_code)]
 pub fn apply_color_modifiers(r: f64, g: f64, b: f64, is_ui: bool, modifiers: &ColorModifiers) -> (f64, f64, f64) {
     // Convert to HSV
     let (h, s, v) = rgb_to_hsv(r, g, b);

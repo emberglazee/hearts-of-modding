@@ -31,14 +31,15 @@ pub struct MusicScanResult {
     pub songs: HashMap<String, Song>,
 }
 
-pub fn scan_music(roots: &[std::path::PathBuf]) -> MusicScanResult {
+pub fn scan_music<F>(roots: &[std::path::PathBuf], filter: &F) -> MusicScanResult 
+where F: Fn(&std::path::Path) -> bool {
     let mut assets = HashMap::new();
     let mut stations = HashMap::new();
     let mut songs = HashMap::new();
 
     for root in roots {
         let music_dir = root.join("music");
-        if !music_dir.exists() {
+        if !music_dir.exists() || filter(&music_dir) {
             continue;
         }
 
@@ -48,8 +49,13 @@ pub fn scan_music(roots: &[std::path::PathBuf]) -> MusicScanResult {
                 for entry in entries.flatten() {
                     let path = entry.path();
                     if path.is_dir() {
-                        dirs_to_check.push(path);
+                        if !filter(&path) {
+                            dirs_to_check.push(path);
+                        }
                     } else {
+                        if filter(&path) {
+                            continue;
+                        }
                         let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
                         if ext == "asset" {
                             if let Ok(content) = fs::read_to_string(&path) {
@@ -174,7 +180,7 @@ mod tests {
         "#;
         fs::write(music_dir.join("music/test.txt"), txt_content).unwrap();
 
-        let result = scan_music(&[music_dir.clone()]);
+        let result = scan_music(&[music_dir.clone()], &|_| false);
 
         assert!(result.assets.contains_key("test_song"));
         assert_eq!(result.assets.get("test_song").unwrap().file, "test.ogg");
@@ -217,7 +223,7 @@ mod tests {
         "#;
         fs::write(music_dir.join("music/HoM_songs.txt"), txt_content).unwrap();
 
-        let result = scan_music(&[music_dir.clone()]);
+        let result = scan_music(&[music_dir.clone()], &|_| false);
 
         assert!(result.assets.contains_key("Makai_Symphony-Izanagi_izanami"));
         assert_eq!(result.assets.get("Makai_Symphony-Izanagi_izanami").unwrap().file, "Makai_Symphony-Izanagi_Izanami.ogg");

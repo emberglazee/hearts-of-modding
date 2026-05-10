@@ -9,6 +9,7 @@ use tokio::sync::RwLock;
 
 /// Call hierarchy information for a symbol
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct CallInfo {
     pub name: String,
     pub kind: CallKind,
@@ -17,6 +18,7 @@ pub struct CallInfo {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+#[allow(dead_code)]
 pub enum CallKind {
     Event,
     ScriptedTrigger,

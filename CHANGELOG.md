@@ -2,6 +2,31 @@
 
 All notable changes to the **Hearts of Modding** extension will be documented in this file.
 
+## [0.3.0] - 2026-05-10
+
+### Added
+
+- **Diagnostic Infrastructure Overhaul:**
+  - **Unique Diagnostic Codes:** Introduced a standardized coding system with the `HOM` prefix (e.g., `HOM001` for Parse Errors, `HOM1002` for Building Levels). This enables easier filtering and future suppression rules.
+  - **Diagnostic Related Information:** Implemented support for linking diagnostics to other parts of the codebase (e.g., linking a validation error to a specific building definition).
+  - **New Diagnostic Tags:** Redundant localization version numbers are now tagged as `Unnecessary`, allowing editors to render them with faded/greyed-out styling.
+  - **Unified Metadata:** All diagnostics now consistently report "Hearts of Modding" as their source for better attribution in the Problems view.
+- **Workspace-Wide Awareness:**
+  - **Automatic Workspace Scan:** The server can now perform a full recursive scan of all `.txt` and `.yml` files in the mod directory upon initialization.
+  - **Toggleable Scanning:** This feature is **off by default** and can be enabled via `hoi4.validator.workspaceScan.enabled` or the new **HOI4: Toggle Workspace Scan** command.
+  - **Custom Ignore Patterns:** Added `hoi4.validator.ignoreFiles` configuration. Supports regex patterns to completely exclude files or directories from diagnostics and intelligence features (References, Rename).
+  - **Proactive Reporting:** You can now see all errors and warnings across your entire mod without needing to open every file manually.
+  - **Mod Scope Isolation:** The full scan is strictly limited to the mod workspace, ensuring you aren't flooded with diagnostics from base game files.
+
+### Changed
+
+- **Improved Parser Robustness:**
+  - Added support for `|` (pipe) and `*` (asterisk) characters in identifiers, fixing parsing errors in complex effect tooltips and SI-unit localization formatters.
+  - Refactored internal diagnostic handling to a modular `validate_content` pipeline.
+- **Internal Optimization:**
+  - Cleaned up unused imports and suppressed dead code warnings across the server for a more stable build.
+  - Improved workspace symbol search (`Ctrl+T`) by making fuzzy matching case-insensitive.
+
 ## [0.2.2] - 2026-05-10
 
 ### Added

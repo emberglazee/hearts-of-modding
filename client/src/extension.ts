@@ -38,6 +38,13 @@ export async function activate(context: ExtensionContext) {
         window.showInformationMessage(`Memory Usage Display: ${!currentState ? 'Enabled' : 'Disabled'}`);
     }));
 
+    context.subscriptions.push(commands.registerCommand('hearts-of-modding.toggleWorkspaceScan', async () => {
+        const config = workspace.getConfiguration('hoi4.validator.workspaceScan');
+        const currentState = config.get('enabled');
+        await config.update('enabled', !currentState, ConfigurationTarget.Workspace);
+        window.showInformationMessage(`Workspace Diagnostic Scan: ${!currentState ? 'Enabled (Re-indexing...)' : 'Disabled'}`);
+    }));
+
     context.subscriptions.push(commands.registerCommand('hearts-of-modding.activate', async () => {
         if (client && client.isRunning()) {
             outputChannel.show();
@@ -173,6 +180,8 @@ async function startServer(context: ExtensionContext, statusBarItem: any) {
         initializationOptions: {
             gamePath: workspace.getConfiguration('hoi4').get('gamePath'),
             ignoreLocalization: workspace.getConfiguration('hoi4.validator').get('ignoreLocalization'),
+            ignoreFiles: workspace.getConfiguration('hoi4.validator').get('ignoreFiles'),
+            workspaceScanEnabled: workspace.getConfiguration('hoi4.validator.workspaceScan').get('enabled'),
             stylingEnabled: workspace.getConfiguration('hoi4.styling').get('enabled'),
             cosmeticLocIndent: workspace.getConfiguration('hoi4.styling').get('cosmeticLocalizationIndentation')
         }
@@ -235,6 +244,32 @@ async function startServer(context: ExtensionContext, statusBarItem: any) {
                     hoi4: {
                         validator: {
                             ignoreLocalization: newValue
+                        }
+                    }
+                }
+            });
+        }
+        if (e.affectsConfiguration('hoi4.validator.ignoreFiles')) {
+            const newValue = workspace.getConfiguration('hoi4.validator').get('ignoreFiles');
+            client.sendNotification('workspace/didChangeConfiguration', {
+                settings: {
+                    hoi4: {
+                        validator: {
+                            ignoreFiles: newValue
+                        }
+                    }
+                }
+            });
+        }
+        if (e.affectsConfiguration('hoi4.validator.workspaceScan.enabled')) {
+            const newValue = workspace.getConfiguration('hoi4.validator.workspaceScan').get('enabled');
+            client.sendNotification('workspace/didChangeConfiguration', {
+                settings: {
+                    hoi4: {
+                        validator: {
+                            workspaceScan: {
+                                enabled: newValue
+                            }
                         }
                     }
                 }

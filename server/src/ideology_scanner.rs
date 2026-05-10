@@ -13,9 +13,10 @@ pub struct Ideology {
     pub range: ast::Range,
 }
 
-pub fn scan_ideologies(dir_path: &Path) -> HashMap<String, Ideology> {
+pub fn scan_ideologies<F>(dir_path: &Path, filter: &F) -> HashMap<String, Ideology> 
+where F: Fn(&Path) -> bool {
     let mut map = HashMap::new();
-    if !dir_path.exists() {
+    if !dir_path.exists() || filter(dir_path) {
         return map;
     }
 
@@ -25,8 +26,13 @@ pub fn scan_ideologies(dir_path: &Path) -> HashMap<String, Ideology> {
             for entry in entries.flatten() {
                 let path = entry.path();
                 if path.is_dir() {
-                    dirs_to_check.push(path);
+                    if !filter(&path) {
+                        dirs_to_check.push(path);
+                    }
                 } else if path.extension().map_or(false, |ext| ext == "txt") {
+                    if filter(&path) {
+                        continue;
+                    }
                     if let Ok(content) = fs::read_to_string(&path) {
                         if let Ok(script) = parser::parse_script(&content) {
                             find_ideologies_in_entries(&script.entries, &path.to_string_lossy(), &mut map);

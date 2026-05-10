@@ -44,6 +44,7 @@ static LOC_COMMANDS: Lazy<Vec<&'static str>> = Lazy::new(hoi4_data::get_loc_comm
 
 /// Convert a byte offset in a UTF-8 string to a UTF-16 code unit offset
 /// This is required because LSP uses UTF-16 positions, but Rust strings are UTF-8
+#[allow(dead_code)]
 fn byte_offset_to_utf16(s: &str, byte_offset: usize) -> u32 {
     s.chars().take(byte_offset).map(|c| c.len_utf16()).sum::<usize>() as u32
 }
@@ -83,6 +84,8 @@ struct Backend {
     achievements: Arc<RwLock<HashMap<String, achievement_scanner::Achievement>>>,
     defines: Arc<RwLock<defines_parser::GameDefines>>,
     ignored_loc_regex: Arc<RwLock<Vec<regex::Regex>>>,
+    ignored_files_regex: Arc<RwLock<Vec<regex::Regex>>>,
+    workspace_scan_enabled: Arc<RwLock<bool>>,
     schema: Arc<RwLock<schema::Schema>>,
     styling_enabled: Arc<RwLock<bool>>,
     cosmetic_loc_indent: Arc<RwLock<bool>>,
@@ -110,6 +113,22 @@ impl LanguageServer for Backend {
                 }
                 let mut ig = self.ignored_loc_regex.write().await;
                 *ig = patterns;
+            }
+            if let Some(ignore_list) = options.get("ignoreFiles").and_then(|v| v.as_array()) {
+                let mut patterns = Vec::new();
+                for val in ignore_list {
+                    if let Some(s) = val.as_str() {
+                        if let Ok(re) = regex::Regex::new(s) {
+                            patterns.push(re);
+                        }
+                    }
+                }
+                let mut ig = self.ignored_files_regex.write().await;
+                *ig = patterns;
+            }
+            if let Some(enabled) = options.get("workspaceScanEnabled").and_then(|v| v.as_bool()) {
+                let mut ws = self.workspace_scan_enabled.write().await;
+                *ws = enabled;
             }
             if let Some(enabled) = options.get("stylingEnabled").and_then(|v| v.as_bool()) {
                 let mut st = self.styling_enabled.write().await;
@@ -219,6 +238,11 @@ impl LanguageServer for Backend {
                 self.validate_document(uri).await;
             }
         }
+
+        // Workspace-wide scan
+        if *self.workspace_scan_enabled.read().await {
+            self.validate_workspace(std::path::Path::new(".")).await;
+        }
     }
 
     async fn did_change_configuration(&self, params: DidChangeConfigurationParams) {
@@ -236,6 +260,22 @@ impl LanguageServer for Backend {
                         }
                         let mut ig = self.ignored_loc_regex.write().await;
                         *ig = patterns;
+                    }
+                    if let Some(ignore_list) = validator.get("ignoreFiles").and_then(|v| v.as_array()) {
+                        let mut patterns = Vec::new();
+                        for val in ignore_list {
+                            if let Some(s) = val.as_str() {
+                                if let Ok(re) = regex::Regex::new(s) {
+                                    patterns.push(re);
+                                }
+                            }
+                        }
+                        let mut ig = self.ignored_files_regex.write().await;
+                        *ig = patterns;
+                    }
+                    if let Some(enabled) = validator.get("workspaceScan").and_then(|v| v.as_object()).and_then(|v| v.get("enabled")).and_then(|v| v.as_bool()) {
+                        let mut ws = self.workspace_scan_enabled.write().await;
+                        *ws = enabled;
                     }
                 }
                 if let Some(styling) = hoi4.get("styling").and_then(|v| v.as_object()) {
@@ -1939,6 +1979,8 @@ impl Backend {
                     range: ast_range_to_lsp(&val.range),
                     severity: Some(DiagnosticSeverity::WARNING),
                     message: format!("Unknown province ID: {}", id),
+                    code: Some(NumberOrString::String(advanced_validation::UNKNOWN_TRIGGER.to_string())),
+                    source: Some("Hearts of Modding".to_string()),
                     ..Default::default()
                 });
             }
@@ -1946,21 +1988,24 @@ impl Backend {
     }
 
     async fn scan_provinces(&self, roots: &[std::path::PathBuf]) {
-        let result = province_scanner::scan_provinces(roots);
+        let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
+        let result = province_scanner::scan_provinces(roots, &filter);
         let mut provinces = self.provinces.write().await;
         *provinces = result;
         self.client.log_message(MessageType::INFO, format!("Total: Loaded {} province definitions", provinces.len())).await;
     }
 
     async fn scan_events(&self, roots: &[std::path::PathBuf]) {
-        let result = event_scanner::scan_events(roots);
+        let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
+        let result = event_scanner::scan_events(roots, &filter);
         let mut events = self.events.write().await;
         *events = result;
         self.client.log_message(MessageType::INFO, format!("Total: Loaded {} event definitions", events.len())).await;
     }
 
     async fn scan_music(&self, roots: &[std::path::PathBuf]) {
-        let result = music_scanner::scan_music(roots);
+        let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
+        let result = music_scanner::scan_music(roots, &filter);
 
         let mut assets = self.music_assets.write().await;
         *assets = result.assets;
@@ -1975,7 +2020,8 @@ impl Backend {
     }
 
     async fn scan_sounds(&self, roots: &[std::path::PathBuf]) {
-        let result = sound_scanner::scan_sounds(roots);
+        let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
+        let result = sound_scanner::scan_sounds(roots, &filter);
 
         let mut sounds = self.sounds.write().await;
         *sounds = result.sounds;
@@ -1993,7 +2039,8 @@ impl Backend {
     }
 
     async fn scan_modifiers(&self, roots: &[std::path::PathBuf]) {
-        let result = modifier_scanner::scan_modifiers(roots);
+        let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
+        let result = modifier_scanner::scan_modifiers(roots, &filter);
 
         let mut custom = self.custom_modifiers.write().await;
         *custom = result.custom_modifiers;
@@ -2005,7 +2052,8 @@ impl Backend {
     }
 
     async fn scan_buildings(&self, roots: &[std::path::PathBuf]) {
-        let buildings = building_scanner::scan_buildings(roots);
+        let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
+        let buildings = building_scanner::scan_buildings(roots, &filter);
 
         let mut b = self.buildings.write().await;
         *b = buildings;
@@ -2014,7 +2062,8 @@ impl Backend {
     }
 
     async fn scan_achievements(&self, roots: &[std::path::PathBuf]) {
-        let achievements = achievement_scanner::scan_achievements(roots);
+        let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
+        let achievements = achievement_scanner::scan_achievements(roots, &filter);
 
         let mut a = self.achievements.write().await;
         *a = achievements;
@@ -2023,7 +2072,8 @@ impl Backend {
     }
 
     async fn scan_defines(&self, roots: &[std::path::PathBuf]) {
-        let defines = defines_parser::scan_defines(roots);
+        let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
+        let defines = defines_parser::scan_defines(roots, &filter);
 
         let mut d = self.defines.write().await;
         *d = defines;
@@ -2032,7 +2082,8 @@ impl Backend {
     }
 
     async fn scan_variables(&self, roots: &[std::path::PathBuf]) {
-        let result = variable_scanner::scan_roots(roots);
+        let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
+        let result = variable_scanner::scan_roots(roots, &filter);
 
         let mut vars = self.variables.write().await;
         *vars = result.variables;
@@ -2365,12 +2416,18 @@ impl Backend {
             let mut dirs_to_check = vec![loc_dir.clone()];
 
             while let Some(current_dir) = dirs_to_check.pop() {
+                if self.should_ignore_file(&current_dir).await {
+                    continue;
+                }
                 if let Ok(entries) = std::fs::read_dir(current_dir) {
                     for entry in entries.flatten() {
                         let path = entry.path();
                         if path.is_dir() {
                             dirs_to_check.push(path);
                         } else if path.extension().map_or(false, |ext| ext == "yml") {
+                            if self.should_ignore_file(&path).await {
+                                continue;
+                            }
                             // By default, prefer english localization. Ignore other languages to prevent overwriting keys
                             // with translated versions (e.g. Chinese or Russian)
                             let path_str = path.to_string_lossy().to_lowercase();
@@ -2425,14 +2482,15 @@ impl Backend {
         for root in roots {
             let triggers_dir = root.join("common/scripted_triggers");
             let effects_dir = root.join("common/scripted_effects");
+            let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
 
             if triggers_dir.exists() {
-                let found = scripted_scanner::scan_directory(&triggers_dir);
+                let found = scripted_scanner::scan_directory(&triggers_dir, &filter);
                 self.client.log_message(MessageType::LOG, format!("Loaded {} scripted triggers from {:?}", found.len(), triggers_dir)).await;
                 all_triggers.extend(found);
             }
             if effects_dir.exists() {
-                let found = scripted_scanner::scan_directory(&effects_dir);
+                let found = scripted_scanner::scan_directory(&effects_dir, &filter);
                 self.client.log_message(MessageType::LOG, format!("Loaded {} scripted effects from {:?}", found.len(), effects_dir)).await;
                 all_effects.extend(found);
             }
@@ -2450,11 +2508,12 @@ impl Backend {
     async fn scan_ideologies(&self, roots: &[std::path::PathBuf]) {
         let mut all_results = HashMap::new();
         let mut sub_map = HashMap::new();
+        let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
 
         for root in roots {
             let dir = root.join("common/ideologies");
             if dir.exists() {
-                let results = ideology_scanner::scan_ideologies(&dir);
+                let results = ideology_scanner::scan_ideologies(&dir, &filter);
                 let mut sub_count = 0;
                 for ideology in results.values() {
                     for (sub, range) in &ideology.sub_ideology_ranges {
@@ -2478,25 +2537,26 @@ impl Backend {
 
     async fn scan_traits(&self, roots: &[std::path::PathBuf]) {
         let mut all_traits = HashMap::new();
+        let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
 
         for root in roots {
             let unit_leader_dir = root.join("common/unit_leader");
             if unit_leader_dir.exists() {
-                let found = trait_scanner::scan_traits(&unit_leader_dir, "Unit Leader Trait");
+                let found = trait_scanner::scan_traits(&unit_leader_dir, "Unit Leader Trait", &filter);
                 self.client.log_message(MessageType::LOG, format!("Loaded {} unit leader traits from {:?}", found.len(), unit_leader_dir)).await;
                 all_traits.extend(found);
             }
 
             let country_leader_dir = root.join("common/country_leader");
             if country_leader_dir.exists() {
-                let found = trait_scanner::scan_traits(&country_leader_dir, "Country Leader Trait");
+                let found = trait_scanner::scan_traits(&country_leader_dir, "Country Leader Trait", &filter);
                 self.client.log_message(MessageType::LOG, format!("Loaded {} country leader traits from {:?}", found.len(), country_leader_dir)).await;
                 all_traits.extend(found);
             }
 
             let trait_dir = root.join("common/traits");
             if trait_dir.exists() {
-                let found = trait_scanner::scan_traits(&trait_dir, "Trait");
+                let found = trait_scanner::scan_traits(&trait_dir, "Trait", &filter);
                 self.client.log_message(MessageType::LOG, format!("Loaded {} general traits from {:?}", found.len(), trait_dir)).await;
                 all_traits.extend(found);
             }
@@ -2510,6 +2570,7 @@ impl Backend {
 
     async fn scan_sprites(&self, roots: &[std::path::PathBuf]) {
         let mut all_sprites = HashMap::new();
+        let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
 
         for root in roots {
             let interface_dir = root.join("interface");
@@ -2517,7 +2578,7 @@ impl Backend {
                 self.client.log_message(MessageType::LOG, format!("Directory does not exist: {:?}", interface_dir)).await;
                 continue;
             }
-            let found = sprite_scanner::scan_sprites(&interface_dir);
+            let found = sprite_scanner::scan_sprites(&interface_dir, &filter);
             self.client.log_message(MessageType::LOG, format!("Loaded {} sprite definitions from {:?}", found.len(), interface_dir)).await;
             all_sprites.extend(found);
         }
@@ -2530,11 +2591,12 @@ impl Backend {
 
     async fn scan_ideas(&self, roots: &[std::path::PathBuf]) {
         let mut all_ideas = HashMap::new();
+        let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
 
         for root in roots {
             let ideas_dir = root.join("common/ideas");
             if ideas_dir.exists() {
-                let found = idea_scanner::scan_ideas(&ideas_dir);
+                let found = idea_scanner::scan_ideas(&ideas_dir, &filter);
                 self.client.log_message(MessageType::LOG, format!("Loaded {} ideas from {:?}", found.len(), ideas_dir)).await;
                 all_ideas.extend(found);
             }
@@ -2673,12 +2735,18 @@ impl Backend {
         let extensions = ["txt", "yml", "gfx", "gui", "asset"];
 
         while let Some(current_dir) = dirs_to_check.pop() {
+            if self.should_ignore_file(&current_dir).await {
+                continue;
+            }
             if let Ok(entries) = std::fs::read_dir(current_dir) {
                 for entry in entries.flatten() {
                     let path = entry.path();
                     if path.is_dir() {
                         dirs_to_check.push(path);
                     } else if path.extension().map_or(false, |ext| extensions.contains(&ext.to_string_lossy().as_ref())) {
+                        if self.should_ignore_file(&path).await {
+                            continue;
+                        }
                         if let Ok(content) = std::fs::read_to_string(&path) {
                             if content.contains(identifier) {
                                 // Find all occurrences with word boundaries
@@ -2714,17 +2782,94 @@ impl Backend {
         }
     }
 
+    async fn should_ignore_file(&self, path: &std::path::Path) -> bool {
+        let path_str = path.to_string_lossy();
+        let ignored = self.ignored_files_regex.read().await;
+        for re in ignored.iter() {
+            if re.is_match(&path_str) {
+                return true;
+            }
+        }
+        false
+    }
+
+    fn should_ignore_file_sync(&self, path: &std::path::Path) -> bool {
+        let path_str = path.to_string_lossy();
+        if let Ok(ignored) = self.ignored_files_regex.try_read() {
+            for re in ignored.iter() {
+                if re.is_match(&path_str) {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    async fn validate_workspace(&self, root: &std::path::Path) {
+        self.client.log_message(MessageType::INFO, format!("Starting workspace diagnostic scan in: {:?}", root)).await;
+        
+        let mut dirs_to_check = vec![root.to_path_buf()];
+        let extensions = ["txt", "yml"];
+        let mut file_count = 0;
+
+        while let Some(current_dir) = dirs_to_check.pop() {
+            if self.should_ignore_file(&current_dir).await {
+                continue;
+            }
+            if let Ok(entries) = std::fs::read_dir(current_dir) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if path.is_dir() {
+                        // Skip .git and potentially other internal dirs if needed, 
+                        // but for HOI4 mods usually everything in subdirs is relevant
+                        if !path.file_name().map_or(false, |n| n == ".git") {
+                            dirs_to_check.push(path);
+                        }
+                    } else if path.extension().map_or(false, |ext| extensions.contains(&ext.to_string_lossy().as_ref())) {
+                        if self.should_ignore_file(&path).await {
+                            continue;
+                        }
+                        if let Ok(content) = std::fs::read_to_string(&path) {
+                            if let Ok(abs_path) = path.canonicalize() {
+                                if let Ok(uri) = Url::from_file_path(abs_path) {
+                                    // Only validate if not already open in editor (which would have its own sync)
+                                    // actually validate_content is idempotent for our needs here
+                                    let diagnostics = self.validate_content(&uri, &content).await;
+                                    if !diagnostics.is_empty() {
+                                        self.client.publish_diagnostics(uri, diagnostics, None).await;
+                                    }
+                                    file_count += 1;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        self.client.log_message(MessageType::INFO, format!("Workspace scan complete. Scanned {} files.", file_count)).await;
+    }
+
     async fn validate_document(&self, uri: Url) {
-        let content = self.documents.get(uri.as_str()).unwrap();
+        let content = if let Some(c) = self.documents.get(uri.as_str()) {
+            c.clone()
+        } else {
+            return;
+        };
+
+        let diagnostics = self.validate_content(&uri, &content).await;
+        self.client.publish_diagnostics(uri, diagnostics, None).await;
+    }
+
+    async fn validate_content(&self, uri: &Url, content: &str) -> Vec<Diagnostic> {
         let mut diagnostics = Vec::new();
 
         let styling_enabled = *self.styling_enabled.read().await;
         let mut script_opt = None;
 
         if uri.as_str().ends_with(".yml") {
-            self.validate_localization_content(&content, &mut diagnostics).await;
+            self.validate_localization_content(content, &mut diagnostics).await;
         } else {
-            match parser::parse_script(&content) {
+            match parser::parse_script(content) {
                 Ok(script) => {
                     // Semantic validation
                     self.check_semantic(&script, &mut diagnostics, styling_enabled, uri.as_str()).await;
@@ -2735,6 +2880,8 @@ impl Backend {
                         range: ast_range_to_lsp(&range),
                         severity: Some(DiagnosticSeverity::ERROR),
                         message: msg,
+                        code: Some(NumberOrString::String(advanced_validation::PARSE_ERROR.to_string())),
+                        source: Some("Hearts of Modding".to_string()),
                         ..Default::default()
                     });
                 }
@@ -2743,10 +2890,10 @@ impl Backend {
 
         if styling_enabled {
             let is_yaml = uri.as_str().ends_with(".yml");
-            self.check_styling(&content, script_opt.as_ref(), &mut diagnostics, is_yaml);
+            self.check_styling(content, script_opt.as_ref(), &mut diagnostics, is_yaml);
         }
 
-        self.client.publish_diagnostics(uri, diagnostics, None).await;
+        diagnostics
     }
 
     async fn validate_localization_content(&self, content: &str, diagnostics: &mut Vec<Diagnostic>) {
@@ -2766,6 +2913,8 @@ impl Backend {
                 message: d.message,
                 code: d.code.map(NumberOrString::String),
                 source: Some("Hearts of Modding".to_string()),
+                tags: if d.tags.is_empty() { None } else { Some(d.tags.iter().map(ast_tag_to_lsp).collect()) },
+                related_information: if d.related_information.is_empty() { None } else { Some(d.related_information.iter().map(ast_related_info_to_lsp).collect()) },
                 ..Default::default()
             });
         }
@@ -2784,6 +2933,8 @@ impl Backend {
                     message: d.message,
                     code: d.code.map(NumberOrString::String),
                     source: Some("Hearts of Modding".to_string()),
+                    tags: if d.tags.is_empty() { None } else { Some(d.tags.iter().map(ast_tag_to_lsp).collect()) },
+                    related_information: if d.related_information.is_empty() { None } else { Some(d.related_information.iter().map(ast_related_info_to_lsp).collect()) },
                     ..Default::default()
                 });
             }
@@ -2801,6 +2952,8 @@ impl Backend {
                     message: d.message,
                     code: d.code.map(NumberOrString::String),
                     source: Some("Hearts of Modding".to_string()),
+                    tags: if d.tags.is_empty() { None } else { Some(d.tags.iter().map(ast_tag_to_lsp).collect()) },
+                    related_information: if d.related_information.is_empty() { None } else { Some(d.related_information.iter().map(ast_related_info_to_lsp).collect()) },
                     ..Default::default()
                 });
             }
@@ -3141,6 +3294,9 @@ impl Backend {
                 message: diag.message,
                 code: Some(NumberOrString::String(diag.code)),
                 source: Some("Hearts of Modding".to_string()),
+                tags: if diag.tags.is_empty() { None } else { Some(diag.tags.iter().map(ast_tag_to_lsp).collect()) },
+                related_information: if diag.related_information.is_empty() { None } else { Some(diag.related_information.iter().map(ast_related_info_to_lsp).collect()) },
+                data: diag.fix_suggestion.map(|s| serde_json::json!({ "fix": s })),
                 ..Default::default()
             });
         }
@@ -3406,6 +3562,7 @@ impl Backend {
                                             range: ast_range_to_lsp(&ass.value.range),
                                             severity: Some(DiagnosticSeverity::HINT), // Use HINT for lenient keys
                                             message: format!("Missing localization key: '{}' (or literal name)", val),
+                                            code: Some(NumberOrString::String(advanced_validation::MISSING_LOCALIZATION.to_string())),                                            source: Some("Hearts of Modding".to_string()),
                                             ..Default::default()
                                         });
                                     }
@@ -3424,6 +3581,8 @@ impl Backend {
                                 range: ast_range_to_lsp(&ass.value.range),
                                 severity: Some(DiagnosticSeverity::WARNING),
                                 message: format!("Unknown ideology: '{}'", val),
+                                code: Some(NumberOrString::String(advanced_validation::UNKNOWN_TRIGGER.to_string())),
+                                source: Some("Hearts of Modding".to_string()),
                                 ..Default::default()
                             });
                         }
@@ -3438,6 +3597,8 @@ impl Backend {
                                 range: ast_range_to_lsp(&ass.value.range),
                                 severity: Some(DiagnosticSeverity::WARNING),
                                 message: format!("Unknown trait: '{}'", val),
+                                code: Some(NumberOrString::String(advanced_validation::UNKNOWN_TRIGGER.to_string())),
+                                source: Some("Hearts of Modding".to_string()),
                                 ..Default::default()
                             });
                         }
@@ -3452,6 +3613,8 @@ impl Backend {
                                 range: ast_range_to_lsp(&ass.value.range),
                                 severity: Some(DiagnosticSeverity::WARNING),
                                 message: format!("Unknown sprite/GFX: '{}'", val),
+                                code: Some(NumberOrString::String(advanced_validation::UNKNOWN_TRIGGER.to_string())),
+                                source: Some("Hearts of Modding".to_string()),
                                 ..Default::default()
                             });
                         }
@@ -3645,6 +3808,8 @@ async fn main() {
         achievements: Arc::new(RwLock::new(HashMap::new())),
         defines: Arc::new(RwLock::new(defines_parser::GameDefines::new())),
         ignored_loc_regex: Arc::new(RwLock::new(Vec::new())),
+        ignored_files_regex: Arc::new(RwLock::new(Vec::new())),
+        workspace_scan_enabled: Arc::new(RwLock::new(false)),
         schema: Arc::new(RwLock::new(schema::Schema::new())),
         styling_enabled: Arc::new(RwLock::new(true)),
         cosmetic_loc_indent: Arc::new(RwLock::new(false)),
@@ -4209,6 +4374,23 @@ fn ast_range_to_lsp(range: &ast::Range) -> Range {
     Range {
         start: Position { line: range.start_line, character: range.start_col },
         end: Position { line: range.end_line, character: range.end_col },
+    }
+}
+
+fn ast_tag_to_lsp(tag: &ast::DiagnosticTag) -> DiagnosticTag {
+    match tag {
+        ast::DiagnosticTag::Unnecessary => DiagnosticTag::UNNECESSARY,
+        ast::DiagnosticTag::Deprecated => DiagnosticTag::DEPRECATED,
+    }
+}
+
+fn ast_related_info_to_lsp(info: &ast::DiagnosticRelatedInformation) -> DiagnosticRelatedInformation {
+    DiagnosticRelatedInformation {
+        location: Location {
+            uri: Url::parse(&info.location.uri).unwrap_or_else(|_| Url::from_file_path(&info.location.uri).unwrap()),
+            range: ast_range_to_lsp(&info.location.range),
+        },
+        message: info.message.clone(),
     }
 }
 

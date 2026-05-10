@@ -12,9 +12,10 @@ pub struct Trait {
     pub range: ast::Range,
 }
 
-pub fn scan_traits(dir_path: &Path, trait_type: &str) -> HashMap<String, Trait> {
+pub fn scan_traits<F>(dir_path: &Path, trait_type: &str, filter: &F) -> HashMap<String, Trait> 
+where F: Fn(&Path) -> bool {
     let mut map = HashMap::new();
-    if !dir_path.exists() {
+    if !dir_path.exists() || filter(dir_path) {
         return map;
     }
 
@@ -24,8 +25,13 @@ pub fn scan_traits(dir_path: &Path, trait_type: &str) -> HashMap<String, Trait> 
             for entry in entries.flatten() {
                 let path = entry.path();
                 if path.is_dir() {
-                    dirs_to_check.push(path);
+                    if !filter(&path) {
+                        dirs_to_check.push(path);
+                    }
                 } else if path.extension().map_or(false, |ext| ext == "txt") {
+                    if filter(&path) {
+                        continue;
+                    }
                     if let Ok(content) = fs::read_to_string(&path) {
                         if let Ok(script) = parser::parse_script(&content) {
                             find_traits_in_entries(&script.entries, &path.to_string_lossy(), trait_type, &mut map);
