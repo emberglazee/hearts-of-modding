@@ -2,6 +2,12 @@
 
 All notable changes to the **Hearts of Modding** extension will be documented in this file.
 
+## [0.2.1] - 2026-05-10
+
+### Changed
+
+- Bumped [fast-uri](https://github.com/fastify/fast-uri) from v3.1.0 to v3.1.2 ([security update](https://github.com/fastify/fast-uri/releases/tag/v3.1.2)) | [PR #1](https://github.com/emberglazee/hearts-of-modding/pull/1)
+
 ## [0.2.0] - 2026-05-10
 
 ### Added
