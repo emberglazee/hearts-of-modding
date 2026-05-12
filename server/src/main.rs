@@ -1379,6 +1379,7 @@ impl LanguageServer for Backend {
         let mut has_assignment_space_diagnostic = false;
         let mut has_brace_space_diagnostic = false;
         let mut has_unnecessary_version_diagnostic = false;
+        let mut has_unescaped_quote_diagnostic = false;
 
         for diagnostic in &params.context.diagnostics {
             if let Some(target_casing) = diagnostic.data.as_ref().and_then(|v| v.as_str()) {
@@ -1565,6 +1566,25 @@ impl LanguageServer for Backend {
 
                         actions.push(CodeActionOrCommand::CodeAction(CodeAction {
                             title: "Remove unnecessary version number".to_string(),
+                            kind: Some(CodeActionKind::QUICKFIX),
+                            edit: Some(WorkspaceEdit {
+                                changes: Some(changes),
+                                ..Default::default()
+                            }),
+                            diagnostics: Some(vec![diagnostic.clone()]),
+                            is_preferred: Some(true),
+                            ..Default::default()
+                        }));
+                    } else if code == "unescaped_quote" {
+                        has_unescaped_quote_diagnostic = true;
+                        let mut changes = HashMap::new();
+                        changes.insert(params.text_document.uri.clone(), vec![TextEdit {
+                            range: diagnostic.range,
+                            new_text: "\\\"".to_string(),
+                        }]);
+
+                        actions.push(CodeActionOrCommand::CodeAction(CodeAction {
+                            title: "Escape double quote".to_string(),
                             kind: Some(CodeActionKind::QUICKFIX),
                             edit: Some(WorkspaceEdit {
                                 changes: Some(changes),
@@ -1800,6 +1820,34 @@ impl LanguageServer for Backend {
 
                     actions.push(CodeActionOrCommand::CodeAction(CodeAction {
                         title: "Remove all unnecessary version numbers in this file".to_string(),
+                        kind: Some(CodeActionKind::QUICKFIX),
+                        edit: Some(WorkspaceEdit {
+                            changes: Some(changes),
+                            ..Default::default()
+                        }),
+                        is_preferred: Some(false),
+                        ..Default::default()
+                    }));
+                }
+            }
+        }
+
+        // Add "Escape all unescaped double quotes" if any such diagnostic is present
+        if has_unescaped_quote_diagnostic {
+            if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
+                let diagnostics = loc_parser::validate_unescaped_quotes_in_file(&content);
+
+                if !diagnostics.is_empty() {
+                    let mut changes = HashMap::new();
+                    let edits: Vec<TextEdit> = diagnostics.into_iter().map(|d| TextEdit {
+                        range: ast_range_to_lsp(&d.range),
+                        new_text: "\\\"".to_string(),
+                    }).collect();
+
+                    changes.insert(params.text_document.uri.clone(), edits);
+
+                    actions.push(CodeActionOrCommand::CodeAction(CodeAction {
+                        title: "Escape all unescaped double quotes in this file".to_string(),
                         kind: Some(CodeActionKind::QUICKFIX),
                         edit: Some(WorkspaceEdit {
                             changes: Some(changes),

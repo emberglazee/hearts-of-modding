@@ -42,11 +42,65 @@ fn to_range(span: Span) -> Range {
     }
 }
 
+pub fn validate_unescaped_quotes_in_file(input: &str) -> Vec<LocDiagnostic> {
+    let mut diagnostics = Vec::new();
+    let content_without_bom = input.strip_prefix('\u{feff}').unwrap_or(input);
+
+    for (line_idx, line) in content_without_bom.lines().enumerate() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() || trimmed.starts_with('#') {
+            continue;
+        }
+
+        // Find the start of the value (after first quote) and end (before last quote, excluding comments)
+        let comment_start = line.find('#').unwrap_or(line.len());
+        let line_no_comment = &line[..comment_start];
+
+        let mut unescaped_quote_indices = Vec::new();
+        let chars: Vec<char> = line_no_comment.chars().collect();
+        for i in 0..chars.len() {
+            if chars[i] == '"' {
+                let is_escaped = i > 0 && chars[i-1] == '\\';
+                if !is_escaped {
+                    unescaped_quote_indices.push(i);
+                }
+            }
+        }
+
+        // In HOI4 loc, we expect exactly 2 unescaped quotes (start and end)
+        // If there are more, the ones in the middle are errors.
+        if unescaped_quote_indices.len() > 2 {
+            let _first_quote = unescaped_quote_indices[0];
+            let _last_quote = *unescaped_quote_indices.last().unwrap();
+
+            for &idx in &unescaped_quote_indices[1..unescaped_quote_indices.len() - 1] {
+                let range = Range {
+                    start_line: line_idx as u32,
+                    start_col: idx as u32,
+                    end_line: line_idx as u32,
+                    end_col: idx as u32 + 1,
+                };
+                diagnostics.push(LocDiagnostic {
+                    range,
+                    message: "Internal unescaped double quote. Use \\\" instead to prevent parsing errors.".to_string(),
+                    severity: DiagnosticSeverity::Warning,
+                    code: Some("unescaped_quote".to_string()),
+                    related_information: Vec::new(),
+                    tags: Vec::new(),
+                });
+
+            }
+        }
+    }
+    diagnostics
+}
+
 pub fn validate_loc_string(entry: &LocEntry, event_targets: &HashMap<String, Vec<crate::variable_scanner::EventTarget>>) -> Vec<LocDiagnostic> {
     let mut diagnostics = Vec::new();
 
     let re_scope = regex::Regex::new(r"\[([^\]]+)\]").unwrap();
     let re_color = regex::Regex::new(r"§([a-zA-Z0-9!])").unwrap();
+    let re_nested = regex::Regex::new(r"\$([^\$]+)\$").unwrap();
 
     let loc_commands = [
         "GetName", "GetNameDef", "GetNameDefCap", "GetAdjective", "GetAdjectiveCap", "GetTag",
@@ -69,31 +123,96 @@ pub fn validate_loc_string(entry: &LocEntry, event_targets: &HashMap<String, Vec
         "GetCapitalVictoryPointName", "GetOldName", "GetOldNameDef", "GetOldNameDefCap",
         "GetOldAdjective", "GetOldAdjectiveCap", "GetNonIdeologyName", "GetNonIdeologyNameDef",
         "GetNonIdeologyNameDefCap", "GetNonIdeologyAdjective", "GetNonIdeologyAdjectiveCap",
-        "GetLeader",
+        "GetLeader", "GetDateText",
     ];
     let scopes = [
         "ROOT", "FROM", "PREV", "THIS", "COUNTRY", "STATE", "UNIT", "CHARACTER", "GLOBAL",
         "Owner", "Controller", "Capital", "Leader",
+        // Contextual Objects (Patch 1.15+)
+        "Ace", "Building", "IndustrialOrg", "Operation", "Province", "PurchaseContract", 
+        "SpecialProject", "Terrain", "UnitLeader",
+    ];
+    let formatters = [
+        "character_name", "country_culture", "idea_name", "advisor_desc", "tech_effect", 
+        "idea_desc", "building_state_modifier",
     ];
 
     // 1. Validate Scopes [Root.GetTag], Variables [?var], Formatters [idea_name|idea_id], etc.
     for cap in re_scope.captures_iter(&entry.value) {
         let full_match = cap.get(0).unwrap();
-        let inner = cap.get(1).unwrap().as_str();
+        let mut inner = cap.get(1).unwrap().as_str();
         let start_pos = full_match.start();
 
-        // Skip complex ternary conditions for now to avoid false positives
-        if inner.contains('?') && inner.contains(':') {
-            continue;
+        // Handle ternary conditions: [(OBJECT ? TRUE_CASE : FALSE_CASE)]
+        if inner.starts_with('(') && inner.ends_with(')') {
+            inner = &inner[1..inner.len()-1];
+            // Split at the ternary ? but handle optional chaining style OBJECT?.PROPERTY
+            if let Some(q_pos) = inner.find('?') {
+                let obj = inner[..q_pos].trim();
+                let remainder = &inner[q_pos+1..].trim();
+                
+                if let Some(c_pos) = remainder.find(':') {
+                    // Valid conditional, handle the "." efficiency shortcut
+                    let true_case = &remainder[..c_pos].trim();
+                    if true_case.starts_with('.') {
+                        // Efficiency shortcut used: OBJECT?.PROPERTY
+                        inner = obj;
+                    } else {
+                        inner = true_case;
+                    }
+                } else {
+                    inner = obj;
+                }
+            }
         }
 
         // Handle variables [?var|formatting]
         if inner.starts_with('?') {
-            continue; // Variables are dynamic, hard to validate strictly here
+            let var_inner = &inner[1..];
+            if let Some(pipe_pos) = var_inner.find('|') {
+                let formatting = &var_inner[pipe_pos+1..];
+                // Validate formatting codes: *, ^, =, 0..9, %, %%, +, -, or color chars
+                for c in formatting.chars() {
+                    if !c.is_ascii_digit() && !"*^=%+-.".contains(c) && !c.is_ascii_alphabetic() && c != '!' {
+                        let range = Range {
+                            start_line: entry.range.start_line,
+                            start_col: entry.value_start_col + start_pos as u32 + 2 + pipe_pos as u32 + formatting.find(c).unwrap_or(0) as u32,
+                            end_line: entry.range.start_line,
+                            end_col: entry.value_start_col + start_pos as u32 + 2 + pipe_pos as u32 + formatting.find(c).unwrap_or(0) as u32 + 1,
+                        };
+                        diagnostics.push(LocDiagnostic {
+                            range,
+                            message: format!("Invalid variable formatting code: '{}'", c),
+                            severity: DiagnosticSeverity::Warning,
+                            code: Some("invalid_var_format".to_string()),
+                            related_information: Vec::new(),
+                            tags: Vec::new(),
+                        });
+                    }
+                }
+            }
+            continue;
         }
 
         // Handle localization formatters [formatter|token]
-        if inner.contains('|') {
+        if let Some(pipe_pos) = inner.find('|') {
+            let formatter = &inner[..pipe_pos];
+            if !formatters.contains(&formatter) {
+                let range = Range {
+                    start_line: entry.range.start_line,
+                    start_col: entry.value_start_col + start_pos as u32 + 1,
+                    end_line: entry.range.start_line,
+                    end_col: entry.value_start_col + start_pos as u32 + 1 + formatter.len() as u32,
+                };
+                diagnostics.push(LocDiagnostic {
+                    range,
+                    message: format!("Unknown localization formatter: '{}'", formatter),
+                    severity: DiagnosticSeverity::Warning,
+                    code: Some("unknown_loc_formatter".to_string()),
+                    related_information: Vec::new(),
+                    tags: Vec::new(),
+                });
+            }
             continue;
         }
 
@@ -140,7 +259,40 @@ pub fn validate_loc_string(entry: &LocEntry, event_targets: &HashMap<String, Vec
         }
     }
 
-    // 2. Validate Text Icons £icon_name|frame
+    // 2. Validate Nested Keys $key$
+    for cap in re_nested.captures_iter(&entry.value) {
+        let inner = cap.get(1).unwrap().as_str();
+
+        if inner.is_empty() {
+            // Probably a literal $$
+            continue;
+        }
+
+        // Handle variable formatting inside $key|formatting$
+        if let Some(pipe_pos) = inner.find('|') {
+            let formatting = &inner[pipe_pos+1..];
+            for c in formatting.chars() {
+                if !c.is_ascii_digit() && !"*^=%+-.".contains(c) && !c.is_ascii_alphabetic() && c != '!' {
+                    let range = Range {
+                        start_line: entry.range.start_line,
+                        start_col: entry.value_start_col + cap.get(0).unwrap().start() as u32 + 1 + pipe_pos as u32 + 1 + formatting.find(c).unwrap_or(0) as u32,
+                        end_line: entry.range.start_line,
+                        end_col: entry.value_start_col + cap.get(0).unwrap().start() as u32 + 1 + pipe_pos as u32 + 1 + formatting.find(c).unwrap_or(0) as u32 + 1,
+                    };
+                    diagnostics.push(LocDiagnostic {
+                        range,
+                        message: format!("Invalid variable formatting code: '{}'", c),
+                        severity: DiagnosticSeverity::Warning,
+                        code: Some("invalid_var_format".to_string()),
+                        related_information: Vec::new(),
+                        tags: Vec::new(),
+                    });
+                }
+            }
+        }
+    }
+
+    // 3. Validate Text Icons £icon_name|frame
     let _re_icon = regex::Regex::new(r"£([a-zA-Z0-9_]+)(?:\|[0-9]+)?").unwrap();
     // (We could validate icon existence if we had sprite data here, but for now just ensure syntax is OK)
 
@@ -277,7 +429,8 @@ pub fn validate_loc_file_structure(input: &str) -> Vec<LocDiagnostic> {
 
 pub fn parse_loc_file(input: &str, path: &str) -> (HashMap<String, LocEntry>, Vec<LocDiagnostic>) {
     let mut map = HashMap::new();
-    let diagnostics = validate_loc_file_structure(input);
+    let mut diagnostics = validate_loc_file_structure(input);
+    diagnostics.extend(validate_unescaped_quotes_in_file(input));
 
     let input_clean = input.strip_prefix('\u{feff}').unwrap_or(input);
     let span = Span::new(input_clean);

@@ -2,6 +2,30 @@
 
 All notable changes to the **Hearts of Modding** extension will be documented in this file.
 
+## [0.4.0] - 2026-05-12
+
+### Added
+
+- **Smart Localization Fixes:**
+  - **Unescaped Quote Detection:** Added a context-aware diagnostic that identifies unescaped double quotes *inside* localization values while ignoring valid delimiters and comments.
+  - **Quick Fixes:** Added both individual "Escape double quote" and bulk "Escape all unescaped double quotes in this file" code actions.
+- **Advanced Localization Support (Patch 1.15+):**
+  - **Contextual Objects:** Support for 1.15 objects like `IndustrialOrg`, `SpecialProject`, `PurchaseContract`, and `Ace`.
+  - **Ternary Logic:** Full validation and preview support for conditional localization: `[(Object.Property ? TRUE_KEY : FALSE_KEY)]`.
+  - **Localization Formatters:** Support for `<formatter>|<token>` syntax (e.g., `tech_effect|id`).
+  - **Bindable Localization:** Support for `$VAR$` style bindable variables within localization strings.
+  - **New Formatting Codes:** Added support for `^` (SI units) and `%%` (literal percentage sign) in variable blocks.
+- **Developer Tools:**
+  - **Toggle Workspace Scan:** New command `HOI4: Toggle Workspace Scan` to quickly enable or disable the recursive diagnostic scan via the Command Palette or Settings.
+
+### Changed
+
+- **Improved Localization Parser:**
+  - Added support for hyphens (`-`) in localization keys to match native game behavior.
+  - Recognized over 10 additional localization commands (e.g., `GetDateText`, `GetBopTrendTextIcon`).
+  - Improved UTF-8 BOM handling to prevent rare parsing offsets.
+- **VFS Priority:** Refined the workspace scanner to ensure files in `/replace/` subdirectories correctly override keys from standard folders.
+
 ## [0.3.0] - 2026-05-10
 
 ### Added
