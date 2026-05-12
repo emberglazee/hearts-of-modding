@@ -6,6 +6,13 @@ All notable changes to the **Hearts of Modding** extension will be documented in
 
 ### Added
 
+- **Character Modding Support:**
+  - **Comprehensive Character Scanner:** Recursively indexes character definitions from `common/characters/`, parsing traits, skills, roles, ideologies, and portraits.
+  - **Rich Hover Visualizations:** Hovering over character IDs now displays their localized name, defined roles (advisor, country leader, unit leaders), their specific stats (attack, defense, planning, logistics, etc.), and their associated traits.
+  - **Portrait Previews:** Sprite (`GFX_...`) or direct file paths (`"gfx/leaders/..."`) for character portraits are dynamically resolved and linked in the tooltip for quick viewing.
+  - **IDE Integration:** Added character entities to Workspace Symbols (`Ctrl+T`), enabling direct navigation to definitions.
+  - **Rename Refactoring:** Full support for renaming character identifiers across all script usages (e.g., `recruit_character`, `has_character`).
+  - **Syntax Highlighting:** Added semantic highlighting coverage for character-specific keywords (e.g., `characters`, `portraits`, `field_marshal`, `corps_commander`).
 - **Smart Localization Fixes:**
   - **Unescaped Quote Detection:** Added a context-aware diagnostic that identifies unescaped double quotes *inside* localization values while ignoring valid delimiters and comments.
   - **Quick Fixes:** Added both individual "Escape double quote" and bulk "Escape all unescaped double quotes in this file" code actions.
@@ -15,16 +22,21 @@ All notable changes to the **Hearts of Modding** extension will be documented in
   - **Localization Formatters:** Support for `<formatter>|<token>` syntax (e.g., `tech_effect|id`).
   - **Bindable Localization:** Support for `$VAR$` style bindable variables within localization strings.
   - **New Formatting Codes:** Added support for `^` (SI units) and `%%` (literal percentage sign) in variable blocks.
-- **Developer Tools:**
-  - **Toggle Workspace Scan:** New command `HOI4: Toggle Workspace Scan` to quickly enable or disable the recursive diagnostic scan via the Command Palette or Settings.
 
 ### Changed
 
+- **Backend Upgrades:**
+  - Updated the Rust toolchain target to 1.95.0.
+  - Bumped core dependencies including `tokio` (v1.52.3), `nom` (v8.0.0), `dashmap` (v6.1.0), and `sysinfo` (v0.39.1) for improved stability and performance.
 - **Improved Localization Parser:**
   - Added support for hyphens (`-`) in localization keys to match native game behavior.
   - Recognized over 10 additional localization commands (e.g., `GetDateText`, `GetBopTrendTextIcon`).
   - Improved UTF-8 BOM handling to prevent rare parsing offsets.
 - **VFS Priority:** Refined the workspace scanner to ensure files in `/replace/` subdirectories correctly override keys from standard folders.
+
+### Fixed
+
+- **Workspace Symbols Path Resolution:** Fixed an issue where `Url::from_file_path` incorrectly generated invalid paths like `//./` for workspace symbols and call hierarchies on relative paths. Paths are now correctly resolved to their absolute form before parsing.
 
 ## [0.3.0] - 2026-05-10
 

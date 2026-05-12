@@ -5,6 +5,7 @@ mod hoi4_data;
 mod loc_parser;
 mod scripted_scanner;
 mod achievement_scanner;
+mod character_scanner;
 mod scope;
 mod ideology_scanner;
 mod trait_scanner;
@@ -66,6 +67,7 @@ struct Backend {
     traits: Arc<RwLock<HashMap<String, trait_scanner::Trait>>>,
     sprites: Arc<RwLock<HashMap<String, sprite_scanner::Sprite>>>,
     ideas: Arc<RwLock<HashMap<String, idea_scanner::Idea>>>,
+    characters: Arc<RwLock<HashMap<String, character_scanner::Character>>>,
     variables: Arc<RwLock<HashMap<String, Vec<variable_scanner::Variable>>>>,
     event_targets: Arc<RwLock<HashMap<String, Vec<variable_scanner::EventTarget>>>>,
     provinces: Arc<RwLock<HashSet<u32>>>,
@@ -221,6 +223,7 @@ impl LanguageServer for Backend {
             self.scan_traits(&roots),
             self.scan_sprites(&roots),
             self.scan_ideas(&roots),
+            self.scan_characters(&roots),
             self.scan_variables(&roots),
             self.scan_provinces(&roots),
             self.scan_modifiers(&roots),
@@ -331,7 +334,7 @@ impl LanguageServer for Backend {
                     for k in schema.triggers.keys() { keywords.insert(k.clone()); }
                     for k in schema.effects.keys() { keywords.insert(k.clone()); }
                     for k in schema.links.keys() { keywords.insert(k.clone()); }
-                    
+
                     // Add hardcoded achievement keywords
                     keywords.insert("unique_id".to_string());
                     keywords.insert("possible".to_string());
@@ -339,6 +342,18 @@ impl LanguageServer for Backend {
                     keywords.insert("ribbon".to_string());
                     keywords.insert("frames".to_string());
                     keywords.insert("colors".to_string());
+                    
+                    // Character keywords
+                    keywords.insert("characters".to_string());
+                    keywords.insert("advisor".to_string());
+                    keywords.insert("country_leader".to_string());
+                    keywords.insert("corps_commander".to_string());
+                    keywords.insert("field_marshal".to_string());
+                    keywords.insert("navy_leader".to_string());
+                    keywords.insert("scientist".to_string());
+                    keywords.insert("portraits".to_string());
+                    keywords.insert("traits".to_string());
+                    keywords.insert("skill".to_string());
 
                     Ok(Some(semantic_tokens::get_semantic_tokens(&script, &keywords)))
                 },
@@ -488,7 +503,7 @@ impl LanguageServer for Backend {
                     // Show scope stack
                     let is_music = final_scopes.iter().any(|s| *s == scope::Scope::MusicTrack || *s == scope::Scope::MusicStation);
                     let is_achievement = final_scopes.iter().any(|s| *s == scope::Scope::Achievement || *s == scope::Scope::Ribbon);
-                    
+
                     let mut scope_text = String::from(if is_music { 
                         "### 🎵 Music Definition Stack\n" 
                     } else if is_achievement {
@@ -635,6 +650,88 @@ impl LanguageServer for Backend {
                     if let Some(idea) = idea_map.get(&identifier) {
                         push_section(&mut hover_text, &format!("### 💡 Idea: {}\n\nCategory: `{}`\n\nDefined in: {}",
                             idea.name, idea.category, self.make_file_link(&idea.path)));
+                    }
+
+                    // Check characters
+                    let char_map = self.characters.read().await;
+                    if let Some(character) = char_map.get(&identifier) {
+                        let mut char_text = format!("### 👤 Character: `{}`\n", identifier);
+                        
+                        let loc = self.localization.read().await;
+                        if let Some(name_key) = &character.name {
+                            if let Some(name_loc) = loc.get(name_key) {
+                                char_text.push_str(&format!("\n**Name:** {}\n", paradox_to_markdown(&name_loc.value, Some(&loc))));
+                            } else {
+                                char_text.push_str(&format!("\n**Name:** *Missing `{}`*\n", name_key));
+                            }
+                        }
+
+                        if !character.portraits.is_empty() {
+                            char_text.push_str("\n**Portraits:**\n");
+                            let s_map = self.sprites.read().await;
+                            for (cat, sprite_name) in &character.portraits {
+                                let mut texture_link = sprite_name.clone();
+                                if let Some(sprite) = s_map.get(sprite_name) {
+                                    let gfx_path = std::path::Path::new(&sprite.path);
+                                    let mut root = gfx_path.parent();
+                                    while let Some(r) = root {
+                                        if r.join("interface").exists() || r.join("common").exists() {
+                                            let full_texture = r.join(&sprite.texture_file);
+                                            if full_texture.exists() {
+                                                texture_link = format!("[{}]({})", sprite_name, self.make_file_link(&full_texture.to_string_lossy()));
+                                                break;
+                                            }
+                                        }
+                                        root = r.parent();
+                                    }
+                                } else if sprite_name.starts_with("gfx/") {
+                                    let char_path = std::path::Path::new(&character.path);
+                                    let mut root = char_path.parent();
+                                    while let Some(r) = root {
+                                        if r.join("common").exists() {
+                                            let full_texture = r.join(sprite_name);
+                                            if full_texture.exists() {
+                                                texture_link = format!("[{}]({})", sprite_name, self.make_file_link(&full_texture.to_string_lossy()));
+                                                break;
+                                            }
+                                        }
+                                        root = r.parent();
+                                    }
+                                }
+                                char_text.push_str(&format!("- {}: {}\n", cat, texture_link));
+                            }
+                        }
+
+                        if !character.roles.is_empty() {
+                            char_text.push_str("\n**Roles:**\n");
+                            for role in &character.roles {
+                                char_text.push_str(&format!("- `{}`", role.role_type));
+                                if let Some(ideology) = &role.ideology {
+                                    char_text.push_str(&format!(" (Ideology: `{}`)", ideology));
+                                }
+                                
+                                let mut skills = Vec::new();
+                                if let Some(s) = role.skill { skills.push(format!("Skill: {}", s)); }
+                                if let Some(s) = role.attack_skill { skills.push(format!("Attack: {}", s)); }
+                                if let Some(s) = role.defense_skill { skills.push(format!("Defense: {}", s)); }
+                                if let Some(s) = role.planning_skill { skills.push(format!("Planning: {}", s)); }
+                                if let Some(s) = role.logistics_skill { skills.push(format!("Logistics: {}", s)); }
+                                if let Some(s) = role.maneuvering_skill { skills.push(format!("Maneuvering: {}", s)); }
+                                if let Some(s) = role.coordination_skill { skills.push(format!("Coordination: {}", s)); }
+                                
+                                if !skills.is_empty() {
+                                    char_text.push_str(&format!(" [{}]", skills.join(", ")));
+                                }
+
+                                if !role.traits.is_empty() {
+                                    char_text.push_str(&format!("\n  - Traits: `{}`", role.traits.join(", ")));
+                                }
+                                char_text.push_str("\n");
+                            }
+                        }
+
+                        char_text.push_str(&format!("\n---\nDefined in: {}", self.make_file_link(&character.path)));
+                        push_section(&mut hover_text, &char_text);
                     }
 
                     // Check for modifier blocks (modifier = { ... } or modifiers = { ... })
@@ -1874,7 +1971,7 @@ impl LanguageServer for Backend {
             return Ok(Some(json));
         } else if params.command == "hoi4/getMemoryUsage" {
             let mut sys = sysinfo::System::new();
-            sys.refresh_processes();
+            sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
             if let Ok(pid) = sysinfo::get_current_pid() {
                 if let Some(process) = sys.process(pid) {
                     let memory = process.memory();
@@ -1894,7 +1991,7 @@ impl LanguageServer for Backend {
 
         if let Some(entry) = self.documents.get(uri) {
             let content = entry.value();
-            
+
             // Parse the document
             match parser::parse_script(content) {
                 Ok(script) => {
@@ -1918,6 +2015,7 @@ impl LanguageServer for Backend {
             &self.scripted_effects,
             &self.ideologies,
             &self.sprites,
+            &self.characters,
             &self.variables,
             &self.achievements,
         ).await;
@@ -1975,6 +2073,7 @@ impl LanguageServer for Backend {
             &self.scripted_triggers,
             &self.scripted_effects,
             &self.ideas,
+            &self.characters,
             &self.variables,
         ).await;
 
@@ -1994,6 +2093,7 @@ impl LanguageServer for Backend {
             &self.scripted_triggers,
             &self.scripted_effects,
             &self.ideas,
+            &self.characters,
             &self.variables,
             &self.documents,
         ).await;
@@ -2637,6 +2737,16 @@ impl Backend {
         self.client.log_message(MessageType::INFO, format!("Total: Loaded {} sprite definitions", s_map.len())).await;
     }
 
+    async fn scan_characters(&self, roots: &[std::path::PathBuf]) {
+        let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
+        let found = character_scanner::scan_characters(roots, &filter);
+
+        let mut c_map = self.characters.write().await;
+        *c_map = found;
+
+        self.client.log_message(MessageType::INFO, format!("Total: Loaded {} characters", c_map.len())).await;
+    }
+
     async fn scan_ideas(&self, roots: &[std::path::PathBuf]) {
         let mut all_ideas = HashMap::new();
         let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
@@ -2855,7 +2965,7 @@ impl Backend {
 
     async fn validate_workspace(&self, root: &std::path::Path) {
         self.client.log_message(MessageType::INFO, format!("Starting workspace diagnostic scan in: {:?}", root)).await;
-        
+
         let mut dirs_to_check = vec![root.to_path_buf()];
         let extensions = ["txt", "yml"];
         let mut file_count = 0;
@@ -3838,6 +3948,7 @@ async fn main() {
         traits: Arc::new(RwLock::new(HashMap::new())),
         sprites: Arc::new(RwLock::new(HashMap::new())),
         ideas: Arc::new(RwLock::new(HashMap::new())),
+        characters: Arc::new(RwLock::new(HashMap::new())),
         variables: Arc::new(RwLock::new(HashMap::new())),
         event_targets: Arc::new(RwLock::new(HashMap::new())),
         provinces: Arc::new(RwLock::new(HashSet::new())),
@@ -4084,14 +4195,14 @@ fn paradox_to_markdown(input: &str, localization: Option<&HashMap<String, loc_pa
             .take_while(|c| c.is_ascii_punctuation() || c.is_whitespace())
             .map(|c| c.len_utf8())
             .sum::<usize>();
-        
+
         if punct_end > 0 {
             (&s[..punct_end], &s[punct_end..])
         } else {
             ("", s)
         }
     }
-    
+
     let mut resolved = if let Some(loc) = localization {
         resolve_loc(input, loc, 0)
     } else {
@@ -4113,10 +4224,10 @@ fn paradox_to_markdown(input: &str, localization: Option<&HashMap<String, loc_pa
     let re_scope = regex::Regex::new(r"\[([^\]]+)\]").unwrap();
     resolved = re_scope.replace_all(&resolved, |caps: &regex::Captures| {
         let inner = &caps[1];
-        
+
         // Handle ternary contextual localization: [(OBJECT ? TRUE_CASE : FALSE_CASE)]
         if inner.contains('?') && inner.contains(':') {
-             return format!("**[Condition: {}]**", inner);
+            return format!("**[Condition: {}]**", inner);
         }
 
         // Handle variables: [?var|formatting]
@@ -4130,7 +4241,7 @@ fn paradox_to_markdown(input: &str, localization: Option<&HashMap<String, loc_pa
 
         // Handle localization formatters: <formatter>|<token>
         if let Some(_pipe_pos) = inner.find('|') {
-             return format!("**[Format: {}]**", inner);
+            return format!("**[Format: {}]**", inner);
         }
 
         // Check if it looks like a scope command (contains . or uppercase words)
@@ -4153,15 +4264,15 @@ fn paradox_to_markdown(input: &str, localization: Option<&HashMap<String, loc_pa
         let code = cap.get(1).unwrap().as_str();
 
         let text_segment = &resolved[last_end..m.start()];
-        
+
         // Split punctuation from the beginning of the segment
         let (leading_punct, rest) = split_leading_punctuation(text_segment);
-        
+
         // Add leading punctuation to the previous segment's color
         if !leading_punct.is_empty() {
             segments.push((leading_punct.to_string(), current_color));
         }
-        
+
         // Add the rest of the text (if any) with current color
         if !rest.is_empty() {
             segments.push((rest.to_string(), current_color));
@@ -4211,12 +4322,12 @@ fn paradox_to_markdown(input: &str, localization: Option<&HashMap<String, loc_pa
         let max_width = 600; // Fixed max width in pixels
         let line_height = 16; // Line height for readability
         let chars_per_line = (max_width as f64 / char_width).floor() as usize;
-        
+
         // Manually wrap text into lines
         let mut lines: Vec<Vec<(String, &str)>> = Vec::new();
         let mut current_line: Vec<(String, &str)> = Vec::new();
         let mut current_line_chars = 0;
-        
+
         for (text, color) in segments {
             let parts: Vec<&str> = text.split('\n').collect();
             for (i, part) in parts.iter().enumerate() {
@@ -4225,12 +4336,12 @@ fn paradox_to_markdown(input: &str, localization: Option<&HashMap<String, loc_pa
                     current_line = Vec::new();
                     current_line_chars = 0;
                 }
-                
+
                 let words: Vec<&str> = part.split(' ').collect();
                 for (word_idx, word) in words.iter().enumerate() {
                     let word_len = word.chars().count();
                     let has_space = word_idx > 0;
-                    
+
                     if has_space {
                         if current_line_chars + 1 + word_len > chars_per_line && !current_line.is_empty() {
                             lines.push(current_line);
@@ -4259,20 +4370,20 @@ fn paradox_to_markdown(input: &str, localization: Option<&HashMap<String, loc_pa
                 }
             }
         }
-        
+
         // Don't forget the last line
         if !current_line.is_empty() {
             lines.push(current_line);
         }
-        
+
         // Build SVG with multiple text elements (one per line)
         let svg_height = lines.len() * line_height + 4;
         let mut svg_content = String::new();
-        
+
         for (line_idx, line_segments) in lines.iter().enumerate() {
             let y_pos = (line_idx + 1) * line_height;
             svg_content.push_str(&format!(r#"<text x="2" y="{}" font-family="monospace" font-size="{}" font-weight="bold" xml:space="preserve">"#, y_pos, font_size));
-            
+
             for (text, color) in line_segments {
                 let escaped_text = text.replace('&', "&amp;")
                     .replace('<', "&lt;")
@@ -4281,15 +4392,15 @@ fn paradox_to_markdown(input: &str, localization: Option<&HashMap<String, loc_pa
                     .replace('\'', "&apos;");
                 svg_content.push_str(&format!(r#"<tspan fill="{}">{}</tspan>"#, color, escaped_text));
             }
-            
+
             svg_content.push_str("</text>");
         }
-        
+
         let svg = format!(
             r#"<svg xmlns="http://www.w3.org/2000/svg" width="{}" height="{}" viewBox="0 0 {} {}">{}</svg>"#,
             max_width, svg_height, max_width, svg_height, svg_content
         );
-        
+
         use base64::{Engine as _, engine::general_purpose};
         let b64 = general_purpose::STANDARD.encode(svg);
         return format!("![preview](data:image/svg+xml;base64,{})", b64);

@@ -4,6 +4,15 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+fn path_to_url(path: &str) -> Url {
+    let abs_path = std::path::Path::new(path).canonicalize().unwrap_or_else(|_| {
+        std::env::current_dir().unwrap_or_default().join(path)
+    });
+    Url::from_file_path(&abs_path).unwrap_or_else(|_| {
+        Url::parse(&format!("file://{}", abs_path.to_string_lossy().replace("\\", "/"))).unwrap()
+    })
+}
+
 /// Generate workspace symbols from indexed data
 pub async fn generate_workspace_symbols(
     query: &str,
@@ -14,6 +23,7 @@ pub async fn generate_workspace_symbols(
     scripted_effects: &Arc<RwLock<HashMap<String, crate::scripted_scanner::ScriptedEntity>>>,
     ideologies: &Arc<RwLock<HashMap<String, crate::ideology_scanner::Ideology>>>,
     sprites: &Arc<RwLock<HashMap<String, crate::sprite_scanner::Sprite>>>,
+    characters: &Arc<RwLock<HashMap<String, crate::character_scanner::Character>>>,
     variables: &Arc<RwLock<HashMap<String, Vec<crate::variable_scanner::Variable>>>>,
     achievements: &Arc<RwLock<HashMap<String, crate::achievement_scanner::Achievement>>>,
 ) -> Vec<SymbolInformation> {
@@ -31,9 +41,7 @@ pub async fn generate_workspace_symbols(
                 tags: None,
                 deprecated: None,
                 location: Location {
-                    uri: Url::from_file_path(&achievement.path).unwrap_or_else(|_| {
-                        Url::parse(&format!("file://{}", achievement.path)).unwrap()
-                    }),
+                    uri: path_to_url(&achievement.path),
                     range: range_to_lsp(&achievement.range),
                 },
                 container_name: Some("Achievement".to_string()),
@@ -52,9 +60,7 @@ pub async fn generate_workspace_symbols(
                 tags: None,
                 deprecated: None,
                 location: Location {
-                    uri: Url::from_file_path(&event.path).unwrap_or_else(|_| {
-                        Url::parse(&format!("file://{}", event.path)).unwrap()
-                    }),
+                    uri: path_to_url(&event.path),
                     range: range_to_lsp(&event.range),
                 },
                 container_name: Some(format!("{:?}", event.event_type)),
@@ -73,9 +79,7 @@ pub async fn generate_workspace_symbols(
                 tags: None,
                 deprecated: None,
                 location: Location {
-                    uri: Url::from_file_path(&idea.path).unwrap_or_else(|_| {
-                        Url::parse(&format!("file://{}", idea.path)).unwrap()
-                    }),
+                    uri: path_to_url(&idea.path),
                     range: range_to_lsp(&idea.range),
                 },
                 container_name: Some(format!("{:?}", idea.category)),
@@ -94,9 +98,7 @@ pub async fn generate_workspace_symbols(
                 tags: None,
                 deprecated: None,
                 location: Location {
-                    uri: Url::from_file_path(&trait_data.path).unwrap_or_else(|_| {
-                        Url::parse(&format!("file://{}", trait_data.path)).unwrap()
-                    }),
+                    uri: path_to_url(&trait_data.path),
                     range: range_to_lsp(&trait_data.range),
                 },
                 container_name: Some(format!("{:?}", trait_data.trait_type)),
@@ -115,9 +117,7 @@ pub async fn generate_workspace_symbols(
                 tags: None,
                 deprecated: None,
                 location: Location {
-                    uri: Url::from_file_path(&trigger.path).unwrap_or_else(|_| {
-                        Url::parse(&format!("file://{}", trigger.path)).unwrap()
-                    }),
+                    uri: path_to_url(&trigger.path),
                     range: range_to_lsp(&trigger.range),
                 },
                 container_name: Some("Scripted Trigger".to_string()),
@@ -136,9 +136,7 @@ pub async fn generate_workspace_symbols(
                 tags: None,
                 deprecated: None,
                 location: Location {
-                    uri: Url::from_file_path(&effect.path).unwrap_or_else(|_| {
-                        Url::parse(&format!("file://{}", effect.path)).unwrap()
-                    }),
+                    uri: path_to_url(&effect.path),
                     range: range_to_lsp(&effect.range),
                 },
                 container_name: Some("Scripted Effect".to_string()),
@@ -157,9 +155,7 @@ pub async fn generate_workspace_symbols(
                 tags: None,
                 deprecated: None,
                 location: Location {
-                    uri: Url::from_file_path(&ideology.path).unwrap_or_else(|_| {
-                        Url::parse(&format!("file://{}", ideology.path)).unwrap()
-                    }),
+                    uri: path_to_url(&ideology.path),
                     range: range_to_lsp(&ideology.range),
                 },
                 container_name: Some("Ideology".to_string()),
@@ -178,12 +174,29 @@ pub async fn generate_workspace_symbols(
                 tags: None,
                 deprecated: None,
                 location: Location {
-                    uri: Url::from_file_path(&sprite.path).unwrap_or_else(|_| {
-                        Url::parse(&format!("file://{}", sprite.path)).unwrap()
-                    }),
+                    uri: path_to_url(&sprite.path),
                     range: range_to_lsp(&sprite.range),
                 },
                 container_name: Some("Sprite".to_string()),
+            });
+        }
+    }
+
+    // Search characters
+    let characters_lock = characters.read().await;
+    for (name, character) in characters_lock.iter() {
+        if fuzzy_match(&query_lower, &name.to_lowercase()) {
+            #[allow(deprecated)]
+            symbols.push(SymbolInformation {
+                name: name.clone(),
+                kind: SymbolKind::STRUCT,
+                tags: None,
+                deprecated: None,
+                location: Location {
+                    uri: path_to_url(&character.path),
+                    range: range_to_lsp(&character.range),
+                },
+                container_name: Some("Character".to_string()),
             });
         }
     }
@@ -201,9 +214,7 @@ pub async fn generate_workspace_symbols(
                     tags: None,
                     deprecated: None,
                     location: Location {
-                        uri: Url::from_file_path(&var.path).unwrap_or_else(|_| {
-                            Url::parse(&format!("file://{}", var.path)).unwrap()
-                        }),
+                        uri: path_to_url(&var.path),
                         range: range_to_lsp(&var.range),
                     },
                     container_name: Some("Variable".to_string()),

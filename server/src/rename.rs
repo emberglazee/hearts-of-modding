@@ -14,6 +14,7 @@ pub enum RenameableSymbol {
     ScriptedTrigger(String),
     ScriptedEffect(String),
     Idea(String),
+    Character(String),
     Variable(String),
 }
 
@@ -25,10 +26,11 @@ pub async fn prepare_rename(
     scripted_triggers: &Arc<RwLock<HashMap<String, crate::scripted_scanner::ScriptedEntity>>>,
     scripted_effects: &Arc<RwLock<HashMap<String, crate::scripted_scanner::ScriptedEntity>>>,
     ideas: &Arc<RwLock<HashMap<String, crate::idea_scanner::Idea>>>,
+    characters: &Arc<RwLock<HashMap<String, crate::character_scanner::Character>>>,
     variables: &Arc<RwLock<HashMap<String, Vec<crate::variable_scanner::Variable>>>>,
 ) -> Option<PrepareRenameResponse> {
     let path = uri.trim_start_matches("file://");
-    
+
     // Check if position is on an event
     let events_lock = events.read().await;
     for (_id, event) in events_lock.iter() {
@@ -37,7 +39,7 @@ pub async fn prepare_rename(
         }
     }
     drop(events_lock);
-    
+
     // Check if position is on a scripted trigger
     let triggers_lock = scripted_triggers.read().await;
     for (_name, trigger) in triggers_lock.iter() {
@@ -46,7 +48,7 @@ pub async fn prepare_rename(
         }
     }
     drop(triggers_lock);
-    
+
     // Check if position is on a scripted effect
     let effects_lock = scripted_effects.read().await;
     for (_name, effect) in effects_lock.iter() {
@@ -55,7 +57,7 @@ pub async fn prepare_rename(
         }
     }
     drop(effects_lock);
-    
+
     // Check if position is on an idea
     let ideas_lock = ideas.read().await;
     for (_name, idea) in ideas_lock.iter() {
@@ -64,7 +66,16 @@ pub async fn prepare_rename(
         }
     }
     drop(ideas_lock);
-    
+
+    // Check if position is on a character
+    let characters_lock = characters.read().await;
+    for (_name, character) in characters_lock.iter() {
+        if character.path == path && position_in_range(&position, &character.range) {
+            return Some(PrepareRenameResponse::Range(range_to_lsp(&character.range)));
+        }
+    }
+    drop(characters_lock);
+
     // Check if position is on a variable
     let variables_lock = variables.read().await;
     for (_name, var_list) in variables_lock.iter() {
@@ -74,7 +85,7 @@ pub async fn prepare_rename(
             }
         }
     }
-    
+   
     None
 }
 
@@ -87,11 +98,12 @@ pub async fn rename_symbol(
     scripted_triggers: &Arc<RwLock<HashMap<String, crate::scripted_scanner::ScriptedEntity>>>,
     scripted_effects: &Arc<RwLock<HashMap<String, crate::scripted_scanner::ScriptedEntity>>>,
     ideas: &Arc<RwLock<HashMap<String, crate::idea_scanner::Idea>>>,
+    characters: &Arc<RwLock<HashMap<String, crate::character_scanner::Character>>>,
     variables: &Arc<RwLock<HashMap<String, Vec<crate::variable_scanner::Variable>>>>,
     documents: &dashmap::DashMap<String, String>,
 ) -> Option<WorkspaceEdit> {
     let path = uri.trim_start_matches("file://");
-    
+
     // Find what symbol we're renaming
     let symbol = find_symbol_at_position(
         path,
@@ -100,12 +112,13 @@ pub async fn rename_symbol(
         scripted_triggers,
         scripted_effects,
         ideas,
+        characters,
         variables,
     ).await?;
-    
+
     // Find all references to this symbol
     let mut changes: HashMap<Url, Vec<TextEdit>> = HashMap::new();
-    
+
     match symbol {
         RenameableSymbol::Event(old_name) => {
             find_event_references(&old_name, new_name, documents, &mut changes);
@@ -119,11 +132,14 @@ pub async fn rename_symbol(
         RenameableSymbol::Idea(old_name) => {
             find_idea_references(&old_name, new_name, documents, &mut changes);
         }
+        RenameableSymbol::Character(old_name) => {
+            find_character_references(&old_name, new_name, documents, &mut changes);
+        }
         RenameableSymbol::Variable(old_name) => {
             find_variable_references(&old_name, new_name, documents, &mut changes);
         }
     }
-    
+
     if changes.is_empty() {
         None
     } else {
@@ -143,6 +159,7 @@ async fn find_symbol_at_position(
     scripted_triggers: &Arc<RwLock<HashMap<String, crate::scripted_scanner::ScriptedEntity>>>,
     scripted_effects: &Arc<RwLock<HashMap<String, crate::scripted_scanner::ScriptedEntity>>>,
     ideas: &Arc<RwLock<HashMap<String, crate::idea_scanner::Idea>>>,
+    characters: &Arc<RwLock<HashMap<String, crate::character_scanner::Character>>>,
     variables: &Arc<RwLock<HashMap<String, Vec<crate::variable_scanner::Variable>>>>,
 ) -> Option<RenameableSymbol> {
     // Check events
@@ -153,7 +170,7 @@ async fn find_symbol_at_position(
         }
     }
     drop(events_lock);
-    
+
     // Check scripted triggers
     let triggers_lock = scripted_triggers.read().await;
     for (name, trigger) in triggers_lock.iter() {
@@ -162,7 +179,7 @@ async fn find_symbol_at_position(
         }
     }
     drop(triggers_lock);
-    
+
     // Check scripted effects
     let effects_lock = scripted_effects.read().await;
     for (name, effect) in effects_lock.iter() {
@@ -171,7 +188,7 @@ async fn find_symbol_at_position(
         }
     }
     drop(effects_lock);
-    
+
     // Check ideas
     let ideas_lock = ideas.read().await;
     for (name, idea) in ideas_lock.iter() {
@@ -180,7 +197,16 @@ async fn find_symbol_at_position(
         }
     }
     drop(ideas_lock);
-    
+
+    // Check characters
+    let characters_lock = characters.read().await;
+    for (name, character) in characters_lock.iter() {
+        if character.path == path && position_in_range(position, &character.range) {
+            return Some(RenameableSymbol::Character(name.clone()));
+        }
+    }
+    drop(characters_lock);
+
     // Check variables
     let variables_lock = variables.read().await;
     for (name, var_list) in variables_lock.iter() {
@@ -190,7 +216,6 @@ async fn find_symbol_at_position(
             }
         }
     }
-    
     None
 }
 
@@ -204,12 +229,12 @@ fn find_event_references(
     for entry in documents.iter() {
         let uri_str = entry.key();
         let content = entry.value();
-        
+
         // Parse the document
         if let Ok(script) = crate::parser::parse_script(content) {
             let mut edits = Vec::new();
             find_event_references_in_entries(&script.entries, old_name, new_name, &mut edits);
-            
+
             if !edits.is_empty() {
                 if let Ok(url) = Url::parse(uri_str) {
                     changes.insert(url, edits);
@@ -249,7 +274,7 @@ fn find_event_references_in_entries(
                         }
                     }
                 }
-                
+
                 // Recurse into blocks
                 if let Value::Block(children) = &ass.value.value {
                     find_event_references_in_entries(children, old_name, new_name, edits);
@@ -270,11 +295,11 @@ fn find_scripted_trigger_references(
     for entry in documents.iter() {
         let uri_str = entry.key();
         let content = entry.value();
-        
+
         if let Ok(script) = crate::parser::parse_script(content) {
             let mut edits = Vec::new();
             find_scripted_references_in_entries(&script.entries, old_name, new_name, &mut edits, true);
-            
+
             if !edits.is_empty() {
                 if let Ok(url) = Url::parse(uri_str) {
                     changes.insert(url, edits);
@@ -294,11 +319,11 @@ fn find_scripted_effect_references(
     for entry in documents.iter() {
         let uri_str = entry.key();
         let content = entry.value();
-        
+
         if let Ok(script) = crate::parser::parse_script(content) {
             let mut edits = Vec::new();
             find_scripted_references_in_entries(&script.entries, old_name, new_name, &mut edits, false);
-            
+
             if !edits.is_empty() {
                 if let Ok(url) = Url::parse(uri_str) {
                     changes.insert(url, edits);
@@ -326,7 +351,7 @@ fn find_scripted_references_in_entries(
                         new_text: new_name.to_string(),
                     });
                 }
-                
+
                 // Check for usage: old_name = yes
                 if ass.key == old_name {
                     edits.push(TextEdit {
@@ -334,7 +359,7 @@ fn find_scripted_references_in_entries(
                         new_text: new_name.to_string(),
                     });
                 }
-                
+
                 // Recurse into blocks
                 if let Value::Block(children) = &ass.value.value {
                     find_scripted_references_in_entries(children, old_name, new_name, edits, is_trigger);
@@ -355,11 +380,11 @@ fn find_idea_references(
     for entry in documents.iter() {
         let uri_str = entry.key();
         let content = entry.value();
-        
+
         if let Ok(script) = crate::parser::parse_script(content) {
             let mut edits = Vec::new();
             find_idea_references_in_entries(&script.entries, old_name, new_name, &mut edits);
-            
+
             if !edits.is_empty() {
                 if let Ok(url) = Url::parse(uri_str) {
                     changes.insert(url, edits);
@@ -386,7 +411,7 @@ fn find_idea_references_in_entries(
                         new_text: new_name.to_string(),
                     });
                 }
-                
+
                 // Check for add_ideas/remove_ideas
                 if ass.key == "add_ideas" || ass.key == "remove_ideas" || 
                    ass.key == "add_timed_idea" || ass.key == "swap_ideas" {
@@ -399,10 +424,87 @@ fn find_idea_references_in_entries(
                         }
                     }
                 }
-                
+
                 // Recurse into blocks
                 if let Value::Block(children) = &ass.value.value {
                     find_idea_references_in_entries(children, old_name, new_name, edits);
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+/// Find all references to a character
+fn find_character_references(
+    old_name: &str,
+    new_name: &str,
+    documents: &dashmap::DashMap<String, String>,
+    changes: &mut HashMap<Url, Vec<TextEdit>>,
+) {
+    for entry in documents.iter() {
+        let uri_str = entry.key();
+        let content = entry.value();
+
+        if let Ok(script) = crate::parser::parse_script(content) {
+            let mut edits = Vec::new();
+            find_character_references_in_entries(&script.entries, old_name, new_name, &mut edits);
+
+            if !edits.is_empty() {
+                if let Ok(url) = Url::parse(uri_str) {
+                    changes.insert(url, edits);
+                }
+            }
+        }
+    }
+}
+
+/// Find character references in AST entries
+fn find_character_references_in_entries(
+    entries: &[Entry],
+    old_name: &str,
+    new_name: &str,
+    edits: &mut Vec<TextEdit>,
+) {
+    for entry in entries {
+        match entry {
+            Entry::Assignment(ass) => {
+                // Character definition
+                if ass.key == old_name {
+                    edits.push(TextEdit {
+                        range: range_to_lsp(&ass.key_range),
+                        new_text: new_name.to_string(),
+                    });
+                }
+
+                // Character usage (recruit_character, etc)
+                if ass.key == "recruit_character" || ass.key == "has_character" || 
+                   ass.key == "promote_character" || ass.key == "retire_character" {
+                    if let Value::String(char_name) = &ass.value.value {
+                        if char_name == old_name {
+                            edits.push(TextEdit {
+                                range: range_to_lsp(&ass.value.range),
+                                new_text: new_name.to_string(),
+                            });
+                        }
+                    }
+                }
+
+                // character = X block usage
+                if ass.key == "character" {
+                    if let Value::String(char_name) = &ass.value.value {
+                        if char_name == old_name {
+                            edits.push(TextEdit {
+                                range: range_to_lsp(&ass.value.range),
+                                new_text: new_name.to_string(),
+                            });
+                        }
+                    }
+                }
+
+                // Recurse into blocks
+                if let Value::Block(children) = &ass.value.value {
+                    find_character_references_in_entries(children, old_name, new_name, edits);
                 }
             }
             _ => {}
@@ -420,11 +522,11 @@ fn find_variable_references(
     for entry in documents.iter() {
         let uri_str = entry.key();
         let content = entry.value();
-        
+
         if let Ok(script) = crate::parser::parse_script(content) {
             let mut edits = Vec::new();
             find_variable_references_in_entries(&script.entries, old_name, new_name, &mut edits);
-            
+
             if !edits.is_empty() {
                 if let Ok(url) = Url::parse(uri_str) {
                     changes.insert(url, edits);
@@ -466,7 +568,7 @@ fn find_variable_references_in_entries(
                         }
                     }
                 }
-                
+
                 // Recurse into blocks
                 if let Value::Block(children) = &ass.value.value {
                     find_variable_references_in_entries(children, old_name, new_name, edits);
@@ -481,7 +583,7 @@ fn find_variable_references_in_entries(
 fn position_in_range(position: &LspPosition, range: &Range) -> bool {
     let line = position.line;
     let character = position.character;
-    
+
     (line > range.start_line || (line == range.start_line && character >= range.start_col))
         && (line < range.end_line || (line == range.end_line && character <= range.end_col))
 }

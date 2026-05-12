@@ -7,6 +7,15 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+fn path_to_url(path: &str) -> Url {
+    let abs_path = std::path::Path::new(path).canonicalize().unwrap_or_else(|_| {
+        std::env::current_dir().unwrap_or_default().join(path)
+    });
+    Url::from_file_path(&abs_path).unwrap_or_else(|_| {
+        Url::parse(&format!("file://{}", abs_path.to_string_lossy().replace("\\", "/"))).unwrap()
+    })
+}
+
 /// Call hierarchy information for a symbol
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
@@ -44,9 +53,7 @@ pub async fn prepare_call_hierarchy(
                 kind: SymbolKind::EVENT,
                 tags: None,
                 detail: Some(format!("{:?}", event.event_type)),
-                uri: Url::from_file_path(&event.path).unwrap_or_else(|_| {
-                    Url::parse(&format!("file://{}", event.path)).unwrap()
-                }),
+                uri: path_to_url(&event.path),
                 range: range_to_lsp(&event.range),
                 selection_range: range_to_lsp(&event.range),
                 data: None,
@@ -64,9 +71,7 @@ pub async fn prepare_call_hierarchy(
                 kind: SymbolKind::FUNCTION,
                 tags: None,
                 detail: Some("Scripted Trigger".to_string()),
-                uri: Url::from_file_path(&trigger.path).unwrap_or_else(|_| {
-                    Url::parse(&format!("file://{}", trigger.path)).unwrap()
-                }),
+                uri: path_to_url(&trigger.path),
                 range: range_to_lsp(&trigger.range),
                 selection_range: range_to_lsp(&trigger.range),
                 data: None,
@@ -84,9 +89,7 @@ pub async fn prepare_call_hierarchy(
                 kind: SymbolKind::FUNCTION,
                 tags: None,
                 detail: Some("Scripted Effect".to_string()),
-                uri: Url::from_file_path(&effect.path).unwrap_or_else(|_| {
-                    Url::parse(&format!("file://{}", effect.path)).unwrap()
-                }),
+                uri: path_to_url(&effect.path),
                 range: range_to_lsp(&effect.range),
                 selection_range: range_to_lsp(&effect.range),
                 data: None,
@@ -302,9 +305,7 @@ async fn find_container_symbol(
                 kind: SymbolKind::EVENT,
                 tags: None,
                 detail: Some(format!("{:?}", event.event_type)),
-                uri: Url::from_file_path(&event.path).unwrap_or_else(|_| {
-                    Url::parse(&format!("file://{}", event.path)).unwrap()
-                }),
+                uri: path_to_url(&event.path),
                 range: range_to_lsp(&event.range),
                 selection_range: range_to_lsp(&event.range),
                 data: None,
@@ -322,9 +323,7 @@ async fn find_container_symbol(
                 kind: SymbolKind::FUNCTION,
                 tags: None,
                 detail: Some("Scripted Trigger".to_string()),
-                uri: Url::from_file_path(&trigger.path).unwrap_or_else(|_| {
-                    Url::parse(&format!("file://{}", trigger.path)).unwrap()
-                }),
+                uri: path_to_url(&trigger.path),
                 range: range_to_lsp(&trigger.range),
                 selection_range: range_to_lsp(&trigger.range),
                 data: None,
@@ -342,9 +341,7 @@ async fn find_container_symbol(
                 kind: SymbolKind::FUNCTION,
                 tags: None,
                 detail: Some("Scripted Effect".to_string()),
-                uri: Url::from_file_path(&effect.path).unwrap_or_else(|_| {
-                    Url::parse(&format!("file://{}", effect.path)).unwrap()
-                }),
+                uri: path_to_url(&effect.path),
                 range: range_to_lsp(&effect.range),
                 selection_range: range_to_lsp(&effect.range),
                 data: None,
@@ -370,9 +367,7 @@ async fn find_symbol_by_name(
             kind: SymbolKind::EVENT,
             tags: None,
             detail: Some(format!("{:?}", event.event_type)),
-            uri: Url::from_file_path(&event.path).unwrap_or_else(|_| {
-                Url::parse(&format!("file://{}", event.path)).unwrap()
-            }),
+            uri: path_to_url(&event.path),
             range: range_to_lsp(&event.range),
             selection_range: range_to_lsp(&event.range),
             data: None,
@@ -388,9 +383,7 @@ async fn find_symbol_by_name(
             kind: SymbolKind::FUNCTION,
             tags: None,
             detail: Some("Scripted Trigger".to_string()),
-            uri: Url::from_file_path(&trigger.path).unwrap_or_else(|_| {
-                Url::parse(&format!("file://{}", trigger.path)).unwrap()
-            }),
+            uri: path_to_url(&trigger.path),
             range: range_to_lsp(&trigger.range),
             selection_range: range_to_lsp(&trigger.range),
             data: None,
@@ -406,9 +399,7 @@ async fn find_symbol_by_name(
             kind: SymbolKind::FUNCTION,
             tags: None,
             detail: Some("Scripted Effect".to_string()),
-            uri: Url::from_file_path(&effect.path).unwrap_or_else(|_| {
-                Url::parse(&format!("file://{}", effect.path)).unwrap()
-            }),
+            uri: path_to_url(&effect.path),
             range: range_to_lsp(&effect.range),
             selection_range: range_to_lsp(&effect.range),
             data: None,

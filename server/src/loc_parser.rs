@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use nom::{
+    Parser,
     bytes::complete::{tag, take_until, take_while1},
     character::complete::{char, multispace0, digit1, space0},
     combinator::opt,
@@ -441,7 +442,7 @@ pub fn parse_loc_file(input: &str, path: &str) -> (HashMap<String, LocEntry>, Ve
     // Fast forward to the header while preserving the nom_locate line/column tracking
     while !current.fragment().is_empty() {
         if current.fragment().starts_with("l_") && current.fragment().contains(':') {
-            if let Ok((rem, _)) = take_until::<&str, Span, nom::error::Error<Span>>(":")(current) {
+            if let Ok((rem, _)) = take_until::<&str, Span, nom::error::Error<Span>>(":").parse(current) {
                 if let Ok((rem2, _)) = tag::<&str, Span, nom::error::Error<Span>>(":")(rem) {
                     current = rem2;
                     header_found = true;
@@ -450,7 +451,7 @@ pub fn parse_loc_file(input: &str, path: &str) -> (HashMap<String, LocEntry>, Ve
             }
         }
 
-        if let Ok((rem, _)) = nom::bytes::complete::take::<usize, Span, nom::error::Error<Span>>(1usize)(current) {
+        if let Ok((rem, _)) = nom::bytes::complete::take::<usize, Span, nom::error::Error<Span>>(1usize).parse(current) {
             current = rem;
         } else {
             break;
@@ -469,7 +470,7 @@ pub fn parse_loc_file(input: &str, path: &str) -> (HashMap<String, LocEntry>, Ve
             }
             Err(_) => {
                 let next_line = current.fragment().find('\n').map(|i| i + 1).unwrap_or(current.fragment().len());
-                if let Ok((rem, _)) = nom::bytes::complete::take::<usize, Span, nom::error::Error<Span>>(next_line)(current) {
+                if let Ok((rem, _)) = nom::bytes::complete::take::<usize, Span, nom::error::Error<Span>>(next_line).parse(current) {
                     current = rem;
                 } else {
                     break;
@@ -483,12 +484,12 @@ pub fn parse_loc_file(input: &str, path: &str) -> (HashMap<String, LocEntry>, Ve
 
 fn parse_loc_entry<'a>(input: Span<'a>, path: &'a str) -> IResult<Span<'a>, LocEntry> {
     let (input, _) = multispace0(input)?;
-    let (input, key_span) = take_while1(|c: char| c.is_alphanumeric() || c == '_' || c == '.' || c == '-')(input)?;
-    let (input, _) = char(':')(input)?;
-    let (input, version_span) = opt(digit1)(input)?;
+    let (input, key_span) = take_while1(|c: char| c.is_alphanumeric() || c == '_' || c == '.' || c == '-').parse(input)?;
+    let (input, _) = char(':').parse(input)?;
+    let (input, version_span) = opt(digit1).parse(input)?;
     let (input, _) = space0(input)?;
 
-    let (input, _) = char('"')(input)?;
+    let (input, _) = char('"').parse(input)?;
     let start_val = input;
 
     // Parse string content, handling escaped quotes
@@ -497,7 +498,7 @@ fn parse_loc_entry<'a>(input: Span<'a>, path: &'a str) -> IResult<Span<'a>, LocE
 
     loop {
         // Try to find a quote
-        if let Ok((after_quote, before_quote)) = take_until::<&str, Span, nom::error::Error<Span>>("\"")(current) {
+        if let Ok((after_quote, before_quote)) = take_until::<&str, Span, nom::error::Error<Span>>("\"").parse(current) {
             value.push_str(before_quote.fragment());
 
             // Check if the quote is escaped
@@ -506,7 +507,7 @@ fn parse_loc_entry<'a>(input: Span<'a>, path: &'a str) -> IResult<Span<'a>, LocE
                 value.push('"');
                 current = after_quote;
                 // Skip the quote character
-                if let Ok((after, _)) = char::<Span, nom::error::Error<Span>>('"')(current) {
+                if let Ok((after, _)) = char::<Span, nom::error::Error<Span>>('"').parse(current) {
                     current = after;
                 } else {
                     break;
@@ -522,7 +523,7 @@ fn parse_loc_entry<'a>(input: Span<'a>, path: &'a str) -> IResult<Span<'a>, LocE
         }
     }
 
-    let (input, _) = char('"')(current)?;
+    let (input, _) = char('"').parse(current)?;
 
     let (version, version_range) = if let Some(v_span) = version_span {
         (Some(v_span.fragment().to_string()), Some(to_range(v_span)))

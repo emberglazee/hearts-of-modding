@@ -1,11 +1,12 @@
 use crate::ast::*;
 use nom::{
+    Parser,
     branch::alt,
     bytes::complete::{tag, take_while1, take_while},
     character::complete::{char, multispace0, anychar},
     combinator::{map, opt, recognize},
     multi::many0,
-    sequence::{preceded, tuple},
+    sequence::preceded,
     IResult,
 };
 use nom_locate::LocatedSpan;
@@ -16,7 +17,7 @@ fn to_range(span: Span) -> crate::ast::Range {
     let start_line = span.location_line() - 1;
     let start_col = span.get_column() as u32 - 1;
     let fragment = span.fragment();
-    
+
     // Calculate end line and column by counting newlines in fragment
     let mut end_line = start_line;
     let mut last_line_len = 0;
@@ -28,7 +29,7 @@ fn to_range(span: Span) -> crate::ast::Range {
             last_line_len += 1;
         }
     }
-    
+
     let end_col = if end_line == start_line {
         start_col + fragment.len() as u32
     } else {
@@ -50,11 +51,11 @@ pub fn is_identifier_char(c: char) -> bool {
 fn identifier(input: Span) -> IResult<Span, (String, crate::ast::Range)> {
     map(take_while1(is_identifier_char), |s: Span| {
         (s.fragment().to_string(), to_range(s))
-    })(input)
+    }).parse(input)
 }
 
 fn quoted_string(input: Span) -> IResult<Span, (String, crate::ast::Range)> {
-    let (input, start) = recognize(char('"'))(input)?;
+    let (input, start) = recognize(char('"')).parse(input)?;
     let mut s = String::new();
     let mut current = input;
     loop {
@@ -79,20 +80,20 @@ fn quoted_string(input: Span) -> IResult<Span, (String, crate::ast::Range)> {
 }
 
 fn number(input: Span) -> IResult<Span, (f64, crate::ast::Range)> {
-    let (input, s) = recognize(tuple((
+    let (input, s) = recognize((
         opt(alt((char('-'), char('+')))),
         alt((
-            recognize(tuple((take_while1(|c: char| c.is_ascii_digit()), opt(tuple((char('.'), take_while(|c: char| c.is_ascii_digit()))))))),
-            recognize(tuple((char('.'), take_while1(|c: char| c.is_ascii_digit())))),
+            recognize((take_while1(|c: char| c.is_ascii_digit()), opt((char('.'), take_while(|c: char| c.is_ascii_digit()))))),
+            recognize((char('.'), take_while1(|c: char| c.is_ascii_digit()))),
         ))
-    )))(input)?;
-    
+    )).parse(input)?;
+
     // Boundary check: next char should not be an alphanumeric char unless it's a known identifier char that is NOT part of a number
     // Actually, in Paradox script, numbers are often followed by %, so we should allow that.
     let next_char = input.fragment().chars().next();
     if let Some(c) = next_char {
         if c.is_alphanumeric() && c != '%' {
-             return Err(nom::Err::Error(nom::error::Error::new(input, nom::error::ErrorKind::Tag)));
+            return Err(nom::Err::Error(nom::error::Error::new(input, nom::error::ErrorKind::Tag)));
         }
     }
 
@@ -100,20 +101,20 @@ fn number(input: Span) -> IResult<Span, (f64, crate::ast::Range)> {
 }
 
 fn boolean(input: Span) -> IResult<Span, (bool, crate::ast::Range)> {
-    let (input, s) = alt((tag("yes"), tag("no")))(input)?;
+    let (input, s) = alt((tag("yes"), tag("no"))).parse(input)?;
     // Ensure boundary
     let next_char = input.fragment().chars().next();
     if let Some(c) = next_char {
         if c.is_alphanumeric() {
-             return Err(nom::Err::Error(nom::error::Error::new(input, nom::error::ErrorKind::Tag)));
+            return Err(nom::Err::Error(nom::error::Error::new(input, nom::error::ErrorKind::Tag)));
         }
     }
-    
+
     Ok((input, (*s.fragment() == "yes", to_range(s))))
 }
 
 fn comment(input: Span) -> IResult<Span, (String, crate::ast::Range)> {
-    let (input, s) = recognize(preceded(char('#'), take_while(|c| c != '\n' && c != '\r')))(input)?;
+    let (input, s) = recognize(preceded(char('#'), take_while(|c| c != '\n' && c != '\r'))).parse(input)?;
     Ok((input, (s.fragment()[1..].to_string(), to_range(s))))
 }
 
@@ -125,20 +126,20 @@ fn operator(input: Span) -> IResult<Span, (Operator, crate::ast::Range)> {
         map(tag("="), |s| (Operator::Equals, to_range(s))),
         map(tag("<"), |s| (Operator::LessThan, to_range(s))),
         map(tag(">"), |s| (Operator::GreaterThan, to_range(s))),
-    ))(input)
+    )).parse(input)
 }
 
 fn parse_tagged_block(input: Span) -> IResult<Span, (String, Vec<Entry>, crate::ast::Range, crate::ast::Range)> {
     let (input, (tag, tag_range)) = identifier(input)?;
-    let (input, (entries, block_range)) = preceded(multispace0, parse_block)(input)?;
-    
+    let (input, (entries, block_range)) = preceded(multispace0, parse_block).parse(input)?;
+
     let range = crate::ast::Range {
         start_line: tag_range.start_line,
         start_col: tag_range.start_col,
         end_line: block_range.end_line,
         end_col: block_range.end_col,
     };
-    
+
     Ok((input, (tag, entries, block_range, range)))
 }
 
@@ -151,14 +152,14 @@ fn parse_value(input: Span) -> IResult<Span, NodeedValue> {
         map(identifier, |(s, r)| NodeedValue { value: Value::String(s), range: r }),
         map(number, |(n, r)| NodeedValue { value: Value::Number(n), range: r }),
         map(parse_block, |(v, r)| NodeedValue { value: Value::Block(v), range: r }),
-    ))(input)
+    )).parse(input)
 }
 
 fn parse_block(input: Span) -> IResult<Span, (Vec<Entry>, crate::ast::Range)> {
-    let (input, start) = preceded(multispace0, recognize(char('{')))(input)?;
-    let (input, entries) = many0(preceded(multispace0, parse_entry))(input)?;
-    let (input, end) = preceded(multispace0, recognize(char('}')))(input)?;
-    
+    let (input, start) = preceded(multispace0, recognize(char('{'))).parse(input)?;
+    let (input, entries) = many0(preceded(multispace0, parse_entry)).parse(input)?;
+    let (input, end) = preceded(multispace0, recognize(char('}'))).parse(input)?;
+
     let range = crate::ast::Range {
         start_line: start.location_line() - 1,
         start_col: start.get_column() as u32 - 1,
@@ -169,10 +170,10 @@ fn parse_block(input: Span) -> IResult<Span, (Vec<Entry>, crate::ast::Range)> {
 }
 
 fn parse_assignment(input: Span) -> IResult<Span, Assignment> {
-    let (input, (key, key_range)) = alt((identifier, quoted_string))(input)?;
-    let (input, (op, op_range)) = preceded(multispace0, operator)(input)?;
-    let (input, val) = preceded(multispace0, parse_value)(input)?;
-    
+    let (input, (key, key_range)) = alt((identifier, quoted_string)).parse(input)?;
+    let (input, (op, op_range)) = preceded(multispace0, operator).parse(input)?;
+    let (input, val) = preceded(multispace0, parse_value).parse(input)?;
+
     Ok((input, Assignment {
         key,
         key_range,
@@ -187,13 +188,13 @@ fn parse_entry(input: Span) -> IResult<Span, Entry> {
         map(comment, |(s, r)| Entry::Comment(s, r)),
         map(parse_assignment, Entry::Assignment),
         map(parse_value, Entry::Value),
-    ))(input)
+    )).parse(input)
 }
 
 pub fn parse_script(input: &str) -> Result<Script, (String, crate::ast::Range)> {
     let input_clean = input.strip_prefix('\u{feff}').unwrap_or(input);
     let span = Span::new(input_clean);
-    match many0(preceded(multispace0, parse_entry))(span) {
+    match many0(preceded(multispace0, parse_entry)).parse(span) {
         Ok((remainder, entries)) => {
             let (remainder, _) = multispace0::<Span, nom::error::Error<Span>>(remainder).unwrap();
             if remainder.fragment().is_empty() {
@@ -254,7 +255,7 @@ mod tests {
         let script = result.unwrap();
         assert_eq!(script.entries.len(), 1);
     }
-    
+
     #[test]
     fn test_parse_quoted_escapes() {
         let input = r#"title = "Event \"The Great War\" Begins""#;
