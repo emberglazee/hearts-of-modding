@@ -27,7 +27,7 @@ jobs:
             target: aarch64-apple-darwin
             suffix: macos-arm64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -45,7 +45,7 @@ jobs:
           cargo build --release --target ${{ matrix.target }}
 
       - name: Upload Binary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: server-${{ matrix.suffix }}
           path: |
@@ -58,10 +58,10 @@ jobs:
     needs: build-server
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Use Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: 'npm'
@@ -73,7 +73,7 @@ jobs:
           npm install
 
       - name: Download Binaries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: server-*
           path: client/server-bin/
@@ -97,17 +97,17 @@ jobs:
           # BETTER APPROACH: Download each individually to a specific name.
 
       - name: Download Linux Binary
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: server-linux
           path: client/server-bin/linux/
       - name: Download Windows Binary
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: server-win.exe
           path: client/server-bin/win/
       - name: Download macOS ARM64 Binary
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: server-macos-arm64
           path: client/server-bin/macos-arm64/
@@ -133,7 +133,7 @@ jobs:
           npx vsce package -o ../hearts-of-modding.vsix
 
       - name: Upload VSIX
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: extension-vsix
           path: hearts-of-modding.vsix
