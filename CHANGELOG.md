@@ -13,6 +13,9 @@ All notable changes to the **Hearts of Modding** extension will be documented in
   - **IDE Integration:** Added character entities to Workspace Symbols (`Ctrl+T`), enabling direct navigation to definitions.
   - **Rename Refactoring:** Full support for renaming character identifiers across all script usages (e.g., `recruit_character`, `has_character`).
   - **Syntax Highlighting:** Added semantic highlighting coverage for character-specific keywords (e.g., `characters`, `portraits`, `field_marshal`, `corps_commander`).
+- **Comprehensive Trigger, Effect, and Modifier Support:**
+  - Added built-in support for over 550 individual HOI4 triggers, over 530 effects, and over 550 modifiers based on the official documentation.
+  - Tooltips, autocompletion, and syntax highlighting are now fully operational for virtually all game triggers, effects, and modifiers.
 - **Smart Localization Fixes:**
   - **Unescaped Quote Detection:** Added a context-aware diagnostic that identifies unescaped double quotes *inside* localization values while ignoring valid delimiters and comments.
   - **Quick Fixes:** Added both individual "Escape double quote" and bulk "Escape all unescaped double quotes in this file" code actions.

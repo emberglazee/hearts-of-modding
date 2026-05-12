@@ -40,6 +40,7 @@ use tokio::sync::RwLock;
 
 static TRIGGERS: Lazy<HashMap<&'static str, hoi4_data::HOI4Entity>> = Lazy::new(hoi4_data::get_triggers);
 static EFFECTS: Lazy<HashMap<&'static str, hoi4_data::HOI4Entity>> = Lazy::new(hoi4_data::get_effects);
+static MODIFIERS: Lazy<HashMap<&'static str, hoi4_data::HOI4Entity>> = Lazy::new(hoi4_data::get_modifiers);
 static SCOPES: Lazy<Vec<&'static str>> = Lazy::new(hoi4_data::get_scopes);
 static LOC_COMMANDS: Lazy<Vec<&'static str>> = Lazy::new(hoi4_data::get_loc_commands);
 
@@ -335,6 +336,14 @@ impl LanguageServer for Backend {
                     for k in schema.effects.keys() { keywords.insert(k.clone()); }
                     for k in schema.links.keys() { keywords.insert(k.clone()); }
 
+                    for k in TRIGGERS.keys() { keywords.insert(k.to_string()); }
+                    for k in EFFECTS.keys() { keywords.insert(k.to_string()); }
+                    for k in MODIFIERS.keys() { keywords.insert(k.to_string()); }
+                    for k in SCOPES.iter() { 
+                        keywords.insert(k.to_string()); 
+                        keywords.insert(k.to_lowercase());
+                    }
+
                     // Add hardcoded achievement keywords
                     keywords.insert("unique_id".to_string());
                     keywords.insert("possible".to_string());
@@ -342,7 +351,7 @@ impl LanguageServer for Backend {
                     keywords.insert("ribbon".to_string());
                     keywords.insert("frames".to_string());
                     keywords.insert("colors".to_string());
-                    
+
                     // Character keywords
                     keywords.insert("characters".to_string());
                     keywords.insert("advisor".to_string());
@@ -1000,10 +1009,16 @@ impl LanguageServer for Backend {
             }
         }
 
+        let mut current_scopes = vec![scope::Scope::Global];
+
         // Try to find context for HOI4 scripts
         if let Some(content) = self.documents.get(&uri) {
             if let Ok(script) = parser::parse_script(&content) {
-                if let Some(context_key) = find_context_at(&script, position) {
+                let achievements = self.achievements.read().await;
+                let (ctx, scopes) = find_scope_context_at(&script, position, &achievements);
+                current_scopes = scopes;
+                if let Some(context_key) = ctx {
+
                     if context_key.to_lowercase().contains("color") {
                         let mut color_items = Vec::new();
                         color_items.push(CompletionItem {
@@ -1055,7 +1070,12 @@ impl LanguageServer for Backend {
             });
         }
 
+        let current_scope = *current_scopes.last().unwrap_or(&scope::Scope::Global);
+
         for trigger in TRIGGERS.values() {
+            if !trigger.scopes.contains(&scope::Scope::Unknown) && !trigger.scopes.contains(&current_scope) && !trigger.scopes.contains(&scope::Scope::Global) {
+                continue;
+            }
             items.push(CompletionItem {
                 label: trigger.name.to_string(),
                 kind: Some(CompletionItemKind::KEYWORD),
@@ -1069,6 +1089,9 @@ impl LanguageServer for Backend {
         }
 
         for effect in EFFECTS.values() {
+            if !effect.scopes.contains(&scope::Scope::Unknown) && !effect.scopes.contains(&current_scope) && !effect.scopes.contains(&scope::Scope::Global) {
+                continue;
+            }
             items.push(CompletionItem {
                 label: effect.name.to_string(),
                 kind: Some(CompletionItemKind::FUNCTION),
@@ -4678,6 +4701,68 @@ fn is_pos_in_range(pos: Position, range: &ast::Range) -> bool {
         return false;
     }
     true
+}
+
+
+fn find_scope_context_at(script: &ast::Script, pos: Position, achievements: &HashMap<String, achievement_scanner::Achievement>) -> (Option<String>, Vec<scope::Scope>) {
+    let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
+    let mut context = None;
+    for entry in &script.entries {
+        if let Some(ctx) = find_scope_context_in_entry(entry, pos, &mut scope_stack, achievements) {
+            context = Some(ctx);
+            break;
+        }
+    }
+    (context, scope_stack.iter().cloned().collect())
+}
+
+fn find_scope_context_in_entry(entry: &ast::Entry, pos: Position, scope_stack: &mut scope::ScopeStack, achievements: &HashMap<String, achievement_scanner::Achievement>) -> Option<String> {
+    match entry {
+        ast::Entry::Assignment(ass) => {
+            if is_pos_in_range(pos, &ass.value.range) {
+                // Push scope if it's a block
+                if let ast::Value::Block(_) | ast::Value::TaggedBlock(_, _, _) = &ass.value.value {
+                    let s = if let Some(achievement) = achievements.get(&ass.key) {
+                        if achievement.is_ribbon { scope::Scope::Ribbon } else { scope::Scope::Achievement }
+                    } else {
+                        scope::Scope::from_str(&ass.key)
+                    };
+                    scope_stack.push(s);
+                }
+
+                if let Some(inner) = find_scope_context_in_value(&ass.value, pos, scope_stack, achievements) {
+                    return Some(inner);
+                }
+                
+                return Some(ass.key.clone());
+            }
+            None
+        }
+        ast::Entry::Value(val) => find_scope_context_in_value(val, pos, scope_stack, achievements),
+        _ => None,
+    }
+}
+
+fn find_scope_context_in_value(val: &ast::NodeedValue, pos: Position, scope_stack: &mut scope::ScopeStack, achievements: &HashMap<String, achievement_scanner::Achievement>) -> Option<String> {
+    match &val.value {
+        ast::Value::Block(entries) => {
+            for entry in entries {
+                if let Some(ctx) = find_scope_context_in_entry(entry, pos, scope_stack, achievements) {
+                    return Some(ctx);
+                }
+            }
+            None
+        }
+        ast::Value::TaggedBlock(_, entries, _) => {
+            for entry in entries {
+                if let Some(ctx) = find_scope_context_in_entry(entry, pos, scope_stack, achievements) {
+                    return Some(ctx);
+                }
+            }
+            None
+        }
+        _ => None,
+    }
 }
 
 fn find_context_at(script: &ast::Script, pos: Position) -> Option<String> {
