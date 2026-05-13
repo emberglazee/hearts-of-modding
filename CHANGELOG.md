@@ -2,6 +2,15 @@
 
 All notable changes to the **Hearts of Modding** extension will be documented in this file.
 
+## [0.5.0] - 2026-05-13
+
+### Added
+
+- **Leader Abilities Support:**
+  - Added full support for parsing and visualizing leader abilities from `common/abilities/`.
+  - Tooltips display name, description, cost, duration, and associated sound effects.
+  - Hover, completion, goto definition, rename, and workspace symbols are now supported for leader abilities.
+
 ## [0.4.0] - 2026-05-12
 
 ### Added

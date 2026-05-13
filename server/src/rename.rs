@@ -16,6 +16,7 @@ pub enum RenameableSymbol {
     Idea(String),
     Character(String),
     Variable(String),
+    Ability(String),
 }
 
 /// Prepare rename - check if the symbol at the position can be renamed
@@ -28,6 +29,7 @@ pub async fn prepare_rename(
     ideas: &Arc<RwLock<HashMap<String, crate::idea_scanner::Idea>>>,
     characters: &Arc<RwLock<HashMap<String, crate::character_scanner::Character>>>,
     variables: &Arc<RwLock<HashMap<String, Vec<crate::variable_scanner::Variable>>>>,
+    abilities: &Arc<RwLock<HashMap<String, crate::ability_scanner::Ability>>>,
 ) -> Option<PrepareRenameResponse> {
     let path = uri.trim_start_matches("file://");
 
@@ -76,6 +78,15 @@ pub async fn prepare_rename(
     }
     drop(characters_lock);
 
+    // Check if position is on an ability
+    let abilities_lock = abilities.read().await;
+    for (_name, ability) in abilities_lock.iter() {
+        if ability.path == path && position_in_range(&position, &ability.range) {
+            return Some(PrepareRenameResponse::Range(range_to_lsp(&ability.range)));
+        }
+    }
+    drop(abilities_lock);
+
     // Check if position is on a variable
     let variables_lock = variables.read().await;
     for (_name, var_list) in variables_lock.iter() {
@@ -100,6 +111,7 @@ pub async fn rename_symbol(
     ideas: &Arc<RwLock<HashMap<String, crate::idea_scanner::Idea>>>,
     characters: &Arc<RwLock<HashMap<String, crate::character_scanner::Character>>>,
     variables: &Arc<RwLock<HashMap<String, Vec<crate::variable_scanner::Variable>>>>,
+    abilities: &Arc<RwLock<HashMap<String, crate::ability_scanner::Ability>>>,
     documents: &dashmap::DashMap<String, String>,
 ) -> Option<WorkspaceEdit> {
     let path = uri.trim_start_matches("file://");
@@ -114,6 +126,7 @@ pub async fn rename_symbol(
         ideas,
         characters,
         variables,
+        abilities,
     ).await?;
 
     // Find all references to this symbol
@@ -134,6 +147,9 @@ pub async fn rename_symbol(
         }
         RenameableSymbol::Character(old_name) => {
             find_character_references(&old_name, new_name, documents, &mut changes);
+        }
+        RenameableSymbol::Ability(old_name) => {
+            find_ability_references(&old_name, new_name, documents, &mut changes);
         }
         RenameableSymbol::Variable(old_name) => {
             find_variable_references(&old_name, new_name, documents, &mut changes);
@@ -161,6 +177,7 @@ async fn find_symbol_at_position(
     ideas: &Arc<RwLock<HashMap<String, crate::idea_scanner::Idea>>>,
     characters: &Arc<RwLock<HashMap<String, crate::character_scanner::Character>>>,
     variables: &Arc<RwLock<HashMap<String, Vec<crate::variable_scanner::Variable>>>>,
+    abilities: &Arc<RwLock<HashMap<String, crate::ability_scanner::Ability>>>,
 ) -> Option<RenameableSymbol> {
     // Check events
     let events_lock = events.read().await;
@@ -206,6 +223,15 @@ async fn find_symbol_at_position(
         }
     }
     drop(characters_lock);
+
+    // Check abilities
+    let abilities_lock = abilities.read().await;
+    for (id, ability) in abilities_lock.iter() {
+        if ability.path == path && position_in_range(position, &ability.range) {
+            return Some(RenameableSymbol::Ability(id.clone()));
+        }
+    }
+    drop(abilities_lock);
 
     // Check variables
     let variables_lock = variables.read().await;
@@ -572,6 +598,63 @@ fn find_variable_references_in_entries(
                 // Recurse into blocks
                 if let Value::Block(children) = &ass.value.value {
                     find_variable_references_in_entries(children, old_name, new_name, edits);
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+/// Find all references to an ability
+fn find_ability_references(
+    old_name: &str,
+    new_name: &str,
+    documents: &dashmap::DashMap<String, String>,
+    changes: &mut HashMap<Url, Vec<TextEdit>>,
+) {
+    for entry in documents.iter() {
+        let uri_str = entry.key();
+        let content = entry.value();
+
+        if let Ok(script) = crate::parser::parse_script(content) {
+            let mut edits = Vec::new();
+            find_ability_references_in_entries(&script.entries, old_name, new_name, &mut edits);
+
+            if !edits.is_empty() {
+                if let Ok(url) = Url::parse(uri_str) {
+                    changes.insert(url, edits);
+                }
+            }
+        }
+    }
+}
+
+/// Find ability references in AST entries
+fn find_ability_references_in_entries(
+    entries: &[Entry],
+    old_name: &str,
+    new_name: &str,
+    edits: &mut Vec<TextEdit>,
+) {
+    for entry in entries {
+        match entry {
+            Entry::Assignment(ass) => {
+                if ass.key == old_name {
+                    edits.push(TextEdit {
+                        range: range_to_lsp(&ass.key_range),
+                        new_text: new_name.to_string(),
+                    });
+                }
+
+                if let Value::Block(children) = &ass.value.value {
+                    find_ability_references_in_entries(children, old_name, new_name, edits);
+                } else if let Value::String(s) = &ass.value.value {
+                    if s == old_name && (ass.key == "has_ability" || ass.key == "add_ability" || ass.key == "remove_ability") {
+                        edits.push(TextEdit {
+                            range: range_to_lsp(&ass.value.range),
+                            new_text: new_name.to_string(),
+                        });
+                    }
                 }
             }
             _ => {}

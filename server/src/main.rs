@@ -1,4 +1,5 @@
 mod ast;
+mod ability_scanner;
 mod parser;
 mod semantic_tokens;
 mod hoi4_data;
@@ -93,6 +94,7 @@ struct Backend {
     styling_enabled: Arc<RwLock<bool>>,
     cosmetic_loc_indent: Arc<RwLock<bool>>,
     game_path: Arc<RwLock<Option<String>>>,
+    abilities: Arc<RwLock<HashMap<String, ability_scanner::Ability>>>,
 }
 
 #[tower_lsp::async_trait]
@@ -234,6 +236,7 @@ impl LanguageServer for Backend {
             self.scan_events(&roots),
             self.scan_music(&roots),
             self.scan_sounds(&roots),
+            self.scan_abilities(&roots),
         );
 
         // Re-validate all open documents now that we have all data
@@ -447,7 +450,7 @@ impl LanguageServer for Backend {
                     // Check key
                     if position.line == entry.range.start_line && position.character >= entry.range.start_col && position.character <= entry.range.end_col {
                         let mut hover_text = format!("### 🌐 Localization: {}\n\n", entry.key);
-                        
+
                         // Add achievement context
                         let achievements = self.achievements.read().await;
                         if entry.key.ends_with("_NAME") {
@@ -536,7 +539,7 @@ impl LanguageServer for Backend {
                         };
 
                         let loc = self.localization.read().await;
-                        
+
                         let name_key = format!("{}_NAME", identifier);
                         if let Some(name_loc) = loc.get(&name_key) {
                             ach_text.push_str(&format!("\n**Name (`{}`):** {}\n", name_key, paradox_to_markdown(&name_loc.value, Some(&loc))));
@@ -550,7 +553,7 @@ impl LanguageServer for Backend {
                         } else {
                             ach_text.push_str(&format!("\n**Description:** *Missing `{}`*\n", desc_key));
                         }
-                        
+
                         ach_text.push_str(&format!("\n---\nDefined in: {}", self.make_file_link(&achievement.path)));
                         push_section(&mut hover_text, &ach_text);
                     }
@@ -665,7 +668,7 @@ impl LanguageServer for Backend {
                     let char_map = self.characters.read().await;
                     if let Some(character) = char_map.get(&identifier) {
                         let mut char_text = format!("### 👤 Character: `{}`\n", identifier);
-                        
+
                         let loc = self.localization.read().await;
                         if let Some(name_key) = &character.name {
                             if let Some(name_loc) = loc.get(name_key) {
@@ -741,6 +744,43 @@ impl LanguageServer for Backend {
 
                         char_text.push_str(&format!("\n---\nDefined in: {}", self.make_file_link(&character.path)));
                         push_section(&mut hover_text, &char_text);
+                    }
+
+                    // Check abilities
+                    let ability_map = self.abilities.read().await;
+                    if let Some(ability) = ability_map.get(&identifier) {
+                        let mut text = format!("### ⚔️ Leader Ability: `{}`\n", ability.key);
+                        let loc = self.localization.read().await;
+
+                        if let Some(name_key) = &ability.name_loc {
+                            if let Some(name_loc) = loc.get(name_key) {
+                                text.push_str(&format!("\n**Name:** {}\n", paradox_to_markdown(&name_loc.value, Some(&loc))));
+                            } else {
+                                text.push_str(&format!("\n**Name:** *Missing `{}`*\n", name_key));
+                            }
+                        }
+
+                        if let Some(desc_key) = &ability.desc_loc {
+                            if let Some(desc_loc) = loc.get(desc_key) {
+                                text.push_str(&format!("\n**Description:** {}\n", paradox_to_markdown(&desc_loc.value, Some(&loc))));
+                            }
+                        }
+
+                        if let Some(cost) = ability.cost {
+                            text.push_str(&format!("\n**Cost:** {}\n", cost));
+                        }
+                        if let Some(duration) = ability.duration {
+                            text.push_str(&format!("\n**Duration:** {} hours\n", duration));
+                        }
+                        if let Some(type_name) = &ability.type_name {
+                            text.push_str(&format!("\n**Type:** `{}`\n", type_name));
+                        }
+                        if let Some(sound) = &ability.sound_effect {
+                            text.push_str(&format!("\n**Sound Effect:** `{}`\n", sound));
+                        }
+
+                        text.push_str(&format!("\n---\nDefined in: {}", self.make_file_link(&ability.path)));
+                        push_section(&mut hover_text, &text);
                     }
 
                     // Check for modifier blocks (modifier = { ... } or modifiers = { ... })
@@ -1180,6 +1220,16 @@ impl LanguageServer for Backend {
             });
         }
 
+        let ability_map = self.abilities.read().await;
+        for ability in ability_map.values() {
+            items.push(CompletionItem {
+                label: ability.key.clone(),
+                kind: Some(CompletionItemKind::FUNCTION),
+                detail: Some("Leader Ability".to_string()),
+                ..Default::default()
+            });
+        }
+
         let a_map = self.achievements.read().await;
         for achievement in a_map.values() {
             items.push(CompletionItem {
@@ -1312,7 +1362,7 @@ impl LanguageServer for Backend {
                 let mut sources = Vec::new();
                 let mut localizations = Vec::new();
 
-                // 1. Check scripted elements
+                // Check scripted elements
                 let st = self.scripted_triggers.read().await;
                 if let Some(entity) = st.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(&entity.range, &entity.path));
@@ -1323,7 +1373,7 @@ impl LanguageServer for Backend {
                     sources.push(ast_range_to_lsp_location(&entity.range, &entity.path));
                 }
 
-                // 2. Check ideologies
+                // Check ideologies
                     let id_map = self.ideologies.read().await;
                     if let Some(ideology) = id_map.get(&identifier) {
                         sources.push(ast_range_to_lsp_location(&ideology.range, &ideology.path));
@@ -1334,37 +1384,42 @@ impl LanguageServer for Backend {
                         sources.push(ast_range_to_lsp_location(range, path));
                     }
 
-                    // 3. Check traits
+                    // Check traits
                     let t_map = self.traits.read().await;
                     if let Some(trait_info) = t_map.get(&identifier) {
                         sources.push(ast_range_to_lsp_location(&trait_info.range, &trait_info.path));
                     }
 
-                    // 4. Check sprites
+                    // Check sprites
                     let s_map = self.sprites.read().await;
                     if let Some(sprite) = s_map.get(&identifier) {
                         sources.push(ast_range_to_lsp_location(&sprite.range, &sprite.path));
                     }
 
-                    // 5. Check events
+                    // Check events
                     let e_map = self.events.read().await;
                     if let Some(event) = e_map.get(&identifier) {
                         sources.push(ast_range_to_lsp_location(&event.range, &event.path));
                     }
 
-                    // 6. Check ideas
+                    // Check abilities
+                    let ability_map = self.abilities.read().await;
+                    if let Some(ability) = ability_map.get(&identifier) {
+                        sources.push(ast_range_to_lsp_location(&ability.range, &ability.path));
+                    }
+
+                    // Check ideas
                     let idea_map = self.ideas.read().await;
                     if let Some(idea) = idea_map.get(&identifier) {
                         sources.push(ast_range_to_lsp_location(&idea.range, &idea.path));
                     }
 
                     // Check achievements
-                    let a_map = self.achievements.read().await;
-                    if let Some(achievement) = a_map.get(&identifier) {
+                    let a_map = self.achievements.read().await;                    if let Some(achievement) = a_map.get(&identifier) {
                         sources.push(ast_range_to_lsp_location(&achievement.range, &achievement.path));
                     }
 
-                    // 6. Check variables
+                    // Check variables
                     let var_map = self.variables.read().await;
                     if let Some(vars) = var_map.get(&identifier) {
                         for var in vars {
@@ -1372,7 +1427,7 @@ impl LanguageServer for Backend {
                         }
                     }
 
-                    // 7. Check event targets
+                    // Check event targets
                     let target_map = self.event_targets.read().await;
                     if let Some(targets) = target_map.get(&identifier) {
                         for target in targets {
@@ -1380,13 +1435,13 @@ impl LanguageServer for Backend {
                         }
                     }
 
-                    // 8. Check modifiers
+                    // Check modifiers
                     let custom_mods = self.custom_modifiers.read().await;
                     if let Some(modifier) = custom_mods.get(&identifier) {
                         sources.push(ast_range_to_lsp_location(&modifier.range, &modifier.path));
                     }
 
-                    // 9. Check music
+                    // Check music
                     let m_assets = self.music_assets.read().await;
                     if let Some(asset) = m_assets.get(&identifier) {
                         sources.push(ast_range_to_lsp_location(&asset.range, &asset.path));
@@ -1402,7 +1457,7 @@ impl LanguageServer for Backend {
                         sources.push(ast_range_to_lsp_location(&song.range, &song.path));
                     }
 
-                    // 10. Check sounds
+                    // Check sounds
                     let s_sounds = self.sounds.read().await;
                     if let Some(sound) = s_sounds.get(&identifier) {
                         sources.push(ast_range_to_lsp_location(&sound.range, &sound.path));
@@ -1431,7 +1486,7 @@ impl LanguageServer for Backend {
                         }
                     }
 
-                    // 9. Check localization
+                    // Check localization
                     let loc = self.localization.read().await;
                     // Try exact match
                     if let Some(e) = loc.get(&identifier) {
@@ -2041,6 +2096,7 @@ impl LanguageServer for Backend {
             &self.characters,
             &self.variables,
             &self.achievements,
+            &self.abilities,
         ).await;
 
         Ok(Some(symbols))
@@ -2098,6 +2154,7 @@ impl LanguageServer for Backend {
             &self.ideas,
             &self.characters,
             &self.variables,
+            &self.abilities,
         ).await;
 
         Ok(result)
@@ -2118,6 +2175,7 @@ impl LanguageServer for Backend {
             &self.ideas,
             &self.characters,
             &self.variables,
+            &self.abilities,
             &self.documents,
         ).await;
 
@@ -2172,6 +2230,22 @@ impl Backend {
         let mut events = self.events.write().await;
         *events = result;
         self.client.log_message(MessageType::INFO, format!("Total: Loaded {} event definitions", events.len())).await;
+    }
+
+    async fn scan_abilities(&self, roots: &[std::path::PathBuf]) {
+        let filter = |path: &std::path::Path| -> bool {
+            let ig = futures::executor::block_on(self.ignored_files_regex.read());
+            let s = path.to_string_lossy();
+            for re in ig.iter() {
+                if re.is_match(&s) {
+                    return true;
+                }
+            }
+            false
+        };
+        let mut map = self.abilities.write().await;
+        *map = ability_scanner::scan_abilities(roots, &filter);
+        self.client.log_message(MessageType::INFO, format!("Total: Loaded {} abilities", map.len())).await;
     }
 
     async fn scan_music(&self, roots: &[std::path::PathBuf]) {
@@ -3996,6 +4070,7 @@ async fn main() {
         styling_enabled: Arc::new(RwLock::new(true)),
         cosmetic_loc_indent: Arc::new(RwLock::new(false)),
         game_path: Arc::new(RwLock::new(None)),
+        abilities: Arc::new(RwLock::new(HashMap::new())),
     });
     Server::new(stdin, stdout, socket).serve(service).await;
 }
