@@ -27,6 +27,7 @@ pub async fn generate_workspace_symbols(
     variables: &Arc<RwLock<HashMap<String, Vec<crate::variable_scanner::Variable>>>>,
     achievements: &Arc<RwLock<HashMap<String, crate::achievement_scanner::Achievement>>>,
     abilities: &Arc<RwLock<HashMap<String, crate::ability_scanner::Ability>>>,
+    scripted_locs: &Arc<RwLock<HashMap<String, crate::scripted_loc_scanner::ScriptedLoc>>>,
 ) -> Vec<SymbolInformation> {
     let mut symbols = Vec::new();
     let query_lower = query.to_lowercase();
@@ -141,6 +142,25 @@ pub async fn generate_workspace_symbols(
                     range: range_to_lsp(&effect.range),
                 },
                 container_name: Some("Scripted Effect".to_string()),
+            });
+        }
+    }
+
+    // Search scripted locs
+    let locs_lock = scripted_locs.read().await;
+    for (name, loc) in locs_lock.iter() {
+        if fuzzy_match(&query_lower, &name.to_lowercase()) {
+            #[allow(deprecated)]
+            symbols.push(SymbolInformation {
+                name: name.clone(),
+                kind: SymbolKind::FUNCTION,
+                tags: None,
+                deprecated: None,
+                location: Location {
+                    uri: path_to_url(&loc.path),
+                    range: range_to_lsp(&loc.range),
+                },
+                container_name: Some("Scripted Localisation".to_string()),
             });
         }
     }

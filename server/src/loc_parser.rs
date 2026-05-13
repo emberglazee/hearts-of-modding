@@ -96,7 +96,7 @@ pub fn validate_unescaped_quotes_in_file(input: &str) -> Vec<LocDiagnostic> {
     diagnostics
 }
 
-pub fn validate_loc_string(entry: &LocEntry, event_targets: &HashMap<String, Vec<crate::variable_scanner::EventTarget>>) -> Vec<LocDiagnostic> {
+pub fn validate_loc_string(entry: &LocEntry, event_targets: &HashMap<String, Vec<crate::variable_scanner::EventTarget>>, scripted_locs: &HashMap<String, crate::scripted_loc_scanner::ScriptedLoc>) -> Vec<LocDiagnostic> {
     let mut diagnostics = Vec::new();
 
     let re_scope = regex::Regex::new(r"\[([^\]]+)\]").unwrap();
@@ -229,12 +229,14 @@ pub fn validate_loc_string(entry: &LocEntry, event_targets: &HashMap<String, Vec
                 if loc_commands.iter().any(|&c| c.to_lowercase() == part.to_lowercase()) ||
                     scopes.contains(&part_upper.as_str()) ||
                     event_targets.contains_key(*part) ||
+                    scripted_locs.contains_key(*part) ||
                     part.chars().all(|c| c.is_ascii_digit()) { // Allow numbers as scopes (state IDs)
                     valid = true;
                 }
             } else {
                 if scopes.contains(&part_upper.as_str()) ||
                     event_targets.contains_key(*part) ||
+                    scripted_locs.contains_key(*part) ||
                     part.chars().all(|c| c.is_ascii_digit()) {
                     valid = true;
                 }

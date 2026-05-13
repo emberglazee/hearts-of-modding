@@ -28,6 +28,7 @@ mod document_symbols;
 mod workspace_symbols;
 mod call_hierarchy;
 mod rename;
+mod scripted_loc_scanner;
 
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
@@ -95,6 +96,7 @@ struct Backend {
     cosmetic_loc_indent: Arc<RwLock<bool>>,
     game_path: Arc<RwLock<Option<String>>>,
     abilities: Arc<RwLock<HashMap<String, ability_scanner::Ability>>>,
+    scripted_locs: Arc<RwLock<HashMap<String, scripted_loc_scanner::ScriptedLoc>>>,
 }
 
 #[tower_lsp::async_trait]
@@ -602,6 +604,12 @@ impl LanguageServer for Backend {
                             let se = self.scripted_effects.read().await;
                             if let Some(entity) = se.get(&identifier) {
                                 push_section(&mut hover_text, &format!("### 🛠️ Scripted Effect: {}\n\nDefined in: {}", identifier, self.make_file_link(&entity.path)));
+                            } else {
+                                // Check scripted locs
+                                let sl = self.scripted_locs.read().await;
+                                if let Some(loc) = sl.get(&identifier) {
+                                    push_section(&mut hover_text, &format!("### 📝 Scripted Localisation: {}\n\nDefined in: {}", identifier, self.make_file_link(&loc.path)));
+                                }
                             }
                         }
                     }
@@ -1373,6 +1381,11 @@ impl LanguageServer for Backend {
                     sources.push(ast_range_to_lsp_location(&entity.range, &entity.path));
                 }
 
+                let sl = self.scripted_locs.read().await;
+                if let Some(loc) = sl.get(&identifier) {
+                    sources.push(ast_range_to_lsp_location(&loc.range, &loc.path));
+                }
+
                 // Check ideologies
                     let id_map = self.ideologies.read().await;
                     if let Some(ideology) = id_map.get(&identifier) {
@@ -2097,6 +2110,7 @@ impl LanguageServer for Backend {
             &self.variables,
             &self.achievements,
             &self.abilities,
+            &self.scripted_locs,
         ).await;
 
         Ok(Some(symbols))
@@ -2723,10 +2737,12 @@ impl Backend {
     async fn scan_scripted(&self, roots: &[std::path::PathBuf]) {
         let mut all_triggers = HashMap::new();
         let mut all_effects = HashMap::new();
+        let mut all_locs = HashMap::new();
 
         for root in roots {
             let triggers_dir = root.join("common/scripted_triggers");
             let effects_dir = root.join("common/scripted_effects");
+            let locs_dir = root.join("common/scripted_localisation");
             let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
 
             if triggers_dir.exists() {
@@ -2739,6 +2755,11 @@ impl Backend {
                 self.client.log_message(MessageType::LOG, format!("Loaded {} scripted effects from {:?}", found.len(), effects_dir)).await;
                 all_effects.extend(found);
             }
+            if locs_dir.exists() {
+                let found = scripted_loc_scanner::scan_directory(&locs_dir, &filter);
+                self.client.log_message(MessageType::LOG, format!("Loaded {} scripted locs from {:?}", found.len(), locs_dir)).await;
+                all_locs.extend(found);
+            }
         }
 
         let mut t_map = self.scripted_triggers.write().await;
@@ -2747,7 +2768,10 @@ impl Backend {
         let mut e_map = self.scripted_effects.write().await;
         *e_map = all_effects;
 
-        self.client.log_message(MessageType::INFO, format!("Total: Loaded {} scripted triggers and {} scripted effects", t_map.len(), e_map.len())).await;
+        let mut l_map = self.scripted_locs.write().await;
+        *l_map = all_locs;
+
+        self.client.log_message(MessageType::INFO, format!("Total: Loaded {} scripted triggers, {} scripted effects, {} scripted locs", t_map.len(), e_map.len(), l_map.len())).await;
     }
 
     async fn scan_ideologies(&self, roots: &[std::path::PathBuf]) {
@@ -3154,6 +3178,7 @@ impl Backend {
     async fn validate_localization_content(&self, content: &str, diagnostics: &mut Vec<Diagnostic>) {
         let (parsed, loc_diagnostics_structural) = loc_parser::parse_loc_file(content, "");
         let event_targets = self.event_targets.read().await;
+        let scripted_locs = self.scripted_locs.read().await;
 
         // Add structural diagnostics
         for d in loc_diagnostics_structural {
@@ -3194,7 +3219,7 @@ impl Backend {
                 });
             }
 
-            let loc_diagnostics = loc_parser::validate_loc_string(entry, &event_targets);
+            let loc_diagnostics = loc_parser::validate_loc_string(entry, &event_targets, &scripted_locs);
             for d in loc_diagnostics {
                 diagnostics.push(Diagnostic {
                     range: ast_range_to_lsp(&d.range),
@@ -4071,6 +4096,7 @@ async fn main() {
         cosmetic_loc_indent: Arc::new(RwLock::new(false)),
         game_path: Arc::new(RwLock::new(None)),
         abilities: Arc::new(RwLock::new(HashMap::new())),
+        scripted_locs: Arc::new(RwLock::new(HashMap::new())),
     });
     Server::new(stdin, stdout, socket).serve(service).await;
 }

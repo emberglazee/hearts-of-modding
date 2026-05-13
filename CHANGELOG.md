@@ -10,6 +10,10 @@ All notable changes to the **Hearts of Modding** extension will be documented in
   - Added full support for parsing and visualizing leader abilities from `common/abilities/`.
   - Tooltips display name, description, cost, duration, and associated sound effects.
   - Hover, completion, goto definition, rename, and workspace symbols are now supported for leader abilities.
+- **Scripted Localisation Support:**
+  - Implemented `scripted_loc_scanner` to index scripted localization from `common/scripted_localisation/`.
+  - Fixes false-positive `invalid_loc_scope` warnings in localization files when referencing valid scripted localizations.
+  - Scripted localizations are now fully integrated with Hover previews, Goto Definition (`F12`), and Workspace Symbols (`Ctrl+T`).
 
 ## [0.4.0] - 2026-05-12
 
