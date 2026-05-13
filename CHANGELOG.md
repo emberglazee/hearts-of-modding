@@ -14,6 +14,9 @@ All notable changes to the **Hearts of Modding** extension will be documented in
   - Implemented `scripted_loc_scanner` to index scripted localization from `common/scripted_localisation/`.
   - Fixes false-positive `invalid_loc_scope` warnings in localization files when referencing valid scripted localizations.
   - Scripted localizations are now fully integrated with Hover previews, Goto Definition (`F12`), and Workspace Symbols (`Ctrl+T`).
+- **Workspace Symbols Update:**
+  - Added support for sub-ideologies in Workspace Symbols (`Ctrl+T`), which now displays the sub-ideology and its parent ideology context.
+  - Added support for localization keys in Workspace Symbols. The search will fuzzy-match against all parsed localization string keys, displaying them as `Localisation` entries. Results are capped at 1,000 matches to ensure IDE responsiveness while searching across potentially huge localization databases.
 
 ## [0.4.0] - 2026-05-12
 

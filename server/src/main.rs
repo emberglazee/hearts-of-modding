@@ -2105,12 +2105,14 @@ impl LanguageServer for Backend {
             &self.scripted_triggers,
             &self.scripted_effects,
             &self.ideologies,
+            &self.sub_ideologies,
             &self.sprites,
             &self.characters,
             &self.variables,
             &self.achievements,
             &self.abilities,
             &self.scripted_locs,
+            &self.localization,
         ).await;
 
         Ok(Some(symbols))

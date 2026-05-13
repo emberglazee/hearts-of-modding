@@ -22,12 +22,14 @@ pub async fn generate_workspace_symbols(
     scripted_triggers: &Arc<RwLock<HashMap<String, crate::scripted_scanner::ScriptedEntity>>>,
     scripted_effects: &Arc<RwLock<HashMap<String, crate::scripted_scanner::ScriptedEntity>>>,
     ideologies: &Arc<RwLock<HashMap<String, crate::ideology_scanner::Ideology>>>,
+    sub_ideologies: &Arc<RwLock<HashMap<String, (String, crate::ast::Range, String)>>>,
     sprites: &Arc<RwLock<HashMap<String, crate::sprite_scanner::Sprite>>>,
     characters: &Arc<RwLock<HashMap<String, crate::character_scanner::Character>>>,
     variables: &Arc<RwLock<HashMap<String, Vec<crate::variable_scanner::Variable>>>>,
     achievements: &Arc<RwLock<HashMap<String, crate::achievement_scanner::Achievement>>>,
     abilities: &Arc<RwLock<HashMap<String, crate::ability_scanner::Ability>>>,
     scripted_locs: &Arc<RwLock<HashMap<String, crate::scripted_loc_scanner::ScriptedLoc>>>,
+    localization: &Arc<RwLock<HashMap<String, crate::loc_parser::LocEntry>>>,
 ) -> Vec<SymbolInformation> {
     let mut symbols = Vec::new();
     let query_lower = query.to_lowercase();
@@ -165,6 +167,32 @@ pub async fn generate_workspace_symbols(
         }
     }
 
+    // Search localization
+    // Note: Localization can be extremely large. We only return matches if they fuzzy match
+    let loc_lock = localization.read().await;
+    // Limit to prevent overwhelming the client
+    let mut loc_count = 0;
+    for (name, loc) in loc_lock.iter() {
+        if fuzzy_match(&query_lower, &name.to_lowercase()) {
+            #[allow(deprecated)]
+            symbols.push(SymbolInformation {
+                name: name.clone(),
+                kind: SymbolKind::STRING,
+                tags: None,
+                deprecated: None,
+                location: Location {
+                    uri: path_to_url(&loc.path),
+                    range: range_to_lsp(&loc.range),
+                },
+                container_name: Some("Localisation".to_string()),
+            });
+            loc_count += 1;
+            if loc_count > 1000 { // Max 1000 loc symbols to avoid performance issues
+                break;
+            }
+        }
+    }
+
     // Search ideologies
     let ideologies_lock = ideologies.read().await;
     for (name, ideology) in ideologies_lock.iter() {
@@ -180,6 +208,25 @@ pub async fn generate_workspace_symbols(
                     range: range_to_lsp(&ideology.range),
                 },
                 container_name: Some("Ideology".to_string()),
+            });
+        }
+    }
+
+    // Search sub-ideologies
+    let sub_ideologies_lock = sub_ideologies.read().await;
+    for (name, (parent, range, path)) in sub_ideologies_lock.iter() {
+        if fuzzy_match(&query_lower, &name.to_lowercase()) {
+            #[allow(deprecated)]
+            symbols.push(SymbolInformation {
+                name: name.clone(),
+                kind: SymbolKind::ENUM_MEMBER,
+                tags: None,
+                deprecated: None,
+                location: Location {
+                    uri: path_to_url(path),
+                    range: range_to_lsp(range),
+                },
+                container_name: Some(format!("Sub-Ideology ({})", parent)),
             });
         }
     }
