@@ -29,6 +29,7 @@ mod workspace_symbols;
 mod call_hierarchy;
 mod rename;
 mod scripted_loc_scanner;
+mod state_scanner;
 
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
@@ -97,6 +98,7 @@ struct Backend {
     game_path: Arc<RwLock<Option<String>>>,
     abilities: Arc<RwLock<HashMap<String, ability_scanner::Ability>>>,
     scripted_locs: Arc<RwLock<HashMap<String, scripted_loc_scanner::ScriptedLoc>>>,
+    states: Arc<RwLock<HashMap<u32, state_scanner::State>>>,
 }
 
 #[tower_lsp::async_trait]
@@ -231,6 +233,7 @@ impl LanguageServer for Backend {
             self.scan_characters(&roots),
             self.scan_variables(&roots),
             self.scan_provinces(&roots),
+            self.scan_states(&roots),
             self.scan_modifiers(&roots),
             self.scan_buildings(&roots),
             self.scan_achievements(&roots),
@@ -558,6 +561,39 @@ impl LanguageServer for Backend {
 
                         ach_text.push_str(&format!("\n---\nDefined in: {}", self.make_file_link(&achievement.path)));
                         push_section(&mut hover_text, &ach_text);
+                    }
+
+                    // Check for states
+                    let mut state_id_opt = None;
+                    if let Some(ast::Value::Number(n)) = &assigned_value {
+                        state_id_opt = Some(*n as u32);
+                    } else if let Ok(n) = identifier.parse::<u32>() {
+                        state_id_opt = Some(n);
+                    }
+                    
+                    if let Some(state_id) = state_id_opt {
+                        let states = self.states.read().await;
+                        if let Some(state) = states.get(&state_id) {
+                            // To prevent false positives, we only show this if the identifier is explicitly related to states
+                            // Or if the identifier *is* the number (meaning it's an element in an array, like in any_state_of)
+                            let ident_lower = identifier.to_lowercase();
+                            let is_state_key = ident_lower.contains("state") || 
+                                               ident_lower.contains("capital") || 
+                                               ident_lower == "add_core_of" || 
+                                               ident_lower == "add_claim_by" || 
+                                               identifier.parse::<u32>().is_ok();
+                            
+                            if is_state_key {
+                                let loc = self.localization.read().await;
+                                let state_name = if let Some(loc_entry) = loc.get(&state.name) {
+                                    paradox_to_markdown(&loc_entry.value, Some(&loc))
+                                } else {
+                                    state.name.clone()
+                                };
+                                
+                                push_section(&mut hover_text, &format!("### 🗺️ State: {}\n\nID: `{}`\n\nDefined in: {}", state_name, state_id, self.make_file_link(&state.path)));
+                            }
+                        }
                     }
 
                     // Check triggers/effects/links
@@ -2113,6 +2149,7 @@ impl LanguageServer for Backend {
             &self.abilities,
             &self.scripted_locs,
             &self.localization,
+            &self.states,
         ).await;
 
         Ok(Some(symbols))
@@ -2238,6 +2275,15 @@ impl Backend {
         let mut provinces = self.provinces.write().await;
         *provinces = result;
         self.client.log_message(MessageType::INFO, format!("Total: Loaded {} province definitions", provinces.len())).await;
+    }
+
+    async fn scan_states(&self, roots: &[std::path::PathBuf]) {
+        let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
+        let result = state_scanner::scan_states(roots, &filter);
+        
+        let mut map = self.states.write().await;
+        *map = result;
+        self.client.log_message(MessageType::INFO, format!("Loaded {} states", map.len())).await;
     }
 
     async fn scan_events(&self, roots: &[std::path::PathBuf]) {
@@ -4099,6 +4145,7 @@ async fn main() {
         game_path: Arc::new(RwLock::new(None)),
         abilities: Arc::new(RwLock::new(HashMap::new())),
         scripted_locs: Arc::new(RwLock::new(HashMap::new())),
+        states: Arc::new(RwLock::new(HashMap::new())),
     });
     Server::new(stdin, stdout, socket).serve(service).await;
 }

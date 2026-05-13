@@ -14,6 +14,10 @@ All notable changes to the **Hearts of Modding** extension will be documented in
   - Implemented `scripted_loc_scanner` to index scripted localization from `common/scripted_localisation/`.
   - Fixes false-positive `invalid_loc_scope` warnings in localization files when referencing valid scripted localizations.
   - Scripted localizations are now fully integrated with Hover previews, Goto Definition (`F12`), and Workspace Symbols (`Ctrl+T`).
+- **State Cross-Referencing & Intelligence:**
+  - Implemented a fast `state_scanner` to parse all state definitions from `history/states/`.
+  - Hovering over state IDs in triggers/effects (e.g. `owns_state = 123` or `any_state_of = { 123 }`) will dynamically look up and display the corresponding state's ID, its localized in-game name, and its definition source file.
+  - States are now fully searchable through Workspace Symbols (`Ctrl+T`) by both their ID (e.g. `123`) and their localized name (e.g. `Texas`).
 - **Workspace Symbols Update:**
   - Added support for sub-ideologies in Workspace Symbols (`Ctrl+T`), which now displays the sub-ideology and its parent ideology context.
   - Added support for localization keys in Workspace Symbols. The search will fuzzy-match against all parsed localization string keys, displaying them as `Localisation` entries. Results are capped at 1,000 matches to ensure IDE responsiveness while searching across potentially huge localization databases.

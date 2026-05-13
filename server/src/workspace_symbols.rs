@@ -30,6 +30,7 @@ pub async fn generate_workspace_symbols(
     abilities: &Arc<RwLock<HashMap<String, crate::ability_scanner::Ability>>>,
     scripted_locs: &Arc<RwLock<HashMap<String, crate::scripted_loc_scanner::ScriptedLoc>>>,
     localization: &Arc<RwLock<HashMap<String, crate::loc_parser::LocEntry>>>,
+    states: &Arc<RwLock<HashMap<u32, crate::state_scanner::State>>>,
 ) -> Vec<SymbolInformation> {
     let mut symbols = Vec::new();
     let query_lower = query.to_lowercase();
@@ -163,6 +164,25 @@ pub async fn generate_workspace_symbols(
                     range: range_to_lsp(&loc.range),
                 },
                 container_name: Some("Scripted Localisation".to_string()),
+            });
+        }
+    }
+
+    // Search states
+    let states_lock = states.read().await;
+    for (id, state) in states_lock.iter() {
+        if fuzzy_match(&query_lower, &id.to_string()) || fuzzy_match(&query_lower, &state.name.to_lowercase()) {
+            #[allow(deprecated)]
+            symbols.push(SymbolInformation {
+                name: format!("State {}: {}", id, state.name),
+                kind: SymbolKind::OBJECT,
+                tags: None,
+                deprecated: None,
+                location: Location {
+                    uri: path_to_url(&state.path),
+                    range: range_to_lsp(&state.range),
+                },
+                container_name: Some("State".to_string()),
             });
         }
     }
