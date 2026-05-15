@@ -1,6 +1,14 @@
-# Changelog
+# 🧾 Changelog
 
-All notable changes to the **Hearts of Modding** extension will be documented in this file.
+All changes to the **Hearts of Modding** extension will be documented in this file.
+
+## [0.5.2] - 2026-05-16
+
+### Changed
+
+- Updated VSCode extension dependencies, cleaned up unused dependencies.
+
+- Bundle VSCode extension with `esbuild` for better performance.
 
 ## [0.5.1] - 2026-05-16
 

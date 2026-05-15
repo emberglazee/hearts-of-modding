@@ -1,11 +1,9 @@
 .vscode/**
-.vscode-test/**
-out/test/**
 src/**
+node_modules/**
+esbuild.js
 tsconfig.json
 .gitignore
-.eslintrc.json
-.eslintignore
 !LICENSE
 !README.md
 !server-bin/**
