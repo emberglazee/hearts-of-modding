@@ -1,5 +1,5 @@
-use std::path::PathBuf;
 use std::fs;
+use std::path::PathBuf;
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
@@ -25,8 +25,10 @@ pub struct LogisticsScanResult {
     pub railways: Vec<Railway>,
 }
 
-pub fn scan_logistics<F>(roots: &[PathBuf], filter: &F) -> LogisticsScanResult 
-where F: Fn(&std::path::Path) -> bool {
+pub fn scan_logistics<F>(roots: &[PathBuf], filter: &F) -> LogisticsScanResult
+where
+    F: Fn(&std::path::Path) -> bool,
+{
     let mut supply_nodes = Vec::new();
     let mut railways = Vec::new();
 
@@ -37,7 +39,9 @@ where F: Fn(&std::path::Path) -> bool {
                 for (line_idx, line) in content.lines().enumerate() {
                     let parts: Vec<&str> = line.split_whitespace().collect();
                     if parts.len() >= 2 {
-                        if let (Ok(level), Ok(province_id)) = (parts[0].parse::<u32>(), parts[1].parse::<u32>()) {
+                        if let (Ok(level), Ok(province_id)) =
+                            (parts[0].parse::<u32>(), parts[1].parse::<u32>())
+                        {
                             supply_nodes.push(SupplyNode {
                                 level,
                                 province_id,
@@ -56,7 +60,9 @@ where F: Fn(&std::path::Path) -> bool {
                 for (line_idx, line) in content.lines().enumerate() {
                     let parts: Vec<&str> = line.split_whitespace().collect();
                     if parts.len() >= 2 {
-                        if let (Ok(level), Ok(num_provs)) = (parts[0].parse::<u32>(), parts[1].parse::<usize>()) {
+                        if let (Ok(level), Ok(num_provs)) =
+                            (parts[0].parse::<u32>(), parts[1].parse::<usize>())
+                        {
                             if parts.len() >= 2 + num_provs {
                                 let mut provs = Vec::new();
                                 for i in 0..num_provs {

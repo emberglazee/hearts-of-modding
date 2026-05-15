@@ -1,8 +1,8 @@
-use crate::parser;
 use crate::ast;
+use crate::parser;
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
 use std::fs;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
@@ -13,8 +13,10 @@ pub struct State {
     pub range: ast::Range,
 }
 
-pub fn scan_states<F>(roots: &[PathBuf], filter: &F) -> HashMap<u32, State> 
-where F: Fn(&std::path::Path) -> bool {
+pub fn scan_states<F>(roots: &[PathBuf], filter: &F) -> HashMap<u32, State>
+where
+    F: Fn(&std::path::Path) -> bool,
+{
     let mut states = HashMap::new();
 
     for root in roots {
@@ -28,8 +30,10 @@ where F: Fn(&std::path::Path) -> bool {
     states
 }
 
-fn scan_directory<F>(dir_path: &Path, filter: &F) -> HashMap<u32, State> 
-where F: Fn(&std::path::Path) -> bool {
+fn scan_directory<F>(dir_path: &Path, filter: &F) -> HashMap<u32, State>
+where
+    F: Fn(&std::path::Path) -> bool,
+{
     let mut map = HashMap::new();
     let mut dirs_to_check = vec![dir_path.to_path_buf()];
 
@@ -49,7 +53,8 @@ where F: Fn(&std::path::Path) -> bool {
                         continue;
                     }
                     if let Ok(content) = fs::read_to_string(&path) {
-                        { let (script, _) = parser::parse_script(&content);
+                        {
+                            let (script, _) = parser::parse_script(&content);
                             extract_state(&script.entries, &path, &mut map);
                         }
                     }
@@ -84,12 +89,15 @@ fn extract_state(entries: &[ast::Entry], path: &Path, map: &mut HashMap<u32, Sta
                 }
 
                 if let Some(id) = state_id {
-                    map.insert(id, State {
+                    map.insert(
                         id,
-                        name: state_name,
-                        path: path.to_string_lossy().to_string(),
-                        range: ass.key_range.clone(),
-                    });
+                        State {
+                            id,
+                            name: state_name,
+                            path: path.to_string_lossy().to_string(),
+                            range: ass.key_range.clone(),
+                        },
+                    );
                 }
             }
         }

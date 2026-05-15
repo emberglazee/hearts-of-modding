@@ -1,8 +1,8 @@
-use crate::parser;
 use crate::ast;
+use crate::parser;
 use std::collections::HashMap;
-use std::path::Path;
 use std::fs;
+use std::path::Path;
 
 #[derive(Debug, Clone)]
 pub struct Sprite {
@@ -12,8 +12,10 @@ pub struct Sprite {
     pub range: ast::Range,
 }
 
-pub fn scan_sprites<F>(dir_path: &Path, filter: &F) -> HashMap<String, Sprite> 
-where F: Fn(&Path) -> bool {
+pub fn scan_sprites<F>(dir_path: &Path, filter: &F) -> HashMap<String, Sprite>
+where
+    F: Fn(&Path) -> bool,
+{
     let mut map = HashMap::new();
     if !dir_path.exists() || filter(dir_path) {
         return map;
@@ -38,7 +40,10 @@ where F: Fn(&Path) -> bool {
                         for (e, range) in parse_errors {
                             // We can't easily log to the client from here without passing it down,
                             // but we should at least handle the error gracefully.
-                            eprintln!("Failed to parse GFX file {:?} at {}:{}: {}", path, range.start_line, range.start_col, e);
+                            eprintln!(
+                                "Failed to parse GFX file {:?} at {}:{}: {}",
+                                path, range.start_line, range.start_col, e
+                            );
                         }
                     }
                 }
@@ -48,7 +53,11 @@ where F: Fn(&Path) -> bool {
     map
 }
 
-fn find_sprites_in_entries(entries: &[ast::Entry], file_path: &str, map: &mut HashMap<String, Sprite>) {
+fn find_sprites_in_entries(
+    entries: &[ast::Entry],
+    file_path: &str,
+    map: &mut HashMap<String, Sprite>,
+) {
     for entry in entries {
         match entry {
             ast::Entry::Assignment(ass) => {
@@ -66,17 +75,15 @@ fn find_sprites_in_entries(entries: &[ast::Entry], file_path: &str, map: &mut Ha
                     }
                 }
             }
-            ast::Entry::Value(val) => {
-                match &val.value {
-                    ast::Value::Block(inner_entries) => {
-                        find_sprites_in_entries(inner_entries, file_path, map);
-                    }
-                    ast::Value::TaggedBlock(_, inner_entries, _) => {
-                        find_sprites_in_entries(inner_entries, file_path, map);
-                    }
-                    _ => {}
+            ast::Entry::Value(val) => match &val.value {
+                ast::Value::Block(inner_entries) => {
+                    find_sprites_in_entries(inner_entries, file_path, map);
                 }
-            }
+                ast::Value::TaggedBlock(_, inner_entries, _) => {
+                    find_sprites_in_entries(inner_entries, file_path, map);
+                }
+                _ => {}
+            },
             _ => {}
         }
     }
@@ -102,12 +109,15 @@ fn parse_sprite_node(ass: &ast::Assignment, file_path: &str, map: &mut HashMap<S
         }
 
         if let (Some(n), Some(t)) = (name, texture_file) {
-            map.insert(n.clone(), Sprite {
-                name: n,
-                texture_file: t,
-                path: file_path.to_string(),
-                range: ass.key_range.clone(),
-            });
+            map.insert(
+                n.clone(),
+                Sprite {
+                    name: n,
+                    texture_file: t,
+                    path: file_path.to_string(),
+                    range: ass.key_range.clone(),
+                },
+            );
         }
     }
 }

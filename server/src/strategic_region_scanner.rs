@@ -1,8 +1,8 @@
-use crate::parser;
 use crate::ast;
+use crate::parser;
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
 use std::fs;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
@@ -16,10 +16,12 @@ pub struct StrategicRegion {
     pub range: ast::Range,
 }
 
-pub fn scan_strategic_regions<F>(roots: &[PathBuf], filter: &F) -> HashMap<u32, StrategicRegion> 
-where F: Fn(&Path) -> bool {
+pub fn scan_strategic_regions<F>(roots: &[PathBuf], filter: &F) -> HashMap<u32, StrategicRegion>
+where
+    F: Fn(&Path) -> bool,
+{
     let mut regions = HashMap::new();
-    
+
     for root in roots {
         let dir = root.join("map/strategicregions");
         if dir.exists() {
@@ -27,15 +29,17 @@ where F: Fn(&Path) -> bool {
             regions.extend(found);
         }
     }
-    
+
     regions
 }
 
-fn scan_directory<F>(dir_path: &Path, filter: &F) -> HashMap<u32, StrategicRegion> 
-where F: Fn(&Path) -> bool {
+fn scan_directory<F>(dir_path: &Path, filter: &F) -> HashMap<u32, StrategicRegion>
+where
+    F: Fn(&Path) -> bool,
+{
     let mut map = HashMap::new();
     let mut dirs_to_check = vec![dir_path.to_path_buf()];
-    
+
     while let Some(current_dir) = dirs_to_check.pop() {
         if filter(&current_dir) {
             continue;
@@ -52,7 +56,8 @@ where F: Fn(&Path) -> bool {
                         continue;
                     }
                     if let Ok(content) = fs::read_to_string(&path) {
-                        { let (script, _) = parser::parse_script(&content);
+                        {
+                            let (script, _) = parser::parse_script(&content);
                             extract_strategic_region(&script.entries, &path, &mut map);
                         }
                     }
@@ -63,7 +68,11 @@ where F: Fn(&Path) -> bool {
     map
 }
 
-fn extract_strategic_region(entries: &[ast::Entry], path: &Path, map: &mut HashMap<u32, StrategicRegion>) {
+fn extract_strategic_region(
+    entries: &[ast::Entry],
+    path: &Path,
+    map: &mut HashMap<u32, StrategicRegion>,
+) {
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
             if ass.key.to_lowercase() == "strategic_region" {
@@ -96,7 +105,9 @@ fn extract_strategic_region(entries: &[ast::Entry], path: &Path, map: &mut HashM
                                                 }
                                             }
                                         }
-                                    } else if let ast::Value::TaggedBlock(_, prov_entries, _) = &r_ass.value.value {
+                                    } else if let ast::Value::TaggedBlock(_, prov_entries, _) =
+                                        &r_ass.value.value
+                                    {
                                         for prov_entry in prov_entries {
                                             if let ast::Entry::Value(val) = prov_entry {
                                                 if let ast::Value::Number(p_id) = &val.value {
@@ -121,15 +132,18 @@ fn extract_strategic_region(entries: &[ast::Entry], path: &Path, map: &mut HashM
                 }
 
                 if let Some(id) = region_id {
-                    map.insert(id, StrategicRegion {
+                    map.insert(
                         id,
-                        name: region_name,
-                        provinces,
-                        weather,
-                        naval_terrain,
-                        path: path.to_string_lossy().to_string(),
-                        range: ass.key_range.clone(),
-                    });
+                        StrategicRegion {
+                            id,
+                            name: region_name,
+                            provinces,
+                            weather,
+                            naval_terrain,
+                            path: path.to_string_lossy().to_string(),
+                            range: ass.key_range.clone(),
+                        },
+                    );
                 }
             }
         }

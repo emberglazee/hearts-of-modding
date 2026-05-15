@@ -1,5 +1,5 @@
-use crate::parser;
 use crate::ast;
+use crate::parser;
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
@@ -42,8 +42,10 @@ pub struct SoundScanResult {
     pub categories: HashMap<String, SoundCategory>,
 }
 
-pub fn scan_sounds<F>(roots: &[PathBuf], filter: &F) -> SoundScanResult 
-where F: Fn(&std::path::Path) -> bool {
+pub fn scan_sounds<F>(roots: &[PathBuf], filter: &F) -> SoundScanResult
+where
+    F: Fn(&std::path::Path) -> bool,
+{
     let mut sounds = HashMap::new();
     let mut sound_effects = HashMap::new();
     let mut falloffs = HashMap::new();
@@ -71,8 +73,16 @@ where F: Fn(&std::path::Path) -> bool {
                         let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
                         if ext == "asset" {
                             if let Ok(content) = fs::read_to_string(&path) {
-                                { let (script, _) = parser::parse_script(&content);
-                                    find_sound_definitions(&script.entries, &path.to_string_lossy(), &mut sounds, &mut sound_effects, &mut falloffs, &mut categories);
+                                {
+                                    let (script, _) = parser::parse_script(&content);
+                                    find_sound_definitions(
+                                        &script.entries,
+                                        &path.to_string_lossy(),
+                                        &mut sounds,
+                                        &mut sound_effects,
+                                        &mut falloffs,
+                                        &mut categories,
+                                    );
                                 }
                             }
                         }
@@ -82,12 +92,17 @@ where F: Fn(&std::path::Path) -> bool {
         }
     }
 
-    SoundScanResult { sounds, sound_effects, falloffs, categories }
+    SoundScanResult {
+        sounds,
+        sound_effects,
+        falloffs,
+        categories,
+    }
 }
 
 fn find_sound_definitions(
-    entries: &[ast::Entry], 
-    file_path: &str, 
+    entries: &[ast::Entry],
+    file_path: &str,
     sounds: &mut HashMap<String, Sound>,
     sound_effects: &mut HashMap<String, SoundEffect>,
     falloffs: &mut HashMap<String, Falloff>,
@@ -119,12 +134,15 @@ fn find_sound_definitions(
                             }
                         }
                         if let (Some(n), Some(f)) = (name, file) {
-                            sounds.insert(n.clone(), Sound {
-                                name: n,
-                                file: f,
-                                path: file_path.to_string(),
-                                range: ass.key_range.clone(),
-                            });
+                            sounds.insert(
+                                n.clone(),
+                                Sound {
+                                    name: n,
+                                    file: f,
+                                    path: file_path.to_string(),
+                                    range: ass.key_range.clone(),
+                                },
+                            );
                         }
                     }
                 }
@@ -146,16 +164,30 @@ fn find_sound_definitions(
                                                 if let ast::Entry::Assignment(s_ass) = s_detail {
                                                     let s_key = s_ass.key.to_lowercase();
                                                     if s_key == "sound" {
-                                                        if let ast::Value::String(s_name) = &s_ass.value.value {
+                                                        if let ast::Value::String(s_name) =
+                                                            &s_ass.value.value
+                                                        {
                                                             sounds_list.push(s_name.clone());
                                                         }
                                                     } else if s_key == "weighted_sound" {
-                                                        if let ast::Value::Block(w_details) = &s_ass.value.value {
+                                                        if let ast::Value::Block(w_details) =
+                                                            &s_ass.value.value
+                                                        {
                                                             for w_detail in w_details {
-                                                                if let ast::Entry::Assignment(w_ass) = w_detail {
-                                                                    if w_ass.key.to_lowercase() == "sound" {
-                                                                        if let ast::Value::String(s_name) = &w_ass.value.value {
-                                                                            sounds_list.push(s_name.clone());
+                                                                if let ast::Entry::Assignment(
+                                                                    w_ass,
+                                                                ) = w_detail
+                                                                {
+                                                                    if w_ass.key.to_lowercase()
+                                                                        == "sound"
+                                                                    {
+                                                                        if let ast::Value::String(
+                                                                            s_name,
+                                                                        ) = &w_ass.value.value
+                                                                        {
+                                                                            sounds_list.push(
+                                                                                s_name.clone(),
+                                                                            );
                                                                         }
                                                                     }
                                                                 }
@@ -171,12 +203,15 @@ fn find_sound_definitions(
                             }
                         }
                         if let Some(n) = name {
-                            sound_effects.insert(n.clone(), SoundEffect {
-                                name: n,
-                                sounds: sounds_list,
-                                path: file_path.to_string(),
-                                range: ass.key_range.clone(),
-                            });
+                            sound_effects.insert(
+                                n.clone(),
+                                SoundEffect {
+                                    name: n,
+                                    sounds: sounds_list,
+                                    path: file_path.to_string(),
+                                    range: ass.key_range.clone(),
+                                },
+                            );
                         }
                     }
                 }
@@ -193,11 +228,14 @@ fn find_sound_definitions(
                             }
                         }
                         if let Some(n) = name {
-                            falloffs.insert(n.clone(), Falloff {
-                                name: n,
-                                path: file_path.to_string(),
-                                range: ass.key_range.clone(),
-                            });
+                            falloffs.insert(
+                                n.clone(),
+                                Falloff {
+                                    name: n,
+                                    path: file_path.to_string(),
+                                    range: ass.key_range.clone(),
+                                },
+                            );
                         }
                     }
                 }
@@ -229,12 +267,15 @@ fn find_sound_definitions(
                             }
                         }
                         if let Some(n) = name {
-                            categories.insert(n.clone(), SoundCategory {
-                                name: n,
-                                soundeffects: effects,
-                                path: file_path.to_string(),
-                                range: ass.key_range.clone(),
-                            });
+                            categories.insert(
+                                n.clone(),
+                                SoundCategory {
+                                    name: n,
+                                    soundeffects: effects,
+                                    path: file_path.to_string(),
+                                    range: ass.key_range.clone(),
+                                },
+                            );
                         }
                     }
                 }

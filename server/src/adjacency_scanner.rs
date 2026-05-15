@@ -1,8 +1,8 @@
-use crate::parser;
 use crate::ast;
+use crate::parser;
 use std::collections::HashMap;
-use std::path::PathBuf;
 use std::fs;
+use std::path::PathBuf;
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
@@ -31,8 +31,10 @@ pub struct AdjacencyScanResult {
     pub rules: HashMap<String, AdjacencyRule>,
 }
 
-pub fn scan_adjacencies<F>(roots: &[PathBuf], filter: &F) -> AdjacencyScanResult 
-where F: Fn(&std::path::Path) -> bool {
+pub fn scan_adjacencies<F>(roots: &[PathBuf], filter: &F) -> AdjacencyScanResult
+where
+    F: Fn(&std::path::Path) -> bool,
+{
     let mut adjacencies = Vec::new();
     let mut rules = HashMap::new();
 
@@ -48,7 +50,9 @@ where F: Fn(&std::path::Path) -> bool {
                     }
                     let parts: Vec<&str> = trimmed.split(';').collect();
                     if parts.len() >= 9 {
-                        if let (Ok(start_prov), Ok(end_prov)) = (parts[0].parse::<u32>(), parts[1].parse::<u32>()) {
+                        if let (Ok(start_prov), Ok(end_prov)) =
+                            (parts[0].parse::<u32>(), parts[1].parse::<u32>())
+                        {
                             let adj_type = parts[2].to_string();
                             let through_prov = parts[3].parse::<i32>().unwrap_or(-1);
                             let rule_name = parts[8].to_string();
@@ -71,7 +75,8 @@ where F: Fn(&std::path::Path) -> bool {
         let rules_path = root.join("map/adjacency_rules.txt");
         if rules_path.exists() && !filter(&rules_path) {
             if let Ok(content) = fs::read_to_string(&rules_path) {
-                { let (script, _) = parser::parse_script(&content);
+                {
+                    let (script, _) = parser::parse_script(&content);
                     for entry in script.entries {
                         if let ast::Entry::Assignment(ass) = entry {
                             if ass.key.to_lowercase() == "adjacency_rule" {
@@ -87,11 +92,14 @@ where F: Fn(&std::path::Path) -> bool {
                                         }
                                     }
                                     if let Some(n) = name {
-                                        rules.insert(n.clone(), AdjacencyRule {
-                                            name: n,
-                                            path: rules_path.to_string_lossy().to_string(),
-                                            range: ass.key_range.clone(),
-                                        });
+                                        rules.insert(
+                                            n.clone(),
+                                            AdjacencyRule {
+                                                name: n,
+                                                path: rules_path.to_string_lossy().to_string(),
+                                                range: ass.key_range.clone(),
+                                            },
+                                        );
                                     }
                                 }
                             }
@@ -102,8 +110,5 @@ where F: Fn(&std::path::Path) -> bool {
         }
     }
 
-    AdjacencyScanResult {
-        adjacencies,
-        rules,
-    }
+    AdjacencyScanResult { adjacencies, rules }
 }

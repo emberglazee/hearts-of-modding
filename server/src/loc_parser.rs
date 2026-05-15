@@ -1,13 +1,12 @@
-use std::collections::HashMap;
+use crate::ast::{DiagnosticSeverity, Range};
 use nom::{
-    Parser,
+    IResult, Parser,
     bytes::complete::{tag, take_until, take_while1},
-    character::complete::{char, multispace0, digit1, space0},
+    character::complete::{char, digit1, multispace0, space0},
     combinator::opt,
-    IResult,
 };
 use nom_locate::LocatedSpan;
-use crate::ast::{Range, DiagnosticSeverity};
+use std::collections::HashMap;
 
 type Span<'a> = LocatedSpan<&'a str>;
 
@@ -61,7 +60,7 @@ pub fn validate_unescaped_quotes_in_file(input: &str) -> Vec<LocDiagnostic> {
         let chars: Vec<char> = line_no_comment.chars().collect();
         for i in 0..chars.len() {
             if chars[i] == '"' {
-                let is_escaped = i > 0 && chars[i-1] == '\\';
+                let is_escaped = i > 0 && chars[i - 1] == '\\';
                 if !is_escaped {
                     unescaped_quote_indices.push(i);
                 }
@@ -89,14 +88,17 @@ pub fn validate_unescaped_quotes_in_file(input: &str) -> Vec<LocDiagnostic> {
                     related_information: Vec::new(),
                     tags: Vec::new(),
                 });
-
             }
         }
     }
     diagnostics
 }
 
-pub fn validate_loc_string(entry: &LocEntry, event_targets: &HashMap<String, Vec<crate::variable_scanner::EventTarget>>, scripted_locs: &HashMap<String, crate::scripted_loc_scanner::ScriptedLoc>) -> Vec<LocDiagnostic> {
+pub fn validate_loc_string(
+    entry: &LocEntry,
+    event_targets: &HashMap<String, Vec<crate::variable_scanner::EventTarget>>,
+    scripted_locs: &HashMap<String, crate::scripted_loc_scanner::ScriptedLoc>,
+) -> Vec<LocDiagnostic> {
     let mut diagnostics = Vec::new();
 
     let re_scope = regex::Regex::new(r"\[([^\]]+)\]").unwrap();
@@ -104,38 +106,129 @@ pub fn validate_loc_string(entry: &LocEntry, event_targets: &HashMap<String, Vec
     let re_nested = regex::Regex::new(r"\$([^\$]+)\$").unwrap();
 
     let loc_commands = [
-        "GetName", "GetNameDef", "GetNameDefCap", "GetAdjective", "GetAdjectiveCap", "GetTag",
-        "GetRulingIdeology", "GetRulingIdeologyNoun", "GetPartyName", "GetPartySupport",
-        "GetLeaderName", "GetLeaderNameDef", "GetPlayerName", "GetCapitalName", "GetLastElection",
-        "GetRulingParty", "GetRulingPartyLong", "GetCommunistParty", "GetDemocraticParty",
-        "GetFascistParty", "GetNeutralParty", "GetCommunistLeader", "GetDemocraticLeader",
-        "GetFascistLeader", "GetNeutralLeader", "GetPowerBalanceName", "GetPowerBalanceModDesc",
-        "GetRightSideName", "GetLeftSideName", "GetActiveSideName", "GetTrendingSideName",
-        "GetActiveRangeName", "GetActiveRangeModDesc", "GetActiveRangeRuleDesc",
-        "GetActiveRangeActivationEffect", "GetActiveRangeDeactivationEffect", "GetChangeRateDesc",
-        "GetBopTrendTextIcon", "GetSheHe", "GetSheHeCap", "GetHerHim", "GetHerHimCap",
-        "GetHerHis", "GetHerHisCap", "GetHersHis", "GetHersHisCap", "GetHerselfHimself",
-        "GetHerselfHimselfCap", "GetIdeology", "GetIdeologyGroup", "GetRank", "GetCodeName",
-        "GetCallsign", "GetSurname", "GetFullName", "GetWing", "GetWingShort", "GetAceType",
-        "GetMissionRegion", "GetTokenKey", "GetTokenLocalizedKey", "GetDateString",
-        "GetDateStringShortMonth", "GetDateStringNoHour", "GetDateStringNoHourLong",
-        "GetManpower", "GetFactionName", "GetAgency", "GetNameWithFlag", "GetFlag",
-        "GetDate", "GetTime", "GetYear", "GetMonth", "GetDay", "GetID",
-        "GetCapitalVictoryPointName", "GetOldName", "GetOldNameDef", "GetOldNameDefCap",
-        "GetOldAdjective", "GetOldAdjectiveCap", "GetNonIdeologyName", "GetNonIdeologyNameDef",
-        "GetNonIdeologyNameDefCap", "GetNonIdeologyAdjective", "GetNonIdeologyAdjectiveCap",
-        "GetLeader", "GetDateText",
+        "GetName",
+        "GetNameDef",
+        "GetNameDefCap",
+        "GetAdjective",
+        "GetAdjectiveCap",
+        "GetTag",
+        "GetRulingIdeology",
+        "GetRulingIdeologyNoun",
+        "GetPartyName",
+        "GetPartySupport",
+        "GetLeaderName",
+        "GetLeaderNameDef",
+        "GetPlayerName",
+        "GetCapitalName",
+        "GetLastElection",
+        "GetRulingParty",
+        "GetRulingPartyLong",
+        "GetCommunistParty",
+        "GetDemocraticParty",
+        "GetFascistParty",
+        "GetNeutralParty",
+        "GetCommunistLeader",
+        "GetDemocraticLeader",
+        "GetFascistLeader",
+        "GetNeutralLeader",
+        "GetPowerBalanceName",
+        "GetPowerBalanceModDesc",
+        "GetRightSideName",
+        "GetLeftSideName",
+        "GetActiveSideName",
+        "GetTrendingSideName",
+        "GetActiveRangeName",
+        "GetActiveRangeModDesc",
+        "GetActiveRangeRuleDesc",
+        "GetActiveRangeActivationEffect",
+        "GetActiveRangeDeactivationEffect",
+        "GetChangeRateDesc",
+        "GetBopTrendTextIcon",
+        "GetSheHe",
+        "GetSheHeCap",
+        "GetHerHim",
+        "GetHerHimCap",
+        "GetHerHis",
+        "GetHerHisCap",
+        "GetHersHis",
+        "GetHersHisCap",
+        "GetHerselfHimself",
+        "GetHerselfHimselfCap",
+        "GetIdeology",
+        "GetIdeologyGroup",
+        "GetRank",
+        "GetCodeName",
+        "GetCallsign",
+        "GetSurname",
+        "GetFullName",
+        "GetWing",
+        "GetWingShort",
+        "GetAceType",
+        "GetMissionRegion",
+        "GetTokenKey",
+        "GetTokenLocalizedKey",
+        "GetDateString",
+        "GetDateStringShortMonth",
+        "GetDateStringNoHour",
+        "GetDateStringNoHourLong",
+        "GetManpower",
+        "GetFactionName",
+        "GetAgency",
+        "GetNameWithFlag",
+        "GetFlag",
+        "GetDate",
+        "GetTime",
+        "GetYear",
+        "GetMonth",
+        "GetDay",
+        "GetID",
+        "GetCapitalVictoryPointName",
+        "GetOldName",
+        "GetOldNameDef",
+        "GetOldNameDefCap",
+        "GetOldAdjective",
+        "GetOldAdjectiveCap",
+        "GetNonIdeologyName",
+        "GetNonIdeologyNameDef",
+        "GetNonIdeologyNameDefCap",
+        "GetNonIdeologyAdjective",
+        "GetNonIdeologyAdjectiveCap",
+        "GetLeader",
+        "GetDateText",
     ];
     let scopes = [
-        "ROOT", "FROM", "PREV", "THIS", "COUNTRY", "STATE", "UNIT", "CHARACTER", "GLOBAL",
-        "Owner", "Controller", "Capital", "Leader",
+        "ROOT",
+        "FROM",
+        "PREV",
+        "THIS",
+        "COUNTRY",
+        "STATE",
+        "UNIT",
+        "CHARACTER",
+        "GLOBAL",
+        "Owner",
+        "Controller",
+        "Capital",
+        "Leader",
         // Contextual Objects (Patch 1.15+)
-        "Ace", "Building", "IndustrialOrg", "Operation", "Province", "PurchaseContract", 
-        "SpecialProject", "Terrain", "UnitLeader",
+        "Ace",
+        "Building",
+        "IndustrialOrg",
+        "Operation",
+        "Province",
+        "PurchaseContract",
+        "SpecialProject",
+        "Terrain",
+        "UnitLeader",
     ];
     let formatters = [
-        "character_name", "country_culture", "idea_name", "advisor_desc", "tech_effect", 
-        "idea_desc", "building_state_modifier",
+        "character_name",
+        "country_culture",
+        "idea_name",
+        "advisor_desc",
+        "tech_effect",
+        "idea_desc",
+        "building_state_modifier",
     ];
 
     // 1. Validate Scopes [Root.GetTag], Variables [?var], Formatters [idea_name|idea_id], etc.
@@ -146,12 +239,12 @@ pub fn validate_loc_string(entry: &LocEntry, event_targets: &HashMap<String, Vec
 
         // Handle ternary conditions: [(OBJECT ? TRUE_CASE : FALSE_CASE)]
         if inner.starts_with('(') && inner.ends_with(')') {
-            inner = &inner[1..inner.len()-1];
+            inner = &inner[1..inner.len() - 1];
             // Split at the ternary ? but handle optional chaining style OBJECT?.PROPERTY
             if let Some(q_pos) = inner.find('?') {
                 let obj = inner[..q_pos].trim();
-                let remainder = &inner[q_pos+1..].trim();
-                
+                let remainder = &inner[q_pos + 1..].trim();
+
                 if let Some(c_pos) = remainder.find(':') {
                     // Valid conditional, handle the "." efficiency shortcut
                     let true_case = &remainder[..c_pos].trim();
@@ -171,15 +264,28 @@ pub fn validate_loc_string(entry: &LocEntry, event_targets: &HashMap<String, Vec
         if inner.starts_with('?') {
             let var_inner = &inner[1..];
             if let Some(pipe_pos) = var_inner.find('|') {
-                let formatting = &var_inner[pipe_pos+1..];
+                let formatting = &var_inner[pipe_pos + 1..];
                 // Validate formatting codes: *, ^, =, 0..9, %, %%, +, -, or color chars
                 for c in formatting.chars() {
-                    if !c.is_ascii_digit() && !"*^=%+-.".contains(c) && !c.is_ascii_alphabetic() && c != '!' {
+                    if !c.is_ascii_digit()
+                        && !"*^=%+-.".contains(c)
+                        && !c.is_ascii_alphabetic()
+                        && c != '!'
+                    {
                         let range = Range {
                             start_line: entry.range.start_line,
-                            start_col: entry.value_start_col + start_pos as u32 + 2 + pipe_pos as u32 + formatting.find(c).unwrap_or(0) as u32,
+                            start_col: entry.value_start_col
+                                + start_pos as u32
+                                + 2
+                                + pipe_pos as u32
+                                + formatting.find(c).unwrap_or(0) as u32,
                             end_line: entry.range.start_line,
-                            end_col: entry.value_start_col + start_pos as u32 + 2 + pipe_pos as u32 + formatting.find(c).unwrap_or(0) as u32 + 1,
+                            end_col: entry.value_start_col
+                                + start_pos as u32
+                                + 2
+                                + pipe_pos as u32
+                                + formatting.find(c).unwrap_or(0) as u32
+                                + 1,
                         };
                         diagnostics.push(LocDiagnostic {
                             range,
@@ -226,18 +332,23 @@ pub fn validate_loc_string(entry: &LocEntry, event_targets: &HashMap<String, Vec
             let part_upper = part.to_uppercase();
 
             if is_last {
-                if loc_commands.iter().any(|&c| c.to_lowercase() == part.to_lowercase()) ||
-                    scopes.contains(&part_upper.as_str()) ||
-                    event_targets.contains_key(*part) ||
-                    scripted_locs.contains_key(*part) ||
-                    part.chars().all(|c| c.is_ascii_digit()) { // Allow numbers as scopes (state IDs)
+                if loc_commands
+                    .iter()
+                    .any(|&c| c.to_lowercase() == part.to_lowercase())
+                    || scopes.contains(&part_upper.as_str())
+                    || event_targets.contains_key(*part)
+                    || scripted_locs.contains_key(*part)
+                    || part.chars().all(|c| c.is_ascii_digit())
+                {
+                    // Allow numbers as scopes (state IDs)
                     valid = true;
                 }
             } else {
-                if scopes.contains(&part_upper.as_str()) ||
-                    event_targets.contains_key(*part) ||
-                    scripted_locs.contains_key(*part) ||
-                    part.chars().all(|c| c.is_ascii_digit()) {
+                if scopes.contains(&part_upper.as_str())
+                    || event_targets.contains_key(*part)
+                    || scripted_locs.contains_key(*part)
+                    || part.chars().all(|c| c.is_ascii_digit())
+                {
                     valid = true;
                 }
             }
@@ -251,7 +362,10 @@ pub fn validate_loc_string(entry: &LocEntry, event_targets: &HashMap<String, Vec
                 };
                 diagnostics.push(LocDiagnostic {
                     range,
-                    message: format!("Potential invalid localization scope or command: '{}'", part),
+                    message: format!(
+                        "Potential invalid localization scope or command: '{}'",
+                        part
+                    ),
                     severity: DiagnosticSeverity::Warning,
                     code: Some("invalid_loc_scope".to_string()),
                     related_information: Vec::new(),
@@ -273,14 +387,29 @@ pub fn validate_loc_string(entry: &LocEntry, event_targets: &HashMap<String, Vec
 
         // Handle variable formatting inside $key|formatting$
         if let Some(pipe_pos) = inner.find('|') {
-            let formatting = &inner[pipe_pos+1..];
+            let formatting = &inner[pipe_pos + 1..];
             for c in formatting.chars() {
-                if !c.is_ascii_digit() && !"*^=%+-.".contains(c) && !c.is_ascii_alphabetic() && c != '!' {
+                if !c.is_ascii_digit()
+                    && !"*^=%+-.".contains(c)
+                    && !c.is_ascii_alphabetic()
+                    && c != '!'
+                {
                     let range = Range {
                         start_line: entry.range.start_line,
-                        start_col: entry.value_start_col + cap.get(0).unwrap().start() as u32 + 1 + pipe_pos as u32 + 1 + formatting.find(c).unwrap_or(0) as u32,
+                        start_col: entry.value_start_col
+                            + cap.get(0).unwrap().start() as u32
+                            + 1
+                            + pipe_pos as u32
+                            + 1
+                            + formatting.find(c).unwrap_or(0) as u32,
                         end_line: entry.range.start_line,
-                        end_col: entry.value_start_col + cap.get(0).unwrap().start() as u32 + 1 + pipe_pos as u32 + 1 + formatting.find(c).unwrap_or(0) as u32 + 1,
+                        end_col: entry.value_start_col
+                            + cap.get(0).unwrap().start() as u32
+                            + 1
+                            + pipe_pos as u32
+                            + 1
+                            + formatting.find(c).unwrap_or(0) as u32
+                            + 1,
                     };
                     diagnostics.push(LocDiagnostic {
                         range,
@@ -316,7 +445,8 @@ pub fn validate_loc_string(entry: &LocEntry, event_targets: &HashMap<String, Vec
                 };
                 diagnostics.push(LocDiagnostic {
                     range,
-                    message: "Dangling color reset symbol '§!' without an opening color code.".to_string(),
+                    message: "Dangling color reset symbol '§!' without an opening color code."
+                        .to_string(),
                     severity: DiagnosticSeverity::Information,
                     code: Some("dangling_color_reset".to_string()),
                     related_information: Vec::new(),
@@ -339,7 +469,10 @@ pub fn validate_loc_string(entry: &LocEntry, event_targets: &HashMap<String, Vec
         };
         diagnostics.push(LocDiagnostic {
             range,
-            message: format!("Unclosed color code '§{}'. Expected a matching '§!' reset.", code),
+            message: format!(
+                "Unclosed color code '§{}'. Expected a matching '§!' reset.",
+                code
+            ),
             severity: DiagnosticSeverity::Information,
             code: Some("unclosed_color_code".to_string()),
             related_information: Vec::new(),
@@ -350,19 +483,25 @@ pub fn validate_loc_string(entry: &LocEntry, event_targets: &HashMap<String, Vec
     diagnostics
 }
 
-pub fn check_unnecessary_version(entry: &LocEntry, all_entries: &HashMap<String, LocEntry>) -> Option<LocDiagnostic> {
+pub fn check_unnecessary_version(
+    entry: &LocEntry,
+    all_entries: &HashMap<String, LocEntry>,
+) -> Option<LocDiagnostic> {
     // Only check if this entry has a version number
     if let (Some(version), Some(version_range)) = (&entry.version, &entry.version_range) {
         // Check if there are any other entries with the same key
-        let has_duplicates = all_entries.iter().any(|(k, e)| {
-            k == &entry.key && e.path != entry.path
-        });
+        let has_duplicates = all_entries
+            .iter()
+            .any(|(k, e)| k == &entry.key && e.path != entry.path);
 
         // If no duplicates exist, the version number is unnecessary
         if !has_duplicates {
             return Some(LocDiagnostic {
                 range: version_range.clone(),
-                message: format!("Version number '{}' is unnecessary. HOI4 ignores version numbers, and this key has no duplicates.", version),
+                message: format!(
+                    "Version number '{}' is unnecessary. HOI4 ignores version numbers, and this key has no duplicates.",
+                    version
+                ),
                 severity: DiagnosticSeverity::Hint,
                 code: Some("unnecessary_version".to_string()),
                 related_information: Vec::new(),
@@ -379,8 +518,16 @@ pub fn validate_loc_file_structure(input: &str) -> Vec<LocDiagnostic> {
 
     // Check for l_language header
     let valid_languages = [
-        "l_english", "l_braz_por", "l_french", "l_german", "l_polish", "l_russian", "l_spanish",
-        "l_japanese", "l_simp_chinese", "l_korean"
+        "l_english",
+        "l_braz_por",
+        "l_french",
+        "l_german",
+        "l_polish",
+        "l_russian",
+        "l_spanish",
+        "l_japanese",
+        "l_simp_chinese",
+        "l_korean",
     ];
     let content_without_bom = input.strip_prefix('\u{feff}').unwrap_or(input);
 
@@ -398,13 +545,17 @@ pub fn validate_loc_file_structure(input: &str) -> Vec<LocDiagnostic> {
                 header_found = true;
             } else if lang.starts_with("l_") {
                 diagnostics.push(LocDiagnostic {
-                    range: Range { 
-                        start_line: line_idx as u32, 
+                    range: Range {
+                        start_line: line_idx as u32,
                         start_col: line.find(lang).unwrap_or(0) as u32,
                         end_line: line_idx as u32,
                         end_col: (line.find(lang).unwrap_or(0) + lang.len()) as u32,
                     },
-                    message: format!("Unknown Paradox language header: '{}'. Valid languages are: {}", lang, valid_languages.join(", ")),
+                    message: format!(
+                        "Unknown Paradox language header: '{}'. Valid languages are: {}",
+                        lang,
+                        valid_languages.join(", ")
+                    ),
                     severity: DiagnosticSeverity::Warning,
                     code: Some("unknown_language".to_string()),
                     related_information: Vec::new(),
@@ -444,7 +595,9 @@ pub fn parse_loc_file(input: &str, path: &str) -> (HashMap<String, LocEntry>, Ve
     // Fast forward to the header while preserving the nom_locate line/column tracking
     while !current.fragment().is_empty() {
         if current.fragment().starts_with("l_") && current.fragment().contains(':') {
-            if let Ok((rem, _)) = take_until::<&str, Span, nom::error::Error<Span>>(":").parse(current) {
+            if let Ok((rem, _)) =
+                take_until::<&str, Span, nom::error::Error<Span>>(":").parse(current)
+            {
                 if let Ok((rem2, _)) = tag::<&str, Span, nom::error::Error<Span>>(":")(rem) {
                     current = rem2;
                     header_found = true;
@@ -453,10 +606,15 @@ pub fn parse_loc_file(input: &str, path: &str) -> (HashMap<String, LocEntry>, Ve
             }
         }
 
-        if let Ok((rem, _)) = nom::bytes::complete::take::<usize, Span, nom::error::Error<Span>>(1usize).parse(current) {
-            current = rem;
-        } else {
-            break;
+        match nom::bytes::complete::take::<usize, Span, nom::error::Error<Span>>(1usize)
+            .parse(current)
+        {
+            Ok((rem, _)) => {
+                current = rem;
+            }
+            _ => {
+                break;
+            }
         }
     }
 
@@ -471,11 +629,20 @@ pub fn parse_loc_file(input: &str, path: &str) -> (HashMap<String, LocEntry>, Ve
                 current = remainder;
             }
             Err(_) => {
-                let next_line = current.fragment().find('\n').map(|i| i + 1).unwrap_or(current.fragment().len());
-                if let Ok((rem, _)) = nom::bytes::complete::take::<usize, Span, nom::error::Error<Span>>(next_line).parse(current) {
-                    current = rem;
-                } else {
-                    break;
+                let next_line = current
+                    .fragment()
+                    .find('\n')
+                    .map(|i| i + 1)
+                    .unwrap_or(current.fragment().len());
+                match nom::bytes::complete::take::<usize, Span, nom::error::Error<Span>>(next_line)
+                    .parse(current)
+                {
+                    Ok((rem, _)) => {
+                        current = rem;
+                    }
+                    _ => {
+                        break;
+                    }
                 }
             }
         }
@@ -486,7 +653,9 @@ pub fn parse_loc_file(input: &str, path: &str) -> (HashMap<String, LocEntry>, Ve
 
 fn parse_loc_entry<'a>(input: Span<'a>, path: &'a str) -> IResult<Span<'a>, LocEntry> {
     let (input, _) = multispace0(input)?;
-    let (input, key_span) = take_while1(|c: char| c.is_alphanumeric() || c == '_' || c == '.' || c == '-').parse(input)?;
+    let (input, key_span) =
+        take_while1(|c: char| c.is_alphanumeric() || c == '_' || c == '.' || c == '-')
+            .parse(input)?;
     let (input, _) = char(':').parse(input)?;
     let (input, version_span) = opt(digit1).parse(input)?;
     let (input, _) = space0(input)?;
@@ -500,28 +669,37 @@ fn parse_loc_entry<'a>(input: Span<'a>, path: &'a str) -> IResult<Span<'a>, LocE
 
     loop {
         // Try to find a quote
-        if let Ok((after_quote, before_quote)) = take_until::<&str, Span, nom::error::Error<Span>>("\"").parse(current) {
-            value.push_str(before_quote.fragment());
+        match take_until::<&str, Span, nom::error::Error<Span>>("\"").parse(current) {
+            Ok((after_quote, before_quote)) => {
+                value.push_str(before_quote.fragment());
 
-            // Check if the quote is escaped
-            if value.ends_with('\\') {
-                // It's an escaped quote, include it and continue
-                value.push('"');
-                current = after_quote;
-                // Skip the quote character
-                if let Ok((after, _)) = char::<Span, nom::error::Error<Span>>('"').parse(current) {
-                    current = after;
+                // Check if the quote is escaped
+                if value.ends_with('\\') {
+                    // It's an escaped quote, include it and continue
+                    value.push('"');
+                    current = after_quote;
+                    // Skip the quote character
+                    match char::<Span, nom::error::Error<Span>>('"').parse(current) {
+                        Ok((after, _)) => {
+                            current = after;
+                        }
+                        _ => {
+                            break;
+                        }
+                    }
                 } else {
+                    // It's the closing quote
+                    current = after_quote;
                     break;
                 }
-            } else {
-                // It's the closing quote
-                current = after_quote;
-                break;
             }
-        } else {
-            // No quote found, this is an error
-            return Err(nom::Err::Error(nom::error::Error::new(current, nom::error::ErrorKind::Char)));
+            _ => {
+                // No quote found, this is an error
+                return Err(nom::Err::Error(nom::error::Error::new(
+                    current,
+                    nom::error::ErrorKind::Char,
+                )));
+            }
         }
     }
 
@@ -533,15 +711,18 @@ fn parse_loc_entry<'a>(input: Span<'a>, path: &'a str) -> IResult<Span<'a>, LocE
         (None, None)
     };
 
-    Ok((input, LocEntry {
-        key: key_span.fragment().to_string(),
-        value,
-        range: to_range(key_span),
-        path: path.to_string(),
-        value_start_col: start_val.get_column() as u32 - 1,
-        version,
-        version_range,
-    }))
+    Ok((
+        input,
+        LocEntry {
+            key: key_span.fragment().to_string(),
+            value,
+            range: to_range(key_span),
+            path: path.to_string(),
+            value_start_col: start_val.get_column() as u32 - 1,
+            version,
+            version_range,
+        },
+    ))
 }
 
 pub fn format_loc_file(input: &str, cosmetic_indent: bool) -> String {
@@ -638,7 +819,10 @@ pub fn format_loc_file(input: &str, cosmetic_indent: bool) -> String {
 
             let value = remainder.trim();
 
-            output.push_str(&format!("{}{}:{}: {}\n", current_indent, key, version, value));
+            output.push_str(&format!(
+                "{}{}:{}: {}\n",
+                current_indent, key, version, value
+            ));
         } else {
             // Not a valid entry line, keep as is but trimmed
             output.push_str(&current_indent);

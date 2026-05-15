@@ -1,8 +1,8 @@
-use crate::parser;
 use crate::ast;
+use crate::parser;
 use std::collections::HashMap;
-use std::path::Path;
 use std::fs;
+use std::path::Path;
 
 #[derive(Debug, Clone)]
 pub struct Idea {
@@ -12,8 +12,10 @@ pub struct Idea {
     pub range: ast::Range,
 }
 
-pub fn scan_ideas<F>(dir_path: &Path, filter: &F) -> HashMap<String, Idea> 
-where F: Fn(&Path) -> bool {
+pub fn scan_ideas<F>(dir_path: &Path, filter: &F) -> HashMap<String, Idea>
+where
+    F: Fn(&Path) -> bool,
+{
     let mut map = HashMap::new();
     if !dir_path.exists() || filter(dir_path) {
         return map;
@@ -33,8 +35,13 @@ where F: Fn(&Path) -> bool {
                         continue;
                     }
                     if let Ok(content) = fs::read_to_string(&path) {
-                        { let (script, _) = parser::parse_script(&content);
-                            find_ideas_in_entries(&script.entries, &path.to_string_lossy(), &mut map);
+                        {
+                            let (script, _) = parser::parse_script(&content);
+                            find_ideas_in_entries(
+                                &script.entries,
+                                &path.to_string_lossy(),
+                                &mut map,
+                            );
                         }
                     }
                 }
@@ -57,17 +64,15 @@ fn find_ideas_in_entries(entries: &[ast::Entry], file_path: &str, map: &mut Hash
                     }
                 }
             }
-            ast::Entry::Value(val) => {
-                match &val.value {
-                    ast::Value::Block(inner_entries) => {
-                        find_ideas_in_entries(inner_entries, file_path, map);
-                    }
-                    ast::Value::TaggedBlock(_, inner_entries, _) => {
-                        find_ideas_in_entries(inner_entries, file_path, map);
-                    }
-                    _ => {}
+            ast::Entry::Value(val) => match &val.value {
+                ast::Value::Block(inner_entries) => {
+                    find_ideas_in_entries(inner_entries, file_path, map);
                 }
-            }
+                ast::Value::TaggedBlock(_, inner_entries, _) => {
+                    find_ideas_in_entries(inner_entries, file_path, map);
+                }
+                _ => {}
+            },
             _ => {}
         }
     }
@@ -81,12 +86,15 @@ fn parse_ideas_block(ass: &ast::Assignment, file_path: &str, map: &mut HashMap<S
                 if let ast::Value::Block(ideas) = &cat_ass.value.value {
                     for idea_entry in ideas {
                         if let ast::Entry::Assignment(idea_ass) = idea_entry {
-                            map.insert(idea_ass.key.clone(), Idea {
-                                name: idea_ass.key.clone(),
-                                category: category_name.clone(),
-                                path: file_path.to_string(),
-                                range: idea_ass.key_range.clone(),
-                            });
+                            map.insert(
+                                idea_ass.key.clone(),
+                                Idea {
+                                    name: idea_ass.key.clone(),
+                                    category: category_name.clone(),
+                                    path: file_path.to_string(),
+                                    range: idea_ass.key_range.clone(),
+                                },
+                            );
                         }
                     }
                 }

@@ -2,6 +2,16 @@
 
 All notable changes to the **Hearts of Modding** extension will be documented in this file.
 
+## [0.5.1] - 2026-05-16
+
+### Added
+
+- Added static modifiers to workspace symbols.
+
+### Changed
+
+- Updated the LSP server Rust edition to 2024, reformatted the project code, updated some dependencies.
+
 ## [0.5.0] - 2026-05-15
 
 ### Added

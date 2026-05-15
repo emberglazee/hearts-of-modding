@@ -1,5 +1,5 @@
-use std::path::PathBuf;
 use std::fs;
+use std::path::PathBuf;
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
@@ -47,8 +47,10 @@ pub struct MapObjectScanResult {
     pub weather_positions: Vec<WeatherPosition>,
 }
 
-pub fn scan_map_objects<F>(roots: &[PathBuf], filter: &F) -> MapObjectScanResult 
-where F: Fn(&std::path::Path) -> bool {
+pub fn scan_map_objects<F>(roots: &[PathBuf], filter: &F) -> MapObjectScanResult
+where
+    F: Fn(&std::path::Path) -> bool,
+{
     let mut buildings = Vec::new();
     let mut unitstacks = Vec::new();
     let mut weather_positions = Vec::new();
@@ -67,7 +69,7 @@ where F: Fn(&std::path::Path) -> bool {
                             let z = parts[4].parse::<f64>().unwrap_or(0.0);
                             let rotation = parts[5].parse::<f64>().unwrap_or(0.0);
                             let sea_province = parts[6].parse::<u32>().unwrap_or(0);
-                            
+
                             buildings.push(MapBuilding {
                                 state_id,
                                 building_id,
@@ -163,7 +165,8 @@ mod tests {
         let map_dir = temp_dir.join("map");
         fs::create_dir_all(&map_dir).unwrap();
 
-        let buildings_content = "1;industrial_complex;100.0;10.0;200.0;0.5;123\n2;dockyard;300.0;0.0;400.0;1.0;456";
+        let buildings_content =
+            "1;industrial_complex;100.0;10.0;200.0;0.5;123\n2;dockyard;300.0;0.0;400.0;1.0;456";
         fs::write(map_dir.join("buildings.txt"), buildings_content).unwrap();
 
         let unitstacks_content = "1000;1;150.0;5.0;250.0;0.0;0.0\n1001;2;350.0;0.0;450.0;1.5;1.0";

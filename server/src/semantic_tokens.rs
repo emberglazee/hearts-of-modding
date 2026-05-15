@@ -1,6 +1,6 @@
 use crate::ast::*;
-use tower_lsp::lsp_types::{SemanticToken, SemanticTokens, SemanticTokensResult};
 use std::collections::HashSet;
+use tower_lsp::lsp_types::{SemanticToken, SemanticTokens, SemanticTokensResult};
 
 pub fn get_semantic_tokens(script: &Script, keywords: &HashSet<String>) -> SemanticTokensResult {
     let mut tokens = Vec::new();
@@ -57,7 +57,8 @@ struct RawToken {
 fn push_entry_tokens(entry: &Entry, tokens: &mut Vec<RawToken>, keywords: &HashSet<String>) {
     match entry {
         Entry::Assignment(ass) => {
-            let is_keyword = keywords.contains(&ass.key) || ass.key.chars().all(|c| c.is_lowercase() || c == '_');
+            let is_keyword = keywords.contains(&ass.key)
+                || ass.key.chars().all(|c| c.is_lowercase() || c == '_');
             tokens.push(RawToken {
                 line: ass.key_range.start_line,
                 start: ass.key_range.start_col,

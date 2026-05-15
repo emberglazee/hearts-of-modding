@@ -1,8 +1,8 @@
-use crate::parser;
 use crate::ast;
+use crate::parser;
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
 use std::fs;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone)]
 pub struct Achievement {
@@ -12,8 +12,10 @@ pub struct Achievement {
     pub range: ast::Range,
 }
 
-pub fn scan_achievements<F>(roots: &[PathBuf], filter: &F) -> HashMap<String, Achievement> 
-where F: Fn(&std::path::Path) -> bool {
+pub fn scan_achievements<F>(roots: &[PathBuf], filter: &F) -> HashMap<String, Achievement>
+where
+    F: Fn(&std::path::Path) -> bool,
+{
     let mut map = HashMap::new();
     for root in roots {
         let achievements_dir = root.join("common").join("achievements");
@@ -24,8 +26,10 @@ where F: Fn(&std::path::Path) -> bool {
     map
 }
 
-fn scan_dir<F>(dir_path: &Path, map: &mut HashMap<String, Achievement>, filter: &F) 
-where F: Fn(&std::path::Path) -> bool {
+fn scan_dir<F>(dir_path: &Path, map: &mut HashMap<String, Achievement>, filter: &F)
+where
+    F: Fn(&std::path::Path) -> bool,
+{
     let mut dirs_to_check = vec![dir_path.to_path_buf()];
     while let Some(current_dir) = dirs_to_check.pop() {
         if filter(&current_dir) {
@@ -43,8 +47,13 @@ where F: Fn(&std::path::Path) -> bool {
                         continue;
                     }
                     if let Ok(content) = fs::read_to_string(&path) {
-                        { let (script, _) = parser::parse_script(&content);
-                            find_achievements_in_entries(&script.entries, &path.to_string_lossy(), map);
+                        {
+                            let (script, _) = parser::parse_script(&content);
+                            find_achievements_in_entries(
+                                &script.entries,
+                                &path.to_string_lossy(),
+                                map,
+                            );
                         }
                     }
                 }
@@ -53,11 +62,15 @@ where F: Fn(&std::path::Path) -> bool {
     }
 }
 
-fn find_achievements_in_entries(entries: &[ast::Entry], file_path: &str, map: &mut HashMap<String, Achievement>) {
+fn find_achievements_in_entries(
+    entries: &[ast::Entry],
+    file_path: &str,
+    map: &mut HashMap<String, Achievement>,
+) {
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
             let key_lower = ass.key.to_lowercase();
-            
+
             // Skip unique_id assignment
             if key_lower == "unique_id" {
                 continue;
@@ -83,12 +96,15 @@ fn find_achievements_in_entries(entries: &[ast::Entry], file_path: &str, map: &m
                 }
 
                 if is_achievement || is_ribbon {
-                    map.insert(ass.key.clone(), Achievement {
-                        name: ass.key.clone(),
-                        is_ribbon,
-                        path: file_path.to_string(),
-                        range: ass.key_range.clone(),
-                    });
+                    map.insert(
+                        ass.key.clone(),
+                        Achievement {
+                            name: ass.key.clone(),
+                            is_ribbon,
+                            path: file_path.to_string(),
+                            range: ass.key_range.clone(),
+                        },
+                    );
                 }
             }
         }

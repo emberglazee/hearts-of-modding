@@ -1,40 +1,40 @@
-mod ast;
 mod ability_scanner;
-mod parser;
-mod semantic_tokens;
-mod hoi4_data;
-mod loc_parser;
-mod scripted_scanner;
 mod achievement_scanner;
-mod character_scanner;
-mod scope;
-mod ideology_scanner;
-mod trait_scanner;
-mod sprite_scanner;
-mod idea_scanner;
-mod variable_scanner;
-mod province_scanner;
-mod modifier_scanner;
-mod modifier_display;
-mod event_scanner;
-mod music_scanner;
-mod sound_scanner;
-mod schema;
-mod building_scanner;
-mod defines_parser;
-mod advanced_validation;
-mod enhanced_color;
-mod document_symbols;
-mod workspace_symbols;
-mod call_hierarchy;
-mod rename;
-mod scripted_loc_scanner;
-mod state_scanner;
-mod logistics_scanner;
-mod map_object_scanner;
 mod adjacency_scanner;
-mod strategic_region_scanner;
+mod advanced_validation;
+mod ast;
+mod building_scanner;
+mod call_hierarchy;
+mod character_scanner;
+mod defines_parser;
+mod document_symbols;
+mod enhanced_color;
+mod event_scanner;
+mod hoi4_data;
+mod idea_scanner;
+mod ideology_scanner;
+mod loc_parser;
+mod logistics_scanner;
 mod map_config;
+mod map_object_scanner;
+mod modifier_display;
+mod modifier_scanner;
+mod music_scanner;
+mod parser;
+mod province_scanner;
+mod rename;
+mod schema;
+mod scope;
+mod scripted_loc_scanner;
+mod scripted_scanner;
+mod semantic_tokens;
+mod sound_scanner;
+mod sprite_scanner;
+mod state_scanner;
+mod strategic_region_scanner;
+mod trait_scanner;
+mod variable_scanner;
+mod workspace_symbols;
 
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
@@ -46,9 +46,12 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-static TRIGGERS: Lazy<HashMap<&'static str, hoi4_data::HOI4Entity>> = Lazy::new(hoi4_data::get_triggers);
-static EFFECTS: Lazy<HashMap<&'static str, hoi4_data::HOI4Entity>> = Lazy::new(hoi4_data::get_effects);
-static MODIFIERS: Lazy<HashMap<&'static str, hoi4_data::HOI4Entity>> = Lazy::new(hoi4_data::get_modifiers);
+static TRIGGERS: Lazy<HashMap<&'static str, hoi4_data::HOI4Entity>> =
+    Lazy::new(hoi4_data::get_triggers);
+static EFFECTS: Lazy<HashMap<&'static str, hoi4_data::HOI4Entity>> =
+    Lazy::new(hoi4_data::get_effects);
+static MODIFIERS: Lazy<HashMap<&'static str, hoi4_data::HOI4Entity>> =
+    Lazy::new(hoi4_data::get_modifiers);
 static SCOPES: Lazy<Vec<&'static str>> = Lazy::new(hoi4_data::get_scopes);
 static LOC_COMMANDS: Lazy<Vec<&'static str>> = Lazy::new(hoi4_data::get_loc_commands);
 
@@ -56,7 +59,10 @@ static LOC_COMMANDS: Lazy<Vec<&'static str>> = Lazy::new(hoi4_data::get_loc_comm
 /// This is required because LSP uses UTF-16 positions, but Rust strings are UTF-8
 #[allow(dead_code)]
 fn byte_offset_to_utf16(s: &str, byte_offset: usize) -> u32 {
-    s.chars().take(byte_offset).map(|c| c.len_utf16()).sum::<usize>() as u32
+    s.chars()
+        .take(byte_offset)
+        .map(|c| c.len_utf16())
+        .sum::<usize>() as u32
 }
 
 /// Get the UTF-16 length of a string
@@ -124,7 +130,8 @@ impl LanguageServer for Backend {
                     *gp = Some(path.to_string());
                 }
             }
-            if let Some(ignore_list) = options.get("ignoreLocalization").and_then(|v| v.as_array()) {
+            if let Some(ignore_list) = options.get("ignoreLocalization").and_then(|v| v.as_array())
+            {
                 let mut patterns = Vec::new();
                 for val in ignore_list {
                     if let Some(s) = val.as_str() {
@@ -148,7 +155,10 @@ impl LanguageServer for Backend {
                 let mut ig = self.ignored_files_regex.write().await;
                 *ig = patterns;
             }
-            if let Some(enabled) = options.get("workspaceScanEnabled").and_then(|v| v.as_bool()) {
+            if let Some(enabled) = options
+                .get("workspaceScanEnabled")
+                .and_then(|v| v.as_bool())
+            {
                 let mut ws = self.workspace_scan_enabled.write().await;
                 *ws = enabled;
             }
@@ -232,7 +242,9 @@ impl LanguageServer for Backend {
         let gp = self.game_path.read().await;
         if let Some(ref path) = *gp {
             roots.insert(0, std::path::PathBuf::from(path));
-            self.client.log_message(MessageType::INFO, format!("Using HOI4 game path: {}", path)).await;
+            self.client
+                .log_message(MessageType::INFO, format!("Using HOI4 game path: {}", path))
+                .await;
         }
 
         tokio::join!(
@@ -278,7 +290,10 @@ impl LanguageServer for Backend {
         if let Some(settings) = params.settings.as_object() {
             if let Some(hoi4) = settings.get("hoi4").and_then(|v| v.as_object()) {
                 if let Some(validator) = hoi4.get("validator").and_then(|v| v.as_object()) {
-                    if let Some(ignore_list) = validator.get("ignoreLocalization").and_then(|v| v.as_array()) {
+                    if let Some(ignore_list) = validator
+                        .get("ignoreLocalization")
+                        .and_then(|v| v.as_array())
+                    {
                         let mut patterns = Vec::new();
                         for val in ignore_list {
                             if let Some(s) = val.as_str() {
@@ -290,7 +305,9 @@ impl LanguageServer for Backend {
                         let mut ig = self.ignored_loc_regex.write().await;
                         *ig = patterns;
                     }
-                    if let Some(ignore_list) = validator.get("ignoreFiles").and_then(|v| v.as_array()) {
+                    if let Some(ignore_list) =
+                        validator.get("ignoreFiles").and_then(|v| v.as_array())
+                    {
                         let mut patterns = Vec::new();
                         for val in ignore_list {
                             if let Some(s) = val.as_str() {
@@ -302,7 +319,12 @@ impl LanguageServer for Backend {
                         let mut ig = self.ignored_files_regex.write().await;
                         *ig = patterns;
                     }
-                    if let Some(enabled) = validator.get("workspaceScan").and_then(|v| v.as_object()).and_then(|v| v.get("enabled")).and_then(|v| v.as_bool()) {
+                    if let Some(enabled) = validator
+                        .get("workspaceScan")
+                        .and_then(|v| v.as_object())
+                        .and_then(|v| v.get("enabled"))
+                        .and_then(|v| v.as_bool())
+                    {
                         let mut ws = self.workspace_scan_enabled.write().await;
                         *ws = enabled;
                     }
@@ -312,7 +334,10 @@ impl LanguageServer for Backend {
                         let mut st = self.styling_enabled.write().await;
                         *st = enabled;
                     }
-                    if let Some(enabled) = styling.get("cosmeticLocalizationIndentation").and_then(|v| v.as_bool()) {
+                    if let Some(enabled) = styling
+                        .get("cosmeticLocalizationIndentation")
+                        .and_then(|v| v.as_bool())
+                    {
                         let mut ci = self.cosmetic_loc_indent.write().await;
                         *ci = enabled;
                     }
@@ -328,8 +353,10 @@ impl LanguageServer for Backend {
     }
 
     async fn did_open(&self, params: DidOpenTextDocumentParams) {
-        self.documents
-            .insert(params.text_document.uri.to_string(), params.text_document.text);
+        self.documents.insert(
+            params.text_document.uri.to_string(),
+            params.text_document.text,
+        );
         self.validate_document(params.text_document.uri).await;
     }
 
@@ -352,52 +379,68 @@ impl LanguageServer for Backend {
             return Ok(None);
         }
 
-        if let Some(content) = self.documents.get(&uri) {
-            let (script, _) = parser::parse_script(&content);
-            let schema = self.schema.read().await;
-            let mut keywords = HashSet::new();
-            for k in schema.triggers.keys() { keywords.insert(k.clone()); }
-            for k in schema.effects.keys() { keywords.insert(k.clone()); }
-            for k in schema.links.keys() { keywords.insert(k.clone()); }
+        match self.documents.get(&uri) {
+            Some(content) => {
+                let (script, _) = parser::parse_script(&content);
+                let schema = self.schema.read().await;
+                let mut keywords = HashSet::new();
+                for k in schema.triggers.keys() {
+                    keywords.insert(k.clone());
+                }
+                for k in schema.effects.keys() {
+                    keywords.insert(k.clone());
+                }
+                for k in schema.links.keys() {
+                    keywords.insert(k.clone());
+                }
 
-            for k in TRIGGERS.keys() { keywords.insert(k.to_string()); }
-            for k in EFFECTS.keys() { keywords.insert(k.to_string()); }
-            for k in MODIFIERS.keys() { keywords.insert(k.to_string()); }
-            for k in SCOPES.iter() { 
-                keywords.insert(k.to_string()); 
-                keywords.insert(k.to_lowercase());
+                for k in TRIGGERS.keys() {
+                    keywords.insert(k.to_string());
+                }
+                for k in EFFECTS.keys() {
+                    keywords.insert(k.to_string());
+                }
+                for k in MODIFIERS.keys() {
+                    keywords.insert(k.to_string());
+                }
+                for k in SCOPES.iter() {
+                    keywords.insert(k.to_string());
+                    keywords.insert(k.to_lowercase());
+                }
+
+                // Add hardcoded achievement keywords
+                keywords.insert("unique_id".to_string());
+                keywords.insert("possible".to_string());
+                keywords.insert("happened".to_string());
+                keywords.insert("ribbon".to_string());
+                keywords.insert("frames".to_string());
+                keywords.insert("colors".to_string());
+
+                // Character keywords
+                keywords.insert("characters".to_string());
+                keywords.insert("advisor".to_string());
+                keywords.insert("country_leader".to_string());
+                keywords.insert("corps_commander".to_string());
+                keywords.insert("field_marshal".to_string());
+                keywords.insert("navy_leader".to_string());
+                keywords.insert("scientist".to_string());
+                keywords.insert("portraits".to_string());
+                keywords.insert("traits".to_string());
+                keywords.insert("skill".to_string());
+
+                Ok(Some(semantic_tokens::get_semantic_tokens(
+                    &script, &keywords,
+                )))
             }
-
-            // Add hardcoded achievement keywords
-            keywords.insert("unique_id".to_string());
-            keywords.insert("possible".to_string());
-            keywords.insert("happened".to_string());
-            keywords.insert("ribbon".to_string());
-            keywords.insert("frames".to_string());
-            keywords.insert("colors".to_string());
-
-            // Character keywords
-            keywords.insert("characters".to_string());
-            keywords.insert("advisor".to_string());
-            keywords.insert("country_leader".to_string());
-            keywords.insert("corps_commander".to_string());
-            keywords.insert("field_marshal".to_string());
-            keywords.insert("navy_leader".to_string());
-            keywords.insert("scientist".to_string());
-            keywords.insert("portraits".to_string());
-            keywords.insert("traits".to_string());
-            keywords.insert("skill".to_string());
-
-            Ok(Some(semantic_tokens::get_semantic_tokens(&script, &keywords)))
-        } else {
-            Ok(None)
+            _ => Ok(None),
         }
     }
 
     async fn document_color(&self, params: DocumentColorParams) -> Result<Vec<ColorInformation>> {
         let uri = params.text_document.uri.to_string();
         if let Some(content) = self.documents.get(&uri) {
-            { let (script, _) = parser::parse_script(&content);
+            {
+                let (script, _) = parser::parse_script(&content);
                 return Ok(find_colors(&script));
             }
         }
@@ -410,12 +453,13 @@ impl LanguageServer for Backend {
     ) -> Result<Vec<ColorPresentation>> {
         // Determine if this is a color_ui field by checking the document context
         let uri = params.text_document.uri.to_string();
-        let is_ui = if let Some(content) = self.documents.get(&uri) {
-            // Simple heuristic: check if "color_ui" appears near the color range
-            // This is a basic implementation - could be improved with AST analysis
-            content.contains("color_ui")
-        } else {
-            false
+        let is_ui = match self.documents.get(&uri) {
+            Some(content) => {
+                // Simple heuristic: check if "color_ui" appears near the color range
+                // This is a basic implementation - could be improved with AST analysis
+                content.contains("color_ui")
+            }
+            _ => false,
         };
 
         // Get color modifiers from defines
@@ -431,17 +475,17 @@ impl LanguageServer for Backend {
         ))
     }
 
-    async fn formatting(
-        &self,
-        params: DocumentFormattingParams,
-    ) -> Result<Option<Vec<TextEdit>>> {
+    async fn formatting(&self, params: DocumentFormattingParams) -> Result<Option<Vec<TextEdit>>> {
         let uri = params.text_document.uri.to_string();
         if let Some(content) = self.documents.get(&uri) {
             if uri.ends_with(".yml") {
                 let cosmetic_indent = *self.cosmetic_loc_indent.read().await;
                 let formatted = loc_parser::format_loc_file(&content, cosmetic_indent);
                 let full_range = Range {
-                    start: Position { line: 0, character: 0 },
+                    start: Position {
+                        line: 0,
+                        character: 0,
+                    },
                     end: Position {
                         line: content.lines().count() as u32,
                         character: content.lines().last().unwrap_or("").len() as u32,
@@ -457,7 +501,11 @@ impl LanguageServer for Backend {
     }
 
     async fn hover(&self, params: HoverParams) -> Result<Option<Hover>> {
-        let uri = params.text_document_position_params.text_document.uri.to_string();
+        let uri = params
+            .text_document_position_params
+            .text_document
+            .uri
+            .to_string();
         let position = params.text_document_position_params.position;
 
         if let Some(content) = self.documents.get(&uri) {
@@ -466,7 +514,10 @@ impl LanguageServer for Backend {
                 let global_loc = self.localization.read().await;
                 for entry in locs.values() {
                     // Check key
-                    if position.line == entry.range.start_line && position.character >= entry.range.start_col && position.character <= entry.range.end_col {
+                    if position.line == entry.range.start_line
+                        && position.character >= entry.range.start_col
+                        && position.character <= entry.range.end_col
+                    {
                         let mut hover_text = format!("### 🌐 Localization: {}\n\n", entry.key);
 
                         // Add achievement context
@@ -474,14 +525,36 @@ impl LanguageServer for Backend {
                         if entry.key.ends_with("_NAME") {
                             let ach_id = &entry.key[..entry.key.len() - 5];
                             if let Some(ach) = achievements.get(ach_id) {
-                                hover_text.push_str(&format!("**Context:** Name for {} `{}`\n\n", if ach.is_ribbon { "Ribbon" } else { "Achievement" }, ach_id));
-                                hover_text.push_str(&format!("Defined in: {}\n\n---\n\n", self.make_file_link(&ach.path)));
+                                hover_text.push_str(&format!(
+                                    "**Context:** Name for {} `{}`\n\n",
+                                    if ach.is_ribbon {
+                                        "Ribbon"
+                                    } else {
+                                        "Achievement"
+                                    },
+                                    ach_id
+                                ));
+                                hover_text.push_str(&format!(
+                                    "Defined in: {}\n\n---\n\n",
+                                    self.make_file_link(&ach.path)
+                                ));
                             }
                         } else if entry.key.ends_with("_DESC") {
                             let ach_id = &entry.key[..entry.key.len() - 5];
                             if let Some(ach) = achievements.get(ach_id) {
-                                hover_text.push_str(&format!("**Context:** Description for {} `{}`\n\n", if ach.is_ribbon { "Ribbon" } else { "Achievement" }, ach_id));
-                                hover_text.push_str(&format!("Defined in: {}\n\n---\n\n", self.make_file_link(&ach.path)));
+                                hover_text.push_str(&format!(
+                                    "**Context:** Description for {} `{}`\n\n",
+                                    if ach.is_ribbon {
+                                        "Ribbon"
+                                    } else {
+                                        "Achievement"
+                                    },
+                                    ach_id
+                                ));
+                                hover_text.push_str(&format!(
+                                    "Defined in: {}\n\n---\n\n",
+                                    self.make_file_link(&ach.path)
+                                ));
                             }
                         }
 
@@ -497,8 +570,11 @@ impl LanguageServer for Backend {
                             range: Some(ast_range_to_lsp(&entry.range)),
                         }));
                     }
-                     // Check value
-                    if position.line == entry.range.start_line && position.character >= entry.value_start_col && position.character <= entry.value_start_col + entry.value.len() as u32 {
+                    // Check value
+                    if position.line == entry.range.start_line
+                        && position.character >= entry.value_start_col
+                        && position.character <= entry.value_start_col + entry.value.len() as u32
+                    {
                         let mut hover_text = format!("### 👁️ Localization Preview\n\n");
                         hover_text.push_str(&paradox_to_markdown(&entry.value, Some(&global_loc)));
 
@@ -508,8 +584,14 @@ impl LanguageServer for Backend {
                                 value: hover_text,
                             }),
                             range: Some(Range {
-                                start: Position { line: entry.range.start_line, character: entry.value_start_col },
-                                end: Position { line: entry.range.start_line, character: entry.value_start_col + entry.value.len() as u32 },
+                                start: Position {
+                                    line: entry.range.start_line,
+                                    character: entry.value_start_col,
+                                },
+                                end: Position {
+                                    line: entry.range.start_line,
+                                    character: entry.value_start_col + entry.value.len() as u32,
+                                },
                             }),
                         }));
                     }
@@ -539,32 +621,59 @@ impl LanguageServer for Backend {
                                     let states = self.states.read().await;
                                     if let Some(state) = states.get(&state_id) {
                                         let loc = self.localization.read().await;
-                                        let state_name = if let Some(loc_entry) = loc.get(&state.name) {
-                                            loc_entry.value.clone()
-                                        } else {
-                                            state.name.clone()
-                                        };
-                                        hover_text.push_str(&format!("**Hovered:** State ID `{}` (🗺️ {})\n", state_id, state_name));
+                                        let state_name =
+                                            if let Some(loc_entry) = loc.get(&state.name) {
+                                                loc_entry.value.clone()
+                                            } else {
+                                                state.name.clone()
+                                            };
+                                        hover_text.push_str(&format!(
+                                            "**Hovered:** State ID `{}` (🗺️ {})\n",
+                                            state_id, state_name
+                                        ));
                                     } else {
-                                        hover_text.push_str(&format!("**Hovered:** State ID `{}`\n", state_id));
+                                        hover_text.push_str(&format!(
+                                            "**Hovered:** State ID `{}`\n",
+                                            state_id
+                                        ));
                                     }
                                 }
-                            },
-                            Some(1) => { hover_text.push_str(&format!("**Hovered:** Building ID `{}`\n", parts[1])); },
-                            Some(2) => { hover_text.push_str(&format!("**Hovered:** X Position `{}`\n", parts[2])); },
-                            Some(3) => { hover_text.push_str(&format!("**Hovered:** Y Position `{}`\n", parts[3])); },
-                            Some(4) => { hover_text.push_str(&format!("**Hovered:** Z Position `{}`\n", parts[4])); },
-                            Some(5) => { hover_text.push_str(&format!("**Hovered:** Rotation `{}`\n", parts[5])); },
+                            }
+                            Some(1) => {
+                                hover_text.push_str(&format!(
+                                    "**Hovered:** Building ID `{}`\n",
+                                    parts[1]
+                                ));
+                            }
+                            Some(2) => {
+                                hover_text
+                                    .push_str(&format!("**Hovered:** X Position `{}`\n", parts[2]));
+                            }
+                            Some(3) => {
+                                hover_text
+                                    .push_str(&format!("**Hovered:** Y Position `{}`\n", parts[3]));
+                            }
+                            Some(4) => {
+                                hover_text
+                                    .push_str(&format!("**Hovered:** Z Position `{}`\n", parts[4]));
+                            }
+                            Some(5) => {
+                                hover_text
+                                    .push_str(&format!("**Hovered:** Rotation `{}`\n", parts[5]));
+                            }
                             Some(6) => {
                                 if let Ok(prov_id) = parts[6].parse::<u32>() {
                                     let provs = self.provinces.read().await;
                                     if let Some(province) = provs.get(&prov_id) {
                                         hover_text.push_str(&format!("**Hovered:** Adjacent Sea Province `{}` (Coastal: {}, Terrain: {})\n", prov_id, province.is_coastal, province.terrain));
                                     } else {
-                                        hover_text.push_str(&format!("**Hovered:** Adjacent Sea Province `{}`\n", prov_id));
+                                        hover_text.push_str(&format!(
+                                            "**Hovered:** Adjacent Sea Province `{}`\n",
+                                            prov_id
+                                        ));
                                     }
                                 }
-                            },
+                            }
                             _ => {}
                         }
                     }
@@ -603,16 +712,37 @@ impl LanguageServer for Backend {
                                     if let Some(province) = provs.get(&prov_id) {
                                         hover_text.push_str(&format!("**Hovered:** Province ID `{}` (Coastal: {}, Terrain: {})\n", prov_id, province.is_coastal, province.terrain));
                                     } else {
-                                        hover_text.push_str(&format!("**Hovered:** Province ID `{}`\n", prov_id));
+                                        hover_text.push_str(&format!(
+                                            "**Hovered:** Province ID `{}`\n",
+                                            prov_id
+                                        ));
                                     }
                                 }
-                            },
-                            Some(1) => { hover_text.push_str(&format!("**Hovered:** Stack Type `{}`\n", parts[1])); },
-                            Some(2) => { hover_text.push_str(&format!("**Hovered:** X Position `{}`\n", parts[2])); },
-                            Some(3) => { hover_text.push_str(&format!("**Hovered:** Y Position `{}`\n", parts[3])); },
-                            Some(4) => { hover_text.push_str(&format!("**Hovered:** Z Position `{}`\n", parts[4])); },
-                            Some(5) => { hover_text.push_str(&format!("**Hovered:** Rotation `{}`\n", parts[5])); },
-                            Some(6) => { hover_text.push_str(&format!("**Hovered:** Offset `{}`\n", parts[6])); },
+                            }
+                            Some(1) => {
+                                hover_text
+                                    .push_str(&format!("**Hovered:** Stack Type `{}`\n", parts[1]));
+                            }
+                            Some(2) => {
+                                hover_text
+                                    .push_str(&format!("**Hovered:** X Position `{}`\n", parts[2]));
+                            }
+                            Some(3) => {
+                                hover_text
+                                    .push_str(&format!("**Hovered:** Y Position `{}`\n", parts[3]));
+                            }
+                            Some(4) => {
+                                hover_text
+                                    .push_str(&format!("**Hovered:** Z Position `{}`\n", parts[4]));
+                            }
+                            Some(5) => {
+                                hover_text
+                                    .push_str(&format!("**Hovered:** Rotation `{}`\n", parts[5]));
+                            }
+                            Some(6) => {
+                                hover_text
+                                    .push_str(&format!("**Hovered:** Offset `{}`\n", parts[6]));
+                            }
                             _ => {}
                         }
                     }
@@ -650,21 +780,39 @@ impl LanguageServer for Backend {
                                     let regions = self.strategic_regions.read().await;
                                     if let Some(region) = regions.get(&region_id) {
                                         let loc = self.localization.read().await;
-                                        let region_name = if let Some(loc_entry) = loc.get(&region.name) {
-                                            loc_entry.value.clone()
-                                        } else {
-                                            region.name.clone()
-                                        };
-                                        hover_text.push_str(&format!("**Hovered:** Strategic Region ID `{}` (🗺️ {})\n", region_id, region_name));
+                                        let region_name =
+                                            if let Some(loc_entry) = loc.get(&region.name) {
+                                                loc_entry.value.clone()
+                                            } else {
+                                                region.name.clone()
+                                            };
+                                        hover_text.push_str(&format!(
+                                            "**Hovered:** Strategic Region ID `{}` (🗺️ {})\n",
+                                            region_id, region_name
+                                        ));
                                     } else {
-                                        hover_text.push_str(&format!("**Hovered:** Strategic Region ID `{}`\n", region_id));
+                                        hover_text.push_str(&format!(
+                                            "**Hovered:** Strategic Region ID `{}`\n",
+                                            region_id
+                                        ));
                                     }
                                 }
-                            },
-                            Some(1) => { hover_text.push_str(&format!("**Hovered:** X Position `{}`\n", parts[1])); },
-                            Some(2) => { hover_text.push_str(&format!("**Hovered:** Y Position `{}`\n", parts[2])); },
-                            Some(3) => { hover_text.push_str(&format!("**Hovered:** Z Position `{}`\n", parts[3])); },
-                            Some(4) => { hover_text.push_str(&format!("**Hovered:** Size `{}`\n", parts[4])); },
+                            }
+                            Some(1) => {
+                                hover_text
+                                    .push_str(&format!("**Hovered:** X Position `{}`\n", parts[1]));
+                            }
+                            Some(2) => {
+                                hover_text
+                                    .push_str(&format!("**Hovered:** Y Position `{}`\n", parts[2]));
+                            }
+                            Some(3) => {
+                                hover_text
+                                    .push_str(&format!("**Hovered:** Z Position `{}`\n", parts[3]));
+                            }
+                            Some(4) => {
+                                hover_text.push_str(&format!("**Hovered:** Size `{}`\n", parts[4]));
+                            }
                             _ => {}
                         }
                     }
@@ -679,7 +827,9 @@ impl LanguageServer for Backend {
                 }
                 return Ok(None);
             } else if uri.ends_with("supply_nodes.txt") {
-                let hover_text = String::from("### 📦 Supply Node Definition\n\n`Level (integer) Province ID (integer)`");
+                let hover_text = String::from(
+                    "### 📦 Supply Node Definition\n\n`Level (integer) Province ID (integer)`",
+                );
                 return Ok(Some(Hover {
                     contents: HoverContents::Markup(MarkupContent {
                         kind: MarkupKind::Markdown,
@@ -688,7 +838,9 @@ impl LanguageServer for Backend {
                     range: None,
                 }));
             } else if uri.ends_with("railways.txt") {
-                let hover_text = String::from("### 🚂 Railway Definition\n\n`Level (integer) Amount of provinces (integer) List of provinces (space-separated integers)`");
+                let hover_text = String::from(
+                    "### 🚂 Railway Definition\n\n`Level (integer) Amount of provinces (integer) List of provinces (space-separated integers)`",
+                );
                 return Ok(Some(Hover {
                     contents: HoverContents::Markup(MarkupContent {
                         kind: MarkupKind::Markdown,
@@ -718,16 +870,56 @@ impl LanguageServer for Backend {
                         }
 
                         match hovered_index {
-                            Some(0) => { hover_text.push_str(&format!("**Hovered:** Start Province ID `{}`\n", parts[0])); },
-                            Some(1) => { hover_text.push_str(&format!("**Hovered:** End Province ID `{}`\n", parts[1])); },
-                            Some(2) => { hover_text.push_str(&format!("**Hovered:** Adjacency Type `{}`\n", parts[2])); },
-                            Some(3) => { hover_text.push_str(&format!("**Hovered:** Through Province ID `{}`\n", parts[3])); },
-                            Some(4) => { hover_text.push_str(&format!("**Hovered:** Starting X `{}`\n", parts[4])); },
-                            Some(5) => { hover_text.push_str(&format!("**Hovered:** Starting Y `{}`\n", parts[5])); },
-                            Some(6) => { hover_text.push_str(&format!("**Hovered:** Ending X `{}`\n", parts[6])); },
-                            Some(7) => { hover_text.push_str(&format!("**Hovered:** Ending Y `{}`\n", parts[7])); },
-                            Some(8) => { hover_text.push_str(&format!("**Hovered:** Adjacency Rule `{}`\n", parts[8])); },
-                            Some(9) => { hover_text.push_str(&format!("**Hovered:** Comment `{}`\n", parts[9])); },
+                            Some(0) => {
+                                hover_text.push_str(&format!(
+                                    "**Hovered:** Start Province ID `{}`\n",
+                                    parts[0]
+                                ));
+                            }
+                            Some(1) => {
+                                hover_text.push_str(&format!(
+                                    "**Hovered:** End Province ID `{}`\n",
+                                    parts[1]
+                                ));
+                            }
+                            Some(2) => {
+                                hover_text.push_str(&format!(
+                                    "**Hovered:** Adjacency Type `{}`\n",
+                                    parts[2]
+                                ));
+                            }
+                            Some(3) => {
+                                hover_text.push_str(&format!(
+                                    "**Hovered:** Through Province ID `{}`\n",
+                                    parts[3]
+                                ));
+                            }
+                            Some(4) => {
+                                hover_text
+                                    .push_str(&format!("**Hovered:** Starting X `{}`\n", parts[4]));
+                            }
+                            Some(5) => {
+                                hover_text
+                                    .push_str(&format!("**Hovered:** Starting Y `{}`\n", parts[5]));
+                            }
+                            Some(6) => {
+                                hover_text
+                                    .push_str(&format!("**Hovered:** Ending X `{}`\n", parts[6]));
+                            }
+                            Some(7) => {
+                                hover_text
+                                    .push_str(&format!("**Hovered:** Ending Y `{}`\n", parts[7]));
+                            }
+                            Some(8) => {
+                                hover_text.push_str(&format!(
+                                    "**Hovered:** Adjacency Rule `{}`\n",
+                                    parts[8]
+                                ));
+                            }
+                            Some(9) => {
+                                hover_text
+                                    .push_str(&format!("**Hovered:** Comment `{}`\n", parts[9]));
+                            }
                             _ => {}
                         }
                     }
@@ -763,14 +955,44 @@ impl LanguageServer for Backend {
                         }
 
                         match hovered_index {
-                            Some(0) => { hover_text.push_str(&format!("**Hovered:** Province ID `{}`\n", parts[0])); },
-                            Some(1) => { hover_text.push_str(&format!("**Hovered:** Red `{}`\n", parts[1])); },
-                            Some(2) => { hover_text.push_str(&format!("**Hovered:** Green `{}`\n", parts[2])); },
-                            Some(3) => { hover_text.push_str(&format!("**Hovered:** Blue `{}`\n", parts[3])); },
-                            Some(4) => { hover_text.push_str(&format!("**Hovered:** Province Type `{}` (land, sea, or lake)\n", parts[4])); },
-                            Some(5) => { hover_text.push_str(&format!("**Hovered:** Coastal Status `{}` (true or false)\n", parts[5])); },
-                            Some(6) => { hover_text.push_str(&format!("**Hovered:** Terrain `{}`\n", parts[6])); },
-                            Some(7) => { hover_text.push_str(&format!("**Hovered:** Continent ID `{}`\n", parts[7])); },
+                            Some(0) => {
+                                hover_text.push_str(&format!(
+                                    "**Hovered:** Province ID `{}`\n",
+                                    parts[0]
+                                ));
+                            }
+                            Some(1) => {
+                                hover_text.push_str(&format!("**Hovered:** Red `{}`\n", parts[1]));
+                            }
+                            Some(2) => {
+                                hover_text
+                                    .push_str(&format!("**Hovered:** Green `{}`\n", parts[2]));
+                            }
+                            Some(3) => {
+                                hover_text.push_str(&format!("**Hovered:** Blue `{}`\n", parts[3]));
+                            }
+                            Some(4) => {
+                                hover_text.push_str(&format!(
+                                    "**Hovered:** Province Type `{}` (land, sea, or lake)\n",
+                                    parts[4]
+                                ));
+                            }
+                            Some(5) => {
+                                hover_text.push_str(&format!(
+                                    "**Hovered:** Coastal Status `{}` (true or false)\n",
+                                    parts[5]
+                                ));
+                            }
+                            Some(6) => {
+                                hover_text
+                                    .push_str(&format!("**Hovered:** Terrain `{}`\n", parts[6]));
+                            }
+                            Some(7) => {
+                                hover_text.push_str(&format!(
+                                    "**Hovered:** Continent ID `{}`\n",
+                                    parts[7]
+                                ));
+                            }
                             _ => {}
                         }
                     }
@@ -788,10 +1010,13 @@ impl LanguageServer for Backend {
                 return Ok(None); // Skip CSV files for script hover
             }
 
-            { let (script, _) = parser::parse_script(&content);
+            {
+                let (script, _) = parser::parse_script(&content);
                 let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
                 let achievements = self.achievements.read().await;
-                if let Some((identifier, final_scopes, assigned_value)) = find_identifier_at(&script, position, &mut scope_stack, &achievements) {
+                if let Some((identifier, final_scopes, assigned_value)) =
+                    find_identifier_at(&script, position, &mut scope_stack, &achievements)
+                {
                     let mut hover_text = String::new();
 
                     fn push_section(full_text: &mut String, section: &str) {
@@ -802,19 +1027,25 @@ impl LanguageServer for Backend {
                     }
 
                     // Show scope stack
-                    let is_music = final_scopes.iter().any(|s| *s == scope::Scope::MusicTrack || *s == scope::Scope::MusicStation);
-                    let is_achievement = final_scopes.iter().any(|s| *s == scope::Scope::Achievement || *s == scope::Scope::Ribbon);
+                    let is_music = final_scopes.iter().any(|s| {
+                        *s == scope::Scope::MusicTrack || *s == scope::Scope::MusicStation
+                    });
+                    let is_achievement = final_scopes
+                        .iter()
+                        .any(|s| *s == scope::Scope::Achievement || *s == scope::Scope::Ribbon);
 
-                    let mut scope_text = String::from(if is_music { 
-                        "### 🎵 Music Definition Stack\n" 
+                    let mut scope_text = String::from(if is_music {
+                        "### 🎵 Music Definition Stack\n"
                     } else if is_achievement {
                         "### 🏆 Achievement Context Stack\n"
-                    } else { 
-                        "### 🔍 Scope Stack\n" 
+                    } else {
+                        "### 🔍 Scope Stack\n"
                     });
 
                     for (i, s) in final_scopes.iter().enumerate() {
-                        if i > 0 { scope_text.push_str(" > "); }
+                        if i > 0 {
+                            scope_text.push_str(" > ");
+                        }
                         scope_text.push_str(s.as_str());
                     }
                     push_section(&mut hover_text, &scope_text);
@@ -831,19 +1062,33 @@ impl LanguageServer for Backend {
 
                         let name_key = format!("{}_NAME", identifier);
                         if let Some(name_loc) = loc.get(&name_key) {
-                            ach_text.push_str(&format!("\n**Name (`{}`):** {}\n", name_key, paradox_to_markdown(&name_loc.value, Some(&loc))));
+                            ach_text.push_str(&format!(
+                                "\n**Name (`{}`):** {}\n",
+                                name_key,
+                                paradox_to_markdown(&name_loc.value, Some(&loc))
+                            ));
                         } else {
                             ach_text.push_str(&format!("\n**Name:** *Missing `{}`*\n", name_key));
                         }
 
                         let desc_key = format!("{}_DESC", identifier);
                         if let Some(desc_loc) = loc.get(&desc_key) {
-                            ach_text.push_str(&format!("\n**Description (`{}`):** {}\n", desc_key, paradox_to_markdown(&desc_loc.value, Some(&loc))));
+                            ach_text.push_str(&format!(
+                                "\n**Description (`{}`):** {}\n",
+                                desc_key,
+                                paradox_to_markdown(&desc_loc.value, Some(&loc))
+                            ));
                         } else {
-                            ach_text.push_str(&format!("\n**Description:** *Missing `{}`*\n", desc_key));
+                            ach_text.push_str(&format!(
+                                "\n**Description:** *Missing `{}`*\n",
+                                desc_key
+                            ));
                         }
 
-                        ach_text.push_str(&format!("\n---\nDefined in: {}", self.make_file_link(&achievement.path)));
+                        ach_text.push_str(&format!(
+                            "\n---\nDefined in: {}",
+                            self.make_file_link(&achievement.path)
+                        ));
                         push_section(&mut hover_text, &ach_text);
                     }
 
@@ -861,11 +1106,11 @@ impl LanguageServer for Backend {
                             // To prevent false positives, we only show this if the identifier is explicitly related to states
                             // Or if the identifier *is* the number (meaning it's an element in an array, like in any_state_of)
                             let ident_lower = identifier.to_lowercase();
-                            let is_state_key = ident_lower.contains("state") || 
-                                               ident_lower.contains("capital") || 
-                                               ident_lower == "add_core_of" || 
-                                               ident_lower == "add_claim_by" || 
-                                               identifier.parse::<u32>().is_ok();
+                            let is_state_key = ident_lower.contains("state")
+                                || ident_lower.contains("capital")
+                                || ident_lower == "add_core_of"
+                                || ident_lower == "add_claim_by"
+                                || identifier.parse::<u32>().is_ok();
 
                             if is_state_key {
                                 let loc = self.localization.read().await;
@@ -875,22 +1120,40 @@ impl LanguageServer for Backend {
                                     state.name.clone()
                                 };
 
-                                push_section(&mut hover_text, &format!("### 🗺️ State: {}\n\nID: `{}`\n\nDefined in: {}", state_name, id, self.make_file_link(&state.path)));
+                                push_section(
+                                    &mut hover_text,
+                                    &format!(
+                                        "### 🗺️ State: {}\n\nID: `{}`\n\nDefined in: {}",
+                                        state_name,
+                                        id,
+                                        self.make_file_link(&state.path)
+                                    ),
+                                );
                             }
                         }
 
                         let provinces = self.provinces.read().await;
                         if let Some(province) = provinces.get(&id) {
                             let ident_lower = identifier.to_lowercase();
-                            let is_province_key = ident_lower.contains("province") || identifier.parse::<u32>().is_ok();
+                            let is_province_key = ident_lower.contains("province")
+                                || identifier.parse::<u32>().is_ok();
 
                             if is_province_key {
                                 let mut text = format!("### 📍 Province: {}\n\n", id);
                                 text.push_str(&format!("**Terrain:** `{}`\n", province.terrain));
                                 text.push_str(&format!("**Type:** `{}`\n", province.prov_type));
-                                text.push_str(&format!("**Coastal:** {}\n", if province.is_coastal { "Yes" } else { "No" }));
-                                text.push_str(&format!("**Continent:** `{}`\n", province.continent));
-                                text.push_str(&format!("**Color (RGB):** `{}, {}, {}`\n", province.rgb.0, province.rgb.1, province.rgb.2));
+                                text.push_str(&format!(
+                                    "**Coastal:** {}\n",
+                                    if province.is_coastal { "Yes" } else { "No" }
+                                ));
+                                text.push_str(&format!(
+                                    "**Continent:** `{}`\n",
+                                    province.continent
+                                ));
+                                text.push_str(&format!(
+                                    "**Color (RGB):** `{}, {}, {}`\n",
+                                    province.rgb.0, province.rgb.1, province.rgb.2
+                                ));
                                 push_section(&mut hover_text, &text);
                             }
                         }
@@ -898,7 +1161,8 @@ impl LanguageServer for Backend {
                         let regions = self.strategic_regions.read().await;
                         if let Some(region) = regions.get(&id) {
                             let ident_lower = identifier.to_lowercase();
-                            let is_region_key = ident_lower.contains("strategic_region") || identifier.parse::<u32>().is_ok();
+                            let is_region_key = ident_lower.contains("strategic_region")
+                                || identifier.parse::<u32>().is_ok();
 
                             if is_region_key {
                                 let loc = self.localization.read().await;
@@ -908,15 +1172,24 @@ impl LanguageServer for Backend {
                                     region.name.clone()
                                 };
 
-                                let mut text = format!("### 🗺️ Strategic Region: {}\n\nID: `{}`\n\n", region_name, id);
+                                let mut text = format!(
+                                    "### 🗺️ Strategic Region: {}\n\nID: `{}`\n\n",
+                                    region_name, id
+                                );
                                 if let Some(weather) = &region.weather {
                                     text.push_str(&format!("**Weather:** `{}`\n", weather));
                                 }
                                 if let Some(naval) = &region.naval_terrain {
                                     text.push_str(&format!("**Naval Terrain:** `{}`\n", naval));
                                 }
-                                text.push_str(&format!("**Provinces:** `{}`\n", region.provinces.len()));
-                                text.push_str(&format!("\nDefined in: {}", self.make_file_link(&region.path)));
+                                text.push_str(&format!(
+                                    "**Provinces:** `{}`\n",
+                                    region.provinces.len()
+                                ));
+                                text.push_str(&format!(
+                                    "\nDefined in: {}",
+                                    self.make_file_link(&region.path)
+                                ));
                                 push_section(&mut hover_text, &text);
                             }
                         }
@@ -924,7 +1197,12 @@ impl LanguageServer for Backend {
 
                     // Check triggers/effects/links
                     let schema = self.schema.read().await;
-                    if let Some(rule) = schema.triggers.get(&identifier).or_else(|| schema.effects.get(&identifier)).or_else(|| schema.links.get(&identifier)) {
+                    if let Some(rule) = schema
+                        .triggers
+                        .get(&identifier)
+                        .or_else(|| schema.effects.get(&identifier))
+                        .or_else(|| schema.links.get(&identifier))
+                    {
                         let mut text = format!("### 📜 Rule: {}\n", identifier);
                         if let Some(desc) = &rule.description {
                             text.push_str(&format!("\n{}\n", desc));
@@ -932,13 +1210,31 @@ impl LanguageServer for Backend {
                         text.push_str(&format!("\nExpected Value: `{:?}`", rule.value_type));
                         push_section(&mut hover_text, &text);
                     } else if let Some(entity) = TRIGGERS.get(identifier.as_str()) {
-                        push_section(&mut hover_text, &format!("### 🔍 Trigger: {}\n\n{}", entity.name, entity.description));
+                        push_section(
+                            &mut hover_text,
+                            &format!("### 🔍 Trigger: {}\n\n{}", entity.name, entity.description),
+                        );
                     } else if let Some(entity) = EFFECTS.get(identifier.as_str()) {
-                        push_section(&mut hover_text, &format!("### ⚡ Effect: {}\n\n{}", entity.name, entity.description));
+                        push_section(
+                            &mut hover_text,
+                            &format!("### ⚡ Effect: {}\n\n{}", entity.name, entity.description),
+                        );
                     } else if SCOPES.contains(&identifier.to_uppercase().as_str()) {
-                        push_section(&mut hover_text, &format!("### 🎯 Scope: {}\n\nStandard Paradox scope.", identifier.to_uppercase()));
+                        push_section(
+                            &mut hover_text,
+                            &format!(
+                                "### 🎯 Scope: {}\n\nStandard Paradox scope.",
+                                identifier.to_uppercase()
+                            ),
+                        );
                     } else if LOC_COMMANDS.contains(&identifier.as_str()) {
-                        push_section(&mut hover_text, &format!("### 🛠️ Localization Command: {}\n\nStandard localization command.", identifier));
+                        push_section(
+                            &mut hover_text,
+                            &format!(
+                                "### 🛠️ Localization Command: {}\n\nStandard localization command.",
+                                identifier
+                            ),
+                        );
                     }
 
                     // Check localization
@@ -947,7 +1243,9 @@ impl LanguageServer for Backend {
                     let entry = loc.get(&identifier).or_else(|| {
                         // Find any key that starts with "identifier:"
                         let target = format!("{}:", identifier);
-                        loc.iter().find(|(k, _)| k.starts_with(&target)).map(|(_, e)| e)
+                        loc.iter()
+                            .find(|(k, _)| k.starts_with(&target))
+                            .map(|(_, e)| e)
                     });
 
                     if let Some(e) = entry {
@@ -960,17 +1258,38 @@ impl LanguageServer for Backend {
                         // Check scripted triggers
                         let st = self.scripted_triggers.read().await;
                         if let Some(entity) = st.get(&identifier) {
-                            push_section(&mut hover_text, &format!("### 📜 Scripted Trigger: {}\n\nDefined in: {}", identifier, self.make_file_link(&entity.path)));
+                            push_section(
+                                &mut hover_text,
+                                &format!(
+                                    "### 📜 Scripted Trigger: {}\n\nDefined in: {}",
+                                    identifier,
+                                    self.make_file_link(&entity.path)
+                                ),
+                            );
                         } else {
                             // Check scripted effects
                             let se = self.scripted_effects.read().await;
                             if let Some(entity) = se.get(&identifier) {
-                                push_section(&mut hover_text, &format!("### 🛠️ Scripted Effect: {}\n\nDefined in: {}", identifier, self.make_file_link(&entity.path)));
+                                push_section(
+                                    &mut hover_text,
+                                    &format!(
+                                        "### 🛠️ Scripted Effect: {}\n\nDefined in: {}",
+                                        identifier,
+                                        self.make_file_link(&entity.path)
+                                    ),
+                                );
                             } else {
                                 // Check scripted locs
                                 let sl = self.scripted_locs.read().await;
                                 if let Some(loc) = sl.get(&identifier) {
-                                    push_section(&mut hover_text, &format!("### 📝 Scripted Localisation: {}\n\nDefined in: {}", identifier, self.make_file_link(&loc.path)));
+                                    push_section(
+                                        &mut hover_text,
+                                        &format!(
+                                            "### 📝 Scripted Localisation: {}\n\nDefined in: {}",
+                                            identifier,
+                                            self.make_file_link(&loc.path)
+                                        ),
+                                    );
                                 }
                             }
                         }
@@ -979,22 +1298,43 @@ impl LanguageServer for Backend {
                     // Check ideologies
                     let id_map = self.ideologies.read().await;
                     if let Some(ideology) = id_map.get(&identifier) {
-                        push_section(&mut hover_text, &format!("### 🗳️ Ideology: {}\n\nDefined in: {}\n\nSub-ideologies: {}", 
-                            ideology.name, self.make_file_link(&ideology.path), ideology.sub_ideologies.join(", ")));
+                        push_section(
+                            &mut hover_text,
+                            &format!(
+                                "### 🗳️ Ideology: {}\n\nDefined in: {}\n\nSub-ideologies: {}",
+                                ideology.name,
+                                self.make_file_link(&ideology.path),
+                                ideology.sub_ideologies.join(", ")
+                            ),
+                        );
                     }
 
                     // Check sub-ideologies
                     let sid_map = self.sub_ideologies.read().await;
                     if let Some((parent, _, path)) = sid_map.get(&identifier) {
-                        push_section(&mut hover_text, &format!("### 🗳️ Sub-Ideology: {}\n\nParent Ideology: `{}`\n\nDefined in: {}", 
-                            identifier, parent, self.make_file_link(path)));
+                        push_section(
+                            &mut hover_text,
+                            &format!(
+                                "### 🗳️ Sub-Ideology: {}\n\nParent Ideology: `{}`\n\nDefined in: {}",
+                                identifier,
+                                parent,
+                                self.make_file_link(path)
+                            ),
+                        );
                     }
 
                     // Check traits
                     let t_map = self.traits.read().await;
                     if let Some(trait_info) = t_map.get(&identifier) {
-                        push_section(&mut hover_text, &format!("### 🎖️ Trait: {}\n\nType: `{}`\n\nDefined in: {}", 
-                            trait_info.name, trait_info.trait_type, self.make_file_link(&trait_info.path)));
+                        push_section(
+                            &mut hover_text,
+                            &format!(
+                                "### 🎖️ Trait: {}\n\nType: `{}`\n\nDefined in: {}",
+                                trait_info.name,
+                                trait_info.trait_type,
+                                self.make_file_link(&trait_info.path)
+                            ),
+                        );
                     }
 
                     // Check sprites
@@ -1008,30 +1348,56 @@ impl LanguageServer for Backend {
                             if r.join("interface").exists() || r.join("common").exists() {
                                 let full_texture = r.join(&sprite.texture_file);
                                 if full_texture.exists() {
-                                    texture_link = self.make_file_link(&full_texture.to_string_lossy());
+                                    texture_link =
+                                        self.make_file_link(&full_texture.to_string_lossy());
                                     break;
                                 }
                             }
                             root = r.parent();
                         }
 
-                        push_section(&mut hover_text, &format!("### 🖼️ Sprite: {}\n\nTexture: {}\n\nDefined in: {}", 
-                            sprite.name, texture_link, self.make_file_link(&sprite.path)));
+                        push_section(
+                            &mut hover_text,
+                            &format!(
+                                "### 🖼️ Sprite: {}\n\nTexture: {}\n\nDefined in: {}",
+                                sprite.name,
+                                texture_link,
+                                self.make_file_link(&sprite.path)
+                            ),
+                        );
                     }
 
                     // Check events
                     let e_map = self.events.read().await;
                     if let Some(event) = e_map.get(&identifier) {
-                        push_section(&mut hover_text, &format!("### 📅 Event: {}\n\nType: `{}`\n\nDefined in: {}\n\nTriggers: {}", 
-                            event.id, event.event_type, self.make_file_link(&event.path), 
-                            if event.triggered_events.is_empty() { "None".to_string() } else { event.triggered_events.join(", ") }));
+                        push_section(
+                            &mut hover_text,
+                            &format!(
+                                "### 📅 Event: {}\n\nType: `{}`\n\nDefined in: {}\n\nTriggers: {}",
+                                event.id,
+                                event.event_type,
+                                self.make_file_link(&event.path),
+                                if event.triggered_events.is_empty() {
+                                    "None".to_string()
+                                } else {
+                                    event.triggered_events.join(", ")
+                                }
+                            ),
+                        );
                     }
 
                     // Check ideas
                     let idea_map = self.ideas.read().await;
                     if let Some(idea) = idea_map.get(&identifier) {
-                        push_section(&mut hover_text, &format!("### 💡 Idea: {}\n\nCategory: `{}`\n\nDefined in: {}",
-                            idea.name, idea.category, self.make_file_link(&idea.path)));
+                        push_section(
+                            &mut hover_text,
+                            &format!(
+                                "### 💡 Idea: {}\n\nCategory: `{}`\n\nDefined in: {}",
+                                idea.name,
+                                idea.category,
+                                self.make_file_link(&idea.path)
+                            ),
+                        );
                     }
 
                     // Check characters
@@ -1042,9 +1408,13 @@ impl LanguageServer for Backend {
                         let loc = self.localization.read().await;
                         if let Some(name_key) = &character.name {
                             if let Some(name_loc) = loc.get(name_key) {
-                                char_text.push_str(&format!("\n**Name:** {}\n", paradox_to_markdown(&name_loc.value, Some(&loc))));
+                                char_text.push_str(&format!(
+                                    "\n**Name:** {}\n",
+                                    paradox_to_markdown(&name_loc.value, Some(&loc))
+                                ));
                             } else {
-                                char_text.push_str(&format!("\n**Name:** *Missing `{}`*\n", name_key));
+                                char_text
+                                    .push_str(&format!("\n**Name:** *Missing `{}`*\n", name_key));
                             }
                         }
 
@@ -1057,10 +1427,17 @@ impl LanguageServer for Backend {
                                     let gfx_path = std::path::Path::new(&sprite.path);
                                     let mut root = gfx_path.parent();
                                     while let Some(r) = root {
-                                        if r.join("interface").exists() || r.join("common").exists() {
+                                        if r.join("interface").exists() || r.join("common").exists()
+                                        {
                                             let full_texture = r.join(&sprite.texture_file);
                                             if full_texture.exists() {
-                                                texture_link = format!("[{}]({})", sprite_name, self.make_file_link(&full_texture.to_string_lossy()));
+                                                texture_link = format!(
+                                                    "[{}]({})",
+                                                    sprite_name,
+                                                    self.make_file_link(
+                                                        &full_texture.to_string_lossy()
+                                                    )
+                                                );
                                                 break;
                                             }
                                         }
@@ -1073,7 +1450,13 @@ impl LanguageServer for Backend {
                                         if r.join("common").exists() {
                                             let full_texture = r.join(sprite_name);
                                             if full_texture.exists() {
-                                                texture_link = format!("[{}]({})", sprite_name, self.make_file_link(&full_texture.to_string_lossy()));
+                                                texture_link = format!(
+                                                    "[{}]({})",
+                                                    sprite_name,
+                                                    self.make_file_link(
+                                                        &full_texture.to_string_lossy()
+                                                    )
+                                                );
                                                 break;
                                             }
                                         }
@@ -1093,26 +1476,46 @@ impl LanguageServer for Backend {
                                 }
 
                                 let mut skills = Vec::new();
-                                if let Some(s) = role.skill { skills.push(format!("Skill: {}", s)); }
-                                if let Some(s) = role.attack_skill { skills.push(format!("Attack: {}", s)); }
-                                if let Some(s) = role.defense_skill { skills.push(format!("Defense: {}", s)); }
-                                if let Some(s) = role.planning_skill { skills.push(format!("Planning: {}", s)); }
-                                if let Some(s) = role.logistics_skill { skills.push(format!("Logistics: {}", s)); }
-                                if let Some(s) = role.maneuvering_skill { skills.push(format!("Maneuvering: {}", s)); }
-                                if let Some(s) = role.coordination_skill { skills.push(format!("Coordination: {}", s)); }
+                                if let Some(s) = role.skill {
+                                    skills.push(format!("Skill: {}", s));
+                                }
+                                if let Some(s) = role.attack_skill {
+                                    skills.push(format!("Attack: {}", s));
+                                }
+                                if let Some(s) = role.defense_skill {
+                                    skills.push(format!("Defense: {}", s));
+                                }
+                                if let Some(s) = role.planning_skill {
+                                    skills.push(format!("Planning: {}", s));
+                                }
+                                if let Some(s) = role.logistics_skill {
+                                    skills.push(format!("Logistics: {}", s));
+                                }
+                                if let Some(s) = role.maneuvering_skill {
+                                    skills.push(format!("Maneuvering: {}", s));
+                                }
+                                if let Some(s) = role.coordination_skill {
+                                    skills.push(format!("Coordination: {}", s));
+                                }
 
                                 if !skills.is_empty() {
                                     char_text.push_str(&format!(" [{}]", skills.join(", ")));
                                 }
 
                                 if !role.traits.is_empty() {
-                                    char_text.push_str(&format!("\n  - Traits: `{}`", role.traits.join(", ")));
+                                    char_text.push_str(&format!(
+                                        "\n  - Traits: `{}`",
+                                        role.traits.join(", ")
+                                    ));
                                 }
                                 char_text.push_str("\n");
                             }
                         }
 
-                        char_text.push_str(&format!("\n---\nDefined in: {}", self.make_file_link(&character.path)));
+                        char_text.push_str(&format!(
+                            "\n---\nDefined in: {}",
+                            self.make_file_link(&character.path)
+                        ));
                         push_section(&mut hover_text, &char_text);
                     }
 
@@ -1124,7 +1527,10 @@ impl LanguageServer for Backend {
 
                         if let Some(name_key) = &ability.name_loc {
                             if let Some(name_loc) = loc.get(name_key) {
-                                text.push_str(&format!("\n**Name:** {}\n", paradox_to_markdown(&name_loc.value, Some(&loc))));
+                                text.push_str(&format!(
+                                    "\n**Name:** {}\n",
+                                    paradox_to_markdown(&name_loc.value, Some(&loc))
+                                ));
                             } else {
                                 text.push_str(&format!("\n**Name:** *Missing `{}`*\n", name_key));
                             }
@@ -1132,7 +1538,10 @@ impl LanguageServer for Backend {
 
                         if let Some(desc_key) = &ability.desc_loc {
                             if let Some(desc_loc) = loc.get(desc_key) {
-                                text.push_str(&format!("\n**Description:** {}\n", paradox_to_markdown(&desc_loc.value, Some(&loc))));
+                                text.push_str(&format!(
+                                    "\n**Description:** {}\n",
+                                    paradox_to_markdown(&desc_loc.value, Some(&loc))
+                                ));
                             }
                         }
 
@@ -1149,13 +1558,18 @@ impl LanguageServer for Backend {
                             text.push_str(&format!("\n**Sound Effect:** `{}`\n", sound));
                         }
 
-                        text.push_str(&format!("\n---\nDefined in: {}", self.make_file_link(&ability.path)));
+                        text.push_str(&format!(
+                            "\n---\nDefined in: {}",
+                            self.make_file_link(&ability.path)
+                        ));
                         push_section(&mut hover_text, &text);
                     }
 
                     // Check for modifier blocks (modifier = { ... } or modifiers = { ... })
                     let identifier_lower = identifier.to_lowercase();
-                    if (identifier_lower == "modifier" || identifier_lower == "modifiers") && matches!(assigned_value, Some(ast::Value::Block(_))) {
+                    if (identifier_lower == "modifier" || identifier_lower == "modifiers")
+                        && matches!(assigned_value, Some(ast::Value::Block(_)))
+                    {
                         let mappings = self.modifier_mappings.read().await;
                         let formats = self.modifier_formats.read().await;
                         let loc = self.localization.read().await;
@@ -1170,7 +1584,10 @@ impl LanguageServer for Backend {
                             let blocks = display_service.extract_modifier_blocks(value);
                             if !blocks.is_empty() {
                                 let formatted = display_service.format_all_blocks(&blocks);
-                                push_section(&mut hover_text, &format!("### 📊 Modifier Block\n\n{}", formatted));
+                                push_section(
+                                    &mut hover_text,
+                                    &format!("### 📊 Modifier Block\n\n{}", formatted),
+                                );
                             }
                         }
                     }
@@ -1178,8 +1595,14 @@ impl LanguageServer for Backend {
                     // Check modifiers
                     let custom_mods = self.custom_modifiers.read().await;
                     if let Some(modifier) = custom_mods.get(&identifier) {
-                        push_section(&mut hover_text, &format!("### 🔧 Custom Modifier: {}\n\nDefined in: {}",
-                            identifier, self.make_file_link(&modifier.path)));
+                        push_section(
+                            &mut hover_text,
+                            &format!(
+                                "### 🔧 Custom Modifier: {}\n\nDefined in: {}",
+                                identifier,
+                                self.make_file_link(&modifier.path)
+                            ),
+                        );
                     }
                     let mappings = self.modifier_mappings.read().await;
                     if let Some(loc_key) = mappings.get(&identifier) {
@@ -1196,50 +1619,101 @@ impl LanguageServer for Backend {
                         let parsed_val = match assigned_value {
                             Some(ast::Value::Number(val)) => Some(val),
                             Some(ast::Value::String(s)) => s.parse::<f64>().ok(),
-                            _ => None
+                            _ => None,
                         };
 
                         if let Some(val) = parsed_val {
-                            let formatted_val = format_modifier_value(&identifier, val, format_info);
-                            push_section(&mut hover_text, &format!("### 📈 {}\n\n{}", loc_text, formatted_val));
+                            let formatted_val =
+                                format_modifier_value(&identifier, val, format_info);
+                            push_section(
+                                &mut hover_text,
+                                &format!("### 📈 {}\n\n{}", loc_text, formatted_val),
+                            );
                         } else {
-                            push_section(&mut hover_text, &format!("### 📉 {}\n\nEngine Modifier: `{}`", loc_text, identifier));
+                            push_section(
+                                &mut hover_text,
+                                &format!(
+                                    "### 📉 {}\n\nEngine Modifier: `{}`",
+                                    loc_text, identifier
+                                ),
+                            );
                         }
                     }
 
                     // Check variables
                     let var_map = self.variables.read().await;
                     if let Some(vars) = var_map.get(&identifier) {
-                        let paths: Vec<String> = vars.iter().map(|v| self.make_file_link(&v.path)).collect();
-                        push_section(&mut hover_text, &format!("### 🔢 Variable: {}\n\nUsed/Defined in:\n- {}", 
-                            identifier, paths.join("\n- ")));
+                        let paths: Vec<String> =
+                            vars.iter().map(|v| self.make_file_link(&v.path)).collect();
+                        push_section(
+                            &mut hover_text,
+                            &format!(
+                                "### 🔢 Variable: {}\n\nUsed/Defined in:\n- {}",
+                                identifier,
+                                paths.join("\n- ")
+                            ),
+                        );
                     }
 
                     // Check event targets
                     let target_map = self.event_targets.read().await;
                     if let Some(targets) = target_map.get(&identifier) {
-                        let paths: Vec<String> = targets.iter().map(|t| format!("{} ({})", self.make_file_link(&t.path), if t.is_global { "Global" } else { "Local" })).collect();
-                        push_section(&mut hover_text, &format!("### 🎯 Event Target: {}\n\nSaved in:\n- {}", 
-                            identifier, paths.join("\n- ")));
+                        let paths: Vec<String> = targets
+                            .iter()
+                            .map(|t| {
+                                format!(
+                                    "{} ({})",
+                                    self.make_file_link(&t.path),
+                                    if t.is_global { "Global" } else { "Local" }
+                                )
+                            })
+                            .collect();
+                        push_section(
+                            &mut hover_text,
+                            &format!(
+                                "### 🎯 Event Target: {}\n\nSaved in:\n- {}",
+                                identifier,
+                                paths.join("\n- ")
+                            ),
+                        );
                     }
 
                     // Check music
                     let m_assets = self.music_assets.read().await;
                     if let Some(asset) = m_assets.get(&identifier) {
-                        push_section(&mut hover_text, &format!("### 🎵 Music Asset: {}\n\nFile: `{}`\n\nDefined in: {}", 
-                            asset.name, asset.file, self.make_file_link(&asset.path)));
+                        push_section(
+                            &mut hover_text,
+                            &format!(
+                                "### 🎵 Music Asset: {}\n\nFile: `{}`\n\nDefined in: {}",
+                                asset.name,
+                                asset.file,
+                                self.make_file_link(&asset.path)
+                            ),
+                        );
                     }
 
                     let m_stations = self.music_stations.read().await;
                     if let Some(station) = m_stations.get(&identifier) {
-                        push_section(&mut hover_text, &format!("### 📻 Music Station: {}\n\nDefined in: {}", 
-                            station.name, self.make_file_link(&station.path)));
+                        push_section(
+                            &mut hover_text,
+                            &format!(
+                                "### 📻 Music Station: {}\n\nDefined in: {}",
+                                station.name,
+                                self.make_file_link(&station.path)
+                            ),
+                        );
                     }
 
                     let m_songs = self.songs.read().await;
                     if let Some(song) = m_songs.get(&identifier) {
-                        push_section(&mut hover_text, &format!("### 🎶 Song: {}\n\nDefined in: {}", 
-                            song.name, self.make_file_link(&song.path)));
+                        push_section(
+                            &mut hover_text,
+                            &format!(
+                                "### 🎶 Song: {}\n\nDefined in: {}",
+                                song.name,
+                                self.make_file_link(&song.path)
+                            ),
+                        );
                     }
 
                     // Check sounds
@@ -1255,26 +1729,53 @@ impl LanguageServer for Backend {
                             }
                         }
 
-                        push_section(&mut hover_text, &format!("### 🔊 Sound: {}\n\nFile: {}\n\nDefined in: {}", 
-                            sound.name, file_link, self.make_file_link(&sound.path)));
+                        push_section(
+                            &mut hover_text,
+                            &format!(
+                                "### 🔊 Sound: {}\n\nFile: {}\n\nDefined in: {}",
+                                sound.name,
+                                file_link,
+                                self.make_file_link(&sound.path)
+                            ),
+                        );
                     }
 
                     let s_effects = self.sound_effects.read().await;
                     if let Some(effect) = s_effects.get(&identifier) {
-                        push_section(&mut hover_text, &format!("### 🔉 Sound Effect: {}\n\nSounds: `{}`\n\nDefined in: {}", 
-                            effect.name, effect.sounds.join(", "), self.make_file_link(&effect.path)));
+                        push_section(
+                            &mut hover_text,
+                            &format!(
+                                "### 🔉 Sound Effect: {}\n\nSounds: `{}`\n\nDefined in: {}",
+                                effect.name,
+                                effect.sounds.join(", "),
+                                self.make_file_link(&effect.path)
+                            ),
+                        );
                     }
 
                     let s_falloffs = self.falloffs.read().await;
                     if let Some(falloff) = s_falloffs.get(&identifier) {
-                        push_section(&mut hover_text, &format!("### 📉 Sound Falloff: {}\n\nDefined in: {}", 
-                            falloff.name, self.make_file_link(&falloff.path)));
+                        push_section(
+                            &mut hover_text,
+                            &format!(
+                                "### 📉 Sound Falloff: {}\n\nDefined in: {}",
+                                falloff.name,
+                                self.make_file_link(&falloff.path)
+                            ),
+                        );
                     }
 
                     let s_categories = self.sound_categories.read().await;
                     if let Some(category) = s_categories.get(&identifier) {
-                        push_section(&mut hover_text, &format!("### 📂 Sound Category: {}\n\nEffects: `{}`\n\nDefined in: {}", 
-                            category.name, category.soundeffects.join(", "), self.make_file_link(&category.path)));
+                        push_section(
+                            &mut hover_text,
+                            &format!(
+                                "### 📂 Sound Category: {}\n\nEffects: `{}`\n\nDefined in: {}",
+                                category.name,
+                                category.soundeffects.join(", "),
+                                self.make_file_link(&category.path)
+                            ),
+                        );
                     }
 
                     if !hover_text.is_empty() {
@@ -1351,47 +1852,157 @@ impl LanguageServer for Backend {
 
         if is_music_file || is_sound_file {
             if let Some(content) = self.documents.get(&uri) {
-                { let (script, _) = parser::parse_script(&content);
+                {
+                    let (script, _) = parser::parse_script(&content);
                     if let Some(context_key) = find_context_at(&script, position) {
                         let mut completion_items = Vec::new();
                         let key_lower = context_key.to_lowercase();
 
                         if key_lower == "music" {
                             if uri.ends_with(".asset") {
-                                completion_items.push(CompletionItem { label: "name".to_string(), kind: Some(CompletionItemKind::PROPERTY), detail: Some("Track ID".to_string()), ..Default::default() });
-                                completion_items.push(CompletionItem { label: "file".to_string(), kind: Some(CompletionItemKind::PROPERTY), detail: Some("OGG Filename".to_string()), ..Default::default() });
-                                completion_items.push(CompletionItem { label: "volume".to_string(), kind: Some(CompletionItemKind::PROPERTY), detail: Some("Volume Multiplier".to_string()), ..Default::default() });
+                                completion_items.push(CompletionItem {
+                                    label: "name".to_string(),
+                                    kind: Some(CompletionItemKind::PROPERTY),
+                                    detail: Some("Track ID".to_string()),
+                                    ..Default::default()
+                                });
+                                completion_items.push(CompletionItem {
+                                    label: "file".to_string(),
+                                    kind: Some(CompletionItemKind::PROPERTY),
+                                    detail: Some("OGG Filename".to_string()),
+                                    ..Default::default()
+                                });
+                                completion_items.push(CompletionItem {
+                                    label: "volume".to_string(),
+                                    kind: Some(CompletionItemKind::PROPERTY),
+                                    detail: Some("Volume Multiplier".to_string()),
+                                    ..Default::default()
+                                });
                             } else {
-                                completion_items.push(CompletionItem { label: "song".to_string(), kind: Some(CompletionItemKind::PROPERTY), detail: Some("Song ID".to_string()), ..Default::default() });
-                                completion_items.push(CompletionItem { label: "chance".to_string(), kind: Some(CompletionItemKind::PROPERTY), detail: Some("Weighting logic".to_string()), ..Default::default() });
+                                completion_items.push(CompletionItem {
+                                    label: "song".to_string(),
+                                    kind: Some(CompletionItemKind::PROPERTY),
+                                    detail: Some("Song ID".to_string()),
+                                    ..Default::default()
+                                });
+                                completion_items.push(CompletionItem {
+                                    label: "chance".to_string(),
+                                    kind: Some(CompletionItemKind::PROPERTY),
+                                    detail: Some("Weighting logic".to_string()),
+                                    ..Default::default()
+                                });
                             }
                         } else if key_lower == "sound" {
-                            completion_items.push(CompletionItem { label: "name".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
-                            completion_items.push(CompletionItem { label: "file".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
-                            completion_items.push(CompletionItem { label: "always_load".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
-                            completion_items.push(CompletionItem { label: "volume".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
+                            completion_items.push(CompletionItem {
+                                label: "name".to_string(),
+                                kind: Some(CompletionItemKind::PROPERTY),
+                                ..Default::default()
+                            });
+                            completion_items.push(CompletionItem {
+                                label: "file".to_string(),
+                                kind: Some(CompletionItemKind::PROPERTY),
+                                ..Default::default()
+                            });
+                            completion_items.push(CompletionItem {
+                                label: "always_load".to_string(),
+                                kind: Some(CompletionItemKind::PROPERTY),
+                                ..Default::default()
+                            });
+                            completion_items.push(CompletionItem {
+                                label: "volume".to_string(),
+                                kind: Some(CompletionItemKind::PROPERTY),
+                                ..Default::default()
+                            });
                         } else if key_lower == "soundeffect" {
-                            completion_items.push(CompletionItem { label: "name".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
-                            completion_items.push(CompletionItem { label: "falloff".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
-                            completion_items.push(CompletionItem { label: "sounds".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
-                            completion_items.push(CompletionItem { label: "loop".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
-                            completion_items.push(CompletionItem { label: "is3d".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
-                            completion_items.push(CompletionItem { label: "volume".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
+                            completion_items.push(CompletionItem {
+                                label: "name".to_string(),
+                                kind: Some(CompletionItemKind::PROPERTY),
+                                ..Default::default()
+                            });
+                            completion_items.push(CompletionItem {
+                                label: "falloff".to_string(),
+                                kind: Some(CompletionItemKind::PROPERTY),
+                                ..Default::default()
+                            });
+                            completion_items.push(CompletionItem {
+                                label: "sounds".to_string(),
+                                kind: Some(CompletionItemKind::PROPERTY),
+                                ..Default::default()
+                            });
+                            completion_items.push(CompletionItem {
+                                label: "loop".to_string(),
+                                kind: Some(CompletionItemKind::PROPERTY),
+                                ..Default::default()
+                            });
+                            completion_items.push(CompletionItem {
+                                label: "is3d".to_string(),
+                                kind: Some(CompletionItemKind::PROPERTY),
+                                ..Default::default()
+                            });
+                            completion_items.push(CompletionItem {
+                                label: "volume".to_string(),
+                                kind: Some(CompletionItemKind::PROPERTY),
+                                ..Default::default()
+                            });
                         } else if key_lower == "falloff" {
-                            completion_items.push(CompletionItem { label: "name".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
-                            completion_items.push(CompletionItem { label: "min_distance".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
-                            completion_items.push(CompletionItem { label: "max_distance".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
-                            completion_items.push(CompletionItem { label: "height_scale".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
+                            completion_items.push(CompletionItem {
+                                label: "name".to_string(),
+                                kind: Some(CompletionItemKind::PROPERTY),
+                                ..Default::default()
+                            });
+                            completion_items.push(CompletionItem {
+                                label: "min_distance".to_string(),
+                                kind: Some(CompletionItemKind::PROPERTY),
+                                ..Default::default()
+                            });
+                            completion_items.push(CompletionItem {
+                                label: "max_distance".to_string(),
+                                kind: Some(CompletionItemKind::PROPERTY),
+                                ..Default::default()
+                            });
+                            completion_items.push(CompletionItem {
+                                label: "height_scale".to_string(),
+                                kind: Some(CompletionItemKind::PROPERTY),
+                                ..Default::default()
+                            });
                         } else if key_lower == "category" {
-                            completion_items.push(CompletionItem { label: "name".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
-                            completion_items.push(CompletionItem { label: "soundeffects".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
-                            completion_items.push(CompletionItem { label: "compressor".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
+                            completion_items.push(CompletionItem {
+                                label: "name".to_string(),
+                                kind: Some(CompletionItemKind::PROPERTY),
+                                ..Default::default()
+                            });
+                            completion_items.push(CompletionItem {
+                                label: "soundeffects".to_string(),
+                                kind: Some(CompletionItemKind::PROPERTY),
+                                ..Default::default()
+                            });
+                            completion_items.push(CompletionItem {
+                                label: "compressor".to_string(),
+                                kind: Some(CompletionItemKind::PROPERTY),
+                                ..Default::default()
+                            });
                         } else if key_lower == "chance" || key_lower == "modifier" {
-                            completion_items.push(CompletionItem { label: "factor".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
-                            completion_items.push(CompletionItem { label: "add".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
-                            completion_items.push(CompletionItem { label: "base".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
+                            completion_items.push(CompletionItem {
+                                label: "factor".to_string(),
+                                kind: Some(CompletionItemKind::PROPERTY),
+                                ..Default::default()
+                            });
+                            completion_items.push(CompletionItem {
+                                label: "add".to_string(),
+                                kind: Some(CompletionItemKind::PROPERTY),
+                                ..Default::default()
+                            });
+                            completion_items.push(CompletionItem {
+                                label: "base".to_string(),
+                                kind: Some(CompletionItemKind::PROPERTY),
+                                ..Default::default()
+                            });
                             if key_lower == "chance" {
-                                completion_items.push(CompletionItem { label: "modifier".to_string(), kind: Some(CompletionItemKind::CLASS), ..Default::default() });
+                                completion_items.push(CompletionItem {
+                                    label: "modifier".to_string(),
+                                    kind: Some(CompletionItemKind::CLASS),
+                                    ..Default::default()
+                                });
                             }
                         }
 
@@ -1402,16 +2013,40 @@ impl LanguageServer for Backend {
                         // Top level
                         let mut top_items = Vec::new();
                         if is_music_file {
-                            top_items.push(CompletionItem { label: "music".to_string(), kind: Some(CompletionItemKind::CLASS), ..Default::default() });
+                            top_items.push(CompletionItem {
+                                label: "music".to_string(),
+                                kind: Some(CompletionItemKind::CLASS),
+                                ..Default::default()
+                            });
                             if !uri.ends_with(".asset") {
-                                top_items.push(CompletionItem { label: "music_station".to_string(), kind: Some(CompletionItemKind::PROPERTY), ..Default::default() });
+                                top_items.push(CompletionItem {
+                                    label: "music_station".to_string(),
+                                    kind: Some(CompletionItemKind::PROPERTY),
+                                    ..Default::default()
+                                });
                             }
                         }
                         if is_sound_file {
-                            top_items.push(CompletionItem { label: "sound".to_string(), kind: Some(CompletionItemKind::CLASS), ..Default::default() });
-                            top_items.push(CompletionItem { label: "soundeffect".to_string(), kind: Some(CompletionItemKind::CLASS), ..Default::default() });
-                            top_items.push(CompletionItem { label: "falloff".to_string(), kind: Some(CompletionItemKind::CLASS), ..Default::default() });
-                            top_items.push(CompletionItem { label: "category".to_string(), kind: Some(CompletionItemKind::CLASS), ..Default::default() });
+                            top_items.push(CompletionItem {
+                                label: "sound".to_string(),
+                                kind: Some(CompletionItemKind::CLASS),
+                                ..Default::default()
+                            });
+                            top_items.push(CompletionItem {
+                                label: "soundeffect".to_string(),
+                                kind: Some(CompletionItemKind::CLASS),
+                                ..Default::default()
+                            });
+                            top_items.push(CompletionItem {
+                                label: "falloff".to_string(),
+                                kind: Some(CompletionItemKind::CLASS),
+                                ..Default::default()
+                            });
+                            top_items.push(CompletionItem {
+                                label: "category".to_string(),
+                                kind: Some(CompletionItemKind::CLASS),
+                                ..Default::default()
+                            });
                         }
                         return Ok(Some(CompletionResponse::Array(top_items)));
                     }
@@ -1423,12 +2058,12 @@ impl LanguageServer for Backend {
 
         // Try to find context for HOI4 scripts
         if let Some(content) = self.documents.get(&uri) {
-            { let (script, _) = parser::parse_script(&content);
+            {
+                let (script, _) = parser::parse_script(&content);
                 let achievements = self.achievements.read().await;
                 let (ctx, scopes) = find_scope_context_at(&script, position, &achievements);
                 current_scopes = scopes;
                 if let Some(context_key) = ctx {
-
                     if context_key.to_lowercase().contains("color") {
                         let mut color_items = Vec::new();
                         color_items.push(CompletionItem {
@@ -1457,7 +2092,10 @@ impl LanguageServer for Backend {
                 label: trigger.key.clone(),
                 kind: Some(CompletionItemKind::KEYWORD),
                 detail: Some("Trigger (Schema)".to_string()),
-                documentation: trigger.description.as_ref().map(|d| Documentation::String(d.clone())),
+                documentation: trigger
+                    .description
+                    .as_ref()
+                    .map(|d| Documentation::String(d.clone())),
                 ..Default::default()
             });
         }
@@ -1466,7 +2104,10 @@ impl LanguageServer for Backend {
                 label: effect.key.clone(),
                 kind: Some(CompletionItemKind::FUNCTION),
                 detail: Some("Effect (Schema)".to_string()),
-                documentation: effect.description.as_ref().map(|d| Documentation::String(d.clone())),
+                documentation: effect
+                    .description
+                    .as_ref()
+                    .map(|d| Documentation::String(d.clone())),
                 ..Default::default()
             });
         }
@@ -1475,7 +2116,10 @@ impl LanguageServer for Backend {
                 label: link.key.clone(),
                 kind: Some(CompletionItemKind::CLASS),
                 detail: Some(format!("Link / Scope (Push: {:?})", link.push_scope)),
-                documentation: link.description.as_ref().map(|d| Documentation::String(d.clone())),
+                documentation: link
+                    .description
+                    .as_ref()
+                    .map(|d| Documentation::String(d.clone())),
                 ..Default::default()
             });
         }
@@ -1483,7 +2127,10 @@ impl LanguageServer for Backend {
         let current_scope = *current_scopes.last().unwrap_or(&scope::Scope::Global);
 
         for trigger in TRIGGERS.values() {
-            if !trigger.scopes.contains(&scope::Scope::Unknown) && !trigger.scopes.contains(&current_scope) && !trigger.scopes.contains(&scope::Scope::Global) {
+            if !trigger.scopes.contains(&scope::Scope::Unknown)
+                && !trigger.scopes.contains(&current_scope)
+                && !trigger.scopes.contains(&scope::Scope::Global)
+            {
                 continue;
             }
             items.push(CompletionItem {
@@ -1499,7 +2146,10 @@ impl LanguageServer for Backend {
         }
 
         for effect in EFFECTS.values() {
-            if !effect.scopes.contains(&scope::Scope::Unknown) && !effect.scopes.contains(&current_scope) && !effect.scopes.contains(&scope::Scope::Global) {
+            if !effect.scopes.contains(&scope::Scope::Unknown)
+                && !effect.scopes.contains(&current_scope)
+                && !effect.scopes.contains(&scope::Scope::Global)
+            {
                 continue;
             }
             items.push(CompletionItem {
@@ -1520,7 +2170,10 @@ impl LanguageServer for Backend {
                 label: trigger.name.clone(),
                 kind: Some(CompletionItemKind::EVENT),
                 detail: Some("Scripted Trigger".to_string()),
-                documentation: Some(Documentation::String(format!("Defined in: {}", trigger.path))),
+                documentation: Some(Documentation::String(format!(
+                    "Defined in: {}",
+                    trigger.path
+                ))),
                 ..Default::default()
             });
         }
@@ -1531,7 +2184,10 @@ impl LanguageServer for Backend {
                 label: effect.name.clone(),
                 kind: Some(CompletionItemKind::EVENT),
                 detail: Some("Scripted Effect".to_string()),
-                documentation: Some(Documentation::String(format!("Defined in: {}", effect.path))),
+                documentation: Some(Documentation::String(format!(
+                    "Defined in: {}",
+                    effect.path
+                ))),
                 ..Default::default()
             });
         }
@@ -1542,7 +2198,10 @@ impl LanguageServer for Backend {
                 label: ideology.name.clone(),
                 kind: Some(CompletionItemKind::ENUM),
                 detail: Some("Ideology".to_string()),
-                documentation: Some(Documentation::String(format!("Defined in: {}", ideology.path))),
+                documentation: Some(Documentation::String(format!(
+                    "Defined in: {}",
+                    ideology.path
+                ))),
                 ..Default::default()
             });
         }
@@ -1563,7 +2222,10 @@ impl LanguageServer for Backend {
                 label: trait_info.name.clone(),
                 kind: Some(CompletionItemKind::INTERFACE),
                 detail: Some(trait_info.trait_type.clone()),
-                documentation: Some(Documentation::String(format!("Defined in: {}", trait_info.path))),
+                documentation: Some(Documentation::String(format!(
+                    "Defined in: {}",
+                    trait_info.path
+                ))),
                 ..Default::default()
             });
         }
@@ -1574,7 +2236,10 @@ impl LanguageServer for Backend {
                 label: sprite.name.clone(),
                 kind: Some(CompletionItemKind::FILE),
                 detail: Some("Sprite/GFX".to_string()),
-                documentation: Some(Documentation::String(format!("Defined in: {}", sprite.path))),
+                documentation: Some(Documentation::String(format!(
+                    "Defined in: {}",
+                    sprite.path
+                ))),
                 ..Default::default()
             });
         }
@@ -1585,7 +2250,10 @@ impl LanguageServer for Backend {
                 label: idea.name.clone(),
                 kind: Some(CompletionItemKind::CONSTANT),
                 detail: Some(format!("Idea ({})", idea.category)),
-                documentation: Some(Documentation::String(format!("Defined in: {}", idea.category))),
+                documentation: Some(Documentation::String(format!(
+                    "Defined in: {}",
+                    idea.category
+                ))),
                 ..Default::default()
             });
         }
@@ -1606,7 +2274,10 @@ impl LanguageServer for Backend {
                 label: achievement.name.clone(),
                 kind: Some(CompletionItemKind::EVENT),
                 detail: Some("Achievement".to_string()),
-                documentation: Some(Documentation::String(format!("Defined in: {}", achievement.path))),
+                documentation: Some(Documentation::String(format!(
+                    "Defined in: {}",
+                    achievement.path
+                ))),
                 ..Default::default()
             });
         }
@@ -1714,7 +2385,11 @@ impl LanguageServer for Backend {
         &self,
         params: GotoDefinitionParams,
     ) -> Result<Option<GotoDefinitionResponse>> {
-        let uri = params.text_document_position_params.text_document.uri.to_string();
+        let uri = params
+            .text_document_position_params
+            .text_document
+            .uri
+            .to_string();
         let position = params.text_document_position_params.position;
 
         if let Some(content) = self.documents.get(&uri) {
@@ -1724,7 +2399,8 @@ impl LanguageServer for Backend {
                 let (script, _) = parser::parse_script(&content);
                 let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
                 let achievements = self.achievements.read().await;
-                find_identifier_at(&script, position, &mut scope_stack, &achievements).map(|(id, _, _)| id)
+                find_identifier_at(&script, position, &mut scope_stack, &achievements)
+                    .map(|(id, _, _)| id)
             };
 
             if let Some(identifier) = identifier {
@@ -1748,170 +2424,177 @@ impl LanguageServer for Backend {
                 }
 
                 // Check ideologies
-                    let id_map = self.ideologies.read().await;
-                    if let Some(ideology) = id_map.get(&identifier) {
-                        sources.push(ast_range_to_lsp_location(&ideology.range, &ideology.path));
-                    }
+                let id_map = self.ideologies.read().await;
+                if let Some(ideology) = id_map.get(&identifier) {
+                    sources.push(ast_range_to_lsp_location(&ideology.range, &ideology.path));
+                }
 
-                    let sid_map = self.sub_ideologies.read().await;
-                    if let Some((_, range, path)) = sid_map.get(&identifier) {
-                        sources.push(ast_range_to_lsp_location(range, path));
-                    }
+                let sid_map = self.sub_ideologies.read().await;
+                if let Some((_, range, path)) = sid_map.get(&identifier) {
+                    sources.push(ast_range_to_lsp_location(range, path));
+                }
 
-                    // Check traits
-                    let t_map = self.traits.read().await;
-                    if let Some(trait_info) = t_map.get(&identifier) {
-                        sources.push(ast_range_to_lsp_location(&trait_info.range, &trait_info.path));
-                    }
+                // Check traits
+                let t_map = self.traits.read().await;
+                if let Some(trait_info) = t_map.get(&identifier) {
+                    sources.push(ast_range_to_lsp_location(
+                        &trait_info.range,
+                        &trait_info.path,
+                    ));
+                }
 
-                    // Check sprites
-                    let s_map = self.sprites.read().await;
-                    if let Some(sprite) = s_map.get(&identifier) {
-                        sources.push(ast_range_to_lsp_location(&sprite.range, &sprite.path));
-                    }
+                // Check sprites
+                let s_map = self.sprites.read().await;
+                if let Some(sprite) = s_map.get(&identifier) {
+                    sources.push(ast_range_to_lsp_location(&sprite.range, &sprite.path));
+                }
 
-                    // Check events
-                    let e_map = self.events.read().await;
-                    if let Some(event) = e_map.get(&identifier) {
-                        sources.push(ast_range_to_lsp_location(&event.range, &event.path));
-                    }
+                // Check events
+                let e_map = self.events.read().await;
+                if let Some(event) = e_map.get(&identifier) {
+                    sources.push(ast_range_to_lsp_location(&event.range, &event.path));
+                }
 
-                    // Check abilities
-                    let ability_map = self.abilities.read().await;
-                    if let Some(ability) = ability_map.get(&identifier) {
-                        sources.push(ast_range_to_lsp_location(&ability.range, &ability.path));
-                    }
+                // Check abilities
+                let ability_map = self.abilities.read().await;
+                if let Some(ability) = ability_map.get(&identifier) {
+                    sources.push(ast_range_to_lsp_location(&ability.range, &ability.path));
+                }
 
-                    // Check ideas
-                    let idea_map = self.ideas.read().await;
-                    if let Some(idea) = idea_map.get(&identifier) {
-                        sources.push(ast_range_to_lsp_location(&idea.range, &idea.path));
-                    }
+                // Check ideas
+                let idea_map = self.ideas.read().await;
+                if let Some(idea) = idea_map.get(&identifier) {
+                    sources.push(ast_range_to_lsp_location(&idea.range, &idea.path));
+                }
 
-                    // Check achievements
-                    let a_map = self.achievements.read().await;                    if let Some(achievement) = a_map.get(&identifier) {
-                        sources.push(ast_range_to_lsp_location(&achievement.range, &achievement.path));
-                    }
+                // Check achievements
+                let a_map = self.achievements.read().await;
+                if let Some(achievement) = a_map.get(&identifier) {
+                    sources.push(ast_range_to_lsp_location(
+                        &achievement.range,
+                        &achievement.path,
+                    ));
+                }
 
-                    // Check variables
-                    let var_map = self.variables.read().await;
-                    if let Some(vars) = var_map.get(&identifier) {
-                        for var in vars {
-                            sources.push(ast_range_to_lsp_location(&var.range, &var.path));
-                        }
+                // Check variables
+                let var_map = self.variables.read().await;
+                if let Some(vars) = var_map.get(&identifier) {
+                    for var in vars {
+                        sources.push(ast_range_to_lsp_location(&var.range, &var.path));
                     }
+                }
 
-                    // Check event targets
-                    let target_map = self.event_targets.read().await;
-                    if let Some(targets) = target_map.get(&identifier) {
-                        for target in targets {
-                            sources.push(ast_range_to_lsp_location(&target.range, &target.path));
-                        }
+                // Check event targets
+                let target_map = self.event_targets.read().await;
+                if let Some(targets) = target_map.get(&identifier) {
+                    for target in targets {
+                        sources.push(ast_range_to_lsp_location(&target.range, &target.path));
                     }
+                }
 
-                    // Check modifiers
-                    let custom_mods = self.custom_modifiers.read().await;
-                    if let Some(modifier) = custom_mods.get(&identifier) {
-                        sources.push(ast_range_to_lsp_location(&modifier.range, &modifier.path));
+                // Check modifiers
+                let custom_mods = self.custom_modifiers.read().await;
+                if let Some(modifier) = custom_mods.get(&identifier) {
+                    sources.push(ast_range_to_lsp_location(&modifier.range, &modifier.path));
+                }
+
+                // Check music
+                let m_assets = self.music_assets.read().await;
+                if let Some(asset) = m_assets.get(&identifier) {
+                    sources.push(ast_range_to_lsp_location(&asset.range, &asset.path));
+                }
+
+                let m_stations = self.music_stations.read().await;
+                if let Some(station) = m_stations.get(&identifier) {
+                    sources.push(ast_range_to_lsp_location(&station.range, &station.path));
+                }
+
+                let m_songs = self.songs.read().await;
+                if let Some(song) = m_songs.get(&identifier) {
+                    sources.push(ast_range_to_lsp_location(&song.range, &song.path));
+                }
+
+                // Check sounds
+                let s_sounds = self.sounds.read().await;
+                if let Some(sound) = s_sounds.get(&identifier) {
+                    sources.push(ast_range_to_lsp_location(&sound.range, &sound.path));
+                }
+
+                let s_effects = self.sound_effects.read().await;
+                if let Some(effect) = s_effects.get(&identifier) {
+                    sources.push(ast_range_to_lsp_location(&effect.range, &effect.path));
+                }
+
+                let s_falloffs = self.falloffs.read().await;
+                if let Some(falloff) = s_falloffs.get(&identifier) {
+                    sources.push(ast_range_to_lsp_location(&falloff.range, &falloff.path));
+                }
+
+                let s_categories = self.sound_categories.read().await;
+                if let Some(category) = s_categories.get(&identifier) {
+                    sources.push(ast_range_to_lsp_location(&category.range, &category.path));
+                }
+
+                // Check adjacency rules
+                let rule_lock = self.adjacency_rules.read().await;
+                if let Some(rule) = rule_lock.get(&identifier) {
+                    sources.push(ast_range_to_lsp_location(&rule.range, &rule.path));
+                }
+
+                // Check strategic regions
+                let regions = self.strategic_regions.read().await;
+                if let Ok(id) = identifier.parse::<u32>() {
+                    if let Some(region) = regions.get(&id) {
+                        sources.push(ast_range_to_lsp_location(&region.range, &region.path));
                     }
+                }
 
-                    // Check music
-                    let m_assets = self.music_assets.read().await;
-                    if let Some(asset) = m_assets.get(&identifier) {
-                        sources.push(ast_range_to_lsp_location(&asset.range, &asset.path));
-                    }
-
-                    let m_stations = self.music_stations.read().await;
-                    if let Some(station) = m_stations.get(&identifier) {
-                        sources.push(ast_range_to_lsp_location(&station.range, &station.path));
-                    }
-
-                    let m_songs = self.songs.read().await;
-                    if let Some(song) = m_songs.get(&identifier) {
-                        sources.push(ast_range_to_lsp_location(&song.range, &song.path));
-                    }
-
-                    // Check sounds
-                    let s_sounds = self.sounds.read().await;
-                    if let Some(sound) = s_sounds.get(&identifier) {
-                        sources.push(ast_range_to_lsp_location(&sound.range, &sound.path));
-                    }
-
-                    let s_effects = self.sound_effects.read().await;
-                    if let Some(effect) = s_effects.get(&identifier) {
-                        sources.push(ast_range_to_lsp_location(&effect.range, &effect.path));
-                    }
-
-                    let s_falloffs = self.falloffs.read().await;
-                    if let Some(falloff) = s_falloffs.get(&identifier) {
-                        sources.push(ast_range_to_lsp_location(&falloff.range, &falloff.path));
-                    }
-
-                    let s_categories = self.sound_categories.read().await;
-                    if let Some(category) = s_categories.get(&identifier) {
-                        sources.push(ast_range_to_lsp_location(&category.range, &category.path));
-                    }
-
-                    // Check adjacency rules
-                    let rule_lock = self.adjacency_rules.read().await;
-                    if let Some(rule) = rule_lock.get(&identifier) {
-                        sources.push(ast_range_to_lsp_location(&rule.range, &rule.path));
-                    }
-
-                    // Check strategic regions
-                    let regions = self.strategic_regions.read().await;
-                    if let Ok(id) = identifier.parse::<u32>() {
-                        if let Some(region) = regions.get(&id) {
-                            sources.push(ast_range_to_lsp_location(&region.range, &region.path));
-                        }
-                    }
-
-                    let mappings = self.modifier_mappings.read().await;
-                    if let Some(loc_key) = mappings.get(&identifier) {
-                        let loc = self.localization.read().await;
-                        if let Some(e) = loc.get(loc_key) {
-                            localizations.push(ast_range_to_lsp_location(&e.range, &e.path));
-                        }
-                    }
-
-                    // Check localization
+                let mappings = self.modifier_mappings.read().await;
+                if let Some(loc_key) = mappings.get(&identifier) {
                     let loc = self.localization.read().await;
-                    // Try exact match
-                    if let Some(e) = loc.get(&identifier) {
+                    if let Some(e) = loc.get(loc_key) {
                         localizations.push(ast_range_to_lsp_location(&e.range, &e.path));
                     }
-                    // Try key:0 etc
-                    let target = format!("{}:", identifier);
-                    for (k, e) in loc.iter() {
-                        if k.starts_with(&target) {
-                            localizations.push(ast_range_to_lsp_location(&e.range, &e.path));
-                        }
-                    }
+                }
 
-                    // Prefer sources over localizations
-                    let mut all_locations = sources;
-                    all_locations.extend(localizations);
-
-                    if !all_locations.is_empty() {
-                        return Ok(Some(GotoDefinitionResponse::Array(all_locations)));
+                // Check localization
+                let loc = self.localization.read().await;
+                // Try exact match
+                if let Some(e) = loc.get(&identifier) {
+                    localizations.push(ast_range_to_lsp_location(&e.range, &e.path));
+                }
+                // Try key:0 etc
+                let target = format!("{}:", identifier);
+                for (k, e) in loc.iter() {
+                    if k.starts_with(&target) {
+                        localizations.push(ast_range_to_lsp_location(&e.range, &e.path));
                     }
+                }
+
+                // Prefer sources over localizations
+                let mut all_locations = sources;
+                all_locations.extend(localizations);
+
+                if !all_locations.is_empty() {
+                    return Ok(Some(GotoDefinitionResponse::Array(all_locations)));
+                }
             }
         }
         Ok(None)
     }
 
-    async fn references(
-        &self,
-        params: ReferenceParams,
-    ) -> Result<Option<Vec<Location>>> {
+    async fn references(&self, params: ReferenceParams) -> Result<Option<Vec<Location>>> {
         let uri = params.text_document_position.text_document.uri.to_string();
         let position = params.text_document_position.position;
 
         if let Some(content) = self.documents.get(&uri) {
-            { let (script, _) = parser::parse_script(&content);
+            {
+                let (script, _) = parser::parse_script(&content);
                 let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
                 let achievements = self.achievements.read().await;
-                if let Some((identifier, _, _)) = find_identifier_at(&script, position, &mut scope_stack, &achievements) {
+                if let Some((identifier, _, _)) =
+                    find_identifier_at(&script, position, &mut scope_stack, &achievements)
+                {
                     let mut locations = Vec::new();
 
                     // Search in all roots
@@ -1922,7 +2605,8 @@ impl LanguageServer for Backend {
                     }
 
                     for root in roots {
-                        self.find_references_in_root(&root, &identifier, &mut locations).await;
+                        self.find_references_in_root(&root, &identifier, &mut locations)
+                            .await;
                     }
 
                     if !locations.is_empty() {
@@ -1948,16 +2632,22 @@ impl LanguageServer for Backend {
             if let Some(target_casing) = diagnostic.data.as_ref().and_then(|v| v.as_str()) {
                 let is_casing_fix = match &diagnostic.code {
                     Some(NumberOrString::String(s)) => s == "casing",
-                    _ => diagnostic.message.contains("Standard Paradox Script") || diagnostic.message.contains("Standard casing")
+                    _ => {
+                        diagnostic.message.contains("Standard Paradox Script")
+                            || diagnostic.message.contains("Standard casing")
+                    }
                 };
 
                 if is_casing_fix {
                     has_casing_diagnostic = true;
                     let mut changes = HashMap::new();
-                    changes.insert(params.text_document.uri.clone(), vec![TextEdit {
-                        range: diagnostic.range,
-                        new_text: target_casing.to_string(),
-                    }]);
+                    changes.insert(
+                        params.text_document.uri.clone(),
+                        vec![TextEdit {
+                            range: diagnostic.range,
+                            new_text: target_casing.to_string(),
+                        }],
+                    );
 
                     actions.push(CodeActionOrCommand::CodeAction(CodeAction {
                         title: format!("Change to standard casing: '{}'", target_casing),
@@ -1977,10 +2667,13 @@ impl LanguageServer for Backend {
                     if code == "styling_trailing" {
                         has_trailing_whitespace_diagnostic = true;
                         let mut changes = HashMap::new();
-                        changes.insert(params.text_document.uri.clone(), vec![TextEdit {
-                            range: diagnostic.range,
-                            new_text: "".to_string(),
-                        }]);
+                        changes.insert(
+                            params.text_document.uri.clone(),
+                            vec![TextEdit {
+                                range: diagnostic.range,
+                                new_text: "".to_string(),
+                            }],
+                        );
 
                         actions.push(CodeActionOrCommand::CodeAction(CodeAction {
                             title: "Remove trailing whitespace".to_string(),
@@ -1995,10 +2688,13 @@ impl LanguageServer for Backend {
                         }));
                     } else if code == "styling_eof_newline" {
                         let mut changes = HashMap::new();
-                        changes.insert(params.text_document.uri.clone(), vec![TextEdit {
-                            range: diagnostic.range,
-                            new_text: "\n".to_string(),
-                        }]);
+                        changes.insert(
+                            params.text_document.uri.clone(),
+                            vec![TextEdit {
+                                range: diagnostic.range,
+                                new_text: "\n".to_string(),
+                            }],
+                        );
 
                         actions.push(CodeActionOrCommand::CodeAction(CodeAction {
                             title: "Add empty newline at end of file".to_string(),
@@ -2013,7 +2709,9 @@ impl LanguageServer for Backend {
                         }));
                     } else if code == "styling_assignment_space" {
                         has_assignment_space_diagnostic = true;
-                        if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
+                        if let Some(content) =
+                            self.documents.get(&params.text_document.uri.to_string())
+                        {
                             let line_idx = diagnostic.range.start.line as usize;
                             if let Some(line) = content.lines().nth(line_idx) {
                                 let start = diagnostic.range.start.character as usize;
@@ -2021,10 +2719,13 @@ impl LanguageServer for Backend {
                                 if start <= end && end <= line.len() {
                                     let op_str = &line[start..end];
                                     let mut changes = HashMap::new();
-                                    changes.insert(params.text_document.uri.clone(), vec![TextEdit {
-                                        range: diagnostic.range,
-                                        new_text: format!(" {} ", op_str.trim()),
-                                    }]);
+                                    changes.insert(
+                                        params.text_document.uri.clone(),
+                                        vec![TextEdit {
+                                            range: diagnostic.range,
+                                            new_text: format!(" {} ", op_str.trim()),
+                                        }],
+                                    );
 
                                     actions.push(CodeActionOrCommand::CodeAction(CodeAction {
                                         title: "Surround with spaces".to_string(),
@@ -2042,7 +2743,9 @@ impl LanguageServer for Backend {
                         }
                     } else if code == "styling_brace_space" {
                         has_brace_space_diagnostic = true;
-                        if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
+                        if let Some(content) =
+                            self.documents.get(&params.text_document.uri.to_string())
+                        {
                             let line_idx = diagnostic.range.start.line as usize;
                             if let Some(line) = content.lines().nth(line_idx) {
                                 let start = diagnostic.range.start.character as usize;
@@ -2050,22 +2753,34 @@ impl LanguageServer for Backend {
                                 if start < end && end <= line.len() {
                                     let full_str = &line[start..end];
                                     if let Some(brace_start_rel) = full_str.find('{') {
-                                        let brace_end_rel = full_str.rfind('}').unwrap_or(full_str.len() - 1);
-                                        let inner = &full_str[brace_start_rel+1..brace_end_rel];
+                                        let brace_end_rel =
+                                            full_str.rfind('}').unwrap_or(full_str.len() - 1);
+                                        let inner = &full_str[brace_start_rel + 1..brace_end_rel];
 
                                         let before_brace = full_str[..brace_start_rel].trim();
 
                                         let new_text = if inner.trim().is_empty() {
-                                            if !before_brace.is_empty() { format!("{} {{}}", before_brace) } else { "{}".to_string() }
+                                            if !before_brace.is_empty() {
+                                                format!("{} {{}}", before_brace)
+                                            } else {
+                                                "{}".to_string()
+                                            }
                                         } else {
-                                            if !before_brace.is_empty() { format!("{} {{ {} }}", before_brace, inner.trim()) } else { format!("{{ {} }}", inner.trim()) }
+                                            if !before_brace.is_empty() {
+                                                format!("{} {{ {} }}", before_brace, inner.trim())
+                                            } else {
+                                                format!("{{ {} }}", inner.trim())
+                                            }
                                         };
 
                                         let mut changes = HashMap::new();
-                                        changes.insert(params.text_document.uri.clone(), vec![TextEdit {
-                                            range: diagnostic.range,
-                                            new_text,
-                                        }]);
+                                        changes.insert(
+                                            params.text_document.uri.clone(),
+                                            vec![TextEdit {
+                                                range: diagnostic.range,
+                                                new_text,
+                                            }],
+                                        );
 
                                         actions.push(CodeActionOrCommand::CodeAction(CodeAction {
                                             title: "Fix curly brace spacing".to_string(),
@@ -2085,10 +2800,13 @@ impl LanguageServer for Backend {
                     } else if code == "styling_brace_newline" {
                         has_brace_space_diagnostic = true;
                         let mut changes = HashMap::new();
-                        changes.insert(params.text_document.uri.clone(), vec![TextEdit {
-                            range: diagnostic.range,
-                            new_text: " ".to_string(),
-                        }]);
+                        changes.insert(
+                            params.text_document.uri.clone(),
+                            vec![TextEdit {
+                                range: diagnostic.range,
+                                new_text: " ".to_string(),
+                            }],
+                        );
 
                         actions.push(CodeActionOrCommand::CodeAction(CodeAction {
                             title: "Move curly brace to same line".to_string(),
@@ -2103,10 +2821,13 @@ impl LanguageServer for Backend {
                         }));
                     } else if code == "duplicate_key" {
                         let mut changes = HashMap::new();
-                        changes.insert(params.text_document.uri.clone(), vec![TextEdit {
-                            range: diagnostic.range,
-                            new_text: "".to_string(),
-                        }]);
+                        changes.insert(
+                            params.text_document.uri.clone(),
+                            vec![TextEdit {
+                                range: diagnostic.range,
+                                new_text: "".to_string(),
+                            }],
+                        );
 
                         actions.push(CodeActionOrCommand::CodeAction(CodeAction {
                             title: "Remove this duplicate modifier".to_string(),
@@ -2122,10 +2843,13 @@ impl LanguageServer for Backend {
                     } else if code == "unnecessary_version" {
                         has_unnecessary_version_diagnostic = true;
                         let mut changes = HashMap::new();
-                        changes.insert(params.text_document.uri.clone(), vec![TextEdit {
-                            range: diagnostic.range,
-                            new_text: "".to_string(),
-                        }]);
+                        changes.insert(
+                            params.text_document.uri.clone(),
+                            vec![TextEdit {
+                                range: diagnostic.range,
+                                new_text: "".to_string(),
+                            }],
+                        );
 
                         actions.push(CodeActionOrCommand::CodeAction(CodeAction {
                             title: "Remove unnecessary version number".to_string(),
@@ -2141,10 +2865,13 @@ impl LanguageServer for Backend {
                     } else if code == "unescaped_quote" {
                         has_unescaped_quote_diagnostic = true;
                         let mut changes = HashMap::new();
-                        changes.insert(params.text_document.uri.clone(), vec![TextEdit {
-                            range: diagnostic.range,
-                            new_text: "\\\"".to_string(),
-                        }]);
+                        changes.insert(
+                            params.text_document.uri.clone(),
+                            vec![TextEdit {
+                                range: diagnostic.range,
+                                new_text: "\\\"".to_string(),
+                            }],
+                        );
 
                         actions.push(CodeActionOrCommand::CodeAction(CodeAction {
                             title: "Escape double quote".to_string(),
@@ -2159,12 +2886,22 @@ impl LanguageServer for Backend {
                         }));
                     } else if code == "styling_indent" {
                         has_mixed_indentation_diagnostic = true;
-                        if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
+                        if let Some(content) =
+                            self.documents.get(&params.text_document.uri.to_string())
+                        {
                             let line_idx = diagnostic.range.start.line as usize;
                             if let Some(line) = content.lines().nth(line_idx) {
-                                let leading = line.chars().take_while(|c| c.is_whitespace()).collect::<String>();
+                                let leading = line
+                                    .chars()
+                                    .take_while(|c| c.is_whitespace())
+                                    .collect::<String>();
 
-                                let new_indent = if let Some(expected_tabs) = diagnostic.data.as_ref().and_then(|v| v.get("expected_tabs")).and_then(|v| v.as_u64()) {
+                                let new_indent = if let Some(expected_tabs) = diagnostic
+                                    .data
+                                    .as_ref()
+                                    .and_then(|v| v.get("expected_tabs"))
+                                    .and_then(|v| v.as_u64())
+                                {
                                     "\t".repeat(expected_tabs as usize)
                                 } else {
                                     // For YAML files or other cases without expected_tabs
@@ -2181,10 +2918,13 @@ impl LanguageServer for Backend {
                                 };
 
                                 let mut changes = HashMap::new();
-                                changes.insert(params.text_document.uri.clone(), vec![TextEdit {
-                                    range: diagnostic.range,
-                                    new_text: new_indent,
-                                }]);
+                                changes.insert(
+                                    params.text_document.uri.clone(),
+                                    vec![TextEdit {
+                                        range: diagnostic.range,
+                                        new_text: new_indent,
+                                    }],
+                                );
 
                                 actions.push(CodeActionOrCommand::CodeAction(CodeAction {
                                     title: "Convert indentation to tabs".to_string(),
@@ -2207,16 +2947,20 @@ impl LanguageServer for Backend {
         // Add "Fix all" if any casing diagnostic is present
         if has_casing_diagnostic {
             if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
-                { let (script, _) = parser::parse_script(&content);
+                {
+                    let (script, _) = parser::parse_script(&content);
                     let mut all_fixes = Vec::new();
                     self.collect_casing_fixes(&script.entries, &mut all_fixes);
 
                     if !all_fixes.is_empty() {
                         let mut changes = HashMap::new();
-                        let edits: Vec<TextEdit> = all_fixes.into_iter().map(|(range, text)| TextEdit {
-                            range: ast_range_to_lsp(&range),
-                            new_text: text,
-                        }).collect();
+                        let edits: Vec<TextEdit> = all_fixes
+                            .into_iter()
+                            .map(|(range, text)| TextEdit {
+                                range: ast_range_to_lsp(&range),
+                                new_text: text,
+                            })
+                            .collect();
 
                         changes.insert(params.text_document.uri.clone(), edits);
 
@@ -2243,10 +2987,13 @@ impl LanguageServer for Backend {
 
                 if !all_fixes.is_empty() {
                     let mut changes = HashMap::new();
-                    let edits: Vec<TextEdit> = all_fixes.into_iter().map(|(range, text)| TextEdit {
-                        range,
-                        new_text: text,
-                    }).collect();
+                    let edits: Vec<TextEdit> = all_fixes
+                        .into_iter()
+                        .map(|(range, text)| TextEdit {
+                            range,
+                            new_text: text,
+                        })
+                        .collect();
 
                     changes.insert(params.text_document.uri.clone(), edits);
 
@@ -2276,10 +3023,13 @@ impl LanguageServer for Backend {
 
                 if !all_fixes.is_empty() {
                     let mut changes = HashMap::new();
-                    let edits: Vec<TextEdit> = all_fixes.into_iter().map(|(range, text)| TextEdit {
-                        range,
-                        new_text: text,
-                    }).collect();
+                    let edits: Vec<TextEdit> = all_fixes
+                        .into_iter()
+                        .map(|(range, text)| TextEdit {
+                            range,
+                            new_text: text,
+                        })
+                        .collect();
 
                     changes.insert(params.text_document.uri.clone(), edits);
 
@@ -2300,21 +3050,26 @@ impl LanguageServer for Backend {
         // Add "Surround all assignment operators with spaces" if any such diagnostic is present
         if has_assignment_space_diagnostic {
             if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
-                { let (script, _) = parser::parse_script(&content);
+                {
+                    let (script, _) = parser::parse_script(&content);
                     let mut all_fixes = Vec::new();
                     self.collect_assignment_space_fixes(&script.entries, &mut all_fixes, &content);
 
                     if !all_fixes.is_empty() {
                         let mut changes = HashMap::new();
-                        let edits: Vec<TextEdit> = all_fixes.into_iter().map(|(range, text)| TextEdit {
-                            range: ast_range_to_lsp(&range),
-                            new_text: text,
-                        }).collect();
+                        let edits: Vec<TextEdit> = all_fixes
+                            .into_iter()
+                            .map(|(range, text)| TextEdit {
+                                range: ast_range_to_lsp(&range),
+                                new_text: text,
+                            })
+                            .collect();
 
                         changes.insert(params.text_document.uri.clone(), edits);
 
                         actions.push(CodeActionOrCommand::CodeAction(CodeAction {
-                            title: "Surround all assignment operators with spaces in this file".to_string(),
+                            title: "Surround all assignment operators with spaces in this file"
+                                .to_string(),
                             kind: Some(CodeActionKind::QUICKFIX),
                             edit: Some(WorkspaceEdit {
                                 changes: Some(changes),
@@ -2331,17 +3086,21 @@ impl LanguageServer for Backend {
         // Add "Fix curly brace spacing" if any such diagnostic is present
         if has_brace_space_diagnostic {
             if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
-                { let (script, _) = parser::parse_script(&content);
+                {
+                    let (script, _) = parser::parse_script(&content);
                     let mut all_fixes = Vec::new();
                     self.collect_brace_space_fixes(&script.entries, &mut all_fixes, &content);
                     self.collect_brace_newline_fixes(&script.entries, &mut all_fixes);
 
                     if !all_fixes.is_empty() {
                         let mut changes = HashMap::new();
-                        let edits: Vec<TextEdit> = all_fixes.into_iter().map(|(range, text)| TextEdit {
-                            range: ast_range_to_lsp(&range),
-                            new_text: text,
-                        }).collect();
+                        let edits: Vec<TextEdit> = all_fixes
+                            .into_iter()
+                            .map(|(range, text)| TextEdit {
+                                range: ast_range_to_lsp(&range),
+                                new_text: text,
+                            })
+                            .collect();
 
                         changes.insert(params.text_document.uri.clone(), edits);
 
@@ -2374,10 +3133,13 @@ impl LanguageServer for Backend {
 
                 if !all_fixes.is_empty() {
                     let mut changes = HashMap::new();
-                    let edits: Vec<TextEdit> = all_fixes.into_iter().map(|(range, text)| TextEdit {
-                        range: ast_range_to_lsp(&range),
-                        new_text: text,
-                    }).collect();
+                    let edits: Vec<TextEdit> = all_fixes
+                        .into_iter()
+                        .map(|(range, text)| TextEdit {
+                            range: ast_range_to_lsp(&range),
+                            new_text: text,
+                        })
+                        .collect();
 
                     changes.insert(params.text_document.uri.clone(), edits);
 
@@ -2402,10 +3164,13 @@ impl LanguageServer for Backend {
 
                 if !diagnostics.is_empty() {
                     let mut changes = HashMap::new();
-                    let edits: Vec<TextEdit> = diagnostics.into_iter().map(|d| TextEdit {
-                        range: ast_range_to_lsp(&d.range),
-                        new_text: "\\\"".to_string(),
-                    }).collect();
+                    let edits: Vec<TextEdit> = diagnostics
+                        .into_iter()
+                        .map(|d| TextEdit {
+                            range: ast_range_to_lsp(&d.range),
+                            new_text: "\\\"".to_string(),
+                        })
+                        .collect();
 
                     changes.insert(params.text_document.uri.clone(), edits);
 
@@ -2430,7 +3195,10 @@ impl LanguageServer for Backend {
         }
     }
 
-    async fn execute_command(&self, params: ExecuteCommandParams) -> Result<Option<serde_json::Value>> {
+    async fn execute_command(
+        &self,
+        params: ExecuteCommandParams,
+    ) -> Result<Option<serde_json::Value>> {
         if params.command == "hoi4.getEventGraph" {
             let events = self.events.read().await;
             let json = serde_json::to_value(&*events).unwrap();
@@ -2452,22 +3220,29 @@ impl LanguageServer for Backend {
         Ok(None)
     }
 
-    async fn document_symbol(&self, params: DocumentSymbolParams) -> Result<Option<DocumentSymbolResponse>> {
+    async fn document_symbol(
+        &self,
+        params: DocumentSymbolParams,
+    ) -> Result<Option<DocumentSymbolResponse>> {
         let uri = params.text_document.uri.as_str();
 
-        if let Some(entry) = self.documents.get(uri) {
-            let content = entry.value();
+        match self.documents.get(uri) {
+            Some(entry) => {
+                let content = entry.value();
 
-            // Parse the document
-            let (script, _) = parser::parse_script(content);
-            let symbols = document_symbols::generate_document_symbols(&script.entries);
-            Ok(Some(DocumentSymbolResponse::Nested(symbols)))
-        } else {
-            Ok(None)
+                // Parse the document
+                let (script, _) = parser::parse_script(content);
+                let symbols = document_symbols::generate_document_symbols(&script.entries);
+                Ok(Some(DocumentSymbolResponse::Nested(symbols)))
+            }
+            _ => Ok(None),
         }
     }
 
-    async fn symbol(&self, params: WorkspaceSymbolParams) -> Result<Option<Vec<SymbolInformation>>> {
+    async fn symbol(
+        &self,
+        params: WorkspaceSymbolParams,
+    ) -> Result<Option<Vec<SymbolInformation>>> {
         let symbols = workspace_symbols::generate_workspace_symbols(
             &params.query,
             &self.events,
@@ -2493,13 +3268,22 @@ impl LanguageServer for Backend {
             &self.adjacencies,
             &self.adjacency_rules,
             &self.strategic_regions,
-        ).await;
+            &self.custom_modifiers,
+        )
+        .await;
 
         Ok(Some(symbols))
     }
 
-    async fn prepare_call_hierarchy(&self, params: CallHierarchyPrepareParams) -> Result<Option<Vec<CallHierarchyItem>>> {
-        let uri = params.text_document_position_params.text_document.uri.as_str();
+    async fn prepare_call_hierarchy(
+        &self,
+        params: CallHierarchyPrepareParams,
+    ) -> Result<Option<Vec<CallHierarchyItem>>> {
+        let uri = params
+            .text_document_position_params
+            .text_document
+            .uri
+            .as_str();
         let position = params.text_document_position_params.position;
 
         let item = call_hierarchy::prepare_call_hierarchy(
@@ -2508,36 +3292,48 @@ impl LanguageServer for Backend {
             &self.events,
             &self.scripted_triggers,
             &self.scripted_effects,
-        ).await;
+        )
+        .await;
 
         Ok(item.map(|i| vec![i]))
     }
 
-    async fn incoming_calls(&self, params: CallHierarchyIncomingCallsParams) -> Result<Option<Vec<CallHierarchyIncomingCall>>> {
+    async fn incoming_calls(
+        &self,
+        params: CallHierarchyIncomingCallsParams,
+    ) -> Result<Option<Vec<CallHierarchyIncomingCall>>> {
         let calls = call_hierarchy::get_incoming_calls(
             &params.item,
             &self.events,
             &self.scripted_triggers,
             &self.scripted_effects,
             &self.documents,
-        ).await;
+        )
+        .await;
 
         Ok(Some(calls))
     }
 
-    async fn outgoing_calls(&self, params: CallHierarchyOutgoingCallsParams) -> Result<Option<Vec<CallHierarchyOutgoingCall>>> {
+    async fn outgoing_calls(
+        &self,
+        params: CallHierarchyOutgoingCallsParams,
+    ) -> Result<Option<Vec<CallHierarchyOutgoingCall>>> {
         let calls = call_hierarchy::get_outgoing_calls(
             &params.item,
             &self.events,
             &self.scripted_triggers,
             &self.scripted_effects,
             &self.documents,
-        ).await;
+        )
+        .await;
 
         Ok(Some(calls))
     }
 
-    async fn prepare_rename(&self, params: TextDocumentPositionParams) -> Result<Option<PrepareRenameResponse>> {
+    async fn prepare_rename(
+        &self,
+        params: TextDocumentPositionParams,
+    ) -> Result<Option<PrepareRenameResponse>> {
         let uri = params.text_document.uri.as_str();
         let position = params.position;
 
@@ -2551,7 +3347,8 @@ impl LanguageServer for Backend {
             &self.characters,
             &self.variables,
             &self.abilities,
-        ).await;
+        )
+        .await;
 
         Ok(result)
     }
@@ -2573,7 +3370,8 @@ impl LanguageServer for Backend {
             &self.variables,
             &self.abilities,
             &self.documents,
-        ).await;
+        )
+        .await;
 
         Ok(result)
     }
@@ -2586,12 +3384,23 @@ impl LanguageServer for Backend {
 impl Backend {
     fn make_file_link(&self, path: &str) -> String {
         // Try to canonicalize for absolute path if possible
-        let abs_path = std::path::Path::new(path).canonicalize()
+        let abs_path = std::path::Path::new(path)
+            .canonicalize()
             .unwrap_or_else(|_| std::path::PathBuf::from(path));
-        format!("[{}]({}://{})", path, "file", abs_path.to_string_lossy().replace("\\", "/"))
+        format!(
+            "[{}]({}://{})",
+            path,
+            "file",
+            abs_path.to_string_lossy().replace("\\", "/")
+        )
     }
 
-    fn check_is_province(&self, val: &ast::NodeedValue, diagnostics: &mut Vec<Diagnostic>, provs: &HashMap<u32, province_scanner::Province>) {
+    fn check_is_province(
+        &self,
+        val: &ast::NodeedValue,
+        diagnostics: &mut Vec<Diagnostic>,
+        provs: &HashMap<u32, province_scanner::Province>,
+    ) {
         let id_opt = match &val.value {
             ast::Value::Number(n) => Some(*n as u32),
             ast::Value::String(s) => s.parse::<u32>().ok(),
@@ -2604,7 +3413,9 @@ impl Backend {
                     range: ast_range_to_lsp(&val.range),
                     severity: Some(DiagnosticSeverity::WARNING),
                     message: format!("Unknown province ID: {}", id),
-                    code: Some(NumberOrString::String(advanced_validation::UNKNOWN_TRIGGER.to_string())),
+                    code: Some(NumberOrString::String(
+                        advanced_validation::UNKNOWN_TRIGGER.to_string(),
+                    )),
                     source: Some("Hearts of Modding".to_string()),
                     ..Default::default()
                 });
@@ -2617,7 +3428,12 @@ impl Backend {
         let result = province_scanner::scan_provinces(roots, &filter);
         let mut provinces = self.provinces.write().await;
         *provinces = result;
-        self.client.log_message(MessageType::INFO, format!("Total: Loaded {} province definitions", provinces.len())).await;
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!("Total: Loaded {} province definitions", provinces.len()),
+            )
+            .await;
     }
 
     async fn scan_states(&self, roots: &[std::path::PathBuf]) {
@@ -2626,7 +3442,9 @@ impl Backend {
 
         let mut map = self.states.write().await;
         *map = result;
-        self.client.log_message(MessageType::INFO, format!("Loaded {} states", map.len())).await;
+        self.client
+            .log_message(MessageType::INFO, format!("Loaded {} states", map.len()))
+            .await;
     }
 
     async fn scan_logistics(&self, roots: &[std::path::PathBuf]) {
@@ -2639,7 +3457,12 @@ impl Backend {
         let mut rw = self.railways.write().await;
         *rw = result.railways;
 
-        self.client.log_message(MessageType::INFO, format!("Loaded {} supply nodes, {} railways", sn.len(), rw.len())).await;
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!("Loaded {} supply nodes, {} railways", sn.len(), rw.len()),
+            )
+            .await;
     }
 
     async fn scan_map_objects(&self, roots: &[std::path::PathBuf]) {
@@ -2655,7 +3478,17 @@ impl Backend {
         let mut wp = self.weather_positions.write().await;
         *wp = result.weather_positions;
 
-        self.client.log_message(MessageType::INFO, format!("Loaded {} map buildings, {} unit stacks, {} weather positions", mb.len(), us.len(), wp.len())).await;
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!(
+                    "Loaded {} map buildings, {} unit stacks, {} weather positions",
+                    mb.len(),
+                    us.len(),
+                    wp.len()
+                ),
+            )
+            .await;
     }
 
     async fn scan_adjacencies(&self, roots: &[std::path::PathBuf]) {
@@ -2668,7 +3501,16 @@ impl Backend {
         let mut rules = self.adjacency_rules.write().await;
         *rules = result.rules;
 
-        self.client.log_message(MessageType::INFO, format!("Loaded {} adjacencies, {} adjacency rules", adj.len(), rules.len())).await;
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!(
+                    "Loaded {} adjacencies, {} adjacency rules",
+                    adj.len(),
+                    rules.len()
+                ),
+            )
+            .await;
     }
 
     async fn scan_strategic_regions(&self, roots: &[std::path::PathBuf]) {
@@ -2678,7 +3520,12 @@ impl Backend {
         let mut regions = self.strategic_regions.write().await;
         *regions = result;
 
-        self.client.log_message(MessageType::INFO, format!("Loaded {} strategic regions", regions.len())).await;
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!("Loaded {} strategic regions", regions.len()),
+            )
+            .await;
     }
 
     async fn scan_events(&self, roots: &[std::path::PathBuf]) {
@@ -2686,7 +3533,12 @@ impl Backend {
         let result = event_scanner::scan_events(roots, &filter);
         let mut events = self.events.write().await;
         *events = result;
-        self.client.log_message(MessageType::INFO, format!("Total: Loaded {} event definitions", events.len())).await;
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!("Total: Loaded {} event definitions", events.len()),
+            )
+            .await;
     }
 
     async fn scan_abilities(&self, roots: &[std::path::PathBuf]) {
@@ -2702,7 +3554,12 @@ impl Backend {
         };
         let mut map = self.abilities.write().await;
         *map = ability_scanner::scan_abilities(roots, &filter);
-        self.client.log_message(MessageType::INFO, format!("Total: Loaded {} abilities", map.len())).await;
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!("Total: Loaded {} abilities", map.len()),
+            )
+            .await;
     }
 
     async fn scan_music(&self, roots: &[std::path::PathBuf]) {
@@ -2718,7 +3575,17 @@ impl Backend {
         let mut songs = self.songs.write().await;
         *songs = result.songs;
 
-        self.client.log_message(MessageType::INFO, format!("Total: Loaded {} music assets, {} stations, and {} songs", assets.len(), stations.len(), songs.len())).await;
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!(
+                    "Total: Loaded {} music assets, {} stations, and {} songs",
+                    assets.len(),
+                    stations.len(),
+                    songs.len()
+                ),
+            )
+            .await;
     }
 
     async fn scan_sounds(&self, roots: &[std::path::PathBuf]) {
@@ -2737,7 +3604,18 @@ impl Backend {
         let mut categories = self.sound_categories.write().await;
         *categories = result.categories;
 
-        self.client.log_message(MessageType::INFO, format!("Total: Loaded {} sounds, {} sound effects, {} falloffs, and {} categories", sounds.len(), effects.len(), falloffs.len(), categories.len())).await;
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!(
+                    "Total: Loaded {} sounds, {} sound effects, {} falloffs, and {} categories",
+                    sounds.len(),
+                    effects.len(),
+                    falloffs.len(),
+                    categories.len()
+                ),
+            )
+            .await;
     }
 
     async fn scan_modifiers(&self, roots: &[std::path::PathBuf]) {
@@ -2750,7 +3628,16 @@ impl Backend {
         let mut mappings = self.modifier_mappings.write().await;
         *mappings = result.builtin_mappings;
 
-        self.client.log_message(MessageType::INFO, format!("Total: Loaded {} custom modifiers and {} builtin mappings", custom.len(), mappings.len())).await;
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!(
+                    "Total: Loaded {} custom modifiers and {} builtin mappings",
+                    custom.len(),
+                    mappings.len()
+                ),
+            )
+            .await;
     }
 
     async fn scan_buildings(&self, roots: &[std::path::PathBuf]) {
@@ -2760,7 +3647,12 @@ impl Backend {
         let mut b = self.buildings.write().await;
         *b = buildings;
 
-        self.client.log_message(MessageType::INFO, format!("Total: Loaded {} buildings", b.len())).await;
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!("Total: Loaded {} buildings", b.len()),
+            )
+            .await;
     }
 
     async fn scan_achievements(&self, roots: &[std::path::PathBuf]) {
@@ -2770,7 +3662,12 @@ impl Backend {
         let mut a = self.achievements.write().await;
         *a = achievements;
 
-        self.client.log_message(MessageType::INFO, format!("Total: Loaded {} achievements", a.len())).await;
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!("Total: Loaded {} achievements", a.len()),
+            )
+            .await;
     }
 
     async fn scan_defines(&self, roots: &[std::path::PathBuf]) {
@@ -2780,7 +3677,9 @@ impl Backend {
         let mut d = self.defines.write().await;
         *d = defines;
 
-        self.client.log_message(MessageType::INFO, "Loaded game defines").await;
+        self.client
+            .log_message(MessageType::INFO, "Loaded game defines")
+            .await;
     }
 
     async fn scan_variables(&self, roots: &[std::path::PathBuf]) {
@@ -2793,7 +3692,16 @@ impl Backend {
         let mut targets = self.event_targets.write().await;
         *targets = result.event_targets;
 
-        self.client.log_message(MessageType::INFO, format!("Total: Loaded {} variables and {} event targets", vars.len(), targets.len())).await;
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!(
+                    "Total: Loaded {} variables and {} event targets",
+                    vars.len(),
+                    targets.len()
+                ),
+            )
+            .await;
     }
 
     fn collect_styling_fixes(&self, content: &str, fixes: &mut Vec<(Range, String)>) {
@@ -2804,8 +3712,14 @@ impl Backend {
                 let end_col = utf16_len(line);
                 fixes.push((
                     Range {
-                        start: Position { line: line_idx as u32, character: start_col },
-                        end: Position { line: line_idx as u32, character: end_col },
+                        start: Position {
+                            line: line_idx as u32,
+                            character: start_col,
+                        },
+                        end: Position {
+                            line: line_idx as u32,
+                            character: end_col,
+                        },
                     },
                     "".to_string(),
                 ));
@@ -2813,23 +3727,39 @@ impl Backend {
         }
     }
 
-    fn collect_indentation_fixes(&self, content: &str, script_opt: Option<&ast::Script>, fixes: &mut Vec<(Range, String)>) {
+    fn collect_indentation_fixes(
+        &self,
+        content: &str,
+        script_opt: Option<&ast::Script>,
+        fixes: &mut Vec<(Range, String)>,
+    ) {
         let mut expected_indents = HashMap::new();
         if let Some(script) = script_opt {
             Self::compute_expected_indentations(&script.entries, 0, &mut expected_indents);
         }
 
         for (line_idx, line) in content.lines().enumerate() {
-            let leading = line.chars().take_while(|c| c.is_whitespace()).collect::<String>();
-            if line.trim().is_empty() { continue; }
+            let leading = line
+                .chars()
+                .take_while(|c| c.is_whitespace())
+                .collect::<String>();
+            if line.trim().is_empty() {
+                continue;
+            }
 
             if let Some(&expected_tabs) = expected_indents.get(&(line_idx as u32)) {
                 let expected_str = "\t".repeat(expected_tabs);
                 if leading != expected_str {
                     fixes.push((
                         Range {
-                            start: Position { line: line_idx as u32, character: 0 },
-                            end: Position { line: line_idx as u32, character: leading.len() as u32 },
+                            start: Position {
+                                line: line_idx as u32,
+                                character: 0,
+                            },
+                            end: Position {
+                                line: line_idx as u32,
+                                character: leading.len() as u32,
+                            },
                         },
                         expected_str,
                     ));
@@ -2849,8 +3779,14 @@ impl Backend {
                 if new_indent != leading {
                     fixes.push((
                         Range {
-                            start: Position { line: line_idx as u32, character: 0 },
-                            end: Position { line: line_idx as u32, character: leading.len() as u32 },
+                            start: Position {
+                                line: line_idx as u32,
+                                character: 0,
+                            },
+                            end: Position {
+                                line: line_idx as u32,
+                                character: leading.len() as u32,
+                            },
                         },
                         new_indent,
                     ));
@@ -2859,15 +3795,25 @@ impl Backend {
         }
     }
 
-    fn collect_assignment_space_fixes(&self, entries: &[ast::Entry], fixes: &mut Vec<(ast::Range, String)>, content: &str) {
+    fn collect_assignment_space_fixes(
+        &self,
+        entries: &[ast::Entry],
+        fixes: &mut Vec<(ast::Range, String)>,
+        content: &str,
+    ) {
         for entry in entries {
             match entry {
                 ast::Entry::Assignment(ass) => {
                     let mut needs_fix = false;
-                    if ass.key_range.end_line == ass.operator_range.start_line && ass.key_range.end_line == ass.value.range.start_line {
-                        if ass.operator_range.start_col > ass.key_range.end_col && ass.value.range.start_col > ass.operator_range.end_col {
+                    if ass.key_range.end_line == ass.operator_range.start_line
+                        && ass.key_range.end_line == ass.value.range.start_line
+                    {
+                        if ass.operator_range.start_col > ass.key_range.end_col
+                            && ass.value.range.start_col > ass.operator_range.end_col
+                        {
                             let space_before = ass.operator_range.start_col - ass.key_range.end_col;
-                            let space_after = ass.value.range.start_col - ass.operator_range.end_col;
+                            let space_after =
+                                ass.value.range.start_col - ass.operator_range.end_col;
                             if space_before != 1 || space_after != 1 {
                                 needs_fix = true;
                             }
@@ -2890,118 +3836,158 @@ impl Backend {
                                         end_line: ass.value.range.start_line,
                                         end_col: ass.value.range.start_col,
                                     },
-                                    format!(" {} ", op_str.trim())
+                                    format!(" {} ", op_str.trim()),
                                 ));
                             }
                         }
                     }
 
                     match &ass.value.value {
-                        ast::Value::Block(inner) => self.collect_assignment_space_fixes(inner, fixes, content),
-                        ast::Value::TaggedBlock(_, inner, _) => self.collect_assignment_space_fixes(inner, fixes, content),
+                        ast::Value::Block(inner) => {
+                            self.collect_assignment_space_fixes(inner, fixes, content)
+                        }
+                        ast::Value::TaggedBlock(_, inner, _) => {
+                            self.collect_assignment_space_fixes(inner, fixes, content)
+                        }
                         _ => {}
                     }
                 }
-                ast::Entry::Value(val) => {
-                    match &val.value {
-                        ast::Value::Block(inner) => self.collect_assignment_space_fixes(inner, fixes, content),
-                        ast::Value::TaggedBlock(_, inner, _) => self.collect_assignment_space_fixes(inner, fixes, content),
-                        _ => {}
+                ast::Entry::Value(val) => match &val.value {
+                    ast::Value::Block(inner) => {
+                        self.collect_assignment_space_fixes(inner, fixes, content)
                     }
-                }
+                    ast::Value::TaggedBlock(_, inner, _) => {
+                        self.collect_assignment_space_fixes(inner, fixes, content)
+                    }
+                    _ => {}
+                },
                 _ => {}
             }
         }
     }
 
-    fn collect_brace_newline_fixes(&self, entries: &[ast::Entry], fixes: &mut Vec<(ast::Range, String)>) {
+    fn collect_brace_newline_fixes(
+        &self,
+        entries: &[ast::Entry],
+        fixes: &mut Vec<(ast::Range, String)>,
+    ) {
         for entry in entries {
             match entry {
-                ast::Entry::Assignment(ass) => {
-                    match &ass.value.value {
-                        ast::Value::Block(_) => {
-                            if ass.value.range.start_line > ass.operator_range.end_line {
-                                fixes.push((ast::Range {
+                ast::Entry::Assignment(ass) => match &ass.value.value {
+                    ast::Value::Block(_) => {
+                        if ass.value.range.start_line > ass.operator_range.end_line {
+                            fixes.push((
+                                ast::Range {
                                     start_line: ass.operator_range.end_line,
                                     start_col: ass.operator_range.end_col,
                                     end_line: ass.value.range.start_line,
                                     end_col: ass.value.range.start_col,
-                                }, " ".to_string()));
-                            }
-                            self.collect_brace_newline_fixes(match &ass.value.value { ast::Value::Block(i) => i, _ => &[] }, fixes);
+                                },
+                                " ".to_string(),
+                            ));
                         }
-                        ast::Value::TaggedBlock(tag, inner, block_range) => {
-                            if block_range.start_line > ass.operator_range.end_line {
-                                fixes.push((ast::Range {
+                        self.collect_brace_newline_fixes(
+                            match &ass.value.value {
+                                ast::Value::Block(i) => i,
+                                _ => &[],
+                            },
+                            fixes,
+                        );
+                    }
+                    ast::Value::TaggedBlock(tag, inner, block_range) => {
+                        if block_range.start_line > ass.operator_range.end_line {
+                            fixes.push((
+                                ast::Range {
                                     start_line: ass.operator_range.end_line,
                                     start_col: ass.operator_range.end_col,
                                     end_line: block_range.start_line,
                                     end_col: block_range.start_col,
-                                }, " ".to_string()));
-                            } else {
-                                let tag_end_col = ass.value.range.start_col + tag.len() as u32;
-                                if block_range.start_col != tag_end_col + 1 {
-                                    fixes.push((ast::Range {
+                                },
+                                " ".to_string(),
+                            ));
+                        } else {
+                            let tag_end_col = ass.value.range.start_col + tag.len() as u32;
+                            if block_range.start_col != tag_end_col + 1 {
+                                fixes.push((
+                                    ast::Range {
                                         start_line: ass.value.range.start_line,
                                         start_col: tag_end_col,
                                         end_line: block_range.start_line,
                                         end_col: block_range.start_col,
-                                    }, " ".to_string()));
-                                }
+                                    },
+                                    " ".to_string(),
+                                ));
                             }
-                            self.collect_brace_newline_fixes(inner, fixes);
                         }
-                        _ => {}
+                        self.collect_brace_newline_fixes(inner, fixes);
                     }
-                }
-                ast::Entry::Value(val) => {
-                    match &val.value {
-                        ast::Value::Block(inner) => self.collect_brace_newline_fixes(inner, fixes),
-                        ast::Value::TaggedBlock(tag, inner, block_range) => {
-                            if block_range.start_line > val.range.start_line {
-                                fixes.push((ast::Range {
+                    _ => {}
+                },
+                ast::Entry::Value(val) => match &val.value {
+                    ast::Value::Block(inner) => self.collect_brace_newline_fixes(inner, fixes),
+                    ast::Value::TaggedBlock(tag, inner, block_range) => {
+                        if block_range.start_line > val.range.start_line {
+                            fixes.push((
+                                ast::Range {
                                     start_line: val.range.start_line,
                                     start_col: val.range.start_col + tag.len() as u32,
                                     end_line: block_range.start_line,
                                     end_col: block_range.start_col,
-                                }, " ".to_string()));
-                            } else {
-                                let tag_end_col = val.range.start_col + tag.len() as u32;
-                                if block_range.start_col != tag_end_col + 1 {
-                                    fixes.push((ast::Range {
+                                },
+                                " ".to_string(),
+                            ));
+                        } else {
+                            let tag_end_col = val.range.start_col + tag.len() as u32;
+                            if block_range.start_col != tag_end_col + 1 {
+                                fixes.push((
+                                    ast::Range {
                                         start_line: val.range.start_line,
                                         start_col: tag_end_col,
                                         end_line: block_range.start_line,
                                         end_col: block_range.start_col,
-                                    }, " ".to_string()));
-                                }
+                                    },
+                                    " ".to_string(),
+                                ));
                             }
-                            self.collect_brace_newline_fixes(inner, fixes);
                         }
-                        _ => {}
+                        self.collect_brace_newline_fixes(inner, fixes);
                     }
-                }
+                    _ => {}
+                },
                 _ => {}
             }
         }
     }
 
-    fn collect_brace_space_fixes(&self, entries: &[ast::Entry], fixes: &mut Vec<(ast::Range, String)>, content: &str) {
+    fn collect_brace_space_fixes(
+        &self,
+        entries: &[ast::Entry],
+        fixes: &mut Vec<(ast::Range, String)>,
+        content: &str,
+    ) {
         for entry in entries {
             match entry {
                 ast::Entry::Assignment(ass) => {
                     Self::check_and_fix_brace(&ass.value.range, &ass.value.value, content, fixes);
                     match &ass.value.value {
-                        ast::Value::Block(inner) => self.collect_brace_space_fixes(inner, fixes, content),
-                        ast::Value::TaggedBlock(_, inner, _) => self.collect_brace_space_fixes(inner, fixes, content),
+                        ast::Value::Block(inner) => {
+                            self.collect_brace_space_fixes(inner, fixes, content)
+                        }
+                        ast::Value::TaggedBlock(_, inner, _) => {
+                            self.collect_brace_space_fixes(inner, fixes, content)
+                        }
                         _ => {}
                     }
                 }
                 ast::Entry::Value(val) => {
                     Self::check_and_fix_brace(&val.range, &val.value, content, fixes);
                     match &val.value {
-                        ast::Value::Block(inner) => self.collect_brace_space_fixes(inner, fixes, content),
-                        ast::Value::TaggedBlock(_, inner, _) => self.collect_brace_space_fixes(inner, fixes, content),
+                        ast::Value::Block(inner) => {
+                            self.collect_brace_space_fixes(inner, fixes, content)
+                        }
+                        ast::Value::TaggedBlock(_, inner, _) => {
+                            self.collect_brace_space_fixes(inner, fixes, content)
+                        }
                         _ => {}
                     }
                 }
@@ -3010,7 +3996,12 @@ impl Backend {
         }
     }
 
-    fn check_and_fix_brace(range: &ast::Range, value: &ast::Value, content: &str, fixes: &mut Vec<(ast::Range, String)>) {
+    fn check_and_fix_brace(
+        range: &ast::Range,
+        value: &ast::Value,
+        content: &str,
+        fixes: &mut Vec<(ast::Range, String)>,
+    ) {
         match value {
             ast::Value::Block(_) | ast::Value::TaggedBlock(_, _, _) => {
                 if range.start_line == range.end_line {
@@ -3033,26 +4024,41 @@ impl Backend {
 
                                 // 2. Check padding INSIDE
                                 if block_str.len() >= 2 {
-                                    let inner = &block_str[1..block_str.len()-1];
+                                    let inner = &block_str[1..block_str.len() - 1];
                                     if inner.trim().is_empty() {
-                                        if block_str != "{}" { needs_fix = true; }
+                                        if block_str != "{}" {
+                                            needs_fix = true;
+                                        }
                                     } else {
-                                        if !block_str.starts_with("{ ") || !block_str.ends_with(" }") || block_str.starts_with("{  ") || block_str.ends_with("  }") {
+                                        if !block_str.starts_with("{ ")
+                                            || !block_str.ends_with(" }")
+                                            || block_str.starts_with("{  ")
+                                            || block_str.ends_with("  }")
+                                        {
                                             needs_fix = true;
                                         }
                                     }
                                 }
 
                                 if needs_fix {
-                                    let brace_end_rel = full_str.rfind('}').unwrap_or(full_str.len() - 1);
-                                    let inner = &full_str[brace_start_rel + 1 .. brace_end_rel];
+                                    let brace_end_rel =
+                                        full_str.rfind('}').unwrap_or(full_str.len() - 1);
+                                    let inner = &full_str[brace_start_rel + 1..brace_end_rel];
 
                                     let before_brace = full_str[..brace_start_rel].trim();
 
                                     let new_text = if inner.trim().is_empty() {
-                                        if !before_brace.is_empty() { format!("{} {{}}", before_brace) } else { "{}".to_string() }
+                                        if !before_brace.is_empty() {
+                                            format!("{} {{}}", before_brace)
+                                        } else {
+                                            "{}".to_string()
+                                        }
                                     } else {
-                                        if !before_brace.is_empty() { format!("{} {{ {} }}", before_brace, inner.trim()) } else { format!("{{ {} }}", inner.trim()) }
+                                        if !before_brace.is_empty() {
+                                            format!("{} {{ {} }}", before_brace, inner.trim())
+                                        } else {
+                                            format!("{{ {} }}", inner.trim())
+                                        }
                                     };
                                     fixes.push((range.clone(), new_text));
                                 }
@@ -3065,10 +4071,20 @@ impl Backend {
         }
     }
 
-    fn collect_casing_fixes(&self, entries: &[ast::Entry], fixes: &mut Vec<(ast::Range, String)>) {        let keywords = [
-            "spriteTypes", "spriteType", "name", "texturefile", 
-            "ideologies", "types", "ideas", "country", "national_focus",
-            "leader_traits", "country_leader_traits", "traits"
+    fn collect_casing_fixes(&self, entries: &[ast::Entry], fixes: &mut Vec<(ast::Range, String)>) {
+        let keywords = [
+            "spriteTypes",
+            "spriteType",
+            "name",
+            "texturefile",
+            "ideologies",
+            "types",
+            "ideas",
+            "country",
+            "national_focus",
+            "leader_traits",
+            "country_leader_traits",
+            "traits",
         ];
 
         for entry in entries {
@@ -3084,17 +4100,17 @@ impl Backend {
 
                     match &ass.value.value {
                         ast::Value::Block(inner) => self.collect_casing_fixes(inner, fixes),
-                        ast::Value::TaggedBlock(_, inner, _) => self.collect_casing_fixes(inner, fixes),
+                        ast::Value::TaggedBlock(_, inner, _) => {
+                            self.collect_casing_fixes(inner, fixes)
+                        }
                         _ => {}
                     }
                 }
-                ast::Entry::Value(val) => {
-                    match &val.value {
-                        ast::Value::Block(inner) => self.collect_casing_fixes(inner, fixes),
-                        ast::Value::TaggedBlock(_, inner, _) => self.collect_casing_fixes(inner, fixes),
-                        _ => {}
-                    }
-                }
+                ast::Entry::Value(val) => match &val.value {
+                    ast::Value::Block(inner) => self.collect_casing_fixes(inner, fixes),
+                    ast::Value::TaggedBlock(_, inner, _) => self.collect_casing_fixes(inner, fixes),
+                    _ => {}
+                },
                 _ => {}
             }
         }
@@ -3103,14 +4119,29 @@ impl Backend {
     async fn load_localization(&self, roots: &[std::path::PathBuf]) {
         let mut all_locs = HashMap::new();
 
-        self.client.log_message(MessageType::INFO, format!("Starting localization scan in {} roots", roots.len())).await;
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!("Starting localization scan in {} roots", roots.len()),
+            )
+            .await;
 
         for root in roots {
             let loc_dir = root.join("localisation");
-            self.client.log_message(MessageType::INFO, format!("Checking for localization in: {:?}", loc_dir)).await;
+            self.client
+                .log_message(
+                    MessageType::INFO,
+                    format!("Checking for localization in: {:?}", loc_dir),
+                )
+                .await;
 
             if !loc_dir.exists() {
-                self.client.log_message(MessageType::INFO, format!("Directory does not exist: {:?}", loc_dir)).await;
+                self.client
+                    .log_message(
+                        MessageType::INFO,
+                        format!("Directory does not exist: {:?}", loc_dir),
+                    )
+                    .await;
                 continue;
             }
 
@@ -3141,7 +4172,16 @@ impl Backend {
                 }
             }
 
-            self.client.log_message(MessageType::INFO, format!("Found {} english .yml files in {:?}", files_to_scan.len(), loc_dir)).await;
+            self.client
+                .log_message(
+                    MessageType::INFO,
+                    format!(
+                        "Found {} english .yml files in {:?}",
+                        files_to_scan.len(),
+                        loc_dir
+                    ),
+                )
+                .await;
 
             // Sort files to ensure those in "replace" folders come last, correctly overriding other keys
             files_to_scan.sort_by(|a, b| {
@@ -3160,21 +4200,44 @@ impl Backend {
                         let path_str = path.to_string_lossy().to_string();
                         let (parsed, _) = loc_parser::parse_loc_file(&content, &path_str);
                         if parsed.is_empty() {
-                            self.client.log_message(MessageType::LOG, format!("Warning: No keys found in localization file: {:?}", path)).await;
+                            self.client
+                                .log_message(
+                                    MessageType::LOG,
+                                    format!(
+                                        "Warning: No keys found in localization file: {:?}",
+                                        path
+                                    ),
+                                )
+                                .await;
                         } else {
-                            self.client.log_message(MessageType::LOG, format!("Loaded {} keys from {:?}", parsed.len(), path)).await;
+                            self.client
+                                .log_message(
+                                    MessageType::LOG,
+                                    format!("Loaded {} keys from {:?}", parsed.len(), path),
+                                )
+                                .await;
                         }
                         all_locs.extend(parsed);
                     }
                     Err(e) => {
-                        self.client.log_message(MessageType::ERROR, format!("Failed to read localization file {:?}: {}", path, e)).await;
+                        self.client
+                            .log_message(
+                                MessageType::ERROR,
+                                format!("Failed to read localization file {:?}: {}", path, e),
+                            )
+                            .await;
                     }
                 }
             }
         }
         let mut loc = self.localization.write().await;
         *loc = all_locs;
-        self.client.log_message(MessageType::INFO, format!("Total: Loaded {} localization keys", loc.len())).await;
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!("Total: Loaded {} localization keys", loc.len()),
+            )
+            .await;
     }
 
     async fn scan_scripted(&self, roots: &[std::path::PathBuf]) {
@@ -3190,17 +4253,40 @@ impl Backend {
 
             if triggers_dir.exists() {
                 let found = scripted_scanner::scan_directory(&triggers_dir, &filter);
-                self.client.log_message(MessageType::LOG, format!("Loaded {} scripted triggers from {:?}", found.len(), triggers_dir)).await;
+                self.client
+                    .log_message(
+                        MessageType::LOG,
+                        format!(
+                            "Loaded {} scripted triggers from {:?}",
+                            found.len(),
+                            triggers_dir
+                        ),
+                    )
+                    .await;
                 all_triggers.extend(found);
             }
             if effects_dir.exists() {
                 let found = scripted_scanner::scan_directory(&effects_dir, &filter);
-                self.client.log_message(MessageType::LOG, format!("Loaded {} scripted effects from {:?}", found.len(), effects_dir)).await;
+                self.client
+                    .log_message(
+                        MessageType::LOG,
+                        format!(
+                            "Loaded {} scripted effects from {:?}",
+                            found.len(),
+                            effects_dir
+                        ),
+                    )
+                    .await;
                 all_effects.extend(found);
             }
             if locs_dir.exists() {
                 let found = scripted_loc_scanner::scan_directory(&locs_dir, &filter);
-                self.client.log_message(MessageType::LOG, format!("Loaded {} scripted locs from {:?}", found.len(), locs_dir)).await;
+                self.client
+                    .log_message(
+                        MessageType::LOG,
+                        format!("Loaded {} scripted locs from {:?}", found.len(), locs_dir),
+                    )
+                    .await;
                 all_locs.extend(found);
             }
         }
@@ -3214,7 +4300,17 @@ impl Backend {
         let mut l_map = self.scripted_locs.write().await;
         *l_map = all_locs;
 
-        self.client.log_message(MessageType::INFO, format!("Total: Loaded {} scripted triggers, {} scripted effects, {} scripted locs", t_map.len(), e_map.len(), l_map.len())).await;
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!(
+                    "Total: Loaded {} scripted triggers, {} scripted effects, {} scripted locs",
+                    t_map.len(),
+                    e_map.len(),
+                    l_map.len()
+                ),
+            )
+            .await;
     }
 
     async fn scan_ideologies(&self, roots: &[std::path::PathBuf]) {
@@ -3230,10 +4326,23 @@ impl Backend {
                 for ideology in results.values() {
                     for (sub, range) in &ideology.sub_ideology_ranges {
                         sub_count += 1;
-                        sub_map.insert(sub.clone(), (ideology.name.clone(), range.clone(), ideology.path.clone()));
+                        sub_map.insert(
+                            sub.clone(),
+                            (ideology.name.clone(), range.clone(), ideology.path.clone()),
+                        );
                     }
                 }
-                self.client.log_message(MessageType::LOG, format!("Loaded {} ideologies and {} sub-ideologies from {:?}", results.len(), sub_count, dir)).await;
+                self.client
+                    .log_message(
+                        MessageType::LOG,
+                        format!(
+                            "Loaded {} ideologies and {} sub-ideologies from {:?}",
+                            results.len(),
+                            sub_count,
+                            dir
+                        ),
+                    )
+                    .await;
                 all_results.extend(results);
             }
         }
@@ -3244,7 +4353,16 @@ impl Backend {
         let mut s_map = self.sub_ideologies.write().await;
         *s_map = sub_map;
 
-        self.client.log_message(MessageType::INFO, format!("Total: Loaded {} ideologies and {} sub-ideologies", i_map.len(), s_map.len())).await;
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!(
+                    "Total: Loaded {} ideologies and {} sub-ideologies",
+                    i_map.len(),
+                    s_map.len()
+                ),
+            )
+            .await;
     }
 
     async fn scan_traits(&self, roots: &[std::path::PathBuf]) {
@@ -3254,22 +4372,50 @@ impl Backend {
         for root in roots {
             let unit_leader_dir = root.join("common/unit_leader");
             if unit_leader_dir.exists() {
-                let found = trait_scanner::scan_traits(&unit_leader_dir, "Unit Leader Trait", &filter);
-                self.client.log_message(MessageType::LOG, format!("Loaded {} unit leader traits from {:?}", found.len(), unit_leader_dir)).await;
+                let found =
+                    trait_scanner::scan_traits(&unit_leader_dir, "Unit Leader Trait", &filter);
+                self.client
+                    .log_message(
+                        MessageType::LOG,
+                        format!(
+                            "Loaded {} unit leader traits from {:?}",
+                            found.len(),
+                            unit_leader_dir
+                        ),
+                    )
+                    .await;
                 all_traits.extend(found);
             }
 
             let country_leader_dir = root.join("common/country_leader");
             if country_leader_dir.exists() {
-                let found = trait_scanner::scan_traits(&country_leader_dir, "Country Leader Trait", &filter);
-                self.client.log_message(MessageType::LOG, format!("Loaded {} country leader traits from {:?}", found.len(), country_leader_dir)).await;
+                let found = trait_scanner::scan_traits(
+                    &country_leader_dir,
+                    "Country Leader Trait",
+                    &filter,
+                );
+                self.client
+                    .log_message(
+                        MessageType::LOG,
+                        format!(
+                            "Loaded {} country leader traits from {:?}",
+                            found.len(),
+                            country_leader_dir
+                        ),
+                    )
+                    .await;
                 all_traits.extend(found);
             }
 
             let trait_dir = root.join("common/traits");
             if trait_dir.exists() {
                 let found = trait_scanner::scan_traits(&trait_dir, "Trait", &filter);
-                self.client.log_message(MessageType::LOG, format!("Loaded {} general traits from {:?}", found.len(), trait_dir)).await;
+                self.client
+                    .log_message(
+                        MessageType::LOG,
+                        format!("Loaded {} general traits from {:?}", found.len(), trait_dir),
+                    )
+                    .await;
                 all_traits.extend(found);
             }
         }
@@ -3277,7 +4423,12 @@ impl Backend {
         let mut t_map = self.traits.write().await;
         *t_map = all_traits;
 
-        self.client.log_message(MessageType::INFO, format!("Total: Loaded {} traits", t_map.len())).await;
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!("Total: Loaded {} traits", t_map.len()),
+            )
+            .await;
     }
 
     async fn scan_sprites(&self, roots: &[std::path::PathBuf]) {
@@ -3287,18 +4438,37 @@ impl Backend {
         for root in roots {
             let interface_dir = root.join("interface");
             if !interface_dir.exists() {
-                self.client.log_message(MessageType::LOG, format!("Directory does not exist: {:?}", interface_dir)).await;
+                self.client
+                    .log_message(
+                        MessageType::LOG,
+                        format!("Directory does not exist: {:?}", interface_dir),
+                    )
+                    .await;
                 continue;
             }
             let found = sprite_scanner::scan_sprites(&interface_dir, &filter);
-            self.client.log_message(MessageType::LOG, format!("Loaded {} sprite definitions from {:?}", found.len(), interface_dir)).await;
+            self.client
+                .log_message(
+                    MessageType::LOG,
+                    format!(
+                        "Loaded {} sprite definitions from {:?}",
+                        found.len(),
+                        interface_dir
+                    ),
+                )
+                .await;
             all_sprites.extend(found);
         }
 
         let mut s_map = self.sprites.write().await;
         *s_map = all_sprites;
 
-        self.client.log_message(MessageType::INFO, format!("Total: Loaded {} sprite definitions", s_map.len())).await;
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!("Total: Loaded {} sprite definitions", s_map.len()),
+            )
+            .await;
     }
 
     async fn scan_characters(&self, roots: &[std::path::PathBuf]) {
@@ -3308,7 +4478,12 @@ impl Backend {
         let mut c_map = self.characters.write().await;
         *c_map = found;
 
-        self.client.log_message(MessageType::INFO, format!("Total: Loaded {} characters", c_map.len())).await;
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!("Total: Loaded {} characters", c_map.len()),
+            )
+            .await;
     }
 
     async fn scan_ideas(&self, roots: &[std::path::PathBuf]) {
@@ -3319,7 +4494,12 @@ impl Backend {
             let ideas_dir = root.join("common/ideas");
             if ideas_dir.exists() {
                 let found = idea_scanner::scan_ideas(&ideas_dir, &filter);
-                self.client.log_message(MessageType::LOG, format!("Loaded {} ideas from {:?}", found.len(), ideas_dir)).await;
+                self.client
+                    .log_message(
+                        MessageType::LOG,
+                        format!("Loaded {} ideas from {:?}", found.len(), ideas_dir),
+                    )
+                    .await;
                 all_ideas.extend(found);
             }
         }
@@ -3327,7 +4507,12 @@ impl Backend {
         let mut i_map = self.ideas.write().await;
         *i_map = all_ideas;
 
-        self.client.log_message(MessageType::INFO, format!("Total: Loaded {} ideas", i_map.len())).await;
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!("Total: Loaded {} ideas", i_map.len()),
+            )
+            .await;
     }
 
     async fn load_schema(&self) {
@@ -3353,15 +4538,24 @@ impl Backend {
             let e = root.join("Config/effects.cwt");
             let l = root.join("Config/links.cwt");
             let en = root.join("Config/shared_enums.cwt");
-            if t.exists() { triggers_path = Some(t); }
-            if e.exists() { effects_path = Some(e); }
-            if l.exists() { links_path = Some(l); }
-            if en.exists() { enums_path = Some(en); }
+            if t.exists() {
+                triggers_path = Some(t);
+            }
+            if e.exists() {
+                effects_path = Some(e);
+            }
+            if l.exists() {
+                links_path = Some(l);
+            }
+            if en.exists() {
+                enums_path = Some(en);
+            }
         }
 
         if let Some(path) = enums_path {
             if let Ok(content) = std::fs::read_to_string(&path) {
-                { let (parsed, _) = parser::parse_script(&content);
+                {
+                    let (parsed, _) = parser::parse_script(&content);
                     schema.parse_cwt_ast(&parsed, None);
                 }
             }
@@ -3381,7 +4575,8 @@ impl Backend {
 
         if let Some(path) = links_path {
             if let Ok(content) = std::fs::read_to_string(&path) {
-                { let (parsed, _) = parser::parse_script(&content);
+                {
+                    let (parsed, _) = parser::parse_script(&content);
                     schema.parse_links(&parsed);
                 }
             }
@@ -3396,12 +4591,18 @@ impl Backend {
                     let path = entry.path();
                     if path.extension().map_or(false, |ext| ext == "cwt") {
                         if let Ok(content) = std::fs::read_to_string(&path) {
-                            { let (parsed, _) = parser::parse_script(&content);
+                            {
+                                let (parsed, _) = parser::parse_script(&content);
                                 // Try to determine kind from filename
-                                let filename = path.file_name().unwrap_or_default().to_string_lossy();
-                                let kind = if filename.contains("trigger") { Some("trigger") }
-                                           else if filename.contains("effect") { Some("effect") }
-                                           else { None };
+                                let filename =
+                                    path.file_name().unwrap_or_default().to_string_lossy();
+                                let kind = if filename.contains("trigger") {
+                                    Some("trigger")
+                                } else if filename.contains("effect") {
+                                    Some("effect")
+                                } else {
+                                    None
+                                };
                                 schema.parse_cwt_ast(&parsed, kind);
                             }
                         }
@@ -3410,8 +4611,18 @@ impl Backend {
             }
         }
 
-        self.client.log_message(MessageType::INFO, format!("Schema loaded: {} triggers, {} effects, {} links, {} enums", 
-            schema.triggers.len(), schema.effects.len(), schema.links.len(), schema.enums.len())).await;
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!(
+                    "Schema loaded: {} triggers, {} effects, {} links, {} enums",
+                    schema.triggers.len(),
+                    schema.effects.len(),
+                    schema.links.len(),
+                    schema.enums.len()
+                ),
+            )
+            .await;
 
         let mut s = self.schema.write().await;
         *s = schema;
@@ -3423,8 +4634,12 @@ impl Backend {
         for root in &possible_roots {
             let m = root.join("assets/modifier_mappings.json");
             let f = root.join("assets/modifier_formats.json");
-            if m.exists() { mapping_path = Some(m); }
-            if f.exists() { formats_path = Some(f); }
+            if m.exists() {
+                mapping_path = Some(m);
+            }
+            if f.exists() {
+                formats_path = Some(f);
+            }
         }
 
         if let Some(path) = mapping_path {
@@ -3434,7 +4649,12 @@ impl Backend {
                     for (k, v) in mappings {
                         m.insert(k, v);
                     }
-                    self.client.log_message(MessageType::INFO, format!("Loaded {} modifier mappings from assets", m.len())).await;
+                    self.client
+                        .log_message(
+                            MessageType::INFO,
+                            format!("Loaded {} modifier mappings from assets", m.len()),
+                        )
+                        .await;
                 }
             }
         }
@@ -3446,13 +4666,23 @@ impl Backend {
                     for (k, v) in formats {
                         f.insert(k, v);
                     }
-                    self.client.log_message(MessageType::INFO, format!("Loaded {} modifier formats from assets", f.len())).await;
+                    self.client
+                        .log_message(
+                            MessageType::INFO,
+                            format!("Loaded {} modifier formats from assets", f.len()),
+                        )
+                        .await;
                 }
             }
         }
     }
 
-    async fn find_references_in_root(&self, root: &std::path::Path, identifier: &str, locations: &mut Vec<Location>) {
+    async fn find_references_in_root(
+        &self,
+        root: &std::path::Path,
+        identifier: &str,
+        locations: &mut Vec<Location>,
+    ) {
         let mut dirs_to_check = vec![root.to_path_buf()];
         let extensions = ["txt", "yml", "gfx", "gui", "asset"];
 
@@ -3465,7 +4695,9 @@ impl Backend {
                     let path = entry.path();
                     if path.is_dir() {
                         dirs_to_check.push(path);
-                    } else if path.extension().map_or(false, |ext| extensions.contains(&ext.to_string_lossy().as_ref())) {
+                    } else if path.extension().map_or(false, |ext| {
+                        extensions.contains(&ext.to_string_lossy().as_ref())
+                    }) {
                         if self.should_ignore_file(&path).await {
                             continue;
                         }
@@ -3478,18 +4710,35 @@ impl Backend {
                                         let actual_pos = start_search + pos;
 
                                         // Check word boundaries
-                                        let before = if actual_pos > 0 { line.chars().nth(actual_pos - 1) } else { None };
+                                        let before = if actual_pos > 0 {
+                                            line.chars().nth(actual_pos - 1)
+                                        } else {
+                                            None
+                                        };
                                         let after = line.chars().nth(actual_pos + identifier.len());
 
-                                        let is_word_start = before.map_or(true, |c| !parser::is_identifier_char(c));
-                                        let is_word_end = after.map_or(true, |c| !parser::is_identifier_char(c));
+                                        let is_word_start =
+                                            before.map_or(true, |c| !parser::is_identifier_char(c));
+                                        let is_word_end =
+                                            after.map_or(true, |c| !parser::is_identifier_char(c));
 
                                         if is_word_start && is_word_end {
                                             locations.push(Location {
-                                                uri: Url::from_file_path(path.canonicalize().unwrap_or_else(|_| path.clone())).unwrap(),
+                                                uri: Url::from_file_path(
+                                                    path.canonicalize()
+                                                        .unwrap_or_else(|_| path.clone()),
+                                                )
+                                                .unwrap(),
                                                 range: Range {
-                                                    start: Position { line: line_idx as u32, character: actual_pos as u32 },
-                                                    end: Position { line: line_idx as u32, character: (actual_pos + identifier.len()) as u32 },
+                                                    start: Position {
+                                                        line: line_idx as u32,
+                                                        character: actual_pos as u32,
+                                                    },
+                                                    end: Position {
+                                                        line: line_idx as u32,
+                                                        character: (actual_pos + identifier.len())
+                                                            as u32,
+                                                    },
                                                 },
                                             });
                                         }
@@ -3528,7 +4777,12 @@ impl Backend {
     }
 
     async fn validate_workspace(&self, root: &std::path::Path) {
-        self.client.log_message(MessageType::INFO, format!("Starting workspace diagnostic scan in: {:?}", root)).await;
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!("Starting workspace diagnostic scan in: {:?}", root),
+            )
+            .await;
 
         let mut dirs_to_check = vec![root.to_path_buf()];
         let extensions = ["txt", "yml", "csv"];
@@ -3542,12 +4796,14 @@ impl Backend {
                 for entry in entries.flatten() {
                     let path = entry.path();
                     if path.is_dir() {
-                        // Skip .git and potentially other internal dirs if needed, 
+                        // Skip .git and potentially other internal dirs if needed,
                         // but for HOI4 mods usually everything in subdirs is relevant
                         if !path.file_name().map_or(false, |n| n == ".git") {
                             dirs_to_check.push(path);
                         }
-                    } else if path.extension().map_or(false, |ext| extensions.contains(&ext.to_string_lossy().as_ref())) {
+                    } else if path.extension().map_or(false, |ext| {
+                        extensions.contains(&ext.to_string_lossy().as_ref())
+                    }) {
                         if self.should_ignore_file(&path).await {
                             continue;
                         }
@@ -3558,7 +4814,9 @@ impl Backend {
                                     // actually validate_content is idempotent for our needs here
                                     let diagnostics = self.validate_content(&uri, &content).await;
                                     if !diagnostics.is_empty() {
-                                        self.client.publish_diagnostics(uri, diagnostics, None).await;
+                                        self.client
+                                            .publish_diagnostics(uri, diagnostics, None)
+                                            .await;
                                     }
                                     file_count += 1;
                                 }
@@ -3568,18 +4826,26 @@ impl Backend {
                 }
             }
         }
-        self.client.log_message(MessageType::INFO, format!("Workspace scan complete. Scanned {} files.", file_count)).await;
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!("Workspace scan complete. Scanned {} files.", file_count),
+            )
+            .await;
     }
 
     async fn validate_document(&self, uri: Url) {
-        let content = if let Some(c) = self.documents.get(uri.as_str()) {
-            c.clone()
-        } else {
-            return;
+        let content = match self.documents.get(uri.as_str()) {
+            Some(c) => c.clone(),
+            _ => {
+                return;
+            }
         };
 
         let diagnostics = self.validate_content(&uri, &content).await;
-        self.client.publish_diagnostics(uri, diagnostics, None).await;
+        self.client
+            .publish_diagnostics(uri, diagnostics, None)
+            .await;
     }
 
     async fn validate_content(&self, uri: &Url, content: &str) -> Vec<Diagnostic> {
@@ -3589,27 +4855,35 @@ impl Backend {
         let mut script_opt = None;
 
         if uri.as_str().ends_with(".yml") {
-            self.validate_localization_content(content, &mut diagnostics).await;
+            self.validate_localization_content(content, &mut diagnostics)
+                .await;
         } else if uri.as_str().ends_with("supply_nodes.txt") {
-            self.validate_supply_nodes_content(content, &mut diagnostics).await;
+            self.validate_supply_nodes_content(content, &mut diagnostics)
+                .await;
         } else if uri.as_str().ends_with("railways.txt") {
-            self.validate_railways_content(content, &mut diagnostics).await;
+            self.validate_railways_content(content, &mut diagnostics)
+                .await;
         } else if uri.as_str().ends_with("buildings.txt") {
-            self.validate_map_buildings_content(content, &mut diagnostics).await;
+            self.validate_map_buildings_content(content, &mut diagnostics)
+                .await;
         } else if uri.as_str().ends_with("unitstacks.txt") {
-            self.validate_unitstacks_content(content, &mut diagnostics).await;
+            self.validate_unitstacks_content(content, &mut diagnostics)
+                .await;
         } else if uri.as_str().ends_with("weatherpositions.txt") {
-            self.validate_weather_positions_content(content, &mut diagnostics).await;
+            self.validate_weather_positions_content(content, &mut diagnostics)
+                .await;
         } else if {
             let map_config = crate::map_config::get_map_config(std::path::Path::new("."));
             uri.as_str().ends_with(&map_config.adjacencies)
         } {
-            self.validate_adjacencies_content(content, &mut diagnostics).await;
+            self.validate_adjacencies_content(content, &mut diagnostics)
+                .await;
         } else if {
             let map_config = crate::map_config::get_map_config(std::path::Path::new("."));
             uri.as_str().ends_with(&map_config.definitions)
         } {
-            self.validate_definition_content(content, &mut diagnostics).await;
+            self.validate_definition_content(content, &mut diagnostics)
+                .await;
         } else if uri.as_str().contains("strategicregions") && uri.as_str().ends_with(".txt") {
             let (script, parse_errors) = parser::parse_script(content);
             for (msg, range) in parse_errors {
@@ -3617,13 +4891,17 @@ impl Backend {
                     range: ast_range_to_lsp(&range),
                     severity: Some(DiagnosticSeverity::ERROR),
                     message: msg,
-                    code: Some(NumberOrString::String(advanced_validation::PARSE_ERROR.to_string())),
+                    code: Some(NumberOrString::String(
+                        advanced_validation::PARSE_ERROR.to_string(),
+                    )),
                     source: Some("Hearts of Modding".to_string()),
                     ..Default::default()
                 });
             }
-            self.validate_strategic_region_content(&script, &mut diagnostics).await;
-            self.check_semantic(&script, &mut diagnostics, styling_enabled, uri.as_str()).await;
+            self.validate_strategic_region_content(&script, &mut diagnostics)
+                .await;
+            self.check_semantic(&script, &mut diagnostics, styling_enabled, uri.as_str())
+                .await;
             script_opt = Some(script);
         } else if uri.as_str().ends_with(".csv") {
             // Do not parse other CSV files as clausewitz scripts
@@ -3634,13 +4912,16 @@ impl Backend {
                     range: ast_range_to_lsp(&range),
                     severity: Some(DiagnosticSeverity::ERROR),
                     message: msg,
-                    code: Some(NumberOrString::String(advanced_validation::PARSE_ERROR.to_string())),
+                    code: Some(NumberOrString::String(
+                        advanced_validation::PARSE_ERROR.to_string(),
+                    )),
                     source: Some("Hearts of Modding".to_string()),
                     ..Default::default()
                 });
             }
             // Semantic validation
-            self.check_semantic(&script, &mut diagnostics, styling_enabled, uri.as_str()).await;
+            self.check_semantic(&script, &mut diagnostics, styling_enabled, uri.as_str())
+                .await;
             script_opt = Some(script);
         }
 
@@ -3652,7 +4933,11 @@ impl Backend {
         diagnostics
     }
 
-    async fn validate_supply_nodes_content(&self, content: &str, diagnostics: &mut Vec<Diagnostic>) {
+    async fn validate_supply_nodes_content(
+        &self,
+        content: &str,
+        diagnostics: &mut Vec<Diagnostic>,
+    ) {
         let provs = self.provinces.read().await;
         for (i, line) in content.lines().enumerate() {
             let parts: Vec<&str> = line.split_whitespace().collect();
@@ -3660,7 +4945,16 @@ impl Backend {
                 if let Ok(id) = parts[1].parse::<u32>() {
                     if !provs.is_empty() && !provs.contains_key(&id) {
                         diagnostics.push(Diagnostic {
-                            range: Range { start: Position { line: i as u32, character: 0 }, end: Position { line: i as u32, character: 100 } },
+                            range: Range {
+                                start: Position {
+                                    line: i as u32,
+                                    character: 0,
+                                },
+                                end: Position {
+                                    line: i as u32,
+                                    character: 100,
+                                },
+                            },
                             severity: Some(DiagnosticSeverity::WARNING),
                             message: format!("Unknown province ID: {}", id),
                             ..Default::default()
@@ -3682,7 +4976,16 @@ impl Backend {
                             if let Ok(id) = parts[2 + j].parse::<u32>() {
                                 if !provs.is_empty() && !provs.contains_key(&id) {
                                     diagnostics.push(Diagnostic {
-                                        range: Range { start: Position { line: i as u32, character: 0 }, end: Position { line: i as u32, character: 100 } },
+                                        range: Range {
+                                            start: Position {
+                                                line: i as u32,
+                                                character: 0,
+                                            },
+                                            end: Position {
+                                                line: i as u32,
+                                                character: 100,
+                                            },
+                                        },
                                         severity: Some(DiagnosticSeverity::WARNING),
                                         message: format!("Unknown province ID: {}", id),
                                         ..Default::default()
@@ -3696,7 +4999,11 @@ impl Backend {
         }
     }
 
-    async fn validate_map_buildings_content(&self, content: &str, diagnostics: &mut Vec<Diagnostic>) {
+    async fn validate_map_buildings_content(
+        &self,
+        content: &str,
+        diagnostics: &mut Vec<Diagnostic>,
+    ) {
         let states = self.states.read().await;
         for (i, line) in content.lines().enumerate() {
             let parts: Vec<&str> = line.split(';').collect();
@@ -3704,7 +5011,16 @@ impl Backend {
                 if let Ok(id) = parts[0].parse::<u32>() {
                     if !states.is_empty() && !states.contains_key(&id) {
                         diagnostics.push(Diagnostic {
-                            range: Range { start: Position { line: i as u32, character: 0 }, end: Position { line: i as u32, character: parts[0].len() as u32 } },
+                            range: Range {
+                                start: Position {
+                                    line: i as u32,
+                                    character: 0,
+                                },
+                                end: Position {
+                                    line: i as u32,
+                                    character: parts[0].len() as u32,
+                                },
+                            },
                             severity: Some(DiagnosticSeverity::WARNING),
                             message: format!("Unknown state ID: {}", id),
                             ..Default::default()
@@ -3715,7 +5031,11 @@ impl Backend {
         }
     }
 
-    async fn validate_weather_positions_content(&self, content: &str, diagnostics: &mut Vec<Diagnostic>) {
+    async fn validate_weather_positions_content(
+        &self,
+        content: &str,
+        diagnostics: &mut Vec<Diagnostic>,
+    ) {
         let regions = self.strategic_regions.read().await;
         for (i, line) in content.lines().enumerate() {
             let parts: Vec<&str> = line.split(';').collect();
@@ -3723,7 +5043,16 @@ impl Backend {
                 if let Ok(id) = parts[0].parse::<u32>() {
                     if !regions.is_empty() && !regions.contains_key(&id) {
                         diagnostics.push(Diagnostic {
-                            range: Range { start: Position { line: i as u32, character: 0 }, end: Position { line: i as u32, character: parts[0].len() as u32 } },
+                            range: Range {
+                                start: Position {
+                                    line: i as u32,
+                                    character: 0,
+                                },
+                                end: Position {
+                                    line: i as u32,
+                                    character: parts[0].len() as u32,
+                                },
+                            },
                             severity: Some(DiagnosticSeverity::WARNING),
                             message: format!("Unknown strategic region ID: {}", id),
                             ..Default::default()
@@ -3742,7 +5071,16 @@ impl Backend {
                 if let Ok(id) = parts[0].parse::<u32>() {
                     if !provs.is_empty() && !provs.contains_key(&id) {
                         diagnostics.push(Diagnostic {
-                            range: Range { start: Position { line: i as u32, character: 0 }, end: Position { line: i as u32, character: 100 } },
+                            range: Range {
+                                start: Position {
+                                    line: i as u32,
+                                    character: 0,
+                                },
+                                end: Position {
+                                    line: i as u32,
+                                    character: 100,
+                                },
+                            },
                             severity: Some(DiagnosticSeverity::WARNING),
                             message: format!("Unknown province ID: {}", id),
                             ..Default::default()
@@ -3762,7 +5100,16 @@ impl Backend {
             let parts: Vec<&str> = line.split(';').collect();
             if parts.len() < 8 {
                 diagnostics.push(Diagnostic {
-                    range: Range { start: Position { line: i as u32, character: 0 }, end: Position { line: i as u32, character: line.len() as u32 } },
+                    range: Range {
+                        start: Position {
+                            line: i as u32,
+                            character: 0,
+                        },
+                        end: Position {
+                            line: i as u32,
+                            character: line.len() as u32,
+                        },
+                    },
                     severity: Some(DiagnosticSeverity::ERROR),
                     message: format!("Expected at least 8 columns, found {}", parts.len()),
                     ..Default::default()
@@ -3772,7 +5119,16 @@ impl Backend {
 
             if parts[0].parse::<u32>().is_err() {
                 diagnostics.push(Diagnostic {
-                    range: Range { start: Position { line: i as u32, character: 0 }, end: Position { line: i as u32, character: parts[0].len() as u32 } },
+                    range: Range {
+                        start: Position {
+                            line: i as u32,
+                            character: 0,
+                        },
+                        end: Position {
+                            line: i as u32,
+                            character: parts[0].len() as u32,
+                        },
+                    },
                     severity: Some(DiagnosticSeverity::ERROR),
                     message: "Province ID must be an integer".to_string(),
                     ..Default::default()
@@ -3782,9 +5138,20 @@ impl Backend {
             for j in 1..=3 {
                 if parts[j].parse::<u8>().is_err() {
                     let mut start_col = 0;
-                    for k in 0..j { start_col += parts[k].len() as u32 + 1; }
+                    for k in 0..j {
+                        start_col += parts[k].len() as u32 + 1;
+                    }
                     diagnostics.push(Diagnostic {
-                        range: Range { start: Position { line: i as u32, character: start_col }, end: Position { line: i as u32, character: start_col + parts[j].len() as u32 } },
+                        range: Range {
+                            start: Position {
+                                line: i as u32,
+                                character: start_col,
+                            },
+                            end: Position {
+                                line: i as u32,
+                                character: start_col + parts[j].len() as u32,
+                            },
+                        },
                         severity: Some(DiagnosticSeverity::ERROR),
                         message: "Color component must be an integer between 0 and 255".to_string(),
                         ..Default::default()
@@ -3795,9 +5162,20 @@ impl Backend {
             let p_type = parts[4].trim();
             if p_type != "land" && p_type != "sea" && p_type != "lake" {
                 let mut start_col = 0;
-                for k in 0..4 { start_col += parts[k].len() as u32 + 1; }
+                for k in 0..4 {
+                    start_col += parts[k].len() as u32 + 1;
+                }
                 diagnostics.push(Diagnostic {
-                    range: Range { start: Position { line: i as u32, character: start_col }, end: Position { line: i as u32, character: start_col + parts[4].len() as u32 } },
+                    range: Range {
+                        start: Position {
+                            line: i as u32,
+                            character: start_col,
+                        },
+                        end: Position {
+                            line: i as u32,
+                            character: start_col + parts[4].len() as u32,
+                        },
+                    },
                     severity: Some(DiagnosticSeverity::ERROR),
                     message: "Province type must be 'land', 'sea', or 'lake'".to_string(),
                     ..Default::default()
@@ -3807,9 +5185,20 @@ impl Backend {
             let coastal = parts[5].trim();
             if coastal != "true" && coastal != "false" {
                 let mut start_col = 0;
-                for k in 0..5 { start_col += parts[k].len() as u32 + 1; }
+                for k in 0..5 {
+                    start_col += parts[k].len() as u32 + 1;
+                }
                 diagnostics.push(Diagnostic {
-                    range: Range { start: Position { line: i as u32, character: start_col }, end: Position { line: i as u32, character: start_col + parts[5].len() as u32 } },
+                    range: Range {
+                        start: Position {
+                            line: i as u32,
+                            character: start_col,
+                        },
+                        end: Position {
+                            line: i as u32,
+                            character: start_col + parts[5].len() as u32,
+                        },
+                    },
                     severity: Some(DiagnosticSeverity::ERROR),
                     message: "Coastal status must be 'true' or 'false'".to_string(),
                     ..Default::default()
@@ -3818,9 +5207,20 @@ impl Backend {
 
             if parts[7].parse::<u32>().is_err() {
                 let mut start_col = 0;
-                for k in 0..7 { start_col += parts[k].len() as u32 + 1; }
+                for k in 0..7 {
+                    start_col += parts[k].len() as u32 + 1;
+                }
                 diagnostics.push(Diagnostic {
-                    range: Range { start: Position { line: i as u32, character: start_col }, end: Position { line: i as u32, character: start_col + parts[7].len() as u32 } },
+                    range: Range {
+                        start: Position {
+                            line: i as u32,
+                            character: start_col,
+                        },
+                        end: Position {
+                            line: i as u32,
+                            character: start_col + parts[7].len() as u32,
+                        },
+                    },
                     severity: Some(DiagnosticSeverity::ERROR),
                     message: "Continent must be an integer".to_string(),
                     ..Default::default()
@@ -3840,7 +5240,16 @@ impl Backend {
             let parts: Vec<&str> = trimmed.split(';').collect();
             if parts.len() < 9 {
                 diagnostics.push(Diagnostic {
-                    range: Range { start: Position { line: i as u32, character: 0 }, end: Position { line: i as u32, character: line.len() as u32 } },
+                    range: Range {
+                        start: Position {
+                            line: i as u32,
+                            character: 0,
+                        },
+                        end: Position {
+                            line: i as u32,
+                            character: line.len() as u32,
+                        },
+                    },
                     severity: Some(DiagnosticSeverity::ERROR),
                     message: format!("Expected at least 9 columns, found {}", parts.len()),
                     ..Default::default()
@@ -3852,7 +5261,16 @@ impl Backend {
                 if let Ok(id) = parts[0].parse::<u32>() {
                     if !provs.is_empty() && !provs.contains_key(&id) {
                         diagnostics.push(Diagnostic {
-                            range: Range { start: Position { line: i as u32, character: 0 }, end: Position { line: i as u32, character: parts[0].len() as u32 } },
+                            range: Range {
+                                start: Position {
+                                    line: i as u32,
+                                    character: 0,
+                                },
+                                end: Position {
+                                    line: i as u32,
+                                    character: parts[0].len() as u32,
+                                },
+                            },
                             severity: Some(DiagnosticSeverity::WARNING),
                             message: format!("Unknown start province ID: {}", id),
                             ..Default::default()
@@ -3860,18 +5278,36 @@ impl Backend {
                     }
                 } else {
                     diagnostics.push(Diagnostic {
-                        range: Range { start: Position { line: i as u32, character: 0 }, end: Position { line: i as u32, character: parts[0].len() as u32 } },
+                        range: Range {
+                            start: Position {
+                                line: i as u32,
+                                character: 0,
+                            },
+                            end: Position {
+                                line: i as u32,
+                                character: parts[0].len() as u32,
+                            },
+                        },
                         severity: Some(DiagnosticSeverity::ERROR),
                         message: "Start province ID must be an integer".to_string(),
                         ..Default::default()
                     });
                 }
-                
+
                 let p1_len = parts[0].len() as u32 + 1;
                 if let Ok(id) = parts[1].parse::<u32>() {
                     if !provs.is_empty() && !provs.contains_key(&id) {
                         diagnostics.push(Diagnostic {
-                            range: Range { start: Position { line: i as u32, character: p1_len }, end: Position { line: i as u32, character: p1_len + parts[1].len() as u32 } },
+                            range: Range {
+                                start: Position {
+                                    line: i as u32,
+                                    character: p1_len,
+                                },
+                                end: Position {
+                                    line: i as u32,
+                                    character: p1_len + parts[1].len() as u32,
+                                },
+                            },
                             severity: Some(DiagnosticSeverity::WARNING),
                             message: format!("Unknown end province ID: {}", id),
                             ..Default::default()
@@ -3879,19 +5315,39 @@ impl Backend {
                     }
                 } else {
                     diagnostics.push(Diagnostic {
-                        range: Range { start: Position { line: i as u32, character: p1_len }, end: Position { line: i as u32, character: p1_len + parts[1].len() as u32 } },
+                        range: Range {
+                            start: Position {
+                                line: i as u32,
+                                character: p1_len,
+                            },
+                            end: Position {
+                                line: i as u32,
+                                character: p1_len + parts[1].len() as u32,
+                            },
+                        },
                         severity: Some(DiagnosticSeverity::ERROR),
                         message: "End province ID must be an integer".to_string(),
                         ..Default::default()
                     });
                 }
-                
+
                 let mut p3_col = 0;
-                for k in 0..3 { p3_col += parts[k].len() as u32 + 1; }
+                for k in 0..3 {
+                    p3_col += parts[k].len() as u32 + 1;
+                }
                 if let Ok(id) = parts[3].parse::<i32>() {
                     if id > 0 && !provs.is_empty() && !provs.contains_key(&(id as u32)) {
                         diagnostics.push(Diagnostic {
-                            range: Range { start: Position { line: i as u32, character: p3_col }, end: Position { line: i as u32, character: p3_col + parts[3].len() as u32 } },
+                            range: Range {
+                                start: Position {
+                                    line: i as u32,
+                                    character: p3_col,
+                                },
+                                end: Position {
+                                    line: i as u32,
+                                    character: p3_col + parts[3].len() as u32,
+                                },
+                            },
                             severity: Some(DiagnosticSeverity::WARNING),
                             message: format!("Unknown through province ID: {}", id),
                             ..Default::default()
@@ -3899,7 +5355,16 @@ impl Backend {
                     }
                 } else if !parts[3].trim().is_empty() {
                     diagnostics.push(Diagnostic {
-                        range: Range { start: Position { line: i as u32, character: p3_col }, end: Position { line: i as u32, character: p3_col + parts[3].len() as u32 } },
+                        range: Range {
+                            start: Position {
+                                line: i as u32,
+                                character: p3_col,
+                            },
+                            end: Position {
+                                line: i as u32,
+                                character: p3_col + parts[3].len() as u32,
+                            },
+                        },
                         severity: Some(DiagnosticSeverity::ERROR),
                         message: "Through province ID must be an integer".to_string(),
                         ..Default::default()
@@ -3910,9 +5375,20 @@ impl Backend {
                 for j in 4..=7 {
                     if !parts[j].trim().is_empty() && parts[j].parse::<i32>().is_err() {
                         let mut start_col = 0;
-                        for k in 0..j { start_col += parts[k].len() as u32 + 1; }
+                        for k in 0..j {
+                            start_col += parts[k].len() as u32 + 1;
+                        }
                         diagnostics.push(Diagnostic {
-                            range: Range { start: Position { line: i as u32, character: start_col }, end: Position { line: i as u32, character: start_col + parts[j].len() as u32 } },
+                            range: Range {
+                                start: Position {
+                                    line: i as u32,
+                                    character: start_col,
+                                },
+                                end: Position {
+                                    line: i as u32,
+                                    character: start_col + parts[j].len() as u32,
+                                },
+                            },
                             severity: Some(DiagnosticSeverity::ERROR),
                             message: "Coordinate must be an integer".to_string(),
                             ..Default::default()
@@ -3922,13 +5398,24 @@ impl Backend {
 
                 let p8_col = {
                     let mut c = 0;
-                    for k in 0..8 { c += parts[k].len() as u32 + 1; }
+                    for k in 0..8 {
+                        c += parts[k].len() as u32 + 1;
+                    }
                     c
                 };
                 let rule_name = parts[8].trim();
                 if !rule_name.is_empty() && !rules.is_empty() && !rules.contains_key(rule_name) {
                     diagnostics.push(Diagnostic {
-                        range: Range { start: Position { line: i as u32, character: p8_col }, end: Position { line: i as u32, character: p8_col + parts[8].len() as u32 } },
+                        range: Range {
+                            start: Position {
+                                line: i as u32,
+                                character: p8_col,
+                            },
+                            end: Position {
+                                line: i as u32,
+                                character: p8_col + parts[8].len() as u32,
+                            },
+                        },
                         severity: Some(DiagnosticSeverity::WARNING),
                         message: format!("Unknown adjacency rule: {}", rule_name),
                         ..Default::default()
@@ -3938,9 +5425,13 @@ impl Backend {
         }
     }
 
-    async fn validate_strategic_region_content(&self, script: &ast::Script, diagnostics: &mut Vec<Diagnostic>) {
+    async fn validate_strategic_region_content(
+        &self,
+        script: &ast::Script,
+        diagnostics: &mut Vec<Diagnostic>,
+    ) {
         let provs = self.provinces.read().await;
-        
+
         for entry in &script.entries {
             if let ast::Entry::Assignment(ass) = entry {
                 if ass.key.to_lowercase() == "strategic_region" {
@@ -3953,27 +5444,43 @@ impl Backend {
                                             if let ast::Entry::Value(val) = prov_entry {
                                                 if let ast::Value::Number(id) = &val.value {
                                                     let id_u32 = *id as u32;
-                                                    if !provs.is_empty() && !provs.contains_key(&id_u32) {
+                                                    if !provs.is_empty()
+                                                        && !provs.contains_key(&id_u32)
+                                                    {
                                                         diagnostics.push(Diagnostic {
                                                             range: ast_range_to_lsp(&val.range),
-                                                            severity: Some(DiagnosticSeverity::WARNING),
-                                                            message: format!("Unknown province ID: {}", id_u32),
+                                                            severity: Some(
+                                                                DiagnosticSeverity::WARNING,
+                                                            ),
+                                                            message: format!(
+                                                                "Unknown province ID: {}",
+                                                                id_u32
+                                                            ),
                                                             ..Default::default()
                                                         });
                                                     }
                                                 }
                                             }
                                         }
-                                    } else if let ast::Value::TaggedBlock(_, prov_entries, _) = &r_ass.value.value {
+                                    } else if let ast::Value::TaggedBlock(_, prov_entries, _) =
+                                        &r_ass.value.value
+                                    {
                                         for prov_entry in prov_entries {
                                             if let ast::Entry::Value(val) = prov_entry {
                                                 if let ast::Value::Number(id) = &val.value {
                                                     let id_u32 = *id as u32;
-                                                    if !provs.is_empty() && !provs.contains_key(&id_u32) {
+                                                    if !provs.is_empty()
+                                                        && !provs.contains_key(&id_u32)
+                                                    {
                                                         diagnostics.push(Diagnostic {
                                                             range: ast_range_to_lsp(&val.range),
-                                                            severity: Some(DiagnosticSeverity::WARNING),
-                                                            message: format!("Unknown province ID: {}", id_u32),
+                                                            severity: Some(
+                                                                DiagnosticSeverity::WARNING,
+                                                            ),
+                                                            message: format!(
+                                                                "Unknown province ID: {}",
+                                                                id_u32
+                                                            ),
                                                             ..Default::default()
                                                         });
                                                     }
@@ -3990,7 +5497,11 @@ impl Backend {
         }
     }
 
-    async fn validate_localization_content(&self, content: &str, diagnostics: &mut Vec<Diagnostic>) {
+    async fn validate_localization_content(
+        &self,
+        content: &str,
+        diagnostics: &mut Vec<Diagnostic>,
+    ) {
         let (parsed, loc_diagnostics_structural) = loc_parser::parse_loc_file(content, "");
         let event_targets = self.event_targets.read().await;
         let scripted_locs = self.scripted_locs.read().await;
@@ -4008,8 +5519,21 @@ impl Backend {
                 message: d.message,
                 code: d.code.map(NumberOrString::String),
                 source: Some("Hearts of Modding".to_string()),
-                tags: if d.tags.is_empty() { None } else { Some(d.tags.iter().map(ast_tag_to_lsp).collect()) },
-                related_information: if d.related_information.is_empty() { None } else { Some(d.related_information.iter().map(ast_related_info_to_lsp).collect()) },
+                tags: if d.tags.is_empty() {
+                    None
+                } else {
+                    Some(d.tags.iter().map(ast_tag_to_lsp).collect())
+                },
+                related_information: if d.related_information.is_empty() {
+                    None
+                } else {
+                    Some(
+                        d.related_information
+                            .iter()
+                            .map(ast_related_info_to_lsp)
+                            .collect(),
+                    )
+                },
                 ..Default::default()
             });
         }
@@ -4028,13 +5552,27 @@ impl Backend {
                     message: d.message,
                     code: d.code.map(NumberOrString::String),
                     source: Some("Hearts of Modding".to_string()),
-                    tags: if d.tags.is_empty() { None } else { Some(d.tags.iter().map(ast_tag_to_lsp).collect()) },
-                    related_information: if d.related_information.is_empty() { None } else { Some(d.related_information.iter().map(ast_related_info_to_lsp).collect()) },
+                    tags: if d.tags.is_empty() {
+                        None
+                    } else {
+                        Some(d.tags.iter().map(ast_tag_to_lsp).collect())
+                    },
+                    related_information: if d.related_information.is_empty() {
+                        None
+                    } else {
+                        Some(
+                            d.related_information
+                                .iter()
+                                .map(ast_related_info_to_lsp)
+                                .collect(),
+                        )
+                    },
                     ..Default::default()
                 });
             }
 
-            let loc_diagnostics = loc_parser::validate_loc_string(entry, &event_targets, &scripted_locs);
+            let loc_diagnostics =
+                loc_parser::validate_loc_string(entry, &event_targets, &scripted_locs);
             for d in loc_diagnostics {
                 diagnostics.push(Diagnostic {
                     range: ast_range_to_lsp(&d.range),
@@ -4047,15 +5585,32 @@ impl Backend {
                     message: d.message,
                     code: d.code.map(NumberOrString::String),
                     source: Some("Hearts of Modding".to_string()),
-                    tags: if d.tags.is_empty() { None } else { Some(d.tags.iter().map(ast_tag_to_lsp).collect()) },
-                    related_information: if d.related_information.is_empty() { None } else { Some(d.related_information.iter().map(ast_related_info_to_lsp).collect()) },
+                    tags: if d.tags.is_empty() {
+                        None
+                    } else {
+                        Some(d.tags.iter().map(ast_tag_to_lsp).collect())
+                    },
+                    related_information: if d.related_information.is_empty() {
+                        None
+                    } else {
+                        Some(
+                            d.related_information
+                                .iter()
+                                .map(ast_related_info_to_lsp)
+                                .collect(),
+                        )
+                    },
                     ..Default::default()
                 });
             }
         }
     }
 
-    fn compute_expected_indentations(entries: &[ast::Entry], depth: usize, expected: &mut HashMap<u32, usize>) {
+    fn compute_expected_indentations(
+        entries: &[ast::Entry],
+        depth: usize,
+        expected: &mut HashMap<u32, usize>,
+    ) {
         for entry in entries {
             let start_line = match entry {
                 ast::Entry::Assignment(ass) => ass.key_range.start_line,
@@ -4066,65 +5621,83 @@ impl Backend {
             expected.entry(start_line).or_insert(depth);
 
             match entry {
-                ast::Entry::Assignment(ass) => {
-                    match &ass.value.value {
-                        ast::Value::Block(inner) => {
-                            Self::compute_expected_indentations(inner, depth + 1, expected);
-                            let end_line = ass.value.range.end_line;
-                            if end_line != start_line {
-                                expected.entry(end_line).or_insert(depth);
-                            }
+                ast::Entry::Assignment(ass) => match &ass.value.value {
+                    ast::Value::Block(inner) => {
+                        Self::compute_expected_indentations(inner, depth + 1, expected);
+                        let end_line = ass.value.range.end_line;
+                        if end_line != start_line {
+                            expected.entry(end_line).or_insert(depth);
                         }
-                        ast::Value::TaggedBlock(_, inner, _) => {
-                            Self::compute_expected_indentations(inner, depth + 1, expected);
-                            let end_line = ass.value.range.end_line;
-                            if end_line != start_line {
-                                expected.entry(end_line).or_insert(depth);
-                            }
-                        }
-                        _ => {}
                     }
-                }
-                ast::Entry::Value(val) => {
-                    match &val.value {
-                        ast::Value::Block(inner) => {
-                            Self::compute_expected_indentations(inner, depth + 1, expected);
-                            let end_line = val.range.end_line;
-                            if end_line != start_line {
-                                expected.entry(end_line).or_insert(depth);
-                            }
+                    ast::Value::TaggedBlock(_, inner, _) => {
+                        Self::compute_expected_indentations(inner, depth + 1, expected);
+                        let end_line = ass.value.range.end_line;
+                        if end_line != start_line {
+                            expected.entry(end_line).or_insert(depth);
                         }
-                        ast::Value::TaggedBlock(_, inner, _) => {
-                            Self::compute_expected_indentations(inner, depth + 1, expected);
-                            let end_line = val.range.end_line;
-                            if end_line != start_line {
-                                expected.entry(end_line).or_insert(depth);
-                            }
-                        }
-                        _ => {}
                     }
-                }
+                    _ => {}
+                },
+                ast::Entry::Value(val) => match &val.value {
+                    ast::Value::Block(inner) => {
+                        Self::compute_expected_indentations(inner, depth + 1, expected);
+                        let end_line = val.range.end_line;
+                        if end_line != start_line {
+                            expected.entry(end_line).or_insert(depth);
+                        }
+                    }
+                    ast::Value::TaggedBlock(_, inner, _) => {
+                        Self::compute_expected_indentations(inner, depth + 1, expected);
+                        let end_line = val.range.end_line;
+                        if end_line != start_line {
+                            expected.entry(end_line).or_insert(depth);
+                        }
+                    }
+                    _ => {}
+                },
                 ast::Entry::Comment(_, _) => {}
             }
         }
     }
 
-    fn check_single_line_braces(entries: &[ast::Entry], content: &str, diagnostics: &mut Vec<Diagnostic>) {
+    fn check_single_line_braces(
+        entries: &[ast::Entry],
+        content: &str,
+        diagnostics: &mut Vec<Diagnostic>,
+    ) {
         for entry in entries {
             match entry {
                 ast::Entry::Assignment(ass) => {
-                    Self::check_brace_spacing_for_range(&ass.value.range, &ass.value.value, content, diagnostics);
+                    Self::check_brace_spacing_for_range(
+                        &ass.value.range,
+                        &ass.value.value,
+                        content,
+                        diagnostics,
+                    );
                     match &ass.value.value {
-                        ast::Value::Block(inner) => Self::check_single_line_braces(inner, content, diagnostics),
-                        ast::Value::TaggedBlock(_, inner, _) => Self::check_single_line_braces(inner, content, diagnostics),
+                        ast::Value::Block(inner) => {
+                            Self::check_single_line_braces(inner, content, diagnostics)
+                        }
+                        ast::Value::TaggedBlock(_, inner, _) => {
+                            Self::check_single_line_braces(inner, content, diagnostics)
+                        }
                         _ => {}
                     }
                 }
                 ast::Entry::Value(val) => {
-                    Self::check_brace_spacing_for_range(&val.range, &val.value, content, diagnostics);
+                    Self::check_brace_spacing_for_range(
+                        &val.range,
+                        &val.value,
+                        content,
+                        diagnostics,
+                    );
                     match &val.value {
-                        ast::Value::Block(inner) => Self::check_single_line_braces(inner, content, diagnostics),
-                        ast::Value::TaggedBlock(_, inner, _) => Self::check_single_line_braces(inner, content, diagnostics),
+                        ast::Value::Block(inner) => {
+                            Self::check_single_line_braces(inner, content, diagnostics)
+                        }
+                        ast::Value::TaggedBlock(_, inner, _) => {
+                            Self::check_single_line_braces(inner, content, diagnostics)
+                        }
                         _ => {}
                     }
                 }
@@ -4133,7 +5706,12 @@ impl Backend {
         }
     }
 
-    fn check_brace_spacing_for_range(range: &ast::Range, value: &ast::Value, content: &str, diagnostics: &mut Vec<Diagnostic>) {
+    fn check_brace_spacing_for_range(
+        range: &ast::Range,
+        value: &ast::Value,
+        content: &str,
+        diagnostics: &mut Vec<Diagnostic>,
+    ) {
         match value {
             ast::Value::Block(_) | ast::Value::TaggedBlock(_, _, _) => {
                 if range.start_line == range.end_line {
@@ -4158,14 +5736,18 @@ impl Backend {
                                 // 2. Check padding INSIDE
                                 let block_str = &full_str[brace_start_rel..];
                                 if block_str.len() >= 2 {
-                                    let inner = &block_str[1..block_str.len()-1];
+                                    let inner = &block_str[1..block_str.len() - 1];
                                     if inner.trim().is_empty() {
                                         if block_str != "{}" {
                                             needs_fix = true;
                                             message = "Empty single-line block should be '{}' without spaces.";
                                         }
                                     } else {
-                                        if !block_str.starts_with("{ ") || !block_str.ends_with(" }") || block_str.starts_with("{  ") || block_str.ends_with("  }") {
+                                        if !block_str.starts_with("{ ")
+                                            || !block_str.ends_with(" }")
+                                            || block_str.starts_with("{  ")
+                                            || block_str.ends_with("  }")
+                                        {
                                             needs_fix = true;
                                         }
                                     }
@@ -4175,7 +5757,9 @@ impl Backend {
                                     diagnostics.push(Diagnostic {
                                         range: ast_range_to_lsp(range),
                                         severity: Some(DiagnosticSeverity::INFORMATION),
-                                        code: Some(NumberOrString::String("styling_brace_space".to_string())),
+                                        code: Some(NumberOrString::String(
+                                            "styling_brace_space".to_string(),
+                                        )),
                                         message: message.to_string(),
                                         source: Some("Hearts of Modding".to_string()),
                                         ..Default::default()
@@ -4190,15 +5774,31 @@ impl Backend {
         }
     }
 
-    fn check_styling(&self, content: &str, script_opt: Option<&ast::Script>, diagnostics: &mut Vec<Diagnostic>, is_yaml: bool) {
+    fn check_styling(
+        &self,
+        content: &str,
+        script_opt: Option<&ast::Script>,
+        diagnostics: &mut Vec<Diagnostic>,
+        is_yaml: bool,
+    ) {
         if !content.is_empty() && !content.ends_with('\n') && !content.ends_with("\r\n") {
             let line_count = content.lines().count();
             let last_line = content.lines().last().unwrap_or("");
-            let line_idx = if line_count > 0 { line_count as u32 - 1 } else { 0 };
+            let line_idx = if line_count > 0 {
+                line_count as u32 - 1
+            } else {
+                0
+            };
             diagnostics.push(Diagnostic {
                 range: Range {
-                    start: Position { line: line_idx, character: last_line.len() as u32 },
-                    end: Position { line: line_idx, character: last_line.len() as u32 },
+                    start: Position {
+                        line: line_idx,
+                        character: last_line.len() as u32,
+                    },
+                    end: Position {
+                        line: line_idx,
+                        character: last_line.len() as u32,
+                    },
                 },
                 severity: Some(DiagnosticSeverity::INFORMATION),
                 code: Some(NumberOrString::String("styling_eof_newline".to_string())),
@@ -4222,8 +5822,14 @@ impl Backend {
                 let end_col = utf16_len(line);
                 diagnostics.push(Diagnostic {
                     range: Range {
-                        start: Position { line: line_idx as u32, character: start_col },
-                        end: Position { line: line_idx as u32, character: end_col },
+                        start: Position {
+                            line: line_idx as u32,
+                            character: start_col,
+                        },
+                        end: Position {
+                            line: line_idx as u32,
+                            character: end_col,
+                        },
                     },
                     severity: Some(DiagnosticSeverity::INFORMATION),
                     code: Some(NumberOrString::String("styling_trailing".to_string())),
@@ -4234,7 +5840,10 @@ impl Backend {
             }
 
             // 2. Indentation consistency
-            let leading = line.chars().take_while(|c| c.is_whitespace()).collect::<String>();
+            let leading = line
+                .chars()
+                .take_while(|c| c.is_whitespace())
+                .collect::<String>();
             if line.trim().is_empty() {
                 continue; // Skip empty lines for indentation checking
             }
@@ -4256,12 +5865,19 @@ impl Backend {
                 if !leading.is_empty() && !leading.starts_with('\t') {
                     diagnostics.push(Diagnostic {
                         range: Range {
-                            start: Position { line: line_idx as u32, character: 0 },
-                            end: Position { line: line_idx as u32, character: leading.len() as u32 },
+                            start: Position {
+                                line: line_idx as u32,
+                                character: 0,
+                            },
+                            end: Position {
+                                line: line_idx as u32,
+                                character: leading.len() as u32,
+                            },
                         },
                         severity: Some(DiagnosticSeverity::INFORMATION),
                         code: Some(NumberOrString::String("styling_indent".to_string())),
-                        message: "Localization entries must start with at least one tab.".to_string(),
+                        message: "Localization entries must start with at least one tab."
+                            .to_string(),
                         source: Some("Hearts of Modding".to_string()),
                         ..Default::default()
                     });
@@ -4273,16 +5889,28 @@ impl Backend {
                     let expected_str = "\t".repeat(expected_tabs);
                     if leading != expected_str {
                         let mut data = serde_json::Map::new();
-                        data.insert("expected_tabs".to_string(), serde_json::Value::Number(expected_tabs.into()));
+                        data.insert(
+                            "expected_tabs".to_string(),
+                            serde_json::Value::Number(expected_tabs.into()),
+                        );
 
                         diagnostics.push(Diagnostic {
                             range: Range {
-                                start: Position { line: line_idx as u32, character: 0 },
-                                end: Position { line: line_idx as u32, character: leading.len() as u32 },
+                                start: Position {
+                                    line: line_idx as u32,
+                                    character: 0,
+                                },
+                                end: Position {
+                                    line: line_idx as u32,
+                                    character: leading.len() as u32,
+                                },
                             },
                             severity: Some(DiagnosticSeverity::INFORMATION),
                             code: Some(NumberOrString::String("styling_indent".to_string())),
-                            message: format!("Inconsistent indentation. Expected {} tab(s).", expected_tabs),
+                            message: format!(
+                                "Inconsistent indentation. Expected {} tab(s).",
+                                expected_tabs
+                            ),
                             source: Some("Hearts of Modding".to_string()),
                             data: Some(serde_json::Value::Object(data)),
                             ..Default::default()
@@ -4292,8 +5920,14 @@ impl Backend {
                     // Fallback if line wasn't in AST (e.g. unparsed strings or comments)
                     diagnostics.push(Diagnostic {
                         range: Range {
-                            start: Position { line: line_idx as u32, character: 0 },
-                            end: Position { line: line_idx as u32, character: leading.len() as u32 },
+                            start: Position {
+                                line: line_idx as u32,
+                                character: 0,
+                            },
+                            end: Position {
+                                line: line_idx as u32,
+                                character: leading.len() as u32,
+                            },
                         },
                         severity: Some(DiagnosticSeverity::INFORMATION),
                         code: Some(NumberOrString::String("styling_indent".to_string())),
@@ -4306,7 +5940,13 @@ impl Backend {
         }
     }
 
-    async fn check_semantic(&self, script: &ast::Script, diagnostics: &mut Vec<Diagnostic>, styling_enabled: bool, uri: &str) {
+    async fn check_semantic(
+        &self,
+        script: &ast::Script,
+        diagnostics: &mut Vec<Diagnostic>,
+        styling_enabled: bool,
+        uri: &str,
+    ) {
         let loc = self.localization.read().await;
         let st = self.scripted_triggers.read().await;
         let se = self.scripted_effects.read().await;
@@ -4333,8 +5973,16 @@ impl Backend {
 
         // Run advanced validations
         let mut advanced_diags = Vec::new();
-        advanced_validation::validate_building_levels(&script.entries, &buildings, &mut advanced_diags);
-        advanced_validation::validate_character_skills(&script.entries, &defines, &mut advanced_diags);
+        advanced_validation::validate_building_levels(
+            &script.entries,
+            &buildings,
+            &mut advanced_diags,
+        );
+        advanced_validation::validate_character_skills(
+            &script.entries,
+            &defines,
+            &mut advanced_diags,
+        );
         advanced_validation::validate_victory_points(&script.entries, &mut advanced_diags);
         advanced_validation::validate_achievements(&script.entries, &loc, &mut advanced_diags);
 
@@ -4344,16 +5992,21 @@ impl Backend {
             for entry in &script.entries {
                 if let ast::Entry::Assignment(ass) = entry {
                     if let ast::Value::Block(inner) = &ass.value.value {
-                        advanced_validation::validate_against_rule(inner, &crate::schema::Rule {
-                            key: "scripted_trigger".to_string(),
-                            value_type: crate::schema::ValueType::Alias("trigger".to_string()),
-                            description: None,
-                            scopes: Vec::new(),
-                            push_scope: None,
-                            cardinality: crate::schema::Cardinality::default(),
-                            severity: None,
-                            children: Vec::new(),
-                        }, &schema, &mut advanced_diags);
+                        advanced_validation::validate_against_rule(
+                            inner,
+                            &crate::schema::Rule {
+                                key: "scripted_trigger".to_string(),
+                                value_type: crate::schema::ValueType::Alias("trigger".to_string()),
+                                description: None,
+                                scopes: Vec::new(),
+                                push_scope: None,
+                                cardinality: crate::schema::Cardinality::default(),
+                                severity: None,
+                                children: Vec::new(),
+                            },
+                            &schema,
+                            &mut advanced_diags,
+                        );
                     }
                 }
             }
@@ -4361,16 +6014,21 @@ impl Backend {
             for entry in &script.entries {
                 if let ast::Entry::Assignment(ass) = entry {
                     if let ast::Value::Block(inner) = &ass.value.value {
-                        advanced_validation::validate_against_rule(inner, &crate::schema::Rule {
-                            key: "scripted_effect".to_string(),
-                            value_type: crate::schema::ValueType::Alias("effect".to_string()),
-                            description: None,
-                            scopes: Vec::new(),
-                            push_scope: None,
-                            cardinality: crate::schema::Cardinality::default(),
-                            severity: None,
-                            children: Vec::new(),
-                        }, &schema, &mut advanced_diags);
+                        advanced_validation::validate_against_rule(
+                            inner,
+                            &crate::schema::Rule {
+                                key: "scripted_effect".to_string(),
+                                value_type: crate::schema::ValueType::Alias("effect".to_string()),
+                                description: None,
+                                scopes: Vec::new(),
+                                push_scope: None,
+                                cardinality: crate::schema::Cardinality::default(),
+                                severity: None,
+                                children: Vec::new(),
+                            },
+                            &schema,
+                            &mut advanced_diags,
+                        );
                     }
                 }
             }
@@ -4389,15 +6047,46 @@ impl Backend {
                 message: diag.message,
                 code: Some(NumberOrString::String(diag.code)),
                 source: Some("Hearts of Modding".to_string()),
-                tags: if diag.tags.is_empty() { None } else { Some(diag.tags.iter().map(ast_tag_to_lsp).collect()) },
-                related_information: if diag.related_information.is_empty() { None } else { Some(diag.related_information.iter().map(ast_related_info_to_lsp).collect()) },
+                tags: if diag.tags.is_empty() {
+                    None
+                } else {
+                    Some(diag.tags.iter().map(ast_tag_to_lsp).collect())
+                },
+                related_information: if diag.related_information.is_empty() {
+                    None
+                } else {
+                    Some(
+                        diag.related_information
+                            .iter()
+                            .map(ast_related_info_to_lsp)
+                            .collect(),
+                    )
+                },
                 data: diag.fix_suggestion.map(|s| serde_json::json!({ "fix": s })),
                 ..Default::default()
             });
         }
 
         for entry in &script.entries {
-            self.check_entry_semantic(entry, diagnostics, &loc, &st, &se, &id, &sid, &tr, &sp, &ids, &provs, &schema, &mod_maps, &ig_loc, &comments, styling_enabled, &mut scope_stack);
+            self.check_entry_semantic(
+                entry,
+                diagnostics,
+                &loc,
+                &st,
+                &se,
+                &id,
+                &sid,
+                &tr,
+                &sp,
+                &ids,
+                &provs,
+                &schema,
+                &mod_maps,
+                &ig_loc,
+                &comments,
+                styling_enabled,
+                &mut scope_stack,
+            );
         }
     }
 
@@ -4417,7 +6106,7 @@ impl Backend {
         schema: &schema::Schema,
         mod_maps: &HashMap<String, String>,
         ig_loc: &[regex::Regex],
-        comments: &[ (String, ast::Range) ],
+        comments: &[(String, ast::Range)],
         styling_enabled: bool,
         scope_stack: &mut scope::ScopeStack,
     ) {
@@ -4427,7 +6116,12 @@ impl Backend {
                 let mut pushed_scope = false;
 
                 // Schema validation for triggers, effects, and links
-                if let Some(rule) = schema.triggers.get(&ass.key).or_else(|| schema.effects.get(&ass.key)).or_else(|| schema.links.get(&ass.key)) {
+                if let Some(rule) = schema
+                    .triggers
+                    .get(&ass.key)
+                    .or_else(|| schema.effects.get(&ass.key))
+                    .or_else(|| schema.links.get(&ass.key))
+                {
                     if let Some(push) = &rule.push_scope {
                         scope_stack.push(scope::Scope::from_str(push));
                         pushed_scope = true;
@@ -4438,7 +6132,12 @@ impl Backend {
                         let current_str = current_scope.as_str().to_lowercase();
                         let mut valid = false;
                         for s in &rule.scopes {
-                            if s.to_lowercase() == "any" || s.to_lowercase() == "all" || s.to_lowercase() == current_str || current_scope == scope::Scope::Unknown || current_scope == scope::Scope::Global {
+                            if s.to_lowercase() == "any"
+                                || s.to_lowercase() == "all"
+                                || s.to_lowercase() == current_str
+                                || current_scope == scope::Scope::Unknown
+                                || current_scope == scope::Scope::Global
+                            {
                                 valid = true;
                                 break;
                             }
@@ -4455,18 +6154,16 @@ impl Backend {
 
                     // Type checking
                     match rule.value_type {
-                        schema::ValueType::Bool => {
-                            match &ass.value.value {
-                                ast::Value::Boolean(_) => {},
-                                ast::Value::String(s) if s == "yes" || s == "no" => {},
-                                _ => {
-                                    diagnostics.push(Diagnostic {
-                                        range: ast_range_to_lsp(&ass.value.range),
-                                        severity: Some(DiagnosticSeverity::ERROR),
-                                        message: format!("Expected boolean (yes/no) for '{}'", ass.key),
-                                        ..Default::default()
-                                    });
-                                }
+                        schema::ValueType::Bool => match &ass.value.value {
+                            ast::Value::Boolean(_) => {}
+                            ast::Value::String(s) if s == "yes" || s == "no" => {}
+                            _ => {
+                                diagnostics.push(Diagnostic {
+                                    range: ast_range_to_lsp(&ass.value.range),
+                                    severity: Some(DiagnosticSeverity::ERROR),
+                                    message: format!("Expected boolean (yes/no) for '{}'", ass.key),
+                                    ..Default::default()
+                                });
                             }
                         },
                         schema::ValueType::Int => {
@@ -4488,13 +6185,14 @@ impl Backend {
                                     ..Default::default()
                                 });
                             }
-                        },
+                        }
                         _ => {}
                     }
                 } else {
                     // Structural blocks that push scope but aren't in the schema
                     let s = scope::Scope::from_str(&ass.key);
-                    if s != scope::Scope::Unknown || ass.key.contains(':') || ass.key.contains('.') {
+                    if s != scope::Scope::Unknown || ass.key.contains(':') || ass.key.contains('.')
+                    {
                         match &ass.value.value {
                             ast::Value::Block(_) | ast::Value::TaggedBlock(_, _, _) => {
                                 scope_stack.push(s);
@@ -4508,10 +6206,15 @@ impl Backend {
                 // Casing checks for keywords
                 if styling_enabled {
                     let mut needs_fix = false;
-                    if ass.key_range.end_line == ass.operator_range.start_line && ass.key_range.end_line == ass.value.range.start_line {
-                        if ass.operator_range.start_col > ass.key_range.end_col && ass.value.range.start_col > ass.operator_range.end_col {
+                    if ass.key_range.end_line == ass.operator_range.start_line
+                        && ass.key_range.end_line == ass.value.range.start_line
+                    {
+                        if ass.operator_range.start_col > ass.key_range.end_col
+                            && ass.value.range.start_col > ass.operator_range.end_col
+                        {
                             let space_before = ass.operator_range.start_col - ass.key_range.end_col;
-                            let space_after = ass.value.range.start_col - ass.operator_range.end_col;
+                            let space_after =
+                                ass.value.range.start_col - ass.operator_range.end_col;
                             if space_before != 1 || space_after != 1 {
                                 needs_fix = true;
                             }
@@ -4540,11 +6243,19 @@ impl Backend {
                             if ass.value.range.start_line > ass.operator_range.end_line {
                                 diagnostics.push(Diagnostic {
                                     range: Range {
-                                        start: Position { line: ass.operator_range.end_line, character: ass.operator_range.end_col },
-                                        end: Position { line: ass.value.range.start_line, character: ass.value.range.start_col },
+                                        start: Position {
+                                            line: ass.operator_range.end_line,
+                                            character: ass.operator_range.end_col,
+                                        },
+                                        end: Position {
+                                            line: ass.value.range.start_line,
+                                            character: ass.value.range.start_col,
+                                        },
                                     },
                                     severity: Some(DiagnosticSeverity::INFORMATION),
-                                    code: Some(NumberOrString::String("styling_brace_newline".to_string())),
+                                    code: Some(NumberOrString::String(
+                                        "styling_brace_newline".to_string(),
+                                    )),
                                     message: "Curly brace should not be on a new line.".to_string(),
                                     source: Some("Hearts of Modding".to_string()),
                                     ..Default::default()
@@ -4558,11 +6269,19 @@ impl Backend {
                             if block_range.start_line > ass.operator_range.end_line {
                                 diagnostics.push(Diagnostic {
                                     range: Range {
-                                        start: Position { line: ass.operator_range.end_line, character: ass.operator_range.end_col },
-                                        end: Position { line: block_range.start_line, character: block_range.start_col },
+                                        start: Position {
+                                            line: ass.operator_range.end_line,
+                                            character: ass.operator_range.end_col,
+                                        },
+                                        end: Position {
+                                            line: block_range.start_line,
+                                            character: block_range.start_col,
+                                        },
                                     },
                                     severity: Some(DiagnosticSeverity::INFORMATION),
-                                    code: Some(NumberOrString::String("styling_brace_newline".to_string())),
+                                    code: Some(NumberOrString::String(
+                                        "styling_brace_newline".to_string(),
+                                    )),
                                     message: "Curly brace should not be on a new line.".to_string(),
                                     source: Some("Hearts of Modding".to_string()),
                                     ..Default::default()
@@ -4589,16 +6308,30 @@ impl Backend {
                     }
 
                     let keywords = [
-                        "spriteTypes", "spriteType", "name", "texturefile", 
-                        "ideologies", "types", "ideas", "country", "national_focus",
-                        "leader_traits", "country_leader_traits", "traits"
+                        "spriteTypes",
+                        "spriteType",
+                        "name",
+                        "texturefile",
+                        "ideologies",
+                        "types",
+                        "ideas",
+                        "country",
+                        "national_focus",
+                        "leader_traits",
+                        "country_leader_traits",
+                        "traits",
                     ];
 
                     for kw in keywords {
                         if key_lower == kw.to_lowercase() && ass.key != kw {
-                            let mut message = format!("Standard Paradox Script convention uses '{}' instead of '{}'.", kw, ass.key);
+                            let mut message = format!(
+                                "Standard Paradox Script convention uses '{}' instead of '{}'.",
+                                kw, ass.key
+                            );
                             if kw.to_lowercase().contains("sprite") || kw == "texturefile" {
-                                message.push_str("\nReference: https://hoi4.paradoxwikis.com/Modding#GFX");
+                                message.push_str(
+                                    "\nReference: https://hoi4.paradoxwikis.com/Modding#GFX",
+                                );
                             }
 
                             diagnostics.push(Diagnostic {
@@ -4616,12 +6349,19 @@ impl Backend {
                 }
 
                 // Localization checks
-                if key_lower == "name" || key_lower == "desc" || key_lower == "text" || key_lower == "title" {
+                if key_lower == "name"
+                    || key_lower == "desc"
+                    || key_lower == "text"
+                    || key_lower == "title"
+                {
                     if let ast::Value::String(val) = &ass.value.value {
                         let mut should_flag = true;
 
                         // 1. Basic heuristics (Space, numbers)
-                        if val.contains(' ') || val.is_empty() || val.chars().all(|c| c.is_numeric()) {
+                        if val.contains(' ')
+                            || val.is_empty()
+                            || val.chars().all(|c| c.is_numeric())
+                        {
                             should_flag = false;
                         }
 
@@ -4656,8 +6396,15 @@ impl Backend {
                                         diagnostics.push(Diagnostic {
                                             range: ast_range_to_lsp(&ass.value.range),
                                             severity: Some(DiagnosticSeverity::HINT), // Use HINT for lenient keys
-                                            message: format!("Missing localization key: '{}' (or literal name)", val),
-                                            code: Some(NumberOrString::String(advanced_validation::MISSING_LOCALIZATION.to_string())),                                            source: Some("Hearts of Modding".to_string()),
+                                            message: format!(
+                                                "Missing localization key: '{}' (or literal name)",
+                                                val
+                                            ),
+                                            code: Some(NumberOrString::String(
+                                                advanced_validation::MISSING_LOCALIZATION
+                                                    .to_string(),
+                                            )),
+                                            source: Some("Hearts of Modding".to_string()),
                                             ..Default::default()
                                         });
                                     }
@@ -4676,7 +6423,9 @@ impl Backend {
                                 range: ast_range_to_lsp(&ass.value.range),
                                 severity: Some(DiagnosticSeverity::WARNING),
                                 message: format!("Unknown ideology: '{}'", val),
-                                code: Some(NumberOrString::String(advanced_validation::UNKNOWN_TRIGGER.to_string())),
+                                code: Some(NumberOrString::String(
+                                    advanced_validation::UNKNOWN_TRIGGER.to_string(),
+                                )),
                                 source: Some("Hearts of Modding".to_string()),
                                 ..Default::default()
                             });
@@ -4685,14 +6434,19 @@ impl Backend {
                 }
 
                 // Trait checks
-                if key_lower == "add_trait" || key_lower == "has_trait" || key_lower == "remove_trait" {
+                if key_lower == "add_trait"
+                    || key_lower == "has_trait"
+                    || key_lower == "remove_trait"
+                {
                     if let ast::Value::String(val) = &ass.value.value {
                         if !tr.contains_key(val) {
                             diagnostics.push(Diagnostic {
                                 range: ast_range_to_lsp(&ass.value.range),
                                 severity: Some(DiagnosticSeverity::WARNING),
                                 message: format!("Unknown trait: '{}'", val),
-                                code: Some(NumberOrString::String(advanced_validation::UNKNOWN_TRIGGER.to_string())),
+                                code: Some(NumberOrString::String(
+                                    advanced_validation::UNKNOWN_TRIGGER.to_string(),
+                                )),
                                 source: Some("Hearts of Modding".to_string()),
                                 ..Default::default()
                             });
@@ -4701,14 +6455,20 @@ impl Backend {
                 }
 
                 // Sprite/Gfx checks
-                if key_lower == "sprite" || key_lower == "icon" || key_lower == "sprite_name" || key_lower == "picture" {
+                if key_lower == "sprite"
+                    || key_lower == "icon"
+                    || key_lower == "sprite_name"
+                    || key_lower == "picture"
+                {
                     if let ast::Value::String(val) = &ass.value.value {
                         if !sp.contains_key(val) && val.starts_with("GFX_") {
                             diagnostics.push(Diagnostic {
                                 range: ast_range_to_lsp(&ass.value.range),
                                 severity: Some(DiagnosticSeverity::WARNING),
                                 message: format!("Unknown sprite/GFX: '{}'", val),
-                                code: Some(NumberOrString::String(advanced_validation::UNKNOWN_TRIGGER.to_string())),
+                                code: Some(NumberOrString::String(
+                                    advanced_validation::UNKNOWN_TRIGGER.to_string(),
+                                )),
                                 source: Some("Hearts of Modding".to_string()),
                                 ..Default::default()
                             });
@@ -4717,7 +6477,10 @@ impl Backend {
                 }
 
                 // Idea checks
-                if key_lower == "add_ideas" || key_lower == "has_idea" || key_lower == "remove_ideas" {
+                if key_lower == "add_ideas"
+                    || key_lower == "has_idea"
+                    || key_lower == "remove_ideas"
+                {
                     if let ast::Value::String(val) = &ass.value.value {
                         if !ids.contains_key(val) {
                             diagnostics.push(Diagnostic {
@@ -4731,7 +6494,10 @@ impl Backend {
                 }
 
                 // Province checks
-                if key_lower == "province" || key_lower == "on_province" || key_lower == "is_province_id" {
+                if key_lower == "province"
+                    || key_lower == "on_province"
+                    || key_lower == "is_province_id"
+                {
                     self.check_is_province(&ass.value, diagnostics, provs);
                 }
 
@@ -4748,14 +6514,50 @@ impl Backend {
                 }
 
                 // Check value recursively
-                self.check_value_semantic(&ass.value, diagnostics, loc, st, se, id, sid, tr, sp, ids, provs, schema, mod_maps, ig_loc, comments, styling_enabled, scope_stack);
+                self.check_value_semantic(
+                    &ass.value,
+                    diagnostics,
+                    loc,
+                    st,
+                    se,
+                    id,
+                    sid,
+                    tr,
+                    sp,
+                    ids,
+                    provs,
+                    schema,
+                    mod_maps,
+                    ig_loc,
+                    comments,
+                    styling_enabled,
+                    scope_stack,
+                );
 
                 if pushed_scope {
                     scope_stack.pop();
                 }
             }
             ast::Entry::Value(val) => {
-                self.check_value_semantic(val, diagnostics, loc, st, se, id, sid, tr, sp, ids, provs, schema, mod_maps, ig_loc, comments, styling_enabled, scope_stack);
+                self.check_value_semantic(
+                    val,
+                    diagnostics,
+                    loc,
+                    st,
+                    se,
+                    id,
+                    sid,
+                    tr,
+                    sp,
+                    ids,
+                    provs,
+                    schema,
+                    mod_maps,
+                    ig_loc,
+                    comments,
+                    styling_enabled,
+                    scope_stack,
+                );
             }
             _ => {}
         }
@@ -4777,7 +6579,7 @@ impl Backend {
         schema: &schema::Schema,
         mod_maps: &HashMap<String, String>,
         ig_loc: &[regex::Regex],
-        comments: &[ (String, ast::Range) ],
+        comments: &[(String, ast::Range)],
         styling_enabled: bool,
         scope_stack: &mut scope::ScopeStack,
     ) {
@@ -4785,7 +6587,25 @@ impl Backend {
             ast::Value::Block(entries) => {
                 self.check_duplicate_keys(entries, diagnostics, schema, mod_maps);
                 for entry in entries {
-                    self.check_entry_semantic(entry, diagnostics, loc, st, se, id, sid, tr, sp, ids, provs, schema, mod_maps, ig_loc, comments, styling_enabled, scope_stack);
+                    self.check_entry_semantic(
+                        entry,
+                        diagnostics,
+                        loc,
+                        st,
+                        se,
+                        id,
+                        sid,
+                        tr,
+                        sp,
+                        ids,
+                        provs,
+                        schema,
+                        mod_maps,
+                        ig_loc,
+                        comments,
+                        styling_enabled,
+                        scope_stack,
+                    );
                 }
             }
             ast::Value::TaggedBlock(tag, entries, block_range) => {
@@ -4793,8 +6613,14 @@ impl Backend {
                     if block_range.start_line > val.range.start_line {
                         diagnostics.push(Diagnostic {
                             range: Range {
-                                start: Position { line: val.range.start_line, character: val.range.start_col + tag.len() as u32 },
-                                end: Position { line: block_range.start_line, character: block_range.start_col },
+                                start: Position {
+                                    line: val.range.start_line,
+                                    character: val.range.start_col + tag.len() as u32,
+                                },
+                                end: Position {
+                                    line: block_range.start_line,
+                                    character: block_range.start_col,
+                                },
                             },
                             severity: Some(DiagnosticSeverity::INFORMATION),
                             code: Some(NumberOrString::String("styling_brace_newline".to_string())),
@@ -4807,12 +6633,22 @@ impl Backend {
                         if block_range.start_col != tag_end_col + 1 {
                             diagnostics.push(Diagnostic {
                                 range: Range {
-                                    start: Position { line: val.range.start_line, character: tag_end_col },
-                                    end: Position { line: block_range.start_line, character: block_range.start_col },
+                                    start: Position {
+                                        line: val.range.start_line,
+                                        character: tag_end_col,
+                                    },
+                                    end: Position {
+                                        line: block_range.start_line,
+                                        character: block_range.start_col,
+                                    },
                                 },
                                 severity: Some(DiagnosticSeverity::INFORMATION),
-                                code: Some(NumberOrString::String("styling_brace_newline".to_string())),
-                                message: "Exactly one space should separate the tag and the curly brace.".to_string(),
+                                code: Some(NumberOrString::String(
+                                    "styling_brace_newline".to_string(),
+                                )),
+                                message:
+                                    "Exactly one space should separate the tag and the curly brace."
+                                        .to_string(),
                                 source: Some("Hearts of Modding".to_string()),
                                 ..Default::default()
                             });
@@ -4821,28 +6657,58 @@ impl Backend {
                 }
                 self.check_duplicate_keys(entries, diagnostics, schema, mod_maps);
                 for entry in entries {
-                    self.check_entry_semantic(entry, diagnostics, loc, st, se, id, sid, tr, sp, ids, provs, schema, mod_maps, ig_loc, comments, styling_enabled, scope_stack);
+                    self.check_entry_semantic(
+                        entry,
+                        diagnostics,
+                        loc,
+                        st,
+                        se,
+                        id,
+                        sid,
+                        tr,
+                        sp,
+                        ids,
+                        provs,
+                        schema,
+                        mod_maps,
+                        ig_loc,
+                        comments,
+                        styling_enabled,
+                        scope_stack,
+                    );
                 }
             }
             _ => {}
         }
     }
 
-    fn check_duplicate_keys(&self, entries: &[ast::Entry], diagnostics: &mut Vec<Diagnostic>, schema: &schema::Schema, mod_maps: &HashMap<String, String>) {
+    fn check_duplicate_keys(
+        &self,
+        entries: &[ast::Entry],
+        diagnostics: &mut Vec<Diagnostic>,
+        schema: &schema::Schema,
+        mod_maps: &HashMap<String, String>,
+    ) {
         let mut seen_keys: HashMap<String, ast::Range> = HashMap::new();
 
         for entry in entries {
             if let ast::Entry::Assignment(ass) = entry {
-                // We only care about duplicates if they are modifiers. 
+                // We only care about duplicates if they are modifiers.
                 // Some Paradox keys (like 'modifier = { ... }' or 'option = { ... }') are intended to be duplicates.
                 // But specific engine modifiers (like 'stability_factor') should NEVER be duplicated.
 
-                let is_modifier = mod_maps.contains_key(&ass.key) ||
-                                 schema.triggers.contains_key(&ass.key) ||
-                                 schema.effects.contains_key(&ass.key);
+                let is_modifier = mod_maps.contains_key(&ass.key)
+                    || schema.triggers.contains_key(&ass.key)
+                    || schema.effects.contains_key(&ass.key);
 
                 // Exceptions: Some effects/triggers are specifically designed to be used multiple times
-                let is_exception = ass.key == "modifier" || ass.key == "option" || ass.key == "limit" || ass.key == "if" || ass.key == "else" || ass.key == "else_if" || ass.key == "variable_name";
+                let is_exception = ass.key == "modifier"
+                    || ass.key == "option"
+                    || ass.key == "limit"
+                    || ass.key == "if"
+                    || ass.key == "else"
+                    || ass.key == "else_if"
+                    || ass.key == "variable_name";
 
                 if is_modifier && !is_exception {
                     if let Some(prev_range) = seen_keys.get(&ass.key) {
@@ -4947,20 +6813,27 @@ fn find_colors_in_entry(entry: &ast::Entry, colors: &mut Vec<ColorInformation>) 
     }
 }
 
-fn find_colors_in_value(val: &ast::NodeedValue, colors: &mut Vec<ColorInformation>, is_color_context: bool) {
+fn find_colors_in_value(
+    val: &ast::NodeedValue,
+    colors: &mut Vec<ColorInformation>,
+    is_color_context: bool,
+) {
     match &val.value {
         ast::Value::Block(entries) => {
-            let nums: Vec<f64> = entries.iter().filter_map(|e| {
-                if let ast::Entry::Value(v) = e {
-                    match &v.value {
-                        ast::Value::Number(n) => Some(*n),
-                        ast::Value::String(s) => s.parse::<f64>().ok(),
-                        _ => None
+            let nums: Vec<f64> = entries
+                .iter()
+                .filter_map(|e| {
+                    if let ast::Entry::Value(v) = e {
+                        match &v.value {
+                            ast::Value::Number(n) => Some(*n),
+                            ast::Value::String(s) => s.parse::<f64>().ok(),
+                            _ => None,
+                        }
+                    } else {
+                        None
                     }
-                } else {
-                    None
-                }
-            }).collect();
+                })
+                .collect();
 
             // Only treat as color if we're in a color context (key contains "color")
             if nums.len() == 3 && is_color_context {
@@ -4970,14 +6843,23 @@ fn find_colors_in_value(val: &ast::NodeedValue, colors: &mut Vec<ColorInformatio
                 let is_255 = nums.iter().any(|&n| n > 1.0);
 
                 let (r, g, b) = if is_255 {
-                    ((nums[0] / 255.0) as f32, (nums[1] / 255.0) as f32, (nums[2] / 255.0) as f32)
+                    (
+                        (nums[0] / 255.0) as f32,
+                        (nums[1] / 255.0) as f32,
+                        (nums[2] / 255.0) as f32,
+                    )
                 } else {
                     (nums[0] as f32, nums[1] as f32, nums[2] as f32)
                 };
 
                 colors.push(ColorInformation {
                     range: ast_range_to_lsp(&val.range),
-                    color: Color { red: r, green: g, blue: b, alpha: 1.0 },
+                    color: Color {
+                        red: r,
+                        green: g,
+                        blue: b,
+                        alpha: 1.0,
+                    },
                 });
             } else {
                 for e in entries {
@@ -4986,17 +6868,20 @@ fn find_colors_in_value(val: &ast::NodeedValue, colors: &mut Vec<ColorInformatio
             }
         }
         ast::Value::TaggedBlock(tag, entries, _) => {
-            let nums: Vec<f64> = entries.iter().filter_map(|e| {
-                if let ast::Entry::Value(v) = e {
-                    match &v.value {
-                        ast::Value::Number(n) => Some(*n),
-                        ast::Value::String(s) => s.parse::<f64>().ok(),
-                        _ => None
+            let nums: Vec<f64> = entries
+                .iter()
+                .filter_map(|e| {
+                    if let ast::Entry::Value(v) = e {
+                        match &v.value {
+                            ast::Value::Number(n) => Some(*n),
+                            ast::Value::String(s) => s.parse::<f64>().ok(),
+                            _ => None,
+                        }
+                    } else {
+                        None
                     }
-                } else {
-                    None
-                }
-            }).collect();
+                })
+                .collect();
 
             if nums.len() == 3 {
                 let tag_lower = tag.to_lowercase();
@@ -5007,14 +6892,24 @@ fn find_colors_in_value(val: &ast::NodeedValue, colors: &mut Vec<ColorInformatio
                     let b = (nums[2] / 255.0) as f32;
                     colors.push(ColorInformation {
                         range: ast_range_to_lsp(&val.range),
-                        color: Color { red: r, green: g, blue: b, alpha: 1.0 },
+                        color: Color {
+                            red: r,
+                            green: g,
+                            blue: b,
+                            alpha: 1.0,
+                        },
                     });
                 } else if tag_lower == "hsv" {
                     // Convert HSV to RGB
                     let (r, g, b) = hsv_to_rgb(nums[0], nums[1], nums[2]);
                     colors.push(ColorInformation {
                         range: ast_range_to_lsp(&val.range),
-                        color: Color { red: r as f32, green: g as f32, blue: b as f32, alpha: 1.0 },
+                        color: Color {
+                            red: r as f32,
+                            green: g as f32,
+                            blue: b as f32,
+                            alpha: 1.0,
+                        },
                     });
                 }
             } else {
@@ -5114,8 +7009,14 @@ fn format_modifier_value(key: &str, val: f64, format_str: Option<&String>) -> St
 
     formatted_num
 }
-fn resolve_loc(input: &str, localization: &HashMap<String, loc_parser::LocEntry>, depth: u32) -> String {
-    if depth > 10 { return input.to_string(); }
+fn resolve_loc(
+    input: &str,
+    localization: &HashMap<String, loc_parser::LocEntry>,
+    depth: u32,
+) -> String {
+    if depth > 10 {
+        return input.to_string();
+    }
     let re_key = regex::Regex::new(r"\$([^\$]+)\$").unwrap();
     let mut last_end = 0;
     let mut result = String::new();
@@ -5136,10 +7037,14 @@ fn resolve_loc(input: &str, localization: &HashMap<String, loc_parser::LocEntry>
     result
 }
 
-fn paradox_to_markdown(input: &str, localization: Option<&HashMap<String, loc_parser::LocEntry>>) -> String {
+fn paradox_to_markdown(
+    input: &str,
+    localization: Option<&HashMap<String, loc_parser::LocEntry>>,
+) -> String {
     // Helper function to split leading punctuation from text
     fn split_leading_punctuation(s: &str) -> (&str, &str) {
-        let punct_end = s.chars()
+        let punct_end = s
+            .chars()
             .take_while(|c| c.is_ascii_punctuation() || c.is_whitespace())
             .map(|c| c.len_utf8())
             .sum::<usize>();
@@ -5158,7 +7063,11 @@ fn paradox_to_markdown(input: &str, localization: Option<&HashMap<String, loc_pa
     };
 
     // Handle literal \n and escaped quotes
-    resolved = resolved.replace("\\n", "\n").replace("\\r\\n", "\n").replace("\\\"", "\"").replace("$$", "$");
+    resolved = resolved
+        .replace("\\n", "\n")
+        .replace("\\r\\n", "\n")
+        .replace("\\\"", "\"")
+        .replace("$$", "$");
 
     // Handle country flags: @TAG → [Flag: TAG]
     let re_flag = regex::Regex::new(r"@([a-zA-Z0-9]{3})").unwrap();
@@ -5170,36 +7079,38 @@ fn paradox_to_markdown(input: &str, localization: Option<&HashMap<String, loc_pa
 
     // Handle scope commands, variables, and formatters: [Root.GetName], [?var], [idea_name|idea_id], etc.
     let re_scope = regex::Regex::new(r"\[([^\]]+)\]").unwrap();
-    resolved = re_scope.replace_all(&resolved, |caps: &regex::Captures| {
-        let inner = &caps[1];
+    resolved = re_scope
+        .replace_all(&resolved, |caps: &regex::Captures| {
+            let inner = &caps[1];
 
-        // Handle ternary contextual localization: [(OBJECT ? TRUE_CASE : FALSE_CASE)]
-        if inner.contains('?') && inner.contains(':') {
-            return format!("**[Condition: {}]**", inner);
-        }
-
-        // Handle variables: [?var|formatting]
-        if inner.starts_with('?') {
-            let var_inner = &inner[1..];
-            if let Some(pipe_pos) = var_inner.find('|') {
-                return format!("**[Variable: {}]**", &var_inner[..pipe_pos]);
+            // Handle ternary contextual localization: [(OBJECT ? TRUE_CASE : FALSE_CASE)]
+            if inner.contains('?') && inner.contains(':') {
+                return format!("**[Condition: {}]**", inner);
             }
-            return format!("**[Variable: {}]**", var_inner);
-        }
 
-        // Handle localization formatters: <formatter>|<token>
-        if let Some(_pipe_pos) = inner.find('|') {
-            return format!("**[Format: {}]**", inner);
-        }
+            // Handle variables: [?var|formatting]
+            if inner.starts_with('?') {
+                let var_inner = &inner[1..];
+                if let Some(pipe_pos) = var_inner.find('|') {
+                    return format!("**[Variable: {}]**", &var_inner[..pipe_pos]);
+                }
+                return format!("**[Variable: {}]**", var_inner);
+            }
 
-        // Check if it looks like a scope command (contains . or uppercase words)
-        if inner.contains('.') || inner.chars().any(|c| c.is_uppercase()) {
-            format!("**[Scope: {}]**", inner)
-        } else {
-            // Probably just a scripted loc or something else
-            format!("**[{}]**", inner)
-        }
-    }).to_string();
+            // Handle localization formatters: <formatter>|<token>
+            if let Some(_pipe_pos) = inner.find('|') {
+                return format!("**[Format: {}]**", inner);
+            }
+
+            // Check if it looks like a scope command (contains . or uppercase words)
+            if inner.contains('.') || inner.chars().any(|c| c.is_uppercase()) {
+                format!("**[Scope: {}]**", inner)
+            } else {
+                // Probably just a scripted loc or something else
+                format!("**[{}]**", inner)
+            }
+        })
+        .to_string();
 
     let re_color = regex::Regex::new(r"§([a-zA-Z0-9!])").unwrap();
     let mut last_end = 0;
@@ -5228,30 +7139,30 @@ fn paradox_to_markdown(input: &str, localization: Option<&HashMap<String, loc_pa
 
         current_color = match code {
             "!" => "#FFFFFF",
-            "C" => "#23CEFF", // Cyan
-            "L" => "#C3B091", // Lilac
-            "W" => "#FFFFFF", // White
-            "B" => "#0000FF", // Blue
-            "G" => "#009F03", // Green
-            "R" => "#FF3232", // Red
-            "b" => "#000000", // Black
-            "g" => "#B0B0B0", // Light Gray
+            "C" => "#23CEFF",       // Cyan
+            "L" => "#C3B091",       // Lilac
+            "W" => "#FFFFFF",       // White
+            "B" => "#0000FF",       // Blue
+            "G" => "#009F03",       // Green
+            "R" => "#FF3232",       // Red
+            "b" => "#000000",       // Black
+            "g" => "#B0B0B0",       // Light Gray
             "Y" | "H" => "#FFBD00", // Yellow / Header
-            "T" => "#FFFFFF", // Title (White)
-            "O" => "#FF7019", // Orange
-            "0" => "#CB00CB", // Gradient 0 (Purple)
-            "1" => "#8078D3", // Gradient 1 (Lilac)
-            "2" => "#5170F3", // Gradient 2 (Blue)
-            "3" => "#518FDC", // Gradient 3 (Gray-Blue)
-            "4" => "#5ABEE7", // Gradient 4 (Light Blue)
-            "5" => "#3FB5C2", // Gradient 5 (Dull Cyan)
-            "6" => "#77CCBA", // Gradient 6 (Turquoise)
-            "7" => "#99D199", // Gradient 7 (Light Green)
-            "8" => "#CCA333", // Gradient 8 (Orange-Yellow)
-            "9" => "#FCA97D", // Gradient 9 (White-Orange)
-            "t" => "#FF4C4D", // Gradient 10 (Vivid Red)
-            "M" => "#FF60FF", // Magenta (fallback)
-            "p" => "#FF80FF", // Pink (fallback)
+            "T" => "#FFFFFF",       // Title (White)
+            "O" => "#FF7019",       // Orange
+            "0" => "#CB00CB",       // Gradient 0 (Purple)
+            "1" => "#8078D3",       // Gradient 1 (Lilac)
+            "2" => "#5170F3",       // Gradient 2 (Blue)
+            "3" => "#518FDC",       // Gradient 3 (Gray-Blue)
+            "4" => "#5ABEE7",       // Gradient 4 (Light Blue)
+            "5" => "#3FB5C2",       // Gradient 5 (Dull Cyan)
+            "6" => "#77CCBA",       // Gradient 6 (Turquoise)
+            "7" => "#99D199",       // Gradient 7 (Light Green)
+            "8" => "#CCA333",       // Gradient 8 (Orange-Yellow)
+            "9" => "#FCA97D",       // Gradient 9 (White-Orange)
+            "t" => "#FF4C4D",       // Gradient 10 (Vivid Red)
+            "M" => "#FF60FF",       // Magenta (fallback)
+            "p" => "#FF80FF",       // Pink (fallback)
             _ => "#FFFFFF",
         };
         last_end = m.end();
@@ -5291,7 +7202,9 @@ fn paradox_to_markdown(input: &str, localization: Option<&HashMap<String, loc_pa
                     let has_space = word_idx > 0;
 
                     if has_space {
-                        if current_line_chars + 1 + word_len > chars_per_line && !current_line.is_empty() {
+                        if current_line_chars + 1 + word_len > chars_per_line
+                            && !current_line.is_empty()
+                        {
                             lines.push(current_line);
                             current_line = Vec::new();
                             current_line.push((word.to_string(), color));
@@ -5305,7 +7218,9 @@ fn paradox_to_markdown(input: &str, localization: Option<&HashMap<String, loc_pa
                             current_line_chars += word_len;
                         }
                     } else {
-                        if current_line_chars + word_len > chars_per_line && !current_line.is_empty() {
+                        if current_line_chars + word_len > chars_per_line
+                            && !current_line.is_empty()
+                        {
                             lines.push(current_line);
                             current_line = Vec::new();
                             current_line.push((word.to_string(), color));
@@ -5333,12 +7248,16 @@ fn paradox_to_markdown(input: &str, localization: Option<&HashMap<String, loc_pa
             svg_content.push_str(&format!(r#"<text x="2" y="{}" font-family="monospace" font-size="{}" font-weight="bold" xml:space="preserve">"#, y_pos, font_size));
 
             for (text, color) in line_segments {
-                let escaped_text = text.replace('&', "&amp;")
+                let escaped_text = text
+                    .replace('&', "&amp;")
                     .replace('<', "&lt;")
                     .replace('>', "&gt;")
                     .replace('"', "&quot;")
                     .replace('\'', "&apos;");
-                svg_content.push_str(&format!(r#"<tspan fill="{}">{}</tspan>"#, color, escaped_text));
+                svg_content.push_str(&format!(
+                    r#"<tspan fill="{}">{}</tspan>"#,
+                    color, escaped_text
+                ));
             }
 
             svg_content.push_str("</text>");
@@ -5360,33 +7279,52 @@ fn paradox_to_markdown(input: &str, localization: Option<&HashMap<String, loc_pa
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::loc_parser::LocEntry;
     use crate::ast::Range;
+    use crate::loc_parser::LocEntry;
 
     #[test]
     fn test_resolve_loc() {
         let mut loc = HashMap::new();
-        loc.insert("KEY1".to_string(), LocEntry {
-            key: "KEY1".to_string(),
-            value: "Value 1".to_string(),
-            range: Range { start_line: 0, start_col: 0, end_line: 0, end_col: 0 },
-            path: "".to_string(),
-            value_start_col: 0,
-            version: None,
-            version_range: None,
-        });
-        loc.insert("KEY2".to_string(), LocEntry {
-            key: "KEY2".to_string(),
-            value: "Contains $KEY1$".to_string(),
-            range: Range { start_line: 0, start_col: 0, end_line: 0, end_col: 0 },
-            path: "".to_string(),
-            value_start_col: 0,
-            version: None,
-            version_range: None,
-        });
+        loc.insert(
+            "KEY1".to_string(),
+            LocEntry {
+                key: "KEY1".to_string(),
+                value: "Value 1".to_string(),
+                range: Range {
+                    start_line: 0,
+                    start_col: 0,
+                    end_line: 0,
+                    end_col: 0,
+                },
+                path: "".to_string(),
+                value_start_col: 0,
+                version: None,
+                version_range: None,
+            },
+        );
+        loc.insert(
+            "KEY2".to_string(),
+            LocEntry {
+                key: "KEY2".to_string(),
+                value: "Contains $KEY1$".to_string(),
+                range: Range {
+                    start_line: 0,
+                    start_col: 0,
+                    end_line: 0,
+                    end_col: 0,
+                },
+                path: "".to_string(),
+                value_start_col: 0,
+                version: None,
+                version_range: None,
+            },
+        );
 
         assert_eq!(resolve_loc("Hello $KEY1$", &loc, 0), "Hello Value 1");
-        assert_eq!(resolve_loc("Hello $KEY2$", &loc, 0), "Hello Contains Value 1");
+        assert_eq!(
+            resolve_loc("Hello $KEY2$", &loc, 0),
+            "Hello Contains Value 1"
+        );
         assert_eq!(resolve_loc("Hello $UNKNOWN$", &loc, 0), "Hello $UNKNOWN$");
     }
 
@@ -5397,7 +7335,20 @@ mod tests {
         // Test literal \n
         let input = "Line 1\\nLine 2";
         let output = paradox_to_markdown(input, Some(&loc));
-        let decoded = String::from_utf8(base64::engine::general_purpose::STANDARD.decode(output.split("base64,").nth(1).unwrap().split(')').next().unwrap()).unwrap()).unwrap();
+        let decoded = String::from_utf8(
+            base64::engine::general_purpose::STANDARD
+                .decode(
+                    output
+                        .split("base64,")
+                        .nth(1)
+                        .unwrap()
+                        .split(')')
+                        .next()
+                        .unwrap(),
+                )
+                .unwrap(),
+        )
+        .unwrap();
         // It should contain two <text> elements for the two lines
         assert_eq!(decoded.matches("<text ").count(), 2);
         assert!(decoded.contains("Line"));
@@ -5411,7 +7362,20 @@ mod tests {
         use base64::Engine as _;
         let input = "Line 1\nLine 2";
         let output = paradox_to_markdown(input, None);
-        let decoded = String::from_utf8(base64::engine::general_purpose::STANDARD.decode(output.split("base64,").nth(1).unwrap().split(')').next().unwrap()).unwrap()).unwrap();
+        let decoded = String::from_utf8(
+            base64::engine::general_purpose::STANDARD
+                .decode(
+                    output
+                        .split("base64,")
+                        .nth(1)
+                        .unwrap()
+                        .split(')')
+                        .next()
+                        .unwrap(),
+                )
+                .unwrap(),
+        )
+        .unwrap();
         assert_eq!(decoded.matches("<text ").count(), 2);
         assert!(decoded.contains("Line"));
         assert!(decoded.contains("1"));
@@ -5424,7 +7388,20 @@ mod tests {
         use base64::Engine as _;
         let input = "Hello \\\"World\\\"";
         let output = paradox_to_markdown(input, None);
-        let decoded = String::from_utf8(base64::engine::general_purpose::STANDARD.decode(output.split("base64,").nth(1).unwrap().split(')').next().unwrap()).unwrap()).unwrap();
+        let decoded = String::from_utf8(
+            base64::engine::general_purpose::STANDARD
+                .decode(
+                    output
+                        .split("base64,")
+                        .nth(1)
+                        .unwrap()
+                        .split(')')
+                        .next()
+                        .unwrap(),
+                )
+                .unwrap(),
+        )
+        .unwrap();
         // The SVG should contain the unescaped quote (which is escaped for XML as &quot;)
         assert!(decoded.contains("&quot;World&quot;"));
     }
@@ -5434,7 +7411,20 @@ mod tests {
         use base64::Engine as _;
         let input = "§Rfoo§Gbar";
         let output = paradox_to_markdown(input, None);
-        let decoded = String::from_utf8(base64::engine::general_purpose::STANDARD.decode(output.split("base64,").nth(1).unwrap().split(')').next().unwrap()).unwrap()).unwrap();
+        let decoded = String::from_utf8(
+            base64::engine::general_purpose::STANDARD
+                .decode(
+                    output
+                        .split("base64,")
+                        .nth(1)
+                        .unwrap()
+                        .split(')')
+                        .next()
+                        .unwrap(),
+                )
+                .unwrap(),
+        )
+        .unwrap();
         // Should NOT contain a space between foo and bar
         assert!(decoded.contains("foo</tspan><tspan"));
         assert!(decoded.contains(">bar</tspan>"));
@@ -5479,8 +7469,14 @@ fn find_identifier_in_loc(content: &str, pos: Position) -> Option<String> {
 
 fn ast_range_to_lsp(range: &ast::Range) -> Range {
     Range {
-        start: Position { line: range.start_line, character: range.start_col },
-        end: Position { line: range.end_line, character: range.end_col },
+        start: Position {
+            line: range.start_line,
+            character: range.start_col,
+        },
+        end: Position {
+            line: range.end_line,
+            character: range.end_col,
+        },
     }
 }
 
@@ -5491,10 +7487,13 @@ fn ast_tag_to_lsp(tag: &ast::DiagnosticTag) -> DiagnosticTag {
     }
 }
 
-fn ast_related_info_to_lsp(info: &ast::DiagnosticRelatedInformation) -> DiagnosticRelatedInformation {
+fn ast_related_info_to_lsp(
+    info: &ast::DiagnosticRelatedInformation,
+) -> DiagnosticRelatedInformation {
     DiagnosticRelatedInformation {
         location: Location {
-            uri: Url::parse(&info.location.uri).unwrap_or_else(|_| Url::from_file_path(&info.location.uri).unwrap()),
+            uri: Url::parse(&info.location.uri)
+                .unwrap_or_else(|_| Url::from_file_path(&info.location.uri).unwrap()),
             range: ast_range_to_lsp(&info.location.range),
         },
         message: info.message.clone(),
@@ -5503,12 +7502,22 @@ fn ast_related_info_to_lsp(info: &ast::DiagnosticRelatedInformation) -> Diagnost
 
 fn ast_range_to_lsp_location(range: &ast::Range, path: &str) -> Location {
     Location {
-        uri: Url::from_file_path(std::path::Path::new(path).canonicalize().unwrap_or_else(|_| std::path::PathBuf::from(path))).unwrap(),
+        uri: Url::from_file_path(
+            std::path::Path::new(path)
+                .canonicalize()
+                .unwrap_or_else(|_| std::path::PathBuf::from(path)),
+        )
+        .unwrap(),
         range: ast_range_to_lsp(range),
     }
 }
 
-fn find_identifier_at(script: &ast::Script, pos: Position, scope_stack: &mut scope::ScopeStack, achievements: &HashMap<String, achievement_scanner::Achievement>) -> Option<(String, Vec<scope::Scope>, Option<ast::Value>)> {
+fn find_identifier_at(
+    script: &ast::Script,
+    pos: Position,
+    scope_stack: &mut scope::ScopeStack,
+    achievements: &HashMap<String, achievement_scanner::Achievement>,
+) -> Option<(String, Vec<scope::Scope>, Option<ast::Value>)> {
     for entry in &script.entries {
         if let Some(res) = find_in_entry(entry, pos, scope_stack, achievements) {
             return Some(res);
@@ -5517,18 +7526,31 @@ fn find_identifier_at(script: &ast::Script, pos: Position, scope_stack: &mut sco
     None
 }
 
-fn find_in_entry(entry: &ast::Entry, pos: Position, scope_stack: &mut scope::ScopeStack, achievements: &HashMap<String, achievement_scanner::Achievement>) -> Option<(String, Vec<scope::Scope>, Option<ast::Value>)> {
+fn find_in_entry(
+    entry: &ast::Entry,
+    pos: Position,
+    scope_stack: &mut scope::ScopeStack,
+    achievements: &HashMap<String, achievement_scanner::Achievement>,
+) -> Option<(String, Vec<scope::Scope>, Option<ast::Value>)> {
     match entry {
         ast::Entry::Assignment(ass) => {
             if is_pos_in_range(pos, &ass.key_range) {
-                return Some((ass.key.clone(), scope_stack.iter().cloned().collect(), Some(ass.value.value.clone())));
+                return Some((
+                    ass.key.clone(),
+                    scope_stack.iter().cloned().collect(),
+                    Some(ass.value.value.clone()),
+                ));
             }
 
             // Push scope if it's a block
             let mut pushed_scope = None;
             if let ast::Value::Block(_) | ast::Value::TaggedBlock(_, _, _) = &ass.value.value {
                 let s = if let Some(achievement) = achievements.get(&ass.key) {
-                    if achievement.is_ribbon { scope::Scope::Ribbon } else { scope::Scope::Achievement }
+                    if achievement.is_ribbon {
+                        scope::Scope::Ribbon
+                    } else {
+                        scope::Scope::Achievement
+                    }
                 } else {
                     scope::Scope::from_str(&ass.key)
                 };
@@ -5558,7 +7580,12 @@ fn find_in_entry(entry: &ast::Entry, pos: Position, scope_stack: &mut scope::Sco
     }
 }
 
-fn find_in_value(val: &ast::NodeedValue, pos: Position, scope_stack: &mut scope::ScopeStack, achievements: &HashMap<String, achievement_scanner::Achievement>) -> Option<(String, Vec<scope::Scope>, Option<ast::Value>)> {
+fn find_in_value(
+    val: &ast::NodeedValue,
+    pos: Position,
+    scope_stack: &mut scope::ScopeStack,
+    achievements: &HashMap<String, achievement_scanner::Achievement>,
+) -> Option<(String, Vec<scope::Scope>, Option<ast::Value>)> {
     match &val.value {
         ast::Value::String(s) => {
             if is_pos_in_range(pos, &val.range) {
@@ -5566,7 +7593,11 @@ fn find_in_value(val: &ast::NodeedValue, pos: Position, scope_stack: &mut scope:
                     let char_offset = pos.character.saturating_sub(val.range.start_col);
                     // Heuristic: quoted strings have quotes at start/end
                     let is_quoted = val.range.end_col - val.range.start_col > s.len() as u32;
-                    let adj_offset = if is_quoted { char_offset.saturating_sub(1) } else { char_offset } as usize;
+                    let adj_offset = if is_quoted {
+                        char_offset.saturating_sub(1)
+                    } else {
+                        char_offset
+                    } as usize;
 
                     // Handle localization scopes [Scope.Command]
                     let mut start_search = 0;
@@ -5575,20 +7606,30 @@ fn find_in_value(val: &ast::NodeedValue, pos: Position, scope_stack: &mut scope:
                         if let Some(close) = s[abs_open..].find(']') {
                             let abs_close = abs_open + close;
                             if adj_offset > abs_open && adj_offset <= abs_close {
-                                let inner = &s[abs_open + 1 .. abs_close];
+                                let inner = &s[abs_open + 1..abs_close];
                                 let mut current_part_start = 0;
                                 for part in inner.split('.') {
                                     let part_abs_start = abs_open + 1 + current_part_start;
                                     let part_abs_end = part_abs_start + part.len();
                                     if adj_offset >= part_abs_start && adj_offset < part_abs_end {
-                                        return Some((part.to_string(), scope_stack.iter().cloned().collect(), None));
+                                        return Some((
+                                            part.to_string(),
+                                            scope_stack.iter().cloned().collect(),
+                                            None,
+                                        ));
                                     }
                                     current_part_start += part.len() + 1;
                                 }
-                                return Some((inner.to_string(), scope_stack.iter().cloned().collect(), None));
+                                return Some((
+                                    inner.to_string(),
+                                    scope_stack.iter().cloned().collect(),
+                                    None,
+                                ));
                             }
                             start_search = abs_close + 1;
-                        } else { break; }
+                        } else {
+                            break;
+                        }
                     }
                 }
                 return Some((s.clone(), scope_stack.iter().cloned().collect(), None));
@@ -5628,8 +7669,11 @@ fn is_pos_in_range(pos: Position, range: &ast::Range) -> bool {
     true
 }
 
-
-fn find_scope_context_at(script: &ast::Script, pos: Position, achievements: &HashMap<String, achievement_scanner::Achievement>) -> (Option<String>, Vec<scope::Scope>) {
+fn find_scope_context_at(
+    script: &ast::Script,
+    pos: Position,
+    achievements: &HashMap<String, achievement_scanner::Achievement>,
+) -> (Option<String>, Vec<scope::Scope>) {
     let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
     let mut context = None;
     for entry in &script.entries {
@@ -5641,24 +7685,35 @@ fn find_scope_context_at(script: &ast::Script, pos: Position, achievements: &Has
     (context, scope_stack.iter().cloned().collect())
 }
 
-fn find_scope_context_in_entry(entry: &ast::Entry, pos: Position, scope_stack: &mut scope::ScopeStack, achievements: &HashMap<String, achievement_scanner::Achievement>) -> Option<String> {
+fn find_scope_context_in_entry(
+    entry: &ast::Entry,
+    pos: Position,
+    scope_stack: &mut scope::ScopeStack,
+    achievements: &HashMap<String, achievement_scanner::Achievement>,
+) -> Option<String> {
     match entry {
         ast::Entry::Assignment(ass) => {
             if is_pos_in_range(pos, &ass.value.range) {
                 // Push scope if it's a block
                 if let ast::Value::Block(_) | ast::Value::TaggedBlock(_, _, _) = &ass.value.value {
                     let s = if let Some(achievement) = achievements.get(&ass.key) {
-                        if achievement.is_ribbon { scope::Scope::Ribbon } else { scope::Scope::Achievement }
+                        if achievement.is_ribbon {
+                            scope::Scope::Ribbon
+                        } else {
+                            scope::Scope::Achievement
+                        }
                     } else {
                         scope::Scope::from_str(&ass.key)
                     };
                     scope_stack.push(s);
                 }
 
-                if let Some(inner) = find_scope_context_in_value(&ass.value, pos, scope_stack, achievements) {
+                if let Some(inner) =
+                    find_scope_context_in_value(&ass.value, pos, scope_stack, achievements)
+                {
                     return Some(inner);
                 }
-                
+
                 return Some(ass.key.clone());
             }
             None
@@ -5668,11 +7723,18 @@ fn find_scope_context_in_entry(entry: &ast::Entry, pos: Position, scope_stack: &
     }
 }
 
-fn find_scope_context_in_value(val: &ast::NodeedValue, pos: Position, scope_stack: &mut scope::ScopeStack, achievements: &HashMap<String, achievement_scanner::Achievement>) -> Option<String> {
+fn find_scope_context_in_value(
+    val: &ast::NodeedValue,
+    pos: Position,
+    scope_stack: &mut scope::ScopeStack,
+    achievements: &HashMap<String, achievement_scanner::Achievement>,
+) -> Option<String> {
     match &val.value {
         ast::Value::Block(entries) => {
             for entry in entries {
-                if let Some(ctx) = find_scope_context_in_entry(entry, pos, scope_stack, achievements) {
+                if let Some(ctx) =
+                    find_scope_context_in_entry(entry, pos, scope_stack, achievements)
+                {
                     return Some(ctx);
                 }
             }
@@ -5680,7 +7742,9 @@ fn find_scope_context_in_value(val: &ast::NodeedValue, pos: Position, scope_stac
         }
         ast::Value::TaggedBlock(_, entries, _) => {
             for entry in entries {
-                if let Some(ctx) = find_scope_context_in_entry(entry, pos, scope_stack, achievements) {
+                if let Some(ctx) =
+                    find_scope_context_in_entry(entry, pos, scope_stack, achievements)
+                {
                     return Some(ctx);
                 }
             }

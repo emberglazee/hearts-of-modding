@@ -1,8 +1,8 @@
-use crate::parser;
 use crate::ast;
+use crate::parser;
 use std::collections::HashMap;
-use std::path::Path;
 use std::fs;
+use std::path::Path;
 
 #[derive(Debug, Clone)]
 pub struct Ability {
@@ -17,8 +17,10 @@ pub struct Ability {
     pub range: ast::Range,
 }
 
-pub fn scan_abilities<F>(roots: &[std::path::PathBuf], filter: &F) -> HashMap<String, Ability> 
-where F: Fn(&Path) -> bool {
+pub fn scan_abilities<F>(roots: &[std::path::PathBuf], filter: &F) -> HashMap<String, Ability>
+where
+    F: Fn(&Path) -> bool,
+{
     let mut map = HashMap::new();
 
     for root in roots {
@@ -41,8 +43,13 @@ where F: Fn(&Path) -> bool {
                             continue;
                         }
                         if let Ok(content) = fs::read_to_string(&path) {
-                            { let (script, _) = parser::parse_script(&content);
-                                find_abilities_in_entries(&script.entries, &path.to_string_lossy(), &mut map);
+                            {
+                                let (script, _) = parser::parse_script(&content);
+                                find_abilities_in_entries(
+                                    &script.entries,
+                                    &path.to_string_lossy(),
+                                    &mut map,
+                                );
                             }
                         }
                     }
@@ -53,7 +60,11 @@ where F: Fn(&Path) -> bool {
     map
 }
 
-fn find_abilities_in_entries(entries: &[ast::Entry], file_path: &str, map: &mut HashMap<String, Ability>) {
+fn find_abilities_in_entries(
+    entries: &[ast::Entry],
+    file_path: &str,
+    map: &mut HashMap<String, Ability>,
+) {
     for entry in entries {
         match entry {
             ast::Entry::Assignment(ass) => {
@@ -74,56 +85,73 @@ fn find_abilities_in_entries(entries: &[ast::Entry], file_path: &str, map: &mut 
                                         if let ast::Entry::Assignment(p_ass) = prop {
                                             match p_ass.key.to_lowercase().as_str() {
                                                 "name" => {
-                                                    if let ast::Value::String(s) = &p_ass.value.value {
+                                                    if let ast::Value::String(s) =
+                                                        &p_ass.value.value
+                                                    {
                                                         name_loc = Some(s.clone());
                                                     }
                                                 }
                                                 "desc" => {
-                                                    if let ast::Value::String(s) = &p_ass.value.value {
+                                                    if let ast::Value::String(s) =
+                                                        &p_ass.value.value
+                                                    {
                                                         desc_loc = Some(s.clone());
                                                     }
                                                 }
                                                 "sound_effect" => {
-                                                    if let ast::Value::String(s) = &p_ass.value.value {
+                                                    if let ast::Value::String(s) =
+                                                        &p_ass.value.value
+                                                    {
                                                         sound_effect = Some(s.clone());
                                                     }
                                                 }
                                                 "type" => {
-                                                    if let ast::Value::String(s) = &p_ass.value.value {
+                                                    if let ast::Value::String(s) =
+                                                        &p_ass.value.value
+                                                    {
                                                         type_name = Some(s.clone());
                                                     }
                                                 }
-                                                "cost" => {
-                                                    match &p_ass.value.value {
-                                                        ast::Value::Number(n) => cost = Some(*n),
-                                                        ast::Value::String(s) => if let Ok(n) = s.parse() { cost = Some(n); }
-                                                        _ => {}
+                                                "cost" => match &p_ass.value.value {
+                                                    ast::Value::Number(n) => cost = Some(*n),
+                                                    ast::Value::String(s) => {
+                                                        if let Ok(n) = s.parse() {
+                                                            cost = Some(n);
+                                                        }
                                                     }
-                                                }
-                                                "duration" => {
-                                                    match &p_ass.value.value {
-                                                        ast::Value::Number(n) => duration = Some(*n as i32),
-                                                        ast::Value::String(s) => if let Ok(n) = s.parse() { duration = Some(n); }
-                                                        _ => {}
+                                                    _ => {}
+                                                },
+                                                "duration" => match &p_ass.value.value {
+                                                    ast::Value::Number(n) => {
+                                                        duration = Some(*n as i32)
                                                     }
-                                                }
+                                                    ast::Value::String(s) => {
+                                                        if let Ok(n) = s.parse() {
+                                                            duration = Some(n);
+                                                        }
+                                                    }
+                                                    _ => {}
+                                                },
                                                 _ => {}
                                             }
                                         }
                                     }
                                 }
 
-                                map.insert(a_ass.key.clone(), Ability {
-                                    key: a_ass.key.clone(),
-                                    name_loc,
-                                    desc_loc,
-                                    cost,
-                                    duration,
-                                    sound_effect,
-                                    type_name,
-                                    path: file_path.to_string(),
-                                    range: a_ass.key_range.clone(),
-                                });
+                                map.insert(
+                                    a_ass.key.clone(),
+                                    Ability {
+                                        key: a_ass.key.clone(),
+                                        name_loc,
+                                        desc_loc,
+                                        cost,
+                                        duration,
+                                        sound_effect,
+                                        type_name,
+                                        path: file_path.to_string(),
+                                        range: a_ass.key_range.clone(),
+                                    },
+                                );
                             }
                         }
                     }
@@ -134,14 +162,12 @@ fn find_abilities_in_entries(entries: &[ast::Entry], file_path: &str, map: &mut 
                     }
                 }
             }
-            ast::Entry::Value(val) => {
-                match &val.value {
-                    ast::Value::Block(inner_entries) | ast::Value::TaggedBlock(_, inner_entries, _) => {
-                        find_abilities_in_entries(inner_entries, file_path, map);
-                    }
-                    _ => {}
+            ast::Entry::Value(val) => match &val.value {
+                ast::Value::Block(inner_entries) | ast::Value::TaggedBlock(_, inner_entries, _) => {
+                    find_abilities_in_entries(inner_entries, file_path, map);
                 }
-            }
+                _ => {}
+            },
             _ => {}
         }
     }

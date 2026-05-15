@@ -46,7 +46,9 @@ pub fn validate_against_rule(
                 *counts.entry(key.clone()).or_insert(0) += 1;
 
                 // Find matching child rule
-                if let Some(child_rule) = rule.children.iter().find(|r| r.key == *key || r.key == "alias_name[trigger]" || r.key == "alias_name[effect]") {
+                if let Some(child_rule) = rule.children.iter().find(|r| {
+                    r.key == *key || r.key == "alias_name[trigger]" || r.key == "alias_name[effect]"
+                }) {
                     validate_value_against_rule(&ass.value, child_rule, schema, diagnostics);
                 } else {
                     // Try to find in global triggers/effects if it's an alias
@@ -65,9 +67,15 @@ pub fn validate_against_rule(
         let count = *counts.get(&child_rule.key).unwrap_or(&0);
         if count < child_rule.cardinality.min {
             diagnostics.push(ValidationDiagnostic {
-                range: rule_range_placeholder(), 
-                severity: child_rule.severity.clone().unwrap_or(ast::DiagnosticSeverity::Error),
-                message: format!("Missing required field: '{}' (expected at least {})", child_rule.key, child_rule.cardinality.min),
+                range: rule_range_placeholder(),
+                severity: child_rule
+                    .severity
+                    .clone()
+                    .unwrap_or(ast::DiagnosticSeverity::Error),
+                message: format!(
+                    "Missing required field: '{}' (expected at least {})",
+                    child_rule.key, child_rule.cardinality.min
+                ),
                 code: SCHEMA_VALIDATION_ERROR.to_string(),
                 fix_suggestion: None,
                 related_information: Vec::new(),
@@ -78,8 +86,14 @@ pub fn validate_against_rule(
             if count > max {
                 diagnostics.push(ValidationDiagnostic {
                     range: rule_range_placeholder(),
-                    severity: child_rule.severity.clone().unwrap_or(ast::DiagnosticSeverity::Error),
-                    message: format!("Too many occurrences of field: '{}' (expected at most {})", child_rule.key, max),
+                    severity: child_rule
+                        .severity
+                        .clone()
+                        .unwrap_or(ast::DiagnosticSeverity::Error),
+                    message: format!(
+                        "Too many occurrences of field: '{}' (expected at most {})",
+                        child_rule.key, max
+                    ),
                     code: SCHEMA_VALIDATION_ERROR.to_string(),
                     fix_suggestion: None,
                     related_information: Vec::new(),
@@ -103,8 +117,14 @@ pub fn validate_value_against_rule(
                     if !values.contains(s) {
                         diagnostics.push(ValidationDiagnostic {
                             range: node.range.clone(),
-                            severity: rule.severity.clone().unwrap_or(ast::DiagnosticSeverity::Error),
-                            message: format!("Invalid value '{}' for enum '{}'. Expected one of: {:?}", s, name, values),
+                            severity: rule
+                                .severity
+                                .clone()
+                                .unwrap_or(ast::DiagnosticSeverity::Error),
+                            message: format!(
+                                "Invalid value '{}' for enum '{}'. Expected one of: {:?}",
+                                s, name, values
+                            ),
                             code: SCHEMA_VALIDATION_ERROR.to_string(),
                             fix_suggestion: None,
                             related_information: Vec::new(),
@@ -119,7 +139,10 @@ pub fn validate_value_against_rule(
                 if s.is_empty() {
                     diagnostics.push(ValidationDiagnostic {
                         range: node.range.clone(),
-                        severity: rule.severity.clone().unwrap_or(ast::DiagnosticSeverity::Error),
+                        severity: rule
+                            .severity
+                            .clone()
+                            .unwrap_or(ast::DiagnosticSeverity::Error),
                         message: format!("Empty reference for type '{}'", name),
                         code: SCHEMA_VALIDATION_ERROR.to_string(),
                         fix_suggestion: None,
@@ -135,7 +158,10 @@ pub fn validate_value_against_rule(
                     if s != "yes" && s != "no" {
                         diagnostics.push(ValidationDiagnostic {
                             range: node.range.clone(),
-                            severity: rule.severity.clone().unwrap_or(ast::DiagnosticSeverity::Error),
+                            severity: rule
+                                .severity
+                                .clone()
+                                .unwrap_or(ast::DiagnosticSeverity::Error),
                             message: "Expected boolean (yes/no)".to_string(),
                             code: SCHEMA_VALIDATION_ERROR.to_string(),
                             fix_suggestion: None,
@@ -146,7 +172,10 @@ pub fn validate_value_against_rule(
                 } else {
                     diagnostics.push(ValidationDiagnostic {
                         range: node.range.clone(),
-                        severity: rule.severity.clone().unwrap_or(ast::DiagnosticSeverity::Error),
+                        severity: rule
+                            .severity
+                            .clone()
+                            .unwrap_or(ast::DiagnosticSeverity::Error),
                         message: "Expected boolean (yes/no)".to_string(),
                         code: SCHEMA_VALIDATION_ERROR.to_string(),
                         fix_suggestion: None,
@@ -162,7 +191,10 @@ pub fn validate_value_against_rule(
                     if s.parse::<f64>().is_err() {
                         diagnostics.push(ValidationDiagnostic {
                             range: node.range.clone(),
-                            severity: rule.severity.clone().unwrap_or(ast::DiagnosticSeverity::Error),
+                            severity: rule
+                                .severity
+                                .clone()
+                                .unwrap_or(ast::DiagnosticSeverity::Error),
                             message: "Expected a number".to_string(),
                             code: SCHEMA_VALIDATION_ERROR.to_string(),
                             fix_suggestion: None,
@@ -173,7 +205,10 @@ pub fn validate_value_against_rule(
                 } else {
                     diagnostics.push(ValidationDiagnostic {
                         range: node.range.clone(),
-                        severity: rule.severity.clone().unwrap_or(ast::DiagnosticSeverity::Error),
+                        severity: rule
+                            .severity
+                            .clone()
+                            .unwrap_or(ast::DiagnosticSeverity::Error),
                         message: "Expected a number".to_string(),
                         code: SCHEMA_VALIDATION_ERROR.to_string(),
                         fix_suggestion: None,
@@ -189,7 +224,10 @@ pub fn validate_value_against_rule(
             } else {
                 diagnostics.push(ValidationDiagnostic {
                     range: node.range.clone(),
-                    severity: rule.severity.clone().unwrap_or(ast::DiagnosticSeverity::Error),
+                    severity: rule
+                        .severity
+                        .clone()
+                        .unwrap_or(ast::DiagnosticSeverity::Error),
                     message: "Expected a block { ... }".to_string(),
                     code: SCHEMA_VALIDATION_ERROR.to_string(),
                     fix_suggestion: None,
@@ -202,9 +240,13 @@ pub fn validate_value_against_rule(
             if let ast::Value::Block(entries) = &node.value {
                 for entry in entries {
                     if let ast::Entry::Assignment(ass) = entry {
-                        let sub_rule = if kind == "trigger" { schema.triggers.get(&ass.key) }
-                                       else if kind == "effect" { schema.effects.get(&ass.key) }
-                                       else { None };
+                        let sub_rule = if kind == "trigger" {
+                            schema.triggers.get(&ass.key)
+                        } else if kind == "effect" {
+                            schema.effects.get(&ass.key)
+                        } else {
+                            None
+                        };
                         if let Some(sr) = sub_rule {
                             validate_value_against_rule(&ass.value, sr, schema, diagnostics);
                         }
@@ -217,7 +259,12 @@ pub fn validate_value_against_rule(
 }
 
 fn rule_range_placeholder() -> ast::Range {
-    ast::Range { start_line: 0, start_col: 0, end_line: 0, end_col: 0 }
+    ast::Range {
+        start_line: 0,
+        start_col: 0,
+        end_line: 0,
+        end_col: 0,
+    }
 }
 
 /// Validate achievements
@@ -237,7 +284,10 @@ pub fn validate_achievements(
                     diagnostics.push(ValidationDiagnostic {
                         range: ass.key_range.clone(),
                         severity: ast::DiagnosticSeverity::Warning,
-                        message: format!("Achievement '{}' is missing localization key: '{}'", ass.key, name_key),
+                        message: format!(
+                            "Achievement '{}' is missing localization key: '{}'",
+                            ass.key, name_key
+                        ),
                         code: ACHIEVEMENT_MISSING_LOCALIZATION.to_string(),
                         fix_suggestion: None,
                         related_information: Vec::new(),
@@ -248,7 +298,10 @@ pub fn validate_achievements(
                     diagnostics.push(ValidationDiagnostic {
                         range: ass.key_range.clone(),
                         severity: ast::DiagnosticSeverity::Warning,
-                        message: format!("Achievement '{}' is missing localization key: '{}'", ass.key, desc_key),
+                        message: format!(
+                            "Achievement '{}' is missing localization key: '{}'",
+                            ass.key, desc_key
+                        ),
                         code: ACHIEVEMENT_MISSING_LOCALIZATION.to_string(),
                         fix_suggestion: None,
                         related_information: Vec::new(),
@@ -328,7 +381,10 @@ fn validate_building_block(
                                     level, max_level, building_name
                                 ),
                                 code: BUILDING_LEVEL_EXCEEDS_MAX.to_string(),
-                                fix_suggestion: Some(format!("Set to maximum level: {}", max_level)),
+                                fix_suggestion: Some(format!(
+                                    "Set to maximum level: {}",
+                                    max_level
+                                )),
                                 related_information: Vec::new(),
                                 tags: Vec::new(),
                             });
@@ -379,7 +435,7 @@ fn validate_character_skills_recursive(
                         ast::Value::String(s) => s.parse::<i32>().ok(),
                         _ => None,
                     };
-                    
+
                     if let Some(skill) = skill {
                         let max_skill = defines.get_max_skill(ct);
                         if skill > max_skill {
@@ -391,7 +447,10 @@ fn validate_character_skills_recursive(
                                     skill, max_skill, ct
                                 ),
                                 code: CHARACTER_SKILL_EXCEEDS_MAX.to_string(),
-                                fix_suggestion: Some(format!("Set to maximum skill: {}", max_skill)),
+                                fix_suggestion: Some(format!(
+                                    "Set to maximum skill: {}",
+                                    max_skill
+                                )),
                                 related_information: Vec::new(),
                                 tags: Vec::new(),
                             });
@@ -457,7 +516,7 @@ fn validate_victory_points_recursive(
                 if let ast::Value::Block(vp_entries) = &ass.value.value {
                     let mut vps = Vec::new();
                     let mut values: Vec<(u32, ast::Range)> = Vec::new();
-                    
+
                     // First, collect all numeric values
                     for vp_entry in vp_entries {
                         if let ast::Entry::Value(val) = vp_entry {
@@ -466,13 +525,13 @@ fn validate_victory_points_recursive(
                                 ast::Value::String(s) => s.parse::<u32>().ok(),
                                 _ => None,
                             };
-                            
+
                             if let Some(n) = num {
                                 values.push((n, val.range.clone()));
                             }
                         }
                     }
-                    
+
                     // Now parse pairs: (province_id, vp_value)
                     // We only care about the province_id (first of each pair)
                     for i in (0..values.len()).step_by(2) {
@@ -480,7 +539,7 @@ fn validate_victory_points_recursive(
                             vps.push(values[i].clone());
                         }
                     }
-                    
+
                     *victory_points = Some(vps);
                 }
             }
@@ -488,10 +547,20 @@ fn validate_victory_points_recursive(
             // Recurse into nested blocks
             match &ass.value.value {
                 ast::Value::Block(inner) => {
-                    validate_victory_points_recursive(inner, diagnostics, state_provinces, victory_points);
+                    validate_victory_points_recursive(
+                        inner,
+                        diagnostics,
+                        state_provinces,
+                        victory_points,
+                    );
                 }
                 ast::Value::TaggedBlock(_, inner, _) => {
-                    validate_victory_points_recursive(inner, diagnostics, state_provinces, victory_points);
+                    validate_victory_points_recursive(
+                        inner,
+                        diagnostics,
+                        state_provinces,
+                        victory_points,
+                    );
                 }
                 _ => {}
             }
@@ -510,7 +579,9 @@ fn validate_victory_points_recursive(
                         vp_province
                     ),
                     code: VICTORY_POINT_PROVINCE_NOT_IN_STATE.to_string(),
-                    fix_suggestion: Some("Remove this victory point or add the province to the state".to_string()),
+                    fix_suggestion: Some(
+                        "Remove this victory point or add the province to the state".to_string(),
+                    ),
                     related_information: Vec::new(),
                     tags: Vec::new(),
                 });

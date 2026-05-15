@@ -8,26 +8,44 @@ pub struct HOI4Entity {
 
 pub fn get_triggers() -> HashMap<&'static str, HOI4Entity> {
     let mut m = HashMap::new();
-    m.insert("all_country", HOI4Entity {
-        name: "all_country",
-        description: r#"Checks if all countries meet the triggers.
+    m.insert(
+        "all_country",
+        HOI4Entity {
+            name: "all_country",
+            description: r#"Checks if all countries meet the triggers.
 
 **Example:**
 ```paradox
 `all_country = { … }`
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("any_country", HOI4Entity {
-        name: "any_country",
-        description: r#"Checks if any country meets the triggers.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "any_country",
+        HOI4Entity {
+            name: "any_country",
+            description: r#"Checks if any country meets the triggers.
 
 **Example:**
 ```paradox
 `any_country = { … }`
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
     m.insert("all_other_country", HOI4Entity {
         name: "all_other_country",
         description: r#"Checks if all countries other than the one where this scope is located meet the triggers.
@@ -254,29 +272,49 @@ any_country_of = {
 ```"#,
         scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
     });
-    m.insert("all_state", HOI4Entity {
-        name: "all_state",
-        description: r#"Check if all states meet the triggers.
+    m.insert(
+        "all_state",
+        HOI4Entity {
+            name: "all_state",
+            description: r#"Check if all states meet the triggers.
 
 **Example:**
 ```paradox
 `all_state = { … }`
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("any_state", HOI4Entity {
-        name: "any_state",
-        description: r#"Check if any state meets the triggers.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "any_state",
+        HOI4Entity {
+            name: "any_state",
+            description: r#"Check if any state meets the triggers.
 
 **Example:**
 ```paradox
 `any_state = { … }`
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("any_state_in", HOI4Entity {
-        name: "any_state_in",
-        description: r#"Check if any state in the given category meets the trigger.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "any_state_in",
+        HOI4Entity {
+            name: "any_state_in",
+            description: r#"Check if any state in the given category meets the trigger.
 
 **Example:**
 ```paradox
@@ -294,8 +332,15 @@ continent = <continent_name>
 ai_area = <ai_area_name>
 strategic_region = <strategic_region_number>
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
     m.insert("any_state_of", HOI4Entity {
         name: "any_state_of",
         description: r#"Checks if any of the provided states fulfills the specified triggers. The `target` supports script constants and `tooltip` supports bindable localization.
@@ -500,46 +545,82 @@ any_state_of = {
 ```"#,
         scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
     });
-    m.insert("any_country_division", HOI4Entity {
-        name: "any_country_division",
-        description: r#"Checks if any division owned by the current country meets the triggers.
+    m.insert(
+        "any_country_division",
+        HOI4Entity {
+            name: "any_country_division",
+            description: r#"Checks if any division owned by the current country meets the triggers.
 
 **Example:**
 ```paradox
 `any_country_division = { … }`
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("any_state_division", HOI4Entity {
-        name: "any_state_division",
-        description: r#"Checks if any division within the current state meets the triggers.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "any_state_division",
+        HOI4Entity {
+            name: "any_state_division",
+            description: r#"Checks if any division within the current state meets the triggers.
 
 **Example:**
 ```paradox
 `any_state_division = { … }`
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("all_military_industrial_organization", HOI4Entity {
-        name: "all_military_industrial_organization",
-        description: r#"Checks if all MIOs within the current country meet the conditions.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "all_military_industrial_organization",
+        HOI4Entity {
+            name: "all_military_industrial_organization",
+            description: r#"Checks if all MIOs within the current country meet the conditions.
 
 **Example:**
 ```paradox
 `all_military_industrial_organization = { … }`
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("any_military_industrial_organization", HOI4Entity {
-        name: "any_military_industrial_organization",
-        description: r#"Checks if any MIO within the current country meets the conditions.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "any_military_industrial_organization",
+        HOI4Entity {
+            name: "any_military_industrial_organization",
+            description: r#"Checks if any MIO within the current country meets the conditions.
 
 **Example:**
 ```paradox
 `any_military_industrial_organization = { … }`
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
     m.insert("all_purchase_contract", HOI4Entity {
         name: "all_purchase_contract",
         description: r#"Checks if all purchase contracts within the current country meet the conditions.
@@ -560,16 +641,25 @@ any_state_of = {
 ```"#,
         scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
     });
-    m.insert("all_scientists", HOI4Entity {
-        name: "all_scientists",
-        description: r#"Checks if all scientists of the Country in scope matches the triggers.
+    m.insert(
+        "all_scientists",
+        HOI4Entity {
+            name: "all_scientists",
+            description: r#"Checks if all scientists of the Country in scope matches the triggers.
 
 **Example:**
 ```paradox
 `all_scientistst = { … }`
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
     m.insert("any_scientist", HOI4Entity {
         name: "any_scientist",
         description: r#"Checks if at least one active scientist of the Country in scope matches the triggers.
@@ -816,9 +906,11 @@ else = {
 ```"#,
         scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
     });
-    m.insert("hidden_trigger", HOI4Entity {
-        name: "hidden_trigger",
-        description: r#"Hides the triggers from the tooltip shown to the player.
+    m.insert(
+        "hidden_trigger",
+        HOI4Entity {
+            name: "hidden_trigger",
+            description: r#"Hides the triggers from the tooltip shown to the player.
 
 **Example:**
 ```paradox
@@ -826,8 +918,15 @@ hidden_trigger = {
     country_exists = GER
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
     m.insert("custom_trigger_tooltip", HOI4Entity {
         name: "custom_trigger_tooltip",
         description: r#"Hides the triggers from the tooltip shown to the player and instead uses the specified localisation key.
@@ -845,9 +944,11 @@ custom_trigger_tooltip = {
 ```"#,
         scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
     });
-    m.insert("custom_override_tooltip", HOI4Entity {
-        name: "custom_override_tooltip",
-        description: r#"An AND trigger that has an overriden custom tooltip.
+    m.insert(
+        "custom_override_tooltip",
+        HOI4Entity {
+            name: "custom_override_tooltip",
+            description: r#"An AND trigger that has an overriden custom tooltip.
 
 **Example:**
 ```paradox
@@ -861,38 +962,72 @@ custom_override_tooltip = {
     <triggers>
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("always", HOI4Entity {
-        name: "always",
-        description: r#"Always returns true or false. Useful for debugging.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "always",
+        HOI4Entity {
+            name: "always",
+            description: r#"Always returns true or false. Useful for debugging.
 
 **Example:**
 ```paradox
 always = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("has_global_flag", HOI4Entity {
-        name: "has_global_flag",
-        description: r#"Checks if the specified flag has been set.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "has_global_flag",
+        HOI4Entity {
+            name: "has_global_flag",
+            description: r#"Checks if the specified flag has been set.
 
 **Example:**
 ```paradox
 has_global_flag = my_flag
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("has_dlc", HOI4Entity {
-        name: "has_dlc",
-        description: r#"Checks if the specified DLC is enabled.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "has_dlc",
+        HOI4Entity {
+            name: "has_dlc",
+            description: r#"Checks if the specified DLC is enabled.
 
 **Example:**
 ```paradox
 has_dlc = "Waking the Tiger"
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
     m.insert("has_start_date", HOI4Entity {
         name: "has_start_date",
         description: r#"Checks if the specified date was the start date used for the current game.
@@ -903,26 +1038,44 @@ has_start_date > 1950.01.01
 ```"#,
         scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
     });
-    m.insert("date", HOI4Entity {
-        name: "date",
-        description: r#"Checks if the specified date against the current date.
+    m.insert(
+        "date",
+        HOI4Entity {
+            name: "date",
+            description: r#"Checks if the specified date against the current date.
 
 **Example:**
 ```paradox
 date < 1950.01.01
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("difficulty", HOI4Entity {
-        name: "difficulty",
-        description: r#"checks if the specified difficulty against the current difficulty.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "difficulty",
+        HOI4Entity {
+            name: "difficulty",
+            description: r#"checks if the specified difficulty against the current difficulty.
 
 **Example:**
 ```paradox
 difficulty > 0
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
     m.insert("has_any_custom_difficulty_setting", HOI4Entity {
         name: "has_any_custom_difficulty_setting",
         description: r#"Checks if any custom difficulty setting is changed from their default value.
@@ -943,86 +1096,158 @@ has_custom_difficulty_setting = custom_diff_strong_sov
 ```"#,
         scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
     });
-    m.insert("game_rules_allow_achievements", HOI4Entity {
-        name: "game_rules_allow_achievements",
-        description: r#"Checks if all of the active game rule options allow achievements.
+    m.insert(
+        "game_rules_allow_achievements",
+        HOI4Entity {
+            name: "game_rules_allow_achievements",
+            description: r#"Checks if all of the active game rule options allow achievements.
 
 **Example:**
 ```paradox
 game_rules_allow_achievements = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("country_exists", HOI4Entity {
-        name: "country_exists",
-        description: r#"Checks if the specified country currently exists in game.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "country_exists",
+        HOI4Entity {
+            name: "country_exists",
+            description: r#"Checks if the specified country currently exists in game.
 
 **Example:**
 ```paradox
 country_exists = GER
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("is_ironman", HOI4Entity {
-        name: "is_ironman",
-        description: r#"Checks if the current game is running in Ironman mode.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "is_ironman",
+        HOI4Entity {
+            name: "is_ironman",
+            description: r#"Checks if the current game is running in Ironman mode.
 
 **Example:**
 ```paradox
 is_ironman = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("is_historical_focus_on", HOI4Entity {
-        name: "is_historical_focus_on",
-        description: r#"Checks if the current game is running with Historical Focuses on.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "is_historical_focus_on",
+        HOI4Entity {
+            name: "is_historical_focus_on",
+            description: r#"Checks if the current game is running with Historical Focuses on.
 
 **Example:**
 ```paradox
 is_historical_focus_on = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("is_tutorial", HOI4Entity {
-        name: "is_tutorial",
-        description: r#"Checks if the current game is running in Tutorial mode.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "is_tutorial",
+        HOI4Entity {
+            name: "is_tutorial",
+            description: r#"Checks if the current game is running in Tutorial mode.
 
 **Example:**
 ```paradox
 is_tutorial = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("is_debug", HOI4Entity {
-        name: "is_debug",
-        description: r#"Checks if game is in debug mode (launched with -debug argument).
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "is_debug",
+        HOI4Entity {
+            name: "is_debug",
+            description: r#"Checks if game is in debug mode (launched with -debug argument).
 
 **Example:**
 ```paradox
 is_debug = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("threat", HOI4Entity {
-        name: "threat",
-        description: r#"Checks if World Tension is above the specified amount.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "threat",
+        HOI4Entity {
+            name: "threat",
+            description: r#"Checks if World Tension is above the specified amount.
 
 **Example:**
 ```paradox
 threat > 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("has_game_rule", HOI4Entity {
-        name: "has_game_rule",
-        description: r#"Checks if a game rule is set to a particular option.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "has_game_rule",
+        HOI4Entity {
+            name: "has_game_rule",
+            description: r#"Checks if a game rule is set to a particular option.
 
 **Example:**
 ```paradox
 has_game_rule = { rule = GER_can_remilitarize_rhineland option = yes }
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
     m.insert("has_completed_custom_achievement", HOI4Entity {
         name: "has_completed_custom_achievement",
         description: r#"Checks if the player controlling the current scope has completed the specified custom achievement.
@@ -1036,9 +1261,11 @@ has_completed_custom_achievement = {
 ```"#,
         scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
     });
-    m.insert("career_profile_check_medal", HOI4Entity {
-        name: "career_profile_check_medal",
-        description: r#"Checks if the required medal is achieved and collected.
+    m.insert(
+        "career_profile_check_medal",
+        HOI4Entity {
+            name: "career_profile_check_medal",
+            description: r#"Checks if the required medal is achieved and collected.
 
 **Example:**
 ```paradox
@@ -1047,11 +1274,20 @@ career_profile_check_medal = {
   ???
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("career_profile_check_ribbon", HOI4Entity {
-        name: "career_profile_check_ribbon",
-        description: r#"Checks if the required ribbon is achieved and collected.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "career_profile_check_ribbon",
+        HOI4Entity {
+            name: "career_profile_check_ribbon",
+            description: r#"Checks if the required ribbon is achieved and collected.
 
 **Example:**
 ```paradox
@@ -1060,11 +1296,20 @@ career_profile_check_ribbon = {
   tooltip = my_loc_key
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("career_profile_check_playthrough_ratio", HOI4Entity {
-        name: "career_profile_check_playthrough_ratio",
-        description: r#"Compares the ratio (first/second) of two playthrough values to a number.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "career_profile_check_playthrough_ratio",
+        HOI4Entity {
+            name: "career_profile_check_playthrough_ratio",
+            description: r#"Compares the ratio (first/second) of two playthrough values to a number.
 
 **Example:**
 ```paradox
@@ -1075,11 +1320,20 @@ career_profile_check_playthrough_ratio = {
   compare = greater_than_or_equals
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("career_profile_check_playthrough_value", HOI4Entity {
-        name: "career_profile_check_playthrough_value",
-        description: r#"Compares a playthrough value to a number.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "career_profile_check_playthrough_value",
+        HOI4Entity {
+            name: "career_profile_check_playthrough_value",
+            description: r#"Compares a playthrough value to a number.
 
 **Example:**
 ```paradox
@@ -1097,11 +1351,20 @@ career_profile_check_playthrough_value = {
   tooltip = CAREER_PROFILE_TRIGGER_DEPLOYED_AIRPLANES_WITH_AIR_DEFENSE
   tooltip_value = 100
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("career_profile_check_points", HOI4Entity {
-        name: "career_profile_check_points",
-        description: r#"Compares a career points value to a number.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "career_profile_check_points",
+        HOI4Entity {
+            name: "career_profile_check_points",
+            description: r#"Compares a career points value to a number.
 
 **Example:**
 ```paradox
@@ -1111,8 +1374,15 @@ career_profile_check_points = {
   tooltip = CAREER_PROFILE_TRIGGER_MINED_SEA_REGIONS
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
     m.insert("career_profile_check_ratio", HOI4Entity {
         name: "career_profile_check_ratio",
         description: r#"Compares the ratio (first/second) of two career profile values to a number.
@@ -1123,39 +1393,68 @@ Possible the same as #career_profile_check_playthrough_ratio.
 ```"#,
         scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
     });
-    m.insert("career_profile_check_value", HOI4Entity {
-        name: "career_profile_check_value",
-        description: r#"Compares a career profile value to a number.
+    m.insert(
+        "career_profile_check_value",
+        HOI4Entity {
+            name: "career_profile_check_value",
+            description: r#"Compares a career profile value to a number.
 
 **Example:**
 ```paradox
 Possible the same as #career_profile_check_playthrough_value.
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("career_profile_has_player_flag", HOI4Entity {
-        name: "career_profile_has_player_flag",
-        description: r#"Checks if the flag is set for the local player.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "career_profile_has_player_flag",
+        HOI4Entity {
+            name: "career_profile_has_player_flag",
+            description: r#"Checks if the flag is set for the local player.
 
 **Example:**
 ```paradox
 career_profile_has_player_flag = career_profile_overrun_infantry_flag
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("has_variable", HOI4Entity {
-        name: "has_variable",
-        description: r#"Checks if the specified variable exists for the current scope.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "has_variable",
+        HOI4Entity {
+            name: "has_variable",
+            description: r#"Checks if the specified variable exists for the current scope.
 
 **Example:**
 ```paradox
 has_variable = my_var
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("check_variable", HOI4Entity {
-        name: "check_variable",
-        description: r#"Check the specified variable for the current scope.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "check_variable",
+        HOI4Entity {
+            name: "check_variable",
+            description: r#"Check the specified variable for the current scope.
 
 **Example:**
 ```paradox
@@ -1171,8 +1470,15 @@ check_variable = {
     my_var > 10
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
     m.insert("log", HOI4Entity {
         name: "log",
         description: r#"Appends an entry into the game.log and, if open, the console when evaluating the trigger.
@@ -1197,19 +1503,24 @@ print_variables = {
 ```"#,
         scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
     });
-    m.insert("exists", HOI4Entity {
-        name: "exists",
-        description: r#"Checks if the current scope exists in game.
+    m.insert(
+        "exists",
+        HOI4Entity {
+            name: "exists",
+            description: r#"Checks if the current scope exists in game.
 
 **Example:**
 ```paradox
 exists = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("tag", HOI4Entity {
-        name: "tag",
-        description: r#"Checks if the current scope is the specified country.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "tag",
+        HOI4Entity {
+            name: "tag",
+            description: r#"Checks if the current scope is the specified country.
 
 **Example:**
 ```paradox
@@ -1219,11 +1530,14 @@ tag = GER
 ```paradox
 tag = var:my_country
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("original_tag", HOI4Entity {
-        name: "original_tag",
-        description: r#"Checks if the current scope originates from the specified country.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "original_tag",
+        HOI4Entity {
+            name: "original_tag",
+            description: r#"Checks if the current scope originates from the specified country.
 
 **Example:**
 ```paradox
@@ -1233,18 +1547,22 @@ original_tag = GER
 ```paradox
 original_tag = var:my_country
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("is_ai", HOI4Entity {
-        name: "is_ai",
-        description: r#"Checks if the current scope is AI.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "is_ai",
+        HOI4Entity {
+            name: "is_ai",
+            description: r#"Checks if the current scope is AI.
 
 **Example:**
 ```paradox
 is_ai = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("has_collaboration", HOI4Entity {
         name: "has_collaboration",
         description: r#"Checks if the current scope has a collaboration level in the target scope.
@@ -1258,26 +1576,32 @@ has_collaboration = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("has_country_flag", HOI4Entity {
-        name: "has_country_flag",
-        description: r#"Checks if the current scope has the specified flag.
+    m.insert(
+        "has_country_flag",
+        HOI4Entity {
+            name: "has_country_flag",
+            description: r#"Checks if the current scope has the specified flag.
 
 **Example:**
 ```paradox
 has_country_flag = my_flag
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("has_cosmetic_tag", HOI4Entity {
-        name: "has_cosmetic_tag",
-        description: r#"Checks if the current scope has the specified cosmetic tag active.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "has_cosmetic_tag",
+        HOI4Entity {
+            name: "has_cosmetic_tag",
+            description: r#"Checks if the current scope has the specified cosmetic tag active.
 
 **Example:**
 ```paradox
 has_cosmetic_tag = SOV_custom
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("has_event_target", HOI4Entity {
         name: "has_event_target",
         description: r#"Checks if current scope or global scope has the specified event target saved.
@@ -1288,16 +1612,19 @@ has_event_target = my_var
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("has_decision", HOI4Entity {
-        name: "has_decision",
-        description: r#"Checks if the current scope has the specified decision activated.
+    m.insert(
+        "has_decision",
+        HOI4Entity {
+            name: "has_decision",
+            description: r#"Checks if the current scope has the specified decision activated.
 
 **Example:**
 ```paradox
 has_decision = my_decision
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("has_dynamic_modifier", HOI4Entity {
         name: "has_dynamic_modifier",
         description: r#"Checks if the current scope has the specified dynamic modifier activated.
@@ -1311,16 +1638,19 @@ has_dynamic_modifier = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("has_active_mission", HOI4Entity {
-        name: "has_active_mission",
-        description: r#"Checks if the current scope has the specified mission active.
+    m.insert(
+        "has_active_mission",
+        HOI4Entity {
+            name: "has_active_mission",
+            description: r#"Checks if the current scope has the specified mission active.
 
 **Example:**
 ```paradox
 has_active_mission = my_mission
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("has_country_custom_difficulty_setting", HOI4Entity {
         name: "has_country_custom_difficulty_setting",
         description: r#"Checks if the any custom difficulty setting targeting the current scope is changed from the default value.
@@ -1331,26 +1661,32 @@ has_country_custom_difficulty_setting = yes
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("has_terrain", HOI4Entity {
-        name: "has_terrain",
-        description: r#"Checks if the current scope has any provinces of the specified terrain.
+    m.insert(
+        "has_terrain",
+        HOI4Entity {
+            name: "has_terrain",
+            description: r#"Checks if the current scope has any provinces of the specified terrain.
 
 **Example:**
 ```paradox
 has_terrain = urban
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("is_dynamic_country", HOI4Entity {
-        name: "is_dynamic_country",
-        description: r#"Checks if the current scope is a dynamic country.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "is_dynamic_country",
+        HOI4Entity {
+            name: "is_dynamic_country",
+            description: r#"Checks if the current scope is a dynamic country.
 
 **Example:**
 ```paradox
 is_dynamic_country = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("num_of_supply_nodes", HOI4Entity {
         name: "num_of_supply_nodes",
         description: r#"Checks if the current scope has the specified amount of supply nodes under control.
@@ -1375,26 +1711,32 @@ has_resources_in_country = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("has_focus_tree", HOI4Entity {
-        name: "has_focus_tree",
-        description: r#"Checks if the current scope has the specified focus tree.
+    m.insert(
+        "has_focus_tree",
+        HOI4Entity {
+            name: "has_focus_tree",
+            description: r#"Checks if the current scope has the specified focus tree.
 
 **Example:**
 ```paradox
 has_focus_tree = soviet_tree
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("has_completed_focus", HOI4Entity {
-        name: "has_completed_focus",
-        description: r#"Checks if the current scope has the specified focus completed.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "has_completed_focus",
+        HOI4Entity {
+            name: "has_completed_focus",
+            description: r#"Checks if the current scope has the specified focus completed.
 
 **Example:**
 ```paradox
 has_completed_focus = my_focus
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("focus_progress", HOI4Entity {
         name: "focus_progress",
         description: r#"Checks if the specified focus has been completed the specified percent for the current scope.
@@ -1418,16 +1760,19 @@ has_shine_effect_on_focus = GER_wunderwaffe
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("has_political_power", HOI4Entity {
-        name: "has_political_power",
-        description: r#"Checks if the current scope has the specified amount of political power.
+    m.insert(
+        "has_political_power",
+        HOI4Entity {
+            name: "has_political_power",
+            description: r#"Checks if the current scope has the specified amount of political power.
 
 **Example:**
 ```paradox
 has_political_power > 100
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("political_power_daily", HOI4Entity {
         name: "political_power_daily",
         description: r#"Checks if the current scope has the specified amount of daily political power gain.
@@ -1448,16 +1793,19 @@ political_power_growth > 1
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("command_power", HOI4Entity {
-        name: "command_power",
-        description: r#"Checks if the current scope has the specified amount of command power.
+    m.insert(
+        "command_power",
+        HOI4Entity {
+            name: "command_power",
+            description: r#"Checks if the current scope has the specified amount of command power.
 
 **Example:**
 ```paradox
 command_power > 1
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("command_power_daily", HOI4Entity {
         name: "command_power_daily",
         description: r#"Checks if the current scope has the specified amount of daily command power gain.
@@ -1468,26 +1816,32 @@ command_power_daily > 1
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("has_war_support", HOI4Entity {
-        name: "has_war_support",
-        description: r#"Checks if the current scope has the specified percentage of War Support.
+    m.insert(
+        "has_war_support",
+        HOI4Entity {
+            name: "has_war_support",
+            description: r#"Checks if the current scope has the specified percentage of War Support.
 
 **Example:**
 ```paradox
 has_war_support > 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("has_stability", HOI4Entity {
-        name: "has_stability",
-        description: r#"Checks if the current scope has the specified percentage of Stability.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "has_stability",
+        HOI4Entity {
+            name: "has_stability",
+            description: r#"Checks if the current scope has the specified percentage of Stability.
 
 **Example:**
 ```paradox
 has_stability > 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("has_government", HOI4Entity {
         name: "has_government",
         description: r#"Checks if the ruling party of the current scope meets the requirements of being either the specified ideology group or having the same ideology group as the specified country.
@@ -1502,56 +1856,71 @@ has_government = ROOT
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("has_elections", HOI4Entity {
-        name: "has_elections",
-        description: r#"Checks if the current scope holds elections.
+    m.insert(
+        "has_elections",
+        HOI4Entity {
+            name: "has_elections",
+            description: r#"Checks if the current scope holds elections.
 
 **Example:**
 ```paradox
 has_elections = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("is_staging_coup", HOI4Entity {
-        name: "is_staging_coup",
-        description: r#"Checks if the current scope is staging a coup.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "is_staging_coup",
+        HOI4Entity {
+            name: "is_staging_coup",
+            description: r#"Checks if the current scope is staging a coup.
 
 **Example:**
 ```paradox
 is_staging_coup = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("is_target_of_coup", HOI4Entity {
-        name: "is_target_of_coup",
-        description: r#"Checks if the current scope is the target of a coup.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "is_target_of_coup",
+        HOI4Entity {
+            name: "is_target_of_coup",
+            description: r#"Checks if the current scope is the target of a coup.
 
 **Example:**
 ```paradox
 is_target_of_coup = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("has_civil_war", HOI4Entity {
-        name: "has_civil_war",
-        description: r#"Checks if the current scope has a civil war active.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "has_civil_war",
+        HOI4Entity {
+            name: "has_civil_war",
+            description: r#"Checks if the current scope has a civil war active.
 
 **Example:**
 ```paradox
 has_civil_war = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("civilwar_target", HOI4Entity {
-        name: "civilwar_target",
-        description: r#"Checks if the specified country is a target of a civil war.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "civilwar_target",
+        HOI4Entity {
+            name: "civilwar_target",
+            description: r#"Checks if the specified country is a target of a civil war.
 
 **Example:**
 ```paradox
 civilwar_target = GER
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("has_manpower_for_recruit_change_to", HOI4Entity {
         name: "has_manpower_for_recruit_change_to",
         description: r#"Checks if the current scope has the specified amount of manpower for changing the specified idea group.
@@ -1565,16 +1934,19 @@ has_manpower_for_recruit_change_to = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("has_rule", HOI4Entity {
-        name: "has_rule",
-        description: r#"Checks if the current scope has the specified country rule.
+    m.insert(
+        "has_rule",
+        HOI4Entity {
+            name: "has_rule",
+            description: r#"Checks if the current scope has the specified country rule.
 
 **Example:**
 ```paradox
 has_rule = can_create_factions
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("has_casualties_war_support", HOI4Entity {
         name: "has_casualties_war_support",
         description: r#"Checks if the current scope has the specified percentage of war support from own combat casualties.
@@ -1605,9 +1977,11 @@ has_bombing_war_support < 0
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("has_power_balance", HOI4Entity {
-        name: "has_power_balance",
-        description: r#"Checks if the current scope has the specified balance of power active.
+    m.insert(
+        "has_power_balance",
+        HOI4Entity {
+            name: "has_power_balance",
+            description: r#"Checks if the current scope has the specified balance of power active.
 
 **Example:**
 ```paradox
@@ -1615,18 +1989,22 @@ has_power_balance = {
     id = TAG_my_bop
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("has_any_power_balance", HOI4Entity {
-        name: "has_any_power_balance",
-        description: r#"Checks if the current scope has any balance of power active.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "has_any_power_balance",
+        HOI4Entity {
+            name: "has_any_power_balance",
+            description: r#"Checks if the current scope has any balance of power active.
 
 **Example:**
 ```paradox
 has_any_power_balance = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("power_balance_value", HOI4Entity {
         name: "power_balance_value",
         description: r#"Checks if the current scope has the specified value within the balance of power.
@@ -1679,9 +2057,11 @@ is_power_balance_in_range = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("is_power_balance_side_active", HOI4Entity {
-        name: "is_power_balance_side_active",
-        description: r#"Checks if the specified balance of power has a side active.
+    m.insert(
+        "is_power_balance_side_active",
+        HOI4Entity {
+            name: "is_power_balance_side_active",
+            description: r#"Checks if the specified balance of power has a side active.
 
 **Example:**
 ```paradox
@@ -1690,8 +2070,9 @@ is_power_balance_side_active = {
     side = TAG_my_bop_right_range
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("has_power_balance_modifier", HOI4Entity {
         name: "has_power_balance_modifier",
         description: r#"Checks if the current scope's balance of power value activates a modifier.
@@ -1725,16 +2106,19 @@ num_of_civilian_factories > 10
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("num_of_naval_factories", HOI4Entity {
-        name: "num_of_naval_factories",
-        description: r#"Checks if the current scope has the specified amount of dockyards.
+    m.insert(
+        "num_of_naval_factories",
+        HOI4Entity {
+            name: "num_of_naval_factories",
+            description: r#"Checks if the current scope has the specified amount of dockyards.
 
 **Example:**
 ```paradox
 num_of_naval_factories > 10
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("num_of_available_military_factories", HOI4Entity {
         name: "num_of_available_military_factories",
         description: r#"Checks if the current scope has the specified amount of available military factories.
@@ -1818,16 +2202,19 @@ ic_ratio = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("has_damaged_buildings", HOI4Entity {
-        name: "has_damaged_buildings",
-        description: r#"Checks if the current scope has any damanged buildings in their states.
+    m.insert(
+        "has_damaged_buildings",
+        HOI4Entity {
+            name: "has_damaged_buildings",
+            description: r#"Checks if the current scope has any damanged buildings in their states.
 
 **Example:**
 ```paradox
 has_damaged_buildings = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("has_built", HOI4Entity {
         name: "has_built",
         description: r#"Checks if the current scope has built the specified building the specified number of times.
@@ -1841,16 +2228,19 @@ has_built = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("has_tech", HOI4Entity {
-        name: "has_tech",
-        description: r#"Checks if the current scope has the specified technology.
+    m.insert(
+        "has_tech",
+        HOI4Entity {
+            name: "has_tech",
+            description: r#"Checks if the current scope has the specified technology.
 
 **Example:**
 ```paradox
 has_tech = my_technology
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("is_researching_technology", HOI4Entity {
         name: "is_researching_technology",
         description: r#"Checks if the current scope is currently researching the specified technology.
@@ -1881,16 +2271,19 @@ original_research_slots > 3
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("amount_research_slots", HOI4Entity {
-        name: "amount_research_slots",
-        description: r#"Checks if the current scope has the specified amount of research slots.
+    m.insert(
+        "amount_research_slots",
+        HOI4Entity {
+            name: "amount_research_slots",
+            description: r#"Checks if the current scope has the specified amount of research slots.
 
 **Example:**
 ```paradox
 amount_research_slots > 3
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("is_in_tech_sharing_group", HOI4Entity {
         name: "is_in_tech_sharing_group",
         description: r#"Checks if the current scope is in the specified technology sharing group.
@@ -1939,16 +2332,19 @@ land_doctrine_level > 2
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("num_researched_technologies", HOI4Entity {
-        name: "num_researched_technologies",
-        description: r#"Checks how many technologies the target has researched.
+    m.insert(
+        "num_researched_technologies",
+        HOI4Entity {
+            name: "num_researched_technologies",
+            description: r#"Checks how many technologies the target has researched.
 
 **Example:**
 ```paradox
 num_researched_technologies > 10
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("is_special_project_being_researched", HOI4Entity {
         name: "is_special_project_being_researched",
         description: r#"Checks if the country in scope is currently researching the special project in input.
@@ -1959,36 +2355,45 @@ is_special_project_being_researched = sp:sp_air_radar
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("is_special_project_completed", HOI4Entity {
-        name: "is_special_project_completed",
-        description: r#"Checks if the current scope has the specified special project completed.
+    m.insert(
+        "is_special_project_completed",
+        HOI4Entity {
+            name: "is_special_project_completed",
+            description: r#"Checks if the current scope has the specified special project completed.
 
 **Example:**
 ```paradox
 is_special_project_completed = sp:sp_land_flamethrower_tank
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("has_idea", HOI4Entity {
-        name: "has_idea",
-        description: r#"Checks if the current scope has the specified idea.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "has_idea",
+        HOI4Entity {
+            name: "has_idea",
+            description: r#"Checks if the current scope has the specified idea.
 
 **Example:**
 ```paradox
 has_idea = my_idea
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("has_idea_with_trait", HOI4Entity {
-        name: "has_idea_with_trait",
-        description: r#"Checks if the current scope has any ideas with the specified trait.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "has_idea_with_trait",
+        HOI4Entity {
+            name: "has_idea_with_trait",
+            description: r#"Checks if the current scope has any ideas with the specified trait.
 
 **Example:**
 ```paradox
 has_idea_with_trait = my_trait
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("has_allowed_idea_with_traits", HOI4Entity {
         name: "has_allowed_idea_with_traits",
         description: r#"Checks if the current scope has the specified amount of ideas with the specified trait.
@@ -2032,16 +2437,19 @@ amount_taken_ideas = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("is_major", HOI4Entity {
-        name: "is_major",
-        description: r#"Checks if the current scope is considered a Major.
+    m.insert(
+        "is_major",
+        HOI4Entity {
+            name: "is_major",
+            description: r#"Checks if the current scope is considered a Major.
 
 **Example:**
 ```paradox
 is_major = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("is_ally_with", HOI4Entity {
         name: "is_ally_with",
         description: r#"Checks if the current scope is an ally (Faction members or subject-master relation).
@@ -2056,16 +2464,19 @@ is_ally_with = var:country
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("is_spymaster", HOI4Entity {
-        name: "is_spymaster",
-        description: r#"Checks if the current scope is the spymaster of a faction.
+    m.insert(
+        "is_spymaster",
+        HOI4Entity {
+            name: "is_spymaster",
+            description: r#"Checks if the current scope is the spymaster of a faction.
 
 **Example:**
 ```paradox
 is_spymaster = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("has_non_aggression_pact_with", HOI4Entity {
         name: "has_non_aggression_pact_with",
         description: r#"Checks if the current scope has a non-aggression pact with the specified country.
@@ -2086,16 +2497,19 @@ is_guaranteed_by = GER
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("has_guaranteed", HOI4Entity {
-        name: "has_guaranteed",
-        description: r#"Checks if the current scope has guaranteed the specified country.
+    m.insert(
+        "has_guaranteed",
+        HOI4Entity {
+            name: "has_guaranteed",
+            description: r#"Checks if the current scope has guaranteed the specified country.
 
 **Example:**
 ```paradox
 has_guaranteed = GER
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("has_military_access_to", HOI4Entity {
         name: "has_military_access_to",
         description: r#"Checks if the current scope has military access to the specified country.
@@ -2106,26 +2520,32 @@ has_military_access_to = GER
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("gives_military_access_to", HOI4Entity {
-        name: "gives_military_access_to",
-        description: r#"Checks if the current scope gives military to the specified country.
+    m.insert(
+        "gives_military_access_to",
+        HOI4Entity {
+            name: "gives_military_access_to",
+            description: r#"Checks if the current scope gives military to the specified country.
 
 **Example:**
 ```paradox
 gives_military_access_to = GER
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("is_neighbor_of", HOI4Entity {
-        name: "is_neighbor_of",
-        description: r#"Checks if the current scope is a neighbor of the specified country.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "is_neighbor_of",
+        HOI4Entity {
+            name: "is_neighbor_of",
+            description: r#"Checks if the current scope is a neighbor of the specified country.
 
 **Example:**
 ```paradox
 is_neighbor_of = GER
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("is_owner_neighbor_of", HOI4Entity {
         name: "is_owner_neighbor_of",
         description: r#"Checks if the current scope is a neighbor of the specified country with their core territory only.
@@ -2136,76 +2556,97 @@ is_owner_neighbor_of = GER
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("is_puppet_of", HOI4Entity {
-        name: "is_puppet_of",
-        description: r#"Checks if the current scope is a puppet of the specified country.
+    m.insert(
+        "is_puppet_of",
+        HOI4Entity {
+            name: "is_puppet_of",
+            description: r#"Checks if the current scope is a puppet of the specified country.
 
 **Example:**
 ```paradox
 is_puppet_of = GER
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("is_subject_of", HOI4Entity {
-        name: "is_subject_of",
-        description: r#"Checks if the current scope is a subject of the specified scope.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "is_subject_of",
+        HOI4Entity {
+            name: "is_subject_of",
+            description: r#"Checks if the current scope is a subject of the specified scope.
 
 **Example:**
 ```paradox
 is_subject_of = GER
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("is_puppet", HOI4Entity {
-        name: "is_puppet",
-        description: r#"Returns true if the current country is a puppet.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "is_puppet",
+        HOI4Entity {
+            name: "is_puppet",
+            description: r#"Returns true if the current country is a puppet.
 
 **Example:**
 ```paradox
 is_puppet = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("is_subject", HOI4Entity {
-        name: "is_subject",
-        description: r#"Checks if the current scope is a subject.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "is_subject",
+        HOI4Entity {
+            name: "is_subject",
+            description: r#"Checks if the current scope is a subject.
 
 **Example:**
 ```paradox
 is_subject = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("has_subject", HOI4Entity {
-        name: "has_subject",
-        description: r#"Checks if the country has for subject the given country.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "has_subject",
+        HOI4Entity {
+            name: "has_subject",
+            description: r#"Checks if the country has for subject the given country.
 
 **Example:**
 ```paradox
 has_subject = GRE
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("num_subjects", HOI4Entity {
-        name: "num_subjects",
-        description: r#"Checks if the current scope has the specified amount of subjects.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "num_subjects",
+        HOI4Entity {
+            name: "num_subjects",
+            description: r#"Checks if the current scope has the specified amount of subjects.
 
 **Example:**
 ```paradox
 num_subjects > 3
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("has_autonomy_state", HOI4Entity {
-        name: "has_autonomy_state",
-        description: r#"Checks if the current scope is in the specified autonomous state.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "has_autonomy_state",
+        HOI4Entity {
+            name: "has_autonomy_state",
+            description: r#"Checks if the current scope is in the specified autonomous state.
 
 **Example:**
 ```paradox
 has_autonomy_state = autonomy_dominion
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("compare_autonomy_state", HOI4Entity {
         name: "compare_autonomy_state",
         description: r#"Checks if the current scope's autonomy state `min_freedom_level` is less or greater than that of the specified autonomy state. The special value "autonomy_free" compares as greater than any autonomy state. If the current scope is not a subject, it is treated as greater than any autonomy state (including "autonomy_free"). With `=`, checks if the current scope is in the specified autonomous state.
@@ -2226,16 +2667,19 @@ compare_autonomy_progress_ratio > 0.5
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("has_opinion_modifier", HOI4Entity {
-        name: "has_opinion_modifier",
-        description: r#"Checks if the current scope has the specified opinion modifier.
+    m.insert(
+        "has_opinion_modifier",
+        HOI4Entity {
+            name: "has_opinion_modifier",
+            description: r#"Checks if the current scope has the specified opinion modifier.
 
 **Example:**
 ```paradox
 has_opinion_modifier = my_modifier
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("has_opinion", HOI4Entity {
         name: "has_opinion",
         description: r#"Checks if the current scope has the specified opinion of the target country.
@@ -2262,56 +2706,71 @@ has_relation_modifier = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("has_legitimacy", HOI4Entity {
-        name: "has_legitimacy",
-        description: r#"Checks how much legitimacy the current government in exile has.
+    m.insert(
+        "has_legitimacy",
+        HOI4Entity {
+            name: "has_legitimacy",
+            description: r#"Checks how much legitimacy the current government in exile has.
 
 **Example:**
 ```paradox
 has_legitimacy > 50
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("is_exile_host", HOI4Entity {
-        name: "is_exile_host",
-        description: r#"Checks if the current country is hosting an exile.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "is_exile_host",
+        HOI4Entity {
+            name: "is_exile_host",
+            description: r#"Checks if the current country is hosting an exile.
 
 **Example:**
 ```paradox
 is_exile_host = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("is_hosting_exile", HOI4Entity {
-        name: "is_hosting_exile",
-        description: r#"Checks if the current country is hosting a specific exile.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "is_hosting_exile",
+        HOI4Entity {
+            name: "is_hosting_exile",
+            description: r#"Checks if the current country is hosting a specific exile.
 
 **Example:**
 ```paradox
 is_hosting_exile = POL
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("is_government_in_exile", HOI4Entity {
-        name: "is_government_in_exile",
-        description: r#"Checks if the current country is exiled in a different country.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "is_government_in_exile",
+        HOI4Entity {
+            name: "is_government_in_exile",
+            description: r#"Checks if the current country is exiled in a different country.
 
 **Example:**
 ```paradox
 is_government_in_exile = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("is_exiled_in", HOI4Entity {
-        name: "is_exiled_in",
-        description: r#"Checks if the current country is exiled in a specific country.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "is_exiled_in",
+        HOI4Entity {
+            name: "is_exiled_in",
+            description: r#"Checks if the current country is exiled in a specific country.
 
 **Example:**
 ```paradox
 is_exiled_in = POL
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("received_expeditionary_forces", HOI4Entity {
         name: "received_expeditionary_forces",
         description: r#"Checks if the current country received X units in expeditions from the specified country.
@@ -2335,49 +2794,63 @@ can_declare_war_on = POL
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("foreign_manpower", HOI4Entity {
-        name: "foreign_manpower",
-        description: r#"Checks how much foreign manpower we have received for garrisoning.
+    m.insert(
+        "foreign_manpower",
+        HOI4Entity {
+            name: "foreign_manpower",
+            description: r#"Checks how much foreign manpower we have received for garrisoning.
 
 **Example:**
 ```paradox
 foreign_manpower > 10000
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("is_embargoed_by", HOI4Entity {
-        name: "is_embargoed_by",
-        description: r#"Checks if the current scope is embargoed by the specified country.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "is_embargoed_by",
+        HOI4Entity {
+            name: "is_embargoed_by",
+            description: r#"Checks if the current scope is embargoed by the specified country.
 
 **Example:**
 ```paradox
 is_embargoed_by = USA
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("is_embargoing", HOI4Entity {
-        name: "is_embargoing",
-        description: r#"Checks if the current scope is embargoing the specified country.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "is_embargoing",
+        HOI4Entity {
+            name: "is_embargoing",
+            description: r#"Checks if the current scope is embargoing the specified country.
 
 **Example:**
 ```paradox
 is_embargoing = CUB
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("is_in_faction", HOI4Entity {
-        name: "is_in_faction",
-        description: r#"Checks if the current scope is in a faction.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "is_in_faction",
+        HOI4Entity {
+            name: "is_in_faction",
+            description: r#"Checks if the current scope is in a faction.
 
 **Example:**
 ```paradox
 is_in_faction = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("is_in_faction_with", HOI4Entity {
-        name: "is_in_faction_with",
-        description: r#"Checks if the current scope is in a faction with the specified country.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "is_in_faction_with",
+        HOI4Entity {
+            name: "is_in_faction_with",
+            description: r#"Checks if the current scope is in a faction with the specified country.
 
 **Example:**
 ```paradox
@@ -2387,18 +2860,22 @@ is_in_faction_with = GER
 ```paradox
 is_in_faction_with = var:country
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("is_faction_leader", HOI4Entity {
-        name: "is_faction_leader",
-        description: r#"Checks if the current scope is the leader of a faction.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "is_faction_leader",
+        HOI4Entity {
+            name: "is_faction_leader",
+            description: r#"Checks if the current scope is the leader of a faction.
 
 **Example:**
 ```paradox
 is_faction_leader = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("num_faction_members", HOI4Entity {
         name: "num_faction_members",
         description: r#"Checks if the faction of the current scope has the specified amount of members.
@@ -2439,49 +2916,63 @@ has_enough_influence_for_leadership = yes
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("has_faction_template", HOI4Entity {
-        name: "has_faction_template",
-        description: r#"Checks if the current country is in a faction with a template.
+    m.insert(
+        "has_faction_template",
+        HOI4Entity {
+            name: "has_faction_template",
+            description: r#"Checks if the current country is in a faction with a template.
 
 **Example:**
 ```paradox
 has_faction_template = faction_template_chinese_united_front
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("has_active_rule", HOI4Entity {
-        name: "has_active_rule",
-        description: r#"Checks if the country's faction has a specific active rule.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "has_active_rule",
+        HOI4Entity {
+            name: "has_active_rule",
+            description: r#"Checks if the country's faction has a specific active rule.
 
 **Example:**
 ```paradox
 has_active_rule = government_in_exile_allowed
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("has_faction_goal", HOI4Entity {
-        name: "has_faction_goal",
-        description: r#"Checks if the country's faction has an active or completed goal.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "has_faction_goal",
+        HOI4Entity {
+            name: "has_faction_goal",
+            description: r#"Checks if the country's faction has an active or completed goal.
 
 **Example:**
 ```paradox
 has_faction_goal = faction_goal_resource_control
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("has_completed_faction_goal", HOI4Entity {
-        name: "has_completed_faction_goal",
-        description: r#"Checks if the country's faction has successfully completed a goal.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "has_completed_faction_goal",
+        HOI4Entity {
+            name: "has_completed_faction_goal",
+            description: r#"Checks if the country's faction has successfully completed a goal.
 
 **Example:**
 ```paradox
 has_completed_faction_goal = faction_goal_resource_control
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("faction_goal_fulfillment", HOI4Entity {
-        name: "faction_goal_fulfillment",
-        description: r#"Checks fulfillment of a faction goal for the current country's faction.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "faction_goal_fulfillment",
+        HOI4Entity {
+            name: "faction_goal_fulfillment",
+            description: r#"Checks fulfillment of a faction goal for the current country's faction.
 
 **Example:**
 ```paradox
@@ -2498,68 +2989,87 @@ faction_goal_fulfillment = {
     value < 0.85
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("faction_manifest_fulfillment", HOI4Entity {
-        name: "faction_manifest_fulfillment",
-        description: r#"Checks manifest fulfillment value of current country's faction manifest.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "faction_manifest_fulfillment",
+        HOI4Entity {
+            name: "faction_manifest_fulfillment",
+            description: r#"Checks manifest fulfillment value of current country's faction manifest.
 
 **Example:**
 ```paradox
 faction_manifest_fulfillment > 0.95
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("faction_upgrade_level", HOI4Entity {
-        name: "faction_upgrade_level",
-        description: r#"Checks the active faction member upgrade against the specified upgrade.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "faction_upgrade_level",
+        HOI4Entity {
+            name: "faction_upgrade_level",
+            description: r#"Checks the active faction member upgrade against the specified upgrade.
 
 **Example:**
 ```paradox
 faction_upgrade_level > upgrade_token
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("faction_power_projection", HOI4Entity {
-        name: "faction_power_projection",
-        description: r#"Checks power value of current country's faction projection.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "faction_power_projection",
+        HOI4Entity {
+            name: "faction_power_projection",
+            description: r#"Checks power value of current country's faction projection.
 
 **Example:**
 ```paradox
 faction_power_projection > 100
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("faction_influence_rank", HOI4Entity {
-        name: "faction_influence_rank",
-        description: r#"Checks influence rank in the faction of the current country.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "faction_influence_rank",
+        HOI4Entity {
+            name: "faction_influence_rank",
+            description: r#"Checks influence rank in the faction of the current country.
 
 **Example:**
 ```paradox
 faction_influence_rank < 5
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("faction_influence_ratio", HOI4Entity {
-        name: "faction_influence_ratio",
-        description: r#"Checks influence ratio of current country in the faction.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "faction_influence_ratio",
+        HOI4Entity {
+            name: "faction_influence_ratio",
+            description: r#"Checks influence ratio of current country in the faction.
 
 **Example:**
 ```paradox
 faction_influence_ratio > 0.1
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("faction_influence_score", HOI4Entity {
-        name: "faction_influence_score",
-        description: r#"Checks influence value of current country in the faction.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "faction_influence_score",
+        HOI4Entity {
+            name: "faction_influence_score",
+            description: r#"Checks influence value of current country in the faction.
 
 **Example:**
 ```paradox
 faction_influence_score > 100
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("can_assign_supportive_scientist_to_faction", HOI4Entity {
         name: "can_assign_supportive_scientist_to_faction",
         description: r#"Checks if the faction from the country in scope has a free slot for a supportive scientist for the country with the specialization type.
@@ -2570,26 +3080,32 @@ can_assign_supportive_scientist_to_faction = specialization_land
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("has_faction_research_unlocked", HOI4Entity {
-        name: "has_faction_research_unlocked",
-        description: r#"Whether the faction has unlocked the research.
+    m.insert(
+        "has_faction_research_unlocked",
+        HOI4Entity {
+            name: "has_faction_research_unlocked",
+            description: r#"Whether the faction has unlocked the research.
 
 **Example:**
 ```paradox
 has_faction_research_unlocked = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("has_faction_military_unlocked", HOI4Entity {
-        name: "has_faction_military_unlocked",
-        description: r#"Whether the faction has unlocked the military operations.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "has_faction_military_unlocked",
+        HOI4Entity {
+            name: "has_faction_military_unlocked",
+            description: r#"Whether the faction has unlocked the military operations.
 
 **Example:**
 ```paradox
 has_faction_military_unlocked = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("compare_ideology_with_faction", HOI4Entity {
         name: "compare_ideology_with_faction",
         description: r#"Compares the ideology support of the country's ruling party for the ideology of the faction it wants to join.
@@ -2603,19 +3119,24 @@ compare_ideology_with_faction = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("has_war", HOI4Entity {
-        name: "has_war",
-        description: r#"Checks if the current scope is at war.
+    m.insert(
+        "has_war",
+        HOI4Entity {
+            name: "has_war",
+            description: r#"Checks if the current scope is at war.
 
 **Example:**
 ```paradox
 has_war = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("has_war_with", HOI4Entity {
-        name: "has_war_with",
-        description: r#"Checks if the current scope is at war with the specified country.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "has_war_with",
+        HOI4Entity {
+            name: "has_war_with",
+            description: r#"Checks if the current scope is at war with the specified country.
 
 **Example:**
 ```paradox
@@ -2625,8 +3146,9 @@ has_war_with = GER
 ```paradox
 has_war_with = var:country
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("has_offensive_war_with", HOI4Entity {
         name: "has_offensive_war_with",
         description: r#"Checks if the current scope is in an offensive war against the specified country.
@@ -2637,16 +3159,19 @@ has_offensive_war_with = GER
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("has_offensive_war_without_friend", HOI4Entity {
-        name: "has_offensive_war_without_friend",
-        description: r#"Is country at offensive war without specific ally present.
+    m.insert(
+        "has_offensive_war_without_friend",
+        HOI4Entity {
+            name: "has_offensive_war_without_friend",
+            description: r#"Is country at offensive war without specific ally present.
 
 **Example:**
 ```paradox
 has_offensive_war_without_friend = GER
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("has_defensive_war_with", HOI4Entity {
         name: "has_defensive_war_with",
         description: r#"Checks if the current scope is in an defensive war against the specified country.
@@ -2657,36 +3182,45 @@ has_defensive_war_with = GER
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("has_offensive_war", HOI4Entity {
-        name: "has_offensive_war",
-        description: r#"Checks if the current scope is in an offensive war.
+    m.insert(
+        "has_offensive_war",
+        HOI4Entity {
+            name: "has_offensive_war",
+            description: r#"Checks if the current scope is in an offensive war.
 
 **Example:**
 ```paradox
 has_offensive_war = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("has_defensive_war", HOI4Entity {
-        name: "has_defensive_war",
-        description: r#"Checks if the current scope is in a defensive war.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "has_defensive_war",
+        HOI4Entity {
+            name: "has_defensive_war",
+            description: r#"Checks if the current scope is in a defensive war.
 
 **Example:**
 ```paradox
 has_defensive_war = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("has_war_together_with", HOI4Entity {
-        name: "has_war_together_with",
-        description: r#"Checks if the current scope is in a war alongside the specified country.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "has_war_together_with",
+        HOI4Entity {
+            name: "has_war_together_with",
+            description: r#"Checks if the current scope is in a war alongside the specified country.
 
 **Example:**
 ```paradox
 has_war_together_with = GER
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("has_war_with_major", HOI4Entity {
         name: "has_war_with_major",
         description: r#"Checks if the current scope is at war with any other country that is considered major.
@@ -2730,39 +3264,50 @@ any_war_score > 10
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("has_capitulated", HOI4Entity {
-        name: "has_capitulated",
-        description: r#"Checks if the current scope has capitulated.
+    m.insert(
+        "has_capitulated",
+        HOI4Entity {
+            name: "has_capitulated",
+            description: r#"Checks if the current scope has capitulated.
 
 **Example:**
 ```paradox
 has_capitulated = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("days_since_capitulated", HOI4Entity {
-        name: "days_since_capitulated",
-        description: r#"Checks the amount of days since the target last capitulated.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "days_since_capitulated",
+        HOI4Entity {
+            name: "days_since_capitulated",
+            description: r#"Checks the amount of days since the target last capitulated.
 
 **Example:**
 ```paradox
 days_since_capitulated > 10
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("has_border_war_with", HOI4Entity {
-        name: "has_border_war_with",
-        description: r#"Checks if the current scope has a border war with the specified country.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "has_border_war_with",
+        HOI4Entity {
+            name: "has_border_war_with",
+            description: r#"Checks if the current scope has a border war with the specified country.
 
 **Example:**
 ```paradox
 has_border_war_with = GER
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("has_border_war_between", HOI4Entity {
-        name: "has_border_war_between",
-        description: r#"Checks if there is a border war between the two specified states.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "has_border_war_between",
+        HOI4Entity {
+            name: "has_border_war_between",
+            description: r#"Checks if there is a border war between the two specified states.
 
 **Example:**
 ```paradox
@@ -2771,18 +3316,22 @@ has_border_war_between = {
     defender = 2
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("has_border_war", HOI4Entity {
-        name: "has_border_war",
-        description: r#"Checks if the current scope has a border war active.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "has_border_war",
+        HOI4Entity {
+            name: "has_border_war",
+            description: r#"Checks if the current scope has a border war active.
 
 **Example:**
 ```paradox
 has_border_war = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("has_added_tension_amount", HOI4Entity {
         name: "has_added_tension_amount",
         description: r#"Checks if the current scope has caused the specified amount of World Tension.
@@ -2823,46 +3372,58 @@ has_annex_war_goal = GER
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("any_claim", HOI4Entity {
-        name: "any_claim",
-        description: r#"Checks if the current scope has any claims on another country.
+    m.insert(
+        "any_claim",
+        HOI4Entity {
+            name: "any_claim",
+            description: r#"Checks if the current scope has any claims on another country.
 
 **Example:**
 ```paradox
 any_claim = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("is_in_peace_conference", HOI4Entity {
-        name: "is_in_peace_conference",
-        description: r#"Checks if the current scope is in a peace conference.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "is_in_peace_conference",
+        HOI4Entity {
+            name: "is_in_peace_conference",
+            description: r#"Checks if the current scope is in a peace conference.
 
 **Example:**
 ```paradox
 is_in_peace_conference = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("controls_province", HOI4Entity {
-        name: "controls_province",
-        description: r#"Checks if the current scope has control of the specified province.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "controls_province",
+        HOI4Entity {
+            name: "controls_province",
+            description: r#"Checks if the current scope has control of the specified province.
 
 **Example:**
 ```paradox
 controls_province = 1239
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("longest_war_length", HOI4Entity {
-        name: "longest_war_length",
-        description: r#"Checks how long a country has been at war, in months.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "longest_war_length",
+        HOI4Entity {
+            name: "longest_war_length",
+            description: r#"Checks how long a country has been at war, in months.
 
 **Example:**
 ```paradox
 longest_war_length > 3
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("war_length_with", HOI4Entity {
         name: "war_length_with",
         description: r#"Checks how long a country has been at war with specific country, in months.
@@ -2876,16 +3437,19 @@ war_length_with = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("has_truce_with", HOI4Entity {
-        name: "has_truce_with",
-        description: r#"Checks if the country has truce with the specified country.
+    m.insert(
+        "has_truce_with",
+        HOI4Entity {
+            name: "has_truce_with",
+            description: r#"Checks if the country has truce with the specified country.
 
 **Example:**
 ```paradox
 has_truce_with = GER
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("has_naval_control", HOI4Entity {
         name: "has_naval_control",
         description: r#"Checks if friendly nations and country scope together has enough naval dominance to assert control in strategic region.
@@ -2906,9 +3470,11 @@ has_enemy_naval_control = 16
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("controls_state", HOI4Entity {
-        name: "controls_state",
-        description: r#"Checks if the current scope has control of the specified state.
+    m.insert(
+        "controls_state",
+        HOI4Entity {
+            name: "controls_state",
+            description: r#"Checks if the current scope has control of the specified state.
 
 **Example:**
 ```paradox
@@ -2918,18 +3484,22 @@ controls_state = 39
 ```paradox
 controls_state = var:state
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("owns_state", HOI4Entity {
-        name: "owns_state",
-        description: r#"Checks if the current scope owns the specified state.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "owns_state",
+        HOI4Entity {
+            name: "owns_state",
+            description: r#"Checks if the current scope owns the specified state.
 
 **Example:**
 ```paradox
 owns_state = 39
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("num_of_controlled_states", HOI4Entity {
         name: "num_of_controlled_states",
         description: r#"Checks if the current scope has the specified amount of controlled states.
@@ -2940,16 +3510,19 @@ num_of_controlled_states > 5
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("num_occupied_states", HOI4Entity {
-        name: "num_occupied_states",
-        description: r#"Checks if the current scope has the specified amount of occupied states.
+    m.insert(
+        "num_occupied_states",
+        HOI4Entity {
+            name: "num_occupied_states",
+            description: r#"Checks if the current scope has the specified amount of occupied states.
 
 **Example:**
 ```paradox
 num_occupied_states > 5
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("has_full_control_of_state", HOI4Entity {
         name: "has_full_control_of_state",
         description: r#"Checks if the current scope has total control (100% occupation) of the specified state.
@@ -2960,9 +3533,11 @@ has_full_control_of_state = 39
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("has_resources_rights", HOI4Entity {
-        name: "has_resources_rights",
-        description: r#"Checks if there are any resource rights with the specified parameters.
+    m.insert(
+        "has_resources_rights",
+        HOI4Entity {
+            name: "has_resources_rights",
+            description: r#"Checks if there are any resource rights with the specified parameters.
 
 **Example:**
 ```paradox
@@ -2971,8 +3546,9 @@ has_resources_rights = {
   resources = { oil steel }
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("core_compliance", HOI4Entity {
         name: "core_compliance",
         description: r#"Compares the average compliance of core states of the specified country within controlled states of the current scope.
@@ -3058,9 +3634,11 @@ has_contested_owner = 42
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("owns_any_state_of", HOI4Entity {
-        name: "owns_any_state_of",
-        description: r#"Check if the country owns any of the states in the list.
+    m.insert(
+        "owns_any_state_of",
+        HOI4Entity {
+            name: "owns_any_state_of",
+            description: r#"Check if the country owns any of the states in the list.
 
 **Example:**
 ```paradox
@@ -3069,8 +3647,9 @@ owns_any_state_of = {
   246
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("is_on_same_continent_as", HOI4Entity {
         name: "is_on_same_continent_as",
         description: r#"Checks if the scope country is on the same continent as the given state. The capital state is used for given country tag.
@@ -3081,9 +3660,11 @@ is_on_same_continent_as = 111
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("has_army_experience", HOI4Entity {
-        name: "has_army_experience",
-        description: r#"Checks if the current scope has the specified amount of Army experience.
+    m.insert(
+        "has_army_experience",
+        HOI4Entity {
+            name: "has_army_experience",
+            description: r#"Checks if the current scope has the specified amount of Army experience.
 
 **Example:**
 ```paradox
@@ -3093,38 +3674,48 @@ has_army_experience > 10
 ```paradox
 has_army_experience > var:number
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("has_air_experience", HOI4Entity {
-        name: "has_air_experience",
-        description: r#"Checks if the current scope has the specified amount of Air experience.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "has_air_experience",
+        HOI4Entity {
+            name: "has_air_experience",
+            description: r#"Checks if the current scope has the specified amount of Air experience.
 
 **Example:**
 ```paradox
 has_air_experience > 10
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("has_navy_experience", HOI4Entity {
-        name: "has_navy_experience",
-        description: r#"Checks if the current scope has the specified amount of Navy experience.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "has_navy_experience",
+        HOI4Entity {
+            name: "has_navy_experience",
+            description: r#"Checks if the current scope has the specified amount of Navy experience.
 
 **Example:**
 ```paradox
 has_navy_experience < 10
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("has_manpower", HOI4Entity {
-        name: "has_manpower",
-        description: r#"Checks if the current scope has the specified amount of manpower.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "has_manpower",
+        HOI4Entity {
+            name: "has_manpower",
+            description: r#"Checks if the current scope has the specified amount of manpower.
 
 **Example:**
 ```paradox
 has_manpower > 1000
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("has_army_manpower", HOI4Entity {
         name: "has_army_manpower",
         description: r#"Checks if the current scope has an army using the specified amount of manpower.
@@ -3157,16 +3748,19 @@ conscription_ratio < 0.2
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("current_conscription_amount", HOI4Entity {
-        name: "current_conscription_amount",
-        description: r#"Checks if the current scope has already conscripted that much manpower.
+    m.insert(
+        "current_conscription_amount",
+        HOI4Entity {
+            name: "current_conscription_amount",
+            description: r#"Checks if the current scope has already conscripted that much manpower.
 
 **Example:**
 ```paradox
 current_conscription_amount > 2000
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("target_conscription_amount", HOI4Entity {
         name: "target_conscription_amount",
         description: r#"Checks if the current scope is targeting to conscript that much manpower.
@@ -3177,26 +3771,32 @@ target_conscription_amount > 2000
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("num_divisions", HOI4Entity {
-        name: "num_divisions",
-        description: r#"Checks if the current scope has the specified amount of divisions.
+    m.insert(
+        "num_divisions",
+        HOI4Entity {
+            name: "num_divisions",
+            description: r#"Checks if the current scope has the specified amount of divisions.
 
 **Example:**
 ```paradox
 num_divisions > 5
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("num_of_nukes", HOI4Entity {
-        name: "num_of_nukes",
-        description: r#"Checks if the current scope has the specified amount of nukes.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "num_of_nukes",
+        HOI4Entity {
+            name: "num_of_nukes",
+            description: r#"Checks if the current scope has the specified amount of nukes.
 
 **Example:**
 ```paradox
 num_of_nukes > 5
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("casualties", HOI4Entity {
         name: "casualties",
         description: r#"Checks if the current scope has suffered the specified amount of casualties.
@@ -3240,36 +3840,45 @@ amount_manpower_in_deployment_queue > 1000
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("has_attache_from", HOI4Entity {
-        name: "has_attache_from",
-        description: r#"Checks if the current scope has an attache from the specified scope.
+    m.insert(
+        "has_attache_from",
+        HOI4Entity {
+            name: "has_attache_from",
+            description: r#"Checks if the current scope has an attache from the specified scope.
 
 **Example:**
 ```paradox
 has_attache_from = GER
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("has_attache", HOI4Entity {
-        name: "has_attache",
-        description: r#"Checks if the current scope has an attache.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "has_attache",
+        HOI4Entity {
+            name: "has_attache",
+            description: r#"Checks if the current scope has an attache.
 
 **Example:**
 ```paradox
 has_attache = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("is_lend_leasing", HOI4Entity {
-        name: "is_lend_leasing",
-        description: r#"Checks if the current scope is lend leasing to the specified scope.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "is_lend_leasing",
+        HOI4Entity {
+            name: "is_lend_leasing",
+            description: r#"Checks if the current scope is lend leasing to the specified scope.
 
 **Example:**
 ```paradox
 is_lend_leasing = GER
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("has_template", HOI4Entity {
         name: "has_template",
         description: r#"Checks if the current scope has a division template of the specified name.
@@ -3548,16 +4157,19 @@ has_volunteers_amount_from = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("convoy_threat", HOI4Entity {
-        name: "convoy_threat",
-        description: r#"Checks how much the convoys are threatened.
+    m.insert(
+        "convoy_threat",
+        HOI4Entity {
+            name: "convoy_threat",
+            description: r#"Checks how much the convoys are threatened.
 
 **Example:**
 ```paradox
 convoy_threat > 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("has_mined", HOI4Entity {
         name: "has_mined",
         description: r#"Checks if the current scope has X mines on the coast of the specified country.
@@ -3584,26 +4196,32 @@ has_mined = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("mine_threat", HOI4Entity {
-        name: "mine_threat",
-        description: r#"Checks how dangerous enemy mines are.
+    m.insert(
+        "mine_threat",
+        HOI4Entity {
+            name: "mine_threat",
+            description: r#"Checks how dangerous enemy mines are.
 
 **Example:**
 ```paradox
 mine_threat < 0.6
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("has_military_industrial_organization", HOI4Entity {
-        name: "has_military_industrial_organization",
-        description: r#"Checks if the current scope has a MIO with the specified name.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "has_military_industrial_organization",
+        HOI4Entity {
+            name: "has_military_industrial_organization",
+            description: r#"Checks if the current scope has a MIO with the specified name.
 
 **Example:**
 ```paradox
 has_military_industrial_organization = infantry_mio_token
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("has_tactic", HOI4Entity {
         name: "has_tactic",
         description: r#"Check if the given tactic is unlocked (or active by default) for the country.
@@ -3658,19 +4276,24 @@ has_completed_subdoctrine = mobile_infantry
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("has_completed_track", HOI4Entity {
-        name: "has_completed_track",
-        description: r#"Checks if the given subdoctrine track has been completed
+    m.insert(
+        "has_completed_track",
+        HOI4Entity {
+            name: "has_completed_track",
+            description: r#"Checks if the given subdoctrine track has been completed
 
 **Example:**
 ```paradox
 has_completed_track = infantry
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("has_mastery", HOI4Entity {
-        name: "has_mastery",
-        description: r#"Checks if any track of the given type has at least X mastery.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "has_mastery",
+        HOI4Entity {
+            name: "has_mastery",
+            description: r#"Checks if any track of the given type has at least X mastery.
 
 **Example:**
 ```paradox
@@ -3679,8 +4302,9 @@ has_mastery = {
     track = infantry
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("has_mastery_level", HOI4Entity {
         name: "has_mastery_level",
         description: r#"Checks if the country has reached the specified number of mastery levels (rewards) for the given subdoctrine.
@@ -3719,26 +4343,32 @@ has_equipment = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("has_any_license", HOI4Entity {
-        name: "has_any_license",
-        description: r#"Checks if the current scope has any licenses from other countries.
+    m.insert(
+        "has_any_license",
+        HOI4Entity {
+            name: "has_any_license",
+            description: r#"Checks if the current scope has any licenses from other countries.
 
 **Example:**
 ```paradox
 has_any_license = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("is_licensing_any_to", HOI4Entity {
-        name: "is_licensing_any_to",
-        description: r#"Checks if the current scope is licensing to the specified scope.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "is_licensing_any_to",
+        HOI4Entity {
+            name: "is_licensing_any_to",
+            description: r#"Checks if the current scope is licensing to the specified scope.
 
 **Example:**
 ```paradox
 is_licensing_any_to = GER
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("is_licensing_to", HOI4Entity {
         name: "is_licensing_to",
         description: r#"Checks if the current scope is licensing the specified equipment to the specified country.
@@ -3785,26 +4415,32 @@ has_license = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("fuel_ratio", HOI4Entity {
-        name: "fuel_ratio",
-        description: r#"Checks the fuel ratio of the country.
+    m.insert(
+        "fuel_ratio",
+        HOI4Entity {
+            name: "fuel_ratio",
+            description: r#"Checks the fuel ratio of the country.
 
 **Example:**
 ```paradox
 fuel_ratio > 0.4
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("has_fuel", HOI4Entity {
-        name: "has_fuel",
-        description: r#"Checks the fuel amount of the country.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "has_fuel",
+        HOI4Entity {
+            name: "has_fuel",
+            description: r#"Checks the fuel amount of the country.
 
 **Example:**
 ```paradox
 has_fuel > 400
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("has_design_based_on", HOI4Entity {
         name: "has_design_based_on",
         description: r#"Checks if the country has a builtable non-obsolete design based on the specified equipment archetype.
@@ -3841,9 +4477,11 @@ estimated_intel_max_armor = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("compare_intel_with", HOI4Entity {
-        name: "compare_intel_with",
-        description: r#"Compares intel between 2 countries.
+    m.insert(
+        "compare_intel_with",
+        HOI4Entity {
+            name: "compare_intel_with",
+            description: r#"Compares intel between 2 countries.
 
 **Example:**
 ```paradox
@@ -3854,8 +4492,9 @@ compare_intel_with = {
     navy_intel < 0
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("intel_level_over", HOI4Entity {
         name: "intel_level_over",
         description: r#"Checks the intel level from the current country over a specified country.
@@ -3871,19 +4510,24 @@ intel_level_over = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("has_intelligence_agency", HOI4Entity {
-        name: "has_intelligence_agency",
-        description: r#"Checks if the current scope has an intelligence agency.
+    m.insert(
+        "has_intelligence_agency",
+        HOI4Entity {
+            name: "has_intelligence_agency",
+            description: r#"Checks if the current scope has an intelligence agency.
 
 **Example:**
 ```paradox
 has_intelligence_agency = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("network_national_coverage", HOI4Entity {
-        name: "network_national_coverage",
-        description: r#"Checks network national coverage over a specific country.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "network_national_coverage",
+        HOI4Entity {
+            name: "network_national_coverage",
+            description: r#"Checks network national coverage over a specific country.
 
 **Example:**
 ```paradox
@@ -3892,11 +4536,14 @@ network_national_coverage = {
     value < 70
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("network_strength", HOI4Entity {
-        name: "network_strength",
-        description: r#"Checks network national coverage over a specific country.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "network_strength",
+        HOI4Entity {
+            name: "network_strength",
+            description: r#"Checks network national coverage over a specific country.
 
 **Example:**
 ```paradox
@@ -3905,8 +4552,9 @@ network_strength = {
     value < 70
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("has_done_agency_upgrade", HOI4Entity {
         name: "has_done_agency_upgrade",
         description: r#"Checks if the current scope has the specified agency upgrade (to its highest level).
@@ -3927,9 +4575,11 @@ agency_upgrade_number > 4
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("decryption_progress", HOI4Entity {
-        name: "decryption_progress",
-        description: r#"Checks the decryption progress towards a country.
+    m.insert(
+        "decryption_progress",
+        HOI4Entity {
+            name: "decryption_progress",
+            description: r#"Checks the decryption progress towards a country.
 
 **Example:**
 ```paradox
@@ -3938,11 +4588,14 @@ decryption_progress = {
     value < 0.5
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("has_captured_operative", HOI4Entity {
-        name: "has_captured_operative",
-        description: r#"Checks if the current scope has captured an operative.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "has_captured_operative",
+        HOI4Entity {
+            name: "has_captured_operative",
+            description: r#"Checks if the current scope has captured an operative.
 
 **Example:**
 ```paradox
@@ -3952,8 +4605,9 @@ has_captured_operative = POL
 ```paradox
 has_captured_operative = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("has_finished_collecting_for_operation", HOI4Entity {
         name: "has_finished_collecting_for_operation",
         description: r#"Checks if the current scope has finished collecting resources for an operation.
@@ -4029,86 +4683,110 @@ is_active_decryption_bonuses_enabled = POL
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("is_cryptology_department_active", HOI4Entity {
-        name: "is_cryptology_department_active",
-        description: r#"Checks if the current scope has a cryptology department active.
+    m.insert(
+        "is_cryptology_department_active",
+        HOI4Entity {
+            name: "is_cryptology_department_active",
+            description: r#"Checks if the current scope has a cryptology department active.
 
 **Example:**
 ```paradox
 is_cryptology_department_active = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("is_decrypting", HOI4Entity {
-        name: "is_decrypting",
-        description: r#"Checks if the current scope is decrypting a certain country.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "is_decrypting",
+        HOI4Entity {
+            name: "is_decrypting",
+            description: r#"Checks if the current scope is decrypting a certain country.
 
 **Example:**
 ```paradox
 is_decrypting = POL
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("is_fully_decrypted", HOI4Entity {
-        name: "is_fully_decrypted",
-        description: r#"Checks if the current scope has fully decrypted a certain country.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "is_fully_decrypted",
+        HOI4Entity {
+            name: "is_fully_decrypted",
+            description: r#"Checks if the current scope has fully decrypted a certain country.
 
 **Example:**
 ```paradox
 is_fully_decrypted = POL
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("num_fake_intel_divisions", HOI4Entity {
-        name: "num_fake_intel_divisions",
-        description: r#"Checks the amount of fake intel divisions.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "num_fake_intel_divisions",
+        HOI4Entity {
+            name: "num_fake_intel_divisions",
+            description: r#"Checks the amount of fake intel divisions.
 
 **Example:**
 ```paradox
 num_fake_intel_divisions > 10
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("num_free_operative_slots", HOI4Entity {
-        name: "num_free_operative_slots",
-        description: r#"Checks the amount of free operative slots.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "num_free_operative_slots",
+        HOI4Entity {
+            name: "num_free_operative_slots",
+            description: r#"Checks the amount of free operative slots.
 
 **Example:**
 ```paradox
 num_free_operative_slots > 2
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("num_operative_slots", HOI4Entity {
-        name: "num_operative_slots",
-        description: r#"Checks the amount of operative slots.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "num_operative_slots",
+        HOI4Entity {
+            name: "num_operative_slots",
+            description: r#"Checks the amount of operative slots.
 
 **Example:**
 ```paradox
 num_operative_slots > 2
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("num_of_operatives", HOI4Entity {
-        name: "num_of_operatives",
-        description: r#"Checks the amount of operatives.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "num_of_operatives",
+        HOI4Entity {
+            name: "num_of_operatives",
+            description: r#"Checks the amount of operatives.
 
 **Example:**
 ```paradox
 num_of_operatives > 2
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("ai_irrationality", HOI4Entity {
-        name: "ai_irrationality",
-        description: r#"Checks if the current scope AI has the specified irrationality.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "ai_irrationality",
+        HOI4Entity {
+            name: "ai_irrationality",
+            description: r#"Checks if the current scope AI has the specified irrationality.
 
 **Example:**
 ```paradox
 ai_irrationality > 10
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("ai_liberate_desire", HOI4Entity {
         name: "ai_liberate_desire",
         description: r#"Checks if the current scope AI has the specified liberation desire towards the specified country.
@@ -4122,16 +4800,19 @@ ai_liberate_desire = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("ai_has_role_division", HOI4Entity {
-        name: "ai_has_role_division",
-        description: r#"Checks if the current scope AI has a division with the specified role.
+    m.insert(
+        "ai_has_role_division",
+        HOI4Entity {
+            name: "ai_has_role_division",
+            description: r#"Checks if the current scope AI has a division with the specified role.
 
 **Example:**
 ```paradox
 ai_has_role_division = infantry
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("ai_has_role_template", HOI4Entity {
         name: "ai_has_role_template",
         description: r#"Checks if the current scope AI has a division template with the specified role.
@@ -4182,9 +4863,11 @@ has_character = my_character
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("has_country_leader", HOI4Entity {
-        name: "has_country_leader",
-        description: r#"Checks if the current scope has the specified country leader.
+    m.insert(
+        "has_country_leader",
+        HOI4Entity {
+            name: "has_country_leader",
+            description: r#"Checks if the current scope has the specified country leader.
 
 **Example:**
 ```paradox
@@ -4206,8 +4889,9 @@ has_country_leader = {
     ruling_only = yes
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("has_country_leader_ideology", HOI4Entity {
         name: "has_country_leader_ideology",
         description: r#"Checks if the current scope's active country leader has the specified ideology.
@@ -4218,36 +4902,45 @@ has_country_leader_ideology = nazism
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("has_country_leader_with_trait", HOI4Entity {
-        name: "has_country_leader_with_trait",
-        description: r#"Checks if the leader of the country has a specific trait.
+    m.insert(
+        "has_country_leader_with_trait",
+        HOI4Entity {
+            name: "has_country_leader_with_trait",
+            description: r#"Checks if the leader of the country has a specific trait.
 
 **Example:**
 ```paradox
 has_country_leader_with_trait = champion_of_peace_1
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("is_female", HOI4Entity {
-        name: "is_female",
-        description: r#"Checks if the current country leader is female.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "is_female",
+        HOI4Entity {
+            name: "is_female",
+            description: r#"Checks if the current country leader is female.
 
 **Example:**
 ```paradox
 is_female = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("has_unit_leader", HOI4Entity {
-        name: "has_unit_leader",
-        description: r#"Checks if the current scope has a unit leader with the specified id.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "has_unit_leader",
+        HOI4Entity {
+            name: "has_unit_leader",
+            description: r#"Checks if the current scope has a unit leader with the specified id.
 
 **Example:**
 ```paradox
 has_unit_leader = 1
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("has_scientist_specialization", HOI4Entity {
         name: "has_scientist_specialization",
         description: r#"Checks if the country in scope has a scientist with a skill level of at least 1 in specialization.
@@ -4258,16 +4951,19 @@ has_scientist_specialization = specialization_nuclear
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("pc_is_winner", HOI4Entity {
-        name: "pc_is_winner",
-        description: r#"Checks if the current scope is a winner within the peace conference.
+    m.insert(
+        "pc_is_winner",
+        HOI4Entity {
+            name: "pc_is_winner",
+            description: r#"Checks if the current scope is a winner within the peace conference.
 
 **Example:**
 ```paradox
 pc_is_winner = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("pc_is_on_winning_side", HOI4Entity {
         name: "pc_is_on_winning_side",
         description: r#"Checks if the current scope is on the winning side within the peace conference.
@@ -4278,16 +4974,19 @@ pc_is_on_winning_side = yes
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("pc_is_loser", HOI4Entity {
-        name: "pc_is_loser",
-        description: r#"Checks if the current scope is a loser within the peace conference.
+    m.insert(
+        "pc_is_loser",
+        HOI4Entity {
+            name: "pc_is_loser",
+            description: r#"Checks if the current scope is a loser within the peace conference.
 
 **Example:**
 ```paradox
 pc_is_loser = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("pc_is_untouched_loser", HOI4Entity {
         name: "pc_is_untouched_loser",
         description: r#"Checks if the current scope is an untouched loser within the peace conference.
@@ -4398,9 +5097,11 @@ pc_current_score > 100
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("state", HOI4Entity {
-        name: "state",
-        description: r#"Checks if the current scope is the specified state.
+    m.insert(
+        "state",
+        HOI4Entity {
+            name: "state",
+            description: r#"Checks if the current scope is the specified state.
 
 **Example:**
 ```paradox
@@ -4410,8 +5111,9 @@ state = 10
 ```paradox
 state = var:state
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
     m.insert("region", HOI4Entity {
         name: "region",
         description: r#"Checks if the current scope is a state in the specified strategic region.
@@ -4467,26 +5169,32 @@ any_province_building_level = {
 ```"#,
         scopes: &[crate::scope::Scope::State],
     });
-    m.insert("has_state_flag", HOI4Entity {
-        name: "has_state_flag",
-        description: r#"Checks if the current scope has the specified flag.
+    m.insert(
+        "has_state_flag",
+        HOI4Entity {
+            name: "has_state_flag",
+            description: r#"Checks if the current scope has the specified flag.
 
 **Example:**
 ```paradox
 has_state_flag = my_flag
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
-    m.insert("state_population", HOI4Entity {
-        name: "state_population",
-        description: r#"Checks if the current scope has the specified state population.
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
+    m.insert(
+        "state_population",
+        HOI4Entity {
+            name: "state_population",
+            description: r#"Checks if the current scope has the specified state population.
 
 **Example:**
 ```paradox
 state_population > 10000
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
     m.insert("state_population_k", HOI4Entity {
         name: "state_population_k",
         description: r#"Checks if the current scope has the specified state population in thousands.
@@ -4497,26 +5205,32 @@ state_population_k > 10
 ```"#,
         scopes: &[crate::scope::Scope::State],
     });
-    m.insert("is_capital", HOI4Entity {
-        name: "is_capital",
-        description: r#"Checks if the current scope is a capital.
+    m.insert(
+        "is_capital",
+        HOI4Entity {
+            name: "is_capital",
+            description: r#"Checks if the current scope is a capital.
 
 **Example:**
 ```paradox
 is_capital = yes
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
-    m.insert("is_controlled_by", HOI4Entity {
-        name: "is_controlled_by",
-        description: r#"Checks if the current scope is controlled by the specified country.
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
+    m.insert(
+        "is_controlled_by",
+        HOI4Entity {
+            name: "is_controlled_by",
+            description: r#"Checks if the current scope is controlled by the specified country.
 
 **Example:**
 ```paradox
 is_controlled_by = GER
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
     m.insert("is_fully_controlled_by", HOI4Entity {
         name: "is_fully_controlled_by",
         description: r#"Checks if the current scope is fully controlled by the specified country.
@@ -4527,36 +5241,45 @@ is_fully_controlled_by = GER
 ```"#,
         scopes: &[crate::scope::Scope::State],
     });
-    m.insert("is_owned_by", HOI4Entity {
-        name: "is_owned_by",
-        description: r#"Checks if the current scope is owned by the specified country.
+    m.insert(
+        "is_owned_by",
+        HOI4Entity {
+            name: "is_owned_by",
+            description: r#"Checks if the current scope is owned by the specified country.
 
 **Example:**
 ```paradox
 is_owned_by = GER
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
-    m.insert("is_claimed_by", HOI4Entity {
-        name: "is_claimed_by",
-        description: r#"Checks if the current scope is claimed by the specified country.
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
+    m.insert(
+        "is_claimed_by",
+        HOI4Entity {
+            name: "is_claimed_by",
+            description: r#"Checks if the current scope is claimed by the specified country.
 
 **Example:**
 ```paradox
 is_claimed_by = GER
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
-    m.insert("is_core_of", HOI4Entity {
-        name: "is_core_of",
-        description: r#"Checks if the current scope is a core of the specified country.
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
+    m.insert(
+        "is_core_of",
+        HOI4Entity {
+            name: "is_core_of",
+            description: r#"Checks if the current scope is a core of the specified country.
 
 **Example:**
 ```paradox
 is_core_of = GER
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
     m.insert("is_owned_and_controlled_by", HOI4Entity {
         name: "is_owned_and_controlled_by",
         description: r#"Checks if the current scope is owned and controlled by the specified country.
@@ -4567,26 +5290,32 @@ is_owned_and_controlled_by = GER
 ```"#,
         scopes: &[crate::scope::Scope::State],
     });
-    m.insert("is_demilitarized_zone", HOI4Entity {
-        name: "is_demilitarized_zone",
-        description: r#"Checks if the current scope is a demilitarized zone.
+    m.insert(
+        "is_demilitarized_zone",
+        HOI4Entity {
+            name: "is_demilitarized_zone",
+            description: r#"Checks if the current scope is a demilitarized zone.
 
 **Example:**
 ```paradox
 is_demilitarized_zone = yes
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
-    m.insert("is_border_conflict", HOI4Entity {
-        name: "is_border_conflict",
-        description: r#"Checks if the current scope is part of a border war.
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
+    m.insert(
+        "is_border_conflict",
+        HOI4Entity {
+            name: "is_border_conflict",
+            description: r#"Checks if the current scope is part of a border war.
 
 **Example:**
 ```paradox
 is_border_conflict = yes
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
     m.insert("is_in_home_area", HOI4Entity {
         name: "is_in_home_area",
         description: r#"Checks if the current scope is connected to the capital state over land. The scope needs to be owned as well for the statement for it to be true.
@@ -4597,16 +5326,19 @@ is_in_home_area = yes
 ```"#,
         scopes: &[crate::scope::Scope::State],
     });
-    m.insert("is_coastal", HOI4Entity {
-        name: "is_coastal",
-        description: r#"Checks if the current scope is a coastal state.
+    m.insert(
+        "is_coastal",
+        HOI4Entity {
+            name: "is_coastal",
+            description: r#"Checks if the current scope is a coastal state.
 
 **Example:**
 ```paradox
 is_coastal = yes
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
     m.insert("is_one_state_island", HOI4Entity {
         name: "is_one_state_island",
         description: r#"Checks if the current scope is a coastal state with no adjacent land states.
@@ -4627,46 +5359,58 @@ is_island_state = yes
 ```"#,
         scopes: &[crate::scope::Scope::State],
     });
-    m.insert("is_on_continent", HOI4Entity {
-        name: "is_on_continent",
-        description: r#"Checks if the current scope is on the specified continent.
+    m.insert(
+        "is_on_continent",
+        HOI4Entity {
+            name: "is_on_continent",
+            description: r#"Checks if the current scope is on the specified continent.
 
 **Example:**
 ```paradox
 is_on_continent = europe
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
-    m.insert("impassable", HOI4Entity {
-        name: "impassable",
-        description: r#"Checks if the current scope is impassable.
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
+    m.insert(
+        "impassable",
+        HOI4Entity {
+            name: "impassable",
+            description: r#"Checks if the current scope is impassable.
 
 **Example:**
 ```paradox
 impassable = yes
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
-    m.insert("has_state_category", HOI4Entity {
-        name: "has_state_category",
-        description: r#"Checks if the current scope has the specified category.
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
+    m.insert(
+        "has_state_category",
+        HOI4Entity {
+            name: "has_state_category",
+            description: r#"Checks if the current scope has the specified category.
 
 **Example:**
 ```paradox
 has_state_category = rural
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
-    m.insert("state_strategic_value", HOI4Entity {
-        name: "state_strategic_value",
-        description: r#"Checks if the current scope has the specified strategic value.
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
+    m.insert(
+        "state_strategic_value",
+        HOI4Entity {
+            name: "state_strategic_value",
+            description: r#"Checks if the current scope has the specified strategic value.
 
 **Example:**
 ```paradox
 state_strategic_value > 10
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
     m.insert("state_and_terrain_strategic_value", HOI4Entity {
         name: "state_and_terrain_strategic_value",
         description: r#"Checks if the current scope has the specified state and terrain strategic value.
@@ -4777,9 +5521,11 @@ can_build_railway = {
 ```"#,
         scopes: &[crate::scope::Scope::State],
     });
-    m.insert("has_railway_level", HOI4Entity {
-        name: "has_railway_level",
-        description: r#"Checks if a state contains a railway at or above the specified level.
+    m.insert(
+        "has_railway_level",
+        HOI4Entity {
+            name: "has_railway_level",
+            description: r#"Checks if a state contains a railway at or above the specified level.
 
 **Example:**
 ```paradox
@@ -4788,8 +5534,9 @@ has_railway_level = {
     	level = 5
 }
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
     m.insert("pc_does_state_stack_demilitarized", HOI4Entity {
         name: "pc_does_state_stack_demilitarized",
         description: r#"Checks if the current scope was demilitarised during a current or previously-ended peace conference.
@@ -4870,66 +5617,84 @@ pc_turn > 20
 ```"#,
         scopes: &[crate::scope::Scope::State],
     });
-    m.insert("compliance", HOI4Entity {
-        name: "compliance",
-        description: r#"Compares the compliance value of the current scope with the given value.
+    m.insert(
+        "compliance",
+        HOI4Entity {
+            name: "compliance",
+            description: r#"Compares the compliance value of the current scope with the given value.
 
 **Example:**
 ```paradox
 compliance > 50
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
-    m.insert("compliance_speed", HOI4Entity {
-        name: "compliance_speed",
-        description: r#"Compares the compliance speed of the current scope with the given value.
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
+    m.insert(
+        "compliance_speed",
+        HOI4Entity {
+            name: "compliance_speed",
+            description: r#"Compares the compliance speed of the current scope with the given value.
 
 **Example:**
 ```paradox
 compliance_speed > 50
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
-    m.insert("has_active_resistance", HOI4Entity {
-        name: "has_active_resistance",
-        description: r#"Checks if the current scope has non-zero resistance.
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
+    m.insert(
+        "has_active_resistance",
+        HOI4Entity {
+            name: "has_active_resistance",
+            description: r#"Checks if the current scope has non-zero resistance.
 
 **Example:**
 ```paradox
 has_active_resistance = yes
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
-    m.insert("has_resistance", HOI4Entity {
-        name: "has_resistance",
-        description: r#"Checks if the current scope has resistance.
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
+    m.insert(
+        "has_resistance",
+        HOI4Entity {
+            name: "has_resistance",
+            description: r#"Checks if the current scope has resistance.
 
 **Example:**
 ```paradox
 has_resistance = yes
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
-    m.insert("resistance", HOI4Entity {
-        name: "resistance",
-        description: r#"Compares the resistance value of the current scope with the given value.
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
+    m.insert(
+        "resistance",
+        HOI4Entity {
+            name: "resistance",
+            description: r#"Compares the resistance value of the current scope with the given value.
 
 **Example:**
 ```paradox
 resistance > 50
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
-    m.insert("resistance_speed", HOI4Entity {
-        name: "resistance_speed",
-        description: r#"Compares the resistance speed of the current scope with the given value.
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
+    m.insert(
+        "resistance_speed",
+        HOI4Entity {
+            name: "resistance_speed",
+            description: r#"Compares the resistance speed of the current scope with the given value.
 
 **Example:**
 ```paradox
 resistance_speed > 50
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
     m.insert("resistance_target", HOI4Entity {
         name: "resistance_target",
         description: r#"Compares the target resistance value of the current scope with the given value.
@@ -4950,16 +5715,19 @@ has_occupation_modifier = modifier_name
 ```"#,
         scopes: &[crate::scope::Scope::State],
     });
-    m.insert("occupied_country_tag", HOI4Entity {
-        name: "occupied_country_tag",
-        description: r#"Checks which country creates resistance.
+    m.insert(
+        "occupied_country_tag",
+        HOI4Entity {
+            name: "occupied_country_tag",
+            description: r#"Checks which country creates resistance.
 
 **Example:**
 ```paradox
 occupied_country_tag = POL
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
     m.insert("is_character", HOI4Entity {
         name: "is_character",
         description: r#"Checks if the current character's token matches up with the specified one.
@@ -5060,26 +5828,32 @@ is_high_command = yes
 ```"#,
         scopes: &[crate::scope::Scope::Character],
     });
-    m.insert("is_corps_commander", HOI4Entity {
-        name: "is_corps_commander",
-        description: r#"Checks if the character in the current scope is a corps commander.
+    m.insert(
+        "is_corps_commander",
+        HOI4Entity {
+            name: "is_corps_commander",
+            description: r#"Checks if the character in the current scope is a corps commander.
 
 **Example:**
 ```paradox
 is_corps_commander = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("is_operative", HOI4Entity {
-        name: "is_operative",
-        description: r#"Checks if the character in the current scope is an operative.
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "is_operative",
+        HOI4Entity {
+            name: "is_operative",
+            description: r#"Checks if the character in the current scope is an operative.
 
 **Example:**
 ```paradox
 is_operative = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
     m.insert("is_political_advisor", HOI4Entity {
         name: "is_political_advisor",
         description: r#"Checks if the character in the current scope is selected as a political advisor.
@@ -5090,16 +5864,19 @@ is_political_advisor = yes
 ```"#,
         scopes: &[crate::scope::Scope::Character],
     });
-    m.insert("is_theorist", HOI4Entity {
-        name: "is_theorist",
-        description: r#"Checks if the character in the current scope is selected as a theorist.
+    m.insert(
+        "is_theorist",
+        HOI4Entity {
+            name: "is_theorist",
+            description: r#"Checks if the character in the current scope is selected as a theorist.
 
 **Example:**
 ```paradox
 is_theorist = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
     m.insert("is_character_slot", HOI4Entity {
         name: "is_character_slot",
         description: r#"Checks if the character in the current scope has a role within the specified character slot
@@ -5110,76 +5887,97 @@ is_character_slot = political_advisor
 ```"#,
         scopes: &[crate::scope::Scope::Character],
     });
-    m.insert("has_air_ledger", HOI4Entity {
-        name: "has_air_ledger",
-        description: r#"Checks if the character in the current scope has an air ledger.
+    m.insert(
+        "has_air_ledger",
+        HOI4Entity {
+            name: "has_air_ledger",
+            description: r#"Checks if the character in the current scope has an air ledger.
 
 **Example:**
 ```paradox
 has_air_ledger = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("has_army_ledger", HOI4Entity {
-        name: "has_army_ledger",
-        description: r#"Checks if the character in the current scope has an army ledger.
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "has_army_ledger",
+        HOI4Entity {
+            name: "has_army_ledger",
+            description: r#"Checks if the character in the current scope has an army ledger.
 
 **Example:**
 ```paradox
 has_army_ledger = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("has_navy_ledger", HOI4Entity {
-        name: "has_navy_ledger",
-        description: r#"Checks if the character in the current scope has an navy ledger.
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "has_navy_ledger",
+        HOI4Entity {
+            name: "has_navy_ledger",
+            description: r#"Checks if the character in the current scope has an navy ledger.
 
 **Example:**
 ```paradox
 has_navy_ledger = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("has_character_flag", HOI4Entity {
-        name: "has_character_flag",
-        description: r#"Checks if the current scope has the specified flag.
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "has_character_flag",
+        HOI4Entity {
+            name: "has_character_flag",
+            description: r#"Checks if the current scope has the specified flag.
 
 **Example:**
 ```paradox
 has_character_flag = my_flag
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("has_trait", HOI4Entity {
-        name: "has_trait",
-        description: r#"Checks if the current scope has the specified trait.
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "has_trait",
+        HOI4Entity {
+            name: "has_trait",
+            description: r#"Checks if the current scope has the specified trait.
 
 **Example:**
 ```paradox
 has_trait = really_good_boss
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("has_id", HOI4Entity {
-        name: "has_id",
-        description: r#"Checks if the current character has the specificed ID.
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "has_id",
+        HOI4Entity {
+            name: "has_id",
+            description: r#"Checks if the current character has the specificed ID.
 
 **Example:**
 ```paradox
 has_id = 1
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("is_hired_as_advisor", HOI4Entity {
-        name: "is_hired_as_advisor",
-        description: r#"Checks if the current character is activated as an advisor in any slot.
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "is_hired_as_advisor",
+        HOI4Entity {
+            name: "is_hired_as_advisor",
+            description: r#"Checks if the current character is activated as an advisor in any slot.
 
 **Example:**
 ```paradox
 is_hired_as_advisor = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
     m.insert("not_already_hired_except_as", HOI4Entity {
         name: "not_already_hired_except_as",
         description: r#"Checks if the current character is not hired, with the exception of the specified slot.
@@ -5206,16 +6004,19 @@ advisor_can_be_fired = {
 ```"#,
         scopes: &[crate::scope::Scope::Character],
     });
-    m.insert("has_advisor_role", HOI4Entity {
-        name: "has_advisor_role",
-        description: r#"Checks if the character in scope has an advisor role for the given slot.
+    m.insert(
+        "has_advisor_role",
+        HOI4Entity {
+            name: "has_advisor_role",
+            description: r#"Checks if the character in scope has an advisor role for the given slot.
 
 **Example:**
 ```paradox
 has_advisor_role = political_advisor
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
     m.insert("has_ideology", HOI4Entity {
         name: "has_ideology",
         description: r#"Checks if the current character has the specificed sub-ideology assigned.
@@ -5226,46 +6027,58 @@ has_ideology = liberalism
 ```"#,
         scopes: &[crate::scope::Scope::Character],
     });
-    m.insert("has_ideology_group", HOI4Entity {
-        name: "has_ideology_group",
-        description: r#"Checks if the current character has the specificed ideology assigned.
+    m.insert(
+        "has_ideology_group",
+        HOI4Entity {
+            name: "has_ideology_group",
+            description: r#"Checks if the current character has the specificed ideology assigned.
 
 **Example:**
 ```paradox
 has_ideology_group = democratic
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("has_unit_leader_flag", HOI4Entity {
-        name: "has_unit_leader_flag",
-        description: r#"Checks if the current scope has the specified flag.
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "has_unit_leader_flag",
+        HOI4Entity {
+            name: "has_unit_leader_flag",
+            description: r#"Checks if the current scope has the specified flag.
 
 **Example:**
 ```paradox
 has_unit_leader_flag = my_flag
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("is_leading_army", HOI4Entity {
-        name: "is_leading_army",
-        description: r#"Checks if the current scope is leading a single army.
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "is_leading_army",
+        HOI4Entity {
+            name: "is_leading_army",
+            description: r#"Checks if the current scope is leading a single army.
 
 **Example:**
 ```paradox
 is_leading_army = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("is_leading_army_group", HOI4Entity {
-        name: "is_leading_army_group",
-        description: r#"Checks if the current scope is leading an army group.
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "is_leading_army_group",
+        HOI4Entity {
+            name: "is_leading_army_group",
+            description: r#"Checks if the current scope is leading an army group.
 
 **Example:**
 ```paradox
 is_leading_army_group = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
     m.insert("is_leading_volunteer_group", HOI4Entity {
         name: "is_leading_volunteer_group",
         description: r#"Checks if the current scope is leading a volunteer army within the specified country.
@@ -5286,56 +6099,71 @@ is_leading_volunteer_group_with_original_country = POL
 ```"#,
         scopes: &[crate::scope::Scope::Character],
     });
-    m.insert("is_field_marshal", HOI4Entity {
-        name: "is_field_marshal",
-        description: r#"Checks if the current scope is a Field Marshal.
+    m.insert(
+        "is_field_marshal",
+        HOI4Entity {
+            name: "is_field_marshal",
+            description: r#"Checks if the current scope is a Field Marshal.
 
 **Example:**
 ```paradox
 is_field_marshal = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("is_assigned", HOI4Entity {
-        name: "is_assigned",
-        description: r#"Checks if the current scope is an assigned unit leader.
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "is_assigned",
+        HOI4Entity {
+            name: "is_assigned",
+            description: r#"Checks if the current scope is an assigned unit leader.
 
 **Example:**
 ```paradox
 is_assigned = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("can_select_trait", HOI4Entity {
-        name: "can_select_trait",
-        description: r#"Checks if the current scope can select the specified trait.
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "can_select_trait",
+        HOI4Entity {
+            name: "can_select_trait",
+            description: r#"Checks if the current scope can select the specified trait.
 
 **Example:**
 ```paradox
 can_select_trait = offensive_doctrine
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("has_ability", HOI4Entity {
-        name: "has_ability",
-        description: r#"Checks if the current scope has the specified unit leader ability.
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "has_ability",
+        HOI4Entity {
+            name: "has_ability",
+            description: r#"Checks if the current scope has the specified unit leader ability.
 
 **Example:**
 ```paradox
 has_ability = glider_planes
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("skill", HOI4Entity {
-        name: "skill",
-        description: r#"Checks if the current scope has a Skill above the specified amount.
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "skill",
+        HOI4Entity {
+            name: "skill",
+            description: r#"Checks if the current scope has a Skill above the specified amount.
 
 **Example:**
 ```paradox
 skill > 1
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
     m.insert("skill_advantage", HOI4Entity {
         name: "skill_advantage",
         description: r#"Checks if the current scope has a Skill advantage above the specified amount in against an enemy unit leader whilst in combat.
@@ -5396,16 +6224,19 @@ average_stats > 5
 ```"#,
         scopes: &[crate::scope::Scope::Character],
     });
-    m.insert("is_border_war", HOI4Entity {
-        name: "is_border_war",
-        description: r#"Checks if the current socpe is in a border war.
+    m.insert(
+        "is_border_war",
+        HOI4Entity {
+            name: "is_border_war",
+            description: r#"Checks if the current socpe is in a border war.
 
 **Example:**
 ```paradox
 is_border_war = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
     m.insert("num_units", HOI4Entity {
         name: "num_units",
         description: r#"Checks if the current scope is commanding the specified amount of divisions.
@@ -5416,16 +6247,19 @@ num_units > 5
 ```"#,
         scopes: &[crate::scope::Scope::Character],
     });
-    m.insert("is_exiled_leader", HOI4Entity {
-        name: "is_exiled_leader",
-        description: r#"Checks if the current scope is a general from an exiled country.
+    m.insert(
+        "is_exiled_leader",
+        HOI4Entity {
+            name: "is_exiled_leader",
+            description: r#"Checks if the current scope is a general from an exiled country.
 
 **Example:**
 ```paradox
 is_exiled_leader = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
     m.insert("is_exiled_leader_from", HOI4Entity {
         name: "is_exiled_leader_from",
         description: r#"Checks if the current scope is a general from the specified exiled country.
@@ -5446,46 +6280,58 @@ is_leading_army_in_province = 1234
 ```"#,
         scopes: &[crate::scope::Scope::Character],
     });
-    m.insert("has_nationality", HOI4Entity {
-        name: "has_nationality",
-        description: r#"Checks if the current operative has the nationality.
+    m.insert(
+        "has_nationality",
+        HOI4Entity {
+            name: "has_nationality",
+            description: r#"Checks if the current operative has the nationality.
 
 **Example:**
 ```paradox
 has_nationality = POL
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("is_operative_captured", HOI4Entity {
-        name: "is_operative_captured",
-        description: r#"Checks if the current scope is captured.
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "is_operative_captured",
+        HOI4Entity {
+            name: "is_operative_captured",
+            description: r#"Checks if the current scope is captured.
 
 **Example:**
 ```paradox
 is_operative_captured = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("operative_leader_mission", HOI4Entity {
-        name: "operative_leader_mission",
-        description: r#"Checks if the current scope is on the given mission.
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "operative_leader_mission",
+        HOI4Entity {
+            name: "operative_leader_mission",
+            description: r#"Checks if the current scope is on the given mission.
 
 **Example:**
 ```paradox
 operative_leader_mission = mission_name
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("operative_leader_operation", HOI4Entity {
-        name: "operative_leader_operation",
-        description: r#"Checks if the current scope is on the given operation.
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "operative_leader_operation",
+        HOI4Entity {
+            name: "operative_leader_operation",
+            description: r#"Checks if the current scope is on the given operation.
 
 **Example:**
 ```paradox
 operative_leader_operation = operation_name
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
     m.insert("has_scientist_level", HOI4Entity {
         name: "has_scientist_level",
         description: r#"Checks if the scientist of the character in scope matches the skill level condition for a specialization. Supports < > = operators.
@@ -5509,66 +6355,84 @@ is_scientist_active = yes
 ```"#,
         scopes: &[crate::scope::Scope::Character],
     });
-    m.insert("is_scientist_injured", HOI4Entity {
-        name: "is_scientist_injured",
-        description: r#"Checks if the scientist of the character in scope is injured.
+    m.insert(
+        "is_scientist_injured",
+        HOI4Entity {
+            name: "is_scientist_injured",
+            description: r#"Checks if the scientist of the character in scope is injured.
 
 **Example:**
 ```paradox
 is_scientist_injured = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("hardness", HOI4Entity {
-        name: "hardness",
-        description: r#"Checks if the current scope has the specified amount of hardness.
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "hardness",
+        HOI4Entity {
+            name: "hardness",
+            description: r#"Checks if the current scope has the specified amount of hardness.
 
 **Example:**
 ```paradox
 hardness > 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("armor", HOI4Entity {
-        name: "armor",
-        description: r#"Checks if the current scope has the specified amount of armor units.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "armor",
+        HOI4Entity {
+            name: "armor",
+            description: r#"Checks if the current scope has the specified amount of armor units.
 
 **Example:**
 ```paradox
 armor > 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("dig_in", HOI4Entity {
-        name: "dig_in",
-        description: r#"Checks if the current scope has the specified amount of Dig In bonus.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "dig_in",
+        HOI4Entity {
+            name: "dig_in",
+            description: r#"Checks if the current scope has the specified amount of Dig In bonus.
 
 **Example:**
 ```paradox
 dig_in > 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("min_planning", HOI4Entity {
-        name: "min_planning",
-        description: r#"Checks if the current scope has the specified amount of planning.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "min_planning",
+        HOI4Entity {
+            name: "min_planning",
+            description: r#"Checks if the current scope has the specified amount of planning.
 
 **Example:**
 ```paradox
 min_planning > 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("fastest_unit", HOI4Entity {
-        name: "fastest_unit",
-        description: r#"Checks if the current scope has a unit with the specified speed.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "fastest_unit",
+        HOI4Entity {
+            name: "fastest_unit",
+            description: r#"Checks if the current scope has a unit with the specified speed.
 
 **Example:**
 ```paradox
 fastest_unit > 12
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("temperature", HOI4Entity {
         name: "temperature",
         description: r#"Checks if the current scope is in a province with a temperature above the specified amount.
@@ -5589,29 +6453,37 @@ reserves > 10
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("has_combat_modifier", HOI4Entity {
-        name: "has_combat_modifier",
-        description: r#"Checks if the current scope has the specified combat modifier.
+    m.insert(
+        "has_combat_modifier",
+        HOI4Entity {
+            name: "has_combat_modifier",
+            description: r#"Checks if the current scope has the specified combat modifier.
 
 **Example:**
 ```paradox
 has_combat_modifier = river_crossing
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("is_fighting_in_terrain", HOI4Entity {
-        name: "is_fighting_in_terrain",
-        description: r#"Checks if the current scope is fighting in the specified terrain.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "is_fighting_in_terrain",
+        HOI4Entity {
+            name: "is_fighting_in_terrain",
+            description: r#"Checks if the current scope is fighting in the specified terrain.
 
 **Example:**
 ```paradox
 is_fighting_in_terrain = desert
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("is_fighting_in_weather", HOI4Entity {
-        name: "is_fighting_in_weather",
-        description: r#"Checks if the current scope is fighting in the specified weather.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "is_fighting_in_weather",
+        HOI4Entity {
+            name: "is_fighting_in_weather",
+            description: r#"Checks if the current scope is fighting in the specified weather.
 
 **Example:**
 ```paradox
@@ -5621,128 +6493,165 @@ is_fighting_in_weather = sandstorm
 ```paradox
 is_fighting_in_weather = { rain_light rain_heavy }
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("phase", HOI4Entity {
-        name: "phase",
-        description: r#"Checks if the current scope is in phase.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "phase",
+        HOI4Entity {
+            name: "phase",
+            description: r#"Checks if the current scope is in phase.
 
 **Example:**
 ```paradox
 phase = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("recon_advantage", HOI4Entity {
-        name: "recon_advantage",
-        description: r#"Checks if the current scope has x recon advantage.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "recon_advantage",
+        HOI4Entity {
+            name: "recon_advantage",
+            description: r#"Checks if the current scope has x recon advantage.
 
 **Example:**
 ```paradox
 recon_advantage > 0
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("night", HOI4Entity {
-        name: "night",
-        description: r#"Checks if the current scope is fighting at night.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "night",
+        HOI4Entity {
+            name: "night",
+            description: r#"Checks if the current scope is fighting at night.
 
 **Example:**
 ```paradox
 night = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("frontage_full", HOI4Entity {
-        name: "frontage_full",
-        description: r#"Checks if the current scope has a full combat width.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "frontage_full",
+        HOI4Entity {
+            name: "frontage_full",
+            description: r#"Checks if the current scope has a full combat width.
 
 **Example:**
 ```paradox
 frontage_full = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("has_flanked_opponent", HOI4Entity {
-        name: "has_flanked_opponent",
-        description: r#"Checks if the current scope has flanked their opponent.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "has_flanked_opponent",
+        HOI4Entity {
+            name: "has_flanked_opponent",
+            description: r#"Checks if the current scope has flanked their opponent.
 
 **Example:**
 ```paradox
 has_flanked_opponent = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("has_max_planning", HOI4Entity {
-        name: "has_max_planning",
-        description: r#"Checks if the current scope has the maximum planning bonus.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "has_max_planning",
+        HOI4Entity {
+            name: "has_max_planning",
+            description: r#"Checks if the current scope has the maximum planning bonus.
 
 **Example:**
 ```paradox
 has_max_planning = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("has_reserves", HOI4Entity {
-        name: "has_reserves",
-        description: r#"Checks if the current scope has any reserves waiting.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "has_reserves",
+        HOI4Entity {
+            name: "has_reserves",
+            description: r#"Checks if the current scope has any reserves waiting.
 
 **Example:**
 ```paradox
 has_reserves = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("is_amphibious_invasion", HOI4Entity {
-        name: "is_amphibious_invasion",
-        description: r#"Checks if the current scope is performing an amphibious invasion.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "is_amphibious_invasion",
+        HOI4Entity {
+            name: "is_amphibious_invasion",
+            description: r#"Checks if the current scope is performing an amphibious invasion.
 
 **Example:**
 ```paradox
 is_amphibious_invasion = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("is_attacker", HOI4Entity {
-        name: "is_attacker",
-        description: r#"Checks if the current scope is attacking.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "is_attacker",
+        HOI4Entity {
+            name: "is_attacker",
+            description: r#"Checks if the current scope is attacking.
 
 **Example:**
 ```paradox
 is_attacker = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("is_defender", HOI4Entity {
-        name: "is_defender",
-        description: r#"Checks if the current scope is defending.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "is_defender",
+        HOI4Entity {
+            name: "is_defender",
+            description: r#"Checks if the current scope is defending.
 
 **Example:**
 ```paradox
 is_defender = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("is_winning", HOI4Entity {
-        name: "is_winning",
-        description: r#"Checks if the current scope is winning their battle.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "is_winning",
+        HOI4Entity {
+            name: "is_winning",
+            description: r#"Checks if the current scope is winning their battle.
 
 **Example:**
 ```paradox
 is_winning = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("is_fighting_air_units", HOI4Entity {
-        name: "is_fighting_air_units",
-        description: r#"Checks if the current scope is fighting air units.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "is_fighting_air_units",
+        HOI4Entity {
+            name: "is_fighting_air_units",
+            description: r#"Checks if the current scope is fighting air units.
 
 **Example:**
 ```paradox
 is_fighting_air_units = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("less_combat_width_than_opponent", HOI4Entity {
         name: "less_combat_width_than_opponent",
         description: r#"Checks if the current scope is fighting with less combat width than their opponent.
@@ -5753,26 +6662,32 @@ less_combat_width_than_opponent = yes
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("has_carrier_airwings_on_mission", HOI4Entity {
-        name: "has_carrier_airwings_on_mission",
-        description: r#"Checks if the current scope has carrier airwings on a mission.
+    m.insert(
+        "has_carrier_airwings_on_mission",
+        HOI4Entity {
+            name: "has_carrier_airwings_on_mission",
+            description: r#"Checks if the current scope has carrier airwings on a mission.
 
 **Example:**
 ```paradox
 has_carrier_airwings_on_mission = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("has_carrier_airwings_in_own_combat", HOI4Entity {
-        name: "has_carrier_airwings_in_own_combat",
-        description: r#"Checks if the current scope has carrier airwings in their own combat.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "has_carrier_airwings_in_own_combat",
+        HOI4Entity {
+            name: "has_carrier_airwings_in_own_combat",
+            description: r#"Checks if the current scope has carrier airwings in their own combat.
 
 **Example:**
 ```paradox
 has_carrier_airwings_in_own_combat = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("has_artillery_ratio", HOI4Entity {
         name: "has_artillery_ratio",
         description: r#"Check that ratio of atrillery battalions in the composition of a side of combating troops are over a certain level.
@@ -5783,16 +6698,19 @@ has_artillery_ratio > 0.1
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("has_unit_type", HOI4Entity {
-        name: "has_unit_type",
-        description: r#"Check if the combatant has at least one of the provided unit types.
+    m.insert(
+        "has_unit_type",
+        HOI4Entity {
+            name: "has_unit_type",
+            description: r#"Check if the combatant has at least one of the provided unit types.
 
 **Example:**
 ```paradox
 has_unit_type = amphibious_mechanized
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("division_has_majority_template", HOI4Entity {
         name: "division_has_majority_template",
         description: r#"Checks if the current scope is majority made up of the specified battalion.
@@ -5813,26 +6731,32 @@ division_has_battalion_in_template = light_armor
 ```"#,
         scopes: &[crate::scope::Scope::Unit],
     });
-    m.insert("unit_strength", HOI4Entity {
-        name: "unit_strength",
-        description: r#"Checks the current strength of the unit on the scale from 0 to 1.
+    m.insert(
+        "unit_strength",
+        HOI4Entity {
+            name: "unit_strength",
+            description: r#"Checks the current strength of the unit on the scale from 0 to 1.
 
 **Example:**
 ```paradox
 unit_strength < 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unit],
-    });
-    m.insert("unit_organization", HOI4Entity {
-        name: "unit_organization",
-        description: r#"Checks the current organisation of the unit on the scale from 0 to 1.
+            scopes: &[crate::scope::Scope::Unit],
+        },
+    );
+    m.insert(
+        "unit_organization",
+        HOI4Entity {
+            name: "unit_organization",
+            description: r#"Checks the current organisation of the unit on the scale from 0 to 1.
 
 **Example:**
 ```paradox
 unit_organization < 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unit],
-    });
+            scopes: &[crate::scope::Scope::Unit],
+        },
+    );
     m.insert("is_unit_template_reserves", HOI4Entity {
         name: "is_unit_template_reserves",
         description: r#"Checks if the current division has the supply priority set to 'Reserves', i.e. the lowest priority.
@@ -5853,59 +6777,76 @@ has_officer_name = FIN_nikke_parmi
 ```"#,
         scopes: &[crate::scope::Scope::Unit],
     });
-    m.insert("is_military_industrial_organization", HOI4Entity {
-        name: "is_military_industrial_organization",
-        description: r#"Checks if the currently-scoped MIO matches the input token.
+    m.insert(
+        "is_military_industrial_organization",
+        HOI4Entity {
+            name: "is_military_industrial_organization",
+            description: r#"Checks if the currently-scoped MIO matches the input token.
 
 **Example:**
 ```paradox
 is_military_industrial_organization = my_mio_token
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("is_mio_visible", HOI4Entity {
-        name: "is_mio_visible",
-        description: r#"Checks if the currently-scoped MIO is visible.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "is_mio_visible",
+        HOI4Entity {
+            name: "is_mio_visible",
+            description: r#"Checks if the currently-scoped MIO is visible.
 
 **Example:**
 ```paradox
 is_mio_visible = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("is_mio_available", HOI4Entity {
-        name: "is_mio_available",
-        description: r#"Checks if the currently-scoped MIO is visible.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "is_mio_available",
+        HOI4Entity {
+            name: "is_mio_available",
+            description: r#"Checks if the currently-scoped MIO is visible.
 
 **Example:**
 ```paradox
 is_mio_available = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("is_mio_assigned_to_task", HOI4Entity {
-        name: "is_mio_assigned_to_task",
-        description: r#"Checks if the currently-scoped MIO is assigned to a task.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "is_mio_assigned_to_task",
+        HOI4Entity {
+            name: "is_mio_assigned_to_task",
+            description: r#"Checks if the currently-scoped MIO is assigned to a task.
 
 **Example:**
 ```paradox
 is_mio_assigned_to_task = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("has_mio_size", HOI4Entity {
-        name: "has_mio_size",
-        description: r#"Checks the size of the MIO.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "has_mio_size",
+        HOI4Entity {
+            name: "has_mio_size",
+            description: r#"Checks the size of the MIO.
 
 **Example:**
 ```paradox
 has_mio_size > 3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("has_mio_trait", HOI4Entity {
-        name: "has_mio_trait",
-        description: r#"Checks whether the MIO has the target trait in its list.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "has_mio_trait",
+        HOI4Entity {
+            name: "has_mio_trait",
+            description: r#"Checks whether the MIO has the target trait in its list.
 
 **Example:**
 ```paradox
@@ -5917,8 +6858,9 @@ has_mio_trait = {
     token = my_trait_token
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("is_mio_trait_available", HOI4Entity {
         name: "is_mio_trait_available",
         description: r#"Checks whether the MIO has the target trait in its list and whether it's available.
@@ -5952,66 +6894,84 @@ is_mio_trait_completed = {
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("has_mio_number_of_completed_traits", HOI4Entity {
-        name: "has_mio_number_of_completed_traits",
-        description: r#"Checks the amount of unlocked MIO traits.
+    m.insert(
+        "has_mio_number_of_completed_traits",
+        HOI4Entity {
+            name: "has_mio_number_of_completed_traits",
+            description: r#"Checks the amount of unlocked MIO traits.
 
 **Example:**
 ```paradox
 has_mio_number_of_completed_traits < 2
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("has_mio_flag", HOI4Entity {
-        name: "has_mio_flag",
-        description: r#"Checks if the current scope has the specified flag.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "has_mio_flag",
+        HOI4Entity {
+            name: "has_mio_flag",
+            description: r#"Checks if the current scope has the specified flag.
 
 **Example:**
 ```paradox
 has_mio_flag = my_flag
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("has_mio_policy", HOI4Entity {
-        name: "has_mio_policy",
-        description: r#"Checks if the currently-scoped MIO has the target policy allowed.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "has_mio_policy",
+        HOI4Entity {
+            name: "has_mio_policy",
+            description: r#"Checks if the currently-scoped MIO has the target policy allowed.
 
 **Example:**
 ```paradox
 has_mio_policy = my_policy_token
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("has_mio_policy_active", HOI4Entity {
-        name: "has_mio_policy_active",
-        description: r#"Checks if the currently-scoped MIO has the target policy active.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "has_mio_policy_active",
+        HOI4Entity {
+            name: "has_mio_policy_active",
+            description: r#"Checks if the currently-scoped MIO has the target policy active.
 
 **Example:**
 ```paradox
 has_mio_policy_active = my_policy_token
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("has_mio_research_category", HOI4Entity {
-        name: "has_mio_research_category",
-        description: r#"Checks if the currently-scoped MIO has the target research category.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "has_mio_research_category",
+        HOI4Entity {
+            name: "has_mio_research_category",
+            description: r#"Checks if the currently-scoped MIO has the target research category.
 
 **Example:**
 ```paradox
 has_mio_research_category = my_research_category_token
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("has_mio_equipment_type", HOI4Entity {
-        name: "has_mio_equipment_type",
-        description: r#"Checks if the currently-scoped MIO has the target equipment types.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "has_mio_equipment_type",
+        HOI4Entity {
+            name: "has_mio_equipment_type",
+            description: r#"Checks if the currently-scoped MIO has the target equipment types.
 
 **Example:**
 ```paradox
 has_mio_equipment_type = my_equipment_type_token
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("contract_contains_equipment", HOI4Entity {
         name: "contract_contains_equipment",
         description: r#"Checks if the currently-scoped purchase contract contains an equipment type.
@@ -6022,36 +6982,45 @@ contract_contains_equipment = infantry_equipment
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("deal_completion", HOI4Entity {
-        name: "deal_completion",
-        description: r#"Checks the deal completion with the target value.
+    m.insert(
+        "deal_completion",
+        HOI4Entity {
+            name: "deal_completion",
+            description: r#"Checks the deal completion with the target value.
 
 **Example:**
 ```paradox
 deal_completition > 0.6
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("seller", HOI4Entity {
-        name: "seller",
-        description: r#"Checks the seller in the current purchase contract.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "seller",
+        HOI4Entity {
+            name: "seller",
+            description: r#"Checks the seller in the current purchase contract.
 
 **Example:**
 ```paradox
 seller = BHR
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("buyer", HOI4Entity {
-        name: "buyer",
-        description: r#"Checks the buyer in the current purchase contract.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "buyer",
+        HOI4Entity {
+            name: "buyer",
+            description: r#"Checks the buyer in the current purchase contract.
 
 **Example:**
 ```paradox
 buyer = OMA
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("has_project_flag", HOI4Entity {
         name: "has_project_flag",
         description: r#"Check if flag has been set within the special project in scope. May checks on the value or date/days since last modified date.
@@ -6071,36 +7040,45 @@ has_project_flag = {
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("can_ROOT_get_wargoal_on_THIS", HOI4Entity {
-        name: "can_ROOT_get_wargoal_on_THIS",
-        description: r#"Checks if ROOT can obtain a wargoal on the current scope.
+    m.insert(
+        "can_ROOT_get_wargoal_on_THIS",
+        HOI4Entity {
+            name: "can_ROOT_get_wargoal_on_THIS",
+            description: r#"Checks if ROOT can obtain a wargoal on the current scope.
 
 **Example:**
 ```paradox
 can_ROOT_get_wargoal_on_THIS = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("is_free_or_subject_of_root", HOI4Entity {
-        name: "is_free_or_subject_of_root",
-        description: r#"Checks if the current scope is either independent or a subject of ROOT.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "is_free_or_subject_of_root",
+        HOI4Entity {
+            name: "is_free_or_subject_of_root",
+            description: r#"Checks if the current scope is either independent or a subject of ROOT.
 
 **Example:**
 ```paradox
 is_free_or_subject_of_root = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("has_same_ideology", HOI4Entity {
-        name: "has_same_ideology",
-        description: r#"Checks if the current scope has the same ideology as ROOT.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "has_same_ideology",
+        HOI4Entity {
+            name: "has_same_ideology",
+            description: r#"Checks if the current scope has the same ideology as ROOT.
 
 **Example:**
 ```paradox
 has_same_ideology = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("is_enemy_ideology", HOI4Entity {
         name: "is_enemy_ideology",
         description: r#"Checks if the current scope has an ideology that is considered enemy to ROOT's.
@@ -6111,26 +7089,32 @@ is_enemy_ideology = yes
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("has_ROOT_at_least_1_div_in_current_state_scope", HOI4Entity {
-        name: "has_ROOT_at_least_1_div_in_current_state_scope",
-        description: r#"Checks if ROOT has at least one division in the current scope.
+    m.insert(
+        "has_ROOT_at_least_1_div_in_current_state_scope",
+        HOI4Entity {
+            name: "has_ROOT_at_least_1_div_in_current_state_scope",
+            description: r#"Checks if ROOT has at least one division in the current scope.
 
 **Example:**
 ```paradox
 has_ROOT_at_least_1_div_in_current_state_scope = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("controls_or_subject_of", HOI4Entity {
-        name: "controls_or_subject_of",
-        description: r#"Checks if the current state is controlled by ROOT or a subject of ROOT.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "controls_or_subject_of",
+        HOI4Entity {
+            name: "controls_or_subject_of",
+            description: r#"Checks if the current state is controlled by ROOT or a subject of ROOT.
 
 **Example:**
 ```paradox
 controls_or_subject_of = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("is_controlled_by_ROOT_or_ally", HOI4Entity {
         name: "is_controlled_by_ROOT_or_ally",
         description: r#"Checks if the current state is controlled by ROOT, a subject of ROOT, or a country in the same faction as ROOT.
@@ -6141,16 +7125,19 @@ is_controlled_by_ROOT_or_ally = yes
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("owns_or_subject_of", HOI4Entity {
-        name: "owns_or_subject_of",
-        description: r#"Checks if the current scope is owned by ROOT or a subject of ROOT.
+    m.insert(
+        "owns_or_subject_of",
+        HOI4Entity {
+            name: "owns_or_subject_of",
+            description: r#"Checks if the current scope is owned by ROOT or a subject of ROOT.
 
 **Example:**
 ```paradox
 owns_or_subject_of = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m
 }
 
@@ -6166,26 +7153,44 @@ pub fn get_effects() -> HashMap<&'static str, HOI4Entity> {
 ```"#,
         scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
     });
-    m.insert("every_country", HOI4Entity {
-        name: "every_country",
-        description: r#"Executes contained effects on every country that meets the limit.
+    m.insert(
+        "every_country",
+        HOI4Entity {
+            name: "every_country",
+            description: r#"Executes contained effects on every country that meets the limit.
 
 **Example:**
 ```paradox
 `every_country = { … }`
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("random_country", HOI4Entity {
-        name: "random_country",
-        description: r#"Executes contained effects on a random country that meets the limit.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "random_country",
+        HOI4Entity {
+            name: "random_country",
+            description: r#"Executes contained effects on a random country that meets the limit.
 
 **Example:**
 ```paradox
 `random_country = { … }`
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
     m.insert("every_other_country", HOI4Entity {
         name: "every_other_country",
         description: r#"Executes contained effects on every country that meets the limit and is not the same country as the one this is contained in.
@@ -6342,19 +7347,30 @@ random_country_with_original_tag = {
 ```"#,
         scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
     });
-    m.insert("every_state", HOI4Entity {
-        name: "every_state",
-        description: r#"Executes contained effects on every state that meets the limit.
+    m.insert(
+        "every_state",
+        HOI4Entity {
+            name: "every_state",
+            description: r#"Executes contained effects on every state that meets the limit.
 
 **Example:**
 ```paradox
 `every_state = { … }`
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("random_state", HOI4Entity {
-        name: "random_state",
-        description: r#"Executes contained effects on a random state that meets the limit.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "random_state",
+        HOI4Entity {
+            name: "random_state",
+            description: r#"Executes contained effects on a random state that meets the limit.
 
 **Example:**
 ```paradox
@@ -6363,8 +7379,15 @@ random_state = {
     …    #effects to run
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
     m.insert("every_neighbor_state", HOI4Entity {
         name: "every_neighbor_state",
         description: r#"Executes contained effects on every state that meets the limit and neighbours the state this is contained in.
@@ -6883,16 +7906,25 @@ add_dynamic_modifier = {
 ```"#,
         scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
     });
-    m.insert("remove_dynamic_modifier", HOI4Entity {
-        name: "remove_dynamic_modifier",
-        description: r#"Removes a dynamic modifier from the current scope
+    m.insert(
+        "remove_dynamic_modifier",
+        HOI4Entity {
+            name: "remove_dynamic_modifier",
+            description: r#"Removes a dynamic modifier from the current scope
 
 **Example:**
 ```paradox
 remove_dynamic_modifier = { modifier = sabotaged_ressources }
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
     m.insert("force_update_dynamic_modifier", HOI4Entity {
         name: "force_update_dynamic_modifier",
         description: r#"Forces an update to the effects given by variables within dynamic modifiers.
@@ -6929,9 +7961,11 @@ remove_state_resistance_compliance_modifier  = {
 ```"#,
         scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
     });
-    m.insert("set_global_flag", HOI4Entity {
-        name: "set_global_flag",
-        description: r#"Defines a global flag.
+    m.insert(
+        "set_global_flag",
+        HOI4Entity {
+            name: "set_global_flag",
+            description: r#"Defines a global flag.
 
 **Example:**
 ```paradox
@@ -6945,31 +7979,58 @@ set_global_flag = {
     value = 1
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("play_song", HOI4Entity {
-        name: "play_song",
-        description: r#"Plays an audio track
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "play_song",
+        HOI4Entity {
+            name: "play_song",
+            description: r#"Plays an audio track
 
 **Example:**
 ```paradox
 play_song = "general_peace_1"
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("clr_global_flag", HOI4Entity {
-        name: "clr_global_flag",
-        description: r#"Clears a defined global flag.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "clr_global_flag",
+        HOI4Entity {
+            name: "clr_global_flag",
+            description: r#"Clears a defined global flag.
 
 **Example:**
 ```paradox
 clr_global_flag = my_flag
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("modify_global_flag", HOI4Entity {
-        name: "modify_global_flag",
-        description: r#"Adds an integer value to a flag.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "modify_global_flag",
+        HOI4Entity {
+            name: "modify_global_flag",
+            description: r#"Adds an integer value to a flag.
 
 **Example:**
 ```paradox
@@ -6978,11 +8039,20 @@ modify_global_flag = {
     value = 3
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("custom_effect_tooltip", HOI4Entity {
-        name: "custom_effect_tooltip",
-        description: r#"Displays a localized key in the effect tooltip.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "custom_effect_tooltip",
+        HOI4Entity {
+            name: "custom_effect_tooltip",
+            description: r#"Displays a localized key in the effect tooltip.
 
 **Example:**
 ```paradox
@@ -6995,8 +8065,15 @@ custom_effect_tooltip = {
     NESTEDLOC = myotherloc/string
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
     m.insert("custom_override_tooltip", HOI4Entity {
         name: "custom_override_tooltip",
         description: r#"Executes the provided effects but with a custom tooltip surpressing all tooltips from all other effects inside this block.
@@ -7011,9 +8088,11 @@ custom_override_tooltip= {
 ```"#,
         scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
     });
-    m.insert("effect_tooltip", HOI4Entity {
-        name: "effect_tooltip",
-        description: r#"Displays the effects in the tooltip without executing them.
+    m.insert(
+        "effect_tooltip",
+        HOI4Entity {
+            name: "effect_tooltip",
+            description: r#"Displays the effects in the tooltip without executing them.
 
 **Example:**
 ```paradox
@@ -7023,8 +8102,15 @@ effect_tooltip = {
     }
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
     m.insert("log", HOI4Entity {
         name: "log",
         description: r#"Displays a string in the user directory's /Hearts of Iron IV/logs/game.log file when executed, as well as showing up in the console if it is open when the logging effect was executed.
@@ -7059,46 +8145,82 @@ random_other_country = {
 ```"#,
         scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
     });
-    m.insert("clear_global_event_target", HOI4Entity {
-        name: "clear_global_event_target",
-        description: r#"Clears a specific global event target.
+    m.insert(
+        "clear_global_event_target",
+        HOI4Entity {
+            name: "clear_global_event_target",
+            description: r#"Clears a specific global event target.
 
 **Example:**
 ```paradox
 clear_global_event_target = my_country
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("clear_global_event_targets", HOI4Entity {
-        name: "clear_global_event_targets",
-        description: r#"Clears all global event targets.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "clear_global_event_targets",
+        HOI4Entity {
+            name: "clear_global_event_targets",
+            description: r#"Clears all global event targets.
 
 **Example:**
 ```paradox
 clear_global_event_targets = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("sound_effect", HOI4Entity {
-        name: "sound_effect",
-        description: r#"Plays the specified sound once.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "sound_effect",
+        HOI4Entity {
+            name: "sound_effect",
+            description: r#"Plays the specified sound once.
 
 **Example:**
 ```paradox
 sound_effect = "boom"
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("randomize_weather", HOI4Entity {
-        name: "randomize_weather",
-        description: r#"Randomizes the weather with the specified seed.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "randomize_weather",
+        HOI4Entity {
+            name: "randomize_weather",
+            description: r#"Randomizes the weather with the specified seed.
 
 **Example:**
 ```paradox
 randomize_weather = 12345
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
     m.insert("set_province_name", HOI4Entity {
         name: "set_province_name",
         description: r#"Changes the specified province/victory point's name to the specified name.
@@ -7116,19 +8238,30 @@ set_province_name = { id = 325 name = "New Name" }
 ```"#,
         scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
     });
-    m.insert("reset_province_name", HOI4Entity {
-        name: "reset_province_name",
-        description: r#"Resets the specified province's name.
+    m.insert(
+        "reset_province_name",
+        HOI4Entity {
+            name: "reset_province_name",
+            description: r#"Resets the specified province's name.
 
 **Example:**
 ```paradox
 reset_province_name = 325
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("damage_units", HOI4Entity {
-        name: "damage_units",
-        description: r#"Damages units in the specified area.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "damage_units",
+        HOI4Entity {
+            name: "damage_units",
+            description: r#"Damages units in the specified area.
 
 **Example:**
 ```paradox
@@ -7146,11 +8279,20 @@ damage_units = {
     navy = yes
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("create_entity", HOI4Entity {
-        name: "create_entity",
-        description: r#"Creates an entity.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "create_entity",
+        HOI4Entity {
+            name: "create_entity",
+            description: r#"Creates an entity.
 
 **Example:**
 ```paradox
@@ -7169,21 +8311,39 @@ create_entity = {
     visible = scripted_trigger_name
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("destroy_entity", HOI4Entity {
-        name: "destroy_entity",
-        description: r#"Deletes an entity
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "destroy_entity",
+        HOI4Entity {
+            name: "destroy_entity",
+            description: r#"Deletes an entity
 
 **Example:**
 ```paradox
 destroy_entity = 123
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("set_entity_movement", HOI4Entity {
-        name: "set_entity_movement",
-        description: r#"Sets the position and rotation of an entity using two coordinates.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "set_entity_movement",
+        HOI4Entity {
+            name: "set_entity_movement",
+            description: r#"Sets the position and rotation of an entity using two coordinates.
 
 **Example:**
 ```paradox
@@ -7201,11 +8361,20 @@ set_entity_movement = {
     rotation = 1.2
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("set_entity_position", HOI4Entity {
-        name: "set_entity_position",
-        description: r#"Sets the position of an existing entity
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "set_entity_position",
+        HOI4Entity {
+            name: "set_entity_position",
+            description: r#"Sets the position of an existing entity
 
 **Example:**
 ```paradox
@@ -7218,11 +8387,20 @@ set_entity_position = {
   state = 42
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("set_entity_rotation", HOI4Entity {
-        name: "set_entity_rotation",
-        description: r#"Sets the currently-facing angle of an existing entity.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "set_entity_rotation",
+        HOI4Entity {
+            name: "set_entity_rotation",
+            description: r#"Sets the currently-facing angle of an existing entity.
 
 **Example:**
 ```paradox
@@ -7231,11 +8409,20 @@ set_entity_rotation = {
     rotation = 0.23
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("set_entity_scale", HOI4Entity {
-        name: "set_entity_scale",
-        description: r#"Sets the size of an existing entity.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "set_entity_scale",
+        HOI4Entity {
+            name: "set_entity_scale",
+            description: r#"Sets the size of an existing entity.
 
 **Example:**
 ```paradox
@@ -7244,11 +8431,20 @@ set_entity_scale = {
   scale = 5.0
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("set_entity_animation", HOI4Entity {
-        name: "set_entity_animation",
-        description: r#"Sets the animation of a specified entity.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "set_entity_animation",
+        HOI4Entity {
+            name: "set_entity_animation",
+            description: r#"Sets the animation of a specified entity.
 
 **Example:**
 ```paradox
@@ -7257,11 +8453,20 @@ set_entity_animation = {
     animation = "shoot_lasers"
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("build_railway", HOI4Entity {
-        name: "build_railway",
-        description: r#"Adds a railway level between two provinces or along a predefined path.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "build_railway",
+        HOI4Entity {
+            name: "build_railway",
+            description: r#"Adds a railway level between two provinces or along a predefined path.
 
 **Example:**
 ```paradox
@@ -7299,8 +8504,15 @@ build_railway = {
     target_state = 100
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
     m.insert("event_option_tooltip", HOI4Entity {
         name: "event_option_tooltip",
         description: r#"Shows the tooltip usually received for hovering over an event option with the specified name.
@@ -7311,9 +8523,11 @@ event_option_tooltip = mtg_usa_civil_war_fascists.1.a
 ```"#,
         scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
     });
-    m.insert("create_purchase_contract", HOI4Entity {
-        name: "create_purchase_contract",
-        description: r#"Creates a purchase contract with the specified parameters.
+    m.insert(
+        "create_purchase_contract",
+        HOI4Entity {
+            name: "create_purchase_contract",
+            description: r#"Creates a purchase contract with the specified parameters.
 
 **Example:**
 ```paradox
@@ -7327,8 +8541,15 @@ create_purchase_contract = {
     }
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
     m.insert("start_border_war", HOI4Entity {
         name: "start_border_war",
         description: r#"Starts a border war for the specified attacker and defender. The participating countries are the owners of the specified states.
@@ -7373,9 +8594,11 @@ set_border_war_data = {
 ```"#,
         scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
     });
-    m.insert("cancel_border_war", HOI4Entity {
-        name: "cancel_border_war",
-        description: r#"Cancels an on-going border war without a winner.
+    m.insert(
+        "cancel_border_war",
+        HOI4Entity {
+            name: "cancel_border_war",
+            description: r#"Cancels an on-going border war without a winner.
 
 **Example:**
 ```paradox
@@ -7385,11 +8608,20 @@ cancel_border_war = {
     attacker = 527
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("finalize_border_war", HOI4Entity {
-        name: "finalize_border_war",
-        description: r#"Ends an on-going border war.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "finalize_border_war",
+        HOI4Entity {
+            name: "finalize_border_war",
+            description: r#"Ends an on-going border war.
 
 **Example:**
 ```paradox
@@ -7399,8 +8631,15 @@ finalize_border_war = {
     defender = 408
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
     m.insert("set_variable", HOI4Entity {
         name: "set_variable",
         description: r#"Sets a variable's value to the specified amount, creating it if not defined.
@@ -7437,16 +8676,25 @@ set_temp_variable_to_random = my_var
 ```"#,
         scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
     });
-    m.insert("clear_variable", HOI4Entity {
-        name: "clear_variable",
-        description: r#"Clears the value from the memory entirely.
+    m.insert(
+        "clear_variable",
+        HOI4Entity {
+            name: "clear_variable",
+            description: r#"Clears the value from the memory entirely.
 
 **Example:**
 ```paradox
 clear_variable = my_variable
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
     m.insert("add_to_variable", HOI4Entity {
         name: "add_to_variable",
         description: r#"Increases a variable's value by the specified amount, creating it if not defined.
@@ -7483,9 +8731,11 @@ subtract_from_temp_variable = { temp_var = num_owned_states }
 ```"#,
         scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
     });
-    m.insert("multiply_variable", HOI4Entity {
-        name: "multiply_variable",
-        description: r#"Multiplies a variable's value by the specified amount.
+    m.insert(
+        "multiply_variable",
+        HOI4Entity {
+            name: "multiply_variable",
+            description: r#"Multiplies a variable's value by the specified amount.
 
 **Example:**
 ```paradox
@@ -7499,11 +8749,20 @@ multiply_variable = {
 ```paradox
 multiply_temp_variable = { temp_var = num_owned_states }
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("divide_variable", HOI4Entity {
-        name: "divide_variable",
-        description: r#"Divides a variable's value by the specified amount.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "divide_variable",
+        HOI4Entity {
+            name: "divide_variable",
+            description: r#"Divides a variable's value by the specified amount.
 
 **Example:**
 ```paradox
@@ -7517,8 +8776,15 @@ divide_variable = {
 ```paradox
 divide_temp_variable = { temp_var = num_owned_states }
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
     m.insert("modulo_variable", HOI4Entity {
         name: "modulo_variable",
         description: r#"Makes the variable become the remainder of Euclidean division of the variable by the specified value.
@@ -7537,9 +8803,11 @@ modulo_temp_variable = { temp_var = num_controlled_states }
 ```"#,
         scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
     });
-    m.insert("round_variable", HOI4Entity {
-        name: "round_variable",
-        description: r#"Rounds the variable towards the closest integer value.
+    m.insert(
+        "round_variable",
+        HOI4Entity {
+            name: "round_variable",
+            description: r#"Rounds the variable towards the closest integer value.
 
 **Example:**
 ```paradox
@@ -7549,8 +8817,15 @@ round_variable = my_variable
 ```paradox
 round_temp_variable = temp
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
     m.insert("clamp_variable", HOI4Entity {
         name: "clamp_variable",
         description: r#"Clamps the variable to ensure its value is between the two specified numbers, raising to the minimum if smaller or lowering to the maximum if larger.
@@ -7571,9 +8846,11 @@ clamp_temp_variable = {
 ```"#,
         scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
     });
-    m.insert("career_profile_set_temp_playthrough_variable", HOI4Entity {
-        name: "career_profile_set_temp_playthrough_variable",
-        description: r#"Sets a temporary variable to a value or another variable.
+    m.insert(
+        "career_profile_set_temp_playthrough_variable",
+        HOI4Entity {
+            name: "career_profile_set_temp_playthrough_variable",
+            description: r#"Sets a temporary variable to a value or another variable.
 
 **Example:**
 ```paradox
@@ -7581,11 +8858,20 @@ career_profile_set_temp_playthrough_variable = {
   sum = rocket_sites_built_1936
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("career_profile_set_temp_variable", HOI4Entity {
-        name: "career_profile_set_temp_variable",
-        description: r#"Sets a temporary variable to a value or another variable.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "career_profile_set_temp_variable",
+        HOI4Entity {
+            name: "career_profile_set_temp_variable",
+            description: r#"Sets a temporary variable to a value or another variable.
 
 **Example:**
 ```paradox
@@ -7594,8 +8880,15 @@ career_profile_set_temp_variable = {
   value = num_dogs_in_career_profile
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
     m.insert("add_to_array", HOI4Entity {
         name: "add_to_array",
         description: r#"Adds an element to the array either at the specified index, defaulting to the end otherwise.
@@ -7613,9 +8906,11 @@ add_to_temp_array = { temp_states = THIS }
 ```"#,
         scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
     });
-    m.insert("remove_from_array", HOI4Entity {
-        name: "remove_from_array",
-        description: r#"Removes an element from the array with the specified value or index.
+    m.insert(
+        "remove_from_array",
+        HOI4Entity {
+            name: "remove_from_array",
+            description: r#"Removes an element from the array with the specified value or index.
 
 **Example:**
 ```paradox
@@ -7628,11 +8923,20 @@ remove_from_array = {
 ```paradox
 remove_from_temp_array = { temp_states = THIS }
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("clear_array", HOI4Entity {
-        name: "clear_array",
-        description: r#"Clears the array, removing every element inside.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "clear_array",
+        HOI4Entity {
+            name: "clear_array",
+            description: r#"Clears the array, removing every element inside.
 
 **Example:**
 ```paradox
@@ -7642,11 +8946,20 @@ clear_array = global.my_countries
 ```paradox
 clear_temp_array = temp_states
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
-    m.insert("resize_array", HOI4Entity {
-        name: "resize_array",
-        description: r#"Resizes the array, removing or adding elements in the end if necessary.
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
+    m.insert(
+        "resize_array",
+        HOI4Entity {
+            name: "resize_array",
+            description: r#"Resizes the array, removing or adding elements in the end if necessary.
 
 **Example:**
 ```paradox
@@ -7660,8 +8973,15 @@ resize_array = {
 ```paradox
 resize_temp_array = { temp_states = 20 }
 ```"#,
-        scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
-    });
+            scopes: &[
+                crate::scope::Scope::Global,
+                crate::scope::Scope::Country,
+                crate::scope::Scope::State,
+                crate::scope::Scope::Character,
+                crate::scope::Scope::Unit,
+            ],
+        },
+    );
     m.insert("find_highest_in_array", HOI4Entity {
         name: "find_highest_in_array",
         description: r#"Finds the largest value in the array and assigns its value and index to a temporary variable.
@@ -7690,9 +9010,11 @@ find_lowest_in_array = {
 ```"#,
         scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
     });
-    m.insert("set_country_flag", HOI4Entity {
-        name: "set_country_flag",
-        description: r#"Defines a country flag.
+    m.insert(
+        "set_country_flag",
+        HOI4Entity {
+            name: "set_country_flag",
+            description: r#"Defines a country flag.
 
 **Example:**
 ```paradox
@@ -7706,21 +9028,27 @@ set_country_flag = {
     value = 1
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("clr_country_flag", HOI4Entity {
-        name: "clr_country_flag",
-        description: r#"Clears a defined country flag.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "clr_country_flag",
+        HOI4Entity {
+            name: "clr_country_flag",
+            description: r#"Clears a defined country flag.
 
 **Example:**
 ```paradox
 clr_country_flag = my_flag
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("modify_country_flag", HOI4Entity {
-        name: "modify_country_flag",
-        description: r#"Adds an integer value to a flag.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "modify_country_flag",
+        HOI4Entity {
+            name: "modify_country_flag",
+            description: r#"Adds an integer value to a flag.
 
 **Example:**
 ```paradox
@@ -7729,11 +9057,14 @@ modify_country_flag = {
     value = 3
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("country_event", HOI4Entity {
-        name: "country_event",
-        description: r#"Fires the specified event for the current country.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "country_event",
+        HOI4Entity {
+            name: "country_event",
+            description: r#"Fires the specified event for the current country.
 
 **Example:**
 ```paradox
@@ -7748,11 +9079,14 @@ country_event = {
 ```paradox
 country_event = my_event.1
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("news_event", HOI4Entity {
-        name: "news_event",
-        description: r#"Fires the specified news event for the current country.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "news_event",
+        HOI4Entity {
+            name: "news_event",
+            description: r#"Fires the specified news event for the current country.
 
 **Example:**
 ```paradox
@@ -7767,8 +9101,9 @@ news_event = {
 ```paradox
 news_event = my_event.1
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("set_cosmetic_tag", HOI4Entity {
         name: "set_cosmetic_tag",
         description: r#"Makes the current scope use the specified cosmetic tag, changing name and flag.
@@ -7779,16 +9114,19 @@ set_cosmetic_tag = SAF_SOV_communism
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("drop_cosmetic_tag", HOI4Entity {
-        name: "drop_cosmetic_tag",
-        description: r#"Makes the current scope drop the current cosmetic tag they are using.
+    m.insert(
+        "drop_cosmetic_tag",
+        HOI4Entity {
+            name: "drop_cosmetic_tag",
+            description: r#"Makes the current scope drop the current cosmetic tag they are using.
 
 **Example:**
 ```paradox
 drop_cosmetic_tag = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("set_rule", HOI4Entity {
         name: "set_rule",
         description: r#"Toggles the special game rules for the current scope. Note: each rule can only be toggled a few times before a reload is required.
@@ -7802,9 +9140,11 @@ set_rule = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("set_party_rule", HOI4Entity {
-        name: "set_party_rule",
-        description: r#"Toggles the special game rules for the current scope's political party.
+    m.insert(
+        "set_party_rule",
+        HOI4Entity {
+            name: "set_party_rule",
+            description: r#"Toggles the special game rules for the current scope's political party.
 
 **Example:**
 ```paradox
@@ -7814,8 +9154,9 @@ set_party_rule = {
     can_create_factions = yes
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("add_relation_rule_override", HOI4Entity {
         name: "add_relation_rule_override",
         description: r#"Toggles the special game rules for the current scope in diplomacy towards the specified country only, if the trigger is met.
@@ -7831,9 +9172,11 @@ add_relation_rule_override = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("remove_relation_rule_override", HOI4Entity {
-        name: "remove_relation_rule_override",
-        description: r#"Removes the toggle added with add_relation_rule_override.
+    m.insert(
+        "remove_relation_rule_override",
+        HOI4Entity {
+            name: "remove_relation_rule_override",
+            description: r#"Removes the toggle added with add_relation_rule_override.
 
 **Example:**
 ```paradox
@@ -7843,41 +9186,53 @@ remove_relation_rule_override = {
     can_access_market = yes
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("scoped_sound_effect", HOI4Entity {
-        name: "scoped_sound_effect",
-        description: r#"Plays the specified sound once only for the current country.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "scoped_sound_effect",
+        HOI4Entity {
+            name: "scoped_sound_effect",
+            description: r#"Plays the specified sound once only for the current country.
 
 **Example:**
 ```paradox
 scoped_sound_effect = "boom"
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("scoped_play_song", HOI4Entity {
-        name: "scoped_play_song",
-        description: r#"Plays an audio track for the specified country only.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "scoped_play_song",
+        HOI4Entity {
+            name: "scoped_play_song",
+            description: r#"Plays an audio track for the specified country only.
 
 **Example:**
 ```paradox
 scoped_play_song = "general_peace_1"
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("goto_province", HOI4Entity {
-        name: "goto_province",
-        description: r#"Moves the camera position over the specified province.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "goto_province",
+        HOI4Entity {
+            name: "goto_province",
+            description: r#"Moves the camera position over the specified province.
 
 **Example:**
 ```paradox
 goto_province = 325
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("goto_state", HOI4Entity {
-        name: "goto_state",
-        description: r#"Moves the camera position over the specified state.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "goto_state",
+        HOI4Entity {
+            name: "goto_state",
+            description: r#"Moves the camera position over the specified state.
 
 **Example:**
 ```paradox
@@ -7887,8 +9242,9 @@ goto_state = 1
 ```paradox
 goto_state = var:some_state
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("change_tag_from", HOI4Entity {
         name: "change_tag_from",
         description: r#"Switches the player to the current scope from the target scope. Nothing happens if the target scope is controlled by AI.
@@ -7928,9 +9284,11 @@ force_update_map_mode = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("add_ai_strategy", HOI4Entity {
-        name: "add_ai_strategy",
-        description: r#"Sets an AI strategy for the current scope.
+    m.insert(
+        "add_ai_strategy",
+        HOI4Entity {
+            name: "add_ai_strategy",
+            description: r#"Sets an AI strategy for the current scope.
 
 **Example:**
 ```paradox
@@ -7940,11 +9298,14 @@ add_ai_strategy = {
     value = 200
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("create_dynamic_country", HOI4Entity {
-        name: "create_dynamic_country",
-        description: r#"Creates a new dynamic country, akin to ones used in civil wars.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "create_dynamic_country",
+        HOI4Entity {
+            name: "create_dynamic_country",
+            description: r#"Creates a new dynamic country, akin to ones used in civil wars.
 
 **Example:**
 ```paradox
@@ -7955,31 +9316,40 @@ create_dynamic_country = {
     transfer_state = 123
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("add_state_core", HOI4Entity {
-        name: "add_state_core",
-        description: r#"Adds a core for the current scope to the specified state.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "add_state_core",
+        HOI4Entity {
+            name: "add_state_core",
+            description: r#"Adds a core for the current scope to the specified state.
 
 **Example:**
 ```paradox
 add_state_core = 345
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("remove_state_core", HOI4Entity {
-        name: "remove_state_core",
-        description: r#"Removes the core of the current scope from the specified state.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "remove_state_core",
+        HOI4Entity {
+            name: "remove_state_core",
+            description: r#"Removes the core of the current scope from the specified state.
 
 **Example:**
 ```paradox
 remove_state_core = 345
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("set_capital", HOI4Entity {
-        name: "set_capital",
-        description: r#"Makes the specified state the current scope's capital state.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "set_capital",
+        HOI4Entity {
+            name: "set_capital",
+            description: r#"Makes the specified state the current scope's capital state.
 
 **Example:**
 ```paradox
@@ -7992,48 +9362,61 @@ set_capital = {
   remember_old_capital = no
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("add_state_claim", HOI4Entity {
-        name: "add_state_claim",
-        description: r#"Adds a claim for the current scope on the specified state.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "add_state_claim",
+        HOI4Entity {
+            name: "add_state_claim",
+            description: r#"Adds a claim for the current scope on the specified state.
 
 **Example:**
 ```paradox
 add_state_claim = 345
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("remove_state_claim", HOI4Entity {
-        name: "remove_state_claim",
-        description: r#"Removes a claim of the current scope from the specified state.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "remove_state_claim",
+        HOI4Entity {
+            name: "remove_state_claim",
+            description: r#"Removes a claim of the current scope from the specified state.
 
 **Example:**
 ```paradox
 remove_state_claim = 345
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("set_state_owner", HOI4Entity {
-        name: "set_state_owner",
-        description: r#"Makes the current scope the owner of the specified state.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "set_state_owner",
+        HOI4Entity {
+            name: "set_state_owner",
+            description: r#"Makes the current scope the owner of the specified state.
 
 **Example:**
 ```paradox
 set_state_owner = 345
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("set_state_controller", HOI4Entity {
-        name: "set_state_controller",
-        description: r#"Makes the current scope the controller of the specified state.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "set_state_controller",
+        HOI4Entity {
+            name: "set_state_controller",
+            description: r#"Makes the current scope the controller of the specified state.
 
 **Example:**
 ```paradox
 set_state_controller = 345
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("add_contested_owner", HOI4Entity {
         name: "add_contested_owner",
         description: r#"Adds a contested owner to a state. The effect can be used either from a country or a state scope and accepts the other as parameter.
@@ -8054,29 +9437,37 @@ remove_contested_owner = 42
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("transfer_state", HOI4Entity {
-        name: "transfer_state",
-        description: r#"Makes the current scope the owner and controller of the specified state.
+    m.insert(
+        "transfer_state",
+        HOI4Entity {
+            name: "transfer_state",
+            description: r#"Makes the current scope the owner and controller of the specified state.
 
 **Example:**
 ```paradox
 transfer_state = 345
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("set_province_controller", HOI4Entity {
-        name: "set_province_controller",
-        description: r#"Changes the controller of the specified province to the current scope.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "set_province_controller",
+        HOI4Entity {
+            name: "set_province_controller",
+            description: r#"Changes the controller of the specified province to the current scope.
 
 **Example:**
 ```paradox
 set_province_controller = 2999
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("add_political_power", HOI4Entity {
-        name: "add_political_power",
-        description: r#"Adds the specified amount of political power to the current scope.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "add_political_power",
+        HOI4Entity {
+            name: "add_political_power",
+            description: r#"Adds the specified amount of political power to the current scope.
 
 **Example:**
 ```paradox
@@ -8086,71 +9477,92 @@ add_political_power = 100
 ```paradox
 add_political_power = var:my_var
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("set_political_power", HOI4Entity {
-        name: "set_political_power",
-        description: r#"Sets the specified amount of political power for the current scope.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "set_political_power",
+        HOI4Entity {
+            name: "set_political_power",
+            description: r#"Sets the specified amount of political power for the current scope.
 
 **Example:**
 ```paradox
 set_political_power = 100
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("add_stability", HOI4Entity {
-        name: "add_stability",
-        description: r#"Adds to the current stability value for the current scope.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "add_stability",
+        HOI4Entity {
+            name: "add_stability",
+            description: r#"Adds to the current stability value for the current scope.
 
 **Example:**
 ```paradox
 add_stability = 0.1
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("set_stability", HOI4Entity {
-        name: "set_stability",
-        description: r#"Sets the current stability value for the current scope.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "set_stability",
+        HOI4Entity {
+            name: "set_stability",
+            description: r#"Sets the current stability value for the current scope.
 
 **Example:**
 ```paradox
 set_stability = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("add_war_support", HOI4Entity {
-        name: "add_war_support",
-        description: r#"Adds to the current war support value for the current scope.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "add_war_support",
+        HOI4Entity {
+            name: "add_war_support",
+            description: r#"Adds to the current war support value for the current scope.
 
 **Example:**
 ```paradox
 add_war_support = 0.1
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("set_war_support", HOI4Entity {
-        name: "set_war_support",
-        description: r#"Sets the current war support value for the current scope.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "set_war_support",
+        HOI4Entity {
+            name: "set_war_support",
+            description: r#"Sets the current war support value for the current scope.
 
 **Example:**
 ```paradox
 set_war_support = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("add_command_power", HOI4Entity {
-        name: "add_command_power",
-        description: r#"Adds the specified amount of command power to the current scope.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "add_command_power",
+        HOI4Entity {
+            name: "add_command_power",
+            description: r#"Adds the specified amount of command power to the current scope.
 
 **Example:**
 ```paradox
 add_command_power = 100
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("add_manpower", HOI4Entity {
-        name: "add_manpower",
-        description: r#"Adds the specified amount of manpower to the current scope.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "add_manpower",
+        HOI4Entity {
+            name: "add_manpower",
+            description: r#"Adds the specified amount of manpower to the current scope.
 
 **Example:**
 ```paradox
@@ -8160,38 +9572,48 @@ add_manpower = 100000
 ```paradox
 add_manpower = var:my_var
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("army_experience", HOI4Entity {
-        name: "army_experience",
-        description: r#"Adds the specified amount of army experience to the current scope.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "army_experience",
+        HOI4Entity {
+            name: "army_experience",
+            description: r#"Adds the specified amount of army experience to the current scope.
 
 **Example:**
 ```paradox
 army_experience = 10
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("navy_experience", HOI4Entity {
-        name: "navy_experience",
-        description: r#"Adds the specified amount of navy experience to the current scope.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "navy_experience",
+        HOI4Entity {
+            name: "navy_experience",
+            description: r#"Adds the specified amount of navy experience to the current scope.
 
 **Example:**
 ```paradox
 navy_experience = 10
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("air_experience", HOI4Entity {
-        name: "air_experience",
-        description: r#"Adds the specified amount of air experience to the current scope.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "air_experience",
+        HOI4Entity {
+            name: "air_experience",
+            description: r#"Adds the specified amount of air experience to the current scope.
 
 **Example:**
 ```paradox
 air_experience = 10
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("set_politics", HOI4Entity {
         name: "set_politics",
         description: r#"Sets the political status of the country, including the ruling party and elections.
@@ -8209,9 +9631,11 @@ set_politics = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("set_popularities", HOI4Entity {
-        name: "set_popularities",
-        description: r#"Sets the political party popularities for the current scope.
+    m.insert(
+        "set_popularities",
+        HOI4Entity {
+            name: "set_popularities",
+            description: r#"Sets the political party popularities for the current scope.
 
 **Example:**
 ```paradox
@@ -8222,11 +9646,14 @@ set_popularities = {
 	communism = 5
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("add_popularity", HOI4Entity {
-        name: "add_popularity",
-        description: r#"Adjusts the popularity for the specified party in the current scope.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "add_popularity",
+        HOI4Entity {
+            name: "add_popularity",
+            description: r#"Adjusts the popularity for the specified party in the current scope.
 
 **Example:**
 ```paradox
@@ -8235,8 +9662,9 @@ add_popularity = {
     popularity = -0.5
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("set_political_party", HOI4Entity {
         name: "set_political_party",
         description: r#"Sets the popularity for the specified political party in the current scope.
@@ -8250,9 +9678,11 @@ set_political_party = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("set_party_name", HOI4Entity {
-        name: "set_party_name",
-        description: r#"Changes the name of the specified political party for the current scope.
+    m.insert(
+        "set_party_name",
+        HOI4Entity {
+            name: "set_party_name",
+            description: r#"Changes the name of the specified political party for the current scope.
 
 **Example:**
 ```paradox
@@ -8262,8 +9692,9 @@ set_party_name = {
     name = GER_neutrality_party_kaiserreich
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("hold_election", HOI4Entity {
         name: "hold_election",
         description: r#"Executes the events in the **on_new_term_election** on action for the current scope.
@@ -8274,9 +9705,11 @@ hold_election = ROOT
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("set_power_balance", HOI4Entity {
-        name: "set_power_balance",
-        description: r#"Sets a new balance of power or edits the existing one.
+    m.insert(
+        "set_power_balance",
+        HOI4Entity {
+            name: "set_power_balance",
+            description: r#"Sets a new balance of power or edits the existing one.
 
 **Example:**
 ```paradox
@@ -8286,11 +9719,14 @@ set_power_balance = {
     right_side = my_bop_right_side
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("remove_power_balance", HOI4Entity {
-        name: "remove_power_balance",
-        description: r#"Removes the balance of power in entirety.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "remove_power_balance",
+        HOI4Entity {
+            name: "remove_power_balance",
+            description: r#"Removes the balance of power in entirety.
 
 **Example:**
 ```paradox
@@ -8298,11 +9734,14 @@ remove_power_balance = {
     id = my_bop
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("add_power_balance_value", HOI4Entity {
-        name: "add_power_balance_value",
-        description: r#"Pushes the balance of power towards one side.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "add_power_balance_value",
+        HOI4Entity {
+            name: "add_power_balance_value",
+            description: r#"Pushes the balance of power towards one side.
 
 **Example:**
 ```paradox
@@ -8312,11 +9751,14 @@ add_power_balance_value = {
     tooltip_side = my_bop_side
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("add_power_balance_modifier", HOI4Entity {
-        name: "add_power_balance_modifier",
-        description: r#"Applies a balance of power modifier.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "add_power_balance_modifier",
+        HOI4Entity {
+            name: "add_power_balance_modifier",
+            description: r#"Applies a balance of power modifier.
 
 **Example:**
 ```paradox
@@ -8325,11 +9767,14 @@ add_power_balance_modifier = {
     modifier = my_static_modifier
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("remove_power_balance_modifier", HOI4Entity {
-        name: "remove_power_balance_modifier",
-        description: r#"Cancels a balance of power modifier.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "remove_power_balance_modifier",
+        HOI4Entity {
+            name: "remove_power_balance_modifier",
+            description: r#"Cancels a balance of power modifier.
 
 **Example:**
 ```paradox
@@ -8338,11 +9783,14 @@ remove_power_balance_modifier = {
     modifier = my_static_modifier
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("remove_all_power_balance_modifiers", HOI4Entity {
-        name: "remove_all_power_balance_modifiers",
-        description: r#"Cancels all balance of power modifiers.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "remove_all_power_balance_modifiers",
+        HOI4Entity {
+            name: "remove_all_power_balance_modifiers",
+            description: r#"Cancels all balance of power modifiers.
 
 **Example:**
 ```paradox
@@ -8350,11 +9798,14 @@ remove_all_power_balance_modifiers = {
     id = my_bop
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("set_power_balance_gfx", HOI4Entity {
-        name: "set_power_balance_gfx",
-        description: r#"Changes the appearance of one of the sides within the balance of power.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "set_power_balance_gfx",
+        HOI4Entity {
+            name: "set_power_balance_gfx",
+            description: r#"Changes the appearance of one of the sides within the balance of power.
 
 **Example:**
 ```paradox
@@ -8364,18 +9815,22 @@ set_power_balance_gfx = {
     gfx = GFX_my_bop_side_new
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("set_major", HOI4Entity {
-        name: "set_major",
-        description: r#"Makes the current scope a major country.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "set_major",
+        HOI4Entity {
+            name: "set_major",
+            description: r#"Makes the current scope a major country.
 
 **Example:**
 ```paradox
 set_major = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("release", HOI4Entity {
         name: "release",
         description: r#"Releases the specified non-existent country as a free nation within the current country's owned states.
@@ -8430,36 +9885,45 @@ release_autonomy = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("give_guarantee", HOI4Entity {
-        name: "give_guarantee",
-        description: r#"The current scope guarantees the target country.
+    m.insert(
+        "give_guarantee",
+        HOI4Entity {
+            name: "give_guarantee",
+            description: r#"The current scope guarantees the target country.
 
 **Example:**
 ```paradox
 give_guarantee = GER
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("give_military_access", HOI4Entity {
-        name: "give_military_access",
-        description: r#"The current scope grants military access to the target country.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "give_military_access",
+        HOI4Entity {
+            name: "give_military_access",
+            description: r#"The current scope grants military access to the target country.
 
 **Example:**
 ```paradox
 give_military_access = GER
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("recall_attache", HOI4Entity {
-        name: "recall_attache",
-        description: r#"Recalls the current scope's attaché from the specified country.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "recall_attache",
+        HOI4Entity {
+            name: "recall_attache",
+            description: r#"Recalls the current scope's attaché from the specified country.
 
 **Example:**
 ```paradox
 recall_attache = GER
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("diplomatic_relation", HOI4Entity {
         name: "diplomatic_relation",
         description: r#"Used to define a diplomatic relation between the current scope and target scope country.
@@ -8539,9 +10003,11 @@ remove_relation_modifier = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("add_collaboration", HOI4Entity {
-        name: "add_collaboration",
-        description: r#"Adds collaboration in TAG with the scoped country.
+    m.insert(
+        "add_collaboration",
+        HOI4Entity {
+            name: "add_collaboration",
+            description: r#"Adds collaboration in TAG with the scoped country.
 
 **Example:**
 ```paradox
@@ -8550,11 +10016,14 @@ add_collaboration = {
     value = 0.3
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("set_collaboration", HOI4Entity {
-        name: "set_collaboration",
-        description: r#"Sets the collaboration in TAG with the scoped country.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "set_collaboration",
+        HOI4Entity {
+            name: "set_collaboration",
+            description: r#"Sets the collaboration in TAG with the scoped country.
 
 **Example:**
 ```paradox
@@ -8563,8 +10032,9 @@ set_collaboration = {
     value = 0.3
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("recall_volunteers_from", HOI4Entity {
         name: "recall_volunteers_from",
         description: r#"Recalls volunteers sent to the specified country back to the current country.
@@ -8575,9 +10045,11 @@ recall_volunteers_from = SPR
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("set_occupation_law", HOI4Entity {
-        name: "set_occupation_law",
-        description: r#"Sets the occupation law of the country.
+    m.insert(
+        "set_occupation_law",
+        HOI4Entity {
+            name: "set_occupation_law",
+            description: r#"Sets the occupation law of the country.
 
 **Example:**
 ```paradox
@@ -8599,11 +10071,14 @@ USA = {
 ```
 
 # Changes the USA's default occupation law to the default."#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("set_occupation_law_where_available", HOI4Entity {
-        name: "set_occupation_law_where_available",
-        description: r#"Sets the occupation law of the country.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "set_occupation_law_where_available",
+        HOI4Entity {
+            name: "set_occupation_law_where_available",
+            description: r#"Sets the occupation law of the country.
 
 **Example:**
 ```paradox
@@ -8625,38 +10100,48 @@ USA = {
 ```
 
 # Changes the USA's default occupation law to the default where possible."#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("send_embargo", HOI4Entity {
-        name: "send_embargo",
-        description: r#"Embargos the target country.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "send_embargo",
+        HOI4Entity {
+            name: "send_embargo",
+            description: r#"Embargos the target country.
 
 **Example:**
 ```paradox
 send_embargo = ITA
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("break_embargo", HOI4Entity {
-        name: "break_embargo",
-        description: r#"Stops embargoing the target country.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "break_embargo",
+        HOI4Entity {
+            name: "break_embargo",
+            description: r#"Stops embargoing the target country.
 
 **Example:**
 ```paradox
 break_embargo = ITA
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("give_market_access", HOI4Entity {
-        name: "give_market_access",
-        description: r#"Opens market access between the two countries.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "give_market_access",
+        HOI4Entity {
+            name: "give_market_access",
+            description: r#"Opens market access between the two countries.
 
 **Example:**
 ```paradox
 give_market_access = ITA
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("create_faction", HOI4Entity {
         name: "create_faction",
         description: r#"Creates a faction with the specified name for the current scope. The current scope and any subjects automatically join the faction.
@@ -8686,86 +10171,110 @@ create_faction_from_template = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("add_to_faction", HOI4Entity {
-        name: "add_to_faction",
-        description: r#"Adds the country to the faction of the current scope.
+    m.insert(
+        "add_to_faction",
+        HOI4Entity {
+            name: "add_to_faction",
+            description: r#"Adds the country to the faction of the current scope.
 
 **Example:**
 ```paradox
 add_to_faction = GER
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("dismantle_faction", HOI4Entity {
-        name: "dismantle_faction",
-        description: r#"Dismantles the faction of the current scope.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "dismantle_faction",
+        HOI4Entity {
+            name: "dismantle_faction",
+            description: r#"Dismantles the faction of the current scope.
 
 **Example:**
 ```paradox
 dismantle_faction = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("leave_faction", HOI4Entity {
-        name: "leave_faction",
-        description: r#"Removes the current scope from the faction they are part of.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "leave_faction",
+        HOI4Entity {
+            name: "leave_faction",
+            description: r#"Removes the current scope from the faction they are part of.
 
 **Example:**
 ```paradox
 leave_faction = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("remove_from_faction", HOI4Entity {
-        name: "remove_from_faction",
-        description: r#"Removes the specified scope from the faction led by the current scope.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "remove_from_faction",
+        HOI4Entity {
+            name: "remove_from_faction",
+            description: r#"Removes the specified scope from the faction led by the current scope.
 
 **Example:**
 ```paradox
 remove_from_faction = GER
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("set_faction_name", HOI4Entity {
-        name: "set_faction_name",
-        description: r#"Changes faction names.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "set_faction_name",
+        HOI4Entity {
+            name: "set_faction_name",
+            description: r#"Changes faction names.
 
 **Example:**
 ```paradox
 set_faction_name = SOME_LOC_KEY
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("set_faction_leader", HOI4Entity {
-        name: "set_faction_leader",
-        description: r#"Sets the current country as the faction leader.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "set_faction_leader",
+        HOI4Entity {
+            name: "set_faction_leader",
+            description: r#"Sets the current country as the faction leader.
 
 **Example:**
 ```paradox
 set_faction_leader = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("set_faction_spymaster", HOI4Entity {
-        name: "set_faction_spymaster",
-        description: r#"Sets the current country as the faction spymaster.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "set_faction_spymaster",
+        HOI4Entity {
+            name: "set_faction_spymaster",
+            description: r#"Sets the current country as the faction spymaster.
 
 **Example:**
 ```paradox
 set_faction_spymaster = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("set_faction_rule", HOI4Entity {
-        name: "set_faction_rule",
-        description: r#"Set a rule on the country's faction.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "set_faction_rule",
+        HOI4Entity {
+            name: "set_faction_rule",
+            description: r#"Set a rule on the country's faction.
 
 **Example:**
 ```paradox
 set_faction_rule = rule_id
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("set_faction_manifest", HOI4Entity {
         name: "set_faction_manifest",
         description: r#"Changes current country's faction manifest, the previous manifest is removed.
@@ -8776,29 +10285,37 @@ set_faction_manifest = faction_manifest_id
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("add_faction_goal", HOI4Entity {
-        name: "add_faction_goal",
-        description: r#"Adds a goal to the current’s country faction.
+    m.insert(
+        "add_faction_goal",
+        HOI4Entity {
+            name: "add_faction_goal",
+            description: r#"Adds a goal to the current’s country faction.
 
 **Example:**
 ```paradox
 add_faction_goal = faction_goal_an_armored_fist
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("remove_faction_goal", HOI4Entity {
-        name: "remove_faction_goal",
-        description: r#"Remove a goal from the current’s country faction.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "remove_faction_goal",
+        HOI4Entity {
+            name: "remove_faction_goal",
+            description: r#"Remove a goal from the current’s country faction.
 
 **Example:**
 ```paradox
 remove_faction_goal = faction_goal_secure_the_oil_supply
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("add_faction_goal_slot", HOI4Entity {
-        name: "add_faction_goal_slot",
-        description: r#"Adds extra goal slots to the faction for a specific category.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "add_faction_goal_slot",
+        HOI4Entity {
+            name: "add_faction_goal_slot",
+            description: r#"Adds extra goal slots to the faction for a specific category.
 
 **Example:**
 ```paradox
@@ -8807,8 +10324,9 @@ add_faction_goal_slot = {
     value = 1
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("add_faction_influence_ratio", HOI4Entity {
         name: "add_faction_influence_ratio",
         description: r#"Adds influence to the country based on the given ratio of the faction’s total influence.
@@ -8819,46 +10337,58 @@ add_faction_influence_ratio = 0.075
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("add_faction_influence_score", HOI4Entity {
-        name: "add_faction_influence_score",
-        description: r#"Adds influence to the country in the faction.
+    m.insert(
+        "add_faction_influence_score",
+        HOI4Entity {
+            name: "add_faction_influence_score",
+            description: r#"Adds influence to the country in the faction.
 
 **Example:**
 ```paradox
 add_faction_influence_score = 5
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("add_faction_initiative", HOI4Entity {
-        name: "add_faction_initiative",
-        description: r#"Adds Faction Initiative points to the current country’s faction.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "add_faction_initiative",
+        HOI4Entity {
+            name: "add_faction_initiative",
+            description: r#"Adds Faction Initiative points to the current country’s faction.
 
 **Example:**
 ```paradox
 add_faction_initiative = 1
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("add_faction_power_projection", HOI4Entity {
-        name: "add_faction_power_projection",
-        description: r#"Adds power projection to the faction.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "add_faction_power_projection",
+        HOI4Entity {
+            name: "add_faction_power_projection",
+            description: r#"Adds power projection to the faction.
 
 **Example:**
 ```paradox
 add_faction_power_projection = 100
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("set_faction_upgrade", HOI4Entity {
-        name: "set_faction_upgrade",
-        description: r#"Set either a member upgrade for the specified tag.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "set_faction_upgrade",
+        HOI4Entity {
+            name: "set_faction_upgrade",
+            description: r#"Set either a member upgrade for the specified tag.
 
 **Example:**
 ```paradox
 set_faction_upgrade = token
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("set_faction_member_upgrade_min", HOI4Entity {
         name: "set_faction_member_upgrade_min",
         description: r#"Set a faction's minimal requirements for an faction member upgrade group.
@@ -8891,9 +10421,11 @@ set_faction_research_unlocked = yes
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("puppet", HOI4Entity {
-        name: "puppet",
-        description: r#"Makes the specified country a subject of the current scope.
+    m.insert(
+        "puppet",
+        HOI4Entity {
+            name: "puppet",
+            description: r#"Makes the specified country a subject of the current scope.
 
 **Example:**
 ```paradox
@@ -8906,21 +10438,27 @@ puppet = {
     end_wars = no
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("end_puppet", HOI4Entity {
-        name: "end_puppet",
-        description: r#"Removes the subject status between the target and the current scope.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "end_puppet",
+        HOI4Entity {
+            name: "end_puppet",
+            description: r#"Removes the subject status between the target and the current scope.
 
 **Example:**
 ```paradox
 end_puppet = GER
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("add_autonomy_ratio", HOI4Entity {
-        name: "add_autonomy_ratio",
-        description: r#"Adds a freedom score ratio modifier to the current scope.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "add_autonomy_ratio",
+        HOI4Entity {
+            name: "add_autonomy_ratio",
+            description: r#"Adds a freedom score ratio modifier to the current scope.
 
 **Example:**
 ```paradox
@@ -8929,11 +10467,14 @@ add_autonomy_ratio = {
     localization = AST_adopt_westminster
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("add_autonomy_score", HOI4Entity {
-        name: "add_autonomy_score",
-        description: r#"Adds an exact freedom score modifier to the current scope.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "add_autonomy_score",
+        HOI4Entity {
+            name: "add_autonomy_score",
+            description: r#"Adds an exact freedom score modifier to the current scope.
 
 **Example:**
 ```paradox
@@ -8942,8 +10483,9 @@ add_autonomy_score = {
     localization = EXAMPLE
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("set_autonomy", HOI4Entity {
         name: "set_autonomy",
         description: r#"Sets the autonomy level for the specified country, **including independence**.
@@ -8959,56 +10501,71 @@ set_autonomy = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("add_legitimacy", HOI4Entity {
-        name: "add_legitimacy",
-        description: r#"Adds legitimacy.
+    m.insert(
+        "add_legitimacy",
+        HOI4Entity {
+            name: "add_legitimacy",
+            description: r#"Adds legitimacy.
 
 **Example:**
 ```paradox
 add_legitimacy = 10
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("set_legitimacy", HOI4Entity {
-        name: "set_legitimacy",
-        description: r#"Sets legitimacy.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "set_legitimacy",
+        HOI4Entity {
+            name: "set_legitimacy",
+            description: r#"Sets legitimacy.
 
 **Example:**
 ```paradox
 set_legitimacy = 10
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("become_exiled_in", HOI4Entity {
-        name: "become_exiled_in",
-        description: r#"Creates a government in exile.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "become_exiled_in",
+        HOI4Entity {
+            name: "become_exiled_in",
+            description: r#"Creates a government in exile.
 
 **Example:**
 ```paradox
 become_exiled_in = { target = <Host tag> legitimacy = <0-100> (starting legitimacy, optional) }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("end_exile", HOI4Entity {
-        name: "end_exile",
-        description: r#"Ends a government in exile.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "end_exile",
+        HOI4Entity {
+            name: "end_exile",
+            description: r#"Ends a government in exile.
 
 **Example:**
 ```paradox
 end_exile = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("add_threat", HOI4Entity {
-        name: "add_threat",
-        description: r#"Adjusts the level of World Tension.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "add_threat",
+        HOI4Entity {
+            name: "add_threat",
+            description: r#"Adjusts the level of World Tension.
 
 **Example:**
 ```paradox
 add_threat = 10
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("add_named_threat", HOI4Entity {
         name: "add_named_threat",
         description: r#"Adjusts the level of World Tension and adds an entry in the World Tension tooltip.
@@ -9022,9 +10579,11 @@ add_named_threat = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("annex_country", HOI4Entity {
-        name: "annex_country",
-        description: r#"Annex the specified country for the current scope.
+    m.insert(
+        "annex_country",
+        HOI4Entity {
+            name: "annex_country",
+            description: r#"Annex the specified country for the current scope.
 
 **Example:**
 ```paradox
@@ -9033,8 +10592,9 @@ annex_country = {
     transfer_troops = yes
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("add_to_war", HOI4Entity {
         name: "add_to_war",
         description: r#"Forces the current scope to join the war of the specified ally against the specified enemy.
@@ -9062,9 +10622,11 @@ declare_war_on = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("white_peace", HOI4Entity {
-        name: "white_peace",
-        description: r#"Makes the current scope white peace the specified scope.
+    m.insert(
+        "white_peace",
+        HOI4Entity {
+            name: "white_peace",
+            description: r#"Makes the current scope white peace the specified scope.
 
 **Example:**
 ```paradox
@@ -9077,8 +10639,9 @@ white_peace = {
     message = my_peace_tt
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("start_peace_conference", HOI4Entity {
         name: "start_peace_conference",
         description: r#"Makes the current scope start a peace conference with the specified scope on the other side.
@@ -9093,9 +10656,11 @@ start_peace_conference = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("set_truce", HOI4Entity {
-        name: "set_truce",
-        description: r#"Makes the current scope truce with the specified scope.
+    m.insert(
+        "set_truce",
+        HOI4Entity {
+            name: "set_truce",
+            description: r#"Makes the current scope truce with the specified scope.
 
 **Example:**
 ```paradox
@@ -9104,11 +10669,14 @@ set_truce = {
     days = 90
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("create_wargoal", HOI4Entity {
-        name: "create_wargoal",
-        description: r#"Grants the current scope a wargoal against the specified country.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "create_wargoal",
+        HOI4Entity {
+            name: "create_wargoal",
+            description: r#"Grants the current scope a wargoal against the specified country.
 
 **Example:**
 ```paradox
@@ -9126,11 +10694,14 @@ create_wargoal = {
     expire = 90
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("remove_wargoal", HOI4Entity {
-        name: "remove_wargoal",
-        description: r#"Removes wargoals from the current scope to the specified country.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "remove_wargoal",
+        HOI4Entity {
+            name: "remove_wargoal",
+            description: r#"Removes wargoals from the current scope to the specified country.
 
 **Example:**
 ```paradox
@@ -9139,11 +10710,14 @@ remove_wargoal = {
     target = ROOT
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("start_civil_war", HOI4Entity {
-        name: "start_civil_war",
-        description: r#"Starts a civil war for the current scope with the specified parameters.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "start_civil_war",
+        HOI4Entity {
+            name: "start_civil_war",
+            description: r#"Starts a civil war for the current scope with the specified parameters.
 
 **Example:**
 ```paradox
@@ -9203,8 +10777,9 @@ start_civil_war = {
 ```
 
 (See usage for PREV and PREV.PREV)"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("add_civil_war_target", HOI4Entity {
         name: "add_civil_war_target",
         description: r#"Sets that the war between ROOT and TAG is a civil war, resulting in the victory being the annexation of the other side and setting world tension limits on intervention.
@@ -9245,16 +10820,19 @@ transfer_units_fraction= {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("add_nuclear_bombs", HOI4Entity {
-        name: "add_nuclear_bombs",
-        description: r#"Adds specified number of nukes to the country's stockpile
+    m.insert(
+        "add_nuclear_bombs",
+        HOI4Entity {
+            name: "add_nuclear_bombs",
+            description: r#"Adds specified number of nukes to the country's stockpile
 
 **Example:**
 ```paradox
 add_nuclear_bombs = 100
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("launch_nuke", HOI4Entity {
         name: "launch_nuke",
         description: r#"Nukes the specified province or a province in the needed state. If a state is set rather than the specific province, first prioritises the country set in `controller`, then prioritises the countries at war with the current scope, and then countries that are neutral.
@@ -9304,9 +10882,11 @@ create_import = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("give_resource_rights", HOI4Entity {
-        name: "give_resource_rights",
-        description: r#"Gives all the resources of a state to the target country
+    m.insert(
+        "give_resource_rights",
+        HOI4Entity {
+            name: "give_resource_rights",
+            description: r#"Gives all the resources of a state to the target country
 
 **Example:**
 ```paradox
@@ -9320,48 +10900,61 @@ give_resource_rights = {
     resources = { oil }
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("remove_resource_rights", HOI4Entity {
-        name: "remove_resource_rights",
-        description: r#"Removes given resource rights
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "remove_resource_rights",
+        HOI4Entity {
+            name: "remove_resource_rights",
+            description: r#"Removes given resource rights
 
 **Example:**
 ```paradox
 ENG = { remove_resource_rights = 477 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("add_fuel", HOI4Entity {
-        name: "add_fuel",
-        description: r#"Adds fuel to the current country.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "add_fuel",
+        HOI4Entity {
+            name: "add_fuel",
+            description: r#"Adds fuel to the current country.
 
 **Example:**
 ```paradox
 add_fuel = 400
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("set_fuel", HOI4Entity {
-        name: "set_fuel",
-        description: r#"Sets country's current fuel amount.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "set_fuel",
+        HOI4Entity {
+            name: "set_fuel",
+            description: r#"Sets country's current fuel amount.
 
 **Example:**
 ```paradox
 set_fuel = 400
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("set_fuel_ratio", HOI4Entity {
-        name: "set_fuel_ratio",
-        description: r#"Set country's current fuel ratio relative to its capacity.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "set_fuel_ratio",
+        HOI4Entity {
+            name: "set_fuel_ratio",
+            description: r#"Set country's current fuel ratio relative to its capacity.
 
 **Example:**
 ```paradox
 set_fuel_ratio = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("add_offsite_building", HOI4Entity {
         name: "add_offsite_building",
         description: r#"Adds an off-map (offmap) building for the current scope that produces its effects without being present in a state.
@@ -9386,9 +10979,11 @@ modify_building_resources = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("damage_building", HOI4Entity {
-        name: "damage_building",
-        description: r#"Damages a building in a targeted state or province.
+    m.insert(
+        "damage_building",
+        HOI4Entity {
+            name: "damage_building",
+            description: r#"Damages a building in a targeted state or province.
 
 **Example:**
 ```paradox
@@ -9407,8 +11002,9 @@ damage_building = {
   province = 3488
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("load_focus_tree", HOI4Entity {
         name: "load_focus_tree",
         description: r#"Loads a new focus tree for the current scope, retaining any shared focuses if set.
@@ -9437,9 +11033,11 @@ unlock_national_focus = my_focus
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("complete_national_focus", HOI4Entity {
-        name: "complete_national_focus",
-        description: r#"Completes the specified focus for the current scope.
+    m.insert(
+        "complete_national_focus",
+        HOI4Entity {
+            name: "complete_national_focus",
+            description: r#"Completes the specified focus for the current scope.
 
 **Example:**
 ```paradox
@@ -9453,8 +11051,9 @@ complete_national_focus = {
   originator_name = GER_fritz_todt
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("uncomplete_national_focus", HOI4Entity {
         name: "uncomplete_national_focus",
         description: r#"Removes a focus from list of completed focus, and potentially all focuses requiring it as a prerequisite.
@@ -9543,9 +11142,11 @@ activate_targeted_decision = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("remove_targeted_decision", HOI4Entity {
-        name: "remove_targeted_decision",
-        description: r#"Removes the specified targeted decision for the current scope.
+    m.insert(
+        "remove_targeted_decision",
+        HOI4Entity {
+            name: "remove_targeted_decision",
+            description: r#"Removes the specified targeted decision for the current scope.
 
 **Example:**
 ```paradox
@@ -9554,8 +11155,9 @@ remove_targeted_decision = {
     decision = my_decision
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("unlock_decision_tooltip", HOI4Entity {
         name: "unlock_decision_tooltip",
         description: r#"Displays a special tooltip for the specified decision in the effect tooltip.
@@ -9597,16 +11199,19 @@ add_days_remove  = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("remove_decision", HOI4Entity {
-        name: "remove_decision",
-        description: r#"Removes a decision.
+    m.insert(
+        "remove_decision",
+        HOI4Entity {
+            name: "remove_decision",
+            description: r#"Removes a decision.
 
 **Example:**
 ```paradox
 remove_decision = GER_MEPO
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("remove_decision_on_cooldown", HOI4Entity {
         name: "remove_decision_on_cooldown",
         description: r#"If the decision is on cooldown, it gets removed, in order to reactivate or remove completely.
@@ -9637,19 +11242,24 @@ activate_mission_tooltip = my_mission
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("remove_mission", HOI4Entity {
-        name: "remove_mission",
-        description: r#"Removes the specified mission for the current scope.
+    m.insert(
+        "remove_mission",
+        HOI4Entity {
+            name: "remove_mission",
+            description: r#"Removes the specified mission for the current scope.
 
 **Example:**
 ```paradox
 remove_mission = my_mission
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("add_days_mission_timeout", HOI4Entity {
-        name: "add_days_mission_timeout",
-        description: r#"Adds the number of days to the specified mission.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "add_days_mission_timeout",
+        HOI4Entity {
+            name: "add_days_mission_timeout",
+            description: r#"Adds the number of days to the specified mission.
 
 **Example:**
 ```paradox
@@ -9658,8 +11268,9 @@ add_days_mission_timeout = {
     days = 20
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("add_research_slot", HOI4Entity {
         name: "add_research_slot",
         description: r#"Adjusts the number of research slots the current scope has. Can remove slots with negatives.
@@ -9670,16 +11281,19 @@ add_research_slot = 1
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("set_research_slots", HOI4Entity {
-        name: "set_research_slots",
-        description: r#"Sets the number of research slots the current scope has.
+    m.insert(
+        "set_research_slots",
+        HOI4Entity {
+            name: "set_research_slots",
+            description: r#"Sets the number of research slots the current scope has.
 
 **Example:**
 ```paradox
 set_research_slots = 4
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("add_tech_bonus", HOI4Entity {
         name: "add_tech_bonus",
         description: r#"Grants a research bonus to the current scope with the specified parameters.
@@ -9694,9 +11308,11 @@ add_tech_bonus = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("set_technology", HOI4Entity {
-        name: "set_technology",
-        description: r#"Grants the specified technology to the current scope.
+    m.insert(
+        "set_technology",
+        HOI4Entity {
+            name: "set_technology",
+            description: r#"Grants the specified technology to the current scope.
 
 **Example:**
 ```paradox
@@ -9704,31 +11320,40 @@ set_technology = {
     suicide_craft = 1
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("add_to_tech_sharing_group", HOI4Entity {
-        name: "add_to_tech_sharing_group",
-        description: r#"Adds the current scope to the specified technology sharing group.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "add_to_tech_sharing_group",
+        HOI4Entity {
+            name: "add_to_tech_sharing_group",
+            description: r#"Adds the current scope to the specified technology sharing group.
 
 **Example:**
 ```paradox
 add_to_tech_sharing_group = us_research
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("remove_from_tech_sharing_group", HOI4Entity {
-        name: "remove_from_tech_sharing_group",
-        description: r#"Removes the current scope from the specified technology sharing group.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "remove_from_tech_sharing_group",
+        HOI4Entity {
+            name: "remove_from_tech_sharing_group",
+            description: r#"Removes the current scope from the specified technology sharing group.
 
 **Example:**
 ```paradox
 remove_from_tech_sharing_group = us_research
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("modify_tech_sharing_bonus", HOI4Entity {
-        name: "modify_tech_sharing_bonus",
-        description: r#"Modifies the specified technology sharing group.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "modify_tech_sharing_bonus",
+        HOI4Entity {
+            name: "modify_tech_sharing_bonus",
+            description: r#"Modifies the specified technology sharing group.
 
 **Example:**
 ```paradox
@@ -9737,8 +11362,9 @@ modify_tech_sharing_bonus = {
     bonus = 0.5
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("inherit_technology", HOI4Entity {
         name: "inherit_technology",
         description: r#"Makes the current country's researched technologies be copied from the specified country.
@@ -9749,19 +11375,24 @@ inherit_technology = CAN
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("mark_technology_tree_layout_dirty", HOI4Entity {
-        name: "mark_technology_tree_layout_dirty",
-        description: r#"Forces the refresh of the hidden technologies for the scoped country.
+    m.insert(
+        "mark_technology_tree_layout_dirty",
+        HOI4Entity {
+            name: "mark_technology_tree_layout_dirty",
+            description: r#"Forces the refresh of the hidden technologies for the scoped country.
 
 **Example:**
 ```paradox
 mark_technology_tree_layout_dirty = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("add_ideas", HOI4Entity {
-        name: "add_ideas",
-        description: r#"Adds the specified ideas to the current scope.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "add_ideas",
+        HOI4Entity {
+            name: "add_ideas",
+            description: r#"Adds the specified ideas to the current scope.
 
 **Example:**
 ```paradox
@@ -9774,8 +11405,9 @@ add_ideas = {
     my_idea_2
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("add_timed_idea", HOI4Entity {
         name: "add_timed_idea",
         description: r#"Adds the specified ideas to the current scope for the specified number of days.
@@ -9815,9 +11447,11 @@ swap_ideas = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("remove_ideas", HOI4Entity {
-        name: "remove_ideas",
-        description: r#"Removes the specified idea from the current scope.
+    m.insert(
+        "remove_ideas",
+        HOI4Entity {
+            name: "remove_ideas",
+            description: r#"Removes the specified idea from the current scope.
 
 **Example:**
 ```paradox
@@ -9830,18 +11464,22 @@ remove_ideas = {
     my_idea_2
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("remove_ideas_with_trait", HOI4Entity {
-        name: "remove_ideas_with_trait",
-        description: r#"Removes all ideas for the current scope that use the specified trait.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "remove_ideas_with_trait",
+        HOI4Entity {
+            name: "remove_ideas_with_trait",
+            description: r#"Removes all ideas for the current scope that use the specified trait.
 
 **Example:**
 ```paradox
 remove_ideas_with_trait = motorized_equipment_manufacturer
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("show_ideas_tooltip", HOI4Entity {
         name: "show_ideas_tooltip",
         description: r#"Displays the specified idea in the tooltip for the current effect scope. Does not add the idea.
@@ -9862,9 +11500,11 @@ load_oob = "GER_default"
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("division_template", HOI4Entity {
-        name: "division_template",
-        description: r#"Creates and adds the specified division template to the current scope.
+    m.insert(
+        "division_template",
+        HOI4Entity {
+            name: "division_template",
+            description: r#"Creates and adds the specified division template to the current scope.
 
 **Example:**
 ```paradox
@@ -9886,11 +11526,14 @@ division_template = {
     }
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("create_colonial_division_template", HOI4Entity {
-        name: "create_colonial_division_template",
-        description: r#"Create a colonial division template for overlord/owner.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "create_colonial_division_template",
+        HOI4Entity {
+            name: "create_colonial_division_template",
+            description: r#"Create a colonial division template for overlord/owner.
 
 **Example:**
 ```paradox
@@ -9907,8 +11550,9 @@ create_colonial_division_template = {
   }
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("add_units_to_division_template", HOI4Entity {
         name: "add_units_to_division_template",
         description: r#"Adds the specified brigades to first available slots of specified columns to the template (if possible).
@@ -9941,9 +11585,11 @@ set_division_template_lock = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("country_lock_all_division_template", HOI4Entity {
-        name: "country_lock_all_division_template",
-        description: r#"Locks all division templates for the current scope.
+    m.insert(
+        "country_lock_all_division_template",
+        HOI4Entity {
+            name: "country_lock_all_division_template",
+            description: r#"Locks all division templates for the current scope.
 
 **Example:**
 ```paradox
@@ -9956,8 +11602,9 @@ country_lock_all_division_template = {
   desc = loc_key
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("set_division_force_allow_recruiting", HOI4Entity {
         name: "set_division_force_allow_recruiting",
         description: r#"Changes whether it's possible to recruit divisions of a locked template without unlocking the template.
@@ -10008,9 +11655,11 @@ delete_unit_template_and_units = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("delete_unit", HOI4Entity {
-        name: "delete_unit",
-        description: r#"Deletes all units that meet the filters.
+    m.insert(
+        "delete_unit",
+        HOI4Entity {
+            name: "delete_unit",
+            description: r#"Deletes all units that meet the filters.
 
 **Example:**
 ```paradox
@@ -10029,11 +11678,14 @@ delete_unit = {
 ```paradox
 delete_unit = {} # Will delete all units
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("delete_units", HOI4Entity {
-        name: "delete_units",
-        description: r#"Deletes all units with a certain template.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "delete_units",
+        HOI4Entity {
+            name: "delete_units",
+            description: r#"Deletes all units with a certain template.
 
 **Example:**
 ```paradox
@@ -10042,11 +11694,14 @@ delete_units = {
     disband = yes
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("create_railway_gun", HOI4Entity {
-        name: "create_railway_gun",
-        description: r#"Creates a railway gun.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "create_railway_gun",
+        HOI4Entity {
+            name: "create_railway_gun",
+            description: r#"Creates a railway gun.
 
 **Example:**
 ```paradox
@@ -10056,21 +11711,27 @@ create_railway_gun = {
 	location = 12406
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("teleport_railway_guns_to_deploy_province", HOI4Entity {
-        name: "teleport_railway_guns_to_deploy_province",
-        description: r#"Teleports all railway guns to the province where they get deployed.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "teleport_railway_guns_to_deploy_province",
+        HOI4Entity {
+            name: "teleport_railway_guns_to_deploy_province",
+            description: r#"Teleports all railway guns to the province where they get deployed.
 
 **Example:**
 ```paradox
 teleport_railway_guns_to_deploy_province = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("add_unit_bonus", HOI4Entity {
-        name: "add_unit_bonus",
-        description: r#"Adds permanent subunit and subunit category bonuses for country.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "add_unit_bonus",
+        HOI4Entity {
+            name: "add_unit_bonus",
+            description: r#"Adds permanent subunit and subunit category bonuses for country.
 
 **Example:**
 ```paradox
@@ -10085,18 +11746,22 @@ add_unit_bonus = {
   }
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("set_equipment_fraction", HOI4Entity {
-        name: "set_equipment_fraction",
-        description: r#"Reduces the overall equipment stockpile by the specified fraction.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "set_equipment_fraction",
+        HOI4Entity {
+            name: "set_equipment_fraction",
+            description: r#"Reduces the overall equipment stockpile by the specified fraction.
 
 **Example:**
 ```paradox
 set_equipment_fraction = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("add_equipment_to_stockpile", HOI4Entity {
         name: "add_equipment_to_stockpile",
         description: r#"Edits the equipment stockpile of the current scope, adds or removes equipment of a specified type or archetype.
@@ -10164,9 +11829,11 @@ create_production_license = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("add_equipment_subsidy", HOI4Entity {
-        name: "add_equipment_subsidy",
-        description: r#"Creates an equipment subsidy on the international market.
+    m.insert(
+        "add_equipment_subsidy",
+        HOI4Entity {
+            name: "add_equipment_subsidy",
+            description: r#"Creates an equipment subsidy on the international market.
 
 **Example:**
 ```paradox
@@ -10184,21 +11851,27 @@ add_equipment_subsidy = {
     seller_trigger = my_scripted_trigger
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("add_cic", HOI4Entity {
-        name: "add_cic",
-        description: r#"Modifies the economic capacity bank on the international market.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "add_cic",
+        HOI4Entity {
+            name: "add_cic",
+            description: r#"Modifies the economic capacity bank on the international market.
 
 **Example:**
 ```paradox
 add_cic = 300
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("create_equipment_variant", HOI4Entity {
-        name: "create_equipment_variant",
-        description: r#"Creates the specified equipment variant for the current scope.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "create_equipment_variant",
+        HOI4Entity {
+            name: "create_equipment_variant",
+            description: r#"Creates the specified equipment variant for the current scope.
 
 **Example:**
 ```paradox
@@ -10243,8 +11916,9 @@ create_equipment_variant = {
     design_team = mio:ENG_vauxhall_organization
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("add_equipment_production", HOI4Entity {
         name: "add_equipment_production",
         description: r#"Starts a production line for the specified equipment for the current scope.
@@ -10262,9 +11936,11 @@ add_equipment_production = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("add_design_template_bonus", HOI4Entity {
-        name: "add_design_template_bonus",
-        description: r#"Add free bonus design discount to given types with a set of uses.
+    m.insert(
+        "add_design_template_bonus",
+        HOI4Entity {
+            name: "add_design_template_bonus",
+            description: r#"Add free bonus design discount to given types with a set of uses.
 
 **Example:**
 ```paradox
@@ -10277,8 +11953,9 @@ add_design_template_bonus = {
   equipment = large_plane_airframe
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("add_equipment_bonus", HOI4Entity {
         name: "add_equipment_bonus",
         description: r#"Adds the specified equipment bonuses to the country. As description the given loc key or the name of given special project will be used. Same usage as in Ideas/National spirits.
@@ -10328,9 +12005,11 @@ destroy_ships = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("transfer_navy", HOI4Entity {
-        name: "transfer_navy",
-        description: r#"Transfers the current scope navy to the specified country.
+    m.insert(
+        "transfer_navy",
+        HOI4Entity {
+            name: "transfer_navy",
+            description: r#"Transfers the current scope navy to the specified country.
 
 **Example:**
 ```paradox
@@ -10338,8 +12017,9 @@ transfer_navy = {
     target = GER
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("transfer_ship", HOI4Entity {
         name: "transfer_ship",
         description: r#"Transfers the specified type of ship from the current scope to the specified country.
@@ -10372,19 +12052,24 @@ FRA = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("add_mines", HOI4Entity {
-        name: "add_mines",
-        description: r#"Add mines to a strategic region.
+    m.insert(
+        "add_mines",
+        HOI4Entity {
+            name: "add_mines",
+            description: r#"Add mines to a strategic region.
 
 **Example:**
 ```paradox
 add_mines = { region = 42 amount = 100 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("add_ace", HOI4Entity {
-        name: "add_ace",
-        description: r#"Adds an ace for the current scope.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "add_ace",
+        HOI4Entity {
+            name: "add_ace",
+            description: r#"Adds an ace for the current scope.
 
 **Example:**
 ```paradox
@@ -10396,21 +12081,27 @@ add_ace = {
     is_female = yes
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("unlock_tactic", HOI4Entity {
-        name: "unlock_tactic",
-        description: r#"Unlocks the specified combat tactic for the country.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "unlock_tactic",
+        HOI4Entity {
+            name: "unlock_tactic",
+            description: r#"Unlocks the specified combat tactic for the country.
 
 **Example:**
 ```paradox
 unlock_tactic = tactic_masterful_blitz
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("add_doctrine_cost_reduction", HOI4Entity {
-        name: "add_doctrine_cost_reduction",
-        description: r#"Adds a limited use cost reduction for doctrines.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "add_doctrine_cost_reduction",
+        HOI4Entity {
+            name: "add_doctrine_cost_reduction",
+            description: r#"Adds a limited use cost reduction for doctrines.
 
 **Example:**
 ```paradox
@@ -10420,11 +12111,14 @@ add_doctrine_cost_reduction = {
 	category = land_doctrine
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("add_mastery", HOI4Entity {
-        name: "add_mastery",
-        description: r#"Adds doctrine mastery.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "add_mastery",
+        HOI4Entity {
+            name: "add_mastery",
+            description: r#"Adds doctrine mastery.
 
 **Example:**
 ```paradox
@@ -10438,11 +12132,14 @@ add_mastery = {
     index = 1
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("add_daily_mastery", HOI4Entity {
-        name: "add_daily_mastery",
-        description: r#"Adds doctrine mastery daily for a certain duration.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "add_daily_mastery",
+        HOI4Entity {
+            name: "add_daily_mastery",
+            description: r#"Adds doctrine mastery daily for a certain duration.
 
 **Example:**
 ```paradox
@@ -10458,11 +12155,14 @@ add_daily_mastery = {
     index = 1
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("add_mastery_bonus", HOI4Entity {
-        name: "add_mastery_bonus",
-        description: r#"Get a bonus to doctrine mastery gain for a certain duration.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "add_mastery_bonus",
+        HOI4Entity {
+            name: "add_mastery_bonus",
+            description: r#"Get a bonus to doctrine mastery gain for a certain duration.
 
 **Example:**
 ```paradox
@@ -10478,21 +12178,27 @@ add_mastery_bonus = {
     index = 1
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("set_grand_doctrine", HOI4Entity {
-        name: "set_grand_doctrine",
-        description: r#"Activate (unlock and assign) the specified grand doctrine.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "set_grand_doctrine",
+        HOI4Entity {
+            name: "set_grand_doctrine",
+            description: r#"Activate (unlock and assign) the specified grand doctrine.
 
 **Example:**
 ```paradox
 set_grand_doctrine = mobile_warfare
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("set_sub_doctrine", HOI4Entity {
-        name: "set_sub_doctrine",
-        description: r#"Activate (unlock and assign) the specified subdoctrine.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "set_sub_doctrine",
+        HOI4Entity {
+            name: "set_sub_doctrine",
+            description: r#"Activate (unlock and assign) the specified subdoctrine.
 
 **Example:**
 ```paradox
@@ -10506,11 +12212,14 @@ set_sub_doctrine = {
     track = 1
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("create_intelligence_agency", HOI4Entity {
-        name: "create_intelligence_agency",
-        description: r#"Creates an Intelligence Agency.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "create_intelligence_agency",
+        HOI4Entity {
+            name: "create_intelligence_agency",
+            description: r#"Creates an Intelligence Agency.
 
 **Example:**
 ```paradox
@@ -10523,11 +12232,14 @@ create_intelligence_agency = {
 ```paradox
 create_intelligence_agency = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("upgrade_intelligence_agency", HOI4Entity {
-        name: "upgrade_intelligence_agency",
-        description: r#"Unlocks an Intelligence Agency Upgrade.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "upgrade_intelligence_agency",
+        HOI4Entity {
+            name: "upgrade_intelligence_agency",
+            description: r#"Unlocks an Intelligence Agency Upgrade.
 
 **Example:**
 ```paradox
@@ -10537,11 +12249,14 @@ upgrade_intelligence_agency = upgrade_form_department
 ```paradox
 upgrade_intelligence_agency = <upgrade>
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("add_decryption", HOI4Entity {
-        name: "add_decryption",
-        description: r#"Adds decryption towards the target country
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "add_decryption",
+        HOI4Entity {
+            name: "add_decryption",
+            description: r#"Adds decryption towards the target country
 
 **Example:**
 ```paradox
@@ -10557,11 +12272,14 @@ add_decryption = {
     ratio = 0.5
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("add_intel", HOI4Entity {
-        name: "add_intel",
-        description: r#"Adds the specified amount of intel towards the specified country.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "add_intel",
+        HOI4Entity {
+            name: "add_intel",
+            description: r#"Adds the specified amount of intel towards the specified country.
 
 **Example:**
 ```paradox
@@ -10573,8 +12291,9 @@ add_intel = {
     airforce_intel = 2
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("add_operation_token", HOI4Entity {
         name: "add_operation_token",
         description: r#"Adds an operation token towards the country, allowing access to more intel or applying a targeted modifier.
@@ -10588,9 +12307,11 @@ add_operation_token = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("remove_operation_token", HOI4Entity {
-        name: "remove_operation_token",
-        description: r#"Removes an operation token from the country.
+    m.insert(
+        "remove_operation_token",
+        HOI4Entity {
+            name: "remove_operation_token",
+            description: r#"Removes an operation token from the country.
 
 **Example:**
 ```paradox
@@ -10599,11 +12320,14 @@ remove_operation_token = {
     token = token_test
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("capture_operative", HOI4Entity {
-        name: "capture_operative",
-        description: r#"Captures the specified operative.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "capture_operative",
+        HOI4Entity {
+            name: "capture_operative",
+            description: r#"Captures the specified operative.
 
 **Example:**
 ```paradox
@@ -10616,8 +12340,9 @@ capture_operative = {
 ```paradox
 capture_operative = PREV
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("create_operative_leader", HOI4Entity {
         name: "create_operative_leader",
         description: r#"Creates an operative for the current scope with the specified attributes.
@@ -10635,19 +12360,24 @@ create_operative_leader = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("free_operative", HOI4Entity {
-        name: "free_operative",
-        description: r#"Frees the specifies operative.
+    m.insert(
+        "free_operative",
+        HOI4Entity {
+            name: "free_operative",
+            description: r#"Frees the specifies operative.
 
 **Example:**
 ```paradox
 free_operative = PREV
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("free_random_operative", HOI4Entity {
-        name: "free_random_operative",
-        description: r#"Frees one random captured operative or all of them.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "free_random_operative",
+        HOI4Entity {
+            name: "free_random_operative",
+            description: r#"Frees one random captured operative or all of them.
 
 **Example:**
 ```paradox
@@ -10656,11 +12386,14 @@ free_random_operative = {
 	all = yes
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("kill_operative", HOI4Entity {
-        name: "kill_operative",
-        description: r#"Kills the targeted operative.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "kill_operative",
+        HOI4Entity {
+            name: "kill_operative",
+            description: r#"Kills the targeted operative.
 
 **Example:**
 ```paradox
@@ -10672,8 +12405,9 @@ kill_operative = {
 ```paradox
 kill_operative = PREV
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("turn_operative", HOI4Entity {
         name: "turn_operative",
         description: r#"Turns the targeted operative against their own country, transferring them to the current country.
@@ -10690,9 +12424,11 @@ turn_operative = PREV
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("steal_random_tech_bonus", HOI4Entity {
-        name: "steal_random_tech_bonus",
-        description: r#"Steals a random tech bonus from the specified country.
+    m.insert(
+        "steal_random_tech_bonus",
+        HOI4Entity {
+            name: "steal_random_tech_bonus",
+            description: r#"Steals a random tech bonus from the specified country.
 
 **Example:**
 ```paradox
@@ -10708,11 +12444,14 @@ steal_random_tech_bonus = {
     uses = 2
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("set_nationality", HOI4Entity {
-        name: "set_nationality",
-        description: r#"Switches the specified character to the specified country.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "set_nationality",
+        HOI4Entity {
+            name: "set_nationality",
+            description: r#"Switches the specified character to the specified country.
 
 **Example:**
 ```paradox
@@ -10721,8 +12460,9 @@ set_nationality = {
     character = OMA_sultan
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("retire_character", HOI4Entity {
         name: "retire_character",
         description: r#"Retires the character, removing every role they hold and making them disappear from the game.
@@ -10733,9 +12473,11 @@ retire_character = GER_Character_Token
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("set_character_name", HOI4Entity {
-        name: "set_character_name",
-        description: r#"Sets the new name for the target character.
+    m.insert(
+        "set_character_name",
+        HOI4Entity {
+            name: "set_character_name",
+            description: r#"Sets the new name for the target character.
 
 **Example:**
 ```paradox
@@ -10744,8 +12486,9 @@ set_character_name = {
 	name = my_name
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("character_list_tooltip", HOI4Entity {
         name: "character_list_tooltip",
         description: r#"Displays a list of every character meeting the specified limitation and recruited by the current country.
@@ -10761,9 +12504,11 @@ character_list_tooltip = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("add_trait", HOI4Entity {
-        name: "add_trait",
-        description: r#"Adds the specified country leader trait to the character.
+    m.insert(
+        "add_trait",
+        HOI4Entity {
+            name: "add_trait",
+            description: r#"Adds the specified country leader trait to the character.
 
 **Example:**
 ```paradox
@@ -10781,11 +12526,14 @@ add_trait = {
      trait = field_of_gar
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("remove_trait", HOI4Entity {
-        name: "remove_trait",
-        description: r#"Removes the specified trait from the character.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "remove_trait",
+        HOI4Entity {
+            name: "remove_trait",
+            description: r#"Removes the specified trait from the character.
 
 **Example:**
 ```paradox
@@ -10803,11 +12551,14 @@ remove_trait = {
      trait = field_of_gar
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("create_corps_commander", HOI4Entity {
-        name: "create_corps_commander",
-        description: r#"Creates a commander for the current scope with the specified attributes.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "create_corps_commander",
+        HOI4Entity {
+            name: "create_corps_commander",
+            description: r#"Creates a commander for the current scope with the specified attributes.
 
 **Example:**
 ```paradox
@@ -10822,8 +12573,9 @@ create_corps_commander = {
 	logistics_skill = 3
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("create_field_marshal", HOI4Entity {
         name: "create_field_marshal",
         description: r#"Creates a field marshal for the current scope with the specified attributes.
@@ -10862,19 +12614,24 @@ create_navy_leader = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("remove_unit_leader", HOI4Entity {
-        name: "remove_unit_leader",
-        description: r#"Removes the specified unit leader by their legacy ID.
+    m.insert(
+        "remove_unit_leader",
+        HOI4Entity {
+            name: "remove_unit_leader",
+            description: r#"Removes the specified unit leader by their legacy ID.
 
 **Example:**
 ```paradox
 remove_unit_leader = 70
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("add_corps_commander_role", HOI4Entity {
-        name: "add_corps_commander_role",
-        description: r#"Sets the specified character to also act as a corps commander.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "add_corps_commander_role",
+        HOI4Entity {
+            name: "add_corps_commander_role",
+            description: r#"Sets the specified character to also act as a corps commander.
 
 **Example:**
 ```paradox
@@ -10887,11 +12644,14 @@ add_corps_commander_role = {
     logistics_skill = 5
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("add_field_marshal_role", HOI4Entity {
-        name: "add_field_marshal_role",
-        description: r#"Sets the specified character to also act as a field marshal.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "add_field_marshal_role",
+        HOI4Entity {
+            name: "add_field_marshal_role",
+            description: r#"Sets the specified character to also act as a field marshal.
 
 **Example:**
 ```paradox
@@ -10904,11 +12664,14 @@ add_field_marshal_role = {
   logistics_skill = 5
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("add_naval_commander_role", HOI4Entity {
-        name: "add_naval_commander_role",
-        description: r#"Sets the specified character to also act as an admiral.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "add_naval_commander_role",
+        HOI4Entity {
+            name: "add_naval_commander_role",
+            description: r#"Sets the specified character to also act as an admiral.
 
 **Example:**
 ```paradox
@@ -10921,21 +12684,27 @@ add_naval_commander_role = {
   logistics_skill = 5
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("show_unit_leaders_tooltip", HOI4Entity {
-        name: "show_unit_leaders_tooltip",
-        description: r#"Shows the name of the specified character as a tooltip.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "show_unit_leaders_tooltip",
+        HOI4Entity {
+            name: "show_unit_leaders_tooltip",
+            description: r#"Shows the name of the specified character as a tooltip.
 
 **Example:**
 ```paradox
 show_unit_leaders_tooltip = TAG_my_leader
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("create_country_leader", HOI4Entity {
-        name: "create_country_leader",
-        description: r#"
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "create_country_leader",
+        HOI4Entity {
+            name: "create_country_leader",
+            description: r#"
 
 **Example:**
 ```paradox
@@ -10949,8 +12718,9 @@ create_country_leader = {
 	}
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("add_country_leader_role", HOI4Entity {
         name: "add_country_leader_role",
         description: r#"Sets the specified character to also act as a country leader, promoting to the party leader if specified.
@@ -10969,9 +12739,11 @@ add_country_leader_role = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("promote_character", HOI4Entity {
-        name: "promote_character",
-        description: r#"Promotes a character to the leader of their political party.
+    m.insert(
+        "promote_character",
+        HOI4Entity {
+            name: "promote_character",
+            description: r#"Promotes a character to the leader of their political party.
 
 **Example:**
 ```paradox
@@ -10984,11 +12756,14 @@ promote_character = {
     ideology = nazism
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("remove_country_leader_role", HOI4Entity {
-        name: "remove_country_leader_role",
-        description: r#"Removes a country leader role from a character.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "remove_country_leader_role",
+        HOI4Entity {
+            name: "remove_country_leader_role",
+            description: r#"Removes a country leader role from a character.
 
 **Example:**
 ```paradox
@@ -10997,8 +12772,9 @@ remove_country_leader_role = {
     ideology = socialism
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("kill_ideology_leader", HOI4Entity {
         name: "kill_ideology_leader",
         description: r#"Kills the country leader of the designated ideology for the current scope.
@@ -11019,16 +12795,19 @@ retire_ideology_leader = fascism
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("kill_country_leader", HOI4Entity {
-        name: "kill_country_leader",
-        description: r#"Kills the country leader for the current scope.
+    m.insert(
+        "kill_country_leader",
+        HOI4Entity {
+            name: "kill_country_leader",
+            description: r#"Kills the country leader for the current scope.
 
 **Example:**
 ```paradox
 kill_country_leader = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("retire_country_leader", HOI4Entity {
         name: "retire_country_leader",
         description: r#"Retires and removes the country leader as head of their party for the current scope.
@@ -11039,19 +12818,24 @@ retire_country_leader = yes
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("set_country_leader_ideology", HOI4Entity {
-        name: "set_country_leader_ideology",
-        description: r#"Changes the country leader's government type for the current scope.
+    m.insert(
+        "set_country_leader_ideology",
+        HOI4Entity {
+            name: "set_country_leader_ideology",
+            description: r#"Changes the country leader's government type for the current scope.
 
 **Example:**
 ```paradox
 set_country_leader_ideology = socialism
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("set_country_leader_description", HOI4Entity {
-        name: "set_country_leader_description",
-        description: r#"Changes the country leader's description.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "set_country_leader_description",
+        HOI4Entity {
+            name: "set_country_leader_description",
+            description: r#"Changes the country leader's description.
 
 **Example:**
 ```paradox
@@ -11060,11 +12844,14 @@ set_country_leader_description = {
 	desc = LOC_KEY
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("set_country_leader_name", HOI4Entity {
-        name: "set_country_leader_name",
-        description: r#"Changes the country leader's name.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "set_country_leader_name",
+        HOI4Entity {
+            name: "set_country_leader_name",
+            description: r#"Changes the country leader's name.
 
 **Example:**
 ```paradox
@@ -11073,11 +12860,14 @@ set_country_leader_name = {
 	name = LOC_KEY
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("set_country_leader_portrait", HOI4Entity {
-        name: "set_country_leader_portrait",
-        description: r#"Changes the country leader's portrait.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "set_country_leader_portrait",
+        HOI4Entity {
+            name: "set_country_leader_portrait",
+            description: r#"Changes the country leader's portrait.
 
 **Example:**
 ```paradox
@@ -11086,58 +12876,74 @@ set_country_leader_portrait = {
 	portrait = GFX_IMAGE_NAME
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("add_country_leader_trait", HOI4Entity {
-        name: "add_country_leader_trait",
-        description: r#"Adds the specified trait to the current country's country leader.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "add_country_leader_trait",
+        HOI4Entity {
+            name: "add_country_leader_trait",
+            description: r#"Adds the specified trait to the current country's country leader.
 
 **Example:**
 ```paradox
 add_country_leader_trait = nationalist_symbol
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("remove_country_leader_trait", HOI4Entity {
-        name: "remove_country_leader_trait",
-        description: r#"Removes the specified trait from the current scope's country leader.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "remove_country_leader_trait",
+        HOI4Entity {
+            name: "remove_country_leader_trait",
+            description: r#"Removes the specified trait from the current scope's country leader.
 
 **Example:**
 ```paradox
 remove_country_leader_trait = nationalist_symbol
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("swap_ruler_traits", HOI4Entity {
-        name: "swap_ruler_traits",
-        description: r#"Swaps traits.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "swap_ruler_traits",
+        HOI4Entity {
+            name: "swap_ruler_traits",
+            description: r#"Swaps traits.
 
 **Example:**
 ```paradox
 swap_ruler_traits = { remove = <trait> add = <trait> }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("activate_advisor", HOI4Entity {
-        name: "activate_advisor",
-        description: r#"Hires an advisor, placing them into their respective slot.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "activate_advisor",
+        HOI4Entity {
+            name: "activate_advisor",
+            description: r#"Hires an advisor, placing them into their respective slot.
 
 **Example:**
 ```paradox
 activate_advisor = GER_character_token_air_chief
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("deactivate_advisor", HOI4Entity {
-        name: "deactivate_advisor",
-        description: r#"Dismisses an advisor from their respective slot, leaving it empty.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "deactivate_advisor",
+        HOI4Entity {
+            name: "deactivate_advisor",
+            description: r#"Dismisses an advisor from their respective slot, leaving it empty.
 
 **Example:**
 ```paradox
 deactivate_advisor = GER_character_token_air_chief
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("add_advisor_role", HOI4Entity {
         name: "add_advisor_role",
         description: r#"Sets the specified character to also act as an advisor, activating if specified.
@@ -11159,9 +12965,11 @@ add_advisor_role = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("remove_advisor_role", HOI4Entity {
-        name: "remove_advisor_role",
-        description: r#"Removes the specified advisor role from the character.
+    m.insert(
+        "remove_advisor_role",
+        HOI4Entity {
+            name: "remove_advisor_role",
+            description: r#"Removes the specified advisor role from the character.
 
 **Example:**
 ```paradox
@@ -11170,8 +12978,9 @@ remove_advisor_role = {
   slot = political_advisor
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("set_can_be_fired_in_advisor_role", HOI4Entity {
         name: "set_can_be_fired_in_advisor_role",
         description: r#"Changes the `can_be_fired` attribute of the advisor, preventing the player from dismissing the advisor.
@@ -11185,9 +12994,11 @@ set_can_be_fired_in_advisor_role = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("add_scientist_role", HOI4Entity {
-        name: "add_scientist_role",
-        description: r#"Adds the scientist role to a character.
+    m.insert(
+        "add_scientist_role",
+        HOI4Entity {
+            name: "add_scientist_role",
+            description: r#"Adds the scientist role to a character.
 
 **Example:**
 ```paradox
@@ -11200,11 +13011,14 @@ add_scientist_role = {
   }
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("remove_scientist_role", HOI4Entity {
-        name: "remove_scientist_role",
-        description: r#"Remove the scientist role from a character.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "remove_scientist_role",
+        HOI4Entity {
+            name: "remove_scientist_role",
+            description: r#"Remove the scientist role from a character.
 
 **Example:**
 ```paradox
@@ -11212,8 +13026,9 @@ remove_scientist_role = {
   character = my_character / var:my_char_var / PREV
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("generate_scientist_character", HOI4Entity {
         name: "generate_scientist_character",
         description: r#"Generate a new character with a scientist role and recruit it in the country in scope.
@@ -11242,9 +13057,11 @@ show_mio_tooltip = my_mio
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("unlock_military_industrial_organization_tooltip", HOI4Entity {
-        name: "unlock_military_industrial_organization_tooltip",
-        description: r#"Display a tooltip saying the MIO is made available (aka unlocked).
+    m.insert(
+        "unlock_military_industrial_organization_tooltip",
+        HOI4Entity {
+            name: "unlock_military_industrial_organization_tooltip",
+            description: r#"Display a tooltip saying the MIO is made available (aka unlocked).
 
 **Example:**
 ```paradox
@@ -11254,11 +13071,14 @@ unlock_military_industrial_organization_tooltip = mio:my_mio_token
 ```paradox
 unlock_military_industrial_organization_tooltip = var:my_mio_var
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("unlock_mio_policy_tooltip", HOI4Entity {
-        name: "unlock_mio_policy_tooltip",
-        description: r#"Displays a tooltip that says that the policy is made available.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "unlock_mio_policy_tooltip",
+        HOI4Entity {
+            name: "unlock_mio_policy_tooltip",
+            description: r#"Displays a tooltip that says that the policy is made available.
 
 **Example:**
 ```paradox
@@ -11271,11 +13091,14 @@ unlock_mio_policy_tooltip = {
     show_modifiers = no
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("add_mio_policy_cost", HOI4Entity {
-        name: "add_mio_policy_cost",
-        description: r#"Modifies the base cost of a MIO policy.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "add_mio_policy_cost",
+        HOI4Entity {
+            name: "add_mio_policy_cost",
+            description: r#"Modifies the base cost of a MIO policy.
 
 **Example:**
 ```paradox
@@ -11284,11 +13107,14 @@ add_mio_policy_cost = {
     value = 10
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("set_mio_policy_cost", HOI4Entity {
-        name: "set_mio_policy_cost",
-        description: r#"Modifies the base cost of a MIO policy.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "set_mio_policy_cost",
+        HOI4Entity {
+            name: "set_mio_policy_cost",
+            description: r#"Modifies the base cost of a MIO policy.
 
 **Example:**
 ```paradox
@@ -11297,11 +13123,14 @@ set_mio_policy_cost = {
     value = 100
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("add_mio_policy_cooldown", HOI4Entity {
-        name: "add_mio_policy_cooldown",
-        description: r#"Modifies the base length of a MIO policy cooldown.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "add_mio_policy_cooldown",
+        HOI4Entity {
+            name: "add_mio_policy_cooldown",
+            description: r#"Modifies the base length of a MIO policy cooldown.
 
 **Example:**
 ```paradox
@@ -11310,11 +13139,14 @@ add_mio_policy_cooldown = {
     value = 10
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("set_mio_policy_cooldown", HOI4Entity {
-        name: "set_mio_policy_cooldown",
-        description: r#"Modifies the base length of a MIO policy cooldown.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "set_mio_policy_cooldown",
+        HOI4Entity {
+            name: "set_mio_policy_cooldown",
+            description: r#"Modifies the base length of a MIO policy cooldown.
 
 **Example:**
 ```paradox
@@ -11323,8 +13155,9 @@ set_mio_policy_cooldown  = {
     value = 100
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("complete_special_project", HOI4Entity {
         name: "complete_special_project",
         description: r#"Complete a special project for the country in scope. This effect will not take into account the current state of the project tree and will allow you to unlock a project even if the one before is not unlocked. Since the project is not completed within a facility, the facility state and scientist effects are NOT applied.
@@ -11389,29 +13222,37 @@ add_breakthrough_progress = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("career_profile_step_missiolini", HOI4Entity {
-        name: "career_profile_step_missiolini",
-        description: r#"Step completed Mussolini missions by one for the career profile.
+    m.insert(
+        "career_profile_step_missiolini",
+        HOI4Entity {
+            name: "career_profile_step_missiolini",
+            description: r#"Step completed Mussolini missions by one for the career profile.
 
 **Example:**
 ```paradox
 career_profile_step_missiolini = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("recruit_character", HOI4Entity {
-        name: "recruit_character",
-        description: r#"Initially assigns the specified character to the current country.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "recruit_character",
+        HOI4Entity {
+            name: "recruit_character",
+            description: r#"Initially assigns the specified character to the current country.
 
 **Example:**
 ```paradox
 recruit_character = GER_Character_token
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
-    m.insert("generate_character", HOI4Entity {
-        name: "generate_character",
-        description: r#"Generates a character for current country.
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
+    m.insert(
+        "generate_character",
+        HOI4Entity {
+            name: "generate_character",
+            description: r#"Generates a character for current country.
 
 **Example:**
 ```paradox
@@ -11431,8 +13272,9 @@ generate_character = {
     }
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Country],
-    });
+            scopes: &[crate::scope::Scope::Country],
+        },
+    );
     m.insert("set_oob", HOI4Entity {
         name: "set_oob",
         description: r#"Sets the order of battle to be used for the current country's divisions, overriding every other non-naval and non-air order of battle.
@@ -11531,9 +13373,11 @@ get_supply_vehicles_temp = {
 ```"#,
         scopes: &[crate::scope::Scope::Country],
     });
-    m.insert("state_event", HOI4Entity {
-        name: "state_event",
-        description: r#"Fires the specified event for the current state.
+    m.insert(
+        "state_event",
+        HOI4Entity {
+            name: "state_event",
+            description: r#"Fires the specified event for the current state.
 
 **Example:**
 ```paradox
@@ -11545,11 +13389,14 @@ state_event = {
     trigger_for = controller
 }
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
-    m.insert("set_state_flag", HOI4Entity {
-        name: "set_state_flag",
-        description: r#"Defines a state flag.
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
+    m.insert(
+        "set_state_flag",
+        HOI4Entity {
+            name: "set_state_flag",
+            description: r#"Defines a state flag.
 
 **Example:**
 ```paradox
@@ -11563,21 +13410,27 @@ set_state_flag = {
     value = 1
 }
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
-    m.insert("clr_state_flag", HOI4Entity {
-        name: "clr_state_flag",
-        description: r#"Clears a defined state flag.
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
+    m.insert(
+        "clr_state_flag",
+        HOI4Entity {
+            name: "clr_state_flag",
+            description: r#"Clears a defined state flag.
 
 **Example:**
 ```paradox
 clr_state_flag = my_flag
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
-    m.insert("modify_state_flag", HOI4Entity {
-        name: "modify_state_flag",
-        description: r#"Adds an integer value to a flag.
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
+    m.insert(
+        "modify_state_flag",
+        HOI4Entity {
+            name: "modify_state_flag",
+            description: r#"Adds an integer value to a flag.
 
 **Example:**
 ```paradox
@@ -11586,91 +13439,118 @@ modify_state_flag = {
     value = 3
 }
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
-    m.insert("set_state_name", HOI4Entity {
-        name: "set_state_name",
-        description: r#"Changes the current state's name to the specified name.
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
+    m.insert(
+        "set_state_name",
+        HOI4Entity {
+            name: "set_state_name",
+            description: r#"Changes the current state's name to the specified name.
 
 **Example:**
 ```paradox
 set_state_name = "Funland"
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
-    m.insert("reset_state_name", HOI4Entity {
-        name: "reset_state_name",
-        description: r#"Resets any changes to the current state's name.
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
+    m.insert(
+        "reset_state_name",
+        HOI4Entity {
+            name: "reset_state_name",
+            description: r#"Resets any changes to the current state's name.
 
 **Example:**
 ```paradox
 reset_state_name = yes
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
-    m.insert("add_claim_by", HOI4Entity {
-        name: "add_claim_by",
-        description: r#"Adds a claim for the specified country on the current scope.
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
+    m.insert(
+        "add_claim_by",
+        HOI4Entity {
+            name: "add_claim_by",
+            description: r#"Adds a claim for the specified country on the current scope.
 
 **Example:**
 ```paradox
 add_claim_by = SOV
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
-    m.insert("remove_claim_by", HOI4Entity {
-        name: "remove_claim_by",
-        description: r#"Removes a claim by the specified country on the current scope.
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
+    m.insert(
+        "remove_claim_by",
+        HOI4Entity {
+            name: "remove_claim_by",
+            description: r#"Removes a claim by the specified country on the current scope.
 
 **Example:**
 ```paradox
 remove_claim_by = SOV
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
-    m.insert("add_core_of", HOI4Entity {
-        name: "add_core_of",
-        description: r#"Adds a core for the specified country on the current scope.
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
+    m.insert(
+        "add_core_of",
+        HOI4Entity {
+            name: "add_core_of",
+            description: r#"Adds a core for the specified country on the current scope.
 
 **Example:**
 ```paradox
 add_core_of = SOV
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
-    m.insert("remove_core_of", HOI4Entity {
-        name: "remove_core_of",
-        description: r#"Removes a core for the specified country on the current scope.
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
+    m.insert(
+        "remove_core_of",
+        HOI4Entity {
+            name: "remove_core_of",
+            description: r#"Removes a core for the specified country on the current scope.
 
 **Example:**
 ```paradox
 remove_core_of = SOV
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
-    m.insert("set_demilitarized_zone", HOI4Entity {
-        name: "set_demilitarized_zone",
-        description: r#"Makes the current scope a demilitarized zone.
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
+    m.insert(
+        "set_demilitarized_zone",
+        HOI4Entity {
+            name: "set_demilitarized_zone",
+            description: r#"Makes the current scope a demilitarized zone.
 
 **Example:**
 ```paradox
 set_demilitarized_zone = yes
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
-    m.insert("set_state_category", HOI4Entity {
-        name: "set_state_category",
-        description: r#"Changes the current state category to the specified category.
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
+    m.insert(
+        "set_state_category",
+        HOI4Entity {
+            name: "set_state_category",
+            description: r#"Changes the current state category to the specified category.
 
 **Example:**
 ```paradox
 set_state_category = rural
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
-    m.insert("add_state_modifier", HOI4Entity {
-        name: "add_state_modifier",
-        description: r#"Adds a modifier to the current state.
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
+    m.insert(
+        "add_state_modifier",
+        HOI4Entity {
+            name: "add_state_modifier",
+            description: r#"Adds a modifier to the current state.
 
 **Example:**
 ```paradox
@@ -11680,18 +13560,22 @@ add_state_modifier = {
     }
 }
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
-    m.insert("set_border_war", HOI4Entity {
-        name: "set_border_war",
-        description: r#"Enables Border War status for the current state.
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
+    m.insert(
+        "set_border_war",
+        HOI4Entity {
+            name: "set_border_war",
+            description: r#"Enables Border War status for the current state.
 
 **Example:**
 ```paradox
 set_border_war = yes
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
     m.insert("create_unit", HOI4Entity {
         name: "create_unit",
         description: r#"Adds the specified division to the current state.
@@ -11745,9 +13629,11 @@ teleport_armies = {
 ```"#,
         scopes: &[crate::scope::Scope::State],
     });
-    m.insert("add_province_modifier", HOI4Entity {
-        name: "add_province_modifier",
-        description: r#"Adds a province modifier to the specified provinces in this state.
+    m.insert(
+        "add_province_modifier",
+        HOI4Entity {
+            name: "add_province_modifier",
+            description: r#"Adds a province modifier to the specified provinces in this state.
 
 **Example:**
 ```paradox
@@ -11788,11 +13674,14 @@ static_modifiers = { mod_modifier_1 mod_modifier_2 }
 
 }
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
-    m.insert("remove_province_modifier", HOI4Entity {
-        name: "remove_province_modifier",
-        description: r#"Removes a province modifier to the specified provinces in this state.
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
+    m.insert(
+        "remove_province_modifier",
+        HOI4Entity {
+            name: "remove_province_modifier",
+            description: r#"Removes a province modifier to the specified provinces in this state.
 
 **Example:**
 ```paradox
@@ -11828,11 +13717,14 @@ static_modifiers = { mod_modifier_1 mod_modifier_2 }
 
 }
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
-    m.insert("add_victory_points", HOI4Entity {
-        name: "add_victory_points",
-        description: r#"Adds victory points to a province.
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
+    m.insert(
+        "add_victory_points",
+        HOI4Entity {
+            name: "add_victory_points",
+            description: r#"Adds victory points to a province.
 
 **Example:**
 ```paradox
@@ -11841,11 +13733,14 @@ add_victory_points = {
 	value = 10
 }
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
-    m.insert("set_victory_points", HOI4Entity {
-        name: "set_victory_points",
-        description: r#"Sets the number of victory point in a province.
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
+    m.insert(
+        "set_victory_points",
+        HOI4Entity {
+            name: "set_victory_points",
+            description: r#"Sets the number of victory point in a province.
 
 **Example:**
 ```paradox
@@ -11854,8 +13749,9 @@ set_victory_points = {
 	value = 10
 }
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
     m.insert("set_state_province_controller", HOI4Entity {
         name: "set_state_province_controller",
         description: r#"Changes the controller of all provinces within that state controlled by countries that meet triggers to the specified country.
@@ -11874,36 +13770,45 @@ set_state_province_controller = {
 ```"#,
         scopes: &[crate::scope::Scope::State],
     });
-    m.insert("transfer_state_to", HOI4Entity {
-        name: "transfer_state_to",
-        description: r#"Sets owner and controller of the state to the given country
+    m.insert(
+        "transfer_state_to",
+        HOI4Entity {
+            name: "transfer_state_to",
+            description: r#"Sets owner and controller of the state to the given country
 
 **Example:**
 ```paradox
 transfer_state_to = JAM
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
-    m.insert("set_state_owner_to", HOI4Entity {
-        name: "set_state_owner_to",
-        description: r#"Sets the owner of the state to the given country
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
+    m.insert(
+        "set_state_owner_to",
+        HOI4Entity {
+            name: "set_state_owner_to",
+            description: r#"Sets the owner of the state to the given country
 
 **Example:**
 ```paradox
 set_state_owner_to = JAM
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
-    m.insert("set_state_controller_to", HOI4Entity {
-        name: "set_state_controller_to",
-        description: r#"Sets the controller of the state to the given country
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
+    m.insert(
+        "set_state_controller_to",
+        HOI4Entity {
+            name: "set_state_controller_to",
+            description: r#"Sets the controller of the state to the given country
 
 **Example:**
 ```paradox
 set_state_controller_to = ITA
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
     m.insert("strategic_province_location", HOI4Entity {
         name: "strategic_province_location",
         description: r#"Add a strategic location to a province using state scope. The available strategic locations are defined in strategic_locations and are specified with a province id.
@@ -11928,19 +13833,24 @@ strategic_state_location = {
 ```"#,
         scopes: &[crate::scope::Scope::State],
     });
-    m.insert("add_extra_state_shared_building_slots", HOI4Entity {
-        name: "add_extra_state_shared_building_slots",
-        description: r#"Changes the number of shared building slots for the current state.
+    m.insert(
+        "add_extra_state_shared_building_slots",
+        HOI4Entity {
+            name: "add_extra_state_shared_building_slots",
+            description: r#"Changes the number of shared building slots for the current state.
 
 **Example:**
 ```paradox
 add_extra_state_shared_building_slots = 2
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
-    m.insert("add_building_construction", HOI4Entity {
-        name: "add_building_construction",
-        description: r#"Starts construction in the current state for the specified building.
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
+    m.insert(
+        "add_building_construction",
+        HOI4Entity {
+            name: "add_building_construction",
+            description: r#"Starts construction in the current state for the specified building.
 
 **Example:**
 ```paradox
@@ -11972,8 +13882,9 @@ add_building_construction = {
     province = 2999
 }
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
     m.insert("set_building_level", HOI4Entity {
         name: "set_building_level",
         description: r#"Sets the specified building to the current state (or provinces within the state).
@@ -12020,9 +13931,11 @@ remove_building = {
 ```"#,
         scopes: &[crate::scope::Scope::State],
     });
-    m.insert("construct_building_in_random_province", HOI4Entity {
-        name: "construct_building_in_random_province",
-        description: r#"Set building level in a random province of state scope.
+    m.insert(
+        "construct_building_in_random_province",
+        HOI4Entity {
+            name: "construct_building_in_random_province",
+            description: r#"Set building level in a random province of state scope.
 
 **Example:**
 ```paradox
@@ -12032,48 +13945,61 @@ remove_building = {
     }
 }
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
-    m.insert("add_compliance", HOI4Entity {
-        name: "add_compliance",
-        description: r#"Adds compliance to the specified state.
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
+    m.insert(
+        "add_compliance",
+        HOI4Entity {
+            name: "add_compliance",
+            description: r#"Adds compliance to the specified state.
 
 **Example:**
 ```paradox
 add_compliance = 30
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
-    m.insert("add_resistance", HOI4Entity {
-        name: "add_resistance",
-        description: r#"Adds resistance to the specified state.
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
+    m.insert(
+        "add_resistance",
+        HOI4Entity {
+            name: "add_resistance",
+            description: r#"Adds resistance to the specified state.
 
 **Example:**
 ```paradox
 add_resistance = 30
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
-    m.insert("add_resistance_target", HOI4Entity {
-        name: "add_resistance_target",
-        description: r#"Increases resistance target in the specified state.
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
+    m.insert(
+        "add_resistance_target",
+        HOI4Entity {
+            name: "add_resistance_target",
+            description: r#"Increases resistance target in the specified state.
 
 **Example:**
 ```paradox
 add_resistance_target = 30
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
-    m.insert("cancel_resistance", HOI4Entity {
-        name: "cancel_resistance",
-        description: r#"Cancels resistance activity for the current state.
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
+    m.insert(
+        "cancel_resistance",
+        HOI4Entity {
+            name: "cancel_resistance",
+            description: r#"Cancels resistance activity for the current state.
 
 **Example:**
 ```paradox
 cancel_resistance = yes
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
     m.insert("force_disable_resistance", HOI4Entity {
         name: "force_disable_resistance",
         description: r#"Disables resistance for the scoped state when the occupier is the specified country.
@@ -12094,39 +14020,50 @@ force_enable_resistance = GER
 ```"#,
         scopes: &[crate::scope::Scope::State],
     });
-    m.insert("remove_resistance_target", HOI4Entity {
-        name: "remove_resistance_target",
-        description: r#"Removes a set resistance target increase in the specified state.
+    m.insert(
+        "remove_resistance_target",
+        HOI4Entity {
+            name: "remove_resistance_target",
+            description: r#"Removes a set resistance target increase in the specified state.
 
 **Example:**
 ```paradox
 remove_resistance_target = 30
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
-    m.insert("set_compliance", HOI4Entity {
-        name: "set_compliance",
-        description: r#"Sets compliance in the specified state.
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
+    m.insert(
+        "set_compliance",
+        HOI4Entity {
+            name: "set_compliance",
+            description: r#"Sets compliance in the specified state.
 
 **Example:**
 ```paradox
 set_compliance = 30
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
-    m.insert("set_resistance", HOI4Entity {
-        name: "set_resistance",
-        description: r#"Sets resistance in the specified state.
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
+    m.insert(
+        "set_resistance",
+        HOI4Entity {
+            name: "set_resistance",
+            description: r#"Sets resistance in the specified state.
 
 **Example:**
 ```paradox
 set_resistance = 30
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
-    m.insert("start_resistance", HOI4Entity {
-        name: "start_resistance",
-        description: r#"Starts resistance in the specified state.
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
+    m.insert(
+        "start_resistance",
+        HOI4Entity {
+            name: "start_resistance",
+            description: r#"Starts resistance in the specified state.
 
 **Example:**
 ```paradox
@@ -12136,18 +14073,22 @@ start_resistance = POL
 ```paradox
 start_resistance = yes
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
-    m.insert("set_garrison_strength", HOI4Entity {
-        name: "set_garrison_strength",
-        description: r#"Sets the strength of the garrison in the specified state.
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
+    m.insert(
+        "set_garrison_strength",
+        HOI4Entity {
+            name: "set_garrison_strength",
+            description: r#"Sets the strength of the garrison in the specified state.
 
 **Example:**
 ```paradox
 set_garrison_strength = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::State],
-    });
+            scopes: &[crate::scope::Scope::State],
+        },
+    );
     m.insert("raid_reduce_project_progress_ratio", HOI4Entity {
         name: "raid_reduce_project_progress_ratio",
         description: r#"Reduce progress to the special project in state. Root scope is raid instance scope. The input value is a ratio of the total needed progress to complete the special project, i.e. a decimal number between 0 and 1.
@@ -12158,9 +14099,11 @@ raid_reduce_project_progress_ratio = 0.1
 ```"#,
         scopes: &[crate::scope::Scope::State],
     });
-    m.insert("set_character_flag", HOI4Entity {
-        name: "set_character_flag",
-        description: r#"Defines a character flag.
+    m.insert(
+        "set_character_flag",
+        HOI4Entity {
+            name: "set_character_flag",
+            description: r#"Defines a character flag.
 
 **Example:**
 ```paradox
@@ -12174,11 +14117,14 @@ set_character_flag = {
     value = 1
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("modify_character_flag", HOI4Entity {
-        name: "modify_character_flag",
-        description: r#"Adds an integer value to a flag.
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "modify_character_flag",
+        HOI4Entity {
+            name: "modify_character_flag",
+            description: r#"Adds an integer value to a flag.
 
 **Example:**
 ```paradox
@@ -12187,31 +14133,40 @@ modify_character_flag = {
     value = 3
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("clr_character_flag", HOI4Entity {
-        name: "clr_character_flag",
-        description: r#"Clears a character flag
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "clr_character_flag",
+        HOI4Entity {
+            name: "clr_character_flag",
+            description: r#"Clears a character flag
 
 **Example:**
 ```paradox
 clr_character_flag = <bool>
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("retire", HOI4Entity {
-        name: "retire",
-        description: r#"Retires the current character (removing them).
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "retire",
+        HOI4Entity {
+            name: "retire",
+            description: r#"Retires the current character (removing them).
 
 **Example:**
 ```paradox
 retire = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("set_portraits", HOI4Entity {
-        name: "set_portraits",
-        description: r#"Changes the specified portraits of a character.
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "set_portraits",
+        HOI4Entity {
+            name: "set_portraits",
+            description: r#"Changes the specified portraits of a character.
 
 **Example:**
 ```paradox
@@ -12221,8 +14176,9 @@ set_portraits = {
     civilian = { large ="MyLargeCharacterGFX" }
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
     m.insert("add_scientist_level", HOI4Entity {
         name: "add_scientist_level",
         description: r#"Add levels to a special project specialization for a scientist character in scope.
@@ -12246,16 +14202,19 @@ injure_scientist_for_days = 12
 ```"#,
         scopes: &[crate::scope::Scope::Character],
     });
-    m.insert("add_scientist_trait", HOI4Entity {
-        name: "add_scientist_trait",
-        description: r#"Add a trait to a scientist character in scope.
+    m.insert(
+        "add_scientist_trait",
+        HOI4Entity {
+            name: "add_scientist_trait",
+            description: r#"Add a trait to a scientist character in scope.
 
 **Example:**
 ```paradox
 add_scientist_trait = my_trait_token
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
     m.insert("add_scientist_xp", HOI4Entity {
         name: "add_scientist_xp",
         description: r#"Add experience to a special project specialization for a scientist character in scope.
@@ -12269,9 +14228,11 @@ add_scientist_xp = {
 ```"#,
         scopes: &[crate::scope::Scope::Character],
     });
-    m.insert("unit_leader_event", HOI4Entity {
-        name: "unit_leader_event",
-        description: r#"Fires the specified event for the owner of the current unit leader.
+    m.insert(
+        "unit_leader_event",
+        HOI4Entity {
+            name: "unit_leader_event",
+            description: r#"Fires the specified event for the owner of the current unit leader.
 
 **Example:**
 ```paradox
@@ -12282,31 +14243,40 @@ unit_leader_event = {
     random_days = 10
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("set_unit_leader_flag", HOI4Entity {
-        name: "set_unit_leader_flag",
-        description: r#"Defines a unit leader flag.
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "set_unit_leader_flag",
+        HOI4Entity {
+            name: "set_unit_leader_flag",
+            description: r#"Defines a unit leader flag.
 
 **Example:**
 ```paradox
 set_unit_leader_flag = my_flag
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("clr_unit_leader_flag", HOI4Entity {
-        name: "clr_unit_leader_flag",
-        description: r#"Clears a defined unit leader flag.
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "clr_unit_leader_flag",
+        HOI4Entity {
+            name: "clr_unit_leader_flag",
+            description: r#"Clears a defined unit leader flag.
 
 **Example:**
 ```paradox
 clr_unit_leader_flag = my_flag
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("modify_unit_leader_flag", HOI4Entity {
-        name: "modify_unit_leader_flag",
-        description: r#"Adds an integer value to a flag.
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "modify_unit_leader_flag",
+        HOI4Entity {
+            name: "modify_unit_leader_flag",
+            description: r#"Adds an integer value to a flag.
 
 **Example:**
 ```paradox
@@ -12315,58 +14285,74 @@ modify_unit_leader_flag = {
     value = 3
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("promote_leader", HOI4Entity {
-        name: "promote_leader",
-        description: r#"Promotes the current unit leader to Field Marshal (if Commander).
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "promote_leader",
+        HOI4Entity {
+            name: "promote_leader",
+            description: r#"Promotes the current unit leader to Field Marshal (if Commander).
 
 **Example:**
 ```paradox
 promote_leader = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("demote_leader", HOI4Entity {
-        name: "demote_leader",
-        description: r#"Demotes the current unit leader to Commander (if Field Marshal).
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "demote_leader",
+        HOI4Entity {
+            name: "demote_leader",
+            description: r#"Demotes the current unit leader to Commander (if Field Marshal).
 
 **Example:**
 ```paradox
 demote_leader = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("add_unit_leader_trait", HOI4Entity {
-        name: "add_unit_leader_trait",
-        description: r#"Adds the specified trait to the current unit leader.
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "add_unit_leader_trait",
+        HOI4Entity {
+            name: "add_unit_leader_trait",
+            description: r#"Adds the specified trait to the current unit leader.
 
 **Example:**
 ```paradox
 add_unit_leader_trait = old_guard
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("remove_unit_leader_trait", HOI4Entity {
-        name: "remove_unit_leader_trait",
-        description: r#"Removes the specified trait from the current unit leader.
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "remove_unit_leader_trait",
+        HOI4Entity {
+            name: "remove_unit_leader_trait",
+            description: r#"Removes the specified trait from the current unit leader.
 
 **Example:**
 ```paradox
 remove_unit_leader_trait = old_guard
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("add_random_trait", HOI4Entity {
-        name: "add_random_trait",
-        description: r#"Adds a random trait from the list to the character.
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "add_random_trait",
+        HOI4Entity {
+            name: "add_random_trait",
+            description: r#"Adds a random trait from the list to the character.
 
 **Example:**
 ```paradox
 add_random_trait = { old_guard brilliant_strategist inflexible_strategist }
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
     m.insert("add_timed_unit_leader_trait", HOI4Entity {
         name: "add_timed_unit_leader_trait",
         description: r#"Adds the specified trait to the current unit leader for the specified duration.
@@ -12380,9 +14366,11 @@ add_timed_unit_leader_trait = {
 ```"#,
         scopes: &[crate::scope::Scope::Character],
     });
-    m.insert("replace_unit_leader_trait", HOI4Entity {
-        name: "replace_unit_leader_trait",
-        description: r#"Replaces the specified trait with the new trait.
+    m.insert(
+        "replace_unit_leader_trait",
+        HOI4Entity {
+            name: "replace_unit_leader_trait",
+            description: r#"Replaces the specified trait with the new trait.
 
 **Example:**
 ```paradox
@@ -12391,18 +14379,22 @@ replace_unit_leader_trait = {
     replace = brilliant_strategist
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("remove_exile_tag", HOI4Entity {
-        name: "remove_exile_tag",
-        description: r#"Removes a leaders exile tag.
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "remove_exile_tag",
+        HOI4Entity {
+            name: "remove_exile_tag",
+            description: r#"Removes a leaders exile tag.
 
 **Example:**
 ```paradox
 remove_exile_tag = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
     m.insert("gain_xp", HOI4Entity {
         name: "gain_xp",
         description: r#"Adds experience to the current unit leader, promoting to the next skill level if applicable.
@@ -12413,19 +14405,24 @@ gain_xp = 5
 ```"#,
         scopes: &[crate::scope::Scope::Character],
     });
-    m.insert("remove_unit_leader_role", HOI4Entity {
-        name: "remove_unit_leader_role",
-        description: r#"Removes every unit leader role from the character
+    m.insert(
+        "remove_unit_leader_role",
+        HOI4Entity {
+            name: "remove_unit_leader_role",
+            description: r#"Removes every unit leader role from the character
 
 **Example:**
 ```paradox
 remove_unit_leader_role = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("swap_country_leader_traits", HOI4Entity {
-        name: "swap_country_leader_traits",
-        description: r#"Swaps traits of the current character.
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "swap_country_leader_traits",
+        HOI4Entity {
+            name: "swap_country_leader_traits",
+            description: r#"Swaps traits of the current character.
 
 **Example:**
 ```paradox
@@ -12435,8 +14432,9 @@ swap_country_leader_traits = {
     ideology = marxism
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
     m.insert("supply_units", HOI4Entity {
         name: "supply_units",
         description: r#"Adds the specified amount of hours of supply to troops led by the current unit leader.
@@ -12457,79 +14455,102 @@ add_max_trait = 1
 ```"#,
         scopes: &[crate::scope::Scope::Character],
     });
-    m.insert("add_skill_level", HOI4Entity {
-        name: "add_skill_level",
-        description: r#"Adds skill to the current unit leader.
+    m.insert(
+        "add_skill_level",
+        HOI4Entity {
+            name: "add_skill_level",
+            description: r#"Adds skill to the current unit leader.
 
 **Example:**
 ```paradox
 add_skill_level = 1
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("add_logistics", HOI4Entity {
-        name: "add_logistics",
-        description: r#"Adds logistics skill to the current unit leader.
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "add_logistics",
+        HOI4Entity {
+            name: "add_logistics",
+            description: r#"Adds logistics skill to the current unit leader.
 
 **Example:**
 ```paradox
 add_logistics = 1
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("add_planning", HOI4Entity {
-        name: "add_planning",
-        description: r#"Adds planning skill to the current unit leader.
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "add_planning",
+        HOI4Entity {
+            name: "add_planning",
+            description: r#"Adds planning skill to the current unit leader.
 
 **Example:**
 ```paradox
 add_planning = 1
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("add_defense", HOI4Entity {
-        name: "add_defense",
-        description: r#"Adds defense skill to the current unit leader.
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "add_defense",
+        HOI4Entity {
+            name: "add_defense",
+            description: r#"Adds defense skill to the current unit leader.
 
 **Example:**
 ```paradox
 add_defense = 1
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("add_attack", HOI4Entity {
-        name: "add_attack",
-        description: r#"Adds attack skill to the current unit leader.
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "add_attack",
+        HOI4Entity {
+            name: "add_attack",
+            description: r#"Adds attack skill to the current unit leader.
 
 **Example:**
 ```paradox
 add_attack = 1
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("add_coordination", HOI4Entity {
-        name: "add_coordination",
-        description: r#"Adds coordination skill to the current navy leader.
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "add_coordination",
+        HOI4Entity {
+            name: "add_coordination",
+            description: r#"Adds coordination skill to the current navy leader.
 
 **Example:**
 ```paradox
 add_coordination = 1
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("add_maneuver", HOI4Entity {
-        name: "add_maneuver",
-        description: r#"Adds maneuver skill to the current navy leader.
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "add_maneuver",
+        HOI4Entity {
+            name: "add_maneuver",
+            description: r#"Adds maneuver skill to the current navy leader.
 
 **Example:**
 ```paradox
 add_maneuver = 1
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("add_temporary_buff_to_units", HOI4Entity {
-        name: "add_temporary_buff_to_units",
-        description: r#"Adds the specified combat buff to the current unit leader.
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "add_temporary_buff_to_units",
+        HOI4Entity {
+            name: "add_temporary_buff_to_units",
+            description: r#"Adds the specified combat buff to the current unit leader.
 
 **Example:**
 ```paradox
@@ -12545,41 +14566,53 @@ add_temporary_buff_to_units = {
     tooltip = ABILITY_FORCE_ATTACK_TOOLTIP
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("add_nationality", HOI4Entity {
-        name: "add_nationality",
-        description: r#"Adds the nationality to the current operative.
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "add_nationality",
+        HOI4Entity {
+            name: "add_nationality",
+            description: r#"Adds the nationality to the current operative.
 
 **Example:**
 ```paradox
 add_nationality = GER
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("force_operative_leader_into_hiding", HOI4Entity {
-        name: "force_operative_leader_into_hiding",
-        description: r#"Forces the current operative into hiding.
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "force_operative_leader_into_hiding",
+        HOI4Entity {
+            name: "force_operative_leader_into_hiding",
+            description: r#"Forces the current operative into hiding.
 
 **Example:**
 ```paradox
 force_operative_leader_into_hiding = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("harm_operative_leader", HOI4Entity {
-        name: "harm_operative_leader",
-        description: r#"Harms the current operative.
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "harm_operative_leader",
+        HOI4Entity {
+            name: "harm_operative_leader",
+            description: r#"Harms the current operative.
 
 **Example:**
 ```paradox
 harm_operative_leader = 12
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("operative_leader_event", HOI4Entity {
-        name: "operative_leader_event",
-        description: r#"Fires the specified event for the operative.
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "operative_leader_event",
+        HOI4Entity {
+            name: "operative_leader_event",
+            description: r#"Fires the specified event for the operative.
 
 **Example:**
 ```paradox
@@ -12595,21 +14628,27 @@ operative_leader_event = {
 	set_from_from = FRA
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Character],
-    });
-    m.insert("destroy_unit", HOI4Entity {
-        name: "destroy_unit",
-        description: r#"Destroys the currently-scoped division.
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "destroy_unit",
+        HOI4Entity {
+            name: "destroy_unit",
+            description: r#"Destroys the currently-scoped division.
 
 **Example:**
 ```paradox
 destroy_unit = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Unit],
-    });
-    m.insert("add_history_entry", HOI4Entity {
-        name: "add_history_entry",
-        description: r#"Creates an entry within the command history of a division.
+            scopes: &[crate::scope::Scope::Unit],
+        },
+    );
+    m.insert(
+        "add_history_entry",
+        HOI4Entity {
+            name: "add_history_entry",
+            description: r#"Creates an entry within the command history of a division.
 
 **Example:**
 ```paradox
@@ -12619,11 +14658,14 @@ add_history_entry = {
     allow = no
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Unit],
-    });
-    m.insert("change_division_template", HOI4Entity {
-        name: "change_division_template",
-        description: r#"Changes the template of the division to the specified one.
+            scopes: &[crate::scope::Scope::Unit],
+        },
+    );
+    m.insert(
+        "change_division_template",
+        HOI4Entity {
+            name: "change_division_template",
+            description: r#"Changes the template of the division to the specified one.
 
 **Example:**
 ```paradox
@@ -12631,21 +14673,27 @@ change_division_template = {
     division_template = "New template"
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Unit],
-    });
-    m.insert("add_random_valid_trait_from_unit", HOI4Entity {
-        name: "add_random_valid_trait_from_unit",
-        description: r#"Adds a random valid unit trait to a unit leader.
+            scopes: &[crate::scope::Scope::Unit],
+        },
+    );
+    m.insert(
+        "add_random_valid_trait_from_unit",
+        HOI4Entity {
+            name: "add_random_valid_trait_from_unit",
+            description: r#"Adds a random valid unit trait to a unit leader.
 
 **Example:**
 ```paradox
 add_random_valid_trait_from_unit = FROM
 ```"#,
-        scopes: &[crate::scope::Scope::Unit],
-    });
-    m.insert("add_unit_medal_to_latest_entry", HOI4Entity {
-        name: "add_unit_medal_to_latest_entry",
-        description: r#"Adds the specified medal to the latest entry within the unit's history.
+            scopes: &[crate::scope::Scope::Unit],
+        },
+    );
+    m.insert(
+        "add_unit_medal_to_latest_entry",
+        HOI4Entity {
+            name: "add_unit_medal_to_latest_entry",
+            description: r#"Adds the specified medal to the latest entry within the unit's history.
 
 **Example:**
 ```paradox
@@ -12653,198 +14701,256 @@ add_unit_medal_to_latest_entry = {
     unit_medals = my_medal
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Unit],
-    });
-    m.insert("add_divisional_commander_xp", HOI4Entity {
-        name: "add_divisional_commander_xp",
-        description: r#"Adds the specified amount of experience to the divisional commander.
+            scopes: &[crate::scope::Scope::Unit],
+        },
+    );
+    m.insert(
+        "add_divisional_commander_xp",
+        HOI4Entity {
+            name: "add_divisional_commander_xp",
+            description: r#"Adds the specified amount of experience to the divisional commander.
 
 **Example:**
 ```paradox
 add_divisional_commander_xp = 10
 ```"#,
-        scopes: &[crate::scope::Scope::Unit],
-    });
-    m.insert("reseed_division_commander", HOI4Entity {
-        name: "reseed_division_commander",
-        description: r#"Re-randomises the division commander using the given seed.
+            scopes: &[crate::scope::Scope::Unit],
+        },
+    );
+    m.insert(
+        "reseed_division_commander",
+        HOI4Entity {
+            name: "reseed_division_commander",
+            description: r#"Re-randomises the division commander using the given seed.
 
 **Example:**
 ```paradox
 reseed_division_commander = 760
 ```"#,
-        scopes: &[crate::scope::Scope::Unit],
-    });
-    m.insert("promote_officer_to_general", HOI4Entity {
-        name: "promote_officer_to_general",
-        description: r#"Promote the officer of the division to a general.
+            scopes: &[crate::scope::Scope::Unit],
+        },
+    );
+    m.insert(
+        "promote_officer_to_general",
+        HOI4Entity {
+            name: "promote_officer_to_general",
+            description: r#"Promote the officer of the division to a general.
 
 **Example:**
 ```paradox
 promote_officer_to_general = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Unit],
-    });
-    m.insert("set_unit_organization", HOI4Entity {
-        name: "set_unit_organization",
-        description: r#"Changes the organisation of the unit.
+            scopes: &[crate::scope::Scope::Unit],
+        },
+    );
+    m.insert(
+        "set_unit_organization",
+        HOI4Entity {
+            name: "set_unit_organization",
+            description: r#"Changes the organisation of the unit.
 
 **Example:**
 ```paradox
 set_unit_organization = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unit],
-    });
-    m.insert("add_mio_funds", HOI4Entity {
-        name: "add_mio_funds",
-        description: r#"Adds funds to the MIO.
+            scopes: &[crate::scope::Scope::Unit],
+        },
+    );
+    m.insert(
+        "add_mio_funds",
+        HOI4Entity {
+            name: "add_mio_funds",
+            description: r#"Adds funds to the MIO.
 
 **Example:**
 ```paradox
 add_mio_funds = 1000
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("set_mio_funds", HOI4Entity {
-        name: "set_mio_funds",
-        description: r#"Sets the funds of a MIO to the certain level.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "set_mio_funds",
+        HOI4Entity {
+            name: "set_mio_funds",
+            description: r#"Sets the funds of a MIO to the certain level.
 
 **Example:**
 ```paradox
 set_mio_funds = 1000
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("add_mio_funds_gain_factor", HOI4Entity {
-        name: "add_mio_funds_gain_factor",
-        description: r#"Changes the base multiplier to MIO's funds.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "add_mio_funds_gain_factor",
+        HOI4Entity {
+            name: "add_mio_funds_gain_factor",
+            description: r#"Changes the base multiplier to MIO's funds.
 
 **Example:**
 ```paradox
 add_mio_funds_gain_factor = 0.1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("set_mio_funds_gain_factor", HOI4Entity {
-        name: "set_mio_funds_gain_factor",
-        description: r#"Changes the base multiplier to MIO's funds.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "set_mio_funds_gain_factor",
+        HOI4Entity {
+            name: "set_mio_funds_gain_factor",
+            description: r#"Changes the base multiplier to MIO's funds.
 
 **Example:**
 ```paradox
 set_mio_funds = 0.1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("add_mio_size", HOI4Entity {
-        name: "add_mio_size",
-        description: r#"Adds sizes to the MIO.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "add_mio_size",
+        HOI4Entity {
+            name: "add_mio_size",
+            description: r#"Adds sizes to the MIO.
 
 **Example:**
 ```paradox
 add_mio_size = 2
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("add_mio_size_up_requirement_factor", HOI4Entity {
-        name: "add_mio_size_up_requirement_factor",
-        description: r#"Changes the base multiplier to the requirement to size up a MIO.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "add_mio_size_up_requirement_factor",
+        HOI4Entity {
+            name: "add_mio_size_up_requirement_factor",
+            description: r#"Changes the base multiplier to the requirement to size up a MIO.
 
 **Example:**
 ```paradox
 add_mio_size_up_requirement_factor = 0.1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("set_mio_size_up_requirement_factor", HOI4Entity {
-        name: "set_mio_size_up_requirement_factor",
-        description: r#"Changes the base multiplier to the requirement to size up a MIO.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "set_mio_size_up_requirement_factor",
+        HOI4Entity {
+            name: "set_mio_size_up_requirement_factor",
+            description: r#"Changes the base multiplier to the requirement to size up a MIO.
 
 **Example:**
 ```paradox
 set_mio_size_up_requirement_factor = 0.1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("add_mio_task_capacity", HOI4Entity {
-        name: "add_mio_task_capacity",
-        description: r#"Changes the base maximum task capacity of the MIO.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "add_mio_task_capacity",
+        HOI4Entity {
+            name: "add_mio_task_capacity",
+            description: r#"Changes the base maximum task capacity of the MIO.
 
 **Example:**
 ```paradox
 add_mio_task_capacity = 2
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("set_mio_task_capacity", HOI4Entity {
-        name: "set_mio_task_capacity",
-        description: r#"Changes the base maximum task capacity of the MIO.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "set_mio_task_capacity",
+        HOI4Entity {
+            name: "set_mio_task_capacity",
+            description: r#"Changes the base maximum task capacity of the MIO.
 
 **Example:**
 ```paradox
 set_mio_task_capacity = 2
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("add_mio_research_bonus", HOI4Entity {
-        name: "add_mio_research_bonus",
-        description: r#"Changes the base research bonus of the MIO.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "add_mio_research_bonus",
+        HOI4Entity {
+            name: "add_mio_research_bonus",
+            description: r#"Changes the base research bonus of the MIO.
 
 **Example:**
 ```paradox
 add_mio_research_bonus = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("set_mio_research_bonus", HOI4Entity {
-        name: "set_mio_research_bonus",
-        description: r#"Changes the base research bonus of the MIO.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "set_mio_research_bonus",
+        HOI4Entity {
+            name: "set_mio_research_bonus",
+            description: r#"Changes the base research bonus of the MIO.
 
 **Example:**
 ```paradox
 set_mio_research_bonus = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("set_mio_name_key", HOI4Entity {
-        name: "set_mio_name_key",
-        description: r#"Changes the name of the MIO.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "set_mio_name_key",
+        HOI4Entity {
+            name: "set_mio_name_key",
+            description: r#"Changes the name of the MIO.
 
 **Example:**
 ```paradox
 set_mio_name_key = mio_new_name
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("set_mio_icon", HOI4Entity {
-        name: "set_mio_icon",
-        description: r#"Changes the MIO's icon.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "set_mio_icon",
+        HOI4Entity {
+            name: "set_mio_icon",
+            description: r#"Changes the MIO's icon.
 
 **Example:**
 ```paradox
 set_mio_icon = GFX_new_mio_icon
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("add_mio_design_team_assign_cost", HOI4Entity {
-        name: "add_mio_design_team_assign_cost",
-        description: r#"Changes the base political power cost of the MIO to assign research.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "add_mio_design_team_assign_cost",
+        HOI4Entity {
+            name: "add_mio_design_team_assign_cost",
+            description: r#"Changes the base political power cost of the MIO to assign research.
 
 **Example:**
 ```paradox
 add_mio_design_team_assign_cost = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("set_mio_design_team_assign_cost", HOI4Entity {
-        name: "set_mio_design_team_assign_cost",
-        description: r#"Changes the base political power cost of the MIO to assign research.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "set_mio_design_team_assign_cost",
+        HOI4Entity {
+            name: "set_mio_design_team_assign_cost",
+            description: r#"Changes the base political power cost of the MIO to assign research.
 
 **Example:**
 ```paradox
 set_mio_design_team_assign_cost = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("add_mio_industrial_manufacturer_assign_cost", HOI4Entity {
         name: "add_mio_industrial_manufacturer_assign_cost",
         description: r#"Changes the base political power cost of the MIO to assign production lines.
@@ -12885,9 +14991,11 @@ set_mio_design_team_change_cost = 0.3
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("unlock_mio_trait_tooltip", HOI4Entity {
-        name: "unlock_mio_trait_tooltip",
-        description: r#"Displays a tooltip that says that the trait is made available.
+    m.insert(
+        "unlock_mio_trait_tooltip",
+        HOI4Entity {
+            name: "unlock_mio_trait_tooltip",
+            description: r#"Displays a tooltip that says that the trait is made available.
 
 **Example:**
 ```paradox
@@ -12900,11 +15008,14 @@ unlock_mio_trait_tooltip = {
     show_modifiers = no
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("complete_mio_trait", HOI4Entity {
-        name: "complete_mio_trait",
-        description: r#"Completes the specified MIO trait.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "complete_mio_trait",
+        HOI4Entity {
+            name: "complete_mio_trait",
+            description: r#"Completes the specified MIO trait.
 
 **Example:**
 ```paradox
@@ -12917,11 +15028,14 @@ complete_mio_trait = {
     show_modifiers = no
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("set_mio_flag", HOI4Entity {
-        name: "set_mio_flag",
-        description: r#"Defines a MIO flag.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "set_mio_flag",
+        HOI4Entity {
+            name: "set_mio_flag",
+            description: r#"Defines a MIO flag.
 
 **Example:**
 ```paradox
@@ -12935,21 +15049,27 @@ set_mio_flag = {
     value = 1
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("clr_mio_flag", HOI4Entity {
-        name: "clr_mio_flag",
-        description: r#"Clears a defined MIO flag.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "clr_mio_flag",
+        HOI4Entity {
+            name: "clr_mio_flag",
+            description: r#"Clears a defined MIO flag.
 
 **Example:**
 ```paradox
 clr_mio_flag = my_flag
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("modify_mio_flag", HOI4Entity {
-        name: "modify_mio_flag",
-        description: r#"Adds an integer value to a flag.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "modify_mio_flag",
+        HOI4Entity {
+            name: "modify_mio_flag",
+            description: r#"Adds an integer value to a flag.
 
 **Example:**
 ```paradox
@@ -12958,28 +15078,35 @@ modify_mio_flag = {
     value = 3
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("cancel_purchase_contract", HOI4Entity {
-        name: "cancel_purchase_contract",
-        description: r#"Cancels the current purchase contract.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "cancel_purchase_contract",
+        HOI4Entity {
+            name: "cancel_purchase_contract",
+            description: r#"Cancels the current purchase contract.
 
 **Example:**
 ```paradox
 cancel_purchase_contract = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("add_raid_history_entry", HOI4Entity {
-        name: "add_raid_history_entry",
-        description: r#"Add history entry to a raid.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "add_raid_history_entry",
+        HOI4Entity {
+            name: "add_raid_history_entry",
+            description: r#"Add history entry to a raid.
 
 **Example:**
 ```paradox
 add_raid_history_entry = yes/no
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("raid_add_unit_experience", HOI4Entity {
         name: "raid_add_unit_experience",
         description: r#"Will give experience to any type of unit assigned to the raid, e.g. divisions or air wings.
@@ -13021,9 +15148,11 @@ raid_damage_units = {
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("add_project_progress_ratio", HOI4Entity {
-        name: "add_project_progress_ratio",
-        description: r#"Add progress to the project's prototype phase.
+    m.insert(
+        "add_project_progress_ratio",
+        HOI4Entity {
+            name: "add_project_progress_ratio",
+            description: r#"Add progress to the project's prototype phase.
 
 **Example:**
 ```paradox
@@ -13032,11 +15161,14 @@ sp:my_project = {
   add_project_progress_ratio = var:my_var
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("complete_prototype_reward_option", HOI4Entity {
-        name: "complete_prototype_reward_option",
-        description: r#"Complete a prototype reward option for the project in scope
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "complete_prototype_reward_option",
+        HOI4Entity {
+            name: "complete_prototype_reward_option",
+            description: r#"Complete a prototype reward option for the project in scope
 
 **Example:**
 ```paradox
@@ -13046,11 +15178,14 @@ complete_prototype_reward_option = {
 	show_modifiers = yes
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("set_project_flag", HOI4Entity {
-        name: "set_project_flag",
-        description: r#"Defines a project flag.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "set_project_flag",
+        HOI4Entity {
+            name: "set_project_flag",
+            description: r#"Defines a project flag.
 
 **Example:**
 ```paradox
@@ -13064,21 +15199,27 @@ set_project_flag = {
     value = 1
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("clr_project_flag", HOI4Entity {
-        name: "clr_project_flag",
-        description: r#"Clears a defined project flag.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "clr_project_flag",
+        HOI4Entity {
+            name: "clr_project_flag",
+            description: r#"Clears a defined project flag.
 
 **Example:**
 ```paradox
 clr_project_flag = my_flag
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("modify_project_flag", HOI4Entity {
-        name: "modify_project_flag",
-        description: r#"Adds an integer value to a flag.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "modify_project_flag",
+        HOI4Entity {
+            name: "modify_project_flag",
+            description: r#"Adds an integer value to a flag.
 
 **Example:**
 ```paradox
@@ -13087,8 +15228,9 @@ modify_mproject_flag = {
     value = 3
 }
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("execute_operation_coordinated_strike", HOI4Entity {
         name: "execute_operation_coordinated_strike",
         description: r#"All prepared Port Strike and Strategic Bombing in the target region will execute multiple times without air defence being able to intercept them.
@@ -13101,46 +15243,58 @@ execute_operation_coordinated_strike = {
 ```"#,
         scopes: &[crate::scope::Scope::Global, crate::scope::Scope::Country, crate::scope::Scope::State, crate::scope::Scope::Character, crate::scope::Scope::Unit],
     });
-    m.insert("instantiate_collaboration_government", HOI4Entity {
-        name: "instantiate_collaboration_government",
-        description: r#"Creates a collaboration government, with the current scope as overlord.
+    m.insert(
+        "instantiate_collaboration_government",
+        HOI4Entity {
+            name: "instantiate_collaboration_government",
+            description: r#"Creates a collaboration government, with the current scope as overlord.
 
 **Example:**
 ```paradox
 instantiate_collaboration_government = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("add_potential_special_forces_tree", HOI4Entity {
-        name: "add_potential_special_forces_tree",
-        description: r#"Adds 1 special forces branch specialism
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "add_potential_special_forces_tree",
+        HOI4Entity {
+            name: "add_potential_special_forces_tree",
+            description: r#"Adds 1 special forces branch specialism
 
 **Example:**
 ```paradox
 add_potential_special_forces_tree = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("upgrade_economy_law", HOI4Entity {
-        name: "upgrade_economy_law",
-        description: r#"Switches the economy law one level towards total mobilisation.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "upgrade_economy_law",
+        HOI4Entity {
+            name: "upgrade_economy_law",
+            description: r#"Switches the economy law one level towards total mobilisation.
 
 **Example:**
 ```paradox
 upgrade_economy_law = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("gain_random_agency_upgrade", HOI4Entity {
-        name: "gain_random_agency_upgrade",
-        description: r#"Grants a random available intelligence agency upgrade.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "gain_random_agency_upgrade",
+        HOI4Entity {
+            name: "gain_random_agency_upgrade",
+            description: r#"Grants a random available intelligence agency upgrade.
 
 **Example:**
 ```paradox
 gain_random_agency_upgrade = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("add_ruling_to_dem", HOI4Entity {
         name: "add_ruling_to_dem",
         description: r#"All of the ruling party's popularity gets added to the Democratic ideology group.
@@ -13151,16 +15305,19 @@ add_ruling_to_dem = yes
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("remove_any_country_role_from_character", HOI4Entity {
-        name: "remove_any_country_role_from_character",
-        description: r#"Removes all advisor roles from the current scope.
+    m.insert(
+        "remove_any_country_role_from_character",
+        HOI4Entity {
+            name: "remove_any_country_role_from_character",
+            description: r#"Removes all advisor roles from the current scope.
 
 **Example:**
 ```paradox
 remove_any_country_role_from_character = yes
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("increase_state_category", HOI4Entity {
         name: "increase_state_category",
         description: r#"Changes the state category to the next one that contains more building slots.
@@ -13196,46 +15353,58 @@ store_core_states_on_game_start = yes
 
 pub fn get_modifiers() -> HashMap<&'static str, HOI4Entity> {
     let mut m = HashMap::new();
-    m.insert("monthly_population", HOI4Entity {
-        name: "monthly_population",
-        description: r#"Changes the monthly population gain in states owned by the country.
+    m.insert(
+        "monthly_population",
+        HOI4Entity {
+            name: "monthly_population",
+            description: r#"Changes the monthly population gain in states owned by the country.
 
 **Example:**
 ```paradox
 monthly_population = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("nuclear_production", HOI4Entity {
-        name: "nuclear_production",
-        description: r#"Enables the production of nukes.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "nuclear_production",
+        HOI4Entity {
+            name: "nuclear_production",
+            description: r#"Enables the production of nukes.
 
 **Example:**
 ```paradox
 nuclear_production = 1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("nuclear_production_factor", HOI4Entity {
-        name: "nuclear_production_factor",
-        description: r#"Changes speed at which nukes are produced.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "nuclear_production_factor",
+        HOI4Entity {
+            name: "nuclear_production_factor",
+            description: r#"Changes speed at which nukes are produced.
 
 **Example:**
 ```paradox
 nuclear_production_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("research_sharing_per_country_bonus", HOI4Entity {
-        name: "research_sharing_per_country_bonus",
-        description: r#"Changes the bonus in research speed per country when technology sharing.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "research_sharing_per_country_bonus",
+        HOI4Entity {
+            name: "research_sharing_per_country_bonus",
+            description: r#"Changes the bonus in research speed per country when technology sharing.
 
 **Example:**
 ```paradox
 research_sharing_per_country_bonus = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("research_sharing_per_country_bonus_factor", HOI4Entity {
         name: "research_sharing_per_country_bonus_factor",
         description: r#"Changes the bonus in research speed per country when technology sharing by a percentage.
@@ -13246,16 +15415,19 @@ research_sharing_per_country_bonus_factor = 0.5
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("research_speed_factor", HOI4Entity {
-        name: "research_speed_factor",
-        description: r#"Changes the research speed.
+    m.insert(
+        "research_speed_factor",
+        HOI4Entity {
+            name: "research_speed_factor",
+            description: r#"Changes the research speed.
 
 **Example:**
 ```paradox
 research_speed_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("local_resources_factor", HOI4Entity {
         name: "local_resources_factor",
         description: r#"Resource extraction efficiency. Modifies the amount of available resources.
@@ -13276,16 +15448,19 @@ surrender_limit = 0.1
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("max_surrender_limit_offset", HOI4Entity {
-        name: "max_surrender_limit_offset",
-        description: r#"Controls the maximum surrender progress of a nation.
+    m.insert(
+        "max_surrender_limit_offset",
+        HOI4Entity {
+            name: "max_surrender_limit_offset",
+            description: r#"Controls the maximum surrender progress of a nation.
 
 **Example:**
 ```paradox
 max_surrender_limit_offset = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("forced_surrender_limit", HOI4Entity {
         name: "forced_surrender_limit",
         description: r#"Changes the percentage of victory points the country needs to lose control of to capitulate, bypassing the minimum or maximum.
@@ -13296,66 +15471,84 @@ forced_surrender_limit = 0.1
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("country_resource", HOI4Entity {
-        name: "country_resource",
-        description: r#"Directly modifies the country's resource stockpile.
+    m.insert(
+        "country_resource",
+        HOI4Entity {
+            name: "country_resource",
+            description: r#"Directly modifies the country's resource stockpile.
 
 **Example:**
 ```paradox
 country_resource_oil = 10
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("country_resource_cost", HOI4Entity {
-        name: "country_resource_cost",
-        description: r#"Directly modifies the country's resource stockpile.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "country_resource_cost",
+        HOI4Entity {
+            name: "country_resource_cost",
+            description: r#"Directly modifies the country's resource stockpile.
 
 **Example:**
 ```paradox
 country_resource_cost_aluminium = 10
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("resource_trade_cost_bonus_per_factory", HOI4Entity {
-        name: "resource_trade_cost_bonus_per_factory",
-        description: r#"Modifies the country's cost to buy resources from others.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "resource_trade_cost_bonus_per_factory",
+        HOI4Entity {
+            name: "resource_trade_cost_bonus_per_factory",
+            description: r#"Modifies the country's cost to buy resources from others.
 
 **Example:**
 ```paradox
 resource_trade_cost_bonus_per_factory = 1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("factory_energy_consumption", HOI4Entity {
-        name: "factory_energy_consumption",
-        description: r#"Directly modifies the country's energy usage per factory
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "factory_energy_consumption",
+        HOI4Entity {
+            name: "factory_energy_consumption",
+            description: r#"Directly modifies the country's energy usage per factory
 
 **Example:**
 ```paradox
 factory_energy_consumption = 0.1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("min_export", HOI4Entity {
-        name: "min_export",
-        description: r#"Changes the amount of resources to market.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "min_export",
+        HOI4Entity {
+            name: "min_export",
+            description: r#"Changes the amount of resources to market.
 
 **Example:**
 ```paradox
 min_export = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("trade_opinion_factor", HOI4Entity {
-        name: "trade_opinion_factor",
-        description: r#"Makes AI more likely to purchase resources from this country.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "trade_opinion_factor",
+        HOI4Entity {
+            name: "trade_opinion_factor",
+            description: r#"Makes AI more likely to purchase resources from this country.
 
 **Example:**
 ```paradox
 trade_opinion_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("defensive_war_stability_factor", HOI4Entity {
         name: "defensive_war_stability_factor",
         description: r#"Changes the penalty to the stability invoked by participating in a defensive war.
@@ -13366,16 +15559,19 @@ defensive_war_stability_factor = 0.5
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("disabled_ideas", HOI4Entity {
-        name: "disabled_ideas",
-        description: r#"Disables manually changing ideas (including ministers and laws).
+    m.insert(
+        "disabled_ideas",
+        HOI4Entity {
+            name: "disabled_ideas",
+            description: r#"Disables manually changing ideas (including ministers and laws).
 
 **Example:**
 ```paradox
 disabled_ideas = 1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("cost_factor", HOI4Entity {
         name: "cost_factor",
         description: r#"Changes the cost in political power to add an idea or character within the specified slot.
@@ -13406,16 +15602,19 @@ air_advisor_cost_factor = 0.5
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("unit_leader_as_advisor_cp_cost_factor", HOI4Entity {
-        name: "unit_leader_as_advisor_cp_cost_factor",
-        description: r#"Changes the cost in command power to turn a unit leader into an advisor.
+    m.insert(
+        "unit_leader_as_advisor_cp_cost_factor",
+        HOI4Entity {
+            name: "unit_leader_as_advisor_cp_cost_factor",
+            description: r#"Changes the cost in command power to turn a unit leader into an advisor.
 
 **Example:**
 ```paradox
 unit_leader_as_advisor_cp_cost_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("improve_relations_maintain_cost_factor", HOI4Entity {
         name: "improve_relations_maintain_cost_factor",
         description: r#"Changes the cost in political power to maintain improvement of relations.
@@ -13426,16 +15625,19 @@ improve_relations_maintain_cost_factor = 0.5
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("female_random_country_leader_chance", HOI4Entity {
-        name: "female_random_country_leader_chance",
-        description: r#"Changes the chance for a randomly-generated country leader to be female.
+    m.insert(
+        "female_random_country_leader_chance",
+        HOI4Entity {
+            name: "female_random_country_leader_chance",
+            description: r#"Changes the chance for a randomly-generated country leader to be female.
 
 **Example:**
 ```paradox
 female_random_country_leader_chance = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("offensive_war_stability_factor", HOI4Entity {
         name: "offensive_war_stability_factor",
         description: r#"Modifies the stability penalty received from participating in an offensive war.
@@ -13446,116 +15648,149 @@ offensive_war_stability_factor = 0.3
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("party_popularity_stability_factor", HOI4Entity {
-        name: "party_popularity_stability_factor",
-        description: r#"Modifies the stability gained by the popularity of the ruling party.
+    m.insert(
+        "party_popularity_stability_factor",
+        HOI4Entity {
+            name: "party_popularity_stability_factor",
+            description: r#"Modifies the stability gained by the popularity of the ruling party.
 
 **Example:**
 ```paradox
 party_popularity_stability_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("political_power_cost", HOI4Entity {
-        name: "political_power_cost",
-        description: r#"Daily cost in political power.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "political_power_cost",
+        HOI4Entity {
+            name: "political_power_cost",
+            description: r#"Daily cost in political power.
 
 **Example:**
 ```paradox
 political_power_cost = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("political_power_gain", HOI4Entity {
-        name: "political_power_gain",
-        description: r#"Modifies daily gain in political power.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "political_power_gain",
+        HOI4Entity {
+            name: "political_power_gain",
+            description: r#"Modifies daily gain in political power.
 
 **Example:**
 ```paradox
 political_power_gain = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("political_power_factor", HOI4Entity {
-        name: "political_power_factor",
-        description: r#"Modifies daily gain in political power by a percentage.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "political_power_factor",
+        HOI4Entity {
+            name: "political_power_factor",
+            description: r#"Modifies daily gain in political power by a percentage.
 
 **Example:**
 ```paradox
 political_power_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("stability_factor", HOI4Entity {
-        name: "stability_factor",
-        description: r#"Modifies stability of the country.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "stability_factor",
+        HOI4Entity {
+            name: "stability_factor",
+            description: r#"Modifies stability of the country.
 
 **Example:**
 ```paradox
 stability_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("stability_weekly", HOI4Entity {
-        name: "stability_weekly",
-        description: r#"Modifies weekly stability gain of the country.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "stability_weekly",
+        HOI4Entity {
+            name: "stability_weekly",
+            description: r#"Modifies weekly stability gain of the country.
 
 **Example:**
 ```paradox
 stability_weekly = 0.01
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("stability_weekly_factor", HOI4Entity {
-        name: "stability_weekly_factor",
-        description: r#"Modifies weekly stability gain of the country by a percentage.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "stability_weekly_factor",
+        HOI4Entity {
+            name: "stability_weekly_factor",
+            description: r#"Modifies weekly stability gain of the country by a percentage.
 
 **Example:**
 ```paradox
 stability_weekly_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("war_stability_factor", HOI4Entity {
-        name: "war_stability_factor",
-        description: r#"Modifies the stability loss caused by being at war.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "war_stability_factor",
+        HOI4Entity {
+            name: "war_stability_factor",
+            description: r#"Modifies the stability loss caused by being at war.
 
 **Example:**
 ```paradox
 war_stability_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("war_support_factor", HOI4Entity {
-        name: "war_support_factor",
-        description: r#"Modifies war support of the country.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "war_support_factor",
+        HOI4Entity {
+            name: "war_support_factor",
+            description: r#"Modifies war support of the country.
 
 **Example:**
 ```paradox
 war_support_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("war_support_weekly", HOI4Entity {
-        name: "war_support_weekly",
-        description: r#"Modifies weekly war support gain of the country.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "war_support_weekly",
+        HOI4Entity {
+            name: "war_support_weekly",
+            description: r#"Modifies weekly war support gain of the country.
 
 **Example:**
 ```paradox
 war_support_weekly = 0.01
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("war_support_weekly_factor", HOI4Entity {
-        name: "war_support_weekly_factor",
-        description: r#"Modifies weekly war support gain of the country by a percentage.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "war_support_weekly_factor",
+        HOI4Entity {
+            name: "war_support_weekly_factor",
+            description: r#"Modifies weekly war support gain of the country by a percentage.
 
 **Example:**
 ```paradox
 war_support_weekly_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("weekly_casualties_war_support", HOI4Entity {
         name: "weekly_casualties_war_support",
         description: r#"Modifies weekly war support gain of the country depending on the casualties suffered by it.
@@ -13586,46 +15821,58 @@ weekly_bombing_war_support = 0.006
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("drift_defence_factor", HOI4Entity {
-        name: "drift_defence_factor",
-        description: r#"Ideology drift defense.
+    m.insert(
+        "drift_defence_factor",
+        HOI4Entity {
+            name: "drift_defence_factor",
+            description: r#"Ideology drift defense.
 
 **Example:**
 ```paradox
 drift_defence_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("power_balance_daily", HOI4Entity {
-        name: "power_balance_daily",
-        description: r#"Pushes the power balance by a specified amount on each day.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "power_balance_daily",
+        HOI4Entity {
+            name: "power_balance_daily",
+            description: r#"Pushes the power balance by a specified amount on each day.
 
 **Example:**
 ```paradox
 power_balance_daily = 0.01
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("power_balance_weekly", HOI4Entity {
-        name: "power_balance_weekly",
-        description: r#"Pushes the power balance by a specified amount on each week.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "power_balance_weekly",
+        HOI4Entity {
+            name: "power_balance_weekly",
+            description: r#"Pushes the power balance by a specified amount on each week.
 
 **Example:**
 ```paradox
 power_balance_weekly = 0.01
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("drift", HOI4Entity {
-        name: "drift",
-        description: r#"Daily gain of the specified ideology.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "drift",
+        HOI4Entity {
+            name: "drift",
+            description: r#"Daily gain of the specified ideology.
 
 **Example:**
 ```paradox
 communism_drift = 0.03
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("acceptance", HOI4Entity {
         name: "acceptance",
         description: r#"Likelihood of AI to accept offers from countries of the specified ideology.
@@ -13656,76 +15903,97 @@ enemy_declare_war_tension = 0.5
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("enemy_justify_war_goal_time", HOI4Entity {
-        name: "enemy_justify_war_goal_time",
-        description: r#"Changes the time required for an enemy to justify a wargoal on us.
+    m.insert(
+        "enemy_justify_war_goal_time",
+        HOI4Entity {
+            name: "enemy_justify_war_goal_time",
+            description: r#"Changes the time required for an enemy to justify a wargoal on us.
 
 **Example:**
 ```paradox
 enemy_justify_war_goal_time = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("faction_trade_opinion_factor", HOI4Entity {
-        name: "faction_trade_opinion_factor",
-        description: r#"Changes the opinion gain gained by trade between faction members.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "faction_trade_opinion_factor",
+        HOI4Entity {
+            name: "faction_trade_opinion_factor",
+            description: r#"Changes the opinion gain gained by trade between faction members.
 
 **Example:**
 ```paradox
 faction_trade_opinion_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("generate_wargoal_tension", HOI4Entity {
-        name: "generate_wargoal_tension",
-        description: r#"Changes the necessary tension for us to generate a wargoal.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "generate_wargoal_tension",
+        HOI4Entity {
+            name: "generate_wargoal_tension",
+            description: r#"Changes the necessary tension for us to generate a wargoal.
 
 **Example:**
 ```paradox
 generate_wargoal_tension = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("guarantee_cost", HOI4Entity {
-        name: "guarantee_cost",
-        description: r#"Cost in political power for the country to guarantee an another country.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "guarantee_cost",
+        HOI4Entity {
+            name: "guarantee_cost",
+            description: r#"Cost in political power for the country to guarantee an another country.
 
 **Example:**
 ```paradox
 guarantee_cost = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("guarantee_tension", HOI4Entity {
-        name: "guarantee_tension",
-        description: r#"Necessary world tension for the country to guarantee an another country.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "guarantee_tension",
+        HOI4Entity {
+            name: "guarantee_tension",
+            description: r#"Necessary world tension for the country to guarantee an another country.
 
 **Example:**
 ```paradox
 guarantee_tension = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("join_faction_tension", HOI4Entity {
-        name: "join_faction_tension",
-        description: r#"Necessary world tension for the country to join a faction.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "join_faction_tension",
+        HOI4Entity {
+            name: "join_faction_tension",
+            description: r#"Necessary world tension for the country to join a faction.
 
 **Example:**
 ```paradox
 join_faction_tension = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("justify_war_goal_time", HOI4Entity {
-        name: "justify_war_goal_time",
-        description: r#"The amount of time necessary to justify a wargoal.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "justify_war_goal_time",
+        HOI4Entity {
+            name: "justify_war_goal_time",
+            description: r#"The amount of time necessary to justify a wargoal.
 
 **Example:**
 ```paradox
 justify_war_goal_time = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("justify_war_goal_when_in_major_war_time", HOI4Entity {
         name: "justify_war_goal_when_in_major_war_time",
         description: r#"The amount of time necessary to justify a wargoal when in a war with a major country.
@@ -13736,36 +16004,45 @@ justify_war_goal_when_in_major_war_time = 0.3
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("lend_lease_tension", HOI4Entity {
-        name: "lend_lease_tension",
-        description: r#"Necessary world tension for the country to lend-lease.
+    m.insert(
+        "lend_lease_tension",
+        HOI4Entity {
+            name: "lend_lease_tension",
+            description: r#"Necessary world tension for the country to lend-lease.
 
 **Example:**
 ```paradox
 lend_lease_tension = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("lend_lease_tension_with_overlord", HOI4Entity {
-        name: "lend_lease_tension_with_overlord",
-        description: r#"Necessary world tension for the country to lend-lease to its overlord.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "lend_lease_tension_with_overlord",
+        HOI4Entity {
+            name: "lend_lease_tension_with_overlord",
+            description: r#"Necessary world tension for the country to lend-lease to its overlord.
 
 **Example:**
 ```paradox
 lend_lease_tension_with_overlord = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("opinion_gain_monthly", HOI4Entity {
-        name: "opinion_gain_monthly",
-        description: r#"Changes opinion gain from the 'Improve relations' diplomatic action.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "opinion_gain_monthly",
+        HOI4Entity {
+            name: "opinion_gain_monthly",
+            description: r#"Changes opinion gain from the 'Improve relations' diplomatic action.
 
 **Example:**
 ```paradox
 opinion_gain_monthly = 5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("opinion_gain_monthly_factor", HOI4Entity {
         name: "opinion_gain_monthly_factor",
         description: r#"Changes opinion gain from the 'Improve relations' diplomatic action by a percentage.
@@ -13796,26 +16073,32 @@ opinion_gain_monthly_same_ideology_factor = 0.3
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("request_lease_tension", HOI4Entity {
-        name: "request_lease_tension",
-        description: r#"Necessary world tension for the country to request lend-lease.
+    m.insert(
+        "request_lease_tension",
+        HOI4Entity {
+            name: "request_lease_tension",
+            description: r#"Necessary world tension for the country to request lend-lease.
 
 **Example:**
 ```paradox
 request_lease_tension = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("annex_cost_factor", HOI4Entity {
-        name: "annex_cost_factor",
-        description: r#"Modifies the cost in victory points to annex states in peace deals.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "annex_cost_factor",
+        HOI4Entity {
+            name: "annex_cost_factor",
+            description: r#"Modifies the cost in victory points to annex states in peace deals.
 
 **Example:**
 ```paradox
 annex_cost_factor = 0.1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("puppet_cost_factor", HOI4Entity {
         name: "puppet_cost_factor",
         description: r#"Modifies the cost in victory points per state to puppet countries in peace deals.
@@ -13826,16 +16109,19 @@ puppet_cost_factor = 0.1
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("send_volunteer_divisions_required", HOI4Entity {
-        name: "send_volunteer_divisions_required",
-        description: r#"Changes the number of divisions needed to send volunteers.
+    m.insert(
+        "send_volunteer_divisions_required",
+        HOI4Entity {
+            name: "send_volunteer_divisions_required",
+            description: r#"Changes the number of divisions needed to send volunteers.
 
 **Example:**
 ```paradox
 send_volunteer_divisions_required = -0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("send_volunteer_factor", HOI4Entity {
         name: "send_volunteer_factor",
         description: r#"Changes the number of divisions the country can send as volunteers by a percentage.
@@ -13846,36 +16132,45 @@ send_volunteer_factor = 0.3
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("send_volunteer_size", HOI4Entity {
-        name: "send_volunteer_size",
-        description: r#"Changes the number of divisions the country can send as volunteers.
+    m.insert(
+        "send_volunteer_size",
+        HOI4Entity {
+            name: "send_volunteer_size",
+            description: r#"Changes the number of divisions the country can send as volunteers.
 
 **Example:**
 ```paradox
 send_volunteer_size = 5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("send_volunteers_tension", HOI4Entity {
-        name: "send_volunteers_tension",
-        description: r#"Changes the world tension necessary for the country to send volunteers.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "send_volunteers_tension",
+        HOI4Entity {
+            name: "send_volunteers_tension",
+            description: r#"Changes the world tension necessary for the country to send volunteers.
 
 **Example:**
 ```paradox
 send_volunteers_tension = -0.1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("air_volunteer_cap", HOI4Entity {
-        name: "air_volunteer_cap",
-        description: r#"Changes the amount of airforce you can send as volunteers.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "air_volunteer_cap",
+        HOI4Entity {
+            name: "air_volunteer_cap",
+            description: r#"Changes the amount of airforce you can send as volunteers.
 
 **Example:**
 ```paradox
 air_volunteer_cap = 100
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("embargo_threshold_factor", HOI4Entity {
         name: "embargo_threshold_factor",
         description: r#"Changes the necessary world tension level in order to be able to embargo a country.
@@ -13886,56 +16181,71 @@ embargo_threshold_factor = 0.2
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("embargo_cost_factor", HOI4Entity {
-        name: "embargo_cost_factor",
-        description: r#"Changes the cost in political power to send an embargo.
+    m.insert(
+        "embargo_cost_factor",
+        HOI4Entity {
+            name: "embargo_cost_factor",
+            description: r#"Changes the cost in political power to send an embargo.
 
 **Example:**
 ```paradox
 embargo_cost_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("autonomy_gain", HOI4Entity {
-        name: "autonomy_gain",
-        description: r#"Daily gain of autonomy.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "autonomy_gain",
+        HOI4Entity {
+            name: "autonomy_gain",
+            description: r#"Daily gain of autonomy.
 
 **Example:**
 ```paradox
 autonomy_gain = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("autonomy_gain_global_factor", HOI4Entity {
-        name: "autonomy_gain_global_factor",
-        description: r#"Modifies all gain of autonomy by a subject.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "autonomy_gain_global_factor",
+        HOI4Entity {
+            name: "autonomy_gain_global_factor",
+            description: r#"Modifies all gain of autonomy by a subject.
 
 **Example:**
 ```paradox
 autonomy_gain_global_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("subjects_autonomy_gain", HOI4Entity {
-        name: "subjects_autonomy_gain",
-        description: r#"Daily gain of autonomy in our subjects.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "subjects_autonomy_gain",
+        HOI4Entity {
+            name: "subjects_autonomy_gain",
+            description: r#"Daily gain of autonomy in our subjects.
 
 **Example:**
 ```paradox
 subjects_autonomy_gain = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("autonomy_gain_ll_to_overlord", HOI4Entity {
-        name: "autonomy_gain_ll_to_overlord",
-        description: r#"Modifies gain of autonomy from lend-leasing to the overlord.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "autonomy_gain_ll_to_overlord",
+        HOI4Entity {
+            name: "autonomy_gain_ll_to_overlord",
+            description: r#"Modifies gain of autonomy from lend-leasing to the overlord.
 
 **Example:**
 ```paradox
 autonomy_gain_ll_to_overlord = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("autonomy_gain_ll_to_overlord_factor", HOI4Entity {
         name: "autonomy_gain_ll_to_overlord_factor",
         description: r#"Modifies gain of autonomy from lend-leasing to the overlord by a percentage.
@@ -13946,16 +16256,19 @@ autonomy_gain_ll_to_overlord_factor = 0.5
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("autonomy_gain_ll_to_subject", HOI4Entity {
-        name: "autonomy_gain_ll_to_subject",
-        description: r#"Modifies loss of autonomy from lend-leasing to the subject.
+    m.insert(
+        "autonomy_gain_ll_to_subject",
+        HOI4Entity {
+            name: "autonomy_gain_ll_to_subject",
+            description: r#"Modifies loss of autonomy from lend-leasing to the subject.
 
 **Example:**
 ```paradox
 autonomy_gain_ll_to_subject = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("autonomy_gain_ll_to_subject_factor", HOI4Entity {
         name: "autonomy_gain_ll_to_subject_factor",
         description: r#"Modifies loss of autonomy from lend-leasing to the subject by a percentage.
@@ -13966,16 +16279,19 @@ autonomy_gain_ll_to_subject_factor = 0.5
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("autonomy_gain_trade", HOI4Entity {
-        name: "autonomy_gain_trade",
-        description: r#"Modifies gain of autonomy from the overlord trading with the subject.
+    m.insert(
+        "autonomy_gain_trade",
+        HOI4Entity {
+            name: "autonomy_gain_trade",
+            description: r#"Modifies gain of autonomy from the overlord trading with the subject.
 
 **Example:**
 ```paradox
 autonomy_gain_trade = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("autonomy_gain_trade_factor", HOI4Entity {
         name: "autonomy_gain_trade_factor",
         description: r#"Modifies gain of autonomy from the overlord trading with the subject by a percentage.
@@ -13986,16 +16302,19 @@ autonomy_gain_trade_factor = 0.5
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("autonomy_gain_warscore", HOI4Entity {
-        name: "autonomy_gain_warscore",
-        description: r#"Modifies gain of autonomy from the subject gaining warscore.
+    m.insert(
+        "autonomy_gain_warscore",
+        HOI4Entity {
+            name: "autonomy_gain_warscore",
+            description: r#"Modifies gain of autonomy from the subject gaining warscore.
 
 **Example:**
 ```paradox
 autonomy_gain_warscore = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("autonomy_gain_warscore_factor", HOI4Entity {
         name: "autonomy_gain_warscore_factor",
         description: r#"Modifies gain of autonomy from the subject gaining warscore by a percentage.
@@ -14006,26 +16325,32 @@ autonomy_gain_warscore_factor = 0.5
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("autonomy_manpower_share", HOI4Entity {
-        name: "autonomy_manpower_share",
-        description: r#"Modifies the amount of manpower the overlord can use from the subject.
+    m.insert(
+        "autonomy_manpower_share",
+        HOI4Entity {
+            name: "autonomy_manpower_share",
+            description: r#"Modifies the amount of manpower the overlord can use from the subject.
 
 **Example:**
 ```paradox
 autonomy_manpower_share = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("can_master_build_for_us", HOI4Entity {
-        name: "can_master_build_for_us",
-        description: r#"Makes the overlord be able to build in the subject.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "can_master_build_for_us",
+        HOI4Entity {
+            name: "can_master_build_for_us",
+            description: r#"Makes the overlord be able to build in the subject.
 
 **Example:**
 ```paradox
 can_master_build_for_us = 1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("cic_to_overlord_factor", HOI4Entity {
         name: "cic_to_overlord_factor",
         description: r#"Modifies the amount of the subject's civilian industry that goes to the overlord.
@@ -14056,16 +16381,19 @@ extra_trade_to_overlord_factor = 0.3
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("license_subject_master_purchase_cost", HOI4Entity {
-        name: "license_subject_master_purchase_cost",
-        description: r#"Modifies the cost of licensed production from the overlord.
+    m.insert(
+        "license_subject_master_purchase_cost",
+        HOI4Entity {
+            name: "license_subject_master_purchase_cost",
+            description: r#"Modifies the cost of licensed production from the overlord.
 
 **Example:**
 ```paradox
 license_subject_master_purchase_cost = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("master_build_autonomy_factor", HOI4Entity {
         name: "master_build_autonomy_factor",
         description: r#"Modifies loss of autonomy from the overlord building in subject's states by a percentage.
@@ -14076,16 +16404,19 @@ master_build_autonomy_factor = 0.3
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("master_ideology_drift", HOI4Entity {
-        name: "master_ideology_drift",
-        description: r#"Changes daily gain of the overlord's ideology in the country.
+    m.insert(
+        "master_ideology_drift",
+        HOI4Entity {
+            name: "master_ideology_drift",
+            description: r#"Changes daily gain of the overlord's ideology in the country.
 
 **Example:**
 ```paradox
 master_ideology_drift = 0.03
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("overlord_trade_cost_factor", HOI4Entity {
         name: "overlord_trade_cost_factor",
         description: r#"Modifies the cost of trade between the overlord and the subject in civilian factories.
@@ -14096,136 +16427,175 @@ overlord_trade_cost_factor = -0.3
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("dockyard_donations", HOI4Entity {
-        name: "dockyard_donations",
-        description: r#"Amount of dockyards donated.
+    m.insert(
+        "dockyard_donations",
+        HOI4Entity {
+            name: "dockyard_donations",
+            description: r#"Amount of dockyards donated.
 
 **Example:**
 ```paradox
 dockyard_donations = 2
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("industrial_factory_donations", HOI4Entity {
-        name: "industrial_factory_donations",
-        description: r#"Amount of civilian factories donated.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "industrial_factory_donations",
+        HOI4Entity {
+            name: "industrial_factory_donations",
+            description: r#"Amount of civilian factories donated.
 
 **Example:**
 ```paradox
 industrial_factory_donations = 2
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("military_factory_donations", HOI4Entity {
-        name: "military_factory_donations",
-        description: r#"Amount of military factories donated.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "military_factory_donations",
+        HOI4Entity {
+            name: "military_factory_donations",
+            description: r#"Amount of military factories donated.
 
 **Example:**
 ```paradox
 military_factory_donations = 2
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("exile_manpower_factor", HOI4Entity {
-        name: "exile_manpower_factor",
-        description: r#"Amount of manpower given to the host country.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "exile_manpower_factor",
+        HOI4Entity {
+            name: "exile_manpower_factor",
+            description: r#"Amount of manpower given to the host country.
 
 **Example:**
 ```paradox
 exile_manpower_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("exiled_government_weekly_manpower", HOI4Entity {
-        name: "exiled_government_weekly_manpower",
-        description: r#"Amount of weekly manpower given to the host country.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "exiled_government_weekly_manpower",
+        HOI4Entity {
+            name: "exiled_government_weekly_manpower",
+            description: r#"Amount of weekly manpower given to the host country.
 
 **Example:**
 ```paradox
 exiled_government_weekly_manpower = 100
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("legitimacy_daily", HOI4Entity {
-        name: "legitimacy_daily",
-        description: r#"Changes the amount of legitimacy gained daily.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "legitimacy_daily",
+        HOI4Entity {
+            name: "legitimacy_daily",
+            description: r#"Changes the amount of legitimacy gained daily.
 
 **Example:**
 ```paradox
 legitimacy_daily = 1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("legitimacy_gain_factor", HOI4Entity {
-        name: "legitimacy_gain_factor",
-        description: r#"Changes the amount of legitimacy gained daily by a percentage.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "legitimacy_gain_factor",
+        HOI4Entity {
+            name: "legitimacy_gain_factor",
+            description: r#"Changes the amount of legitimacy gained daily by a percentage.
 
 **Example:**
 ```paradox
 legitimacy_gain_factor = 1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("equipment_capture", HOI4Entity {
-        name: "equipment_capture",
-        description: r#"Changes the combat equipment capture ratio.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "equipment_capture",
+        HOI4Entity {
+            name: "equipment_capture",
+            description: r#"Changes the combat equipment capture ratio.
 
 **Example:**
 ```paradox
 equipment_capture = 0.2
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("equipment_capture_factor", HOI4Entity {
-        name: "equipment_capture_factor",
-        description: r#"Modifies the combat equipment capture ratio.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "equipment_capture_factor",
+        HOI4Entity {
+            name: "equipment_capture_factor",
+            description: r#"Modifies the combat equipment capture ratio.
 
 **Example:**
 ```paradox
 equipment_capture_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("equipment_conversion_speed", HOI4Entity {
-        name: "equipment_conversion_speed",
-        description: r#"Changes the speed at which equipment is converted.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "equipment_conversion_speed",
+        HOI4Entity {
+            name: "equipment_conversion_speed",
+            description: r#"Changes the speed at which equipment is converted.
 
 **Example:**
 ```paradox
 equipment_conversion_speed = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("equipment_upgrade_xp_cost", HOI4Entity {
-        name: "equipment_upgrade_xp_cost",
-        description: r#"Changes the experience cost to upgrade military equipment.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "equipment_upgrade_xp_cost",
+        HOI4Entity {
+            name: "equipment_upgrade_xp_cost",
+            description: r#"Changes the experience cost to upgrade military equipment.
 
 **Example:**
 ```paradox
 equipment_upgrade_xp_cost = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("license_purchase_cost", HOI4Entity {
-        name: "license_purchase_cost",
-        description: r#"Changes the cost of licensed equipment by a percentage.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "license_purchase_cost",
+        HOI4Entity {
+            name: "license_purchase_cost",
+            description: r#"Changes the cost of licensed equipment by a percentage.
 
 **Example:**
 ```paradox
 license_purchase_cost = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("license_purchase_cost_factor", HOI4Entity {
-        name: "license_purchase_cost_factor",
-        description: r#"Changes the cost of licensed equipment by a percentage.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "license_purchase_cost_factor",
+        HOI4Entity {
+            name: "license_purchase_cost_factor",
+            description: r#"Changes the cost of licensed equipment by a percentage.
 
 **Example:**
 ```paradox
 license_purchase_cost_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("license_tech_difference_speed", HOI4Entity {
         name: "license_tech_difference_speed",
         description: r#"Changes the production penalty of licensed equipment by tech difference by a percentage.
@@ -14236,266 +16606,344 @@ license_tech_difference_speed = 0.5
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("license_production_speed", HOI4Entity {
-        name: "license_production_speed",
-        description: r#"Changes the production speed of licensed equipment by a percentage.
+    m.insert(
+        "license_production_speed",
+        HOI4Entity {
+            name: "license_production_speed",
+            description: r#"Changes the production speed of licensed equipment by a percentage.
 
 **Example:**
 ```paradox
 license_production_speed = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("license__production_speed_factor", HOI4Entity {
-        name: "license__production_speed_factor",
-        description: r#"Changes the production speed of licensed equipment by a percentage.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "license__production_speed_factor",
+        HOI4Entity {
+            name: "license__production_speed_factor",
+            description: r#"Changes the production speed of licensed equipment by a percentage.
 
 **Example:**
 ```paradox
 license_infantry_eq_production_speed_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("production_cost_max", HOI4Entity {
-        name: "production_cost_max",
-        description: r#"Modifies the maximum cost of the ship type.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "production_cost_max",
+        HOI4Entity {
+            name: "production_cost_max",
+            description: r#"Modifies the maximum cost of the ship type.
 
 **Example:**
 ```paradox
 production_cost_max_ship_hull_light = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("production_factory_efficiency_gain_factor", HOI4Entity {
-        name: "production_factory_efficiency_gain_factor",
-        description: r#"Production efficiency growth.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "production_factory_efficiency_gain_factor",
+        HOI4Entity {
+            name: "production_factory_efficiency_gain_factor",
+            description: r#"Production efficiency growth.
 
 **Example:**
 ```paradox
 production_factory_efficiency_gain_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("production_factory_max_efficiency_factor", HOI4Entity {
-        name: "production_factory_max_efficiency_factor",
-        description: r#"Production efficiency cap.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "production_factory_max_efficiency_factor",
+        HOI4Entity {
+            name: "production_factory_max_efficiency_factor",
+            description: r#"Production efficiency cap.
 
 **Example:**
 ```paradox
 production_factory_max_efficiency_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("production_factory_start_efficiency_factor", HOI4Entity {
-        name: "production_factory_start_efficiency_factor",
-        description: r#"Production efficiency base.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "production_factory_start_efficiency_factor",
+        HOI4Entity {
+            name: "production_factory_start_efficiency_factor",
+            description: r#"Production efficiency base.
 
 **Example:**
 ```paradox
 production_factory_start_efficiency_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("line_change_production_efficiency_factor", HOI4Entity {
-        name: "line_change_production_efficiency_factor",
-        description: r#"Production efficiency retention.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "line_change_production_efficiency_factor",
+        HOI4Entity {
+            name: "line_change_production_efficiency_factor",
+            description: r#"Production efficiency retention.
 
 **Example:**
 ```paradox
 line_change_production_efficiency_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("production_lack_of_resource_penalty_factor", HOI4Entity {
-        name: "production_lack_of_resource_penalty_factor",
-        description: r#"Lack of resources penalty.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "production_lack_of_resource_penalty_factor",
+        HOI4Entity {
+            name: "production_lack_of_resource_penalty_factor",
+            description: r#"Lack of resources penalty.
 
 **Example:**
 ```paradox
 production_lack_of_resource_penalty_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("floating_harbor_duration", HOI4Entity {
-        name: "floating_harbor_duration",
-        description: r#"Modifies the duration of floating harbours.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "floating_harbor_duration",
+        HOI4Entity {
+            name: "floating_harbor_duration",
+            description: r#"Modifies the duration of floating harbours.
 
 **Example:**
 ```paradox
 floating_harbor_duration = 2
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("floating_harbor_range", HOI4Entity {
-        name: "floating_harbor_range",
-        description: r#"Modifies the range of floating harbours.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "floating_harbor_range",
+        HOI4Entity {
+            name: "floating_harbor_range",
+            description: r#"Modifies the range of floating harbours.
 
 **Example:**
 ```paradox
 floating_harbor_range = 2
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("floating_harbor_supply", HOI4Entity {
-        name: "floating_harbor_supply",
-        description: r#"Modifies the supply of floating harbours.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "floating_harbor_supply",
+        HOI4Entity {
+            name: "floating_harbor_supply",
+            description: r#"Modifies the supply of floating harbours.
 
 **Example:**
 ```paradox
 floating_harbor_supply = 2
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("railway_gun_bombardment_factor", HOI4Entity {
-        name: "railway_gun_bombardment_factor",
-        description: r#"Modifies the bombardment of railway guns.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "railway_gun_bombardment_factor",
+        HOI4Entity {
+            name: "railway_gun_bombardment_factor",
+            description: r#"Modifies the bombardment of railway guns.
 
 **Example:**
 ```paradox
 railway_gun_bombardment_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("base_fuel_gain", HOI4Entity {
-        name: "base_fuel_gain",
-        description: r#"Changes base daily gain of fuel.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "base_fuel_gain",
+        HOI4Entity {
+            name: "base_fuel_gain",
+            description: r#"Changes base daily gain of fuel.
 
 **Example:**
 ```paradox
 base_fuel_gain = 100
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("base_fuel_gain_factor", HOI4Entity {
-        name: "base_fuel_gain_factor",
-        description: r#"Changes base daily gain of fuel by a percentage.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "base_fuel_gain_factor",
+        HOI4Entity {
+            name: "base_fuel_gain_factor",
+            description: r#"Changes base daily gain of fuel by a percentage.
 
 **Example:**
 ```paradox
 base_fuel_gain_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("fuel_cost", HOI4Entity {
-        name: "fuel_cost",
-        description: r#"Changes hourly cost of fuel.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "fuel_cost",
+        HOI4Entity {
+            name: "fuel_cost",
+            description: r#"Changes hourly cost of fuel.
 
 **Example:**
 ```paradox
 fuel_cost = 100
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("fuel_gain", HOI4Entity {
-        name: "fuel_gain",
-        description: r#"Changes daily gain of fuel from our controlled oil.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "fuel_gain",
+        HOI4Entity {
+            name: "fuel_gain",
+            description: r#"Changes daily gain of fuel from our controlled oil.
 
 **Example:**
 ```paradox
 fuel_gain = 100
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("fuel_gain_factor", HOI4Entity {
-        name: "fuel_gain_factor",
-        description: r#"Changes daily gain of fuel from our controlled oil by a percentage.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "fuel_gain_factor",
+        HOI4Entity {
+            name: "fuel_gain_factor",
+            description: r#"Changes daily gain of fuel from our controlled oil by a percentage.
 
 **Example:**
 ```paradox
 fuel_gain_factor = 100
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("fuel_gain_from_states", HOI4Entity {
-        name: "fuel_gain_from_states",
-        description: r#"Changes daily gain of fuel.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "fuel_gain_from_states",
+        HOI4Entity {
+            name: "fuel_gain_from_states",
+            description: r#"Changes daily gain of fuel.
 
 **Example:**
 ```paradox
 fuel_gain_from_states = 100
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("fuel_gain_factor_from_states", HOI4Entity {
-        name: "fuel_gain_factor_from_states",
-        description: r#"Changes daily gain of fuel by a percentage.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "fuel_gain_factor_from_states",
+        HOI4Entity {
+            name: "fuel_gain_factor_from_states",
+            description: r#"Changes daily gain of fuel by a percentage.
 
 **Example:**
 ```paradox
 fuel_gain_factor_from_states = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("max_fuel", HOI4Entity {
-        name: "max_fuel",
-        description: r#"Changes maximum amount of fuel you can have.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "max_fuel",
+        HOI4Entity {
+            name: "max_fuel",
+            description: r#"Changes maximum amount of fuel you can have.
 
 **Example:**
 ```paradox
 max_fuel = 100
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("max_fuel_factor", HOI4Entity {
-        name: "max_fuel_factor",
-        description: r#"Changes maximum amount of fuel you can have by a percentage.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "max_fuel_factor",
+        HOI4Entity {
+            name: "max_fuel_factor",
+            description: r#"Changes maximum amount of fuel you can have by a percentage.
 
 **Example:**
 ```paradox
 max_fuel_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("army_fuel_capacity_factor", HOI4Entity {
-        name: "army_fuel_capacity_factor",
-        description: r#"Modifies how much fuel a single unit can store before running out.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "army_fuel_capacity_factor",
+        HOI4Entity {
+            name: "army_fuel_capacity_factor",
+            description: r#"Modifies how much fuel a single unit can store before running out.
 
 **Example:**
 ```paradox
 army_fuel_capacity_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("army_fuel_consumption_factor", HOI4Entity {
-        name: "army_fuel_consumption_factor",
-        description: r#"Modifies the rate at which the army consumes fuel.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "army_fuel_consumption_factor",
+        HOI4Entity {
+            name: "army_fuel_consumption_factor",
+            description: r#"Modifies the rate at which the army consumes fuel.
 
 **Example:**
 ```paradox
 army_fuel_consumption_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("air_fuel_consumption_factor", HOI4Entity {
-        name: "air_fuel_consumption_factor",
-        description: r#"Modifies the rate at which the airforce consumes fuel.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "air_fuel_consumption_factor",
+        HOI4Entity {
+            name: "air_fuel_consumption_factor",
+            description: r#"Modifies the rate at which the airforce consumes fuel.
 
 **Example:**
 ```paradox
 air_fuel_consumption_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("navy_fuel_consumption_factor", HOI4Entity {
-        name: "navy_fuel_consumption_factor",
-        description: r#"Modifies the rate at which the navy consumes fuel.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "navy_fuel_consumption_factor",
+        HOI4Entity {
+            name: "navy_fuel_consumption_factor",
+            description: r#"Modifies the rate at which the navy consumes fuel.
 
 **Example:**
 ```paradox
 navy_fuel_consumption_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("supply_factor", HOI4Entity {
-        name: "supply_factor",
-        description: r#"Modifies the total amount of supply the military has.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "supply_factor",
+        HOI4Entity {
+            name: "supply_factor",
+            description: r#"Modifies the total amount of supply the military has.
 
 **Example:**
 ```paradox
 supply_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("supply_combat_penalties_on_core_factor", HOI4Entity {
         name: "supply_combat_penalties_on_core_factor",
         description: r#"Modifies the penalty given by low supply when the army is on a core state.
@@ -14506,296 +16954,383 @@ supply_combat_penalties_on_core_factor = 0.3
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("supply_consumption_factor", HOI4Entity {
-        name: "supply_consumption_factor",
-        description: r#"Modifies the rate at which army consumes supply.
+    m.insert(
+        "supply_consumption_factor",
+        HOI4Entity {
+            name: "supply_consumption_factor",
+            description: r#"Modifies the rate at which army consumes supply.
 
 **Example:**
 ```paradox
 supply_consumption_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("no_supply_grace", HOI4Entity {
-        name: "no_supply_grace",
-        description: r#"Modifies the grace period for units without supply.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "no_supply_grace",
+        HOI4Entity {
+            name: "no_supply_grace",
+            description: r#"Modifies the grace period for units without supply.
 
 **Example:**
 ```paradox
 no_supply_grace = 120
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("out_of_supply_factor", HOI4Entity {
-        name: "out_of_supply_factor",
-        description: r#"Reduces the penalty that units take when they run out of supplies.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "out_of_supply_factor",
+        HOI4Entity {
+            name: "out_of_supply_factor",
+            description: r#"Reduces the penalty that units take when they run out of supplies.
 
 **Example:**
 ```paradox
 out_of_supply_factor = 0.2
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("attrition", HOI4Entity {
-        name: "attrition",
-        description: r#"Modifies the army's attrition.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "attrition",
+        HOI4Entity {
+            name: "attrition",
+            description: r#"Modifies the army's attrition.
 
 **Example:**
 ```paradox
 attrition = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("unit_upkeep_attrition_factor", HOI4Entity {
-        name: "unit_upkeep_attrition_factor",
-        description: r#"Modifies the unit upkeep.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "unit_upkeep_attrition_factor",
+        HOI4Entity {
+            name: "unit_upkeep_attrition_factor",
+            description: r#"Modifies the unit upkeep.
 
 **Example:**
 ```paradox
 unit_upkeep_attrition_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("naval_attrition", HOI4Entity {
-        name: "naval_attrition",
-        description: r#"Modifies attrition suffered by naval units.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "naval_attrition",
+        HOI4Entity {
+            name: "naval_attrition",
+            description: r#"Modifies attrition suffered by naval units.
 
 **Example:**
 ```paradox
 naval_attrition = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("heat_attrition", HOI4Entity {
-        name: "heat_attrition",
-        description: r#"Changes the attrition due to heat.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "heat_attrition",
+        HOI4Entity {
+            name: "heat_attrition",
+            description: r#"Changes the attrition due to heat.
 
 **Example:**
 ```paradox
 heat_attrition = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("heat_attrition_factor", HOI4Entity {
-        name: "heat_attrition_factor",
-        description: r#"Changes the attrition due to heat by a percentage.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "heat_attrition_factor",
+        HOI4Entity {
+            name: "heat_attrition_factor",
+            description: r#"Changes the attrition due to heat by a percentage.
 
 **Example:**
 ```paradox
 heat_attrition_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("winter_attrition", HOI4Entity {
-        name: "winter_attrition",
-        description: r#"Changes the attrition due to winter.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "winter_attrition",
+        HOI4Entity {
+            name: "winter_attrition",
+            description: r#"Changes the attrition due to winter.
 
 **Example:**
 ```paradox
 winter_attrition = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("winter_attrition_factor", HOI4Entity {
-        name: "winter_attrition_factor",
-        description: r#"Changes the attrition due to winter by a percentage.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "winter_attrition_factor",
+        HOI4Entity {
+            name: "winter_attrition_factor",
+            description: r#"Changes the attrition due to winter by a percentage.
 
 **Example:**
 ```paradox
 winter_attrition_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("extra_marine_supply_grace", HOI4Entity {
-        name: "extra_marine_supply_grace",
-        description: r#"Changes the supply grace given to marines.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "extra_marine_supply_grace",
+        HOI4Entity {
+            name: "extra_marine_supply_grace",
+            description: r#"Changes the supply grace given to marines.
 
 **Example:**
 ```paradox
 extra_marine_supply_grace = 96
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("extra_paratrooper_supply_grace", HOI4Entity {
-        name: "extra_paratrooper_supply_grace",
-        description: r#"Changes the supply grace given to paratroopers.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "extra_paratrooper_supply_grace",
+        HOI4Entity {
+            name: "extra_paratrooper_supply_grace",
+            description: r#"Changes the supply grace given to paratroopers.
 
 **Example:**
 ```paradox
 extra_paratrooper_supply_grace = 96
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("special_forces_no_supply_grace", HOI4Entity {
-        name: "special_forces_no_supply_grace",
-        description: r#"Changes the supply grace period for special forces.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "special_forces_no_supply_grace",
+        HOI4Entity {
+            name: "special_forces_no_supply_grace",
+            description: r#"Changes the supply grace period for special forces.
 
 **Example:**
 ```paradox
 special_forces_no_supply_grace = 120
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("special_forces_out_of_supply_factor", HOI4Entity {
-        name: "special_forces_out_of_supply_factor",
-        description: r#"Changes the penalty for special forces out of supply.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "special_forces_out_of_supply_factor",
+        HOI4Entity {
+            name: "special_forces_out_of_supply_factor",
+            description: r#"Changes the penalty for special forces out of supply.
 
 **Example:**
 ```paradox
 special_forces_out_of_supply_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("truck_attrition", HOI4Entity {
-        name: "truck_attrition",
-        description: r#"Changes the attrition supply trucks suffer from.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "truck_attrition",
+        HOI4Entity {
+            name: "truck_attrition",
+            description: r#"Changes the attrition supply trucks suffer from.
 
 **Example:**
 ```paradox
 truck_attrition = 3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("truck_attrition_factor", HOI4Entity {
-        name: "truck_attrition_factor",
-        description: r#"Modifies the attrition supply trucks suffer from.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "truck_attrition_factor",
+        HOI4Entity {
+            name: "truck_attrition_factor",
+            description: r#"Modifies the attrition supply trucks suffer from.
 
 **Example:**
 ```paradox
 truck_attrition_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("production_speed_buildings_factor", HOI4Entity {
-        name: "production_speed_buildings_factor",
-        description: r#"Changes the construction speed of all buildings.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "production_speed_buildings_factor",
+        HOI4Entity {
+            name: "production_speed_buildings_factor",
+            description: r#"Changes the construction speed of all buildings.
 
 **Example:**
 ```paradox
 production_speed_buildings_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("production_speed__factor", HOI4Entity {
-        name: "production_speed__factor",
-        description: r#"Changes the construction speed of a specific building.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "production_speed__factor",
+        HOI4Entity {
+            name: "production_speed__factor",
+            description: r#"Changes the construction speed of a specific building.
 
 **Example:**
 ```paradox
 production_speed_industrial_complex_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("production_cost__factor", HOI4Entity {
-        name: "production_cost__factor",
-        description: r#"Changes the base cost of a specific building.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "production_cost__factor",
+        HOI4Entity {
+            name: "production_cost__factor",
+            description: r#"Changes the base cost of a specific building.
 
 **Example:**
 ```paradox
 production_cost_industrial_complex_factor = -0.1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("civilian_factory_use", HOI4Entity {
-        name: "civilian_factory_use",
-        description: r#"Uses the specified amount of civilian factory as a special project.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "civilian_factory_use",
+        HOI4Entity {
+            name: "civilian_factory_use",
+            description: r#"Uses the specified amount of civilian factory as a special project.
 
 **Example:**
 ```paradox
 civilian_factory_use = 3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("consumer_goods_factor", HOI4Entity {
-        name: "consumer_goods_factor",
-        description: r#"Modifies the percentage of factories used for consumer goods.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "consumer_goods_factor",
+        HOI4Entity {
+            name: "consumer_goods_factor",
+            description: r#"Modifies the percentage of factories used for consumer goods.
 
 **Example:**
 ```paradox
 consumer_goods_factor = 0.1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("consumer_goods_expected_value", HOI4Entity {
-        name: "consumer_goods_expected_value",
-        description: r#"Sets the baseline percentage of expected consumer goods.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "consumer_goods_expected_value",
+        HOI4Entity {
+            name: "consumer_goods_expected_value",
+            description: r#"Sets the baseline percentage of expected consumer goods.
 
 **Example:**
 ```paradox
 consumer_goods_expected_value = 0.1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("conversion_cost_civ_to_mil_factor", HOI4Entity {
-        name: "conversion_cost_civ_to_mil_factor",
-        description: r#"Changes the cost to convert civilian factories to military factories.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "conversion_cost_civ_to_mil_factor",
+        HOI4Entity {
+            name: "conversion_cost_civ_to_mil_factor",
+            description: r#"Changes the cost to convert civilian factories to military factories.
 
 **Example:**
 ```paradox
 conversion_cost_civ_to_mil_factor = 0.4
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("conversion_cost_mil_to_civ_factor", HOI4Entity {
-        name: "conversion_cost_mil_to_civ_factor",
-        description: r#"Changes the cost to convert military factories to civilian factories.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "conversion_cost_mil_to_civ_factor",
+        HOI4Entity {
+            name: "conversion_cost_mil_to_civ_factor",
+            description: r#"Changes the cost to convert military factories to civilian factories.
 
 **Example:**
 ```paradox
 conversion_cost_mil_to_civ_factor = 0.4
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("global_building_slots", HOI4Entity {
-        name: "global_building_slots",
-        description: r#"Changes amount of building slots in our every state.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "global_building_slots",
+        HOI4Entity {
+            name: "global_building_slots",
+            description: r#"Changes amount of building slots in our every state.
 
 **Example:**
 ```paradox
 global_building_slots = 1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("global_building_slots_factor", HOI4Entity {
-        name: "global_building_slots_factor",
-        description: r#"Changes amount of building slots in our every state by a percentage.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "global_building_slots_factor",
+        HOI4Entity {
+            name: "global_building_slots_factor",
+            description: r#"Changes amount of building slots in our every state by a percentage.
 
 **Example:**
 ```paradox
 global_building_slots_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("industrial_capacity_dockyard", HOI4Entity {
-        name: "industrial_capacity_dockyard",
-        description: r#"Dockyard output.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "industrial_capacity_dockyard",
+        HOI4Entity {
+            name: "industrial_capacity_dockyard",
+            description: r#"Dockyard output.
 
 **Example:**
 ```paradox
 industrial_capacity_dockyard = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("industrial_capacity_factory", HOI4Entity {
-        name: "industrial_capacity_factory",
-        description: r#"Military factory output.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "industrial_capacity_factory",
+        HOI4Entity {
+            name: "industrial_capacity_factory",
+            description: r#"Military factory output.
 
 **Example:**
 ```paradox
 industrial_capacity_factory = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("industry_air_damage_factor", HOI4Entity {
-        name: "industry_air_damage_factor",
-        description: r#"Amount of damage our factories receive from air bombings.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "industry_air_damage_factor",
+        HOI4Entity {
+            name: "industry_air_damage_factor",
+            description: r#"Amount of damage our factories receive from air bombings.
 
 **Example:**
 ```paradox
 industry_air_damage_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("industry_free_repair_factor", HOI4Entity {
         name: "industry_free_repair_factor",
         description: r#"Changes the speed at which buildings repair themselves without factories assigned.
@@ -14806,66 +17341,84 @@ industry_free_repair_factor = 0.3
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("industry_repair_factor", HOI4Entity {
-        name: "industry_repair_factor",
-        description: r#"Changes the speed at which buildings are repaired.
+    m.insert(
+        "industry_repair_factor",
+        HOI4Entity {
+            name: "industry_repair_factor",
+            description: r#"Changes the speed at which buildings are repaired.
 
 **Example:**
 ```paradox
 industry_repair_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("production_oil_factor", HOI4Entity {
-        name: "production_oil_factor",
-        description: r#"Synthetic oil gain.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "production_oil_factor",
+        HOI4Entity {
+            name: "production_oil_factor",
+            description: r#"Synthetic oil gain.
 
 **Example:**
 ```paradox
 production_oil_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("repair_speed__factor", HOI4Entity {
-        name: "repair_speed__factor",
-        description: r#"Changes the repair speed of a specific building.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "repair_speed__factor",
+        HOI4Entity {
+            name: "repair_speed__factor",
+            description: r#"Changes the repair speed of a specific building.
 
 **Example:**
 ```paradox
 repair_speed_arms_factory_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("supply_node_range", HOI4Entity {
-        name: "supply_node_range",
-        description: r#"Increases the effective range of supply nodes.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "supply_node_range",
+        HOI4Entity {
+            name: "supply_node_range",
+            description: r#"Increases the effective range of supply nodes.
 
 **Example:**
 ```paradox
 supply_node_range = 0.1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("static_anti_air_damage_factor", HOI4Entity {
-        name: "static_anti_air_damage_factor",
-        description: r#"Modifies the damage done to planes by the anti-air buildings.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "static_anti_air_damage_factor",
+        HOI4Entity {
+            name: "static_anti_air_damage_factor",
+            description: r#"Modifies the damage done to planes by the anti-air buildings.
 
 **Example:**
 ```paradox
 static_anti_air_damage_factor = 0.1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("static_anti_air_hit_chance_factor", HOI4Entity {
-        name: "static_anti_air_hit_chance_factor",
-        description: r#"Modifies the chance for the anti-air buildings to hit enemy planes.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "static_anti_air_hit_chance_factor",
+        HOI4Entity {
+            name: "static_anti_air_hit_chance_factor",
+            description: r#"Modifies the chance for the anti-air buildings to hit enemy planes.
 
 **Example:**
 ```paradox
 static_anti_air_hit_chance_factor = 0.1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("tech_air_damage_factor", HOI4Entity {
         name: "tech_air_damage_factor",
         description: r#"Modifies the damage done to the country's planes by enemy anti-air buildings.
@@ -14876,16 +17429,19 @@ tech_air_damage_factor = 0.1
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("cic_construction_boost", HOI4Entity {
-        name: "cic_construction_boost",
-        description: r#"Modifies the base construction speed from civilian factories.
+    m.insert(
+        "cic_construction_boost",
+        HOI4Entity {
+            name: "cic_construction_boost",
+            description: r#"Modifies the base construction speed from civilian factories.
 
 **Example:**
 ```paradox
 cic_construction_boost = 0.1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("cic_construction_boost_factor", HOI4Entity {
         name: "cic_construction_boost_factor",
         description: r#"Modifies the modifier to the base construction speed from civilian factories.
@@ -14896,56 +17452,71 @@ cic_construction_boost_factor = 0.1
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("land_bunker_effectiveness_factor", HOI4Entity {
-        name: "land_bunker_effectiveness_factor",
-        description: r#"Modifies the effectiveness of land forts in defence.
+    m.insert(
+        "land_bunker_effectiveness_factor",
+        HOI4Entity {
+            name: "land_bunker_effectiveness_factor",
+            description: r#"Modifies the effectiveness of land forts in defence.
 
 **Example:**
 ```paradox
 land_bunker_effectiveness_factor = 0.1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("coastal_bunker_effectiveness_factor", HOI4Entity {
-        name: "coastal_bunker_effectiveness_factor",
-        description: r#"Modifies the effectiveness of coastal forts in defence.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "coastal_bunker_effectiveness_factor",
+        HOI4Entity {
+            name: "coastal_bunker_effectiveness_factor",
+            description: r#"Modifies the effectiveness of coastal forts in defence.
 
 **Example:**
 ```paradox
 coastal_bunker_effectiveness_factor = 0.1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("compliance_growth_on_our_occupied_states", HOI4Entity {
-        name: "compliance_growth_on_our_occupied_states",
-        description: r#"Changes the compliance growth speed on the country's controlled states.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "compliance_growth_on_our_occupied_states",
+        HOI4Entity {
+            name: "compliance_growth_on_our_occupied_states",
+            description: r#"Changes the compliance growth speed on the country's controlled states.
 
 **Example:**
 ```paradox
 compliance_growth_on_our_occupied_states = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("no_compliance_gain", HOI4Entity {
-        name: "no_compliance_gain",
-        description: r#"Disables the compliance gain on our controlled states.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "no_compliance_gain",
+        HOI4Entity {
+            name: "no_compliance_gain",
+            description: r#"Disables the compliance gain on our controlled states.
 
 **Example:**
 ```paradox
 no_compliance_gain = 1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("required_garrison_factor", HOI4Entity {
-        name: "required_garrison_factor",
-        description: r#"Changes the required garrison in our occupied states.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "required_garrison_factor",
+        HOI4Entity {
+            name: "required_garrison_factor",
+            description: r#"Changes the required garrison in our occupied states.
 
 **Example:**
 ```paradox
 required_garrison_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("resistance_activity", HOI4Entity {
         name: "resistance_activity",
         description: r#"Changes the chance for resistance activity to occur on our occupied states.
@@ -14956,126 +17527,162 @@ resistance_activity = 0.5
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("resistance_damage_to_garrison_on_our_occupied_states", HOI4Entity {
-        name: "resistance_damage_to_garrison_on_our_occupied_states",
-        description: r#"Changes the resistance damage to the garrison in our occupied states.
+    m.insert(
+        "resistance_damage_to_garrison_on_our_occupied_states",
+        HOI4Entity {
+            name: "resistance_damage_to_garrison_on_our_occupied_states",
+            description: r#"Changes the resistance damage to the garrison in our occupied states.
 
 **Example:**
 ```paradox
 resistance_damage_to_garrison_on_our_occupied_states = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("resistance_decay_on_our_occupied_states", HOI4Entity {
-        name: "resistance_decay_on_our_occupied_states",
-        description: r#"Changes the resistance decay in our occupied states.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "resistance_decay_on_our_occupied_states",
+        HOI4Entity {
+            name: "resistance_decay_on_our_occupied_states",
+            description: r#"Changes the resistance decay in our occupied states.
 
 **Example:**
 ```paradox
 resistance_decay_on_our_occupied_states = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("resistance_growth_on_our_occupied_states", HOI4Entity {
-        name: "resistance_growth_on_our_occupied_states",
-        description: r#"Changes the resistance growth speed in our occupied states.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "resistance_growth_on_our_occupied_states",
+        HOI4Entity {
+            name: "resistance_growth_on_our_occupied_states",
+            description: r#"Changes the resistance growth speed in our occupied states.
 
 **Example:**
 ```paradox
 resistance_growth_on_our_occupied_states = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("resistance_target_on_our_occupied_states", HOI4Entity {
-        name: "resistance_target_on_our_occupied_states",
-        description: r#"Changes the resistance target in our occupied states.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "resistance_target_on_our_occupied_states",
+        HOI4Entity {
+            name: "resistance_target_on_our_occupied_states",
+            description: r#"Changes the resistance target in our occupied states.
 
 **Example:**
 ```paradox
 resistance_target_on_our_occupied_states = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("resistance_target", HOI4Entity {
-        name: "resistance_target",
-        description: r#"Changes the resistance target in foreign states occupied by us
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "resistance_target",
+        HOI4Entity {
+            name: "resistance_target",
+            description: r#"Changes the resistance target in foreign states occupied by us
 
 **Example:**
 ```paradox
 resistance_target = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("agency_upgrade_time", HOI4Entity {
-        name: "agency_upgrade_time",
-        description: r#"Changes the time it takes to upgrade the agency
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "agency_upgrade_time",
+        HOI4Entity {
+            name: "agency_upgrade_time",
+            description: r#"Changes the time it takes to upgrade the agency
 
 **Example:**
 ```paradox
 agency_upgrade_time = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("decryption", HOI4Entity {
-        name: "decryption",
-        description: r#"Changes the decription capability of the country.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "decryption",
+        HOI4Entity {
+            name: "decryption",
+            description: r#"Changes the decription capability of the country.
 
 **Example:**
 ```paradox
 decryption = 1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("decryption_factor", HOI4Entity {
-        name: "decryption_factor",
-        description: r#"Changes the decription capability of the country by a percentage.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "decryption_factor",
+        HOI4Entity {
+            name: "decryption_factor",
+            description: r#"Changes the decription capability of the country by a percentage.
 
 **Example:**
 ```paradox
 decryption_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("encryption", HOI4Entity {
-        name: "encryption",
-        description: r#"Changes the encryption capability of the country.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "encryption",
+        HOI4Entity {
+            name: "encryption",
+            description: r#"Changes the encryption capability of the country.
 
 **Example:**
 ```paradox
 encryption = 1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("encryption_factor", HOI4Entity {
-        name: "encryption_factor",
-        description: r#"Changes the encryption capability of the country by a percentage.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "encryption_factor",
+        HOI4Entity {
+            name: "encryption_factor",
+            description: r#"Changes the encryption capability of the country by a percentage.
 
 **Example:**
 ```paradox
 encryption_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("intel_decryption_bonus", HOI4Entity {
-        name: "intel_decryption_bonus",
-        description: r#"Adds a cipher bonus to the specified intel.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "intel_decryption_bonus",
+        HOI4Entity {
+            name: "intel_decryption_bonus",
+            description: r#"Adds a cipher bonus to the specified intel.
 
 **Example:**
 ```paradox
 civilian_intel_decryption_bonus = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("intel_factor", HOI4Entity {
-        name: "intel_factor",
-        description: r#"Modifies the intelligence you receive of the specified type.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "intel_factor",
+        HOI4Entity {
+            name: "intel_factor",
+            description: r#"Modifies the intelligence you receive of the specified type.
 
 **Example:**
 ```paradox
 navy_intel_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("intel_to_others", HOI4Entity {
         name: "intel_to_others",
         description: r#"Changes the amount of intel other countries will receive of the specified type.
@@ -15086,126 +17693,162 @@ civilian_intel_to_others = 0.5
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("female_random_operative_chance", HOI4Entity {
-        name: "female_random_operative_chance",
-        description: r#"Changes the chance for a randomly-generated operative to be female.
+    m.insert(
+        "female_random_operative_chance",
+        HOI4Entity {
+            name: "female_random_operative_chance",
+            description: r#"Changes the chance for a randomly-generated operative to be female.
 
 **Example:**
 ```paradox
 female_random_operative_chance = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("foreign_subversive_activites", HOI4Entity {
-        name: "foreign_subversive_activites",
-        description: r#"Changes efficiency of foreign subversive activities.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "foreign_subversive_activites",
+        HOI4Entity {
+            name: "foreign_subversive_activites",
+            description: r#"Changes efficiency of foreign subversive activities.
 
 **Example:**
 ```paradox
 foreign_subversive_activites = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("intel_network_gain", HOI4Entity {
-        name: "intel_network_gain",
-        description: r#"Changes gain of intel network strength.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "intel_network_gain",
+        HOI4Entity {
+            name: "intel_network_gain",
+            description: r#"Changes gain of intel network strength.
 
 **Example:**
 ```paradox
 intel_network_gain = 1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("intel_network_gain_factor", HOI4Entity {
-        name: "intel_network_gain_factor",
-        description: r#"Changes gain of intel network strength by a percentage.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "intel_network_gain_factor",
+        HOI4Entity {
+            name: "intel_network_gain_factor",
+            description: r#"Changes gain of intel network strength by a percentage.
 
 **Example:**
 ```paradox
 intel_network_gain_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("subversive_activites_upkeep", HOI4Entity {
-        name: "subversive_activites_upkeep",
-        description: r#"Changes the cost of subversive activities.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "subversive_activites_upkeep",
+        HOI4Entity {
+            name: "subversive_activites_upkeep",
+            description: r#"Changes the cost of subversive activities.
 
 **Example:**
 ```paradox
 subversive_activites_upkeep = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("operation_cost", HOI4Entity {
-        name: "operation_cost",
-        description: r#"Changes the cost of operations.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "operation_cost",
+        HOI4Entity {
+            name: "operation_cost",
+            description: r#"Changes the cost of operations.
 
 **Example:**
 ```paradox
 operation_cost = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("operation_outcome", HOI4Entity {
-        name: "operation_outcome",
-        description: r#"Changes the efficiency of operations.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "operation_outcome",
+        HOI4Entity {
+            name: "operation_outcome",
+            description: r#"Changes the efficiency of operations.
 
 **Example:**
 ```paradox
 operation_outcome = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("operation_risk", HOI4Entity {
-        name: "operation_risk",
-        description: r#"Changes the risk of operations.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "operation_risk",
+        HOI4Entity {
+            name: "operation_risk",
+            description: r#"Changes the risk of operations.
 
 **Example:**
 ```paradox
 operation_risk = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("cost", HOI4Entity {
-        name: "cost",
-        description: r#"Changes the cost of the specified operation.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "cost",
+        HOI4Entity {
+            name: "cost",
+            description: r#"Changes the cost of the specified operation.
 
 **Example:**
 ```paradox
 operation_infiltrate_cost = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("outcome", HOI4Entity {
-        name: "outcome",
-        description: r#"Changes the efficiency of the specified operation.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "outcome",
+        HOI4Entity {
+            name: "outcome",
+            description: r#"Changes the efficiency of the specified operation.
 
 **Example:**
 ```paradox
 operation_coup_government_outcome = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("risk", HOI4Entity {
-        name: "risk",
-        description: r#"Changes the risk of the specified operation.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "risk",
+        HOI4Entity {
+            name: "risk",
+            description: r#"Changes the risk of the specified operation.
 
 **Example:**
 ```paradox
 operation_make_resistance_contacts_risk = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("factor", HOI4Entity {
-        name: "factor",
-        description: r#"Modifies the effect of the specified mission.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "factor",
+        HOI4Entity {
+            name: "factor",
+            description: r#"Modifies the effect of the specified mission.
 
 **Example:**
 ```paradox
 boost_ideology_mission_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("commando_trait_chance_factor", HOI4Entity {
         name: "commando_trait_chance_factor",
         description: r#"Modifies the chance for an operative to get the commando trait when hired.
@@ -15216,46 +17859,58 @@ commando_trait_chance_factor = 0.5
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("crypto_department_enabled", HOI4Entity {
-        name: "crypto_department_enabled",
-        description: r#"Enables the crypto department.
+    m.insert(
+        "crypto_department_enabled",
+        HOI4Entity {
+            name: "crypto_department_enabled",
+            description: r#"Enables the crypto department.
 
 **Example:**
 ```paradox
 crypto_department_enabled = 1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("crypto_strength", HOI4Entity {
-        name: "crypto_strength",
-        description: r#"Modifies the cryptology level.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "crypto_strength",
+        HOI4Entity {
+            name: "crypto_strength",
+            description: r#"Modifies the cryptology level.
 
 **Example:**
 ```paradox
 crypto_strength = 1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("decryption_power", HOI4Entity {
-        name: "decryption_power",
-        description: r#"Modifies the decryption power.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "decryption_power",
+        HOI4Entity {
+            name: "decryption_power",
+            description: r#"Modifies the decryption power.
 
 **Example:**
 ```paradox
 decryption_power = 1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("decryption_power_factor", HOI4Entity {
-        name: "decryption_power_factor",
-        description: r#"Modifies the decryption power by a percentage.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "decryption_power_factor",
+        HOI4Entity {
+            name: "decryption_power_factor",
+            description: r#"Modifies the decryption power by a percentage.
 
 **Example:**
 ```paradox
 decryption_power_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("defense_impact_on_blueprint_stealing", HOI4Entity {
         name: "defense_impact_on_blueprint_stealing",
         description: r#"Modifies the impact of enemy defense on the blueprint stealing operation.
@@ -15266,76 +17921,97 @@ defense_impact_on_blueprint_stealing = 0.3
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("intel_from_combat_factor", HOI4Entity {
-        name: "intel_from_combat_factor",
-        description: r#"Modifies the intelligence gained from combat.
+    m.insert(
+        "intel_from_combat_factor",
+        HOI4Entity {
+            name: "intel_from_combat_factor",
+            description: r#"Modifies the intelligence gained from combat.
 
 **Example:**
 ```paradox
 intel_from_combat_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("intel_from_operatives_factor", HOI4Entity {
-        name: "intel_from_operatives_factor",
-        description: r#"Modifies the intelligence gained from operatives and infiltrated assets.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "intel_from_operatives_factor",
+        HOI4Entity {
+            name: "intel_from_operatives_factor",
+            description: r#"Modifies the intelligence gained from operatives and infiltrated assets.
 
 **Example:**
 ```paradox
 intel_from_operatives_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("intelligence_agency_defense", HOI4Entity {
-        name: "intelligence_agency_defense",
-        description: r#"Modifies the counter intelligence.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "intelligence_agency_defense",
+        HOI4Entity {
+            name: "intelligence_agency_defense",
+            description: r#"Modifies the counter intelligence.
 
 **Example:**
 ```paradox
 intelligence_agency_defense = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("root_out_resistance_effectiveness_factor", HOI4Entity {
-        name: "root_out_resistance_effectiveness_factor",
-        description: r#"Modifies the effectiveness of rooting out resistance.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "root_out_resistance_effectiveness_factor",
+        HOI4Entity {
+            name: "root_out_resistance_effectiveness_factor",
+            description: r#"Modifies the effectiveness of rooting out resistance.
 
 **Example:**
 ```paradox
 root_out_resistance_effectiveness_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("own_operative_capture_chance_factor", HOI4Entity {
-        name: "own_operative_capture_chance_factor",
-        description: r#"Changes the chance for our operatives to be captured.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "own_operative_capture_chance_factor",
+        HOI4Entity {
+            name: "own_operative_capture_chance_factor",
+            description: r#"Changes the chance for our operatives to be captured.
 
 **Example:**
 ```paradox
 own_operative_capture_chance_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("own_operative_detection_chance", HOI4Entity {
-        name: "own_operative_detection_chance",
-        description: r#"Changes the chance for our operatives to be detected.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "own_operative_detection_chance",
+        HOI4Entity {
+            name: "own_operative_detection_chance",
+            description: r#"Changes the chance for our operatives to be detected.
 
 **Example:**
 ```paradox
 own_operative_detection_chance = 10
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("own_operative_detection_chance_factor", HOI4Entity {
-        name: "own_operative_detection_chance_factor",
-        description: r#"Changes the chance for our operatives to be detected by a percentage.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "own_operative_detection_chance_factor",
+        HOI4Entity {
+            name: "own_operative_detection_chance_factor",
+            description: r#"Changes the chance for our operatives to be detected by a percentage.
 
 **Example:**
 ```paradox
 own_operative_detection_chance_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("own_operative_forced_into_hiding_time_factor", HOI4Entity {
         name: "own_operative_forced_into_hiding_time_factor",
         description: r#"Changes the chance for our operatives to be forced into hiding by a percentage.
@@ -15346,46 +18022,58 @@ own_operative_forced_into_hiding_time_factor = 0.5
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("own_operative_harmed_time_factor", HOI4Entity {
-        name: "own_operative_harmed_time_factor",
-        description: r#"Changes the chance for our operatives to be harmed by a percentage.
+    m.insert(
+        "own_operative_harmed_time_factor",
+        HOI4Entity {
+            name: "own_operative_harmed_time_factor",
+            description: r#"Changes the chance for our operatives to be harmed by a percentage.
 
 **Example:**
 ```paradox
 own_operative_harmed_time_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("own_operative_intel_extraction_rate", HOI4Entity {
-        name: "own_operative_intel_extraction_rate",
-        description: r#"Changes the rate at which our operatives extract enemy intel.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "own_operative_intel_extraction_rate",
+        HOI4Entity {
+            name: "own_operative_intel_extraction_rate",
+            description: r#"Changes the rate at which our operatives extract enemy intel.
 
 **Example:**
 ```paradox
 own_operative_intel_extraction_rate = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("enemy_operative_capture_chance_factor", HOI4Entity {
-        name: "enemy_operative_capture_chance_factor",
-        description: r#"Changes the chance for an enemy operative to be captured.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "enemy_operative_capture_chance_factor",
+        HOI4Entity {
+            name: "enemy_operative_capture_chance_factor",
+            description: r#"Changes the chance for an enemy operative to be captured.
 
 **Example:**
 ```paradox
 enemy_operative_capture_chance_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("enemy_operative_detection_chance", HOI4Entity {
-        name: "enemy_operative_detection_chance",
-        description: r#"Changes the chance for an enemy operative to be detected.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "enemy_operative_detection_chance",
+        HOI4Entity {
+            name: "enemy_operative_detection_chance",
+            description: r#"Changes the chance for an enemy operative to be detected.
 
 **Example:**
 ```paradox
 enemy_operative_detection_chance = 10
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("enemy_operative_detection_chance_factor", HOI4Entity {
         name: "enemy_operative_detection_chance_factor",
         description: r#"Changes the chance for an enemy operative to be detected by a percentage.
@@ -15406,66 +18094,84 @@ enemy_operative_forced_into_hiding_time_factor = 0.5
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("enemy_operative_harmed_time_factor", HOI4Entity {
-        name: "enemy_operative_harmed_time_factor",
-        description: r#"Changes the chance for an enemy operative to be harmed by a percentage.
+    m.insert(
+        "enemy_operative_harmed_time_factor",
+        HOI4Entity {
+            name: "enemy_operative_harmed_time_factor",
+            description: r#"Changes the chance for an enemy operative to be harmed by a percentage.
 
 **Example:**
 ```paradox
 enemy_operative_harmed_time_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("enemy_operative_intel_extraction_rate", HOI4Entity {
-        name: "enemy_operative_intel_extraction_rate",
-        description: r#"Changes the rate at which the enemy operatives extract our intel.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "enemy_operative_intel_extraction_rate",
+        HOI4Entity {
+            name: "enemy_operative_intel_extraction_rate",
+            description: r#"Changes the rate at which the enemy operatives extract our intel.
 
 **Example:**
 ```paradox
 enemy_operative_intel_extraction_rate = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("enemy_spy_negative_status_factor", HOI4Entity {
-        name: "enemy_spy_negative_status_factor",
-        description: r#"Changes the chance an enemy spy can receive a negative status.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "enemy_spy_negative_status_factor",
+        HOI4Entity {
+            name: "enemy_spy_negative_status_factor",
+            description: r#"Changes the chance an enemy spy can receive a negative status.
 
 **Example:**
 ```paradox
 enemy_spy_negative_status_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("enemy_operative_recruitment_chance", HOI4Entity {
-        name: "enemy_operative_recruitment_chance",
-        description: r#"Modifies the chance to recruit an enemy operative.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "enemy_operative_recruitment_chance",
+        HOI4Entity {
+            name: "enemy_operative_recruitment_chance",
+            description: r#"Modifies the chance to recruit an enemy operative.
 
 **Example:**
 ```paradox
 enemy_operative_recruitment_chance = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("new_operative_slot_bonus", HOI4Entity {
-        name: "new_operative_slot_bonus",
-        description: r#"Modifies the operative recruitment choices.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "new_operative_slot_bonus",
+        HOI4Entity {
+            name: "new_operative_slot_bonus",
+            description: r#"Modifies the operative recruitment choices.
 
 **Example:**
 ```paradox
 new_operative_slot_bonus = 1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("occupied_operative_recruitment_chance", HOI4Entity {
-        name: "occupied_operative_recruitment_chance",
-        description: r#"Modifies the chance to get an operative from occupied territory.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "occupied_operative_recruitment_chance",
+        HOI4Entity {
+            name: "occupied_operative_recruitment_chance",
+            description: r#"Modifies the chance to get an operative from occupied territory.
 
 **Example:**
 ```paradox
 occupied_operative_recruitment_chance = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("operative_death_on_capture_chance", HOI4Entity {
         name: "operative_death_on_capture_chance",
         description: r#"Modifies the chance for the country's operative to die on being captured.
@@ -15476,416 +18182,539 @@ operative_death_on_capture_chance = 0.3
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("operative_slot", HOI4Entity {
-        name: "operative_slot",
-        description: r#"Modifies the amount of operative slots.
+    m.insert(
+        "operative_slot",
+        HOI4Entity {
+            name: "operative_slot",
+            description: r#"Modifies the amount of operative slots.
 
 **Example:**
 ```paradox
 operative_slot = 1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("ai_badass_factor", HOI4Entity {
-        name: "ai_badass_factor",
-        description: r#"AI's threat perception.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "ai_badass_factor",
+        HOI4Entity {
+            name: "ai_badass_factor",
+            description: r#"AI's threat perception.
 
 **Example:**
 ```paradox
 ai_badass_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("ai_call_ally_desire_factor", HOI4Entity {
-        name: "ai_call_ally_desire_factor",
-        description: r#"Chance for AI to call allies.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "ai_call_ally_desire_factor",
+        HOI4Entity {
+            name: "ai_call_ally_desire_factor",
+            description: r#"Chance for AI to call allies.
 
 **Example:**
 ```paradox
 ai_call_ally_desire_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("ai_desired_divisions_factor", HOI4Entity {
-        name: "ai_desired_divisions_factor",
-        description: r#"The amount of divisions AI seeks to produce.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "ai_desired_divisions_factor",
+        HOI4Entity {
+            name: "ai_desired_divisions_factor",
+            description: r#"The amount of divisions AI seeks to produce.
 
 **Example:**
 ```paradox
 ai_desired_divisions_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("ai_focus_aggressive_factor", HOI4Entity {
-        name: "ai_focus_aggressive_factor",
-        description: r#"AI's focus on offense.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "ai_focus_aggressive_factor",
+        HOI4Entity {
+            name: "ai_focus_aggressive_factor",
+            description: r#"AI's focus on offense.
 
 **Example:**
 ```paradox
 ai_focus_aggressive_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("ai_focus_defense_factor", HOI4Entity {
-        name: "ai_focus_defense_factor",
-        description: r#"AI's focus on defense.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "ai_focus_defense_factor",
+        HOI4Entity {
+            name: "ai_focus_defense_factor",
+            description: r#"AI's focus on defense.
 
 **Example:**
 ```paradox
 ai_focus_defense_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("ai_focus_aviation_factor", HOI4Entity {
-        name: "ai_focus_aviation_factor",
-        description: r#"AI's focus on aviation.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "ai_focus_aviation_factor",
+        HOI4Entity {
+            name: "ai_focus_aviation_factor",
+            description: r#"AI's focus on aviation.
 
 **Example:**
 ```paradox
 ai_focus_aviation_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("ai_focus_military_advancements_factor", HOI4Entity {
-        name: "ai_focus_military_advancements_factor",
-        description: r#"AI's focus on advanced military technologies.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "ai_focus_military_advancements_factor",
+        HOI4Entity {
+            name: "ai_focus_military_advancements_factor",
+            description: r#"AI's focus on advanced military technologies.
 
 **Example:**
 ```paradox
 ai_focus_military_advancements_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("ai_focus_military_equipment_factor", HOI4Entity {
-        name: "ai_focus_military_equipment_factor",
-        description: r#"AI's focus on advanced military equipment.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "ai_focus_military_equipment_factor",
+        HOI4Entity {
+            name: "ai_focus_military_equipment_factor",
+            description: r#"AI's focus on advanced military equipment.
 
 **Example:**
 ```paradox
 ai_focus_military_equipment_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("ai_focus_naval_air_factor", HOI4Entity {
-        name: "ai_focus_naval_air_factor",
-        description: r#"AI's focus on building naval airforce.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "ai_focus_naval_air_factor",
+        HOI4Entity {
+            name: "ai_focus_naval_air_factor",
+            description: r#"AI's focus on building naval airforce.
 
 **Example:**
 ```paradox
 ai_focus_naval_air_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("ai_focus_naval_factor", HOI4Entity {
-        name: "ai_focus_naval_factor",
-        description: r#"AI's focus on building a navy.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "ai_focus_naval_factor",
+        HOI4Entity {
+            name: "ai_focus_naval_factor",
+            description: r#"AI's focus on building a navy.
 
 **Example:**
 ```paradox
 ai_focus_naval_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("ai_focus_peaceful_factor", HOI4Entity {
-        name: "ai_focus_peaceful_factor",
-        description: r#"AI's focus on peaceful research and policies.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "ai_focus_peaceful_factor",
+        HOI4Entity {
+            name: "ai_focus_peaceful_factor",
+            description: r#"AI's focus on peaceful research and policies.
 
 **Example:**
 ```paradox
 ai_focus_peaceful_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("ai_focus_war_production_factor", HOI4Entity {
-        name: "ai_focus_war_production_factor",
-        description: r#"AI's focus on wartime production.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "ai_focus_war_production_factor",
+        HOI4Entity {
+            name: "ai_focus_war_production_factor",
+            description: r#"AI's focus on wartime production.
 
 **Example:**
 ```paradox
 ai_focus_war_production_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("ai_get_ally_desire_factor", HOI4Entity {
-        name: "ai_get_ally_desire_factor",
-        description: r#"AI's desire to be in or expand a faction.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "ai_get_ally_desire_factor",
+        HOI4Entity {
+            name: "ai_get_ally_desire_factor",
+            description: r#"AI's desire to be in or expand a faction.
 
 **Example:**
 ```paradox
 ai_get_ally_desire_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("ai_join_ally_desire_factor", HOI4Entity {
-        name: "ai_join_ally_desire_factor",
-        description: r#"AI's desire to join the wars led by allies.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "ai_join_ally_desire_factor",
+        HOI4Entity {
+            name: "ai_join_ally_desire_factor",
+            description: r#"AI's desire to join the wars led by allies.
 
 **Example:**
 ```paradox
 ai_join_ally_desire_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("ai_license_acceptance", HOI4Entity {
-        name: "ai_license_acceptance",
-        description: r#"AI's chance to agree licensing equipment.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "ai_license_acceptance",
+        HOI4Entity {
+            name: "ai_license_acceptance",
+            description: r#"AI's chance to agree licensing equipment.
 
 **Example:**
 ```paradox
 ai_license_acceptance = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("command_power_gain", HOI4Entity {
-        name: "command_power_gain",
-        description: r#"Changes the daily gain of command power.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "command_power_gain",
+        HOI4Entity {
+            name: "command_power_gain",
+            description: r#"Changes the daily gain of command power.
 
 **Example:**
 ```paradox
 command_power_gain = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("command_power_gain_mult", HOI4Entity {
-        name: "command_power_gain_mult",
-        description: r#"Changes the daily gain of command power by a percentage.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "command_power_gain_mult",
+        HOI4Entity {
+            name: "command_power_gain_mult",
+            description: r#"Changes the daily gain of command power by a percentage.
 
 **Example:**
 ```paradox
 command_power_gain_mult = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("conscription", HOI4Entity {
-        name: "conscription",
-        description: r#"Changes the recruitable percentage of the total population.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "conscription",
+        HOI4Entity {
+            name: "conscription",
+            description: r#"Changes the recruitable percentage of the total population.
 
 **Example:**
 ```paradox
 conscription = 0.02
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("conscription_factor", HOI4Entity {
-        name: "conscription_factor",
-        description: r#"Changes the recruitable percentage of the total population by a percent.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "conscription_factor",
+        HOI4Entity {
+            name: "conscription_factor",
+            description: r#"Changes the recruitable percentage of the total population by a percent.
 
 **Example:**
 ```paradox
 conscription_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("experience_gain_army", HOI4Entity {
-        name: "experience_gain_army",
-        description: r#"Modifies the daily gain of army experience.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "experience_gain_army",
+        HOI4Entity {
+            name: "experience_gain_army",
+            description: r#"Modifies the daily gain of army experience.
 
 **Example:**
 ```paradox
 experience_gain_army = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("experience_gain_army_factor", HOI4Entity {
-        name: "experience_gain_army_factor",
-        description: r#"Modifies the gain of army experience by a percentage.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "experience_gain_army_factor",
+        HOI4Entity {
+            name: "experience_gain_army_factor",
+            description: r#"Modifies the gain of army experience by a percentage.
 
 **Example:**
 ```paradox
 experience_gain_army_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("experience_gain_navy", HOI4Entity {
-        name: "experience_gain_navy",
-        description: r#"Modifies the daily gain of naval experience.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "experience_gain_navy",
+        HOI4Entity {
+            name: "experience_gain_navy",
+            description: r#"Modifies the daily gain of naval experience.
 
 **Example:**
 ```paradox
 experience_gain_navy = 0.02
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("experience_gain_navy_factor", HOI4Entity {
-        name: "experience_gain_navy_factor",
-        description: r#"Modifies the gain of naval experience by a percentage.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "experience_gain_navy_factor",
+        HOI4Entity {
+            name: "experience_gain_navy_factor",
+            description: r#"Modifies the gain of naval experience by a percentage.
 
 **Example:**
 ```paradox
 experience_gain_navy_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("experience_gain_air", HOI4Entity {
-        name: "experience_gain_air",
-        description: r#"Modifies the daily gain of air experience.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "experience_gain_air",
+        HOI4Entity {
+            name: "experience_gain_air",
+            description: r#"Modifies the daily gain of air experience.
 
 **Example:**
 ```paradox
 experience_gain_air = 0.05
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("experience_gain_air_factor", HOI4Entity {
-        name: "experience_gain_air_factor",
-        description: r#"Modifies the daily gain of air experience by a percentage.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "experience_gain_air_factor",
+        HOI4Entity {
+            name: "experience_gain_air_factor",
+            description: r#"Modifies the daily gain of air experience by a percentage.
 
 **Example:**
 ```paradox
 experience_gain_air_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("land_equipment_upgrade_xp_cost", HOI4Entity {
-        name: "land_equipment_upgrade_xp_cost",
-        description: r#"Changes the experience cost to upgrade land army equipment.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "land_equipment_upgrade_xp_cost",
+        HOI4Entity {
+            name: "land_equipment_upgrade_xp_cost",
+            description: r#"Changes the experience cost to upgrade land army equipment.
 
 **Example:**
 ```paradox
 land_equipment_upgrade_xp_cost = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("land_reinforce_rate", HOI4Entity {
-        name: "land_reinforce_rate",
-        description: r#"Changes the rate at which reinforcements to divisions arrive.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "land_reinforce_rate",
+        HOI4Entity {
+            name: "land_reinforce_rate",
+            description: r#"Changes the rate at which reinforcements to divisions arrive.
 
 **Example:**
 ```paradox
 land_reinforce_rate = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("max_command_power", HOI4Entity {
-        name: "max_command_power",
-        description: r#"Changes maximum command power.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "max_command_power",
+        HOI4Entity {
+            name: "max_command_power",
+            description: r#"Changes maximum command power.
 
 **Example:**
 ```paradox
 max_command_power = 20
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("max_command_power_mult", HOI4Entity {
-        name: "max_command_power_mult",
-        description: r#"Changes maximum command power by a percentage.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "max_command_power_mult",
+        HOI4Entity {
+            name: "max_command_power_mult",
+            description: r#"Changes maximum command power by a percentage.
 
 **Example:**
 ```paradox
 max_command_power_mult = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("weekly_manpower", HOI4Entity {
-        name: "weekly_manpower",
-        description: r#"Amount of manpower gained each week.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "weekly_manpower",
+        HOI4Entity {
+            name: "weekly_manpower",
+            description: r#"Amount of manpower gained each week.
 
 **Example:**
 ```paradox
 weekly_manpower = 1000
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("naval_equipment_upgrade_xp_cost", HOI4Entity {
-        name: "naval_equipment_upgrade_xp_cost",
-        description: r#"Changes the naval experience cost to upgrade equipment.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "naval_equipment_upgrade_xp_cost",
+        HOI4Entity {
+            name: "naval_equipment_upgrade_xp_cost",
+            description: r#"Changes the naval experience cost to upgrade equipment.
 
 **Example:**
 ```paradox
 naval_equipment_upgrade_xp_cost = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("refit_ic_cost", HOI4Entity {
-        name: "refit_ic_cost",
-        description: r#"The IC cost to refit naval equipment.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "refit_ic_cost",
+        HOI4Entity {
+            name: "refit_ic_cost",
+            description: r#"The IC cost to refit naval equipment.
 
 **Example:**
 ```paradox
 refit_ic_cost = 20
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("refit_speed", HOI4Entity {
-        name: "refit_speed",
-        description: r#"The speed at which naval equipment is refitted.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "refit_speed",
+        HOI4Entity {
+            name: "refit_speed",
+            description: r#"The speed at which naval equipment is refitted.
 
 **Example:**
 ```paradox
 refit_speed = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("air_equipment_upgrade_xp_cost", HOI4Entity {
-        name: "air_equipment_upgrade_xp_cost",
-        description: r#"Changes the air experience cost to upgrade equipment.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "air_equipment_upgrade_xp_cost",
+        HOI4Entity {
+            name: "air_equipment_upgrade_xp_cost",
+            description: r#"Changes the air experience cost to upgrade equipment.
 
 **Example:**
 ```paradox
 air_equipment_upgrade_xp_cost = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("training_time_factor", HOI4Entity {
-        name: "training_time_factor",
-        description: r#"Modifies the training time for both army and navy.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "training_time_factor",
+        HOI4Entity {
+            name: "training_time_factor",
+            description: r#"Modifies the training time for both army and navy.
 
 **Example:**
 ```paradox
 training_time_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("minimum_training_level", HOI4Entity {
-        name: "minimum_training_level",
-        description: r#"Changes training level necessary for the unit to deploy.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "minimum_training_level",
+        HOI4Entity {
+            name: "minimum_training_level",
+            description: r#"Changes training level necessary for the unit to deploy.
 
 **Example:**
 ```paradox
 minimum_training_level = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("max_training", HOI4Entity {
-        name: "max_training",
-        description: r#"Modifies the required experience to achieve full training.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "max_training",
+        HOI4Entity {
+            name: "max_training",
+            description: r#"Modifies the required experience to achieve full training.
 
 **Example:**
 ```paradox
 max_training = -0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("training_time_army_factor", HOI4Entity {
-        name: "training_time_army_factor",
-        description: r#"Modifies the training time for the army.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "training_time_army_factor",
+        HOI4Entity {
+            name: "training_time_army_factor",
+            description: r#"Modifies the training time for the army.
 
 **Example:**
 ```paradox
 training_time_army_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("special_forces_training_time_factor", HOI4Entity {
-        name: "special_forces_training_time_factor",
-        description: r#"Changes the time it takes to train special forces.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "special_forces_training_time_factor",
+        HOI4Entity {
+            name: "special_forces_training_time_factor",
+            description: r#"Changes the time it takes to train special forces.
 
 **Example:**
 ```paradox
 special_forces_training_time_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("doctrine_cost_factor", HOI4Entity {
-        name: "doctrine_cost_factor",
-        description: r#"Changes the cost of buying a new doctrine of the specified type.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "doctrine_cost_factor",
+        HOI4Entity {
+            name: "doctrine_cost_factor",
+            description: r#"Changes the cost of buying a new doctrine of the specified type.
 
 **Example:**
 ```paradox
 land_doctrine_cost_factor = -0.05
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("mastery_gain_factor", HOI4Entity {
         name: "mastery_gain_factor",
         description: r#"Modifies the speed at which mastery in a given doctrine folder is gained.
@@ -15896,46 +18725,58 @@ land_doctrine_cost_factor = -0.05
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("track_mastery_gain_factor", HOI4Entity {
-        name: "track_mastery_gain_factor",
-        description: r#"Modifies the speed at which mastery of a given track is gained.
+    m.insert(
+        "track_mastery_gain_factor",
+        HOI4Entity {
+            name: "track_mastery_gain_factor",
+            description: r#"Modifies the speed at which mastery of a given track is gained.
 
 **Example:**
 ```paradox
 `operations_track_mastery_gain_factor = 0.1`
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("choose_preferred_tactics_cost", HOI4Entity {
-        name: "choose_preferred_tactics_cost",
-        description: r#"Changes the cost to choose a preferred tactic.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "choose_preferred_tactics_cost",
+        HOI4Entity {
+            name: "choose_preferred_tactics_cost",
+            description: r#"Changes the cost to choose a preferred tactic.
 
 **Example:**
 ```paradox
 choose_preferred_tactics_cost = 5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("command_abilities_cost_factor", HOI4Entity {
-        name: "command_abilities_cost_factor",
-        description: r#"Changes the cost to choose a command ability.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "command_abilities_cost_factor",
+        HOI4Entity {
+            name: "command_abilities_cost_factor",
+            description: r#"Changes the cost to choose a command ability.
 
 **Example:**
 ```paradox
 command_abilities_cost_factor = -0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("transport_capacity", HOI4Entity {
-        name: "transport_capacity",
-        description: r#"Modifies how many convoys units require to be transported over sea.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "transport_capacity",
+        HOI4Entity {
+            name: "transport_capacity",
+            description: r#"Modifies how many convoys units require to be transported over sea.
 
 **Example:**
 ```paradox
 transport_capacity = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("paratroopers_special_forces_contribution_factor", HOI4Entity {
         name: "paratroopers_special_forces_contribution_factor",
         description: r#"Modifies how much paratroopers contribute to the limit of special forces on a template.
@@ -16030,86 +18871,110 @@ module_tank_torsion_bar_suspension_design_cost_factor = 0.3
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("military_industrial_organization_research_bonus", HOI4Entity {
-        name: "military_industrial_organization_research_bonus",
-        description: r#"Modifies the research bonus granted by MIOs.
+    m.insert(
+        "military_industrial_organization_research_bonus",
+        HOI4Entity {
+            name: "military_industrial_organization_research_bonus",
+            description: r#"Modifies the research bonus granted by MIOs.
 
 **Example:**
 ```paradox
 military_industrial_organization_research_bonus = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("military_industrial_organization_design_team_assign_cost", HOI4Entity {
-        name: "military_industrial_organization_design_team_assign_cost",
-        description: r#"Modifies the political power cost to assign a design team.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "military_industrial_organization_design_team_assign_cost",
+        HOI4Entity {
+            name: "military_industrial_organization_design_team_assign_cost",
+            description: r#"Modifies the political power cost to assign a design team.
 
 **Example:**
 ```paradox
 military_industrial_organization_design_team_assign_cost = 30
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("military_industrial_organization_design_team_change_cost", HOI4Entity {
-        name: "military_industrial_organization_design_team_change_cost",
-        description: r#"Modifies the political power cost to change a design team.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "military_industrial_organization_design_team_change_cost",
+        HOI4Entity {
+            name: "military_industrial_organization_design_team_change_cost",
+            description: r#"Modifies the political power cost to change a design team.
 
 **Example:**
 ```paradox
 military_industrial_organization_design_team_change_cost = 20
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("military_industrial_organization_industrial_manufacturer_assign_cost", HOI4Entity {
-        name: "military_industrial_organization_industrial_manufacturer_assign_cost",
-        description: r#"Modifies the political power cost to assign an industrial manufacturer.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "military_industrial_organization_industrial_manufacturer_assign_cost",
+        HOI4Entity {
+            name: "military_industrial_organization_industrial_manufacturer_assign_cost",
+            description: r#"Modifies the political power cost to assign an industrial manufacturer.
 
 **Example:**
 ```paradox
 military_industrial_organization_industrial_manufacturer_assign_cost = 10
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("military_industrial_organization_task_capacity", HOI4Entity {
-        name: "military_industrial_organization_task_capacity",
-        description: r#"Modifies the amount of tasks possible to assign to the MIO.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "military_industrial_organization_task_capacity",
+        HOI4Entity {
+            name: "military_industrial_organization_task_capacity",
+            description: r#"Modifies the amount of tasks possible to assign to the MIO.
 
 **Example:**
 ```paradox
 military_industrial_organization_task_capacity = 2
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("military_industrial_organization_size_up_requirement", HOI4Entity {
-        name: "military_industrial_organization_size_up_requirement",
-        description: r#"Modifies the requirement to size up a MIO.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "military_industrial_organization_size_up_requirement",
+        HOI4Entity {
+            name: "military_industrial_organization_size_up_requirement",
+            description: r#"Modifies the requirement to size up a MIO.
 
 **Example:**
 ```paradox
 military_industrial_organization_size_up_requirement = 2
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("military_industrial_organization_funds_gain", HOI4Entity {
-        name: "military_industrial_organization_funds_gain",
-        description: r#"Modifies the amount of funds gained by the MIO.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "military_industrial_organization_funds_gain",
+        HOI4Entity {
+            name: "military_industrial_organization_funds_gain",
+            description: r#"Modifies the amount of funds gained by the MIO.
 
 **Example:**
 ```paradox
 military_industrial_organization_funds_gain = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("military_industrial_organization_policy_cost", HOI4Entity {
-        name: "military_industrial_organization_policy_cost",
-        description: r#"Modifies the political power cost to assign a MIO policy.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "military_industrial_organization_policy_cost",
+        HOI4Entity {
+            name: "military_industrial_organization_policy_cost",
+            description: r#"Modifies the political power cost to assign a MIO policy.
 
 **Example:**
 ```paradox
 military_industrial_organization_policy_cost = 20
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("military_industrial_organization_policy_cooldown", HOI4Entity {
         name: "military_industrial_organization_policy_cooldown",
         description: r#"Modifies the cooldown between how often it's possible to change policies.
@@ -16120,176 +18985,227 @@ military_industrial_organization_policy_cooldown = 5
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("female_random_army_leader_chance", HOI4Entity {
-        name: "female_random_army_leader_chance",
-        description: r#"Changes the chance for a randomly-generated army leader to be female.
+    m.insert(
+        "female_random_army_leader_chance",
+        HOI4Entity {
+            name: "female_random_army_leader_chance",
+            description: r#"Changes the chance for a randomly-generated army leader to be female.
 
 **Example:**
 ```paradox
 female_random_army_leader_chance = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("assign_army_leader_cp_cost", HOI4Entity {
-        name: "assign_army_leader_cp_cost",
-        description: r#"Modifies the cost to assign an army leader to an army.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "assign_army_leader_cp_cost",
+        HOI4Entity {
+            name: "assign_army_leader_cp_cost",
+            description: r#"Modifies the cost to assign an army leader to an army.
 
 **Example:**
 ```paradox
 assign_army_leader_cp_cost = -5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("army_leader_cost_factor", HOI4Entity {
-        name: "army_leader_cost_factor",
-        description: r#"The cost in political power to recruit an unit leader for the land army.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "army_leader_cost_factor",
+        HOI4Entity {
+            name: "army_leader_cost_factor",
+            description: r#"The cost in political power to recruit an unit leader for the land army.
 
 **Example:**
 ```paradox
 army_leader_cost_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("army_leader_start_level", HOI4Entity {
-        name: "army_leader_start_level",
-        description: r#"Bonus to the starting level of generic unit leaders.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "army_leader_start_level",
+        HOI4Entity {
+            name: "army_leader_start_level",
+            description: r#"Bonus to the starting level of generic unit leaders.
 
 **Example:**
 ```paradox
 army_leader_start_level = 1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("army_leader_start_attack_level", HOI4Entity {
-        name: "army_leader_start_attack_level",
-        description: r#"Bonus to the starting level of attack in generic unit leaders.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "army_leader_start_attack_level",
+        HOI4Entity {
+            name: "army_leader_start_attack_level",
+            description: r#"Bonus to the starting level of attack in generic unit leaders.
 
 **Example:**
 ```paradox
 army_leader_start_attack_level = 1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("army_leader_start_defense_level", HOI4Entity {
-        name: "army_leader_start_defense_level",
-        description: r#"Bonus to the starting level of defense in generic unit leaders.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "army_leader_start_defense_level",
+        HOI4Entity {
+            name: "army_leader_start_defense_level",
+            description: r#"Bonus to the starting level of defense in generic unit leaders.
 
 **Example:**
 ```paradox
 army_leader_start_defense_level = 1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("army_leader_start_logistics_level", HOI4Entity {
-        name: "army_leader_start_logistics_level",
-        description: r#"Bonus to the starting level of logistics in generic unit leaders.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "army_leader_start_logistics_level",
+        HOI4Entity {
+            name: "army_leader_start_logistics_level",
+            description: r#"Bonus to the starting level of logistics in generic unit leaders.
 
 **Example:**
 ```paradox
 army_leader_start_logistics_level = 1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("army_leader_start_planning_level", HOI4Entity {
-        name: "army_leader_start_planning_level",
-        description: r#"Bonus to the starting level of planning in generic unit leaders.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "army_leader_start_planning_level",
+        HOI4Entity {
+            name: "army_leader_start_planning_level",
+            description: r#"Bonus to the starting level of planning in generic unit leaders.
 
 **Example:**
 ```paradox
 army_leader_start_planning_level = 1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("military_leader_cost_factor", HOI4Entity {
-        name: "military_leader_cost_factor",
-        description: r#"The cost in political power to recruit an unit leader.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "military_leader_cost_factor",
+        HOI4Entity {
+            name: "military_leader_cost_factor",
+            description: r#"The cost in political power to recruit an unit leader.
 
 **Example:**
 ```paradox
 military_leader_cost_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("female_random_admiral_chance", HOI4Entity {
-        name: "female_random_admiral_chance",
-        description: r#"Changes the chance for a randomly-generated admiral to be female.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "female_random_admiral_chance",
+        HOI4Entity {
+            name: "female_random_admiral_chance",
+            description: r#"Changes the chance for a randomly-generated admiral to be female.
 
 **Example:**
 ```paradox
 female_random_admiral_chance = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("assign_navy_leader_cp_cost", HOI4Entity {
-        name: "assign_navy_leader_cp_cost",
-        description: r#"Modifies the cost to assign a navy leader to a navy.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "assign_navy_leader_cp_cost",
+        HOI4Entity {
+            name: "assign_navy_leader_cp_cost",
+            description: r#"Modifies the cost to assign a navy leader to a navy.
 
 **Example:**
 ```paradox
 assign_navy_leader_cp_cost = -5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("navy_leader_cost_factor", HOI4Entity {
-        name: "navy_leader_cost_factor",
-        description: r#"The cost in political power to recruit an unit leader for the land navy.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "navy_leader_cost_factor",
+        HOI4Entity {
+            name: "navy_leader_cost_factor",
+            description: r#"The cost in political power to recruit an unit leader for the land navy.
 
 **Example:**
 ```paradox
 navy_leader_cost_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("navy_leader_start_level", HOI4Entity {
-        name: "navy_leader_start_level",
-        description: r#"Bonus to the starting level of generic unit leaders.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "navy_leader_start_level",
+        HOI4Entity {
+            name: "navy_leader_start_level",
+            description: r#"Bonus to the starting level of generic unit leaders.
 
 **Example:**
 ```paradox
 navy_leader_start_level = 1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("navy_leader_start_attack_level", HOI4Entity {
-        name: "navy_leader_start_attack_level",
-        description: r#"Bonus to the starting level of attack in generic unit leaders.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "navy_leader_start_attack_level",
+        HOI4Entity {
+            name: "navy_leader_start_attack_level",
+            description: r#"Bonus to the starting level of attack in generic unit leaders.
 
 **Example:**
 ```paradox
 navy_leader_start_attack_level = 1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("navy_leader_start_coordination_level", HOI4Entity {
-        name: "navy_leader_start_coordination_level",
-        description: r#"Bonus to the starting level of coordination in generic unit leaders.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "navy_leader_start_coordination_level",
+        HOI4Entity {
+            name: "navy_leader_start_coordination_level",
+            description: r#"Bonus to the starting level of coordination in generic unit leaders.
 
 **Example:**
 ```paradox
 navy_leader_start_coordination_level = 1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("navy_leader_start_defense_level", HOI4Entity {
-        name: "navy_leader_start_defense_level",
-        description: r#"Bonus to the starting level of defense in generic unit leaders.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "navy_leader_start_defense_level",
+        HOI4Entity {
+            name: "navy_leader_start_defense_level",
+            description: r#"Bonus to the starting level of defense in generic unit leaders.
 
 **Example:**
 ```paradox
 navy_leader_start_defense_level = 1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("navy_leader_start_maneuvering_level", HOI4Entity {
-        name: "navy_leader_start_maneuvering_level",
-        description: r#"Bonus to the starting level of maneuvering in generic unit leaders.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "navy_leader_start_maneuvering_level",
+        HOI4Entity {
+            name: "navy_leader_start_maneuvering_level",
+            description: r#"Bonus to the starting level of maneuvering in generic unit leaders.
 
 **Example:**
 ```paradox
 navy_leader_start_maneuvering_level = 1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("grant_medal_cost_factor", HOI4Entity {
         name: "grant_medal_cost_factor",
         description: r#"Changes the cost in command power to grant a medal to a division commander.
@@ -16310,366 +19226,474 @@ field_officer_promotion_penalty = 0.2
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("female_divisional_commander_chance", HOI4Entity {
-        name: "female_divisional_commander_chance",
-        description: r#"Changes the chance to get a female divisional commander.
+    m.insert(
+        "female_divisional_commander_chance",
+        HOI4Entity {
+            name: "female_divisional_commander_chance",
+            description: r#"Changes the chance to get a female divisional commander.
 
 **Example:**
 ```paradox
 female_divisional_commander_chance = 0.2
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("offence", HOI4Entity {
-        name: "offence",
-        description: r#"Modifies the attack value of our military, navy, and airforce.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "offence",
+        HOI4Entity {
+            name: "offence",
+            description: r#"Modifies the attack value of our military, navy, and airforce.
 
 **Example:**
 ```paradox
 offence = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("defence", HOI4Entity {
-        name: "defence",
-        description: r#"Modifies the defence value of our military, navy, and airforce.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "defence",
+        HOI4Entity {
+            name: "defence",
+            description: r#"Modifies the defence value of our military, navy, and airforce.
 
 **Example:**
 ```paradox
 defence = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("preferred_weight_factor", HOI4Entity {
-        name: "preferred_weight_factor",
-        description: r#"Modifies the chance for a commander to choose the specified tactic.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "preferred_weight_factor",
+        HOI4Entity {
+            name: "preferred_weight_factor",
+            description: r#"Modifies the chance for a commander to choose the specified tactic.
 
 **Example:**
 ```paradox
 tactic_ambush_preferred_weight_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("acclimatization_cold_climate_gain_factor", HOI4Entity {
-        name: "acclimatization_cold_climate_gain_factor",
-        description: r#"Cold acclimatization gain factor.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "acclimatization_cold_climate_gain_factor",
+        HOI4Entity {
+            name: "acclimatization_cold_climate_gain_factor",
+            description: r#"Cold acclimatization gain factor.
 
 **Example:**
 ```paradox
 acclimatization_cold_climate_gain_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("acclimatization_hot_climate_gain_factor", HOI4Entity {
-        name: "acclimatization_hot_climate_gain_factor",
-        description: r#"Hot acclimatization gain factor.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "acclimatization_hot_climate_gain_factor",
+        HOI4Entity {
+            name: "acclimatization_hot_climate_gain_factor",
+            description: r#"Hot acclimatization gain factor.
 
 **Example:**
 ```paradox
 acclimatization_hot_climate_gain_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("air_superiority_bonus_in_combat", HOI4Entity {
-        name: "air_superiority_bonus_in_combat",
-        description: r#"The bonus in combat given from having air superiority.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "air_superiority_bonus_in_combat",
+        HOI4Entity {
+            name: "air_superiority_bonus_in_combat",
+            description: r#"The bonus in combat given from having air superiority.
 
 **Example:**
 ```paradox
 air_superiority_bonus_in_combat = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("army_attack_factor", HOI4Entity {
-        name: "army_attack_factor",
-        description: r#"The bonus to land army's attack.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "army_attack_factor",
+        HOI4Entity {
+            name: "army_attack_factor",
+            description: r#"The bonus to land army's attack.
 
 **Example:**
 ```paradox
 army_attack_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("army_core_attack_factor", HOI4Entity {
-        name: "army_core_attack_factor",
-        description: r#"The bonus to land army's attack on core territory.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "army_core_attack_factor",
+        HOI4Entity {
+            name: "army_core_attack_factor",
+            description: r#"The bonus to land army's attack on core territory.
 
 **Example:**
 ```paradox
 army_core_attack_factor = 0.1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("army_claim_attack_factor", HOI4Entity {
-        name: "army_claim_attack_factor",
-        description: r#"The bonus to land army's attack on claimed territory.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "army_claim_attack_factor",
+        HOI4Entity {
+            name: "army_claim_attack_factor",
+            description: r#"The bonus to land army's attack on claimed territory.
 
 **Example:**
 ```paradox
 army_claim_attack_factor = 0.1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("army_attack_against_major_factor", HOI4Entity {
-        name: "army_attack_against_major_factor",
-        description: r#"The bonus to land army's attack against a major country.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "army_attack_against_major_factor",
+        HOI4Entity {
+            name: "army_attack_against_major_factor",
+            description: r#"The bonus to land army's attack against a major country.
 
 **Example:**
 ```paradox
 army_attack_against_major_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("army_attack_against_minor_factor", HOI4Entity {
-        name: "army_attack_against_minor_factor",
-        description: r#"The bonus to land army's attack against a non-major country.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "army_attack_against_minor_factor",
+        HOI4Entity {
+            name: "army_attack_against_minor_factor",
+            description: r#"The bonus to land army's attack against a non-major country.
 
 **Example:**
 ```paradox
 army_attack_against_minor_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("army_attack_speed_factor", HOI4Entity {
-        name: "army_attack_speed_factor",
-        description: r#"The bonus to speed at which the land army attacks.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "army_attack_speed_factor",
+        HOI4Entity {
+            name: "army_attack_speed_factor",
+            description: r#"The bonus to speed at which the land army attacks.
 
 **Example:**
 ```paradox
 army_attack_speed_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("army_breakthrough_against_major_factor", HOI4Entity {
-        name: "army_breakthrough_against_major_factor",
-        description: r#"The bonus to land army's breakthrough against a major country.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "army_breakthrough_against_major_factor",
+        HOI4Entity {
+            name: "army_breakthrough_against_major_factor",
+            description: r#"The bonus to land army's breakthrough against a major country.
 
 **Example:**
 ```paradox
 army_breakthrough_against_major_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("army_breakthrough_against_minor_factor", HOI4Entity {
-        name: "army_breakthrough_against_minor_factor",
-        description: r#"The bonus to land army's breakthrough against a non-major country.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "army_breakthrough_against_minor_factor",
+        HOI4Entity {
+            name: "army_breakthrough_against_minor_factor",
+            description: r#"The bonus to land army's breakthrough against a non-major country.
 
 **Example:**
 ```paradox
 army_breakthrough_against_minor_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("army_defence_factor", HOI4Entity {
-        name: "army_defence_factor",
-        description: r#"The bonus to land army's defence.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "army_defence_factor",
+        HOI4Entity {
+            name: "army_defence_factor",
+            description: r#"The bonus to land army's defence.
 
 **Example:**
 ```paradox
 army_defence_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("army_defence_against_major_factor", HOI4Entity {
-        name: "army_defence_against_major_factor",
-        description: r#"The bonus to land army's defence against a major country.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "army_defence_against_major_factor",
+        HOI4Entity {
+            name: "army_defence_against_major_factor",
+            description: r#"The bonus to land army's defence against a major country.
 
 **Example:**
 ```paradox
 army_defence_against_major_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("army_defence_against_minor_factor", HOI4Entity {
-        name: "army_defence_against_minor_factor",
-        description: r#"The bonus to land army's defence against a non-major country.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "army_defence_against_minor_factor",
+        HOI4Entity {
+            name: "army_defence_against_minor_factor",
+            description: r#"The bonus to land army's defence against a non-major country.
 
 **Example:**
 ```paradox
 army_defence_against_minor_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("army_core_defence_factor", HOI4Entity {
-        name: "army_core_defence_factor",
-        description: r#"The bonus to land army's defence on core territory.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "army_core_defence_factor",
+        HOI4Entity {
+            name: "army_core_defence_factor",
+            description: r#"The bonus to land army's defence on core territory.
 
 **Example:**
 ```paradox
 army_core_defence_factor = 0.1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("army_claim_defence_factor", HOI4Entity {
-        name: "army_claim_defence_factor",
-        description: r#"The bonus to land army's defence on claimed territory.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "army_claim_defence_factor",
+        HOI4Entity {
+            name: "army_claim_defence_factor",
+            description: r#"The bonus to land army's defence on claimed territory.
 
 **Example:**
 ```paradox
 army_claim_defence_factor = 0.1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("army_speed_factor", HOI4Entity {
-        name: "army_speed_factor",
-        description: r#"The bonus to land army's speed.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "army_speed_factor",
+        HOI4Entity {
+            name: "army_speed_factor",
+            description: r#"The bonus to land army's speed.
 
 **Example:**
 ```paradox
 army_speed_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("army_strength_factor", HOI4Entity {
-        name: "army_strength_factor",
-        description: r#"The bonus to land army's strength.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "army_strength_factor",
+        HOI4Entity {
+            name: "army_strength_factor",
+            description: r#"The bonus to land army's strength.
 
 **Example:**
 ```paradox
 army_strength_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("attack_factor", HOI4Entity {
-        name: "attack_factor",
-        description: r#"The bonus to specified unit type's attack.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "attack_factor",
+        HOI4Entity {
+            name: "attack_factor",
+            description: r#"The bonus to specified unit type's attack.
 
 **Example:**
 ```paradox
 cavalry_attack_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("defence_factor", HOI4Entity {
-        name: "defence_factor",
-        description: r#"The bonus to the specified unit type's defence.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "defence_factor",
+        HOI4Entity {
+            name: "defence_factor",
+            description: r#"The bonus to the specified unit type's defence.
 
 **Example:**
 ```paradox
 army_artillery_defence_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("speed_factor", HOI4Entity {
-        name: "speed_factor",
-        description: r#"The bonus to specified unit type's speed.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "speed_factor",
+        HOI4Entity {
+            name: "speed_factor",
+            description: r#"The bonus to specified unit type's speed.
 
 **Example:**
 ```paradox
 army_armor_speed_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("modifier_army_sub_unit__attack_factor", HOI4Entity {
-        name: "modifier_army_sub_unit__attack_factor",
-        description: r#"The bonus to specified unit type's attack.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "modifier_army_sub_unit__attack_factor",
+        HOI4Entity {
+            name: "modifier_army_sub_unit__attack_factor",
+            description: r#"The bonus to specified unit type's attack.
 
 **Example:**
 ```paradox
 modifier_army_sub_unit_armored_car_attack_factor = 0.1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("modifier_army_sub_unit__defence_factor", HOI4Entity {
-        name: "modifier_army_sub_unit__defence_factor",
-        description: r#"The bonus to the specified unit type's defence.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "modifier_army_sub_unit__defence_factor",
+        HOI4Entity {
+            name: "modifier_army_sub_unit__defence_factor",
+            description: r#"The bonus to the specified unit type's defence.
 
 **Example:**
 ```paradox
 modifier_army_sub_unit_armored_car_defence_factor = 0.1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("modifier_army_sub_unit__speed_factor", HOI4Entity {
-        name: "modifier_army_sub_unit__speed_factor",
-        description: r#"The bonus to specified unit type's speed.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "modifier_army_sub_unit__speed_factor",
+        HOI4Entity {
+            name: "modifier_army_sub_unit__speed_factor",
+            description: r#"The bonus to specified unit type's speed.
 
 **Example:**
 ```paradox
 modifier_army_sub_unit_armored_car_speed_factor = 0.1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("army_morale", HOI4Entity {
-        name: "army_morale",
-        description: r#"Modifies the division recovery rate.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "army_morale",
+        HOI4Entity {
+            name: "army_morale",
+            description: r#"Modifies the division recovery rate.
 
 **Example:**
 ```paradox
 army_morale = 10
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("army_morale_factor", HOI4Entity {
-        name: "army_morale_factor",
-        description: r#"Modifies the division recovery rate by a percentage.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "army_morale_factor",
+        HOI4Entity {
+            name: "army_morale_factor",
+            description: r#"Modifies the division recovery rate by a percentage.
 
 **Example:**
 ```paradox
 army_morale_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("army_org", HOI4Entity {
-        name: "army_org",
-        description: r#"Modifies the army's organisation.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "army_org",
+        HOI4Entity {
+            name: "army_org",
+            description: r#"Modifies the army's organisation.
 
 **Example:**
 ```paradox
 army_org = 10
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("army_org_factor", HOI4Entity {
-        name: "army_org_factor",
-        description: r#"Modifies the army's organisation by a percentage.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "army_org_factor",
+        HOI4Entity {
+            name: "army_org_factor",
+            description: r#"Modifies the army's organisation by a percentage.
 
 **Example:**
 ```paradox
 army_org_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("army_org_regain", HOI4Entity {
-        name: "army_org_regain",
-        description: r#"Modifies the army's organisation regain speed by a percentage.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "army_org_regain",
+        HOI4Entity {
+            name: "army_org_regain",
+            description: r#"Modifies the army's organisation regain speed by a percentage.
 
 **Example:**
 ```paradox
 army_org_regain = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("breakthrough_factor", HOI4Entity {
-        name: "breakthrough_factor",
-        description: r#"Modifies the army's breakthrough.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "breakthrough_factor",
+        HOI4Entity {
+            name: "breakthrough_factor",
+            description: r#"Modifies the army's breakthrough.
 
 **Example:**
 ```paradox
 breakthrough_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("cas_damage_reduction", HOI4Entity {
-        name: "cas_damage_reduction",
-        description: r#"Reduces the damage dealt by close air support.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "cas_damage_reduction",
+        HOI4Entity {
+            name: "cas_damage_reduction",
+            description: r#"Reduces the damage dealt by close air support.
 
 **Example:**
 ```paradox
 cas_damage_reduction = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("combat_width_factor", HOI4Entity {
-        name: "combat_width_factor",
-        description: r#"Changes our own combat width.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "combat_width_factor",
+        HOI4Entity {
+            name: "combat_width_factor",
+            description: r#"Changes our own combat width.
 
 **Example:**
 ```paradox
 combat_width_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("coordination_bonus", HOI4Entity {
         name: "coordination_bonus",
         description: r#"Changes the bonus to coordination, that is how much damage is done to the primary target instead of being spread out.
@@ -16680,176 +19704,227 @@ coordination_bonus = 0.3
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("dig_in_speed", HOI4Entity {
-        name: "dig_in_speed",
-        description: r#"Changes entrenchment speed.
+    m.insert(
+        "dig_in_speed",
+        HOI4Entity {
+            name: "dig_in_speed",
+            description: r#"Changes entrenchment speed.
 
 **Example:**
 ```paradox
 dig_in_speed = 2
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("dig_in_speed_factor", HOI4Entity {
-        name: "dig_in_speed_factor",
-        description: r#"Changes entrenchment speed by a percentage.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "dig_in_speed_factor",
+        HOI4Entity {
+            name: "dig_in_speed_factor",
+            description: r#"Changes entrenchment speed by a percentage.
 
 **Example:**
 ```paradox
 dig_in_speed_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("experience_gain_army_unit", HOI4Entity {
-        name: "experience_gain_army_unit",
-        description: r#"Changes experience gain by the army divisions.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "experience_gain_army_unit",
+        HOI4Entity {
+            name: "experience_gain_army_unit",
+            description: r#"Changes experience gain by the army divisions.
 
 **Example:**
 ```paradox
 experience_gain_army_unit = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("experience_gain_army_unit_factor", HOI4Entity {
-        name: "experience_gain_army_unit_factor",
-        description: r#"Changes experience gain by the army divisions by a percentage.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "experience_gain_army_unit_factor",
+        HOI4Entity {
+            name: "experience_gain_army_unit_factor",
+            description: r#"Changes experience gain by the army divisions by a percentage.
 
 **Example:**
 ```paradox
 experience_gain_army_unit_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("experience_loss_factor", HOI4Entity {
-        name: "experience_loss_factor",
-        description: r#"Changes the loss in divisions' experience in combat.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "experience_loss_factor",
+        HOI4Entity {
+            name: "experience_loss_factor",
+            description: r#"Changes the loss in divisions' experience in combat.
 
 **Example:**
 ```paradox
 experience_loss_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("initiative_factor", HOI4Entity {
-        name: "initiative_factor",
-        description: r#"Modifies the initiative.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "initiative_factor",
+        HOI4Entity {
+            name: "initiative_factor",
+            description: r#"Modifies the initiative.
 
 **Example:**
 ```paradox
 initiative_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("land_night_attack", HOI4Entity {
-        name: "land_night_attack",
-        description: r#"Changes the penalty due to attacking at night.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "land_night_attack",
+        HOI4Entity {
+            name: "land_night_attack",
+            description: r#"Changes the penalty due to attacking at night.
 
 **Example:**
 ```paradox
 land_night_attack = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("max_dig_in", HOI4Entity {
-        name: "max_dig_in",
-        description: r#"Changes the maximum entrenchment.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "max_dig_in",
+        HOI4Entity {
+            name: "max_dig_in",
+            description: r#"Changes the maximum entrenchment.
 
 **Example:**
 ```paradox
 max_dig_in = 20
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("max_dig_in_factor", HOI4Entity {
-        name: "max_dig_in_factor",
-        description: r#"Changes the maximum entrenchment by a percentage.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "max_dig_in_factor",
+        HOI4Entity {
+            name: "max_dig_in_factor",
+            description: r#"Changes the maximum entrenchment by a percentage.
 
 **Example:**
 ```paradox
 max_dig_in_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("max_planning", HOI4Entity {
-        name: "max_planning",
-        description: r#"Changes the maximum planning.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "max_planning",
+        HOI4Entity {
+            name: "max_planning",
+            description: r#"Changes the maximum planning.
 
 **Example:**
 ```paradox
 max_planning = 20
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("max_planning_factor", HOI4Entity {
-        name: "max_planning_factor",
-        description: r#"Changes the maximum planning by a percentage.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "max_planning_factor",
+        HOI4Entity {
+            name: "max_planning_factor",
+            description: r#"Changes the maximum planning by a percentage.
 
 **Example:**
 ```paradox
 max_planning_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("pocket_penalty", HOI4Entity {
-        name: "pocket_penalty",
-        description: r#"Reduces the penalty that troops take when they are encircled.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "pocket_penalty",
+        HOI4Entity {
+            name: "pocket_penalty",
+            description: r#"Reduces the penalty that troops take when they are encircled.
 
 **Example:**
 ```paradox
 pocket_penalty = 0.2
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("recon_factor", HOI4Entity {
-        name: "recon_factor",
-        description: r#"Changes reconnaisance.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "recon_factor",
+        HOI4Entity {
+            name: "recon_factor",
+            description: r#"Changes reconnaisance.
 
 **Example:**
 ```paradox
 recon_factor = 0.2
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("recon_factor_while_entrenched", HOI4Entity {
-        name: "recon_factor_while_entrenched",
-        description: r#"Changes reconnaisance for entrenched divisions.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "recon_factor_while_entrenched",
+        HOI4Entity {
+            name: "recon_factor_while_entrenched",
+            description: r#"Changes reconnaisance for entrenched divisions.
 
 **Example:**
 ```paradox
 recon_factor_while_entrenched = 0.2
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("special_forces_cap", HOI4Entity {
-        name: "special_forces_cap",
-        description: r#"Changes the maximum amount of special forces by a percentage.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "special_forces_cap",
+        HOI4Entity {
+            name: "special_forces_cap",
+            description: r#"Changes the maximum amount of special forces by a percentage.
 
 **Example:**
 ```paradox
 special_forces_cap = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("special_forces_min", HOI4Entity {
-        name: "special_forces_min",
-        description: r#"Changes the minimum amount of special forces.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "special_forces_min",
+        HOI4Entity {
+            name: "special_forces_min",
+            description: r#"Changes the minimum amount of special forces.
 
 **Example:**
 ```paradox
 special_forces_min = 250
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("terrain_penalty_reduction", HOI4Entity {
-        name: "terrain_penalty_reduction",
-        description: r#"Decreases the penalties given by terrain.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "terrain_penalty_reduction",
+        HOI4Entity {
+            name: "terrain_penalty_reduction",
+            description: r#"Decreases the penalties given by terrain.
 
 **Example:**
 ```paradox
 terrain_penalty_reduction = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("org_loss_at_low_org_factor", HOI4Entity {
         name: "org_loss_at_low_org_factor",
         description: r#"Modifies the organisation loss for units when they have low organisation.
@@ -16860,56 +19935,71 @@ org_loss_at_low_org_factor = 0.2
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("org_loss_when_moving", HOI4Entity {
-        name: "org_loss_when_moving",
-        description: r#"Modifies the organisation loss for units when they are moving.
+    m.insert(
+        "org_loss_when_moving",
+        HOI4Entity {
+            name: "org_loss_when_moving",
+            description: r#"Modifies the organisation loss for units when they are moving.
 
 **Example:**
 ```paradox
 org_loss_when_moving = 0.2
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("planning_speed", HOI4Entity {
-        name: "planning_speed",
-        description: r#"Modifies the planning speed.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "planning_speed",
+        HOI4Entity {
+            name: "planning_speed",
+            description: r#"Modifies the planning speed.
 
 **Example:**
 ```paradox
 planning_speed = 0.2
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("experience_gain__combat_factor", HOI4Entity {
-        name: "experience_gain__combat_factor",
-        description: r#"Modifies the experience gain in combat for the unit type.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "experience_gain__combat_factor",
+        HOI4Entity {
+            name: "experience_gain__combat_factor",
+            description: r#"Modifies the experience gain in combat for the unit type.
 
 **Example:**
 ```paradox
 experience_gain_artillery_combat_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("experience_gain__training_factor", HOI4Entity {
-        name: "experience_gain__training_factor",
-        description: r#"Modifies the experience gain in training for the unit type.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "experience_gain__training_factor",
+        HOI4Entity {
+            name: "experience_gain__training_factor",
+            description: r#"Modifies the experience gain in training for the unit type.
 
 **Example:**
 ```paradox
 experience_gain_destroyer_training_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("naval_invasion_prep_speed", HOI4Entity {
-        name: "naval_invasion_prep_speed",
-        description: r#"Modifies the speed at which a naval invasion is prepared.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "naval_invasion_prep_speed",
+        HOI4Entity {
+            name: "naval_invasion_prep_speed",
+            description: r#"Modifies the speed at which a naval invasion is prepared.
 
 **Example:**
 ```paradox
 naval_invasion_prep_speed = 10
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("naval_invasion_capacity", HOI4Entity {
         name: "naval_invasion_capacity",
         description: r#"Modifies the amount of divisions that can have a naval invasion plan going on at the same time.
@@ -16920,16 +20010,19 @@ naval_invasion_capacity = 10
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("naval_invasion_penalty", HOI4Entity {
-        name: "naval_invasion_penalty",
-        description: r#"Modifies the penalty for naval invasions.
+    m.insert(
+        "naval_invasion_penalty",
+        HOI4Entity {
+            name: "naval_invasion_penalty",
+            description: r#"Modifies the penalty for naval invasions.
 
 **Example:**
 ```paradox
 naval_invasion_penalty = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("naval_invasion_planning_bonus_speed", HOI4Entity {
         name: "naval_invasion_planning_bonus_speed",
         description: r#"Modifies the speed at which the planning bonus is accumulated during a naval invasion preparation.
@@ -16940,66 +20033,84 @@ naval_invasion_planning_bonus_speed = 0.3
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("amphibious_invasion", HOI4Entity {
-        name: "amphibious_invasion",
-        description: r#"Modifies the speed of units during naval invasions.
+    m.insert(
+        "amphibious_invasion",
+        HOI4Entity {
+            name: "amphibious_invasion",
+            description: r#"Modifies the speed of units during naval invasions.
 
 **Example:**
 ```paradox
 amphibious_invasion = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("amphibious_invasion_defence", HOI4Entity {
-        name: "amphibious_invasion_defence",
-        description: r#"Modifies the penalty given by naval invasions.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "amphibious_invasion_defence",
+        HOI4Entity {
+            name: "amphibious_invasion_defence",
+            description: r#"Modifies the penalty given by naval invasions.
 
 **Example:**
 ```paradox
 amphibious_invasion_defence = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("invasion_preparation", HOI4Entity {
-        name: "invasion_preparation",
-        description: r#"Modifies the required preparation needed to execute a naval invasion.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "invasion_preparation",
+        HOI4Entity {
+            name: "invasion_preparation",
+            description: r#"Modifies the required preparation needed to execute a naval invasion.
 
 **Example:**
 ```paradox
 invasion_preparation = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("convoy_escort_efficiency", HOI4Entity {
-        name: "convoy_escort_efficiency",
-        description: r#"Modifies the efficiency of the convoy escort mission.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "convoy_escort_efficiency",
+        HOI4Entity {
+            name: "convoy_escort_efficiency",
+            description: r#"Modifies the efficiency of the convoy escort mission.
 
 **Example:**
 ```paradox
 convoy_escort_efficiency = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("convoy_raiding_efficiency_factor", HOI4Entity {
-        name: "convoy_raiding_efficiency_factor",
-        description: r#"Modifies the efficiency of the convoy raiding mission.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "convoy_raiding_efficiency_factor",
+        HOI4Entity {
+            name: "convoy_raiding_efficiency_factor",
+            description: r#"Modifies the efficiency of the convoy raiding mission.
 
 **Example:**
 ```paradox
 convoy_raiding_efficiency_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("convoy_retreat_speed", HOI4Entity {
-        name: "convoy_retreat_speed",
-        description: r#"Modifies the speed of convoys retreating.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "convoy_retreat_speed",
+        HOI4Entity {
+            name: "convoy_retreat_speed",
+            description: r#"Modifies the speed of convoys retreating.
 
 **Example:**
 ```paradox
 convoy_retreat_speed = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("critical_receive_chance", HOI4Entity {
         name: "critical_receive_chance",
         description: r#"Changes the chance for the enemy to get a critical hit on us in naval combat.
@@ -17010,66 +20121,84 @@ critical_receive_chance = 0.5
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("experience_gain_navy_unit", HOI4Entity {
-        name: "experience_gain_navy_unit",
-        description: r#"Modifies the daily gain of experience by the ships.
+    m.insert(
+        "experience_gain_navy_unit",
+        HOI4Entity {
+            name: "experience_gain_navy_unit",
+            description: r#"Modifies the daily gain of experience by the ships.
 
 **Example:**
 ```paradox
 experience_gain_navy_unit = 0.02
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("experience_gain_navy_unit_factor", HOI4Entity {
-        name: "experience_gain_navy_unit_factor",
-        description: r#"Modifies the gain of experience by the ships by a percentage.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "experience_gain_navy_unit_factor",
+        HOI4Entity {
+            name: "experience_gain_navy_unit_factor",
+            description: r#"Modifies the gain of experience by the ships by a percentage.
 
 **Example:**
 ```paradox
 experience_gain_navy_unit_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("mines_planting_by_fleets_factor", HOI4Entity {
-        name: "mines_planting_by_fleets_factor",
-        description: r#"Modifies the efficiency of the mine planting mission.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "mines_planting_by_fleets_factor",
+        HOI4Entity {
+            name: "mines_planting_by_fleets_factor",
+            description: r#"Modifies the efficiency of the mine planting mission.
 
 **Example:**
 ```paradox
 mines_planting_by_fleets_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("mines_sweeping_by_fleets_factor", HOI4Entity {
-        name: "mines_sweeping_by_fleets_factor",
-        description: r#"Modifies the efficiency of the mine sweeping mission.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "mines_sweeping_by_fleets_factor",
+        HOI4Entity {
+            name: "mines_sweeping_by_fleets_factor",
+            description: r#"Modifies the efficiency of the mine sweeping mission.
 
 **Example:**
 ```paradox
 mines_sweeping_by_fleets_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("naval_accidents_chance", HOI4Entity {
-        name: "naval_accidents_chance",
-        description: r#"Modifies the chance for a ship to be accidentally sunk or damaged.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "naval_accidents_chance",
+        HOI4Entity {
+            name: "naval_accidents_chance",
+            description: r#"Modifies the chance for a ship to be accidentally sunk or damaged.
 
 **Example:**
 ```paradox
 naval_accidents_chance = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("navy_anti_air_attack", HOI4Entity {
-        name: "navy_anti_air_attack",
-        description: r#"Modifies the attack against enemy airplanes for the country's ships.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "navy_anti_air_attack",
+        HOI4Entity {
+            name: "navy_anti_air_attack",
+            description: r#"Modifies the attack against enemy airplanes for the country's ships.
 
 **Example:**
 ```paradox
 navy_anti_air_attack = 5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("navy_anti_air_attack_factor", HOI4Entity {
         name: "navy_anti_air_attack_factor",
         description: r#"Modifies the attack against enemy airplanes for the country's ships by a percentage.
@@ -17090,16 +20219,19 @@ naval_coordination = 0.3
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("naval_critical_effect_factor", HOI4Entity {
-        name: "naval_critical_effect_factor",
-        description: r#"Modifies the effects of sustained critical hits on our ships.
+    m.insert(
+        "naval_critical_effect_factor",
+        HOI4Entity {
+            name: "naval_critical_effect_factor",
+            description: r#"Modifies the effects of sustained critical hits on our ships.
 
 **Example:**
 ```paradox
 naval_critical_effect_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("naval_critical_score_chance_factor", HOI4Entity {
         name: "naval_critical_score_chance_factor",
         description: r#"Modifies the chance for us to get a critical hit on the enemy in naval combat.
@@ -17110,36 +20242,45 @@ naval_critical_score_chance_factor = 0.3
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("naval_damage_factor", HOI4Entity {
-        name: "naval_damage_factor",
-        description: r#"Modifies the damage dealt by our ships.
+    m.insert(
+        "naval_damage_factor",
+        HOI4Entity {
+            name: "naval_damage_factor",
+            description: r#"Modifies the damage dealt by our ships.
 
 **Example:**
 ```paradox
 naval_damage_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("naval_defense_factor", HOI4Entity {
-        name: "naval_defense_factor",
-        description: r#"Modifies the damage received by our ships.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "naval_defense_factor",
+        HOI4Entity {
+            name: "naval_defense_factor",
+            description: r#"Modifies the damage received by our ships.
 
 **Example:**
 ```paradox
 naval_defense_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("naval_detection", HOI4Entity {
-        name: "naval_detection",
-        description: r#"Modifies the chance for our ships to detect submarines.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "naval_detection",
+        HOI4Entity {
+            name: "naval_detection",
+            description: r#"Modifies the chance for our ships to detect submarines.
 
 **Example:**
 ```paradox
 naval_detection = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("naval_enemy_fleet_size_ratio_penalty_factor", HOI4Entity {
         name: "naval_enemy_fleet_size_ratio_penalty_factor",
         description: r#"Modifies the penalty the enemy receives for having a larger amount of ships than us.
@@ -17150,26 +20291,32 @@ naval_enemy_fleet_size_ratio_penalty_factor = 0.3
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("naval_enemy_positioning_in_initial_attack", HOI4Entity {
-        name: "naval_enemy_positioning_in_initial_attack",
-        description: r#"Modifies the positioning of the enemy during the initial naval attack.
+    m.insert(
+        "naval_enemy_positioning_in_initial_attack",
+        HOI4Entity {
+            name: "naval_enemy_positioning_in_initial_attack",
+            description: r#"Modifies the positioning of the enemy during the initial naval attack.
 
 **Example:**
 ```paradox
 naval_enemy_positioning_in_initial_attack = 3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("naval_enemy_retreat_chance", HOI4Entity {
-        name: "naval_enemy_retreat_chance",
-        description: r#"Modifies the chance for the enemy to retreat.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "naval_enemy_retreat_chance",
+        HOI4Entity {
+            name: "naval_enemy_retreat_chance",
+            description: r#"Modifies the chance for the enemy to retreat.
 
 **Example:**
 ```paradox
 naval_enemy_retreat_chance = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("naval_has_potf_in_combat_attack", HOI4Entity {
         name: "naval_has_potf_in_combat_attack",
         description: r#"Modifies the attack of the navy when fighting together with the pride of the fleet.
@@ -17190,86 +20337,110 @@ naval_has_potf_in_combat_defense = 0.3
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("naval_hit_chance", HOI4Entity {
-        name: "naval_hit_chance",
-        description: r#"Modifies the chance for the naval attacks to land.
+    m.insert(
+        "naval_hit_chance",
+        HOI4Entity {
+            name: "naval_hit_chance",
+            description: r#"Modifies the chance for the naval attacks to land.
 
 **Example:**
 ```paradox
 naval_hit_chance = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("naval_mine_hit_chance", HOI4Entity {
-        name: "naval_mine_hit_chance",
-        description: r#"Modifies the chance for a naval mine to hit.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "naval_mine_hit_chance",
+        HOI4Entity {
+            name: "naval_mine_hit_chance",
+            description: r#"Modifies the chance for a naval mine to hit.
 
 **Example:**
 ```paradox
 naval_mine_hit_chance = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("naval_mines_damage_factor", HOI4Entity {
-        name: "naval_mines_damage_factor",
-        description: r#"Modifies the damage naval mines deal to enemy ships.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "naval_mines_damage_factor",
+        HOI4Entity {
+            name: "naval_mines_damage_factor",
+            description: r#"Modifies the damage naval mines deal to enemy ships.
 
 **Example:**
 ```paradox
 naval_mines_damage_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("naval_mines_effect_reduction", HOI4Entity {
-        name: "naval_mines_effect_reduction",
-        description: r#"Modifies the damage enemy naval mines deal.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "naval_mines_effect_reduction",
+        HOI4Entity {
+            name: "naval_mines_effect_reduction",
+            description: r#"Modifies the damage enemy naval mines deal.
 
 **Example:**
 ```paradox
 naval_mines_effect_reduction = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("naval_morale", HOI4Entity {
-        name: "naval_morale",
-        description: r#"Modifies the navy recovery rate.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "naval_morale",
+        HOI4Entity {
+            name: "naval_morale",
+            description: r#"Modifies the navy recovery rate.
 
 **Example:**
 ```paradox
 naval_morale = 15
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("naval_morale_factor", HOI4Entity {
-        name: "naval_morale_factor",
-        description: r#"Modifies the navy recovery rate by a percentage.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "naval_morale_factor",
+        HOI4Entity {
+            name: "naval_morale_factor",
+            description: r#"Modifies the navy recovery rate by a percentage.
 
 **Example:**
 ```paradox
 naval_morale_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("naval_night_attack", HOI4Entity {
-        name: "naval_night_attack",
-        description: r#"Modifies the damage dealt by the country's ships at night.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "naval_night_attack",
+        HOI4Entity {
+            name: "naval_night_attack",
+            description: r#"Modifies the damage dealt by the country's ships at night.
 
 **Example:**
 ```paradox
 naval_night_attack = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("naval_retreat_chance", HOI4Entity {
-        name: "naval_retreat_chance",
-        description: r#"Modifies the chance for the country's ships to retreat.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "naval_retreat_chance",
+        HOI4Entity {
+            name: "naval_retreat_chance",
+            description: r#"Modifies the chance for the country's ships to retreat.
 
 **Example:**
 ```paradox
 naval_retreat_chance = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("naval_retreat_chance_after_initial_combat", HOI4Entity {
         name: "naval_retreat_chance_after_initial_combat",
         description: r#"Modifies the chance for the country's ships to retreat after initial combat.
@@ -17280,16 +20451,19 @@ naval_retreat_chance_after_initial_combat = 0.3
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("naval_retreat_speed", HOI4Entity {
-        name: "naval_retreat_speed",
-        description: r#"Modifies the speed at which the country's ships retreat.
+    m.insert(
+        "naval_retreat_speed",
+        HOI4Entity {
+            name: "naval_retreat_speed",
+            description: r#"Modifies the speed at which the country's ships retreat.
 
 **Example:**
 ```paradox
 naval_retreat_speed = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("naval_retreat_speed_after_initial_combat", HOI4Entity {
         name: "naval_retreat_speed_after_initial_combat",
         description: r#"Modifies the speed at which the country's ships to retreat after initial combat.
@@ -17300,76 +20474,97 @@ naval_retreat_speed_after_initial_combat = 0.3
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("naval_speed_factor", HOI4Entity {
-        name: "naval_speed_factor",
-        description: r#"Modifies the speed of the country's ships.
+    m.insert(
+        "naval_speed_factor",
+        HOI4Entity {
+            name: "naval_speed_factor",
+            description: r#"Modifies the speed of the country's ships.
 
 **Example:**
 ```paradox
 naval_speed_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("navy_org", HOI4Entity {
-        name: "navy_org",
-        description: r#"Modifies the navy's organisation.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "navy_org",
+        HOI4Entity {
+            name: "navy_org",
+            description: r#"Modifies the navy's organisation.
 
 **Example:**
 ```paradox
 navy_org = 10
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("navy_org_factor", HOI4Entity {
-        name: "navy_org_factor",
-        description: r#"Modifies the navy's organisation by a percentage.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "navy_org_factor",
+        HOI4Entity {
+            name: "navy_org_factor",
+            description: r#"Modifies the navy's organisation by a percentage.
 
 **Example:**
 ```paradox
 navy_org_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("navy_max_range", HOI4Entity {
-        name: "navy_max_range",
-        description: r#"Modifies the navy's maximum range.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "navy_max_range",
+        HOI4Entity {
+            name: "navy_max_range",
+            description: r#"Modifies the navy's maximum range.
 
 **Example:**
 ```paradox
 navy_max_range = 10
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("navy_max_range_factor", HOI4Entity {
-        name: "navy_max_range_factor",
-        description: r#"Modifies the navy's maximum range by a percentage.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "navy_max_range_factor",
+        HOI4Entity {
+            name: "navy_max_range_factor",
+            description: r#"Modifies the navy's maximum range by a percentage.
 
 **Example:**
 ```paradox
 navy_max_range_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("naval_torpedo_cooldown_factor", HOI4Entity {
-        name: "naval_torpedo_cooldown_factor",
-        description: r#"Modifies the rate at which the country's ships can fire torpedos.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "naval_torpedo_cooldown_factor",
+        HOI4Entity {
+            name: "naval_torpedo_cooldown_factor",
+            description: r#"Modifies the rate at which the country's ships can fire torpedos.
 
 **Example:**
 ```paradox
 naval_torpedo_cooldown_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("naval_torpedo_hit_chance_factor", HOI4Entity {
-        name: "naval_torpedo_hit_chance_factor",
-        description: r#"Modifies the likelihood for country's torpedos to hit enemy ships.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "naval_torpedo_hit_chance_factor",
+        HOI4Entity {
+            name: "naval_torpedo_hit_chance_factor",
+            description: r#"Modifies the likelihood for country's torpedos to hit enemy ships.
 
 **Example:**
 ```paradox
 naval_torpedo_hit_chance_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("naval_torpedo_reveal_chance_factor", HOI4Entity {
         name: "naval_torpedo_reveal_chance_factor",
         description: r#"Modifies the chance that the country's submarines reveal themselves when firing torpedos.
@@ -17390,16 +20585,19 @@ naval_torpedo_screen_penetration_factor = 0.3
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("naval_torpedo_damage_reduction_factor", HOI4Entity {
-        name: "naval_torpedo_damage_reduction_factor",
-        description: r#"Modifies the damage at which enemy torpedos damage the country's ships.
+    m.insert(
+        "naval_torpedo_damage_reduction_factor",
+        HOI4Entity {
+            name: "naval_torpedo_damage_reduction_factor",
+            description: r#"Modifies the damage at which enemy torpedos damage the country's ships.
 
 **Example:**
 ```paradox
 naval_torpedo_damage_reduction_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("naval_torpedo_enemy_critical_chance_factor", HOI4Entity {
         name: "naval_torpedo_enemy_critical_chance_factor",
         description: r#"Modifies the chance for an enemy torpedo to get a cricical hit against the country's ships.
@@ -17430,166 +20628,214 @@ naval_heavy_gun_hit_chance_factor = 0.3
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("navy_capital_ship_attack_factor", HOI4Entity {
-        name: "navy_capital_ship_attack_factor",
-        description: r#"Modifies the attack of the country's capital ships.
+    m.insert(
+        "navy_capital_ship_attack_factor",
+        HOI4Entity {
+            name: "navy_capital_ship_attack_factor",
+            description: r#"Modifies the attack of the country's capital ships.
 
 **Example:**
 ```paradox
 navy_capital_ship_attack_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("navy_capital_ship_defence_factor", HOI4Entity {
-        name: "navy_capital_ship_defence_factor",
-        description: r#"Modifies the defence of the country's capital ships.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "navy_capital_ship_defence_factor",
+        HOI4Entity {
+            name: "navy_capital_ship_defence_factor",
+            description: r#"Modifies the defence of the country's capital ships.
 
 **Example:**
 ```paradox
 navy_capital_ship_defence_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("navy_screen_attack_factor", HOI4Entity {
-        name: "navy_screen_attack_factor",
-        description: r#"Modifies the attack of the country's screening ships.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "navy_screen_attack_factor",
+        HOI4Entity {
+            name: "navy_screen_attack_factor",
+            description: r#"Modifies the attack of the country's screening ships.
 
 **Example:**
 ```paradox
 navy_screen_attack_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("navy_screen_defence_factor", HOI4Entity {
-        name: "navy_screen_defence_factor",
-        description: r#"Modifies the defence of the country's screening ships.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "navy_screen_defence_factor",
+        HOI4Entity {
+            name: "navy_screen_defence_factor",
+            description: r#"Modifies the defence of the country's screening ships.
 
 **Example:**
 ```paradox
 navy_screen_defence_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("navy_submarine_attack_factor", HOI4Entity {
-        name: "navy_submarine_attack_factor",
-        description: r#"Modifies the attack of the country's submarines.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "navy_submarine_attack_factor",
+        HOI4Entity {
+            name: "navy_submarine_attack_factor",
+            description: r#"Modifies the attack of the country's submarines.
 
 **Example:**
 ```paradox
 navy_submarine_attack_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("navy_submarine_defence_factor", HOI4Entity {
-        name: "navy_submarine_defence_factor",
-        description: r#"Modifies the defence of the country's submarines.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "navy_submarine_defence_factor",
+        HOI4Entity {
+            name: "navy_submarine_defence_factor",
+            description: r#"Modifies the defence of the country's submarines.
 
 **Example:**
 ```paradox
 navy_submarine_defence_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("navy_submarine_detection_factor", HOI4Entity {
-        name: "navy_submarine_detection_factor",
-        description: r#"Modifies the country's detection of enemy submarines.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "navy_submarine_detection_factor",
+        HOI4Entity {
+            name: "navy_submarine_detection_factor",
+            description: r#"Modifies the country's detection of enemy submarines.
 
 **Example:**
 ```paradox
 navy_submarine_detection_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("navy_visibility", HOI4Entity {
-        name: "navy_visibility",
-        description: r#"Modifies the visibility of the country's navy.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "navy_visibility",
+        HOI4Entity {
+            name: "navy_visibility",
+            description: r#"Modifies the visibility of the country's navy.
 
 **Example:**
 ```paradox
 navy_visibility = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("navy_weather_penalty", HOI4Entity {
-        name: "navy_weather_penalty",
-        description: r#"Modifies the penalty the country's navy gets during poor weather.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "navy_weather_penalty",
+        HOI4Entity {
+            name: "navy_weather_penalty",
+            description: r#"Modifies the penalty the country's navy gets during poor weather.
 
 **Example:**
 ```paradox
 navy_weather_penalty = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("night_spotting_chance", HOI4Entity {
-        name: "night_spotting_chance",
-        description: r#"Modifies the chance for the country's navy to spot the enemy at night.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "night_spotting_chance",
+        HOI4Entity {
+            name: "night_spotting_chance",
+            description: r#"Modifies the chance for the country's navy to spot the enemy at night.
 
 **Example:**
 ```paradox
 night_spotting_chance = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("positioning", HOI4Entity {
-        name: "positioning",
-        description: r#"Modifies the positioning of the country's navy.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "positioning",
+        HOI4Entity {
+            name: "positioning",
+            description: r#"Modifies the positioning of the country's navy.
 
 **Example:**
 ```paradox
 positioning = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("repair_speed_factor", HOI4Entity {
-        name: "repair_speed_factor",
-        description: r#"Modifies the speed at which the dockyards repair the navy.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "repair_speed_factor",
+        HOI4Entity {
+            name: "repair_speed_factor",
+            description: r#"Modifies the speed at which the dockyards repair the navy.
 
 **Example:**
 ```paradox
 repair_speed_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("screening_efficiency", HOI4Entity {
-        name: "screening_efficiency",
-        description: r#"Modifies the efficiency screen ships operate.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "screening_efficiency",
+        HOI4Entity {
+            name: "screening_efficiency",
+            description: r#"Modifies the efficiency screen ships operate.
 
 **Example:**
 ```paradox
 screening_efficiency = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("screening_without_screens", HOI4Entity {
-        name: "screening_without_screens",
-        description: r#"Modifies the base screening without any screen ships assigned.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "screening_without_screens",
+        HOI4Entity {
+            name: "screening_without_screens",
+            description: r#"Modifies the base screening without any screen ships assigned.
 
 **Example:**
 ```paradox
 screening_without_screens = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("ships_at_battle_start", HOI4Entity {
-        name: "ships_at_battle_start",
-        description: r#"Modifies the number of ships at first contact.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "ships_at_battle_start",
+        HOI4Entity {
+            name: "ships_at_battle_start",
+            description: r#"Modifies the number of ships at first contact.
 
 **Example:**
 ```paradox
 ships_at_battle_start = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("spotting_chance", HOI4Entity {
-        name: "spotting_chance",
-        description: r#"Modifies the chance to spot enemy ships.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "spotting_chance",
+        HOI4Entity {
+            name: "spotting_chance",
+            description: r#"Modifies the chance to spot enemy ships.
 
 **Example:**
 ```paradox
 spotting_chance = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("strike_force_movement_org_loss", HOI4Entity {
         name: "strike_force_movement_org_loss",
         description: r#"Modifies the organisation loss from movement during the strike force mission.
@@ -17600,86 +20846,110 @@ strike_force_movement_org_loss = 0.3
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("sub_retreat_speed", HOI4Entity {
-        name: "sub_retreat_speed",
-        description: r#"Modifies the retreat speed of submarines.
+    m.insert(
+        "sub_retreat_speed",
+        HOI4Entity {
+            name: "sub_retreat_speed",
+            description: r#"Modifies the retreat speed of submarines.
 
 **Example:**
 ```paradox
 sub_retreat_speed = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("submarine_attack", HOI4Entity {
-        name: "submarine_attack",
-        description: r#"Modifies the attack of submarines.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "submarine_attack",
+        HOI4Entity {
+            name: "submarine_attack",
+            description: r#"Modifies the attack of submarines.
 
 **Example:**
 ```paradox
 submarine_attack = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("navy_carrier_air_agility_factor", HOI4Entity {
-        name: "navy_carrier_air_agility_factor",
-        description: r#"Modifies the agility of airplanes executing tasks from carriers.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "navy_carrier_air_agility_factor",
+        HOI4Entity {
+            name: "navy_carrier_air_agility_factor",
+            description: r#"Modifies the agility of airplanes executing tasks from carriers.
 
 **Example:**
 ```paradox
 navy_carrier_air_agility_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("navy_carrier_air_attack_factor", HOI4Entity {
-        name: "navy_carrier_air_attack_factor",
-        description: r#"Modifies the attack of airplanes executing tasks from carriers.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "navy_carrier_air_attack_factor",
+        HOI4Entity {
+            name: "navy_carrier_air_attack_factor",
+            description: r#"Modifies the attack of airplanes executing tasks from carriers.
 
 **Example:**
 ```paradox
 navy_carrier_air_attack_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("navy_carrier_air_targetting_factor", HOI4Entity {
-        name: "navy_carrier_air_targetting_factor",
-        description: r#"Modifies the targeting of airplanes executing tasks from carriers.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "navy_carrier_air_targetting_factor",
+        HOI4Entity {
+            name: "navy_carrier_air_targetting_factor",
+            description: r#"Modifies the targeting of airplanes executing tasks from carriers.
 
 **Example:**
 ```paradox
 navy_carrier_air_targetting_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("air_carrier_night_penalty_reduction_factor", HOI4Entity {
-        name: "air_carrier_night_penalty_reduction_factor",
-        description: r#"Modifies the reduction of the night penalty for air carriers.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "air_carrier_night_penalty_reduction_factor",
+        HOI4Entity {
+            name: "air_carrier_night_penalty_reduction_factor",
+            description: r#"Modifies the reduction of the night penalty for air carriers.
 
 **Example:**
 ```paradox
 air_carrier_night_penalty_reduction_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("carrier_capacity_penalty_reduction", HOI4Entity {
-        name: "carrier_capacity_penalty_reduction",
-        description: r#"Modifies the penalty given by overcrowding a carrier with planes.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "carrier_capacity_penalty_reduction",
+        HOI4Entity {
+            name: "carrier_capacity_penalty_reduction",
+            description: r#"Modifies the penalty given by overcrowding a carrier with planes.
 
 **Example:**
 ```paradox
 carrier_capacity_penalty_reduction = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("carrier_traffic", HOI4Entity {
-        name: "carrier_traffic",
-        description: r#"Modifies the traffic of carriers.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "carrier_traffic",
+        HOI4Entity {
+            name: "carrier_traffic",
+            description: r#"Modifies the traffic of carriers.
 
 **Example:**
 ```paradox
 carrier_traffic = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("sortie_efficiency", HOI4Entity {
         name: "sortie_efficiency",
         description: r#"Modifies the speed when refueling and rearming planes on the carrier during the battle.
@@ -17700,16 +20970,19 @@ carrier_sortie_hours_delay = 2
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("carrier_night_traffic", HOI4Entity {
-        name: "carrier_night_traffic",
-        description: r#"Modifies the traffic of carriers at night.
+    m.insert(
+        "carrier_night_traffic",
+        HOI4Entity {
+            name: "carrier_night_traffic",
+            description: r#"Modifies the traffic of carriers at night.
 
 **Example:**
 ```paradox
 carrier_night_traffic = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("fighter_sortie_efficiency", HOI4Entity {
         name: "fighter_sortie_efficiency",
         description: r#"Modifies the speed when refueling and rearming fighter planes on the carrier during the battle.
@@ -17720,76 +20993,97 @@ fighter_sortie_efficiency = 0.3
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("air_accidents_factor", HOI4Entity {
-        name: "air_accidents_factor",
-        description: r#"Modifies the chance for air accidents to happen.
+    m.insert(
+        "air_accidents_factor",
+        HOI4Entity {
+            name: "air_accidents_factor",
+            description: r#"Modifies the chance for air accidents to happen.
 
 **Example:**
 ```paradox
 air_accidents_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("air_ace_bonuses_factor", HOI4Entity {
-        name: "air_ace_bonuses_factor",
-        description: r#"Modifies the bonuses the aces grant.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "air_ace_bonuses_factor",
+        HOI4Entity {
+            name: "air_ace_bonuses_factor",
+            description: r#"Modifies the bonuses the aces grant.
 
 **Example:**
 ```paradox
 air_ace_bonuses_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("air_ace_generation_chance_factor", HOI4Entity {
-        name: "air_ace_generation_chance_factor",
-        description: r#"Modifies the chance for aces to appear.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "air_ace_generation_chance_factor",
+        HOI4Entity {
+            name: "air_ace_generation_chance_factor",
+            description: r#"Modifies the chance for aces to appear.
 
 **Example:**
 ```paradox
 air_ace_generation_chance_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("ace_effectiveness_factor", HOI4Entity {
-        name: "ace_effectiveness_factor",
-        description: r#"Modifies the effectiveness of aces
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "ace_effectiveness_factor",
+        HOI4Entity {
+            name: "ace_effectiveness_factor",
+            description: r#"Modifies the effectiveness of aces
 
 **Example:**
 ```paradox
 ace_effectiveness_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("air_agility_factor", HOI4Entity {
-        name: "air_agility_factor",
-        description: r#"Modifies the agility of the country's airplanes.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "air_agility_factor",
+        HOI4Entity {
+            name: "air_agility_factor",
+            description: r#"Modifies the agility of the country's airplanes.
 
 **Example:**
 ```paradox
 air_agility_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("air_attack_factor", HOI4Entity {
-        name: "air_attack_factor",
-        description: r#"Modifies the attack of the country's airplanes.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "air_attack_factor",
+        HOI4Entity {
+            name: "air_attack_factor",
+            description: r#"Modifies the attack of the country's airplanes.
 
 **Example:**
 ```paradox
 air_attack_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("air_defence_factor", HOI4Entity {
-        name: "air_defence_factor",
-        description: r#"Modifies the defence of the country's airplanes.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "air_defence_factor",
+        HOI4Entity {
+            name: "air_defence_factor",
+            description: r#"Modifies the defence of the country's airplanes.
 
 **Example:**
 ```paradox
 air_defence_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("air_interception_detect_factor", HOI4Entity {
         name: "air_interception_detect_factor",
         description: r#"Modifies the chance of detecting an enemy plane while on interception mission.
@@ -17810,16 +21104,19 @@ naval_strike_targetting_factor = 0.5
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("port_strike", HOI4Entity {
-        name: "port_strike",
-        description: r#"Modifies the damage done by planes on the port strike mission.
+    m.insert(
+        "port_strike",
+        HOI4Entity {
+            name: "port_strike",
+            description: r#"Modifies the damage done by planes on the port strike mission.
 
 **Example:**
 ```paradox
 port_strike = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("air_close_air_support_org_damage_factor", HOI4Entity {
         name: "air_close_air_support_org_damage_factor",
         description: r#"Modifies the damage to division organisation by planes on the close air support mission.
@@ -17830,46 +21127,58 @@ air_close_air_support_org_damage_factor = 0.5
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("air_bombing_targetting", HOI4Entity {
-        name: "air_bombing_targetting",
-        description: r#"Modifies targetting for ground bombing.
+    m.insert(
+        "air_bombing_targetting",
+        HOI4Entity {
+            name: "air_bombing_targetting",
+            description: r#"Modifies targetting for ground bombing.
 
 **Example:**
 ```paradox
 air_bombing_targetting = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("air_cas_efficiency", HOI4Entity {
-        name: "air_cas_efficiency",
-        description: r#"Modifies efficiency of close-air-support.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "air_cas_efficiency",
+        HOI4Entity {
+            name: "air_cas_efficiency",
+            description: r#"Modifies efficiency of close-air-support.
 
 **Example:**
 ```paradox
 air_cas_efficiency = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("air_cas_present_factor", HOI4Entity {
-        name: "air_cas_present_factor",
-        description: r#"Modifies impact of close-air-support in land combat.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "air_cas_present_factor",
+        HOI4Entity {
+            name: "air_cas_present_factor",
+            description: r#"Modifies impact of close-air-support in land combat.
 
 **Example:**
 ```paradox
 air_cas_present_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("air_escort_efficiency", HOI4Entity {
-        name: "air_escort_efficiency",
-        description: r#"Modifies ability of planes in dogfights.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "air_escort_efficiency",
+        HOI4Entity {
+            name: "air_escort_efficiency",
+            description: r#"Modifies ability of planes in dogfights.
 
 **Example:**
 ```paradox
 air_escort_efficiency = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("air_home_defence_factor", HOI4Entity {
         name: "air_home_defence_factor",
         description: r#"Modifies the defence of airplanes when defending states in the home region (Connected to the country's capital by land)
@@ -17880,56 +21189,71 @@ air_home_defence_factor = 0.5
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("air_intercept_efficiency", HOI4Entity {
-        name: "air_intercept_efficiency",
-        description: r#"Modifies the efficiency of air interception.
+    m.insert(
+        "air_intercept_efficiency",
+        HOI4Entity {
+            name: "air_intercept_efficiency",
+            description: r#"Modifies the efficiency of air interception.
 
 **Example:**
 ```paradox
 air_intercept_efficiency = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("air_manpower_requirement_factor", HOI4Entity {
-        name: "air_manpower_requirement_factor",
-        description: r#"Modifies the manpower required to deploy an airplane.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "air_manpower_requirement_factor",
+        HOI4Entity {
+            name: "air_manpower_requirement_factor",
+            description: r#"Modifies the manpower required to deploy an airplane.
 
 **Example:**
 ```paradox
 air_manpower_requirement_factor = -0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("air_maximum_speed_factor", HOI4Entity {
-        name: "air_maximum_speed_factor",
-        description: r#"Modifies the maximum speed of the airforce.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "air_maximum_speed_factor",
+        HOI4Entity {
+            name: "air_maximum_speed_factor",
+            description: r#"Modifies the maximum speed of the airforce.
 
 **Example:**
 ```paradox
 air_maximum_speed_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("air_mission_efficiency", HOI4Entity {
-        name: "air_mission_efficiency",
-        description: r#"Modifies the efficiency of airplanes in missions.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "air_mission_efficiency",
+        HOI4Entity {
+            name: "air_mission_efficiency",
+            description: r#"Modifies the efficiency of airplanes in missions.
 
 **Example:**
 ```paradox
 air_mission_efficiency = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("air_mission_xp_gain_factor", HOI4Entity {
-        name: "air_mission_xp_gain_factor",
-        description: r#"Modifies the experience gain for airplanes for doing missions.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "air_mission_xp_gain_factor",
+        HOI4Entity {
+            name: "air_mission_xp_gain_factor",
+            description: r#"Modifies the experience gain for airplanes for doing missions.
 
 **Example:**
 ```paradox
 air_mission_xp_gain_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("air_nav_efficiency", HOI4Entity {
         name: "air_nav_efficiency",
         description: r#"Modifies the efficiency of airplanes doing port strike and naval bombing missions.
@@ -17940,56 +21264,71 @@ air_nav_efficiency = 0.5
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("air_night_penalty", HOI4Entity {
-        name: "air_night_penalty",
-        description: r#"Modifies the penalty the airforce receives while at night.
+    m.insert(
+        "air_night_penalty",
+        HOI4Entity {
+            name: "air_night_penalty",
+            description: r#"Modifies the penalty the airforce receives while at night.
 
 **Example:**
 ```paradox
 air_night_penalty = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("air_power_projection_factor", HOI4Entity {
-        name: "air_power_projection_factor",
-        description: r#"Modifies the power projection given out by the airplanes.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "air_power_projection_factor",
+        HOI4Entity {
+            name: "air_power_projection_factor",
+            description: r#"Modifies the power projection given out by the airplanes.
 
 **Example:**
 ```paradox
 air_power_projection_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("air_range_factor", HOI4Entity {
-        name: "air_range_factor",
-        description: r#"Modifies the range of the airplanes.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "air_range_factor",
+        HOI4Entity {
+            name: "air_range_factor",
+            description: r#"Modifies the range of the airplanes.
 
 **Example:**
 ```paradox
 air_range_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("air_strategic_bomber_bombing_factor", HOI4Entity {
-        name: "air_strategic_bomber_bombing_factor",
-        description: r#"Modifies the efficiency of the strategic bombing mission.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "air_strategic_bomber_bombing_factor",
+        HOI4Entity {
+            name: "air_strategic_bomber_bombing_factor",
+            description: r#"Modifies the efficiency of the strategic bombing mission.
 
 **Example:**
 ```paradox
 air_strategic_bomber_bombing_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("air_strategic_bomber_night_penalty", HOI4Entity {
-        name: "air_strategic_bomber_night_penalty",
-        description: r#"Modifies the penalty for the strategic bombing mission while at night.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "air_strategic_bomber_night_penalty",
+        HOI4Entity {
+            name: "air_strategic_bomber_night_penalty",
+            description: r#"Modifies the penalty for the strategic bombing mission while at night.
 
 **Example:**
 ```paradox
 air_strategic_bomber_night_penalty = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("air_superiority_detect_factor", HOI4Entity {
         name: "air_superiority_detect_factor",
         description: r#"Modifies the chance to detect enemy planes while on the air superiority mission. Displays as Fighter Detection.
@@ -18000,26 +21339,32 @@ air_superiority_detect_factor = 0.5
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("air_superiority_efficiency", HOI4Entity {
-        name: "air_superiority_efficiency",
-        description: r#"Modifies the efficiency of the air superiority mission.
+    m.insert(
+        "air_superiority_efficiency",
+        HOI4Entity {
+            name: "air_superiority_efficiency",
+            description: r#"Modifies the efficiency of the air superiority mission.
 
 **Example:**
 ```paradox
 air_superiority_efficiency = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("air_training_xp_gain_factor", HOI4Entity {
-        name: "air_training_xp_gain_factor",
-        description: r#"Modifies the air experience gain from training.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "air_training_xp_gain_factor",
+        HOI4Entity {
+            name: "air_training_xp_gain_factor",
+            description: r#"Modifies the air experience gain from training.
 
 **Example:**
 ```paradox
 air_training_xp_gain_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("air_untrained_pilots_penalty_factor", HOI4Entity {
         name: "air_untrained_pilots_penalty_factor",
         description: r#"Modifies the penalty given to airplanes which don't have enough experience.
@@ -18030,16 +21375,19 @@ air_untrained_pilots_penalty_factor = 0.5
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("air_weather_penalty", HOI4Entity {
-        name: "air_weather_penalty",
-        description: r#"Modifies the penalty the airplanes receive because of weather.
+    m.insert(
+        "air_weather_penalty",
+        HOI4Entity {
+            name: "air_weather_penalty",
+            description: r#"Modifies the penalty the airplanes receive because of weather.
 
 **Example:**
 ```paradox
 air_weather_penalty = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("air_wing_xp_loss_when_killed_factor", HOI4Entity {
         name: "air_wing_xp_loss_when_killed_factor",
         description: r#"Modifies the experience loss of airplanes due to airplanes being shot down.
@@ -18050,26 +21398,32 @@ air_wing_xp_loss_when_killed_factor = 0.5
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("army_bonus_air_superiority_factor", HOI4Entity {
-        name: "army_bonus_air_superiority_factor",
-        description: r#"Modifies the bonus to land combat from air superiority.
+    m.insert(
+        "army_bonus_air_superiority_factor",
+        HOI4Entity {
+            name: "army_bonus_air_superiority_factor",
+            description: r#"Modifies the bonus to land combat from air superiority.
 
 **Example:**
 ```paradox
 army_bonus_air_superiority_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("enemy_army_bonus_air_superiority_factor", HOI4Entity {
-        name: "enemy_army_bonus_air_superiority_factor",
-        description: r#"Modifies the effect to land combat from enemy air superiority.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "enemy_army_bonus_air_superiority_factor",
+        HOI4Entity {
+            name: "enemy_army_bonus_air_superiority_factor",
+            description: r#"Modifies the effect to land combat from enemy air superiority.
 
 **Example:**
 ```paradox
 enemy_army_bonus_air_superiority_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("ground_attack_factor", HOI4Entity {
         name: "ground_attack_factor",
         description: r#"Modifies the bonus to airplane attack on enemy divisions by a percentage.
@@ -18080,56 +21434,71 @@ ground_attack_factor = 0.5
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("mines_planting_by_air_factor", HOI4Entity {
-        name: "mines_planting_by_air_factor",
-        description: r#"Modifies efficiency of airplanes planting mines.
+    m.insert(
+        "mines_planting_by_air_factor",
+        HOI4Entity {
+            name: "mines_planting_by_air_factor",
+            description: r#"Modifies efficiency of airplanes planting mines.
 
 **Example:**
 ```paradox
 mines_planting_by_air_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("mines_sweeping_by_air_factor", HOI4Entity {
-        name: "mines_sweeping_by_air_factor",
-        description: r#"Modifies efficiency of airplanes sweeping mines.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "mines_sweeping_by_air_factor",
+        HOI4Entity {
+            name: "mines_sweeping_by_air_factor",
+            description: r#"Modifies efficiency of airplanes sweeping mines.
 
 **Example:**
 ```paradox
 mines_sweeping_by_air_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("strategic_bomb_visibility", HOI4Entity {
-        name: "strategic_bomb_visibility",
-        description: r#"Modifies the chance for the enemy to detect our strategic bombers.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "strategic_bomb_visibility",
+        HOI4Entity {
+            name: "strategic_bomb_visibility",
+            description: r#"Modifies the chance for the enemy to detect our strategic bombers.
 
 **Example:**
 ```paradox
 strategic_bomb_visibility = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("rocket_attack_factor", HOI4Entity {
-        name: "rocket_attack_factor",
-        description: r#"Modifies the attack given to rockets.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "rocket_attack_factor",
+        HOI4Entity {
+            name: "rocket_attack_factor",
+            description: r#"Modifies the attack given to rockets.
 
 **Example:**
 ```paradox
 rocket_attack_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("extra_trade_to_target_factor", HOI4Entity {
-        name: "extra_trade_to_target_factor",
-        description: r#"Adds extra produced resources available for trade to target country.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "extra_trade_to_target_factor",
+        HOI4Entity {
+            name: "extra_trade_to_target_factor",
+            description: r#"Adds extra produced resources available for trade to target country.
 
 **Example:**
 ```paradox
 extra_trade_to_target_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("generate_wargoal_tension_against", HOI4Entity {
         name: "generate_wargoal_tension_against",
         description: r#"Changes world tension necessary for us to justify against the target country.
@@ -18160,36 +21529,45 @@ mic_to_target_factor = 0.5
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("trade_cost_for_target_factor", HOI4Entity {
-        name: "trade_cost_for_target_factor",
-        description: r#"The cost for the targeted country to purchase this country's resources.
+    m.insert(
+        "trade_cost_for_target_factor",
+        HOI4Entity {
+            name: "trade_cost_for_target_factor",
+            description: r#"The cost for the targeted country to purchase this country's resources.
 
 **Example:**
 ```paradox
 trade_cost_for_target_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("targeted_legitimacy_daily", HOI4Entity {
-        name: "targeted_legitimacy_daily",
-        description: r#"Changes daily gain of legitimacy of the target country.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "targeted_legitimacy_daily",
+        HOI4Entity {
+            name: "targeted_legitimacy_daily",
+            description: r#"Changes daily gain of legitimacy of the target country.
 
 **Example:**
 ```paradox
 targeted_legitimacy_daily = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("attack_bonus_against", HOI4Entity {
-        name: "attack_bonus_against",
-        description: r#"Gives an attack bonus against the armies of the specified country.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "attack_bonus_against",
+        HOI4Entity {
+            name: "attack_bonus_against",
+            description: r#"Gives an attack bonus against the armies of the specified country.
 
 **Example:**
 ```paradox
 attack_bonus_against = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("attack_bonus_against_cores", HOI4Entity {
         name: "attack_bonus_against_cores",
         description: r#"Gives an attack bonus against the armies of the specified country on its core territory.
@@ -18200,196 +21578,253 @@ attack_bonus_against_cores = 0.5
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("breakthrough_bonus_against", HOI4Entity {
-        name: "breakthrough_bonus_against",
-        description: r#"Gives a breakthrough bonus against the armies of the specified country.
+    m.insert(
+        "breakthrough_bonus_against",
+        HOI4Entity {
+            name: "breakthrough_bonus_against",
+            description: r#"Gives a breakthrough bonus against the armies of the specified country.
 
 **Example:**
 ```paradox
 breakthrough_bonus_against = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("defense_bonus_against", HOI4Entity {
-        name: "defense_bonus_against",
-        description: r#"Gives a defense bonus against the armies of the specified country.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "defense_bonus_against",
+        HOI4Entity {
+            name: "defense_bonus_against",
+            description: r#"Gives a defense bonus against the armies of the specified country.
 
 **Example:**
 ```paradox
 defense_bonus_against = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("army_speed_factor_for_controller", HOI4Entity {
-        name: "army_speed_factor_for_controller",
-        description: r#"Changes the division speed for the controller of the state.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "army_speed_factor_for_controller",
+        HOI4Entity {
+            name: "army_speed_factor_for_controller",
+            description: r#"Changes the division speed for the controller of the state.
 
 **Example:**
 ```paradox
 army_speed_factor_for_controller = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("attrition_for_controller", HOI4Entity {
-        name: "attrition_for_controller",
-        description: r#"Changes the attrition for the controller of the state.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "attrition_for_controller",
+        HOI4Entity {
+            name: "attrition_for_controller",
+            description: r#"Changes the attrition for the controller of the state.
 
 **Example:**
 ```paradox
 attrition_for_controller = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("equipment_capture_for_controller", HOI4Entity {
-        name: "equipment_capture_for_controller",
-        description: r#"Changes the equipment capture ratio by the state's controller.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "equipment_capture_for_controller",
+        HOI4Entity {
+            name: "equipment_capture_for_controller",
+            description: r#"Changes the equipment capture ratio by the state's controller.
 
 **Example:**
 ```paradox
 equipment_capture_for_controller = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("equipment_capture_factor_for_controller", HOI4Entity {
-        name: "equipment_capture_factor_for_controller",
-        description: r#"Modifies the equipment capture ratio by the state's controller.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "equipment_capture_factor_for_controller",
+        HOI4Entity {
+            name: "equipment_capture_factor_for_controller",
+            description: r#"Modifies the equipment capture ratio by the state's controller.
 
 **Example:**
 ```paradox
 equipment_capture_factor_for_controller = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("enemy_army_speed_factor", HOI4Entity {
-        name: "enemy_army_speed_factor",
-        description: r#"Modifies the speed of divisions at war with the state's owner.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "enemy_army_speed_factor",
+        HOI4Entity {
+            name: "enemy_army_speed_factor",
+            description: r#"Modifies the speed of divisions at war with the state's owner.
 
 **Example:**
 ```paradox
 enemy_army_speed_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("enemy_local_supplies", HOI4Entity {
-        name: "enemy_local_supplies",
-        description: r#"Modifies the supply of divisions at war with the state's owner.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "enemy_local_supplies",
+        HOI4Entity {
+            name: "enemy_local_supplies",
+            description: r#"Modifies the supply of divisions at war with the state's owner.
 
 **Example:**
 ```paradox
 enemy_local_supplies = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("enemy_attrition", HOI4Entity {
-        name: "enemy_attrition",
-        description: r#"Modifies the attrition of divisions at war with the state's owner.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "enemy_attrition",
+        HOI4Entity {
+            name: "enemy_attrition",
+            description: r#"Modifies the attrition of divisions at war with the state's owner.
 
 **Example:**
 ```paradox
 enemy_attrition = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("enemy_truck_attrition_factor", HOI4Entity {
-        name: "enemy_truck_attrition_factor",
-        description: r#"Modifies the truck attrition of divisions at war with the state's owner.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "enemy_truck_attrition_factor",
+        HOI4Entity {
+            name: "enemy_truck_attrition_factor",
+            description: r#"Modifies the truck attrition of divisions at war with the state's owner.
 
 **Example:**
 ```paradox
 enemy_truck_attrition_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("compliance_gain", HOI4Entity {
-        name: "compliance_gain",
-        description: r#"Changes the compliance gain in the current state.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "compliance_gain",
+        HOI4Entity {
+            name: "compliance_gain",
+            description: r#"Changes the compliance gain in the current state.
 
 **Example:**
 ```paradox
 compliance_gain = 0.01
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("compliance_growth", HOI4Entity {
-        name: "compliance_growth",
-        description: r#"Changes the compliance growth speed in the current state.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "compliance_growth",
+        HOI4Entity {
+            name: "compliance_growth",
+            description: r#"Changes the compliance growth speed in the current state.
 
 **Example:**
 ```paradox
 compliance_growth = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("disable_strategic_redeployment", HOI4Entity {
-        name: "disable_strategic_redeployment",
-        description: r#"Disables strategic redeployment in the state.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "disable_strategic_redeployment",
+        HOI4Entity {
+            name: "disable_strategic_redeployment",
+            description: r#"Disables strategic redeployment in the state.
 
 **Example:**
 ```paradox
 disable_strategic_redeployment = 1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("disable_strategic_redeployment_for_controller", HOI4Entity {
-        name: "disable_strategic_redeployment_for_controller",
-        description: r#"Disables strategic redeployment in the state for the controller.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "disable_strategic_redeployment_for_controller",
+        HOI4Entity {
+            name: "disable_strategic_redeployment_for_controller",
+            description: r#"Disables strategic redeployment in the state for the controller.
 
 **Example:**
 ```paradox
 disable_strategic_redeployment_for_controller = 1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("enemy_intel_network_gain_factor_over_occupied_tag", HOI4Entity {
-        name: "enemy_intel_network_gain_factor_over_occupied_tag",
-        description: r#"Modifies enemy intel network strength gain.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "enemy_intel_network_gain_factor_over_occupied_tag",
+        HOI4Entity {
+            name: "enemy_intel_network_gain_factor_over_occupied_tag",
+            description: r#"Modifies enemy intel network strength gain.
 
 **Example:**
 ```paradox
 enemy_intel_network_gain_factor_over_occupied_tag = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("local_building_slots", HOI4Entity {
-        name: "local_building_slots",
-        description: r#"Modifies amount of building slots.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "local_building_slots",
+        HOI4Entity {
+            name: "local_building_slots",
+            description: r#"Modifies amount of building slots.
 
 **Example:**
 ```paradox
 local_building_slots = 2
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("local_building_slots_factor", HOI4Entity {
-        name: "local_building_slots_factor",
-        description: r#"Modifies amount of building slots by a percentage.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "local_building_slots_factor",
+        HOI4Entity {
+            name: "local_building_slots_factor",
+            description: r#"Modifies amount of building slots by a percentage.
 
 **Example:**
 ```paradox
 local_building_slots_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("local_factories", HOI4Entity {
-        name: "local_factories",
-        description: r#"Modifies amount of available factories in the state.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "local_factories",
+        HOI4Entity {
+            name: "local_factories",
+            description: r#"Modifies amount of available factories in the state.
 
 **Example:**
 ```paradox
 local_factories = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("local_factory_energy_consumption", HOI4Entity {
-        name: "local_factory_energy_consumption",
-        description: r#"Modifies amount of energy consumed by factories in the state.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "local_factory_energy_consumption",
+        HOI4Entity {
+            name: "local_factory_energy_consumption",
+            description: r#"Modifies amount of energy consumed by factories in the state.
 
 **Example:**
 ```paradox
 local_factory_energy_consumption = 0.2
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("local_factory_energy_consumption_per_infrastructure", HOI4Entity {
         name: "local_factory_energy_consumption_per_infrastructure",
         description: r#"Modifies amount of energy consumed by factories depending on the infrastructure of the state.
@@ -18400,56 +21835,71 @@ local_factory_energy_consumption_per_infrastructure = 0.2
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("local_factory_sabotage", HOI4Entity {
-        name: "local_factory_sabotage",
-        description: r#"Modifies chance for factory sabotage.
+    m.insert(
+        "local_factory_sabotage",
+        HOI4Entity {
+            name: "local_factory_sabotage",
+            description: r#"Modifies chance for factory sabotage.
 
 **Example:**
 ```paradox
 local_factory_sabotage = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("local_intel_to_enemies", HOI4Entity {
-        name: "local_intel_to_enemies",
-        description: r#"Modifies amount of intel to enemies.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "local_intel_to_enemies",
+        HOI4Entity {
+            name: "local_intel_to_enemies",
+            description: r#"Modifies amount of intel to enemies.
 
 **Example:**
 ```paradox
 local_intel_to_enemies = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("local_manpower", HOI4Entity {
-        name: "local_manpower",
-        description: r#"Modifies amount of available manpower.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "local_manpower",
+        HOI4Entity {
+            name: "local_manpower",
+            description: r#"Modifies amount of available manpower.
 
 **Example:**
 ```paradox
 local_manpower = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("local_non_core_manpower", HOI4Entity {
-        name: "local_non_core_manpower",
-        description: r#"Modifies amount of available non-core manpower.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "local_non_core_manpower",
+        HOI4Entity {
+            name: "local_non_core_manpower",
+            description: r#"Modifies amount of available non-core manpower.
 
 **Example:**
 ```paradox
 local_non_core_manpower = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("local_org_regain", HOI4Entity {
-        name: "local_org_regain",
-        description: r#"Modifies how much organisation is regained after combat.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "local_org_regain",
+        HOI4Entity {
+            name: "local_org_regain",
+            description: r#"Modifies how much organisation is regained after combat.
 
 **Example:**
 ```paradox
 local_org_regain = -0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("local_resource_gain_efficiency_per_infrastructure", HOI4Entity {
         name: "local_resource_gain_efficiency_per_infrastructure",
         description: r#"Modifies amount of available resources gained depending on the infrastructure of the state.
@@ -18460,46 +21910,58 @@ local_resource_gain_efficiency_per_infrastructure = 0.3
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("local_resources", HOI4Entity {
-        name: "local_resources",
-        description: r#"Modifies amount of available resources.
+    m.insert(
+        "local_resources",
+        HOI4Entity {
+            name: "local_resources",
+            description: r#"Modifies amount of available resources.
 
 **Example:**
 ```paradox
 local_resources = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("local_supplies", HOI4Entity {
-        name: "local_supplies",
-        description: r#"Modifies amount of available supplies.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "local_supplies",
+        HOI4Entity {
+            name: "local_supplies",
+            description: r#"Modifies amount of available supplies.
 
 **Example:**
 ```paradox
 local_supplies = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("local_supplies_for_controller", HOI4Entity {
-        name: "local_supplies_for_controller",
-        description: r#"Modifies amount of available supplies for the controller.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "local_supplies_for_controller",
+        HOI4Entity {
+            name: "local_supplies_for_controller",
+            description: r#"Modifies amount of available supplies for the controller.
 
 **Example:**
 ```paradox
 local_supplies_for_controller = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("local_supply_impact_factor", HOI4Entity {
-        name: "local_supply_impact_factor",
-        description: r#"Modifies the impact that the state's local supplies have.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "local_supply_impact_factor",
+        HOI4Entity {
+            name: "local_supply_impact_factor",
+            description: r#"Modifies the impact that the state's local supplies have.
 
 **Example:**
 ```paradox
 local_supply_impact_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("local_non_core_supply_impact_factor", HOI4Entity {
         name: "local_non_core_supply_impact_factor",
         description: r#"Modifies the impact that the state's local supplies have if the state is not cored by the controller of provinces within.
@@ -18510,26 +21972,32 @@ local_non_core_supply_impact_factor = 0.3
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("mobilization_speed", HOI4Entity {
-        name: "mobilization_speed",
-        description: r#"Modifies the mobilisation speed.
+    m.insert(
+        "mobilization_speed",
+        HOI4Entity {
+            name: "mobilization_speed",
+            description: r#"Modifies the mobilisation speed.
 
 **Example:**
 ```paradox
 mobilization_speed = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("non_core_manpower", HOI4Entity {
-        name: "non_core_manpower",
-        description: r#"Modifies the amount of recruited non-core manpower.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "non_core_manpower",
+        HOI4Entity {
+            name: "non_core_manpower",
+            description: r#"Modifies the amount of recruited non-core manpower.
 
 **Example:**
 ```paradox
 non_core_manpower = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("max_fuel_building", HOI4Entity {
         name: "max_fuel_building",
         description: r#"Modifies the amount of fuel capacity, in thousands, given to the state controller from the building.
@@ -18540,79 +22008,102 @@ max_fuel_building = 1500
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("recruitable_population", HOI4Entity {
-        name: "recruitable_population",
-        description: r#"Modifies the amount of recruited manpower.
+    m.insert(
+        "recruitable_population",
+        HOI4Entity {
+            name: "recruitable_population",
+            description: r#"Modifies the amount of recruited manpower.
 
 **Example:**
 ```paradox
 recruitable_population = 0.03
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("recruitable_population_factor", HOI4Entity {
-        name: "recruitable_population_factor",
-        description: r#"Modifies the amount of recruited manpower by a percentage.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "recruitable_population_factor",
+        HOI4Entity {
+            name: "recruitable_population_factor",
+            description: r#"Modifies the amount of recruited manpower by a percentage.
 
 **Example:**
 ```paradox
 recruitable_population_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("resistance_damage_to_garrison", HOI4Entity {
-        name: "resistance_damage_to_garrison",
-        description: r#"Modifies the amount of resistance damage to the garrison.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "resistance_damage_to_garrison",
+        HOI4Entity {
+            name: "resistance_damage_to_garrison",
+            description: r#"Modifies the amount of resistance damage to the garrison.
 
 **Example:**
 ```paradox
 resistance_damage_to_garrison = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("resistance_decay", HOI4Entity {
-        name: "resistance_decay",
-        description: r#"Modifies the speed of resistance decay.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "resistance_decay",
+        HOI4Entity {
+            name: "resistance_decay",
+            description: r#"Modifies the speed of resistance decay.
 
 **Example:**
 ```paradox
 resistance_decay = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("resistance_garrison_penetration_chance", HOI4Entity {
-        name: "resistance_garrison_penetration_chance",
-        description: r#"Modifies the chance for the garrison to be penetrated.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "resistance_garrison_penetration_chance",
+        HOI4Entity {
+            name: "resistance_garrison_penetration_chance",
+            description: r#"Modifies the chance for the garrison to be penetrated.
 
 **Example:**
 ```paradox
 resistance_garrison_penetration_chance = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("resistance_growth", HOI4Entity {
-        name: "resistance_growth",
-        description: r#"Modifies the speed of the resistance growth.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "resistance_growth",
+        HOI4Entity {
+            name: "resistance_growth",
+            description: r#"Modifies the speed of the resistance growth.
 
 **Example:**
 ```paradox
 resistance_growth = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("starting_compliance", HOI4Entity {
-        name: "starting_compliance",
-        description: r#"Modifies the base compliance value.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "starting_compliance",
+        HOI4Entity {
+            name: "starting_compliance",
+            description: r#"Modifies the base compliance value.
 
 **Example:**
 ```paradox
 starting_compliance = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("state_bunker_max_level_terrain_limit", HOI4Entity {
-        name: "state_bunker_max_level_terrain_limit",
-        description: r#"Modifies the amount of available bunker building slots
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "state_bunker_max_level_terrain_limit",
+        HOI4Entity {
+            name: "state_bunker_max_level_terrain_limit",
+            description: r#"Modifies the amount of available bunker building slots
 
 in the state.
 
@@ -18620,11 +22111,14 @@ in the state.
 ```paradox
 state_bunker_max_level_terrain_limit = 6
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("state_coastal_bunker_max_level_terrain_limit", HOI4Entity {
-        name: "state_coastal_bunker_max_level_terrain_limit",
-        description: r#"Modifies the amount of available coastal bunker building slots
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "state_coastal_bunker_max_level_terrain_limit",
+        HOI4Entity {
+            name: "state_coastal_bunker_max_level_terrain_limit",
+            description: r#"Modifies the amount of available coastal bunker building slots
 
 in the state.
 
@@ -18632,58 +22126,74 @@ in the state.
 ```paradox
 state_coastal_bunker_max_level_terrain_limit = 6
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("state_production_speed__factor", HOI4Entity {
-        name: "state_production_speed__factor",
-        description: r#"Modifies the building speed of the specified building in the state.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "state_production_speed__factor",
+        HOI4Entity {
+            name: "state_production_speed__factor",
+            description: r#"Modifies the building speed of the specified building in the state.
 
 **Example:**
 ```paradox
 state_production_speed_industrial_complex_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("state_repair_speed__factor", HOI4Entity {
-        name: "state_repair_speed__factor",
-        description: r#"Modifies the repair speed of the specified building in the state.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "state_repair_speed__factor",
+        HOI4Entity {
+            name: "state_repair_speed__factor",
+            description: r#"Modifies the repair speed of the specified building in the state.
 
 **Example:**
 ```paradox
 state_repair_speed_industrial_complex_factor = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("state_resource", HOI4Entity {
-        name: "state_resource",
-        description: r#"Modifies the amount of the specified resource in the state.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "state_resource",
+        HOI4Entity {
+            name: "state_resource",
+            description: r#"Modifies the amount of the specified resource in the state.
 
 **Example:**
 ```paradox
 state_resource_oil = 5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("state_resources_factor", HOI4Entity {
-        name: "state_resources_factor",
-        description: r#"Modifies the amount of resources in a state.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "state_resources_factor",
+        HOI4Entity {
+            name: "state_resources_factor",
+            description: r#"Modifies the amount of resources in a state.
 
 **Example:**
 ```paradox
 state_resources_factor = 0.2
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("state_resource_cost", HOI4Entity {
-        name: "state_resource_cost",
-        description: r#"Modifies the amount of the specified resource in the state.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "state_resource_cost",
+        HOI4Entity {
+            name: "state_resource_cost",
+            description: r#"Modifies the amount of the specified resource in the state.
 
 **Example:**
 ```paradox
 state_resource_cost_rubber = 5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("temporary_state_resource", HOI4Entity {
         name: "temporary_state_resource",
         description: r#"Modifies the amount of the specified resource in the state as an added modifier after the base one.
@@ -18714,26 +22224,32 @@ enemy_operative_detection_chance_factor_over_occupied_tag = 0.5
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("cannot_use_abilities", HOI4Entity {
-        name: "cannot_use_abilities",
-        description: r#"Disables using abilities.
+    m.insert(
+        "cannot_use_abilities",
+        HOI4Entity {
+            name: "cannot_use_abilities",
+            description: r#"Disables using abilities.
 
 **Example:**
 ```paradox
 cannot_use_abilities = 1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("dont_lose_dig_in_on_attack", HOI4Entity {
-        name: "dont_lose_dig_in_on_attack",
-        description: r#"Disables losing the entrechment bonus during attack.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "dont_lose_dig_in_on_attack",
+        HOI4Entity {
+            name: "dont_lose_dig_in_on_attack",
+            description: r#"Disables losing the entrechment bonus during attack.
 
 **Example:**
 ```paradox
 dont_lose_dig_in_on_attack = 1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("exiled_divisions_attack_factor", HOI4Entity {
         name: "exiled_divisions_attack_factor",
         description: r#"Modifies the attack of divisions led by this unit leader if they're exiled.
@@ -18774,36 +22290,45 @@ own_exiled_divisions_defense_factor = 0.4
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("experience_gain_factor", HOI4Entity {
-        name: "experience_gain_factor",
-        description: r#"Modifies the experience gained by the unit leader.
+    m.insert(
+        "experience_gain_factor",
+        HOI4Entity {
+            name: "experience_gain_factor",
+            description: r#"Modifies the experience gained by the unit leader.
 
 **Example:**
 ```paradox
 experience_gain_factor = 0.1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("fortification_collateral_chance", HOI4Entity {
-        name: "fortification_collateral_chance",
-        description: r#"Chance for combat to damage enemy forts.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "fortification_collateral_chance",
+        HOI4Entity {
+            name: "fortification_collateral_chance",
+            description: r#"Chance for combat to damage enemy forts.
 
 **Example:**
 ```paradox
 fortification_collateral_chance = 0.4
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("fortification_damage", HOI4Entity {
-        name: "fortification_damage",
-        description: r#"Damage enemy forts receive from combat.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "fortification_damage",
+        HOI4Entity {
+            name: "fortification_damage",
+            description: r#"Damage enemy forts receive from combat.
 
 **Example:**
 ```paradox
 fortification_damage = 0.4
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("max_commander_army_size", HOI4Entity {
         name: "max_commander_army_size",
         description: r#"Modifies amount of divisions that can be led by the army leader without penalty.
@@ -18824,96 +22349,123 @@ max_army_group_size = 1
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("paradrop_organization_factor", HOI4Entity {
-        name: "paradrop_organization_factor",
-        description: r#"The amount of organisation paratroopers will have after paradropping.
+    m.insert(
+        "paradrop_organization_factor",
+        HOI4Entity {
+            name: "paradrop_organization_factor",
+            description: r#"The amount of organisation paratroopers will have after paradropping.
 
 **Example:**
 ```paradox
 paradrop_organization_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("paratrooper_aa_defense", HOI4Entity {
-        name: "paratrooper_aa_defense",
-        description: r#"The strength of anti-air against paratroopers.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "paratrooper_aa_defense",
+        HOI4Entity {
+            name: "paratrooper_aa_defense",
+            description: r#"The strength of anti-air against paratroopers.
 
 **Example:**
 ```paradox
 paratrooper_aa_defense = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("paratrooper_weight_factor", HOI4Entity {
-        name: "paratrooper_weight_factor",
-        description: r#"Paratrooper transport space factor.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "paratrooper_weight_factor",
+        HOI4Entity {
+            name: "paratrooper_weight_factor",
+            description: r#"Paratrooper transport space factor.
 
 **Example:**
 ```paradox
 paratrooper_weight_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("promote_cost_factor", HOI4Entity {
-        name: "promote_cost_factor",
-        description: r#"The cost to promote the unit leader.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "promote_cost_factor",
+        HOI4Entity {
+            name: "promote_cost_factor",
+            description: r#"The cost to promote the unit leader.
 
 **Example:**
 ```paradox
 promote_cost_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("reassignment_duration_factor", HOI4Entity {
-        name: "reassignment_duration_factor",
-        description: r#"The length of the reassignment penalty.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "reassignment_duration_factor",
+        HOI4Entity {
+            name: "reassignment_duration_factor",
+            description: r#"The length of the reassignment penalty.
 
 **Example:**
 ```paradox
 reassignment_duration_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("river_crossing_factor", HOI4Entity {
-        name: "river_crossing_factor",
-        description: r#"The effects of the river crossing penalty.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "river_crossing_factor",
+        HOI4Entity {
+            name: "river_crossing_factor",
+            description: r#"The effects of the river crossing penalty.
 
 **Example:**
 ```paradox
 river_crossing_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("sickness_chance", HOI4Entity {
-        name: "sickness_chance",
-        description: r#"The chance for the unit leader to get sick.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "sickness_chance",
+        HOI4Entity {
+            name: "sickness_chance",
+            description: r#"The chance for the unit leader to get sick.
 
 **Example:**
 ```paradox
 sickness_chance = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("skill_bonus_factor", HOI4Entity {
-        name: "skill_bonus_factor",
-        description: r#"The bonus the unit leader receives from their skillset.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "skill_bonus_factor",
+        HOI4Entity {
+            name: "skill_bonus_factor",
+            description: r#"The bonus the unit leader receives from their skillset.
 
 **Example:**
 ```paradox
 skill_bonus_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("trait__xp_gain_factor", HOI4Entity {
-        name: "trait__xp_gain_factor",
-        description: r#"Modifies the experience gain towards the specified trait.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "trait__xp_gain_factor",
+        HOI4Entity {
+            name: "trait__xp_gain_factor",
+            description: r#"Modifies the experience gain towards the specified trait.
 
 **Example:**
 ```paradox
 trait_infantry_leader_xp_gain_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m.insert("terrain_trait_xp_gain_factor", HOI4Entity {
         name: "terrain_trait_xp_gain_factor",
         description: r#"Modifies the experience gain towards all terrain traits (With the type of either basic_terrain_trait or assignable_terrain_trait).
@@ -18924,148 +22476,260 @@ terrain_trait_xp_gain_factor = 0.5
 ```"#,
         scopes: &[crate::scope::Scope::Unknown],
     });
-    m.insert("wounded_chance_factor", HOI4Entity {
-        name: "wounded_chance_factor",
-        description: r#"The chance for the unit leader to get wounded.
+    m.insert(
+        "wounded_chance_factor",
+        HOI4Entity {
+            name: "wounded_chance_factor",
+            description: r#"The chance for the unit leader to get wounded.
 
 **Example:**
 ```paradox
 wounded_chance_factor = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("shore_bombardment_bonus", HOI4Entity {
-        name: "shore_bombardment_bonus",
-        description: r#"Modifies the penalty given by the shore bombardment on divisions.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "shore_bombardment_bonus",
+        HOI4Entity {
+            name: "shore_bombardment_bonus",
+            description: r#"Modifies the penalty given by the shore bombardment on divisions.
 
 **Example:**
 ```paradox
 shore_bombardment_bonus = 0.5
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("female_random_scientist_chance", HOI4Entity {
-        name: "female_random_scientist_chance",
-        description: r#"The chance of spawn female scientist
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "female_random_scientist_chance",
+        HOI4Entity {
+            name: "female_random_scientist_chance",
+            description: r#"The chance of spawn female scientist
 
 **Example:**
 ```paradox
 female_random_scientist_chance = 0.05
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("scientist_breakthrough_bonus_factor", HOI4Entity {
-        name: "scientist_breakthrough_bonus_factor",
-        description: r#"Modifiers scientist breakthrough bonus for special projects
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "scientist_breakthrough_bonus_factor",
+        HOI4Entity {
+            name: "scientist_breakthrough_bonus_factor",
+            description: r#"Modifiers scientist breakthrough bonus for special projects
 
 **Example:**
 ```paradox
 scientist_breakthrough_bonus_factor = -0.25
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("scientist_research_bonus_factor", HOI4Entity {
-        name: "scientist_research_bonus_factor",
-        description: r#"Modifiers scientist research bonus for special projects
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "scientist_research_bonus_factor",
+        HOI4Entity {
+            name: "scientist_research_bonus_factor",
+            description: r#"Modifiers scientist research bonus for special projects
 
 **Example:**
 ```paradox
 scientist_research_bonus_factor = 0.15
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("scientist_xp_gain_factor", HOI4Entity {
-        name: "scientist_xp_gain_factor",
-        description: r#"Modifiers scientist gain xp
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "scientist_xp_gain_factor",
+        HOI4Entity {
+            name: "scientist_xp_gain_factor",
+            description: r#"Modifiers scientist gain xp
 
 **Example:**
 ```paradox
 scientist_xp_gain_factor = 0.02
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("air_accidents", HOI4Entity {
-        name: "air_accidents",
-        description: r#"Base chance for an air accident to happen.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "air_accidents",
+        HOI4Entity {
+            name: "air_accidents",
+            description: r#"Base chance for an air accident to happen.
 
 **Example:**
 ```paradox
 air_accidents = 0.3
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("air_detection", HOI4Entity {
-        name: "air_detection",
-        description: r#"Base chance for air detection.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "air_detection",
+        HOI4Entity {
+            name: "air_detection",
+            description: r#"Base chance for air detection.
 
 **Example:**
 ```paradox
 air_detection = -0.1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("naval_strike", HOI4Entity {
-        name: "naval_strike",
-        description: r#"Base efficiency for naval strikes.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "naval_strike",
+        HOI4Entity {
+            name: "naval_strike",
+            description: r#"Base efficiency for naval strikes.
 
 **Example:**
 ```paradox
 naval_strike = -0.1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("navy_casualty_on_sink", HOI4Entity {
-        name: "navy_casualty_on_sink",
-        description: r#"Modifies the casualties when ships are sunk in this region.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "navy_casualty_on_sink",
+        HOI4Entity {
+            name: "navy_casualty_on_sink",
+            description: r#"Modifies the casualties when ships are sunk in this region.
 
 **Example:**
 ```paradox
 navy_casualty_on_sink = -0.1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
-    m.insert("navy_casualty_on_hit", HOI4Entity {
-        name: "navy_casualty_on_hit",
-        description: r#"Modifies the casualties when ships are damaged in this region.
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
+    m.insert(
+        "navy_casualty_on_hit",
+        HOI4Entity {
+            name: "navy_casualty_on_hit",
+            description: r#"Modifies the casualties when ships are damaged in this region.
 
 **Example:**
 ```paradox
 navy_casualty_on_hit = -0.1
 ```"#,
-        scopes: &[crate::scope::Scope::Unknown],
-    });
+            scopes: &[crate::scope::Scope::Unknown],
+        },
+    );
     m
 }
 
 pub fn get_scopes() -> Vec<&'static str> {
     vec![
-        "ROOT", "PREV", "THIS", "FROM", "FROM.FROM", "FROM.FROM.FROM", "FROM.FROM.FROM.FROM",
-        "GER", "ENG", "FRA", "ITA", "JAP", "SOV", "USA",
+        "ROOT",
+        "PREV",
+        "THIS",
+        "FROM",
+        "FROM.FROM",
+        "FROM.FROM.FROM",
+        "FROM.FROM.FROM.FROM",
+        "GER",
+        "ENG",
+        "FRA",
+        "ITA",
+        "JAP",
+        "SOV",
+        "USA",
     ]
 }
 
 pub fn get_loc_commands() -> Vec<&'static str> {
     vec![
-        "GetName", "GetNameDef", "GetNameDefCap", "GetAdjective", "GetAdjectiveCap", "GetTag",
-        "GetRulingIdeology", "GetRulingIdeologyNoun", "GetPartyName", "GetPartySupport",
-        "GetLeaderName", "GetLeaderNameDef", "GetPlayerName", "GetCapitalName", "GetLastElection",
-        "GetRulingParty", "GetRulingPartyLong", "GetCommunistParty", "GetDemocraticParty",
-        "GetFascistParty", "GetNeutralParty", "GetCommunistLeader", "GetDemocraticLeader",
-        "GetFascistLeader", "GetNeutralLeader", "GetPowerBalanceName", "GetPowerBalanceModDesc",
-        "GetRightSideName", "GetLeftSideName", "GetActiveSideName", "GetTrendingSideName",
-        "GetActiveRangeName", "GetActiveRangeModDesc", "GetActiveRangeRuleDesc",
-        "GetActiveRangeActivationEffect", "GetActiveRangeDeactivationEffect", "GetChangeRateDesc",
-        "GetBopTrendTextIcon", "GetSheHe", "GetSheHeCap", "GetHerHim", "GetHerHimCap",
-        "GetHerHis", "GetHerHisCap", "GetHersHis", "GetHersHisCap", "GetHerselfHimself",
-        "GetHerselfHimselfCap", "GetIdeology", "GetIdeologyGroup", "GetRank", "GetCodeName",
-        "GetCallsign", "GetSurname", "GetFullName", "GetWing", "GetWingShort", "GetAceType",
-        "GetMissionRegion", "GetTokenKey", "GetTokenLocalizedKey", "GetDateString",
-        "GetDateStringShortMonth", "GetDateStringNoHour", "GetDateStringNoHourLong",
-        "GetManpower", "GetFactionName", "GetAgency", "GetNameWithFlag", "GetFlag",
-        "GetDate", "GetTime", "GetYear", "GetMonth", "GetDay", "GetID",
-        "GetCapitalVictoryPointName", "GetOldName", "GetOldNameDef", "GetOldNameDefCap",
-        "GetOldAdjective", "GetOldAdjectiveCap", "GetNonIdeologyName", "GetNonIdeologyNameDef",
-        "GetNonIdeologyNameDefCap", "GetNonIdeologyAdjective", "GetNonIdeologyAdjectiveCap",
+        "GetName",
+        "GetNameDef",
+        "GetNameDefCap",
+        "GetAdjective",
+        "GetAdjectiveCap",
+        "GetTag",
+        "GetRulingIdeology",
+        "GetRulingIdeologyNoun",
+        "GetPartyName",
+        "GetPartySupport",
+        "GetLeaderName",
+        "GetLeaderNameDef",
+        "GetPlayerName",
+        "GetCapitalName",
+        "GetLastElection",
+        "GetRulingParty",
+        "GetRulingPartyLong",
+        "GetCommunistParty",
+        "GetDemocraticParty",
+        "GetFascistParty",
+        "GetNeutralParty",
+        "GetCommunistLeader",
+        "GetDemocraticLeader",
+        "GetFascistLeader",
+        "GetNeutralLeader",
+        "GetPowerBalanceName",
+        "GetPowerBalanceModDesc",
+        "GetRightSideName",
+        "GetLeftSideName",
+        "GetActiveSideName",
+        "GetTrendingSideName",
+        "GetActiveRangeName",
+        "GetActiveRangeModDesc",
+        "GetActiveRangeRuleDesc",
+        "GetActiveRangeActivationEffect",
+        "GetActiveRangeDeactivationEffect",
+        "GetChangeRateDesc",
+        "GetBopTrendTextIcon",
+        "GetSheHe",
+        "GetSheHeCap",
+        "GetHerHim",
+        "GetHerHimCap",
+        "GetHerHis",
+        "GetHerHisCap",
+        "GetHersHis",
+        "GetHersHisCap",
+        "GetHerselfHimself",
+        "GetHerselfHimselfCap",
+        "GetIdeology",
+        "GetIdeologyGroup",
+        "GetRank",
+        "GetCodeName",
+        "GetCallsign",
+        "GetSurname",
+        "GetFullName",
+        "GetWing",
+        "GetWingShort",
+        "GetAceType",
+        "GetMissionRegion",
+        "GetTokenKey",
+        "GetTokenLocalizedKey",
+        "GetDateString",
+        "GetDateStringShortMonth",
+        "GetDateStringNoHour",
+        "GetDateStringNoHourLong",
+        "GetManpower",
+        "GetFactionName",
+        "GetAgency",
+        "GetNameWithFlag",
+        "GetFlag",
+        "GetDate",
+        "GetTime",
+        "GetYear",
+        "GetMonth",
+        "GetDay",
+        "GetID",
+        "GetCapitalVictoryPointName",
+        "GetOldName",
+        "GetOldNameDef",
+        "GetOldNameDefCap",
+        "GetOldAdjective",
+        "GetOldAdjectiveCap",
+        "GetNonIdeologyName",
+        "GetNonIdeologyNameDef",
+        "GetNonIdeologyNameDefCap",
+        "GetNonIdeologyAdjective",
+        "GetNonIdeologyAdjectiveCap",
         "GetLeader",
     ]
 }

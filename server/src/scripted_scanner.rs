@@ -1,8 +1,8 @@
-use crate::parser;
 use crate::ast;
+use crate::parser;
 use std::collections::HashMap;
-use std::path::Path;
 use std::fs;
+use std::path::Path;
 
 #[derive(Debug, Clone)]
 pub struct ScriptedEntity {
@@ -11,8 +11,10 @@ pub struct ScriptedEntity {
     pub range: ast::Range,
 }
 
-pub fn scan_directory<F>(dir_path: &Path, filter: &F) -> HashMap<String, ScriptedEntity> 
-where F: Fn(&Path) -> bool {
+pub fn scan_directory<F>(dir_path: &Path, filter: &F) -> HashMap<String, ScriptedEntity>
+where
+    F: Fn(&Path) -> bool,
+{
     let mut map = HashMap::new();
     if !dir_path.exists() || filter(dir_path) {
         return map;
@@ -32,14 +34,18 @@ where F: Fn(&Path) -> bool {
                         continue;
                     }
                     if let Ok(content) = fs::read_to_string(&path) {
-                        { let (script, _) = parser::parse_script(&content);
+                        {
+                            let (script, _) = parser::parse_script(&content);
                             for entry_ast in script.entries {
                                 if let ast::Entry::Assignment(ass) = entry_ast {
-                                    map.insert(ass.key.clone(), ScriptedEntity {
-                                        name: ass.key.clone(),
-                                        path: path.to_string_lossy().to_string(),
-                                        range: ass.key_range,
-                                    });
+                                    map.insert(
+                                        ass.key.clone(),
+                                        ScriptedEntity {
+                                            name: ass.key.clone(),
+                                            path: path.to_string_lossy().to_string(),
+                                            range: ass.key_range,
+                                        },
+                                    );
                                 }
                             }
                         }

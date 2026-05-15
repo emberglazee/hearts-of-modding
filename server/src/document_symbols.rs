@@ -1,16 +1,18 @@
-use tower_lsp::lsp_types::{DocumentSymbol, SymbolKind, Range as LspRange, Position as LspPosition};
-use crate::ast::{Entry, NodeedValue, Value, Range};
+use crate::ast::{Entry, NodeedValue, Range, Value};
+use tower_lsp::lsp_types::{
+    DocumentSymbol, Position as LspPosition, Range as LspRange, SymbolKind,
+};
 
 /// Generate document symbols for outline view
 pub fn generate_document_symbols(entries: &[Entry]) -> Vec<DocumentSymbol> {
     let mut symbols = Vec::new();
-    
+
     for entry in entries {
         if let Some(symbol) = entry_to_symbol(entry) {
             symbols.push(symbol);
         }
     }
-    
+
     symbols
 }
 
@@ -21,14 +23,12 @@ fn entry_to_symbol(entry: &Entry) -> Option<DocumentSymbol> {
             let symbol_kind = classify_assignment(&assignment.key);
             let name = extract_symbol_name(&assignment.key, &assignment.value);
             let detail = extract_symbol_detail(&assignment.key, &assignment.value);
-            
+
             // Recursively process children if it's a block
             let children = if let Value::Block(entries) = &assignment.value.value {
-                let child_symbols: Vec<DocumentSymbol> = entries
-                    .iter()
-                    .filter_map(entry_to_symbol)
-                    .collect();
-                
+                let child_symbols: Vec<DocumentSymbol> =
+                    entries.iter().filter_map(entry_to_symbol).collect();
+
                 if child_symbols.is_empty() {
                     None
                 } else {
@@ -37,14 +37,14 @@ fn entry_to_symbol(entry: &Entry) -> Option<DocumentSymbol> {
             } else {
                 None
             };
-            
+
             let range = Range {
                 start_line: assignment.key_range.start_line,
                 start_col: assignment.key_range.start_col,
                 end_line: assignment.value.range.end_line,
                 end_col: assignment.value.range.end_col,
             };
-            
+
             #[allow(deprecated)]
             Some(DocumentSymbol {
                 name,
@@ -67,51 +67,68 @@ fn classify_assignment(key: &str) -> SymbolKind {
     match key {
         // Events
         "country_event" | "state_event" | "news_event" | "unit_leader_event" => SymbolKind::EVENT,
-        
+
         // Ideas
-        "ideas" | "idea" | "country" | "political_advisor" | "theorist" | "army_chief" | 
-        "navy_chief" | "air_chief" | "high_command" | "tank_manufacturer" | 
-        "naval_manufacturer" | "aircraft_manufacturer" | "materiel_manufacturer" | 
-        "industrial_concern" => SymbolKind::CLASS,
-        
+        "ideas"
+        | "idea"
+        | "country"
+        | "political_advisor"
+        | "theorist"
+        | "army_chief"
+        | "navy_chief"
+        | "air_chief"
+        | "high_command"
+        | "tank_manufacturer"
+        | "naval_manufacturer"
+        | "aircraft_manufacturer"
+        | "materiel_manufacturer"
+        | "industrial_concern" => SymbolKind::CLASS,
+
         // Focus trees
         "focus_tree" | "focus" | "shared_focus" => SymbolKind::NAMESPACE,
-        
+
         // Technologies
         "technologies" | "technology" => SymbolKind::INTERFACE,
-        
+
         // Characters
-        "characters" | "create_corps_commander" | "create_field_marshal" | 
-        "create_navy_leader" | "create_operative" => SymbolKind::STRUCT,
-        
+        "characters"
+        | "create_corps_commander"
+        | "create_field_marshal"
+        | "create_navy_leader"
+        | "create_operative" => SymbolKind::STRUCT,
+
         // Scripted triggers/effects
         "scripted_trigger" | "scripted_effect" => SymbolKind::FUNCTION,
-        
+
         // Modifiers
-        "modifier" | "targeted_modifier" | "equipment_bonus" | "hidden_modifier" => SymbolKind::PROPERTY,
-        
+        "modifier" | "targeted_modifier" | "equipment_bonus" | "hidden_modifier" => {
+            SymbolKind::PROPERTY
+        }
+
         // Options (in events)
         "option" => SymbolKind::ENUM_MEMBER,
-        
+
         // Buildings
         "buildings" => SymbolKind::MODULE,
-        
+
         // States
         "state" | "history" | "provinces" | "manpower" | "victory_points" => SymbolKind::OBJECT,
-        
+
         // Identifiers
         "id" | "name" | "tag" => SymbolKind::KEY,
-        
+
         // Localization keys
         "title" | "desc" | "text" => SymbolKind::STRING,
-        
+
         // Numeric values
-        "cost" | "skill" | "attack_skill" | "defense_skill" | "planning_skill" | 
-        "logistics_skill" | "maneuvering_skill" | "coordination_skill" | "value" => SymbolKind::NUMBER,
-        
+        "cost" | "skill" | "attack_skill" | "defense_skill" | "planning_skill"
+        | "logistics_skill" | "maneuvering_skill" | "coordination_skill" | "value" => {
+            SymbolKind::NUMBER
+        }
+
         // Boolean flags
         "fire_only_once" | "is_triggered_only" | "major" | "hidden" => SymbolKind::BOOLEAN,
-        
+
         // Default
         _ => SymbolKind::FIELD,
     }
@@ -120,7 +137,11 @@ fn classify_assignment(key: &str) -> SymbolKind {
 /// Extract a meaningful name for the symbol
 fn extract_symbol_name(key: &str, value: &NodeedValue) -> String {
     // For events, try to extract the ID
-    if key == "country_event" || key == "state_event" || key == "news_event" || key == "unit_leader_event" {
+    if key == "country_event"
+        || key == "state_event"
+        || key == "news_event"
+        || key == "unit_leader_event"
+    {
         if let Value::Block(entries) = &value.value {
             for entry in entries {
                 if let Entry::Assignment(ass) = entry {
@@ -134,7 +155,7 @@ fn extract_symbol_name(key: &str, value: &NodeedValue) -> String {
         }
         return key.to_string();
     }
-    
+
     // For focuses, try to extract the ID
     if key == "focus" || key == "shared_focus" {
         if let Value::Block(entries) = &value.value {
@@ -150,7 +171,7 @@ fn extract_symbol_name(key: &str, value: &NodeedValue) -> String {
         }
         return key.to_string();
     }
-    
+
     // For options, try to extract the name
     if key == "option" {
         if let Value::Block(entries) = &value.value {
@@ -166,14 +187,18 @@ fn extract_symbol_name(key: &str, value: &NodeedValue) -> String {
         }
         return "option".to_string();
     }
-    
+
     key.to_string()
 }
 
 /// Extract detail information for the symbol
 fn extract_symbol_detail(key: &str, value: &NodeedValue) -> Option<String> {
     // For events, extract title
-    if key == "country_event" || key == "state_event" || key == "news_event" || key == "unit_leader_event" {
+    if key == "country_event"
+        || key == "state_event"
+        || key == "news_event"
+        || key == "unit_leader_event"
+    {
         if let Value::Block(entries) = &value.value {
             for entry in entries {
                 if let Entry::Assignment(ass) = entry {
@@ -186,7 +211,7 @@ fn extract_symbol_detail(key: &str, value: &NodeedValue) -> Option<String> {
             }
         }
     }
-    
+
     // For focuses, extract cost
     if key == "focus" || key == "shared_focus" {
         if let Value::Block(entries) = &value.value {
@@ -201,7 +226,7 @@ fn extract_symbol_detail(key: &str, value: &NodeedValue) -> Option<String> {
             }
         }
     }
-    
+
     // For simple assignments, show the value
     match &value.value {
         Value::String(s) => Some(s.clone()),
@@ -235,13 +260,13 @@ fn range_to_lsp(range: &Range) -> LspRange {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_classify_event_assignment() {
         assert_eq!(classify_assignment("country_event"), SymbolKind::EVENT);
         assert_eq!(classify_assignment("state_event"), SymbolKind::EVENT);
     }
-    
+
     #[test]
     fn test_classify_focus_assignment() {
         assert_eq!(classify_assignment("focus"), SymbolKind::NAMESPACE);

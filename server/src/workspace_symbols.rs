@@ -1,15 +1,21 @@
-use tower_lsp::lsp_types::{SymbolInformation, SymbolKind, Location, Range as LspRange, Position as LspPosition, Url};
 use crate::ast::Range;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
+use tower_lsp::lsp_types::{
+    Location, Position as LspPosition, Range as LspRange, SymbolInformation, SymbolKind, Url,
+};
 
 fn path_to_url(path: &str) -> Url {
-    let abs_path = std::path::Path::new(path).canonicalize().unwrap_or_else(|_| {
-        std::env::current_dir().unwrap_or_default().join(path)
-    });
+    let abs_path = std::path::Path::new(path)
+        .canonicalize()
+        .unwrap_or_else(|_| std::env::current_dir().unwrap_or_default().join(path));
     Url::from_file_path(&abs_path).unwrap_or_else(|_| {
-        Url::parse(&format!("file://{}", abs_path.to_string_lossy().replace("\\", "/"))).unwrap()
+        Url::parse(&format!(
+            "file://{}",
+            abs_path.to_string_lossy().replace("\\", "/")
+        ))
+        .unwrap()
     })
 }
 
@@ -39,9 +45,29 @@ pub async fn generate_workspace_symbols(
     adjacencies: &Arc<RwLock<Vec<crate::adjacency_scanner::Adjacency>>>,
     adjacency_rules: &Arc<RwLock<HashMap<String, crate::adjacency_scanner::AdjacencyRule>>>,
     strategic_regions: &Arc<RwLock<HashMap<u32, crate::strategic_region_scanner::StrategicRegion>>>,
+    custom_modifiers: &Arc<RwLock<HashMap<String, crate::modifier_scanner::Modifier>>>,
 ) -> Vec<SymbolInformation> {
     let mut symbols = Vec::new();
     let query_lower = query.to_lowercase();
+
+    // Search custom modifiers
+    let modifiers_lock = custom_modifiers.read().await;
+    for (name, modifier) in modifiers_lock.iter() {
+        if fuzzy_match(&query_lower, &name.to_lowercase()) {
+            #[allow(deprecated)]
+            symbols.push(SymbolInformation {
+                name: name.clone(),
+                kind: SymbolKind::PROPERTY,
+                tags: None,
+                deprecated: None,
+                location: Location {
+                    uri: path_to_url(&modifier.path),
+                    range: range_to_lsp(&modifier.range),
+                },
+                container_name: Some("Modifier".to_string()),
+            });
+        }
+    }
 
     // Search achievements
     let achievements_lock = achievements.read().await;
@@ -179,7 +205,9 @@ pub async fn generate_workspace_symbols(
     // Search states
     let states_lock = states.read().await;
     for (id, state) in states_lock.iter() {
-        if fuzzy_match(&query_lower, &id.to_string()) || fuzzy_match(&query_lower, &state.name.to_lowercase()) {
+        if fuzzy_match(&query_lower, &id.to_string())
+            || fuzzy_match(&query_lower, &state.name.to_lowercase())
+        {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
                 name: format!("State {}: {}", id, state.name),
@@ -199,7 +227,9 @@ pub async fn generate_workspace_symbols(
     let sn_lock = supply_nodes.read().await;
     for node in sn_lock.iter() {
         let name = format!("Supply Node in Province {}", node.province_id);
-        if fuzzy_match(&query_lower, &name.to_lowercase()) || fuzzy_match(&query_lower, &node.province_id.to_string()) {
+        if fuzzy_match(&query_lower, &name.to_lowercase())
+            || fuzzy_match(&query_lower, &node.province_id.to_string())
+        {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
                 name,
@@ -209,8 +239,14 @@ pub async fn generate_workspace_symbols(
                 location: Location {
                     uri: path_to_url(&node.path),
                     range: LspRange {
-                        start: LspPosition { line: node.start_line, character: 0 },
-                        end: LspPosition { line: node.start_line, character: 100 },
+                        start: LspPosition {
+                            line: node.start_line,
+                            character: 0,
+                        },
+                        end: LspPosition {
+                            line: node.start_line,
+                            character: 100,
+                        },
                     },
                 },
                 container_name: Some("Supply Node".to_string()),
@@ -231,8 +267,14 @@ pub async fn generate_workspace_symbols(
                 location: Location {
                     uri: path_to_url(&rw.path),
                     range: LspRange {
-                        start: LspPosition { line: rw.start_line, character: 0 },
-                        end: LspPosition { line: rw.start_line, character: 100 },
+                        start: LspPosition {
+                            line: rw.start_line,
+                            character: 0,
+                        },
+                        end: LspPosition {
+                            line: rw.start_line,
+                            character: 100,
+                        },
                     },
                 },
                 container_name: Some("Railway".to_string()),
@@ -244,7 +286,9 @@ pub async fn generate_workspace_symbols(
     let mb_lock = map_buildings.read().await;
     for mb in mb_lock.iter() {
         let name = format!("Building '{}' in State {}", mb.building_id, mb.state_id);
-        if fuzzy_match(&query_lower, &mb.building_id.to_lowercase()) || fuzzy_match(&query_lower, &mb.state_id.to_string()) {
+        if fuzzy_match(&query_lower, &mb.building_id.to_lowercase())
+            || fuzzy_match(&query_lower, &mb.state_id.to_string())
+        {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
                 name,
@@ -254,8 +298,14 @@ pub async fn generate_workspace_symbols(
                 location: Location {
                     uri: path_to_url(&mb.path),
                     range: LspRange {
-                        start: LspPosition { line: mb.start_line, character: 0 },
-                        end: LspPosition { line: mb.start_line, character: 100 },
+                        start: LspPosition {
+                            line: mb.start_line,
+                            character: 0,
+                        },
+                        end: LspPosition {
+                            line: mb.start_line,
+                            character: 100,
+                        },
                     },
                 },
                 container_name: Some("Map Building".to_string()),
@@ -267,7 +317,9 @@ pub async fn generate_workspace_symbols(
     let us_lock = unitstacks.read().await;
     for us in us_lock.iter() {
         let name = format!("Unitstack {} in Province {}", us.stack_type, us.province_id);
-        if fuzzy_match(&query_lower, "unitstack") || fuzzy_match(&query_lower, &us.province_id.to_string()) {
+        if fuzzy_match(&query_lower, "unitstack")
+            || fuzzy_match(&query_lower, &us.province_id.to_string())
+        {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
                 name,
@@ -277,8 +329,14 @@ pub async fn generate_workspace_symbols(
                 location: Location {
                     uri: path_to_url(&us.path),
                     range: LspRange {
-                        start: LspPosition { line: us.start_line, character: 0 },
-                        end: LspPosition { line: us.start_line, character: 100 },
+                        start: LspPosition {
+                            line: us.start_line,
+                            character: 0,
+                        },
+                        end: LspPosition {
+                            line: us.start_line,
+                            character: 100,
+                        },
                     },
                 },
                 container_name: Some("Unitstack".to_string()),
@@ -290,7 +348,9 @@ pub async fn generate_workspace_symbols(
     let wp_lock = weather_positions.read().await;
     for wp in wp_lock.iter() {
         let name = format!("Weather Position in Strategic Region {}", wp.region_id);
-        if fuzzy_match(&query_lower, "weather") || fuzzy_match(&query_lower, &wp.region_id.to_string()) {
+        if fuzzy_match(&query_lower, "weather")
+            || fuzzy_match(&query_lower, &wp.region_id.to_string())
+        {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
                 name,
@@ -300,8 +360,14 @@ pub async fn generate_workspace_symbols(
                 location: Location {
                     uri: path_to_url(&wp.path),
                     range: LspRange {
-                        start: LspPosition { line: wp.start_line, character: 0 },
-                        end: LspPosition { line: wp.start_line, character: 100 },
+                        start: LspPosition {
+                            line: wp.start_line,
+                            character: 0,
+                        },
+                        end: LspPosition {
+                            line: wp.start_line,
+                            character: 100,
+                        },
                     },
                 },
                 container_name: Some("Weather Position".to_string()),
@@ -312,8 +378,14 @@ pub async fn generate_workspace_symbols(
     // Search Adjacencies
     let adj_lock = adjacencies.read().await;
     for adj in adj_lock.iter() {
-        let name = format!("Adjacency ({}) {} <-> {}", adj.adj_type, adj.start_prov, adj.end_prov);
-        if fuzzy_match(&query_lower, "adjacency") || fuzzy_match(&query_lower, &adj.start_prov.to_string()) || fuzzy_match(&query_lower, &adj.end_prov.to_string()) {
+        let name = format!(
+            "Adjacency ({}) {} <-> {}",
+            adj.adj_type, adj.start_prov, adj.end_prov
+        );
+        if fuzzy_match(&query_lower, "adjacency")
+            || fuzzy_match(&query_lower, &adj.start_prov.to_string())
+            || fuzzy_match(&query_lower, &adj.end_prov.to_string())
+        {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
                 name,
@@ -323,8 +395,14 @@ pub async fn generate_workspace_symbols(
                 location: Location {
                     uri: path_to_url(&adj.path),
                     range: LspRange {
-                        start: LspPosition { line: adj.start_line, character: 0 },
-                        end: LspPosition { line: adj.start_line, character: 100 },
+                        start: LspPosition {
+                            line: adj.start_line,
+                            character: 0,
+                        },
+                        end: LspPosition {
+                            line: adj.start_line,
+                            character: 100,
+                        },
                     },
                 },
                 container_name: Some("Adjacency".to_string()),
@@ -354,7 +432,9 @@ pub async fn generate_workspace_symbols(
     // Search Strategic Regions
     let regions_lock = strategic_regions.read().await;
     for (id, region) in regions_lock.iter() {
-        if fuzzy_match(&query_lower, &id.to_string()) || fuzzy_match(&query_lower, &region.name.to_lowercase()) {
+        if fuzzy_match(&query_lower, &id.to_string())
+            || fuzzy_match(&query_lower, &region.name.to_lowercase())
+        {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
                 name: format!("Strategic Region {}: {}", id, region.name),
@@ -390,7 +470,8 @@ pub async fn generate_workspace_symbols(
                 container_name: Some("Localisation".to_string()),
             });
             loc_count += 1;
-            if loc_count > 1000 { // Max 1000 loc symbols to avoid performance issues
+            if loc_count > 1000 {
+                // Max 1000 loc symbols to avoid performance issues
                 break;
             }
         }

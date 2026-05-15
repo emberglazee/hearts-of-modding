@@ -1,5 +1,5 @@
-use crate::parser;
 use crate::ast;
+use crate::parser;
 use std::collections::HashMap;
 use std::fs;
 #[derive(Debug, Clone)]
@@ -24,8 +24,10 @@ pub struct ScanResult {
     pub event_targets: HashMap<String, Vec<EventTarget>>,
 }
 
-pub fn scan_roots<F>(roots: &[std::path::PathBuf], filter: &F) -> ScanResult 
-where F: Fn(&std::path::Path) -> bool {
+pub fn scan_roots<F>(roots: &[std::path::PathBuf], filter: &F) -> ScanResult
+where
+    F: Fn(&std::path::Path) -> bool,
+{
     let mut variables: HashMap<String, Vec<Variable>> = HashMap::new();
     let mut event_targets: HashMap<String, Vec<EventTarget>> = HashMap::new();
 
@@ -44,7 +46,12 @@ where F: Fn(&std::path::Path) -> bool {
                         }
                         // Skip some obviously non-script directories for performance
                         let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
-                        if name == ".git" || name == "interface" || name == "gfx" || name == "localisation" || name == "map" {
+                        if name == ".git"
+                            || name == "interface"
+                            || name == "gfx"
+                            || name == "localisation"
+                            || name == "map"
+                        {
                             continue;
                         }
                         dirs_to_check.push(path);
@@ -53,8 +60,14 @@ where F: Fn(&std::path::Path) -> bool {
                             continue;
                         }
                         if let Ok(content) = fs::read_to_string(&path) {
-                            { let (script, _) = parser::parse_script(&content);
-                                scan_entries(&script.entries, &path.to_string_lossy(), &mut variables, &mut event_targets);
+                            {
+                                let (script, _) = parser::parse_script(&content);
+                                scan_entries(
+                                    &script.entries,
+                                    &path.to_string_lossy(),
+                                    &mut variables,
+                                    &mut event_targets,
+                                );
                             }
                         }
                     }
@@ -63,7 +76,10 @@ where F: Fn(&std::path::Path) -> bool {
         }
     }
 
-    ScanResult { variables, event_targets }
+    ScanResult {
+        variables,
+        event_targets,
+    }
 }
 
 fn scan_entries(
@@ -76,9 +92,19 @@ fn scan_entries(
         match entry {
             ast::Entry::Assignment(ass) => {
                 match ass.key.as_str() {
-                    "set_variable" | "set_temp_variable" | "set_local_variable" | 
-                    "change_variable" | "multiply_variable" | "divide_variable" | "add_to_variable" | "subtract_from_variable" |
-                    "clamp_variable" | "round_variable" | "clear_variable" | "has_variable" | "check_variable" => {
+                    "set_variable"
+                    | "set_temp_variable"
+                    | "set_local_variable"
+                    | "change_variable"
+                    | "multiply_variable"
+                    | "divide_variable"
+                    | "add_to_variable"
+                    | "subtract_from_variable"
+                    | "clamp_variable"
+                    | "round_variable"
+                    | "clear_variable"
+                    | "has_variable"
+                    | "check_variable" => {
                         handle_variable_assignment(ass, path, variables);
                     }
                     "save_event_target_as" | "save_global_event_target_as" => {
@@ -87,20 +113,24 @@ fn scan_entries(
                     _ => {
                         // Recurse into blocks
                         match &ass.value.value {
-                            ast::Value::Block(inner) => scan_entries(inner, path, variables, event_targets),
-                            ast::Value::TaggedBlock(_, inner, _) => scan_entries(inner, path, variables, event_targets),
+                            ast::Value::Block(inner) => {
+                                scan_entries(inner, path, variables, event_targets)
+                            }
+                            ast::Value::TaggedBlock(_, inner, _) => {
+                                scan_entries(inner, path, variables, event_targets)
+                            }
                             _ => {}
                         }
                     }
                 }
             }
-            ast::Entry::Value(val) => {
-                match &val.value {
-                    ast::Value::Block(inner) => scan_entries(inner, path, variables, event_targets),
-                    ast::Value::TaggedBlock(_, inner, _) => scan_entries(inner, path, variables, event_targets),
-                    _ => {}
+            ast::Entry::Value(val) => match &val.value {
+                ast::Value::Block(inner) => scan_entries(inner, path, variables, event_targets),
+                ast::Value::TaggedBlock(_, inner, _) => {
+                    scan_entries(inner, path, variables, event_targets)
                 }
-            }
+                _ => {}
+            },
             _ => {}
         }
     }
@@ -138,11 +168,22 @@ fn handle_event_target_assignment(
 ) {
     if let ast::Value::String(name) = &ass.value.value {
         let is_global = ass.key == "save_global_event_target_as";
-        add_event_target(event_targets, name.clone(), path, &ass.value.range, is_global);
+        add_event_target(
+            event_targets,
+            name.clone(),
+            path,
+            &ass.value.range,
+            is_global,
+        );
     }
 }
 
-fn add_variable(variables: &mut HashMap<String, Vec<Variable>>, name: String, path: &str, range: &ast::Range) {
+fn add_variable(
+    variables: &mut HashMap<String, Vec<Variable>>,
+    name: String,
+    path: &str,
+    range: &ast::Range,
+) {
     let entry = Variable {
         name: name.clone(),
         path: path.to_string(),
@@ -151,7 +192,13 @@ fn add_variable(variables: &mut HashMap<String, Vec<Variable>>, name: String, pa
     variables.entry(name).or_default().push(entry);
 }
 
-fn add_event_target(event_targets: &mut HashMap<String, Vec<EventTarget>>, name: String, path: &str, range: &ast::Range, is_global: bool) {
+fn add_event_target(
+    event_targets: &mut HashMap<String, Vec<EventTarget>>,
+    name: String,
+    path: &str,
+    range: &ast::Range,
+    is_global: bool,
+) {
     let entry = EventTarget {
         name: name.clone(),
         path: path.to_string(),

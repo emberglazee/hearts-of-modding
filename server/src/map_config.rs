@@ -1,7 +1,7 @@
-use std::path::Path;
-use std::fs;
-use crate::parser;
 use crate::ast;
+use crate::parser;
+use std::fs;
+use std::path::Path;
 
 pub struct MapConfig {
     pub definitions: String,

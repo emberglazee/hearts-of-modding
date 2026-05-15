@@ -1,6 +1,6 @@
-use tower_lsp::lsp_types::{Color, ColorPresentation, TextEdit, Range as LspRange};
 use crate::ast;
 use crate::defines_parser::GameDefines;
+use tower_lsp::lsp_types::{Color, ColorPresentation, Range as LspRange, TextEdit};
 
 /// Color modifiers from game defines
 #[derive(Debug, Clone)]
@@ -27,14 +27,26 @@ impl ColorModifiers {
     /// Load color modifiers from game defines
     pub fn from_defines(defines: &GameDefines) -> Self {
         Self {
-            country_color_saturation: defines.defines.get("COUNTRY_COLOR_SATURATION_MODIFIER")
-                .copied().unwrap_or(0.6),
-            country_color_brightness: defines.defines.get("COUNTRY_COLOR_BRIGHTNESS_MODIFIER")
-                .copied().unwrap_or(0.9),
-            country_ui_color_saturation: defines.defines.get("COUNTRY_UI_COLOR_SATURATION_MODIFIER")
-                .copied().unwrap_or(0.6),
-            country_ui_color_brightness: defines.defines.get("COUNTRY_UI_COLOR_BRIGHTNESS_MODIFIER")
-                .copied().unwrap_or(0.9),
+            country_color_saturation: defines
+                .defines
+                .get("COUNTRY_COLOR_SATURATION_MODIFIER")
+                .copied()
+                .unwrap_or(0.6),
+            country_color_brightness: defines
+                .defines
+                .get("COUNTRY_COLOR_BRIGHTNESS_MODIFIER")
+                .copied()
+                .unwrap_or(0.9),
+            country_ui_color_saturation: defines
+                .defines
+                .get("COUNTRY_UI_COLOR_SATURATION_MODIFIER")
+                .copied()
+                .unwrap_or(0.6),
+            country_ui_color_brightness: defines
+                .defines
+                .get("COUNTRY_UI_COLOR_BRIGHTNESS_MODIFIER")
+                .copied()
+                .unwrap_or(0.9),
         }
     }
 }
@@ -58,15 +70,27 @@ pub enum ColorFormat {
 
 /// Apply game color modifiers to RGB values
 #[allow(dead_code)]
-pub fn apply_color_modifiers(r: f64, g: f64, b: f64, is_ui: bool, modifiers: &ColorModifiers) -> (f64, f64, f64) {
+pub fn apply_color_modifiers(
+    r: f64,
+    g: f64,
+    b: f64,
+    is_ui: bool,
+    modifiers: &ColorModifiers,
+) -> (f64, f64, f64) {
     // Convert to HSV
     let (h, s, v) = rgb_to_hsv(r, g, b);
 
     // Apply modifiers
     let (sat_mod, bright_mod) = if is_ui {
-        (modifiers.country_ui_color_saturation, modifiers.country_ui_color_brightness)
+        (
+            modifiers.country_ui_color_saturation,
+            modifiers.country_ui_color_brightness,
+        )
     } else {
-        (modifiers.country_color_saturation, modifiers.country_color_brightness)
+        (
+            modifiers.country_color_saturation,
+            modifiers.country_color_brightness,
+        )
     };
 
     let modified_s = (s * sat_mod).min(1.0);
@@ -77,19 +101,39 @@ pub fn apply_color_modifiers(r: f64, g: f64, b: f64, is_ui: bool, modifiers: &Co
 }
 
 /// Remove game color modifiers from RGB values (for editing)
-pub fn remove_color_modifiers(r: f64, g: f64, b: f64, is_ui: bool, modifiers: &ColorModifiers) -> (f64, f64, f64) {
+pub fn remove_color_modifiers(
+    r: f64,
+    g: f64,
+    b: f64,
+    is_ui: bool,
+    modifiers: &ColorModifiers,
+) -> (f64, f64, f64) {
     // Convert to HSV
     let (h, s, v) = rgb_to_hsv(r, g, b);
 
     // Remove modifiers
     let (sat_mod, bright_mod) = if is_ui {
-        (modifiers.country_ui_color_saturation, modifiers.country_ui_color_brightness)
+        (
+            modifiers.country_ui_color_saturation,
+            modifiers.country_ui_color_brightness,
+        )
     } else {
-        (modifiers.country_color_saturation, modifiers.country_color_brightness)
+        (
+            modifiers.country_color_saturation,
+            modifiers.country_color_brightness,
+        )
     };
 
-    let original_s = if sat_mod > 0.0 { (s / sat_mod).min(1.0) } else { s };
-    let original_v = if bright_mod > 0.0 { (v / bright_mod).min(1.0) } else { v };
+    let original_s = if sat_mod > 0.0 {
+        (s / sat_mod).min(1.0)
+    } else {
+        s
+    };
+    let original_v = if bright_mod > 0.0 {
+        (v / bright_mod).min(1.0)
+    } else {
+        v
+    };
 
     // Convert back to RGB
     hsv_to_rgb(h, original_s, original_v)
@@ -225,7 +269,8 @@ mod tests {
         // Apply and remove should be inverse operations
         let (r, g, b) = (1.0, 0.5, 0.0);
         let (r_mod, g_mod, b_mod) = apply_color_modifiers(r, g, b, false, &modifiers);
-        let (r_orig, g_orig, b_orig) = remove_color_modifiers(r_mod, g_mod, b_mod, false, &modifiers);
+        let (r_orig, g_orig, b_orig) =
+            remove_color_modifiers(r_mod, g_mod, b_mod, false, &modifiers);
 
         assert!((r - r_orig).abs() < 0.01);
         assert!((g - g_orig).abs() < 0.01);

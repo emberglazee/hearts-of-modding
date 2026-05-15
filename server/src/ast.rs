@@ -25,11 +25,11 @@ pub enum Value {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Operator {
-    Equals,      // =
-    LessThan,    // <
-    GreaterThan, // >
-    NotEquals,   // !=
-    LessOrEqual, // <=
+    Equals,         // =
+    LessThan,       // <
+    GreaterThan,    // >
+    NotEquals,      // !=
+    LessOrEqual,    // <=
     GreaterOrEqual, // >=
 }
 

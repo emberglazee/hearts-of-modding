@@ -1,8 +1,8 @@
-use crate::parser;
 use crate::ast::{self, Entry, Value};
+use crate::parser;
 use std::collections::HashMap;
-use std::path::Path;
 use std::fs;
+use std::path::Path;
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
@@ -12,8 +12,10 @@ pub struct ScriptedLoc {
     pub range: ast::Range,
 }
 
-pub fn scan_directory<F>(dir_path: &Path, filter: &F) -> HashMap<String, ScriptedLoc> 
-where F: Fn(&Path) -> bool {
+pub fn scan_directory<F>(dir_path: &Path, filter: &F) -> HashMap<String, ScriptedLoc>
+where
+    F: Fn(&Path) -> bool,
+{
     let mut map = HashMap::new();
     if !dir_path.exists() || filter(dir_path) {
         return map;
@@ -33,8 +35,13 @@ where F: Fn(&Path) -> bool {
                         continue;
                     }
                     if let Ok(content) = fs::read_to_string(&path) {
-                        { let (script, _) = parser::parse_script(&content);
-                            find_scripted_locs_in_entries(&script.entries, &path.to_string_lossy(), &mut map);
+                        {
+                            let (script, _) = parser::parse_script(&content);
+                            find_scripted_locs_in_entries(
+                                &script.entries,
+                                &path.to_string_lossy(),
+                                &mut map,
+                            );
                         }
                     }
                 }
@@ -44,7 +51,11 @@ where F: Fn(&Path) -> bool {
     map
 }
 
-fn find_scripted_locs_in_entries(entries: &[Entry], file_path: &str, map: &mut HashMap<String, ScriptedLoc>) {
+fn find_scripted_locs_in_entries(
+    entries: &[Entry],
+    file_path: &str,
+    map: &mut HashMap<String, ScriptedLoc>,
+) {
     for entry in entries {
         if let Entry::Assignment(ass) = entry {
             if ass.key == "defined_text" {
@@ -53,11 +64,14 @@ fn find_scripted_locs_in_entries(entries: &[Entry], file_path: &str, map: &mut H
                         if let Entry::Assignment(child_ass) = child {
                             if child_ass.key == "name" {
                                 if let Value::String(name) = &child_ass.value.value {
-                                    map.insert(name.clone(), ScriptedLoc {
-                                        name: name.clone(),
-                                        path: file_path.to_string(),
-                                        range: child_ass.value.range.clone(),
-                                    });
+                                    map.insert(
+                                        name.clone(),
+                                        ScriptedLoc {
+                                            name: name.clone(),
+                                            path: file_path.to_string(),
+                                            range: child_ass.value.range.clone(),
+                                        },
+                                    );
                                 }
                             }
                         }

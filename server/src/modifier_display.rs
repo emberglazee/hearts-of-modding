@@ -76,7 +76,9 @@ impl ModifierDisplayService {
                         if let Some(block) = self.extract_hidden_modifier(&ass.value.value) {
                             blocks.push(block);
                         }
-                    } else if key_lower == "custom_effect_tooltip" || key_lower == "custom_modifier_tooltip" {
+                    } else if key_lower == "custom_effect_tooltip"
+                        || key_lower == "custom_modifier_tooltip"
+                    {
                         if let ast::Value::String(text) = &ass.value.value {
                             blocks.push(ModifierBlock::CustomTooltip(text.clone()));
                         }
@@ -193,20 +195,29 @@ impl ModifierDisplayService {
     /// Determine if a modifier is positive (beneficial)
     fn is_positive_modifier(&self, key: &str, value: f64) -> bool {
         let key_lower = key.to_lowercase();
-        
+
         // Negative modifiers (bad things)
         let negative_keywords = [
-            "cost", "attrition", "damage", "loss", "penalty", "consumption",
-            "tension", "threat", "resistance", "surrender", "casualties",
+            "cost",
+            "attrition",
+            "damage",
+            "loss",
+            "penalty",
+            "consumption",
+            "tension",
+            "threat",
+            "resistance",
+            "surrender",
+            "casualties",
         ];
-        
+
         for keyword in &negative_keywords {
             if key_lower.contains(keyword) {
                 // For negative modifiers, negative values are good
                 return value < 0.0;
             }
         }
-        
+
         // For most modifiers, positive values are good
         value > 0.0
     }
@@ -225,10 +236,10 @@ impl ModifierDisplayService {
         };
 
         let formatted_value = self.format_value(&entry.key, entry.value, loc_key);
-        
+
         // Use emoji indicators for positive/negative
         let indicator = if entry.is_positive { "✓" } else { "✗" };
-        
+
         format!("  {} **{}**: {}", indicator, loc_text, formatted_value)
     }
 
@@ -350,28 +361,23 @@ mod tests {
 
     #[test]
     fn test_humanize_key() {
-        let service = ModifierDisplayService::new(
-            HashMap::new(),
-            HashMap::new(),
-            HashMap::new(),
-        );
-        
+        let service = ModifierDisplayService::new(HashMap::new(), HashMap::new(), HashMap::new());
+
         assert_eq!(service.humanize_key("stability_factor"), "Stability Factor");
-        assert_eq!(service.humanize_key("political_power_gain"), "Political Power Gain");
+        assert_eq!(
+            service.humanize_key("political_power_gain"),
+            "Political Power Gain"
+        );
     }
 
     #[test]
     fn test_is_positive_modifier() {
-        let service = ModifierDisplayService::new(
-            HashMap::new(),
-            HashMap::new(),
-            HashMap::new(),
-        );
-        
+        let service = ModifierDisplayService::new(HashMap::new(), HashMap::new(), HashMap::new());
+
         // Positive modifiers
         assert!(service.is_positive_modifier("stability_factor", 0.1));
         assert!(!service.is_positive_modifier("stability_factor", -0.1));
-        
+
         // Negative modifiers (cost is bad)
         assert!(service.is_positive_modifier("political_power_cost", -0.1));
         assert!(!service.is_positive_modifier("political_power_cost", 0.1));
@@ -379,17 +385,22 @@ mod tests {
 
     #[test]
     fn test_format_value() {
-        let service = ModifierDisplayService::new(
-            HashMap::new(),
-            HashMap::new(),
-            HashMap::new(),
-        );
-        
+        let service = ModifierDisplayService::new(HashMap::new(), HashMap::new(), HashMap::new());
+
         // Percentage modifier
-        assert_eq!(service.format_value("stability_factor", 0.05, None), "+5.0%");
-        assert_eq!(service.format_value("stability_factor", -0.05, None), "-5.0%");
-        
+        assert_eq!(
+            service.format_value("stability_factor", 0.05, None),
+            "+5.0%"
+        );
+        assert_eq!(
+            service.format_value("stability_factor", -0.05, None),
+            "-5.0%"
+        );
+
         // Non-percentage modifier
-        assert_eq!(service.format_value("political_power_gain", 0.5, None), "+0.5");
+        assert_eq!(
+            service.format_value("political_power_gain", 0.5, None),
+            "+0.5"
+        );
     }
 }

@@ -1,8 +1,8 @@
-use crate::parser;
 use crate::ast;
+use crate::parser;
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
 use std::fs;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone)]
 pub struct CharacterRole {
@@ -21,29 +21,33 @@ pub struct CharacterRole {
 #[derive(Debug, Clone)]
 pub struct Character {
     pub id: String,
-    pub name: Option<String>, // The loc key
+    pub name: Option<String>,               // The loc key
     pub portraits: HashMap<String, String>, // e.g. "army_large" -> "GFX_portrait...", "civilian_small" -> ...
     pub roles: Vec<CharacterRole>,
     pub path: String,
     pub range: ast::Range,
 }
 
-pub fn scan_characters<F>(roots: &[PathBuf], filter: &F) -> HashMap<String, Character> 
-where F: Fn(&Path) -> bool {
+pub fn scan_characters<F>(roots: &[PathBuf], filter: &F) -> HashMap<String, Character>
+where
+    F: Fn(&Path) -> bool,
+{
     let mut map = HashMap::new();
-    
+
     for root in roots {
         let char_dir = root.join("common/characters");
         if char_dir.exists() {
             scan_directory(&char_dir, &mut map, filter);
         }
     }
-    
+
     map
 }
 
-fn scan_directory<F>(dir_path: &Path, map: &mut HashMap<String, Character>, filter: &F) 
-where F: Fn(&Path) -> bool {
+fn scan_directory<F>(dir_path: &Path, map: &mut HashMap<String, Character>, filter: &F)
+where
+    F: Fn(&Path) -> bool,
+{
     let mut dirs_to_check = vec![dir_path.to_path_buf()];
     while let Some(current_dir) = dirs_to_check.pop() {
         if filter(&current_dir) {
@@ -61,8 +65,13 @@ where F: Fn(&Path) -> bool {
                         continue;
                     }
                     if let Ok(content) = fs::read_to_string(&path) {
-                        { let (script, _) = parser::parse_script(&content);
-                            find_characters_in_entries(&script.entries, &path.to_string_lossy(), map);
+                        {
+                            let (script, _) = parser::parse_script(&content);
+                            find_characters_in_entries(
+                                &script.entries,
+                                &path.to_string_lossy(),
+                                map,
+                            );
                         }
                     }
                 }
@@ -71,7 +80,11 @@ where F: Fn(&Path) -> bool {
     }
 }
 
-fn find_characters_in_entries(entries: &[ast::Entry], file_path: &str, map: &mut HashMap<String, Character>) {
+fn find_characters_in_entries(
+    entries: &[ast::Entry],
+    file_path: &str,
+    map: &mut HashMap<String, Character>,
+) {
     for entry in entries {
         match entry {
             ast::Entry::Assignment(ass) => {
@@ -87,7 +100,7 @@ fn find_characters_in_entries(entries: &[ast::Entry], file_path: &str, map: &mut
                                     path: file_path.to_string(),
                                     range: char_ass.key_range.clone(),
                                 };
-                                
+
                                 if let ast::Value::Block(details) = &char_ass.value.value {
                                     parse_character_details(details, &mut character);
                                 }
@@ -130,8 +143,13 @@ fn parse_character_details(entries: &[ast::Entry], character: &mut Character) {
                                     for size_entry in sizes {
                                         if let ast::Entry::Assignment(size_ass) = size_entry {
                                             let size = size_ass.key.to_lowercase();
-                                            if let ast::Value::String(sprite) = &size_ass.value.value {
-                                                character.portraits.insert(format!("{}_{}", category, size), sprite.clone());
+                                            if let ast::Value::String(sprite) =
+                                                &size_ass.value.value
+                                            {
+                                                character.portraits.insert(
+                                                    format!("{}_{}", category, size),
+                                                    sprite.clone(),
+                                                );
                                             }
                                         }
                                     }
@@ -140,7 +158,8 @@ fn parse_character_details(entries: &[ast::Entry], character: &mut Character) {
                         }
                     }
                 }
-                "advisor" | "country_leader" | "corps_commander" | "field_marshal" | "navy_leader" | "scientist" => {
+                "advisor" | "country_leader" | "corps_commander" | "field_marshal"
+                | "navy_leader" | "scientist" => {
                     if let ast::Value::Block(role_details) = &ass.value.value {
                         let mut role = CharacterRole {
                             role_type: key.clone(),

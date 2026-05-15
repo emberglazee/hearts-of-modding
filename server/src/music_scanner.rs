@@ -1,5 +1,5 @@
-use crate::parser;
 use crate::ast;
+use crate::parser;
 use std::collections::HashMap;
 use std::fs;
 
@@ -31,8 +31,10 @@ pub struct MusicScanResult {
     pub songs: HashMap<String, Song>,
 }
 
-pub fn scan_music<F>(roots: &[std::path::PathBuf], filter: &F) -> MusicScanResult 
-where F: Fn(&std::path::Path) -> bool {
+pub fn scan_music<F>(roots: &[std::path::PathBuf], filter: &F) -> MusicScanResult
+where
+    F: Fn(&std::path::Path) -> bool,
+{
     let mut assets = HashMap::new();
     let mut stations = HashMap::new();
     let mut songs = HashMap::new();
@@ -59,14 +61,25 @@ where F: Fn(&std::path::Path) -> bool {
                         let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
                         if ext == "asset" {
                             if let Ok(content) = fs::read_to_string(&path) {
-                                { let (script, _) = parser::parse_script(&content);
-                                    find_assets_in_entries(&script.entries, &path.to_string_lossy(), &mut assets);
+                                {
+                                    let (script, _) = parser::parse_script(&content);
+                                    find_assets_in_entries(
+                                        &script.entries,
+                                        &path.to_string_lossy(),
+                                        &mut assets,
+                                    );
                                 }
                             }
                         } else if ext == "txt" {
                             if let Ok(content) = fs::read_to_string(&path) {
-                                { let (script, _) = parser::parse_script(&content);
-                                    find_stations_and_songs_in_entries(&script.entries, &path.to_string_lossy(), &mut stations, &mut songs);
+                                {
+                                    let (script, _) = parser::parse_script(&content);
+                                    find_stations_and_songs_in_entries(
+                                        &script.entries,
+                                        &path.to_string_lossy(),
+                                        &mut stations,
+                                        &mut songs,
+                                    );
                                 }
                             }
                         }
@@ -76,10 +89,18 @@ where F: Fn(&std::path::Path) -> bool {
         }
     }
 
-    MusicScanResult { assets, stations, songs }
+    MusicScanResult {
+        assets,
+        stations,
+        songs,
+    }
 }
 
-fn find_assets_in_entries(entries: &[ast::Entry], file_path: &str, map: &mut HashMap<String, MusicAsset>) {
+fn find_assets_in_entries(
+    entries: &[ast::Entry],
+    file_path: &str,
+    map: &mut HashMap<String, MusicAsset>,
+) {
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
             if ass.key.to_lowercase() == "music" {
@@ -103,12 +124,15 @@ fn find_assets_in_entries(entries: &[ast::Entry], file_path: &str, map: &mut Has
                     }
 
                     if let (Some(n), Some(f)) = (name, file) {
-                        map.insert(n.clone(), MusicAsset {
-                            name: n,
-                            file: f,
-                            path: file_path.to_string(),
-                            range: ass.key_range.clone(),
-                        });
+                        map.insert(
+                            n.clone(),
+                            MusicAsset {
+                                name: n,
+                                file: f,
+                                path: file_path.to_string(),
+                                range: ass.key_range.clone(),
+                            },
+                        );
                     }
                 }
             }
@@ -116,18 +140,26 @@ fn find_assets_in_entries(entries: &[ast::Entry], file_path: &str, map: &mut Has
     }
 }
 
-fn find_stations_and_songs_in_entries(entries: &[ast::Entry], file_path: &str, stations: &mut HashMap<String, MusicStation>, songs: &mut HashMap<String, Song>) {
+fn find_stations_and_songs_in_entries(
+    entries: &[ast::Entry],
+    file_path: &str,
+    stations: &mut HashMap<String, MusicStation>,
+    songs: &mut HashMap<String, Song>,
+) {
     for entry in entries {
         match entry {
             ast::Entry::Assignment(ass) => {
                 let key_lower = ass.key.to_lowercase();
                 if key_lower == "music_station" {
                     if let ast::Value::String(name) = &ass.value.value {
-                        stations.insert(name.clone(), MusicStation {
-                            name: name.clone(),
-                            path: file_path.to_string(),
-                            range: ass.key_range.clone(),
-                        });
+                        stations.insert(
+                            name.clone(),
+                            MusicStation {
+                                name: name.clone(),
+                                path: file_path.to_string(),
+                                range: ass.key_range.clone(),
+                            },
+                        );
                     }
                 } else if key_lower == "music" {
                     if let ast::Value::Block(details) = &ass.value.value {
@@ -135,11 +167,14 @@ fn find_stations_and_songs_in_entries(entries: &[ast::Entry], file_path: &str, s
                             if let ast::Entry::Assignment(d_ass) = detail {
                                 if d_ass.key.to_lowercase() == "song" {
                                     if let ast::Value::String(name) = &d_ass.value.value {
-                                        songs.insert(name.clone(), Song {
-                                            name: name.clone(),
-                                            path: file_path.to_string(),
-                                            range: d_ass.key_range.clone(),
-                                        });
+                                        songs.insert(
+                                            name.clone(),
+                                            Song {
+                                                name: name.clone(),
+                                                path: file_path.to_string(),
+                                                range: d_ass.key_range.clone(),
+                                            },
+                                        );
                                     }
                                 }
                             }
@@ -184,7 +219,7 @@ mod tests {
 
         assert!(result.assets.contains_key("test_song"));
         assert_eq!(result.assets.get("test_song").unwrap().file, "test.ogg");
-        
+
         assert!(result.stations.contains_key("test_station"));
         assert!(result.songs.contains_key("test_song"));
 
@@ -226,8 +261,15 @@ mod tests {
         let result = scan_music(&[music_dir.clone()], &|_| false);
 
         assert!(result.assets.contains_key("Makai_Symphony-Izanagi_izanami"));
-        assert_eq!(result.assets.get("Makai_Symphony-Izanagi_izanami").unwrap().file, "Makai_Symphony-Izanagi_Izanami.ogg");
-        
+        assert_eq!(
+            result
+                .assets
+                .get("Makai_Symphony-Izanagi_izanami")
+                .unwrap()
+                .file,
+            "Makai_Symphony-Izanagi_Izanami.ogg"
+        );
+
         assert!(result.stations.contains_key("base_music"));
         assert!(result.songs.contains_key("Makai_Symphony-Izanagi_izanami"));
 

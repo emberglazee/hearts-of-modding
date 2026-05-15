@@ -1,6 +1,6 @@
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
 use std::fs;
+use std::path::{Path, PathBuf};
 
 /// Represents game defines loaded from common/defines/*.lua
 #[derive(Debug, Clone)]
@@ -21,7 +21,10 @@ impl GameDefines {
 
     /// Get max skill level for a character type (default to 5 if not found)
     pub fn get_max_skill(&self, character_type: &str) -> i32 {
-        self.max_skill_levels.get(character_type).copied().unwrap_or(5)
+        self.max_skill_levels
+            .get(character_type)
+            .copied()
+            .unwrap_or(5)
     }
 }
 
@@ -32,28 +35,38 @@ impl Default for GameDefines {
 }
 
 /// Scan defines files from game/mod directories
-pub fn scan_defines<F>(roots: &[PathBuf], filter: &F) -> GameDefines 
-where F: Fn(&std::path::Path) -> bool {
+pub fn scan_defines<F>(roots: &[PathBuf], filter: &F) -> GameDefines
+where
+    F: Fn(&std::path::Path) -> bool,
+{
     let mut defines = GameDefines::new();
-    
+
     // Set default max skill levels (HOI4 defaults)
-    defines.max_skill_levels.insert("field_marshal".to_string(), 5);
-    defines.max_skill_levels.insert("corps_commander".to_string(), 5);
-    defines.max_skill_levels.insert("navy_leader".to_string(), 5);
+    defines
+        .max_skill_levels
+        .insert("field_marshal".to_string(), 5);
+    defines
+        .max_skill_levels
+        .insert("corps_commander".to_string(), 5);
+    defines
+        .max_skill_levels
+        .insert("navy_leader".to_string(), 5);
     defines.max_skill_levels.insert("operative".to_string(), 3);
-    
+
     for root in roots {
         let dir = root.join("common/defines");
         if dir.exists() {
             scan_defines_directory(&dir, &mut defines, filter);
         }
     }
-    
+
     defines
 }
 
-fn scan_defines_directory<F>(dir_path: &Path, defines: &mut GameDefines, filter: &F) 
-where F: Fn(&std::path::Path) -> bool {
+fn scan_defines_directory<F>(dir_path: &Path, defines: &mut GameDefines, filter: &F)
+where
+    F: Fn(&std::path::Path) -> bool,
+{
     if filter(dir_path) {
         return;
     }
@@ -79,39 +92,47 @@ where F: Fn(&std::path::Path) -> bool {
 fn parse_defines_lua(content: &str, defines: &mut GameDefines) {
     let lines: Vec<&str> = content.lines().collect();
     let mut i = 0;
-    
+
     while i < lines.len() {
         let line = lines[i].trim();
-        
+
         // Skip comments and empty lines
         if line.starts_with("--") || line.is_empty() {
             i += 1;
             continue;
         }
-        
+
         // Look for MAX_SKILL_LEVEL patterns
         if line.contains("MAX_SKILL_LEVEL") || line.contains("MAX_SKILL") {
             if let Some(value) = extract_number_from_line(line) {
                 // Try to determine character type from context
-                let context = if i > 0 { lines[i-1] } else { "" };
-                
+                let context = if i > 0 { lines[i - 1] } else { "" };
+
                 if context.contains("FIELD_MARSHAL") || line.contains("FIELD_MARSHAL") {
-                    defines.max_skill_levels.insert("field_marshal".to_string(), value);
+                    defines
+                        .max_skill_levels
+                        .insert("field_marshal".to_string(), value);
                 } else if context.contains("CORPS_COMMANDER") || line.contains("CORPS_COMMANDER") {
-                    defines.max_skill_levels.insert("corps_commander".to_string(), value);
+                    defines
+                        .max_skill_levels
+                        .insert("corps_commander".to_string(), value);
                 } else if context.contains("NAVY") || line.contains("NAVY") {
-                    defines.max_skill_levels.insert("navy_leader".to_string(), value);
+                    defines
+                        .max_skill_levels
+                        .insert("navy_leader".to_string(), value);
                 } else if context.contains("OPERATIVE") || line.contains("OPERATIVE") {
-                    defines.max_skill_levels.insert("operative".to_string(), value);
+                    defines
+                        .max_skill_levels
+                        .insert("operative".to_string(), value);
                 }
             }
         }
-        
+
         // Look for general numeric defines
         if let Some((key, value)) = parse_define_assignment(line) {
             defines.defines.insert(key, value);
         }
-        
+
         i += 1;
     }
 }
@@ -129,7 +150,7 @@ fn extract_number_from_line(line: &str) -> Option<i32> {
             .trim()
             .trim_end_matches(',')
             .trim();
-        
+
         value_str.parse::<i32>().ok()
     } else {
         None
@@ -141,12 +162,12 @@ fn parse_define_assignment(line: &str) -> Option<(String, f64)> {
     if let Some(eq_pos) = line.find('=') {
         let key = line[..eq_pos].trim();
         let value_part = &line[eq_pos + 1..];
-        
+
         // Skip if it's a table assignment
         if value_part.trim().starts_with('{') {
             return None;
         }
-        
+
         let value_str = value_part
             .split("--")
             .next()
@@ -154,7 +175,7 @@ fn parse_define_assignment(line: &str) -> Option<(String, f64)> {
             .trim()
             .trim_end_matches(',')
             .trim();
-        
+
         if let Ok(value) = value_str.parse::<f64>() {
             return Some((key.to_string(), value));
         }
@@ -170,8 +191,14 @@ mod tests {
     fn test_extract_number_from_line() {
         assert_eq!(extract_number_from_line("MAX_SKILL_LEVEL = 5"), Some(5));
         assert_eq!(extract_number_from_line("MAX_SKILL_LEVEL = 5,"), Some(5));
-        assert_eq!(extract_number_from_line("MAX_SKILL_LEVEL = 5, -- comment"), Some(5));
-        assert_eq!(extract_number_from_line("    MAX_SKILL_LEVEL = 10    "), Some(10));
+        assert_eq!(
+            extract_number_from_line("MAX_SKILL_LEVEL = 5, -- comment"),
+            Some(5)
+        );
+        assert_eq!(
+            extract_number_from_line("    MAX_SKILL_LEVEL = 10    "),
+            Some(10)
+        );
     }
 
     #[test]

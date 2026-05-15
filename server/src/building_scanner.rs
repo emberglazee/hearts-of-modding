@@ -1,8 +1,8 @@
-use crate::parser;
 use crate::ast;
+use crate::parser;
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
 use std::fs;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone)]
 pub struct Building {
@@ -15,10 +15,12 @@ pub struct Building {
     pub range: ast::Range,
 }
 
-pub fn scan_buildings<F>(roots: &[PathBuf], filter: &F) -> HashMap<String, Building> 
-where F: Fn(&std::path::Path) -> bool {
+pub fn scan_buildings<F>(roots: &[PathBuf], filter: &F) -> HashMap<String, Building>
+where
+    F: Fn(&std::path::Path) -> bool,
+{
     let mut buildings = HashMap::new();
-    
+
     for root in roots {
         let dir = root.join("common/buildings");
         if dir.exists() {
@@ -26,15 +28,17 @@ where F: Fn(&std::path::Path) -> bool {
             buildings.extend(found);
         }
     }
-    
+
     buildings
 }
 
-fn scan_directory<F>(dir_path: &Path, filter: &F) -> HashMap<String, Building> 
-where F: Fn(&std::path::Path) -> bool {
+fn scan_directory<F>(dir_path: &Path, filter: &F) -> HashMap<String, Building>
+where
+    F: Fn(&std::path::Path) -> bool,
+{
     let mut map = HashMap::new();
     let mut dirs_to_check = vec![dir_path.to_path_buf()];
-    
+
     while let Some(current_dir) = dirs_to_check.pop() {
         if filter(&current_dir) {
             continue;
@@ -51,7 +55,8 @@ where F: Fn(&std::path::Path) -> bool {
                         continue;
                     }
                     if let Ok(content) = fs::read_to_string(&path) {
-                        { let (script, _) = parser::parse_script(&content);
+                        {
+                            let (script, _) = parser::parse_script(&content);
                             extract_buildings(&script.entries, &path, &mut map);
                         }
                     }
@@ -67,7 +72,7 @@ fn extract_buildings(entries: &[ast::Entry], path: &Path, map: &mut HashMap<Stri
         if let ast::Entry::Assignment(ass) = entry {
             let building_name = ass.key.clone();
             let mut max_level = None;
-            
+
             // Extract max_level from building definition
             if let ast::Value::Block(building_entries) = &ass.value.value {
                 for building_entry in building_entries {
@@ -82,13 +87,16 @@ fn extract_buildings(entries: &[ast::Entry], path: &Path, map: &mut HashMap<Stri
                     }
                 }
             }
-            
-            map.insert(building_name.clone(), Building {
-                name: building_name,
-                max_level,
-                path: path.to_string_lossy().to_string(),
-                range: ass.key_range.clone(),
-            });
+
+            map.insert(
+                building_name.clone(),
+                Building {
+                    name: building_name,
+                    max_level,
+                    path: path.to_string_lossy().to_string(),
+                    range: ass.key_range.clone(),
+                },
+            );
         }
     }
 }
