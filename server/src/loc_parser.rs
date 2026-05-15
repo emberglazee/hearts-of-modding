@@ -485,29 +485,20 @@ pub fn validate_loc_string(
 
 pub fn check_unnecessary_version(
     entry: &LocEntry,
-    all_entries: &HashMap<String, LocEntry>,
 ) -> Option<LocDiagnostic> {
     // Only check if this entry has a version number
     if let (Some(version), Some(version_range)) = (&entry.version, &entry.version_range) {
-        // Check if there are any other entries with the same key
-        let has_duplicates = all_entries
-            .iter()
-            .any(|(k, e)| k == &entry.key && e.path != entry.path);
-
-        // If no duplicates exist, the version number is unnecessary
-        if !has_duplicates {
-            return Some(LocDiagnostic {
-                range: version_range.clone(),
-                message: format!(
-                    "Version number '{}' is unnecessary. HOI4 ignores version numbers, and this key has no duplicates.",
-                    version
-                ),
-                severity: DiagnosticSeverity::Hint,
-                code: Some("unnecessary_version".to_string()),
-                related_information: Vec::new(),
-                tags: vec![crate::ast::DiagnosticTag::Unnecessary],
-            });
-        }
+        return Some(LocDiagnostic {
+            range: version_range.clone(),
+            message: format!(
+                "Version number '{}' is unnecessary. Modders generally don't need version numbers as they are only used for Paradox's internal translation tracking and are ignored by the game engine.",
+                version
+            ),
+            severity: DiagnosticSeverity::Hint,
+            code: Some("unnecessary_version".to_string()),
+            related_information: Vec::new(),
+            tags: vec![crate::ast::DiagnosticTag::Unnecessary],
+        });
     }
 
     None

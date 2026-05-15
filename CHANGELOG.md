@@ -7,10 +7,17 @@ All notable changes to the **Hearts of Modding** extension will be documented in
 ### Added
 
 - Added static modifiers to workspace symbols.
+- **Cross-File Localization Duplicate Detection:** Added a warning diagnostic for localization keys defined in multiple files across the workspace.
+- **VFS-Aware Overrides:** Duplicate localization warnings intelligently respect the `replace/` folder priority, suppressing warnings when an override is intentional.
 
 ### Changed
 
 - Updated the LSP server Rust edition to 2024, reformatted the project code, updated some dependencies.
+- **Streamlined Localization Versions:** Updated validation to always flag localization version numbers (e.g., `:0`) as unnecessary. Research confirms these are purely for internal Paradox translation tracking and ignored by the game engine.
+
+### Fixed
+
+- **Localization Version False Positives:** Fixed a bug where version numbers were incorrectly flagged due to improper file path tracking during duplicate checks.
 
 ## [0.5.0] - 2026-05-15
 

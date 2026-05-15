@@ -35,6 +35,8 @@ mod strategic_region_scanner;
 mod trait_scanner;
 mod variable_scanner;
 mod workspace_symbols;
+#[cfg(test)]
+mod test_loc_version;
 
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
@@ -109,6 +111,7 @@ struct Backend {
     game_path: Arc<RwLock<Option<String>>>,
     abilities: Arc<RwLock<HashMap<String, ability_scanner::Ability>>>,
     scripted_locs: Arc<RwLock<HashMap<String, scripted_loc_scanner::ScriptedLoc>>>,
+    duplicated_loc_keys: Arc<RwLock<HashSet<String>>>,
     states: Arc<RwLock<HashMap<u32, state_scanner::State>>>,
     supply_nodes: Arc<RwLock<Vec<logistics_scanner::SupplyNode>>>,
     railways: Arc<RwLock<Vec<logistics_scanner::Railway>>>,
@@ -3122,11 +3125,12 @@ impl LanguageServer for Backend {
         // Add "Remove all unnecessary version numbers" if any such diagnostic is present
         if has_unnecessary_version_diagnostic {
             if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
-                let (parsed, _) = loc_parser::parse_loc_file(&content, "");
+                let path_str = params.text_document.uri.to_file_path().unwrap_or_default().to_string_lossy().to_string();
+                let (parsed, _) = loc_parser::parse_loc_file(&content, &path_str);
                 let mut all_fixes = Vec::new();
 
                 for entry in parsed.values() {
-                    if let Some(d) = loc_parser::check_unnecessary_version(entry, &parsed) {
+                    if let Some(d) = loc_parser::check_unnecessary_version(entry) {
                         all_fixes.push((d.range, "".to_string()));
                     }
                 }
@@ -4118,6 +4122,7 @@ impl Backend {
 
     async fn load_localization(&self, roots: &[std::path::PathBuf]) {
         let mut all_locs = HashMap::new();
+        let mut dups = HashSet::new();
 
         self.client
             .log_message(
@@ -4217,7 +4222,12 @@ impl Backend {
                                 )
                                 .await;
                         }
-                        all_locs.extend(parsed);
+                        for (key, entry) in parsed {
+                            if all_locs.contains_key(&key) {
+                                dups.insert(key.clone());
+                            }
+                            all_locs.insert(key, entry);
+                        }
                     }
                     Err(e) => {
                         self.client
@@ -4230,6 +4240,10 @@ impl Backend {
                 }
             }
         }
+
+        let mut d_map = self.duplicated_loc_keys.write().await;
+        *d_map = dups;
+
         let mut loc = self.localization.write().await;
         *loc = all_locs;
         self.client
@@ -4855,7 +4869,7 @@ impl Backend {
         let mut script_opt = None;
 
         if uri.as_str().ends_with(".yml") {
-            self.validate_localization_content(content, &mut diagnostics)
+            self.validate_localization_content(uri, content, &mut diagnostics)
                 .await;
         } else if uri.as_str().ends_with("supply_nodes.txt") {
             self.validate_supply_nodes_content(content, &mut diagnostics)
@@ -5499,12 +5513,15 @@ impl Backend {
 
     async fn validate_localization_content(
         &self,
+        uri: &Url,
         content: &str,
         diagnostics: &mut Vec<Diagnostic>,
     ) {
-        let (parsed, loc_diagnostics_structural) = loc_parser::parse_loc_file(content, "");
+        let path_str = uri.to_file_path().unwrap_or_default().to_string_lossy().to_string();
+        let (parsed, loc_diagnostics_structural) = loc_parser::parse_loc_file(content, &path_str);
         let event_targets = self.event_targets.read().await;
         let scripted_locs = self.scripted_locs.read().await;
+        let dups = self.duplicated_loc_keys.read().await;
 
         // Add structural diagnostics
         for d in loc_diagnostics_structural {
@@ -5540,7 +5557,7 @@ impl Backend {
 
         for entry in parsed.values() {
             // Check for unnecessary version numbers
-            if let Some(d) = loc_parser::check_unnecessary_version(entry, &parsed) {
+            if let Some(d) = loc_parser::check_unnecessary_version(entry) {
                 diagnostics.push(Diagnostic {
                     range: ast_range_to_lsp(&d.range),
                     severity: Some(match d.severity {
@@ -5603,6 +5620,34 @@ impl Backend {
                     ..Default::default()
                 });
             }
+
+            // Check for duplicated localization keys across files
+            let loc_map = self.localization.read().await;
+            let is_duplicated = dups.contains(&entry.key) || 
+                loc_map.get(&entry.key).map(|e| e.path != entry.path).unwrap_or(false);
+            
+            if is_duplicated {
+                let mut is_intentional_override = false;
+                if entry.path.contains("replace") {
+                    is_intentional_override = true;
+                } else if let Some(existing) = loc_map.get(&entry.key) {
+                    if existing.path.contains("replace") {
+                        is_intentional_override = true;
+                    }
+                }
+
+                if !is_intentional_override {
+                    diagnostics.push(Diagnostic {
+                        range: ast_range_to_lsp(&entry.range),
+                        severity: Some(DiagnosticSeverity::WARNING),
+                        message: format!("Duplicate localization key found: '{}'. The game will only use one of them unless one is in a 'replace' folder.", entry.key),
+                        source: Some("Hearts of Modding".to_string()),
+                        code: Some(NumberOrString::String("duplicate_loc_key".to_string())),
+                        ..Default::default()
+                    });
+                }
+            }
+            drop(loc_map);
         }
     }
 
@@ -6778,6 +6823,7 @@ async fn main() {
         game_path: Arc::new(RwLock::new(None)),
         abilities: Arc::new(RwLock::new(HashMap::new())),
         scripted_locs: Arc::new(RwLock::new(HashMap::new())),
+        duplicated_loc_keys: Arc::new(RwLock::new(HashSet::new())),
         states: Arc::new(RwLock::new(HashMap::new())),
         supply_nodes: Arc::new(RwLock::new(Vec::new())),
         railways: Arc::new(RwLock::new(Vec::new())),
