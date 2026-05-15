@@ -43,7 +43,7 @@ where F: Fn(&std::path::Path) -> bool {
                         continue;
                     }
                     if let Ok(content) = fs::read_to_string(&path) {
-                        if let Ok(script) = parser::parse_script(&content) {
+                        { let (script, _) = parser::parse_script(&content);
                             find_achievements_in_entries(&script.entries, &path.to_string_lossy(), map);
                         }
                     }

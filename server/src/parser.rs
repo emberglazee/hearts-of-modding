@@ -191,29 +191,75 @@ fn parse_entry(input: Span) -> IResult<Span, Entry> {
     )).parse(input)
 }
 
-pub fn parse_script(input: &str) -> Result<Script, (String, crate::ast::Range)> {
+fn to_error_range(span: Span) -> crate::ast::Range {
+    let start_line = span.location_line() - 1;
+    let start_col = span.get_column() as u32 - 1;
+    let fragment = span.fragment();
+
+    // Find the end of the current line
+    let mut end_col = start_col;
+    for (i, c) in fragment.chars().enumerate() {
+        if c == '\n' || c == '\r' || i >= 20 {
+            break;
+        }
+        end_col += 1;
+    }
+
+    if end_col == start_col {
+        end_col += 1;
+    }
+
+    crate::ast::Range {
+        start_line,
+        start_col,
+        end_line: start_line,
+        end_col,
+    }
+}
+
+pub fn parse_script(input: &str) -> (Script, Vec<(String, crate::ast::Range)>) {
     let input_clean = input.strip_prefix('\u{feff}').unwrap_or(input);
-    let span = Span::new(input_clean);
-    match many0(preceded(multispace0, parse_entry)).parse(span) {
-        Ok((remainder, entries)) => {
-            let (remainder, _) = multispace0::<Span, nom::error::Error<Span>>(remainder).unwrap();
-            if remainder.fragment().is_empty() {
-                Ok(Script { entries })
-            } else {
-                let range = to_range(remainder);
-                Err((format!("Parsing error near: {}", remainder.fragment().chars().take(20).collect::<String>()), range))
+    let mut span = Span::new(input_clean);
+    let mut entries = Vec::new();
+    let mut errors = Vec::new();
+
+    loop {
+        // Skip leading whitespace
+        if let Ok((remainder, _)) = multispace0::<Span, nom::error::Error<Span>>(span) {
+            span = remainder;
+        }
+
+        if span.fragment().is_empty() {
+            break;
+        }
+
+        match parse_entry(span) {
+            Ok((remainder, entry)) => {
+                entries.push(entry);
+                span = remainder;
+            }
+            Err(_) => {
+                let range = to_error_range(span);
+                let mut snippet = span.fragment().lines().next().unwrap_or("").trim().to_string();
+                if snippet.len() > 30 {
+                    snippet = snippet.chars().take(30).collect::<String>();
+                    snippet.push_str("...");
+                }
+                if snippet.is_empty() {
+                    snippet = span.fragment().chars().take(10).collect::<String>();
+                }
+                
+                errors.push((format!("Parsing error near: '{}'", snippet), range));
+                
+                // Recovery: skip one character and try again
+                let next_span = span.fragment().chars().next().map(|c| c.len_utf8()).unwrap_or(1);
+                let (next, _) = nom::bytes::complete::take::<_, _, nom::error::Error<Span>>(next_span)(span).unwrap_or((span.clone(), span));
+                span = next;
             }
         }
-        Err(e) => {
-            // This is a bit simplified, ideally we'd extract the span from the error
-            Err((format!("Critical parsing error: {:?}", e), crate::ast::Range {
-                start_line: 0,
-                start_col: 0,
-                end_line: 0,
-                end_col: 0,
-            }))
-        },
     }
+
+    (Script { entries }, errors)
 }
 
 #[cfg(test)]
@@ -234,8 +280,8 @@ mod tests {
         }
         "#;
         let result = parse_script(input);
-        assert!(result.is_ok());
-        let script = result.unwrap();
+        assert!(result.1.is_empty());
+        let script = result.0;
         assert_eq!(script.entries.len(), 2); // Comment and Assignment
     }
 
@@ -251,8 +297,8 @@ mod tests {
         }
         "#;
         let result = parse_script(input);
-        assert!(result.is_ok());
-        let script = result.unwrap();
+        assert!(result.1.is_empty());
+        let script = result.0;
         assert_eq!(script.entries.len(), 1);
     }
 
@@ -260,15 +306,15 @@ mod tests {
     fn test_parse_quoted_escapes() {
         let input = r#"title = "Event \"The Great War\" Begins""#;
         let result = parse_script(input);
-        assert!(result.is_ok());
+        assert!(result.1.is_empty());
     }
 
     #[test]
     fn test_parse_dots_in_key() {
         let input = r#"title = daw.2.t"#;
         let result = parse_script(input);
-        assert!(result.is_ok());
-        let script = result.unwrap();
+        assert!(result.1.is_empty());
+        let script = result.0;
         if let Entry::Assignment(ass) = &script.entries[0] {
             if let Value::String(s) = &ass.value.value {
                 assert_eq!(s, "daw.2.t");
@@ -282,6 +328,6 @@ mod tests {
     fn test_parse_pipe_in_value() {
         let input = r#"custom_effect_tooltip = tech_effect|sp_naval_support_ships_pick_a"#;
         let result = parse_script(input);
-        assert!(result.is_ok());
+        assert!(result.1.is_empty());
     }
 }

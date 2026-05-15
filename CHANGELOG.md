@@ -2,7 +2,7 @@
 
 All notable changes to the **Hearts of Modding** extension will be documented in this file.
 
-## [0.5.0] - 2026-05-13
+## [0.5.0] - 2026-05-15
 
 ### Added
 
@@ -21,6 +21,15 @@ All notable changes to the **Hearts of Modding** extension will be documented in
 - **Workspace Symbols Update:**
   - Added support for sub-ideologies in Workspace Symbols (`Ctrl+T`), which now displays the sub-ideology and its parent ideology context.
   - Added support for localization keys in Workspace Symbols. The search will fuzzy-match against all parsed localization string keys, displaying them as `Localisation` entries. Results are capped at 1,000 matches to ensure IDE responsiveness while searching across potentially huge localization databases.
+- **Map & Logistics Intelligence:**
+  - **Custom Map Configurations:** Added support for parsing `map/default.map`. The extension dynamically reads the `definitions` and `adjacencies` assignments so that renamed mapping files (e.g. custom `definition.csv` names) receive full validation, highlighting, and tooltip support. Textmate rules have been updated to recognize `.map` files as native script.
+  - **Deep CSV Validation:** Integrated `definition.csv` and `adjacencies.csv` directly into the document validation pipeline. The extension performs rigorous structural checks (e.g., ensuring exact column counts, validating bounds for RGB values, verifying province types and coastal booleans, checking coordinates).
+  - **Column-Snapping Tooltips:** Hovering over map `.csv`, `unitstacks.txt`, or `buildings.txt` definitions now identifies the exact column your cursor is under and displays specific, contextual metadata (e.g., resolving a Province ID column into its terrain and coastal status, or highlighting exactly what coordinate a specific integer maps to).
+  - **Logistics Scanner:** Added full support for `supply_nodes.txt` and `railways.txt`, exposing them to Workspace Symbols and validating their Province IDs.
+  - **Map Objects Scanner:** Parses `buildings.txt` and `unitstacks.txt`, enabling "Jump to Definition" for map buildings and validating State and Province assignments.
+  - **Adjacencies & Rules:** Implemented parsing for `adjacencies.csv` and `adjacency_rules.txt`. This enables cross-referencing of straits and impassable borders, and validating province connectivity rules.
+  - **Strategic Regions:** Added `strategic_region_scanner` to process `map/strategicregions/*.txt`.
+  - **Enhanced Validations:** Direct document validation now supports `.csv` and `.txt` map definition files, highlighting invalid province/state references inline without needing script AST parsing.
 
 ## [0.4.0] - 2026-05-12
 

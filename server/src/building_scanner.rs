@@ -51,7 +51,7 @@ where F: Fn(&std::path::Path) -> bool {
                         continue;
                     }
                     if let Ok(content) = fs::read_to_string(&path) {
-                        if let Ok(script) = parser::parse_script(&content) {
+                        { let (script, _) = parser::parse_script(&content);
                             extract_buildings(&script.entries, &path, &mut map);
                         }
                     }

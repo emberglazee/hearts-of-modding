@@ -32,7 +32,7 @@ where F: Fn(&Path) -> bool {
                         continue;
                     }
                     if let Ok(content) = fs::read_to_string(&path) {
-                        if let Ok(script) = parser::parse_script(&content) {
+                        { let (script, _) = parser::parse_script(&content);
                             for entry_ast in script.entries {
                                 if let ast::Entry::Assignment(ass) = entry_ast {
                                     map.insert(ass.key.clone(), ScriptedEntity {

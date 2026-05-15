@@ -257,7 +257,7 @@ fn find_event_references(
         let content = entry.value();
 
         // Parse the document
-        if let Ok(script) = crate::parser::parse_script(content) {
+        { let (script, _) = crate::parser::parse_script(content);
             let mut edits = Vec::new();
             find_event_references_in_entries(&script.entries, old_name, new_name, &mut edits);
 
@@ -322,7 +322,7 @@ fn find_scripted_trigger_references(
         let uri_str = entry.key();
         let content = entry.value();
 
-        if let Ok(script) = crate::parser::parse_script(content) {
+        { let (script, _) = crate::parser::parse_script(content);
             let mut edits = Vec::new();
             find_scripted_references_in_entries(&script.entries, old_name, new_name, &mut edits, true);
 
@@ -346,7 +346,7 @@ fn find_scripted_effect_references(
         let uri_str = entry.key();
         let content = entry.value();
 
-        if let Ok(script) = crate::parser::parse_script(content) {
+        { let (script, _) = crate::parser::parse_script(content);
             let mut edits = Vec::new();
             find_scripted_references_in_entries(&script.entries, old_name, new_name, &mut edits, false);
 
@@ -407,7 +407,7 @@ fn find_idea_references(
         let uri_str = entry.key();
         let content = entry.value();
 
-        if let Ok(script) = crate::parser::parse_script(content) {
+        { let (script, _) = crate::parser::parse_script(content);
             let mut edits = Vec::new();
             find_idea_references_in_entries(&script.entries, old_name, new_name, &mut edits);
 
@@ -472,7 +472,7 @@ fn find_character_references(
         let uri_str = entry.key();
         let content = entry.value();
 
-        if let Ok(script) = crate::parser::parse_script(content) {
+        { let (script, _) = crate::parser::parse_script(content);
             let mut edits = Vec::new();
             find_character_references_in_entries(&script.entries, old_name, new_name, &mut edits);
 
@@ -549,7 +549,7 @@ fn find_variable_references(
         let uri_str = entry.key();
         let content = entry.value();
 
-        if let Ok(script) = crate::parser::parse_script(content) {
+        { let (script, _) = crate::parser::parse_script(content);
             let mut edits = Vec::new();
             find_variable_references_in_entries(&script.entries, old_name, new_name, &mut edits);
 
@@ -616,7 +616,7 @@ fn find_ability_references(
         let uri_str = entry.key();
         let content = entry.value();
 
-        if let Ok(script) = crate::parser::parse_script(content) {
+        { let (script, _) = crate::parser::parse_script(content);
             let mut edits = Vec::new();
             find_ability_references_in_entries(&script.entries, old_name, new_name, &mut edits);
 

@@ -365,7 +365,7 @@ impl Schema {
 
     // Temporary old method for compatibility while refactoring
     pub fn parse_cwt(&mut self, content: &str, is_trigger: bool) {
-        if let Ok(script) = crate::parser::parse_script(content) {
+        { let (script, _) = crate::parser::parse_script(content);
             self.parse_cwt_ast(&script, Some(if is_trigger { "trigger" } else { "effect" }));
         }
     }

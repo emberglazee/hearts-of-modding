@@ -117,7 +117,7 @@ pub async fn get_incoming_calls(
         let content = entry.value();
         
         // Parse the document
-        if let Ok(script) = crate::parser::parse_script(content) {
+        { let (script, _) = crate::parser::parse_script(content);
             let references = find_references_in_entries(&script.entries, target_name);
             
             if !references.is_empty() {
@@ -150,7 +150,7 @@ pub async fn get_outgoing_calls(
         let content = entry.value();
         
         // Parse the document
-        if let Ok(script) = crate::parser::parse_script(content) {
+        { let (script, _) = crate::parser::parse_script(content);
             // Find all calls within this symbol's range
             let calls = find_calls_in_range(&script.entries, &lsp_to_range(&item.range));
             

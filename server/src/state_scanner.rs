@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use std::fs;
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct State {
     pub id: u32,
     pub name: String, // e.g. "STATE_123"
@@ -15,7 +16,7 @@ pub struct State {
 pub fn scan_states<F>(roots: &[PathBuf], filter: &F) -> HashMap<u32, State> 
 where F: Fn(&std::path::Path) -> bool {
     let mut states = HashMap::new();
-    
+
     for root in roots {
         let dir = root.join("history/states");
         if dir.exists() {
@@ -23,7 +24,7 @@ where F: Fn(&std::path::Path) -> bool {
             states.extend(found);
         }
     }
-    
+
     states
 }
 
@@ -31,7 +32,7 @@ fn scan_directory<F>(dir_path: &Path, filter: &F) -> HashMap<u32, State>
 where F: Fn(&std::path::Path) -> bool {
     let mut map = HashMap::new();
     let mut dirs_to_check = vec![dir_path.to_path_buf()];
-    
+
     while let Some(current_dir) = dirs_to_check.pop() {
         if filter(&current_dir) {
             continue;
@@ -48,7 +49,7 @@ where F: Fn(&std::path::Path) -> bool {
                         continue;
                     }
                     if let Ok(content) = fs::read_to_string(&path) {
-                        if let Ok(script) = parser::parse_script(&content) {
+                        { let (script, _) = parser::parse_script(&content);
                             extract_state(&script.entries, &path, &mut map);
                         }
                     }

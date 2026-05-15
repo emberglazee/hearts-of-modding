@@ -59,13 +59,13 @@ where F: Fn(&std::path::Path) -> bool {
                         let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
                         if ext == "asset" {
                             if let Ok(content) = fs::read_to_string(&path) {
-                                if let Ok(script) = parser::parse_script(&content) {
+                                { let (script, _) = parser::parse_script(&content);
                                     find_assets_in_entries(&script.entries, &path.to_string_lossy(), &mut assets);
                                 }
                             }
                         } else if ext == "txt" {
                             if let Ok(content) = fs::read_to_string(&path) {
-                                if let Ok(script) = parser::parse_script(&content) {
+                                { let (script, _) = parser::parse_script(&content);
                                     find_stations_and_songs_in_entries(&script.entries, &path.to_string_lossy(), &mut stations, &mut songs);
                                 }
                             }

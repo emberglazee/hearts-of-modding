@@ -30,6 +30,11 @@ mod call_hierarchy;
 mod rename;
 mod scripted_loc_scanner;
 mod state_scanner;
+mod logistics_scanner;
+mod map_object_scanner;
+mod adjacency_scanner;
+mod strategic_region_scanner;
+mod map_config;
 
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
@@ -74,7 +79,7 @@ struct Backend {
     characters: Arc<RwLock<HashMap<String, character_scanner::Character>>>,
     variables: Arc<RwLock<HashMap<String, Vec<variable_scanner::Variable>>>>,
     event_targets: Arc<RwLock<HashMap<String, Vec<variable_scanner::EventTarget>>>>,
-    provinces: Arc<RwLock<HashSet<u32>>>,
+    provinces: Arc<RwLock<HashMap<u32, province_scanner::Province>>>,
     custom_modifiers: Arc<RwLock<HashMap<String, modifier_scanner::Modifier>>>,
     modifier_mappings: Arc<RwLock<HashMap<String, String>>>,
     modifier_formats: Arc<RwLock<HashMap<String, String>>>,
@@ -99,6 +104,13 @@ struct Backend {
     abilities: Arc<RwLock<HashMap<String, ability_scanner::Ability>>>,
     scripted_locs: Arc<RwLock<HashMap<String, scripted_loc_scanner::ScriptedLoc>>>,
     states: Arc<RwLock<HashMap<u32, state_scanner::State>>>,
+    supply_nodes: Arc<RwLock<Vec<logistics_scanner::SupplyNode>>>,
+    railways: Arc<RwLock<Vec<logistics_scanner::Railway>>>,
+    map_buildings: Arc<RwLock<Vec<map_object_scanner::MapBuilding>>>,
+    unitstacks: Arc<RwLock<Vec<map_object_scanner::UnitStack>>>,
+    adjacencies: Arc<RwLock<Vec<adjacency_scanner::Adjacency>>>,
+    adjacency_rules: Arc<RwLock<HashMap<String, adjacency_scanner::AdjacencyRule>>>,
+    strategic_regions: Arc<RwLock<HashMap<u32, strategic_region_scanner::StrategicRegion>>>,
 }
 
 #[tower_lsp::async_trait]
@@ -234,6 +246,10 @@ impl LanguageServer for Backend {
             self.scan_variables(&roots),
             self.scan_provinces(&roots),
             self.scan_states(&roots),
+            self.scan_logistics(&roots),
+            self.scan_map_objects(&roots),
+            self.scan_adjacencies(&roots),
+            self.scan_strategic_regions(&roots),
             self.scan_modifiers(&roots),
             self.scan_buildings(&roots),
             self.scan_achievements(&roots),
@@ -336,46 +352,42 @@ impl LanguageServer for Backend {
         }
 
         if let Some(content) = self.documents.get(&uri) {
-            match parser::parse_script(&content) {
-                Ok(script) => {
-                    let schema = self.schema.read().await;
-                    let mut keywords = HashSet::new();
-                    for k in schema.triggers.keys() { keywords.insert(k.clone()); }
-                    for k in schema.effects.keys() { keywords.insert(k.clone()); }
-                    for k in schema.links.keys() { keywords.insert(k.clone()); }
+            let (script, _) = parser::parse_script(&content);
+            let schema = self.schema.read().await;
+            let mut keywords = HashSet::new();
+            for k in schema.triggers.keys() { keywords.insert(k.clone()); }
+            for k in schema.effects.keys() { keywords.insert(k.clone()); }
+            for k in schema.links.keys() { keywords.insert(k.clone()); }
 
-                    for k in TRIGGERS.keys() { keywords.insert(k.to_string()); }
-                    for k in EFFECTS.keys() { keywords.insert(k.to_string()); }
-                    for k in MODIFIERS.keys() { keywords.insert(k.to_string()); }
-                    for k in SCOPES.iter() { 
-                        keywords.insert(k.to_string()); 
-                        keywords.insert(k.to_lowercase());
-                    }
-
-                    // Add hardcoded achievement keywords
-                    keywords.insert("unique_id".to_string());
-                    keywords.insert("possible".to_string());
-                    keywords.insert("happened".to_string());
-                    keywords.insert("ribbon".to_string());
-                    keywords.insert("frames".to_string());
-                    keywords.insert("colors".to_string());
-
-                    // Character keywords
-                    keywords.insert("characters".to_string());
-                    keywords.insert("advisor".to_string());
-                    keywords.insert("country_leader".to_string());
-                    keywords.insert("corps_commander".to_string());
-                    keywords.insert("field_marshal".to_string());
-                    keywords.insert("navy_leader".to_string());
-                    keywords.insert("scientist".to_string());
-                    keywords.insert("portraits".to_string());
-                    keywords.insert("traits".to_string());
-                    keywords.insert("skill".to_string());
-
-                    Ok(Some(semantic_tokens::get_semantic_tokens(&script, &keywords)))
-                },
-                Err(_) => Ok(None),
+            for k in TRIGGERS.keys() { keywords.insert(k.to_string()); }
+            for k in EFFECTS.keys() { keywords.insert(k.to_string()); }
+            for k in MODIFIERS.keys() { keywords.insert(k.to_string()); }
+            for k in SCOPES.iter() { 
+                keywords.insert(k.to_string()); 
+                keywords.insert(k.to_lowercase());
             }
+
+            // Add hardcoded achievement keywords
+            keywords.insert("unique_id".to_string());
+            keywords.insert("possible".to_string());
+            keywords.insert("happened".to_string());
+            keywords.insert("ribbon".to_string());
+            keywords.insert("frames".to_string());
+            keywords.insert("colors".to_string());
+
+            // Character keywords
+            keywords.insert("characters".to_string());
+            keywords.insert("advisor".to_string());
+            keywords.insert("country_leader".to_string());
+            keywords.insert("corps_commander".to_string());
+            keywords.insert("field_marshal".to_string());
+            keywords.insert("navy_leader".to_string());
+            keywords.insert("scientist".to_string());
+            keywords.insert("portraits".to_string());
+            keywords.insert("traits".to_string());
+            keywords.insert("skill".to_string());
+
+            Ok(Some(semantic_tokens::get_semantic_tokens(&script, &keywords)))
         } else {
             Ok(None)
         }
@@ -384,7 +396,7 @@ impl LanguageServer for Backend {
     async fn document_color(&self, params: DocumentColorParams) -> Result<Vec<ColorInformation>> {
         let uri = params.text_document.uri.to_string();
         if let Some(content) = self.documents.get(&uri) {
-            if let Ok(script) = parser::parse_script(&content) {
+            { let (script, _) = parser::parse_script(&content);
                 return Ok(find_colors(&script));
             }
         }
@@ -502,9 +514,228 @@ impl LanguageServer for Backend {
                     }
                 }
                 return Ok(None);
+            } else if uri.ends_with("buildings.txt") {
+                if let Some(line) = content.lines().nth(position.line as usize) {
+                    let mut hover_text = String::from("### 🏗️ Map Building Definition\n\n");
+                    hover_text.push_str("`State ID (integer); building ID (string); X position; Y position; Z position; Rotation; Adjacent sea province (integer)`\n\n---\n\n");
+                    
+                    let parts: Vec<&str> = line.split(';').collect();
+                    if parts.len() >= 7 {
+                        let mut current_col = 0;
+                        let mut hovered_index = None;
+                        for (i, part) in parts.iter().enumerate() {
+                            let end_col = current_col + part.len() as u32;
+                            if position.character >= current_col && position.character <= end_col {
+                                hovered_index = Some(i);
+                                break;
+                            }
+                            current_col = end_col + 1;
+                        }
+                        
+                        match hovered_index {
+                            Some(0) => {
+                                if let Ok(state_id) = parts[0].parse::<u32>() {
+                                    let states = self.states.read().await;
+                                    if let Some(state) = states.get(&state_id) {
+                                        let loc = self.localization.read().await;
+                                        let state_name = if let Some(loc_entry) = loc.get(&state.name) {
+                                            loc_entry.value.clone()
+                                        } else {
+                                            state.name.clone()
+                                        };
+                                        hover_text.push_str(&format!("**Hovered:** State ID `{}` (🗺️ {})\n", state_id, state_name));
+                                    } else {
+                                        hover_text.push_str(&format!("**Hovered:** State ID `{}`\n", state_id));
+                                    }
+                                }
+                            },
+                            Some(1) => { hover_text.push_str(&format!("**Hovered:** Building ID `{}`\n", parts[1])); },
+                            Some(2) => { hover_text.push_str(&format!("**Hovered:** X Position `{}`\n", parts[2])); },
+                            Some(3) => { hover_text.push_str(&format!("**Hovered:** Y Position `{}`\n", parts[3])); },
+                            Some(4) => { hover_text.push_str(&format!("**Hovered:** Z Position `{}`\n", parts[4])); },
+                            Some(5) => { hover_text.push_str(&format!("**Hovered:** Rotation `{}`\n", parts[5])); },
+                            Some(6) => {
+                                if let Ok(prov_id) = parts[6].parse::<u32>() {
+                                    let provs = self.provinces.read().await;
+                                    if let Some(province) = provs.get(&prov_id) {
+                                        hover_text.push_str(&format!("**Hovered:** Adjacent Sea Province `{}` (Coastal: {}, Terrain: {})\n", prov_id, province.is_coastal, province.terrain));
+                                    } else {
+                                        hover_text.push_str(&format!("**Hovered:** Adjacent Sea Province `{}`\n", prov_id));
+                                    }
+                                }
+                            },
+                            _ => {}
+                        }
+                    }
+
+                    return Ok(Some(Hover {
+                        contents: HoverContents::Markup(MarkupContent {
+                            kind: MarkupKind::Markdown,
+                            value: hover_text,
+                        }),
+                        range: None,
+                    }));
+                }
+                return Ok(None);
+            } else if uri.ends_with("unitstacks.txt") {
+                if let Some(line) = content.lines().nth(position.line as usize) {
+                    let mut hover_text = String::from("### 🪖 Unit Stack Definition\n\n");
+                    hover_text.push_str("`Province ID (integer); Type (integer); X position; Y position; Z position; Rotation; Offset`\n\n---\n\n");
+                    
+                    let parts: Vec<&str> = line.split(';').collect();
+                    if parts.len() >= 7 {
+                        let mut current_col = 0;
+                        let mut hovered_index = None;
+                        for (i, part) in parts.iter().enumerate() {
+                            let end_col = current_col + part.len() as u32;
+                            if position.character >= current_col && position.character <= end_col {
+                                hovered_index = Some(i);
+                                break;
+                            }
+                            current_col = end_col + 1;
+                        }
+                        
+                        match hovered_index {
+                            Some(0) => {
+                                if let Ok(prov_id) = parts[0].parse::<u32>() {
+                                    let provs = self.provinces.read().await;
+                                    if let Some(province) = provs.get(&prov_id) {
+                                        hover_text.push_str(&format!("**Hovered:** Province ID `{}` (Coastal: {}, Terrain: {})\n", prov_id, province.is_coastal, province.terrain));
+                                    } else {
+                                        hover_text.push_str(&format!("**Hovered:** Province ID `{}`\n", prov_id));
+                                    }
+                                }
+                            },
+                            Some(1) => { hover_text.push_str(&format!("**Hovered:** Stack Type `{}`\n", parts[1])); },
+                            Some(2) => { hover_text.push_str(&format!("**Hovered:** X Position `{}`\n", parts[2])); },
+                            Some(3) => { hover_text.push_str(&format!("**Hovered:** Y Position `{}`\n", parts[3])); },
+                            Some(4) => { hover_text.push_str(&format!("**Hovered:** Z Position `{}`\n", parts[4])); },
+                            Some(5) => { hover_text.push_str(&format!("**Hovered:** Rotation `{}`\n", parts[5])); },
+                            Some(6) => { hover_text.push_str(&format!("**Hovered:** Offset `{}`\n", parts[6])); },
+                            _ => {}
+                        }
+                    }
+
+                    return Ok(Some(Hover {
+                        contents: HoverContents::Markup(MarkupContent {
+                            kind: MarkupKind::Markdown,
+                            value: hover_text,
+                        }),
+                        range: None,
+                    }));
+                }
+                return Ok(None);
+            } else if uri.ends_with("supply_nodes.txt") {
+                let hover_text = String::from("### 📦 Supply Node Definition\n\n`Level (integer) Province ID (integer)`");
+                return Ok(Some(Hover {
+                    contents: HoverContents::Markup(MarkupContent {
+                        kind: MarkupKind::Markdown,
+                        value: hover_text,
+                    }),
+                    range: None,
+                }));
+            } else if uri.ends_with("railways.txt") {
+                let hover_text = String::from("### 🚂 Railway Definition\n\n`Level (integer) Amount of provinces (integer) List of provinces (space-separated integers)`");
+                return Ok(Some(Hover {
+                    contents: HoverContents::Markup(MarkupContent {
+                        kind: MarkupKind::Markdown,
+                        value: hover_text,
+                    }),
+                    range: None,
+                }));
+            } else if {
+                let map_config = crate::map_config::get_map_config(std::path::Path::new("."));
+                uri.ends_with(&map_config.adjacencies)
+            } {
+                if let Some(line) = content.lines().nth(position.line as usize) {
+                    let mut hover_text = String::from("### 🚢 Adjacency Definition\n\n");
+                    hover_text.push_str("`Start province ID; End province ID; Adjacency type; Through province ID; Starting X; Starting Y; Ending X; Ending Y; Adjacency rule; Comment`\n\n---\n\n");
+                    
+                    let parts: Vec<&str> = line.split(';').collect();
+                    if parts.len() >= 2 {
+                        let mut current_col = 0;
+                        let mut hovered_index = None;
+                        for (i, part) in parts.iter().enumerate() {
+                            let end_col = current_col + part.len() as u32;
+                            if position.character >= current_col && position.character <= end_col {
+                                hovered_index = Some(i);
+                                break;
+                            }
+                            current_col = end_col + 1;
+                        }
+                        
+                        match hovered_index {
+                            Some(0) => { hover_text.push_str(&format!("**Hovered:** Start Province ID `{}`\n", parts[0])); },
+                            Some(1) => { hover_text.push_str(&format!("**Hovered:** End Province ID `{}`\n", parts[1])); },
+                            Some(2) => { hover_text.push_str(&format!("**Hovered:** Adjacency Type `{}`\n", parts[2])); },
+                            Some(3) => { hover_text.push_str(&format!("**Hovered:** Through Province ID `{}`\n", parts[3])); },
+                            Some(4) => { hover_text.push_str(&format!("**Hovered:** Starting X `{}`\n", parts[4])); },
+                            Some(5) => { hover_text.push_str(&format!("**Hovered:** Starting Y `{}`\n", parts[5])); },
+                            Some(6) => { hover_text.push_str(&format!("**Hovered:** Ending X `{}`\n", parts[6])); },
+                            Some(7) => { hover_text.push_str(&format!("**Hovered:** Ending Y `{}`\n", parts[7])); },
+                            Some(8) => { hover_text.push_str(&format!("**Hovered:** Adjacency Rule `{}`\n", parts[8])); },
+                            Some(9) => { hover_text.push_str(&format!("**Hovered:** Comment `{}`\n", parts[9])); },
+                            _ => {}
+                        }
+                    }
+
+                    return Ok(Some(Hover {
+                        contents: HoverContents::Markup(MarkupContent {
+                            kind: MarkupKind::Markdown,
+                            value: hover_text,
+                        }),
+                        range: None,
+                    }));
+                }
+                return Ok(None);
+            } else if {
+                let map_config = crate::map_config::get_map_config(std::path::Path::new("."));
+                uri.ends_with(&map_config.definitions)
+            } {
+                if let Some(line) = content.lines().nth(position.line as usize) {
+                    let mut hover_text = String::from("### 🗺️ Province Definition\n\n");
+                    hover_text.push_str("`Province ID; R; G; B; Province type; Coastal status; Terrain; Continent`\n\n---\n\n");
+                    
+                    let parts: Vec<&str> = line.split(';').collect();
+                    if parts.len() >= 8 {
+                        let mut current_col = 0;
+                        let mut hovered_index = None;
+                        for (i, part) in parts.iter().enumerate() {
+                            let end_col = current_col + part.len() as u32;
+                            if position.character >= current_col && position.character <= end_col {
+                                hovered_index = Some(i);
+                                break;
+                            }
+                            current_col = end_col + 1;
+                        }
+                        
+                        match hovered_index {
+                            Some(0) => { hover_text.push_str(&format!("**Hovered:** Province ID `{}`\n", parts[0])); },
+                            Some(1) => { hover_text.push_str(&format!("**Hovered:** Red `{}`\n", parts[1])); },
+                            Some(2) => { hover_text.push_str(&format!("**Hovered:** Green `{}`\n", parts[2])); },
+                            Some(3) => { hover_text.push_str(&format!("**Hovered:** Blue `{}`\n", parts[3])); },
+                            Some(4) => { hover_text.push_str(&format!("**Hovered:** Province Type `{}` (land, sea, or lake)\n", parts[4])); },
+                            Some(5) => { hover_text.push_str(&format!("**Hovered:** Coastal Status `{}` (true or false)\n", parts[5])); },
+                            Some(6) => { hover_text.push_str(&format!("**Hovered:** Terrain `{}`\n", parts[6])); },
+                            Some(7) => { hover_text.push_str(&format!("**Hovered:** Continent ID `{}`\n", parts[7])); },
+                            _ => {}
+                        }
+                    }
+
+                    return Ok(Some(Hover {
+                        contents: HoverContents::Markup(MarkupContent {
+                            kind: MarkupKind::Markdown,
+                            value: hover_text,
+                        }),
+                        range: None,
+                    }));
+                }
+                return Ok(None);
+            } else if uri.ends_with(".csv") {
+                return Ok(None); // Skip CSV files for script hover
             }
 
-            if let Ok(script) = parser::parse_script(&content) {
+            { let (script, _) = parser::parse_script(&content);
                 let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
                 let achievements = self.achievements.read().await;
                 if let Some((identifier, final_scopes, assigned_value)) = find_identifier_at(&script, position, &mut scope_stack, &achievements) {
@@ -564,16 +795,16 @@ impl LanguageServer for Backend {
                     }
 
                     // Check for states
-                    let mut state_id_opt = None;
+                    let mut id_opt = None;
                     if let Some(ast::Value::Number(n)) = &assigned_value {
-                        state_id_opt = Some(*n as u32);
+                        id_opt = Some(*n as u32);
                     } else if let Ok(n) = identifier.parse::<u32>() {
-                        state_id_opt = Some(n);
+                        id_opt = Some(n);
                     }
-                    
-                    if let Some(state_id) = state_id_opt {
+
+                    if let Some(id) = id_opt {
                         let states = self.states.read().await;
-                        if let Some(state) = states.get(&state_id) {
+                        if let Some(state) = states.get(&id) {
                             // To prevent false positives, we only show this if the identifier is explicitly related to states
                             // Or if the identifier *is* the number (meaning it's an element in an array, like in any_state_of)
                             let ident_lower = identifier.to_lowercase();
@@ -582,7 +813,7 @@ impl LanguageServer for Backend {
                                                ident_lower == "add_core_of" || 
                                                ident_lower == "add_claim_by" || 
                                                identifier.parse::<u32>().is_ok();
-                            
+
                             if is_state_key {
                                 let loc = self.localization.read().await;
                                 let state_name = if let Some(loc_entry) = loc.get(&state.name) {
@@ -590,8 +821,50 @@ impl LanguageServer for Backend {
                                 } else {
                                     state.name.clone()
                                 };
-                                
-                                push_section(&mut hover_text, &format!("### 🗺️ State: {}\n\nID: `{}`\n\nDefined in: {}", state_name, state_id, self.make_file_link(&state.path)));
+
+                                push_section(&mut hover_text, &format!("### 🗺️ State: {}\n\nID: `{}`\n\nDefined in: {}", state_name, id, self.make_file_link(&state.path)));
+                            }
+                        }
+
+                        let provinces = self.provinces.read().await;
+                        if let Some(province) = provinces.get(&id) {
+                            let ident_lower = identifier.to_lowercase();
+                            let is_province_key = ident_lower.contains("province") || identifier.parse::<u32>().is_ok();
+
+                            if is_province_key {
+                                let mut text = format!("### 📍 Province: {}\n\n", id);
+                                text.push_str(&format!("**Terrain:** `{}`\n", province.terrain));
+                                text.push_str(&format!("**Type:** `{}`\n", province.prov_type));
+                                text.push_str(&format!("**Coastal:** {}\n", if province.is_coastal { "Yes" } else { "No" }));
+                                text.push_str(&format!("**Continent:** `{}`\n", province.continent));
+                                text.push_str(&format!("**Color (RGB):** `{}, {}, {}`\n", province.rgb.0, province.rgb.1, province.rgb.2));
+                                push_section(&mut hover_text, &text);
+                            }
+                        }
+
+                        let regions = self.strategic_regions.read().await;
+                        if let Some(region) = regions.get(&id) {
+                            let ident_lower = identifier.to_lowercase();
+                            let is_region_key = ident_lower.contains("strategic_region") || identifier.parse::<u32>().is_ok();
+
+                            if is_region_key {
+                                let loc = self.localization.read().await;
+                                let region_name = if let Some(loc_entry) = loc.get(&region.name) {
+                                    loc_entry.value.clone()
+                                } else {
+                                    region.name.clone()
+                                };
+
+                                let mut text = format!("### 🗺️ Strategic Region: {}\n\nID: `{}`\n\n", region_name, id);
+                                if let Some(weather) = &region.weather {
+                                    text.push_str(&format!("**Weather:** `{}`\n", weather));
+                                }
+                                if let Some(naval) = &region.naval_terrain {
+                                    text.push_str(&format!("**Naval Terrain:** `{}`\n", naval));
+                                }
+                                text.push_str(&format!("**Provinces:** `{}`\n", region.provinces.len()));
+                                text.push_str(&format!("\nDefined in: {}", self.make_file_link(&region.path)));
+                                push_section(&mut hover_text, &text);
                             }
                         }
                     }
@@ -765,7 +1038,7 @@ impl LanguageServer for Backend {
                                 if let Some(ideology) = &role.ideology {
                                     char_text.push_str(&format!(" (Ideology: `{}`)", ideology));
                                 }
-                                
+
                                 let mut skills = Vec::new();
                                 if let Some(s) = role.skill { skills.push(format!("Skill: {}", s)); }
                                 if let Some(s) = role.attack_skill { skills.push(format!("Attack: {}", s)); }
@@ -774,7 +1047,7 @@ impl LanguageServer for Backend {
                                 if let Some(s) = role.logistics_skill { skills.push(format!("Logistics: {}", s)); }
                                 if let Some(s) = role.maneuvering_skill { skills.push(format!("Maneuvering: {}", s)); }
                                 if let Some(s) = role.coordination_skill { skills.push(format!("Coordination: {}", s)); }
-                                
+
                                 if !skills.is_empty() {
                                     char_text.push_str(&format!(" [{}]", skills.join(", ")));
                                 }
@@ -1025,7 +1298,7 @@ impl LanguageServer for Backend {
 
         if is_music_file || is_sound_file {
             if let Some(content) = self.documents.get(&uri) {
-                if let Ok(script) = parser::parse_script(&content) {
+                { let (script, _) = parser::parse_script(&content);
                     if let Some(context_key) = find_context_at(&script, position) {
                         let mut completion_items = Vec::new();
                         let key_lower = context_key.to_lowercase();
@@ -1097,7 +1370,7 @@ impl LanguageServer for Backend {
 
         // Try to find context for HOI4 scripts
         if let Some(content) = self.documents.get(&uri) {
-            if let Ok(script) = parser::parse_script(&content) {
+            { let (script, _) = parser::parse_script(&content);
                 let achievements = self.achievements.read().await;
                 let (ctx, scopes) = find_scope_context_at(&script, position, &achievements);
                 current_scopes = scopes;
@@ -1394,12 +1667,11 @@ impl LanguageServer for Backend {
         if let Some(content) = self.documents.get(&uri) {
             let identifier = if uri.ends_with(".yml") {
                 find_identifier_in_loc(&content, position)
-            } else if let Ok(script) = parser::parse_script(&content) {
+            } else {
+                let (script, _) = parser::parse_script(&content);
                 let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
                 let achievements = self.achievements.read().await;
                 find_identifier_at(&script, position, &mut scope_stack, &achievements).map(|(id, _, _)| id)
-            } else {
-                None
             };
 
             if let Some(identifier) = identifier {
@@ -1527,6 +1799,20 @@ impl LanguageServer for Backend {
                         sources.push(ast_range_to_lsp_location(&category.range, &category.path));
                     }
 
+                    // Check adjacency rules
+                    let rule_lock = self.adjacency_rules.read().await;
+                    if let Some(rule) = rule_lock.get(&identifier) {
+                        sources.push(ast_range_to_lsp_location(&rule.range, &rule.path));
+                    }
+
+                    // Check strategic regions
+                    let regions = self.strategic_regions.read().await;
+                    if let Ok(id) = identifier.parse::<u32>() {
+                        if let Some(region) = regions.get(&id) {
+                            sources.push(ast_range_to_lsp_location(&region.range, &region.path));
+                        }
+                    }
+
                     let mappings = self.modifier_mappings.read().await;
                     if let Some(loc_key) = mappings.get(&identifier) {
                         let loc = self.localization.read().await;
@@ -1569,7 +1855,7 @@ impl LanguageServer for Backend {
         let position = params.text_document_position.position;
 
         if let Some(content) = self.documents.get(&uri) {
-            if let Ok(script) = parser::parse_script(&content) {
+            { let (script, _) = parser::parse_script(&content);
                 let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
                 let achievements = self.achievements.read().await;
                 if let Some((identifier, _, _)) = find_identifier_at(&script, position, &mut scope_stack, &achievements) {
@@ -1868,7 +2154,7 @@ impl LanguageServer for Backend {
         // Add "Fix all" if any casing diagnostic is present
         if has_casing_diagnostic {
             if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
-                if let Ok(script) = parser::parse_script(&content) {
+                { let (script, _) = parser::parse_script(&content);
                     let mut all_fixes = Vec::new();
                     self.collect_casing_fixes(&script.entries, &mut all_fixes);
 
@@ -1930,7 +2216,7 @@ impl LanguageServer for Backend {
             if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
                 let is_yaml = params.text_document.uri.as_str().ends_with(".yml");
                 let parsed = parser::parse_script(&content);
-                let script_opt = if is_yaml { None } else { parsed.as_ref().ok() };
+                let script_opt = if is_yaml { None } else { Some(&parsed.0) };
 
                 let mut all_fixes = Vec::new();
                 self.collect_indentation_fixes(&content, script_opt, &mut all_fixes);
@@ -1961,7 +2247,7 @@ impl LanguageServer for Backend {
         // Add "Surround all assignment operators with spaces" if any such diagnostic is present
         if has_assignment_space_diagnostic {
             if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
-                if let Ok(script) = parser::parse_script(&content) {
+                { let (script, _) = parser::parse_script(&content);
                     let mut all_fixes = Vec::new();
                     self.collect_assignment_space_fixes(&script.entries, &mut all_fixes, &content);
 
@@ -1992,7 +2278,7 @@ impl LanguageServer for Backend {
         // Add "Fix curly brace spacing" if any such diagnostic is present
         if has_brace_space_diagnostic {
             if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
-                if let Ok(script) = parser::parse_script(&content) {
+                { let (script, _) = parser::parse_script(&content);
                     let mut all_fixes = Vec::new();
                     self.collect_brace_space_fixes(&script.entries, &mut all_fixes, &content);
                     self.collect_brace_newline_fixes(&script.entries, &mut all_fixes);
@@ -2120,13 +2406,9 @@ impl LanguageServer for Backend {
             let content = entry.value();
 
             // Parse the document
-            match parser::parse_script(content) {
-                Ok(script) => {
-                    let symbols = document_symbols::generate_document_symbols(&script.entries);
-                    Ok(Some(DocumentSymbolResponse::Nested(symbols)))
-                }
-                Err(_) => Ok(None),
-            }
+            let (script, _) = parser::parse_script(content);
+            let symbols = document_symbols::generate_document_symbols(&script.entries);
+            Ok(Some(DocumentSymbolResponse::Nested(symbols)))
         } else {
             Ok(None)
         }
@@ -2150,6 +2432,13 @@ impl LanguageServer for Backend {
             &self.scripted_locs,
             &self.localization,
             &self.states,
+            &self.supply_nodes,
+            &self.railways,
+            &self.map_buildings,
+            &self.unitstacks,
+            &self.adjacencies,
+            &self.adjacency_rules,
+            &self.strategic_regions,
         ).await;
 
         Ok(Some(symbols))
@@ -2248,7 +2537,7 @@ impl Backend {
         format!("[{}]({}://{})", path, "file", abs_path.to_string_lossy().replace("\\", "/"))
     }
 
-    fn check_is_province(&self, val: &ast::NodeedValue, diagnostics: &mut Vec<Diagnostic>, provs: &HashSet<u32>) {
+    fn check_is_province(&self, val: &ast::NodeedValue, diagnostics: &mut Vec<Diagnostic>, provs: &HashMap<u32, province_scanner::Province>) {
         let id_opt = match &val.value {
             ast::Value::Number(n) => Some(*n as u32),
             ast::Value::String(s) => s.parse::<u32>().ok(),
@@ -2256,7 +2545,7 @@ impl Backend {
         };
 
         if let Some(id) = id_opt {
-            if !provs.is_empty() && !provs.contains(&id) {
+            if !provs.is_empty() && !provs.contains_key(&id) {
                 diagnostics.push(Diagnostic {
                     range: ast_range_to_lsp(&val.range),
                     severity: Some(DiagnosticSeverity::WARNING),
@@ -2280,10 +2569,59 @@ impl Backend {
     async fn scan_states(&self, roots: &[std::path::PathBuf]) {
         let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
         let result = state_scanner::scan_states(roots, &filter);
-        
+
         let mut map = self.states.write().await;
         *map = result;
         self.client.log_message(MessageType::INFO, format!("Loaded {} states", map.len())).await;
+    }
+
+    async fn scan_logistics(&self, roots: &[std::path::PathBuf]) {
+        let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
+        let result = logistics_scanner::scan_logistics(roots, &filter);
+
+        let mut sn = self.supply_nodes.write().await;
+        *sn = result.supply_nodes;
+
+        let mut rw = self.railways.write().await;
+        *rw = result.railways;
+
+        self.client.log_message(MessageType::INFO, format!("Loaded {} supply nodes, {} railways", sn.len(), rw.len())).await;
+    }
+
+    async fn scan_map_objects(&self, roots: &[std::path::PathBuf]) {
+        let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
+        let result = map_object_scanner::scan_map_objects(roots, &filter);
+
+        let mut mb = self.map_buildings.write().await;
+        *mb = result.buildings;
+
+        let mut us = self.unitstacks.write().await;
+        *us = result.unitstacks;
+
+        self.client.log_message(MessageType::INFO, format!("Loaded {} map buildings, {} unit stacks", mb.len(), us.len())).await;
+    }
+
+    async fn scan_adjacencies(&self, roots: &[std::path::PathBuf]) {
+        let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
+        let result = adjacency_scanner::scan_adjacencies(roots, &filter);
+
+        let mut adj = self.adjacencies.write().await;
+        *adj = result.adjacencies;
+
+        let mut rules = self.adjacency_rules.write().await;
+        *rules = result.rules;
+
+        self.client.log_message(MessageType::INFO, format!("Loaded {} adjacencies, {} adjacency rules", adj.len(), rules.len())).await;
+    }
+
+    async fn scan_strategic_regions(&self, roots: &[std::path::PathBuf]) {
+        let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
+        let result = strategic_region_scanner::scan_strategic_regions(roots, &filter);
+
+        let mut regions = self.strategic_regions.write().await;
+        *regions = result;
+
+        self.client.log_message(MessageType::INFO, format!("Loaded {} strategic regions", regions.len())).await;
     }
 
     async fn scan_events(&self, roots: &[std::path::PathBuf]) {
@@ -2966,7 +3304,7 @@ impl Backend {
 
         if let Some(path) = enums_path {
             if let Ok(content) = std::fs::read_to_string(&path) {
-                if let Ok(parsed) = parser::parse_script(&content) {
+                { let (parsed, _) = parser::parse_script(&content);
                     schema.parse_cwt_ast(&parsed, None);
                 }
             }
@@ -2986,7 +3324,7 @@ impl Backend {
 
         if let Some(path) = links_path {
             if let Ok(content) = std::fs::read_to_string(&path) {
-                if let Ok(parsed) = parser::parse_script(&content) {
+                { let (parsed, _) = parser::parse_script(&content);
                     schema.parse_links(&parsed);
                 }
             }
@@ -3001,7 +3339,7 @@ impl Backend {
                     let path = entry.path();
                     if path.extension().map_or(false, |ext| ext == "cwt") {
                         if let Ok(content) = std::fs::read_to_string(&path) {
-                            if let Ok(parsed) = parser::parse_script(&content) {
+                            { let (parsed, _) = parser::parse_script(&content);
                                 // Try to determine kind from filename
                                 let filename = path.file_name().unwrap_or_default().to_string_lossy();
                                 let kind = if filename.contains("trigger") { Some("trigger") }
@@ -3136,7 +3474,7 @@ impl Backend {
         self.client.log_message(MessageType::INFO, format!("Starting workspace diagnostic scan in: {:?}", root)).await;
 
         let mut dirs_to_check = vec![root.to_path_buf()];
-        let extensions = ["txt", "yml"];
+        let extensions = ["txt", "yml", "csv"];
         let mut file_count = 0;
 
         while let Some(current_dir) = dirs_to_check.pop() {
@@ -3195,24 +3533,55 @@ impl Backend {
 
         if uri.as_str().ends_with(".yml") {
             self.validate_localization_content(content, &mut diagnostics).await;
+        } else if uri.as_str().ends_with("supply_nodes.txt") {
+            self.validate_supply_nodes_content(content, &mut diagnostics).await;
+        } else if uri.as_str().ends_with("railways.txt") {
+            self.validate_railways_content(content, &mut diagnostics).await;
+        } else if uri.as_str().ends_with("buildings.txt") {
+            self.validate_map_buildings_content(content, &mut diagnostics).await;
+        } else if uri.as_str().ends_with("unitstacks.txt") {
+            self.validate_unitstacks_content(content, &mut diagnostics).await;
+        } else if {
+            let map_config = crate::map_config::get_map_config(std::path::Path::new("."));
+            uri.as_str().ends_with(&map_config.adjacencies)
+        } {
+            self.validate_adjacencies_content(content, &mut diagnostics).await;
+        } else if {
+            let map_config = crate::map_config::get_map_config(std::path::Path::new("."));
+            uri.as_str().ends_with(&map_config.definitions)
+        } {
+            self.validate_definition_content(content, &mut diagnostics).await;
+        } else if uri.as_str().contains("strategicregions") && uri.as_str().ends_with(".txt") {
+            let (script, parse_errors) = parser::parse_script(content);
+            for (msg, range) in parse_errors {
+                diagnostics.push(Diagnostic {
+                    range: ast_range_to_lsp(&range),
+                    severity: Some(DiagnosticSeverity::ERROR),
+                    message: msg,
+                    code: Some(NumberOrString::String(advanced_validation::PARSE_ERROR.to_string())),
+                    source: Some("Hearts of Modding".to_string()),
+                    ..Default::default()
+                });
+            }
+            self.validate_strategic_region_content(&script, &mut diagnostics).await;
+            script_opt = Some(script);
+        } else if uri.as_str().ends_with(".csv") {
+            // Do not parse other CSV files as clausewitz scripts
         } else {
-            match parser::parse_script(content) {
-                Ok(script) => {
-                    // Semantic validation
-                    self.check_semantic(&script, &mut diagnostics, styling_enabled, uri.as_str()).await;
-                    script_opt = Some(script);
-                }
-                Err((msg, range)) => {
-                    diagnostics.push(Diagnostic {
-                        range: ast_range_to_lsp(&range),
-                        severity: Some(DiagnosticSeverity::ERROR),
-                        message: msg,
-                        code: Some(NumberOrString::String(advanced_validation::PARSE_ERROR.to_string())),
-                        source: Some("Hearts of Modding".to_string()),
-                        ..Default::default()
-                    });
-                }
-            };
+            let (script, parse_errors) = parser::parse_script(content);
+            for (msg, range) in parse_errors {
+                diagnostics.push(Diagnostic {
+                    range: ast_range_to_lsp(&range),
+                    severity: Some(DiagnosticSeverity::ERROR),
+                    message: msg,
+                    code: Some(NumberOrString::String(advanced_validation::PARSE_ERROR.to_string())),
+                    source: Some("Hearts of Modding".to_string()),
+                    ..Default::default()
+                });
+            }
+            // Semantic validation
+            self.check_semantic(&script, &mut diagnostics, styling_enabled, uri.as_str()).await;
+            script_opt = Some(script);
         }
 
         if styling_enabled {
@@ -3221,6 +3590,325 @@ impl Backend {
         }
 
         diagnostics
+    }
+
+    async fn validate_supply_nodes_content(&self, content: &str, diagnostics: &mut Vec<Diagnostic>) {
+        let provs = self.provinces.read().await;
+        for (i, line) in content.lines().enumerate() {
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if parts.len() >= 2 {
+                if let Ok(id) = parts[1].parse::<u32>() {
+                    if !provs.is_empty() && !provs.contains_key(&id) {
+                        diagnostics.push(Diagnostic {
+                            range: Range { start: Position { line: i as u32, character: 0 }, end: Position { line: i as u32, character: 100 } },
+                            severity: Some(DiagnosticSeverity::WARNING),
+                            message: format!("Unknown province ID: {}", id),
+                            ..Default::default()
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    async fn validate_railways_content(&self, content: &str, diagnostics: &mut Vec<Diagnostic>) {
+        let provs = self.provinces.read().await;
+        for (i, line) in content.lines().enumerate() {
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if parts.len() >= 2 {
+                if let Ok(num_provs) = parts[1].parse::<usize>() {
+                    for j in 0..num_provs {
+                        if parts.len() > 2 + j {
+                            if let Ok(id) = parts[2 + j].parse::<u32>() {
+                                if !provs.is_empty() && !provs.contains_key(&id) {
+                                    diagnostics.push(Diagnostic {
+                                        range: Range { start: Position { line: i as u32, character: 0 }, end: Position { line: i as u32, character: 100 } },
+                                        severity: Some(DiagnosticSeverity::WARNING),
+                                        message: format!("Unknown province ID: {}", id),
+                                        ..Default::default()
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    async fn validate_map_buildings_content(&self, content: &str, diagnostics: &mut Vec<Diagnostic>) {
+        let states = self.states.read().await;
+        for (i, line) in content.lines().enumerate() {
+            let parts: Vec<&str> = line.split(';').collect();
+            if parts.len() >= 7 {
+                if let Ok(id) = parts[0].parse::<u32>() {
+                    if !states.is_empty() && !states.contains_key(&id) {
+                        diagnostics.push(Diagnostic {
+                            range: Range { start: Position { line: i as u32, character: 0 }, end: Position { line: i as u32, character: 100 } },
+                            severity: Some(DiagnosticSeverity::WARNING),
+                            message: format!("Unknown state ID: {}", id),
+                            ..Default::default()
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    async fn validate_unitstacks_content(&self, content: &str, diagnostics: &mut Vec<Diagnostic>) {
+        let provs = self.provinces.read().await;
+        for (i, line) in content.lines().enumerate() {
+            let parts: Vec<&str> = line.split(';').collect();
+            if parts.len() >= 7 {
+                if let Ok(id) = parts[0].parse::<u32>() {
+                    if !provs.is_empty() && !provs.contains_key(&id) {
+                        diagnostics.push(Diagnostic {
+                            range: Range { start: Position { line: i as u32, character: 0 }, end: Position { line: i as u32, character: 100 } },
+                            severity: Some(DiagnosticSeverity::WARNING),
+                            message: format!("Unknown province ID: {}", id),
+                            ..Default::default()
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    async fn validate_definition_content(&self, content: &str, diagnostics: &mut Vec<Diagnostic>) {
+        for (i, line) in content.lines().enumerate() {
+            let trimmed = line.trim();
+            if trimmed.is_empty() || trimmed.starts_with('#') {
+                continue;
+            }
+            let parts: Vec<&str> = line.split(';').collect();
+            if parts.len() < 8 {
+                diagnostics.push(Diagnostic {
+                    range: Range { start: Position { line: i as u32, character: 0 }, end: Position { line: i as u32, character: line.len() as u32 } },
+                    severity: Some(DiagnosticSeverity::ERROR),
+                    message: format!("Expected at least 8 columns, found {}", parts.len()),
+                    ..Default::default()
+                });
+                continue;
+            }
+
+            if parts[0].parse::<u32>().is_err() {
+                diagnostics.push(Diagnostic {
+                    range: Range { start: Position { line: i as u32, character: 0 }, end: Position { line: i as u32, character: parts[0].len() as u32 } },
+                    severity: Some(DiagnosticSeverity::ERROR),
+                    message: "Province ID must be an integer".to_string(),
+                    ..Default::default()
+                });
+            }
+
+            for j in 1..=3 {
+                if parts[j].parse::<u8>().is_err() {
+                    let mut start_col = 0;
+                    for k in 0..j { start_col += parts[k].len() as u32 + 1; }
+                    diagnostics.push(Diagnostic {
+                        range: Range { start: Position { line: i as u32, character: start_col }, end: Position { line: i as u32, character: start_col + parts[j].len() as u32 } },
+                        severity: Some(DiagnosticSeverity::ERROR),
+                        message: "Color component must be an integer between 0 and 255".to_string(),
+                        ..Default::default()
+                    });
+                }
+            }
+
+            let p_type = parts[4].trim();
+            if p_type != "land" && p_type != "sea" && p_type != "lake" {
+                let mut start_col = 0;
+                for k in 0..4 { start_col += parts[k].len() as u32 + 1; }
+                diagnostics.push(Diagnostic {
+                    range: Range { start: Position { line: i as u32, character: start_col }, end: Position { line: i as u32, character: start_col + parts[4].len() as u32 } },
+                    severity: Some(DiagnosticSeverity::ERROR),
+                    message: "Province type must be 'land', 'sea', or 'lake'".to_string(),
+                    ..Default::default()
+                });
+            }
+
+            let coastal = parts[5].trim();
+            if coastal != "true" && coastal != "false" {
+                let mut start_col = 0;
+                for k in 0..5 { start_col += parts[k].len() as u32 + 1; }
+                diagnostics.push(Diagnostic {
+                    range: Range { start: Position { line: i as u32, character: start_col }, end: Position { line: i as u32, character: start_col + parts[5].len() as u32 } },
+                    severity: Some(DiagnosticSeverity::ERROR),
+                    message: "Coastal status must be 'true' or 'false'".to_string(),
+                    ..Default::default()
+                });
+            }
+
+            if parts[7].parse::<u32>().is_err() {
+                let mut start_col = 0;
+                for k in 0..7 { start_col += parts[k].len() as u32 + 1; }
+                diagnostics.push(Diagnostic {
+                    range: Range { start: Position { line: i as u32, character: start_col }, end: Position { line: i as u32, character: start_col + parts[7].len() as u32 } },
+                    severity: Some(DiagnosticSeverity::ERROR),
+                    message: "Continent must be an integer".to_string(),
+                    ..Default::default()
+                });
+            }
+        }
+    }
+
+    async fn validate_adjacencies_content(&self, content: &str, diagnostics: &mut Vec<Diagnostic>) {
+        let provs = self.provinces.read().await;
+        let rules = self.adjacency_rules.read().await;
+        for (i, line) in content.lines().enumerate() {
+            let trimmed = line.trim();
+            if trimmed.is_empty() || trimmed.starts_with('#') {
+                continue;
+            }
+            let parts: Vec<&str> = trimmed.split(';').collect();
+            if parts.len() < 9 {
+                diagnostics.push(Diagnostic {
+                    range: Range { start: Position { line: i as u32, character: 0 }, end: Position { line: i as u32, character: line.len() as u32 } },
+                    severity: Some(DiagnosticSeverity::ERROR),
+                    message: format!("Expected at least 9 columns, found {}", parts.len()),
+                    ..Default::default()
+                });
+                continue;
+            }
+
+            if parts.len() >= 9 {
+                if let Ok(id) = parts[0].parse::<u32>() {
+                    if !provs.is_empty() && !provs.contains_key(&id) {
+                        diagnostics.push(Diagnostic {
+                            range: Range { start: Position { line: i as u32, character: 0 }, end: Position { line: i as u32, character: parts[0].len() as u32 } },
+                            severity: Some(DiagnosticSeverity::WARNING),
+                            message: format!("Unknown start province ID: {}", id),
+                            ..Default::default()
+                        });
+                    }
+                } else {
+                    diagnostics.push(Diagnostic {
+                        range: Range { start: Position { line: i as u32, character: 0 }, end: Position { line: i as u32, character: parts[0].len() as u32 } },
+                        severity: Some(DiagnosticSeverity::ERROR),
+                        message: "Start province ID must be an integer".to_string(),
+                        ..Default::default()
+                    });
+                }
+                
+                let p1_len = parts[0].len() as u32 + 1;
+                if let Ok(id) = parts[1].parse::<u32>() {
+                    if !provs.is_empty() && !provs.contains_key(&id) {
+                        diagnostics.push(Diagnostic {
+                            range: Range { start: Position { line: i as u32, character: p1_len }, end: Position { line: i as u32, character: p1_len + parts[1].len() as u32 } },
+                            severity: Some(DiagnosticSeverity::WARNING),
+                            message: format!("Unknown end province ID: {}", id),
+                            ..Default::default()
+                        });
+                    }
+                } else {
+                    diagnostics.push(Diagnostic {
+                        range: Range { start: Position { line: i as u32, character: p1_len }, end: Position { line: i as u32, character: p1_len + parts[1].len() as u32 } },
+                        severity: Some(DiagnosticSeverity::ERROR),
+                        message: "End province ID must be an integer".to_string(),
+                        ..Default::default()
+                    });
+                }
+                
+                let mut p3_col = 0;
+                for k in 0..3 { p3_col += parts[k].len() as u32 + 1; }
+                if let Ok(id) = parts[3].parse::<i32>() {
+                    if id > 0 && !provs.is_empty() && !provs.contains_key(&(id as u32)) {
+                        diagnostics.push(Diagnostic {
+                            range: Range { start: Position { line: i as u32, character: p3_col }, end: Position { line: i as u32, character: p3_col + parts[3].len() as u32 } },
+                            severity: Some(DiagnosticSeverity::WARNING),
+                            message: format!("Unknown through province ID: {}", id),
+                            ..Default::default()
+                        });
+                    }
+                } else if !parts[3].trim().is_empty() {
+                    diagnostics.push(Diagnostic {
+                        range: Range { start: Position { line: i as u32, character: p3_col }, end: Position { line: i as u32, character: p3_col + parts[3].len() as u32 } },
+                        severity: Some(DiagnosticSeverity::ERROR),
+                        message: "Through province ID must be an integer".to_string(),
+                        ..Default::default()
+                    });
+                }
+
+                // Check coords
+                for j in 4..=7 {
+                    if !parts[j].trim().is_empty() && parts[j].parse::<i32>().is_err() {
+                        let mut start_col = 0;
+                        for k in 0..j { start_col += parts[k].len() as u32 + 1; }
+                        diagnostics.push(Diagnostic {
+                            range: Range { start: Position { line: i as u32, character: start_col }, end: Position { line: i as u32, character: start_col + parts[j].len() as u32 } },
+                            severity: Some(DiagnosticSeverity::ERROR),
+                            message: "Coordinate must be an integer".to_string(),
+                            ..Default::default()
+                        });
+                    }
+                }
+
+                let p8_col = {
+                    let mut c = 0;
+                    for k in 0..8 { c += parts[k].len() as u32 + 1; }
+                    c
+                };
+                let rule_name = parts[8].trim();
+                if !rule_name.is_empty() && !rules.is_empty() && !rules.contains_key(rule_name) {
+                    diagnostics.push(Diagnostic {
+                        range: Range { start: Position { line: i as u32, character: p8_col }, end: Position { line: i as u32, character: p8_col + parts[8].len() as u32 } },
+                        severity: Some(DiagnosticSeverity::WARNING),
+                        message: format!("Unknown adjacency rule: {}", rule_name),
+                        ..Default::default()
+                    });
+                }
+            }
+        }
+    }
+
+    async fn validate_strategic_region_content(&self, script: &ast::Script, diagnostics: &mut Vec<Diagnostic>) {
+        let provs = self.provinces.read().await;
+        
+        for entry in &script.entries {
+            if let ast::Entry::Assignment(ass) = entry {
+                if ass.key.to_lowercase() == "strategic_region" {
+                    if let ast::Value::Block(region_entries) = &ass.value.value {
+                        for region_entry in region_entries {
+                            if let ast::Entry::Assignment(r_ass) = region_entry {
+                                if r_ass.key.to_lowercase() == "provinces" {
+                                    if let ast::Value::Block(prov_entries) = &r_ass.value.value {
+                                        for prov_entry in prov_entries {
+                                            if let ast::Entry::Value(val) = prov_entry {
+                                                if let ast::Value::Number(id) = &val.value {
+                                                    let id_u32 = *id as u32;
+                                                    if !provs.is_empty() && !provs.contains_key(&id_u32) {
+                                                        diagnostics.push(Diagnostic {
+                                                            range: ast_range_to_lsp(&val.range),
+                                                            severity: Some(DiagnosticSeverity::WARNING),
+                                                            message: format!("Unknown province ID: {}", id_u32),
+                                                            ..Default::default()
+                                                        });
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    } else if let ast::Value::TaggedBlock(_, prov_entries, _) = &r_ass.value.value {
+                                        for prov_entry in prov_entries {
+                                            if let ast::Entry::Value(val) = prov_entry {
+                                                if let ast::Value::Number(id) = &val.value {
+                                                    let id_u32 = *id as u32;
+                                                    if !provs.is_empty() && !provs.contains_key(&id_u32) {
+                                                        diagnostics.push(Diagnostic {
+                                                            range: ast_range_to_lsp(&val.range),
+                                                            severity: Some(DiagnosticSeverity::WARNING),
+                                                            message: format!("Unknown province ID: {}", id_u32),
+                                                            ..Default::default()
+                                                        });
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     async fn validate_localization_content(&self, content: &str, diagnostics: &mut Vec<Diagnostic>) {
@@ -3646,7 +4334,7 @@ impl Backend {
         tr: &HashMap<String, trait_scanner::Trait>,
         sp: &HashMap<String, sprite_scanner::Sprite>,
         ids: &HashMap<String, idea_scanner::Idea>,
-        provs: &HashSet<u32>,
+        provs: &HashMap<u32, province_scanner::Province>,
         schema: &schema::Schema,
         mod_maps: &HashMap<String, String>,
         ig_loc: &[regex::Regex],
@@ -4006,7 +4694,7 @@ impl Backend {
         tr: &HashMap<String, trait_scanner::Trait>,
         sp: &HashMap<String, sprite_scanner::Sprite>,
         ids: &HashMap<String, idea_scanner::Idea>,
-        provs: &HashSet<u32>,
+        provs: &HashMap<u32, province_scanner::Province>,
         schema: &schema::Schema,
         mod_maps: &HashMap<String, String>,
         ig_loc: &[regex::Regex],
@@ -4121,7 +4809,7 @@ async fn main() {
         characters: Arc::new(RwLock::new(HashMap::new())),
         variables: Arc::new(RwLock::new(HashMap::new())),
         event_targets: Arc::new(RwLock::new(HashMap::new())),
-        provinces: Arc::new(RwLock::new(HashSet::new())),
+        provinces: Arc::new(RwLock::new(HashMap::new())),
         custom_modifiers: Arc::new(RwLock::new(HashMap::new())),
         modifier_mappings: Arc::new(RwLock::new(HashMap::new())),
         modifier_formats: Arc::new(RwLock::new(HashMap::new())),
@@ -4146,6 +4834,13 @@ async fn main() {
         abilities: Arc::new(RwLock::new(HashMap::new())),
         scripted_locs: Arc::new(RwLock::new(HashMap::new())),
         states: Arc::new(RwLock::new(HashMap::new())),
+        supply_nodes: Arc::new(RwLock::new(Vec::new())),
+        railways: Arc::new(RwLock::new(Vec::new())),
+        map_buildings: Arc::new(RwLock::new(Vec::new())),
+        unitstacks: Arc::new(RwLock::new(Vec::new())),
+        adjacencies: Arc::new(RwLock::new(Vec::new())),
+        adjacency_rules: Arc::new(RwLock::new(HashMap::new())),
+        strategic_regions: Arc::new(RwLock::new(HashMap::new())),
     });
     Server::new(stdin, stdout, socket).serve(service).await;
 }

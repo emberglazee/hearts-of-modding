@@ -31,6 +31,13 @@ pub async fn generate_workspace_symbols(
     scripted_locs: &Arc<RwLock<HashMap<String, crate::scripted_loc_scanner::ScriptedLoc>>>,
     localization: &Arc<RwLock<HashMap<String, crate::loc_parser::LocEntry>>>,
     states: &Arc<RwLock<HashMap<u32, crate::state_scanner::State>>>,
+    supply_nodes: &Arc<RwLock<Vec<crate::logistics_scanner::SupplyNode>>>,
+    railways: &Arc<RwLock<Vec<crate::logistics_scanner::Railway>>>,
+    map_buildings: &Arc<RwLock<Vec<crate::map_object_scanner::MapBuilding>>>,
+    unitstacks: &Arc<RwLock<Vec<crate::map_object_scanner::UnitStack>>>,
+    adjacencies: &Arc<RwLock<Vec<crate::adjacency_scanner::Adjacency>>>,
+    adjacency_rules: &Arc<RwLock<HashMap<String, crate::adjacency_scanner::AdjacencyRule>>>,
+    strategic_regions: &Arc<RwLock<HashMap<u32, crate::strategic_region_scanner::StrategicRegion>>>,
 ) -> Vec<SymbolInformation> {
     let mut symbols = Vec::new();
     let query_lower = query.to_lowercase();
@@ -183,6 +190,158 @@ pub async fn generate_workspace_symbols(
                     range: range_to_lsp(&state.range),
                 },
                 container_name: Some("State".to_string()),
+            });
+        }
+    }
+
+    // Search logistics
+    let sn_lock = supply_nodes.read().await;
+    for node in sn_lock.iter() {
+        let name = format!("Supply Node in Province {}", node.province_id);
+        if fuzzy_match(&query_lower, &name.to_lowercase()) || fuzzy_match(&query_lower, &node.province_id.to_string()) {
+            #[allow(deprecated)]
+            symbols.push(SymbolInformation {
+                name,
+                kind: SymbolKind::OBJECT,
+                tags: None,
+                deprecated: None,
+                location: Location {
+                    uri: path_to_url(&node.path),
+                    range: LspRange {
+                        start: LspPosition { line: node.start_line, character: 0 },
+                        end: LspPosition { line: node.start_line, character: 100 },
+                    },
+                },
+                container_name: Some("Supply Node".to_string()),
+            });
+        }
+    }
+
+    let rw_lock = railways.read().await;
+    for rw in rw_lock.iter() {
+        let name = format!("Railway (Lvl {})", rw.level);
+        if fuzzy_match(&query_lower, "railway") {
+            #[allow(deprecated)]
+            symbols.push(SymbolInformation {
+                name,
+                kind: SymbolKind::OBJECT,
+                tags: None,
+                deprecated: None,
+                location: Location {
+                    uri: path_to_url(&rw.path),
+                    range: LspRange {
+                        start: LspPosition { line: rw.start_line, character: 0 },
+                        end: LspPosition { line: rw.start_line, character: 100 },
+                    },
+                },
+                container_name: Some("Railway".to_string()),
+            });
+        }
+    }
+
+    // Search Map Buildings
+    let mb_lock = map_buildings.read().await;
+    for mb in mb_lock.iter() {
+        let name = format!("Building '{}' in State {}", mb.building_id, mb.state_id);
+        if fuzzy_match(&query_lower, &mb.building_id.to_lowercase()) || fuzzy_match(&query_lower, &mb.state_id.to_string()) {
+            #[allow(deprecated)]
+            symbols.push(SymbolInformation {
+                name,
+                kind: SymbolKind::OBJECT,
+                tags: None,
+                deprecated: None,
+                location: Location {
+                    uri: path_to_url(&mb.path),
+                    range: LspRange {
+                        start: LspPosition { line: mb.start_line, character: 0 },
+                        end: LspPosition { line: mb.start_line, character: 100 },
+                    },
+                },
+                container_name: Some("Map Building".to_string()),
+            });
+        }
+    }
+
+    // Search Unitstacks
+    let us_lock = unitstacks.read().await;
+    for us in us_lock.iter() {
+        let name = format!("Unitstack {} in Province {}", us.stack_type, us.province_id);
+        if fuzzy_match(&query_lower, "unitstack") || fuzzy_match(&query_lower, &us.province_id.to_string()) {
+            #[allow(deprecated)]
+            symbols.push(SymbolInformation {
+                name,
+                kind: SymbolKind::OBJECT,
+                tags: None,
+                deprecated: None,
+                location: Location {
+                    uri: path_to_url(&us.path),
+                    range: LspRange {
+                        start: LspPosition { line: us.start_line, character: 0 },
+                        end: LspPosition { line: us.start_line, character: 100 },
+                    },
+                },
+                container_name: Some("Unitstack".to_string()),
+            });
+        }
+    }
+
+    // Search Adjacencies
+    let adj_lock = adjacencies.read().await;
+    for adj in adj_lock.iter() {
+        let name = format!("Adjacency ({}) {} <-> {}", adj.adj_type, adj.start_prov, adj.end_prov);
+        if fuzzy_match(&query_lower, "adjacency") || fuzzy_match(&query_lower, &adj.start_prov.to_string()) || fuzzy_match(&query_lower, &adj.end_prov.to_string()) {
+            #[allow(deprecated)]
+            symbols.push(SymbolInformation {
+                name,
+                kind: SymbolKind::OBJECT,
+                tags: None,
+                deprecated: None,
+                location: Location {
+                    uri: path_to_url(&adj.path),
+                    range: LspRange {
+                        start: LspPosition { line: adj.start_line, character: 0 },
+                        end: LspPosition { line: adj.start_line, character: 100 },
+                    },
+                },
+                container_name: Some("Adjacency".to_string()),
+            });
+        }
+    }
+
+    // Search Adjacency Rules
+    let rule_lock = adjacency_rules.read().await;
+    for (name, rule) in rule_lock.iter() {
+        if fuzzy_match(&query_lower, &name.to_lowercase()) {
+            #[allow(deprecated)]
+            symbols.push(SymbolInformation {
+                name: name.clone(),
+                kind: SymbolKind::FUNCTION,
+                tags: None,
+                deprecated: None,
+                location: Location {
+                    uri: path_to_url(&rule.path),
+                    range: range_to_lsp(&rule.range),
+                },
+                container_name: Some("Adjacency Rule".to_string()),
+            });
+        }
+    }
+
+    // Search Strategic Regions
+    let regions_lock = strategic_regions.read().await;
+    for (id, region) in regions_lock.iter() {
+        if fuzzy_match(&query_lower, &id.to_string()) || fuzzy_match(&query_lower, &region.name.to_lowercase()) {
+            #[allow(deprecated)]
+            symbols.push(SymbolInformation {
+                name: format!("Strategic Region {}: {}", id, region.name),
+                kind: SymbolKind::OBJECT,
+                tags: None,
+                deprecated: None,
+                location: Location {
+                    uri: path_to_url(&region.path),
+                    range: range_to_lsp(&region.range),
+                },
+                container_name: Some("Strategic Region".to_string()),
             });
         }
     }

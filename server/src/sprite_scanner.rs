@@ -33,15 +33,12 @@ where F: Fn(&Path) -> bool {
                         continue;
                     }
                     if let Ok(content) = fs::read_to_string(&path) {
-                        match parser::parse_script(&content) {
-                            Ok(script) => {
-                                find_sprites_in_entries(&script.entries, &path.to_string_lossy(), &mut map);
-                            }
-                            Err((e, range)) => {
-                                // We can't easily log to the client from here without passing it down,
-                                // but we should at least handle the error gracefully.
-                                eprintln!("Failed to parse GFX file {:?} at {}:{}: {}", path, range.start_line, range.start_col, e);
-                            }
+                        let (script, parse_errors) = parser::parse_script(&content);
+                        find_sprites_in_entries(&script.entries, &path.to_string_lossy(), &mut map);
+                        for (e, range) in parse_errors {
+                            // We can't easily log to the client from here without passing it down,
+                            // but we should at least handle the error gracefully.
+                            eprintln!("Failed to parse GFX file {:?} at {}:{}: {}", path, range.start_line, range.start_col, e);
                         }
                     }
                 }

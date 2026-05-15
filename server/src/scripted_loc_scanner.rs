@@ -5,6 +5,7 @@ use std::path::Path;
 use std::fs;
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ScriptedLoc {
     pub name: String,
     pub path: String,
@@ -32,7 +33,7 @@ where F: Fn(&Path) -> bool {
                         continue;
                     }
                     if let Ok(content) = fs::read_to_string(&path) {
-                        if let Ok(script) = parser::parse_script(&content) {
+                        { let (script, _) = parser::parse_script(&content);
                             find_scripted_locs_in_entries(&script.entries, &path.to_string_lossy(), &mut map);
                         }
                     }
@@ -87,7 +88,7 @@ defined_text = {
 	}
 }
         "#;
-        let script = crate::parser::parse_script(content).unwrap();
+        let script = crate::parser::parse_script(content).0;
         let mut map = HashMap::new();
         find_scripted_locs_in_entries(&script.entries, "test", &mut map);
         assert_eq!(map.len(), 1);

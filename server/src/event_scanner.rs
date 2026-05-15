@@ -52,7 +52,7 @@ where F: Fn(&Path) -> bool {
                         continue;
                     }
                     if let Ok(content) = fs::read_to_string(&path) {
-                        if let Ok(script) = parser::parse_script(&content) {
+                        { let (script, _) = parser::parse_script(&content);
                             find_event_definitions(&script.entries, &path.to_string_lossy(), events);
                         }
                     }
@@ -120,7 +120,7 @@ where F: Fn(&Path) -> bool {
                             continue;
                         }
                         if let Ok(content) = fs::read_to_string(&path) {
-                            if let Ok(script) = parser::parse_script(&content) {
+                            { let (script, _) = parser::parse_script(&content);
                                 find_triggers_in_script(&script.entries, events);
                             }
                         }
