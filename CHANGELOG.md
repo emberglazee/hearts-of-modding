@@ -26,10 +26,21 @@ All notable changes to the **Hearts of Modding** extension will be documented in
   - **Deep CSV Validation:** Integrated `definition.csv` and `adjacencies.csv` directly into the document validation pipeline. The extension performs rigorous structural checks (e.g., ensuring exact column counts, validating bounds for RGB values, verifying province types and coastal booleans, checking coordinates).
   - **Column-Snapping Tooltips:** Hovering over map `.csv`, `unitstacks.txt`, or `buildings.txt` definitions now identifies the exact column your cursor is under and displays specific, contextual metadata (e.g., resolving a Province ID column into its terrain and coastal status, or highlighting exactly what coordinate a specific integer maps to).
   - **Logistics Scanner:** Added full support for `supply_nodes.txt` and `railways.txt`, exposing them to Workspace Symbols and validating their Province IDs.
-  - **Map Objects Scanner:** Parses `buildings.txt` and `unitstacks.txt`, enabling "Jump to Definition" for map buildings and validating State and Province assignments.
-  - **Adjacencies & Rules:** Implemented parsing for `adjacencies.csv` and `adjacency_rules.txt`. This enables cross-referencing of straits and impassable borders, and validating province connectivity rules.
+  - **Map Objects Scanner:** Parses `buildings.txt`, `unitstacks.txt`, and `weatherpositions.txt`. This enables "Jump to Definition" for map buildings/objects, validates State and Province assignments, and provides contextual hover metadata for weather positions (Strategic Region lookup).
+  - **Adjacencies & Rules:** Implemented parsing for `adjacencies.csv` and `adjacency_rules.txt`. This enables cross-referencing of straits and impassable borders, and validating province connectivity rules. Descriptive header lines in `adjacencies.csv` are now correctly handled and skipped during validation.
   - **Strategic Regions:** Added `strategic_region_scanner` to process `map/strategicregions/*.txt`.
   - **Enhanced Validations:** Direct document validation now supports `.csv` and `.txt` map definition files, highlighting invalid province/state references inline without needing script AST parsing.
+
+### Fixed
+
+- **Parser & Styling Robustness:**
+  - Fixed a critical off-by-one error in `quoted_string` range calculations. This resolves a bug where the styling engine would incorrectly insert extra spaces before the assignment operator when using quoted keys (e.g., in bookmark files).
+  - Fixed an issue where strategic region files bypassed general semantic and styling checks. They now receive full validation, including assignment operator spacing and brace placement rules.
+  - Fixed a validation bug in `adjacencies.csv` where the column header was incorrectly flagged as an invalid ID.
+
+### Notes
+
+Because this version also scans the map files expect a major jump in extension memory usage in total conversion mod code bases. You can track Rust LSP server memory usage in the status bar with the `HOI4: Show Memory Usage` command.
 
 ## [0.4.0] - 2026-05-12
 

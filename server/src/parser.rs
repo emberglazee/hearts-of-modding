@@ -65,7 +65,7 @@ fn quoted_string(input: Span) -> IResult<Span, (String, crate::ast::Range)> {
                 start_line: start.location_line() - 1,
                 start_col: start.get_column() as u32 - 1,
                 end_line: next.location_line() - 1,
-                end_col: next.get_column() as u32,
+                end_col: next.get_column() as u32 - 1,
             };
             return Ok((next, (s, range)));
         } else if c == '\\' {

@@ -108,6 +108,7 @@ struct Backend {
     railways: Arc<RwLock<Vec<logistics_scanner::Railway>>>,
     map_buildings: Arc<RwLock<Vec<map_object_scanner::MapBuilding>>>,
     unitstacks: Arc<RwLock<Vec<map_object_scanner::UnitStack>>>,
+    weather_positions: Arc<RwLock<Vec<map_object_scanner::WeatherPosition>>>,
     adjacencies: Arc<RwLock<Vec<adjacency_scanner::Adjacency>>>,
     adjacency_rules: Arc<RwLock<HashMap<String, adjacency_scanner::AdjacencyRule>>>,
     strategic_regions: Arc<RwLock<HashMap<u32, strategic_region_scanner::StrategicRegion>>>,
@@ -518,7 +519,7 @@ impl LanguageServer for Backend {
                 if let Some(line) = content.lines().nth(position.line as usize) {
                     let mut hover_text = String::from("### 🏗️ Map Building Definition\n\n");
                     hover_text.push_str("`State ID (integer); building ID (string); X position; Y position; Z position; Rotation; Adjacent sea province (integer)`\n\n---\n\n");
-                    
+
                     let parts: Vec<&str> = line.split(';').collect();
                     if parts.len() >= 7 {
                         let mut current_col = 0;
@@ -531,7 +532,7 @@ impl LanguageServer for Backend {
                             }
                             current_col = end_col + 1;
                         }
-                        
+
                         match hovered_index {
                             Some(0) => {
                                 if let Ok(state_id) = parts[0].parse::<u32>() {
@@ -581,7 +582,7 @@ impl LanguageServer for Backend {
                 if let Some(line) = content.lines().nth(position.line as usize) {
                     let mut hover_text = String::from("### 🪖 Unit Stack Definition\n\n");
                     hover_text.push_str("`Province ID (integer); Type (integer); X position; Y position; Z position; Rotation; Offset`\n\n---\n\n");
-                    
+
                     let parts: Vec<&str> = line.split(';').collect();
                     if parts.len() >= 7 {
                         let mut current_col = 0;
@@ -594,7 +595,7 @@ impl LanguageServer for Backend {
                             }
                             current_col = end_col + 1;
                         }
-                        
+
                         match hovered_index {
                             Some(0) => {
                                 if let Ok(prov_id) = parts[0].parse::<u32>() {
@@ -612,6 +613,58 @@ impl LanguageServer for Backend {
                             Some(4) => { hover_text.push_str(&format!("**Hovered:** Z Position `{}`\n", parts[4])); },
                             Some(5) => { hover_text.push_str(&format!("**Hovered:** Rotation `{}`\n", parts[5])); },
                             Some(6) => { hover_text.push_str(&format!("**Hovered:** Offset `{}`\n", parts[6])); },
+                            _ => {}
+                        }
+                    }
+
+                    return Ok(Some(Hover {
+                        contents: HoverContents::Markup(MarkupContent {
+                            kind: MarkupKind::Markdown,
+                            value: hover_text,
+                        }),
+                        range: None,
+                    }));
+                }
+                return Ok(None);
+            } else if uri.ends_with("weatherpositions.txt") {
+                if let Some(line) = content.lines().nth(position.line as usize) {
+                    let mut hover_text = String::from("### ☁️ Weather Position Definition\n\n");
+                    hover_text.push_str("`Strategic Region ID (integer); X position; Y position; Z position; Size (string: small or large)`\n\n---\n\n");
+
+                    let parts: Vec<&str> = line.split(';').collect();
+                    if parts.len() >= 5 {
+                        let mut current_col = 0;
+                        let mut hovered_index = None;
+                        for (i, part) in parts.iter().enumerate() {
+                            let end_col = current_col + part.len() as u32;
+                            if position.character >= current_col && position.character <= end_col {
+                                hovered_index = Some(i);
+                                break;
+                            }
+                            current_col = end_col + 1;
+                        }
+
+                        match hovered_index {
+                            Some(0) => {
+                                if let Ok(region_id) = parts[0].parse::<u32>() {
+                                    let regions = self.strategic_regions.read().await;
+                                    if let Some(region) = regions.get(&region_id) {
+                                        let loc = self.localization.read().await;
+                                        let region_name = if let Some(loc_entry) = loc.get(&region.name) {
+                                            loc_entry.value.clone()
+                                        } else {
+                                            region.name.clone()
+                                        };
+                                        hover_text.push_str(&format!("**Hovered:** Strategic Region ID `{}` (🗺️ {})\n", region_id, region_name));
+                                    } else {
+                                        hover_text.push_str(&format!("**Hovered:** Strategic Region ID `{}`\n", region_id));
+                                    }
+                                }
+                            },
+                            Some(1) => { hover_text.push_str(&format!("**Hovered:** X Position `{}`\n", parts[1])); },
+                            Some(2) => { hover_text.push_str(&format!("**Hovered:** Y Position `{}`\n", parts[2])); },
+                            Some(3) => { hover_text.push_str(&format!("**Hovered:** Z Position `{}`\n", parts[3])); },
+                            Some(4) => { hover_text.push_str(&format!("**Hovered:** Size `{}`\n", parts[4])); },
                             _ => {}
                         }
                     }
@@ -650,7 +703,7 @@ impl LanguageServer for Backend {
                 if let Some(line) = content.lines().nth(position.line as usize) {
                     let mut hover_text = String::from("### 🚢 Adjacency Definition\n\n");
                     hover_text.push_str("`Start province ID; End province ID; Adjacency type; Through province ID; Starting X; Starting Y; Ending X; Ending Y; Adjacency rule; Comment`\n\n---\n\n");
-                    
+
                     let parts: Vec<&str> = line.split(';').collect();
                     if parts.len() >= 2 {
                         let mut current_col = 0;
@@ -663,7 +716,7 @@ impl LanguageServer for Backend {
                             }
                             current_col = end_col + 1;
                         }
-                        
+
                         match hovered_index {
                             Some(0) => { hover_text.push_str(&format!("**Hovered:** Start Province ID `{}`\n", parts[0])); },
                             Some(1) => { hover_text.push_str(&format!("**Hovered:** End Province ID `{}`\n", parts[1])); },
@@ -695,7 +748,7 @@ impl LanguageServer for Backend {
                 if let Some(line) = content.lines().nth(position.line as usize) {
                     let mut hover_text = String::from("### 🗺️ Province Definition\n\n");
                     hover_text.push_str("`Province ID; R; G; B; Province type; Coastal status; Terrain; Continent`\n\n---\n\n");
-                    
+
                     let parts: Vec<&str> = line.split(';').collect();
                     if parts.len() >= 8 {
                         let mut current_col = 0;
@@ -708,7 +761,7 @@ impl LanguageServer for Backend {
                             }
                             current_col = end_col + 1;
                         }
-                        
+
                         match hovered_index {
                             Some(0) => { hover_text.push_str(&format!("**Hovered:** Province ID `{}`\n", parts[0])); },
                             Some(1) => { hover_text.push_str(&format!("**Hovered:** Red `{}`\n", parts[1])); },
@@ -2436,6 +2489,7 @@ impl LanguageServer for Backend {
             &self.railways,
             &self.map_buildings,
             &self.unitstacks,
+            &self.weather_positions,
             &self.adjacencies,
             &self.adjacency_rules,
             &self.strategic_regions,
@@ -2598,7 +2652,10 @@ impl Backend {
         let mut us = self.unitstacks.write().await;
         *us = result.unitstacks;
 
-        self.client.log_message(MessageType::INFO, format!("Loaded {} map buildings, {} unit stacks", mb.len(), us.len())).await;
+        let mut wp = self.weather_positions.write().await;
+        *wp = result.weather_positions;
+
+        self.client.log_message(MessageType::INFO, format!("Loaded {} map buildings, {} unit stacks, {} weather positions", mb.len(), us.len(), wp.len())).await;
     }
 
     async fn scan_adjacencies(&self, roots: &[std::path::PathBuf]) {
@@ -3541,6 +3598,8 @@ impl Backend {
             self.validate_map_buildings_content(content, &mut diagnostics).await;
         } else if uri.as_str().ends_with("unitstacks.txt") {
             self.validate_unitstacks_content(content, &mut diagnostics).await;
+        } else if uri.as_str().ends_with("weatherpositions.txt") {
+            self.validate_weather_positions_content(content, &mut diagnostics).await;
         } else if {
             let map_config = crate::map_config::get_map_config(std::path::Path::new("."));
             uri.as_str().ends_with(&map_config.adjacencies)
@@ -3564,6 +3623,7 @@ impl Backend {
                 });
             }
             self.validate_strategic_region_content(&script, &mut diagnostics).await;
+            self.check_semantic(&script, &mut diagnostics, styling_enabled, uri.as_str()).await;
             script_opt = Some(script);
         } else if uri.as_str().ends_with(".csv") {
             // Do not parse other CSV files as clausewitz scripts
@@ -3644,9 +3704,28 @@ impl Backend {
                 if let Ok(id) = parts[0].parse::<u32>() {
                     if !states.is_empty() && !states.contains_key(&id) {
                         diagnostics.push(Diagnostic {
-                            range: Range { start: Position { line: i as u32, character: 0 }, end: Position { line: i as u32, character: 100 } },
+                            range: Range { start: Position { line: i as u32, character: 0 }, end: Position { line: i as u32, character: parts[0].len() as u32 } },
                             severity: Some(DiagnosticSeverity::WARNING),
                             message: format!("Unknown state ID: {}", id),
+                            ..Default::default()
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    async fn validate_weather_positions_content(&self, content: &str, diagnostics: &mut Vec<Diagnostic>) {
+        let regions = self.strategic_regions.read().await;
+        for (i, line) in content.lines().enumerate() {
+            let parts: Vec<&str> = line.split(';').collect();
+            if parts.len() >= 5 {
+                if let Ok(id) = parts[0].parse::<u32>() {
+                    if !regions.is_empty() && !regions.contains_key(&id) {
+                        diagnostics.push(Diagnostic {
+                            range: Range { start: Position { line: i as u32, character: 0 }, end: Position { line: i as u32, character: parts[0].len() as u32 } },
+                            severity: Some(DiagnosticSeverity::WARNING),
+                            message: format!("Unknown strategic region ID: {}", id),
                             ..Default::default()
                         });
                     }
@@ -3755,7 +3834,7 @@ impl Backend {
         let rules = self.adjacency_rules.read().await;
         for (i, line) in content.lines().enumerate() {
             let trimmed = line.trim();
-            if trimmed.is_empty() || trimmed.starts_with('#') {
+            if trimmed.is_empty() || trimmed.starts_with('#') || trimmed.starts_with("From;To;") {
                 continue;
             }
             let parts: Vec<&str> = trimmed.split(';').collect();
@@ -4838,6 +4917,7 @@ async fn main() {
         railways: Arc::new(RwLock::new(Vec::new())),
         map_buildings: Arc::new(RwLock::new(Vec::new())),
         unitstacks: Arc::new(RwLock::new(Vec::new())),
+        weather_positions: Arc::new(RwLock::new(Vec::new())),
         adjacencies: Arc::new(RwLock::new(Vec::new())),
         adjacency_rules: Arc::new(RwLock::new(HashMap::new())),
         strategic_regions: Arc::new(RwLock::new(HashMap::new())),

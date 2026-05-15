@@ -35,6 +35,7 @@ pub async fn generate_workspace_symbols(
     railways: &Arc<RwLock<Vec<crate::logistics_scanner::Railway>>>,
     map_buildings: &Arc<RwLock<Vec<crate::map_object_scanner::MapBuilding>>>,
     unitstacks: &Arc<RwLock<Vec<crate::map_object_scanner::UnitStack>>>,
+    weather_positions: &Arc<RwLock<Vec<crate::map_object_scanner::WeatherPosition>>>,
     adjacencies: &Arc<RwLock<Vec<crate::adjacency_scanner::Adjacency>>>,
     adjacency_rules: &Arc<RwLock<HashMap<String, crate::adjacency_scanner::AdjacencyRule>>>,
     strategic_regions: &Arc<RwLock<HashMap<u32, crate::strategic_region_scanner::StrategicRegion>>>,
@@ -281,6 +282,29 @@ pub async fn generate_workspace_symbols(
                     },
                 },
                 container_name: Some("Unitstack".to_string()),
+            });
+        }
+    }
+
+    // Search Weather Positions
+    let wp_lock = weather_positions.read().await;
+    for wp in wp_lock.iter() {
+        let name = format!("Weather Position in Strategic Region {}", wp.region_id);
+        if fuzzy_match(&query_lower, "weather") || fuzzy_match(&query_lower, &wp.region_id.to_string()) {
+            #[allow(deprecated)]
+            symbols.push(SymbolInformation {
+                name,
+                kind: SymbolKind::OBJECT,
+                tags: None,
+                deprecated: None,
+                location: Location {
+                    uri: path_to_url(&wp.path),
+                    range: LspRange {
+                        start: LspPosition { line: wp.start_line, character: 0 },
+                        end: LspPosition { line: wp.start_line, character: 100 },
+                    },
+                },
+                container_name: Some("Weather Position".to_string()),
             });
         }
     }
