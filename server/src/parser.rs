@@ -310,9 +310,10 @@ pub fn parse_script(input: &str) -> (Script, Vec<(String, crate::ast::Range)>) {
                 errors.push((format!("Parsing error near: '{}'", snippet), range));
 
                 // Recovery: skip one character and try again
-                let (next, _) =
-                    nom::bytes::complete::take::<usize, Span, nom::error::Error<Span>>(1usize)(span)
-                        .unwrap_or((span.clone(), span));
+                let (next, _) = nom::bytes::complete::take::<usize, Span, nom::error::Error<Span>>(
+                    1usize,
+                )(span)
+                .unwrap_or((span.clone(), span));
                 span = next;
             }
         }

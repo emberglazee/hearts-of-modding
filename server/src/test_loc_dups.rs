@@ -13,7 +13,7 @@ mod tests {
 #    PLC_pcrafter_chief_desc: \"$PLC_pcrafter_leader_desc$\"
 #   PLC_skarabii: \"Skarabii\"
 ";
-        let (parsed, _) = loc_parser::parse_loc_file(content, "test.yml");
+        let (parsed, _, _) = loc_parser::parse_loc_file(content, "test.yml");
         for (k, _v) in parsed.iter() {
             println!("Parsed key: {}", k);
         }

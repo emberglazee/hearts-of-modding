@@ -483,9 +483,7 @@ pub fn validate_loc_string(
     diagnostics
 }
 
-pub fn check_unnecessary_version(
-    entry: &LocEntry,
-) -> Option<LocDiagnostic> {
+pub fn check_unnecessary_version(entry: &LocEntry) -> Option<LocDiagnostic> {
     // Only check if this entry has a version number
     if let (Some(version), Some(version_range)) = (&entry.version, &entry.version_range) {
         return Some(LocDiagnostic {
@@ -575,7 +573,14 @@ pub fn validate_loc_file_structure(input: &str) -> Vec<LocDiagnostic> {
     diagnostics
 }
 
-pub fn parse_loc_file(input: &str, path: &str) -> (HashMap<String, LocEntry>, Vec<LocDiagnostic>) {
+pub fn parse_loc_file(
+    input: &str,
+    path: &str,
+) -> (
+    HashMap<String, LocEntry>,
+    Vec<LocDiagnostic>,
+    Option<String>,
+) {
     let mut map = HashMap::new();
     let mut diagnostics = validate_loc_file_structure(input);
     diagnostics.extend(validate_unescaped_quotes_in_file(input));
@@ -585,16 +590,18 @@ pub fn parse_loc_file(input: &str, path: &str) -> (HashMap<String, LocEntry>, Ve
 
     let mut current = span;
     let mut header_found = false;
+    let mut language = None;
 
     // Fast forward to the header while preserving the nom_locate line/column tracking
     while !current.fragment().is_empty() {
         if current.fragment().starts_with("l_") && current.fragment().contains(':') {
-            if let Ok((rem, _)) =
+            if let Ok((rem, lang)) =
                 take_until::<&str, Span, nom::error::Error<Span>>(":").parse(current)
             {
                 if let Ok((rem2, _)) = tag::<&str, Span, nom::error::Error<Span>>(":")(rem) {
                     current = rem2;
                     header_found = true;
+                    language = Some(lang.fragment().trim().to_string());
                     break;
                 }
             }
@@ -613,7 +620,7 @@ pub fn parse_loc_file(input: &str, path: &str) -> (HashMap<String, LocEntry>, Ve
     }
 
     if !header_found {
-        return (map, diagnostics);
+        return (map, diagnostics, language);
     }
 
     while !current.fragment().is_empty() {
@@ -623,9 +630,13 @@ pub fn parse_loc_file(input: &str, path: &str) -> (HashMap<String, LocEntry>, Ve
                 current = remainder;
             }
             Err(_) => {
-                match nom::character::complete::not_line_ending::<Span, nom::error::Error<Span>>.parse(current) {
+                match nom::character::complete::not_line_ending::<Span, nom::error::Error<Span>>
+                    .parse(current)
+                {
                     Ok((rem, _)) => {
-                        match nom::character::complete::line_ending::<Span, nom::error::Error<Span>>.parse(rem) {
+                        match nom::character::complete::line_ending::<Span, nom::error::Error<Span>>
+                            .parse(rem)
+                        {
                             Ok((rem2, _)) => current = rem2,
                             Err(_) => break,
                         }
@@ -638,7 +649,7 @@ pub fn parse_loc_file(input: &str, path: &str) -> (HashMap<String, LocEntry>, Ve
         }
     }
 
-    (map, diagnostics)
+    (map, diagnostics, language)
 }
 
 fn parse_loc_entry<'a>(input: Span<'a>, path: &'a str) -> IResult<Span<'a>, LocEntry> {

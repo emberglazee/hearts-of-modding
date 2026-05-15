@@ -1,18 +1,28 @@
 #[cfg(test)]
 mod tests {
-    use crate::loc_parser::{self, LocEntry};
     use crate::ast::Range;
+    use crate::loc_parser::{self, LocEntry};
 
     #[test]
     fn test_check_unnecessary_version() {
         let entry = LocEntry {
             key: "test_key".to_string(),
             value: "test value".to_string(),
-            range: Range { start_line: 0, start_col: 0, end_line: 0, end_col: 10 },
+            range: Range {
+                start_line: 0,
+                start_col: 0,
+                end_line: 0,
+                end_col: 10,
+            },
             path: "file_a.yml".to_string(),
             value_start_col: 15,
             version: Some("0".to_string()),
-            version_range: Some(Range { start_line: 0, start_col: 9, end_line: 0, end_col: 10 }),
+            version_range: Some(Range {
+                start_line: 0,
+                start_col: 9,
+                end_line: 0,
+                end_col: 10,
+            }),
         };
 
         // Case 1: Version present

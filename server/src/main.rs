@@ -32,11 +32,11 @@ mod sound_scanner;
 mod sprite_scanner;
 mod state_scanner;
 mod strategic_region_scanner;
+#[cfg(test)]
+mod test_loc_version;
 mod trait_scanner;
 mod variable_scanner;
 mod workspace_symbols;
-#[cfg(test)]
-mod test_loc_version;
 
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
@@ -111,7 +111,7 @@ struct Backend {
     game_path: Arc<RwLock<Option<String>>>,
     abilities: Arc<RwLock<HashMap<String, ability_scanner::Ability>>>,
     scripted_locs: Arc<RwLock<HashMap<String, scripted_loc_scanner::ScriptedLoc>>>,
-    duplicated_loc_keys: Arc<RwLock<HashSet<String>>>,
+    duplicated_loc_keys: Arc<RwLock<HashSet<(String, String)>>>,
     states: Arc<RwLock<HashMap<u32, state_scanner::State>>>,
     supply_nodes: Arc<RwLock<Vec<logistics_scanner::SupplyNode>>>,
     railways: Arc<RwLock<Vec<logistics_scanner::Railway>>>,
@@ -251,7 +251,7 @@ impl LanguageServer for Backend {
         }
 
         tokio::join!(
-            self.load_localization(&roots),
+            self.scan_localization(&roots),
             self.load_schema(),
             self.scan_scripted(&roots),
             self.scan_ideologies(&roots),
@@ -513,7 +513,7 @@ impl LanguageServer for Backend {
 
         if let Some(content) = self.documents.get(&uri) {
             if uri.ends_with(".yml") {
-                let (locs, _) = loc_parser::parse_loc_file(&content, &uri);
+                let (locs, _, _) = loc_parser::parse_loc_file(&content, &uri);
                 let global_loc = self.localization.read().await;
                 for entry in locs.values() {
                     // Check key
@@ -3125,8 +3125,14 @@ impl LanguageServer for Backend {
         // Add "Remove all unnecessary version numbers" if any such diagnostic is present
         if has_unnecessary_version_diagnostic {
             if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
-                let path_str = params.text_document.uri.to_file_path().unwrap_or_default().to_string_lossy().to_string();
-                let (parsed, _) = loc_parser::parse_loc_file(&content, &path_str);
+                let path_str = params
+                    .text_document
+                    .uri
+                    .to_file_path()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .to_string();
+                let (parsed, _, _) = loc_parser::parse_loc_file(&content, &path_str);
                 let mut all_fixes = Vec::new();
 
                 for entry in parsed.values() {
@@ -4120,9 +4126,10 @@ impl Backend {
         }
     }
 
-    async fn load_localization(&self, roots: &[std::path::PathBuf]) {
+    async fn scan_localization(&self, roots: &[std::path::PathBuf]) {
         let mut all_locs = HashMap::new();
         let mut dups = HashSet::new();
+        let mut seen_locs_by_lang: HashSet<(String, String)> = HashSet::new();
 
         self.client
             .log_message(
@@ -4203,7 +4210,9 @@ impl Backend {
                 match std::fs::read_to_string(&path) {
                     Ok(content) => {
                         let path_str = path.to_string_lossy().to_string();
-                        let (parsed, _) = loc_parser::parse_loc_file(&content, &path_str);
+                        let (parsed, _, doc_lang) = loc_parser::parse_loc_file(&content, &path_str);
+                        let lang_str = doc_lang.unwrap_or_else(|| "unknown".to_string());
+
                         if parsed.is_empty() {
                             self.client
                                 .log_message(
@@ -4223,9 +4232,13 @@ impl Backend {
                                 .await;
                         }
                         for (key, entry) in parsed {
-                            if all_locs.contains_key(&key) {
-                                dups.insert(key.clone());
+                            let lang_key_pair = (lang_str.clone(), key.clone());
+                            if seen_locs_by_lang.contains(&lang_key_pair) {
+                                dups.insert(lang_key_pair.clone());
+                            } else {
+                                seen_locs_by_lang.insert(lang_key_pair);
                             }
+
                             all_locs.insert(key, entry);
                         }
                     }
@@ -5517,8 +5530,14 @@ impl Backend {
         content: &str,
         diagnostics: &mut Vec<Diagnostic>,
     ) {
-        let path_str = uri.to_file_path().unwrap_or_default().to_string_lossy().to_string();
-        let (parsed, loc_diagnostics_structural) = loc_parser::parse_loc_file(content, &path_str);
+        let path_str = uri
+            .to_file_path()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string();
+        let (parsed, loc_diagnostics_structural, doc_lang) =
+            loc_parser::parse_loc_file(content, &path_str);
+        let doc_lang_str = doc_lang.unwrap_or_else(|| "unknown".to_string());
         let event_targets = self.event_targets.read().await;
         let scripted_locs = self.scripted_locs.read().await;
         let dups = self.duplicated_loc_keys.read().await;
@@ -5622,11 +5641,10 @@ impl Backend {
             }
 
             // Check for duplicated localization keys across files
-            let loc_map = self.localization.read().await;
-            let is_duplicated = dups.contains(&entry.key) || 
-                loc_map.get(&entry.key).map(|e| e.path != entry.path).unwrap_or(false);
-            
+            let is_duplicated = dups.contains(&(doc_lang_str.clone(), entry.key.clone()));
+
             if is_duplicated {
+                let loc_map = self.localization.read().await;
                 let mut is_intentional_override = false;
                 if entry.path.contains("replace") {
                     is_intentional_override = true;
@@ -5647,7 +5665,6 @@ impl Backend {
                     });
                 }
             }
-            drop(loc_map);
         }
     }
 
@@ -7846,6 +7863,6 @@ fn find_context_in_value(val: &ast::NodeedValue, pos: Position) -> Option<String
         _ => None,
     }
 }
-pub mod test_loc_empty;
 pub mod test_loc_dups;
+pub mod test_loc_empty;
 pub mod test_parser_skip;
