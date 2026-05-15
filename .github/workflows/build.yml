@@ -130,6 +130,7 @@ jobs:
       - name: Package VSIX
         run: |
           cd client
+          npm run compile
           npx vsce package -o ../hearts-of-modding.vsix
 
       - name: Upload VSIX
