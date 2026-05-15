@@ -17,6 +17,7 @@ All notable changes to the **Hearts of Modding** extension will be documented in
 
 ### Fixed
 
+- **Commented Localization Parsing:** Fixed an issue where the parser incorrectly interpreted commented-out localization keys as valid entries when they were preceded by specific multi-byte characters, resolving false positive duplicate key warnings.
 - **Localization Version False Positives:** Fixed a bug where version numbers were incorrectly flagged due to improper file path tracking during duplicate checks.
 
 ## [0.5.0] - 2026-05-15

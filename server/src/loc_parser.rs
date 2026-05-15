@@ -523,11 +523,14 @@ pub fn validate_loc_file_structure(input: &str) -> Vec<LocDiagnostic> {
     let content_without_bom = input.strip_prefix('\u{feff}').unwrap_or(input);
 
     let mut header_found = false;
+    let mut has_content = false;
     for (line_idx, line) in content_without_bom.lines().enumerate() {
         let trimmed = line.trim();
         if trimmed.is_empty() || trimmed.starts_with('#') {
             continue;
         }
+
+        has_content = true;
 
         if trimmed.contains(':') {
             let parts: Vec<&str> = trimmed.split(':').collect();
@@ -558,7 +561,7 @@ pub fn validate_loc_file_structure(input: &str) -> Vec<LocDiagnostic> {
         }
     }
 
-    if !header_found {
+    if !header_found && has_content {
         diagnostics.push(LocDiagnostic {
             range: Range { start_line: 0, start_col: 0, end_line: 0, end_col: 10 },
             message: "Missing language header (e.g., 'l_english:'). Localization files must start with a supported language tag.".to_string(),
@@ -620,18 +623,14 @@ pub fn parse_loc_file(input: &str, path: &str) -> (HashMap<String, LocEntry>, Ve
                 current = remainder;
             }
             Err(_) => {
-                let next_line = current
-                    .fragment()
-                    .find('\n')
-                    .map(|i| i + 1)
-                    .unwrap_or(current.fragment().len());
-                match nom::bytes::complete::take::<usize, Span, nom::error::Error<Span>>(next_line)
-                    .parse(current)
-                {
+                match nom::character::complete::not_line_ending::<Span, nom::error::Error<Span>>.parse(current) {
                     Ok((rem, _)) => {
-                        current = rem;
+                        match nom::character::complete::line_ending::<Span, nom::error::Error<Span>>.parse(rem) {
+                            Ok((rem2, _)) => current = rem2,
+                            Err(_) => break,
+                        }
                     }
-                    _ => {
+                    Err(_) => {
                         break;
                     }
                 }

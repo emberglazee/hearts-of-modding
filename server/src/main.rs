@@ -7846,3 +7846,6 @@ fn find_context_in_value(val: &ast::NodeedValue, pos: Position) -> Option<String
         _ => None,
     }
 }
+pub mod test_loc_empty;
+pub mod test_loc_dups;
+pub mod test_parser_skip;
