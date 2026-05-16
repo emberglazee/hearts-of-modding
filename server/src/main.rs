@@ -613,7 +613,7 @@ impl LanguageServer for Backend {
                     }
                 }
                 return Ok(None);
-            } else if uri.ends_with("buildings.txt") {
+            } else if uri.ends_with("/map/buildings.txt") || uri.ends_with("\\map\\buildings.txt") {
                 if let Some(line) = content.lines().nth(position.line as usize) {
                     let mut hover_text = String::from("### 🏗️ Map Building Definition\n\n");
                     hover_text.push_str("`State ID (integer); building ID (string); X position; Y position; Z position; Rotation; Adjacent sea province (integer)`\n\n---\n\n");
@@ -703,7 +703,7 @@ impl LanguageServer for Backend {
                     }));
                 }
                 return Ok(None);
-            } else if uri.ends_with("unitstacks.txt") {
+            } else if uri.ends_with("/map/unitstacks.txt") || uri.ends_with("\\map\\unitstacks.txt") {
                 if let Some(line) = content.lines().nth(position.line as usize) {
                     let mut hover_text = String::from("### 🪖 Unit Stack Definition\n\n");
                     hover_text.push_str("`Province ID (integer); Type (integer); X position; Y position; Z position; Rotation; Offset`\n\n---\n\n");
@@ -772,7 +772,7 @@ impl LanguageServer for Backend {
                     }));
                 }
                 return Ok(None);
-            } else if uri.ends_with("weatherpositions.txt") {
+            } else if uri.ends_with("/map/weatherpositions.txt") || uri.ends_with("\\map\\weatherpositions.txt") {
                 if let Some(line) = content.lines().nth(position.line as usize) {
                     let mut hover_text = String::from("### ☁️ Weather Position Definition\n\n");
                     hover_text.push_str("`Strategic Region ID (integer); X position; Y position; Z position; Size (string: small or large)`\n\n---\n\n");
@@ -842,7 +842,7 @@ impl LanguageServer for Backend {
                     }));
                 }
                 return Ok(None);
-            } else if uri.ends_with("supply_nodes.txt") {
+            } else if uri.ends_with("/map/supply_nodes.txt") || uri.ends_with("\\map\\supply_nodes.txt") {
                 let hover_text = String::from(
                     "### 📦 Supply Node Definition\n\n`Level (integer) Province ID (integer)`",
                 );
@@ -853,7 +853,7 @@ impl LanguageServer for Backend {
                     }),
                     range: None,
                 }));
-            } else if uri.ends_with("railways.txt") {
+            } else if uri.ends_with("/map/railways.txt") || uri.ends_with("\\map\\railways.txt") {
                 let hover_text = String::from(
                     "### 🚂 Railway Definition\n\n`Level (integer) Amount of provinces (integer) List of provinces (space-separated integers)`",
                 );
@@ -4874,19 +4874,19 @@ impl Backend {
         if uri.as_str().ends_with(".yml") {
             self.validate_localization_content(uri, content, &mut diagnostics)
                 .await;
-        } else if uri.as_str().ends_with("supply_nodes.txt") {
+        } else if uri.as_str().ends_with("/map/supply_nodes.txt") || uri.as_str().ends_with("\\map\\supply_nodes.txt") {
             self.validate_supply_nodes_content(content, &mut diagnostics)
                 .await;
-        } else if uri.as_str().ends_with("railways.txt") {
+        } else if uri.as_str().ends_with("/map/railways.txt") || uri.as_str().ends_with("\\map\\railways.txt") {
             self.validate_railways_content(content, &mut diagnostics)
                 .await;
-        } else if uri.as_str().ends_with("buildings.txt") {
+        } else if uri.as_str().ends_with("/map/buildings.txt") || uri.as_str().ends_with("\\map\\buildings.txt") {
             self.validate_map_buildings_content(content, &mut diagnostics)
                 .await;
-        } else if uri.as_str().ends_with("unitstacks.txt") {
+        } else if uri.as_str().ends_with("/map/unitstacks.txt") || uri.as_str().ends_with("\\map\\unitstacks.txt") {
             self.validate_unitstacks_content(content, &mut diagnostics)
                 .await;
-        } else if uri.as_str().ends_with("weatherpositions.txt") {
+        } else if uri.as_str().ends_with("/map/weatherpositions.txt") || uri.as_str().ends_with("\\map\\weatherpositions.txt") {
             self.validate_weather_positions_content(content, &mut diagnostics)
                 .await;
         } else if uri.as_str().ends_with("adjacency_rules.txt") {

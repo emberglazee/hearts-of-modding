@@ -21,6 +21,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
   - Improved the LSP's identifier resolution to track the "context key" (parent assignment or block name) during AST traversal.
   - Restricted Province, State, and Strategic Region tooltips for integers to only appear when the surrounding context is relevant (e.g., inside `provinces = { ... }` or assigned to `owns_state`). This significantly reduces false-positive tooltips when hovering over generic numbers like quantities or years.
   - Enabled hover and navigation support for `Number` and `Boolean` values in the AST, allowing tooltips to appear when hovering directly over values, not just their keys.
+- **Bug Fixes:**
+  - Fixed a false-positive where specialized map data validation and hover tooltips were incorrectly applied to regular script files named `buildings.txt` (e.g., `common/buildings/00_buildings.txt`). These are now strictly restricted to files in the `map/` directory.
 - **Map Validation Improvements:**
   - Added specific validation for `map/buildings.txt` to warn about empty lines, which are counted as errors by the HOI4 engine.
   - Added a styling exception for `map/buildings.txt` to suppress the end-of-file newline diagnostic, preventing forced empty lines at the end of the file.
