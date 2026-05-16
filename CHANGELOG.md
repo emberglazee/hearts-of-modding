@@ -2,10 +2,25 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
-## [0.5.5] - 2026-05-16
+## [0.6.0] - 2026-05-17
 
 ### Added
 
+- **Enhanced Adjacency Support:**
+  - Improved `adjacency_rules.txt` scanning to extract `required_provinces` and `icon` data for use in tooltips and validation.
+  - Added context-aware hover tooltips for `adjacencies.csv` that resolve province IDs (Start, End, Through) into their terrain/type and display full rule details for rule references.
+  - Added completions for adjacency rule names in `adjacencies.csv` and for all `adjacency_rule` fields and sub-blocks in `adjacency_rules.txt`.
+  - Implemented specialized validation for `adjacency_rules.txt` to verify that all province IDs in `required_provinces` exist in the workspace.
+  - Added a sea-adjacency validation hint for `adjacencies.csv` entries missing a Through province.
+  - Expanded TextMate grammar to highlight `adjacency_rule` and its associated fields (`required_provinces`, `icon`, `contested`, etc.).
+- **Integrated CSV Support:**
+  - Implemented a specialized CSV formatter (`csv_parser.rs`) for map definition and adjacency files. It provides semantic alignment by padding columns with spaces to match the maximum width of each column across the entire file.
+  - Added support for the standard LSP `documentFormatting` command for `.csv` files.
+  - Exempted `.csv` files from standard Paradox script styling checks (indentation, trailing whitespace) to allow for custom tabular formatting.
+- **Context-Aware Hover Refinements:**
+  - Improved the LSP's identifier resolution to track the "context key" (parent assignment or block name) during AST traversal.
+  - Restricted Province, State, and Strategic Region tooltips for integers to only appear when the surrounding context is relevant (e.g., inside `provinces = { ... }` or assigned to `owns_state`). This significantly reduces false-positive tooltips when hovering over generic numbers like quantities or years.
+  - Enabled hover and navigation support for `Number` and `Boolean` values in the AST, allowing tooltips to appear when hovering directly over values, not just their keys.
 - **Map Validation Improvements:**
   - Added specific validation for `map/buildings.txt` to warn about empty lines, which are counted as errors by the HOI4 engine.
   - Added a styling exception for `map/buildings.txt` to suppress the end-of-file newline diagnostic, preventing forced empty lines at the end of the file.

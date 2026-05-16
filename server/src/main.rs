@@ -6,6 +6,7 @@ mod ast;
 mod building_scanner;
 mod call_hierarchy;
 mod character_scanner;
+mod csv_parser;
 mod defines_parser;
 mod document_symbols;
 mod enhanced_color;
@@ -494,6 +495,22 @@ impl LanguageServer for Backend {
                     range: full_range,
                     new_text: formatted,
                 }]));
+            } else if uri.ends_with(".csv") {
+                let formatted = csv_parser::format_csv(&content, ';');
+                let full_range = Range {
+                    start: Position {
+                        line: 0,
+                        character: 0,
+                    },
+                    end: Position {
+                        line: content.lines().count() as u32,
+                        character: content.lines().last().unwrap_or("").len() as u32,
+                    },
+                };
+                return Ok(Some(vec![TextEdit {
+                    range: full_range,
+                    new_text: formatted,
+                }]));
             }
         }
         Ok(None)
@@ -869,28 +886,31 @@ impl LanguageServer for Backend {
                         }
 
                         match hovered_index {
-                            Some(0) => {
-                                hover_text.push_str(&format!(
-                                    "**Hovered:** Start Province ID `{}`\n",
-                                    parts[0]
-                                ));
-                            }
-                            Some(1) => {
-                                hover_text.push_str(&format!(
-                                    "**Hovered:** End Province ID `{}`\n",
-                                    parts[1]
-                                ));
+                            Some(0) | Some(1) | Some(3) => {
+                                let label = match hovered_index {
+                                    Some(0) => "Start Province ID",
+                                    Some(1) => "End Province ID",
+                                    _ => "Through Province ID",
+                                };
+                                if let Ok(prov_id) = parts[hovered_index.unwrap()].parse::<u32>() {
+                                    let provs = self.provinces.read().await;
+                                    if let Some(province) = provs.get(&prov_id) {
+                                        hover_text.push_str(&format!(
+                                            "**Hovered:** {} `{}` (Terrain: {}, Type: {})\n",
+                                            label, prov_id, province.terrain, province.prov_type
+                                        ));
+                                    } else {
+                                        hover_text.push_str(&format!(
+                                            "**Hovered:** {} `{}`\n",
+                                            label, prov_id
+                                        ));
+                                    }
+                                }
                             }
                             Some(2) => {
                                 hover_text.push_str(&format!(
                                     "**Hovered:** Adjacency Type `{}`\n",
                                     parts[2]
-                                ));
-                            }
-                            Some(3) => {
-                                hover_text.push_str(&format!(
-                                    "**Hovered:** Through Province ID `{}`\n",
-                                    parts[3]
                                 ));
                             }
                             Some(4) => {
@@ -910,10 +930,33 @@ impl LanguageServer for Backend {
                                     .push_str(&format!("**Hovered:** Ending Y `{}`\n", parts[7]));
                             }
                             Some(8) => {
-                                hover_text.push_str(&format!(
-                                    "**Hovered:** Adjacency Rule `{}`\n",
-                                    parts[8]
-                                ));
+                                let rule_name = parts[8].trim();
+                                if !rule_name.is_empty() {
+                                    let rules = self.adjacency_rules.read().await;
+                                    if let Some(rule) = rules.get(rule_name) {
+                                        let mut rule_info = format!(
+                                            "**Hovered:** Adjacency Rule `{}`\n",
+                                            rule_name
+                                        );
+                                        if !rule.required_provinces.is_empty() {
+                                            rule_info.push_str(&format!(
+                                                "- Required Provinces: `{:?}`\n",
+                                                rule.required_provinces
+                                            ));
+                                        }
+                                        if let Some(icon) = rule.icon {
+                                            rule_info.push_str(&format!("- Icon ID: `{}`\n", icon));
+                                        }
+                                        hover_text.push_str(&rule_info);
+                                    } else {
+                                        hover_text.push_str(&format!(
+                                            "**Hovered:** Adjacency Rule `{}`\n",
+                                            rule_name
+                                        ));
+                                    }
+                                } else {
+                                    hover_text.push_str("**Hovered:** Adjacency Rule (None)\n");
+                                }
                             }
                             Some(9) => {
                                 hover_text
@@ -1013,10 +1056,11 @@ impl LanguageServer for Backend {
                 let (script, _) = parser::parse_script(&content);
                 let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
                 let achievements = self.achievements.read().await;
-                if let Some((identifier, final_scopes, assigned_value)) =
+                if let Some((identifier, final_scopes, assigned_value, context_key)) =
                     find_identifier_at(&script, position, &mut scope_stack, &achievements)
                 {
                     let mut hover_text = String::new();
+                    let context_key_lower = context_key.as_ref().map(|s| s.to_lowercase());
 
                     fn push_section(full_text: &mut String, section: &str) {
                         if !full_text.is_empty() && !full_text.ends_with("---\n\n") {
@@ -1107,9 +1151,14 @@ impl LanguageServer for Backend {
                             let ident_lower = identifier.to_lowercase();
                             let is_state_key = ident_lower.contains("state")
                                 || ident_lower.contains("capital")
+                                || (ident_lower == "id"
+                                    && context_key_lower.as_deref() == Some("state"))
                                 || ident_lower == "add_core_of"
                                 || ident_lower == "add_claim_by"
-                                || identifier.parse::<u32>().is_ok();
+                                || (identifier.parse::<u32>().is_ok()
+                                    && context_key_lower
+                                        .as_ref()
+                                        .map_or(false, |ck| ck.contains("state")));
 
                             if is_state_key {
                                 let loc = self.localization.read().await;
@@ -1135,7 +1184,11 @@ impl LanguageServer for Backend {
                         if let Some(province) = provinces.get(&id) {
                             let ident_lower = identifier.to_lowercase();
                             let is_province_key = ident_lower.contains("province")
-                                || identifier.parse::<u32>().is_ok();
+                                || ident_lower == "victory_points"
+                                || (identifier.parse::<u32>().is_ok()
+                                    && context_key_lower.as_ref().map_or(false, |ck| {
+                                        ck.contains("province") || ck == "victory_points"
+                                    }));
 
                             if is_province_key {
                                 let mut text = format!("### 📍 Province: {}\n\n", id);
@@ -1161,7 +1214,12 @@ impl LanguageServer for Backend {
                         if let Some(region) = regions.get(&id) {
                             let ident_lower = identifier.to_lowercase();
                             let is_region_key = ident_lower.contains("strategic_region")
-                                || identifier.parse::<u32>().is_ok();
+                                || (ident_lower == "id"
+                                    && context_key_lower.as_deref() == Some("strategic_region"))
+                                || (identifier.parse::<u32>().is_ok()
+                                    && context_key_lower
+                                        .as_ref()
+                                        .map_or(false, |ck| ck.contains("strategic_region")));
 
                             if is_region_key {
                                 let loc = self.localization.read().await;
@@ -1831,6 +1889,90 @@ impl LanguageServer for Backend {
             return Ok(None);
         }
 
+        // Handle adjacency files
+        {
+            let map_config = crate::map_config::get_map_config(std::path::Path::new("."));
+            if uri.ends_with(&map_config.adjacencies) {
+                if let Some(content) = self.documents.get(&uri) {
+                    if let Some(line) = content.lines().nth(position.line as usize) {
+                        let parts: Vec<&str> = line.split(';').collect();
+                        let mut current_col = 0;
+                        let mut hovered_index = None;
+                        for (i, part) in parts.iter().enumerate() {
+                            let end_col = current_col + part.len() as u32;
+                            if position.character >= current_col && position.character <= end_col {
+                                hovered_index = Some(i);
+                                break;
+                            }
+                            current_col = end_col + 1;
+                        }
+
+                        if let Some(8) = hovered_index {
+                            let mut items = Vec::new();
+                            let rules = self.adjacency_rules.read().await;
+                            for rule_name in rules.keys() {
+                                items.push(CompletionItem {
+                                    label: rule_name.clone(),
+                                    kind: Some(CompletionItemKind::ENUM),
+                                    detail: Some("Adjacency Rule".to_string()),
+                                    ..Default::default()
+                                });
+                            }
+                            return Ok(Some(CompletionResponse::Array(items)));
+                        }
+                    }
+                }
+                return Ok(None);
+            }
+        }
+        // Handle adjacency rules file
+        if uri.ends_with("adjacency_rules.txt") {
+            if let Some(content) = self.documents.get(&uri) {
+                let (script, _) = parser::parse_script(&content);
+                if let Some(context_key) = find_context_at(&script, position) {
+                    let key_lower = context_key.to_lowercase();
+                    let mut items = Vec::new();
+                    if key_lower == "adjacency_rule" {
+                        for f in [
+                            "name",
+                            "required_provinces",
+                            "is_disabled",
+                            "icon",
+                            "contested",
+                            "friend",
+                            "enemy",
+                            "neutral",
+                        ] {
+                            items.push(CompletionItem {
+                                label: f.to_string(),
+                                kind: Some(CompletionItemKind::PROPERTY),
+                                ..Default::default()
+                            });
+                        }
+                    } else if ["contested", "friend", "enemy", "neutral"]
+                        .contains(&key_lower.as_str())
+                    {
+                        for f in ["army", "navy", "submarine", "trade"] {
+                            items.push(CompletionItem {
+                                label: f.to_string(),
+                                kind: Some(CompletionItemKind::PROPERTY),
+                                ..Default::default()
+                            });
+                        }
+                    }
+                    if !items.is_empty() {
+                        return Ok(Some(CompletionResponse::Array(items)));
+                    }
+                } else {
+                    return Ok(Some(CompletionResponse::Array(vec![CompletionItem {
+                        label: "adjacency_rule".to_string(),
+                        kind: Some(CompletionItemKind::CLASS),
+                        ..Default::default()
+                    }])));
+                }
+            }
+        }
+
         // Handle music/sound files
         let is_asset_file = uri.ends_with(".asset");
         let is_music_file = is_asset_file || uri.contains("/music/");
@@ -2348,7 +2490,7 @@ impl LanguageServer for Backend {
                 let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
                 let achievements = self.achievements.read().await;
                 find_identifier_at(&script, position, &mut scope_stack, &achievements)
-                    .map(|(id, _, _)| id)
+                    .map(|(id, _, _, _)| id)
             };
 
             if let Some(identifier) = identifier {
@@ -2540,7 +2682,7 @@ impl LanguageServer for Backend {
                 let (script, _) = parser::parse_script(&content);
                 let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
                 let achievements = self.achievements.read().await;
-                if let Some((identifier, _, _)) =
+                if let Some((identifier, _, _, _)) =
                     find_identifier_at(&script, position, &mut scope_stack, &achievements)
                 {
                     let mut locations = Vec::new();
@@ -4747,6 +4889,9 @@ impl Backend {
         } else if uri.as_str().ends_with("weatherpositions.txt") {
             self.validate_weather_positions_content(content, &mut diagnostics)
                 .await;
+        } else if uri.as_str().ends_with("adjacency_rules.txt") {
+            self.validate_adjacency_rules_content(content, &mut diagnostics)
+                .await;
         } else if {
             let map_config = crate::map_config::get_map_config(std::path::Path::new("."));
             uri.as_str().ends_with(&map_config.adjacencies)
@@ -5254,6 +5399,24 @@ impl Backend {
                             ..Default::default()
                         });
                     }
+
+                    if parts[2].to_lowercase() == "sea" && id <= 0 {
+                        diagnostics.push(Diagnostic {
+                            range: Range {
+                                start: Position {
+                                    line: i as u32,
+                                    character: p3_col,
+                                },
+                                end: Position {
+                                    line: i as u32,
+                                    character: p3_col + parts[3].len() as u32,
+                                },
+                            },
+                            severity: Some(DiagnosticSeverity::HINT),
+                            message: "Sea adjacencies usually require a Through province unless they directly border.".to_string(),
+                            ..Default::default()
+                        });
+                    }
                 } else if !parts[3].trim().is_empty() {
                     diagnostics.push(Diagnostic {
                         range: Range {
@@ -5321,6 +5484,55 @@ impl Backend {
                         message: format!("Unknown adjacency rule: {}", rule_name),
                         ..Default::default()
                     });
+                }
+            }
+        }
+    }
+
+    async fn validate_adjacency_rules_content(
+        &self,
+        content: &str,
+        diagnostics: &mut Vec<Diagnostic>,
+    ) {
+        let provs = self.provinces.read().await;
+        let (script, errors) = parser::parse_script(content);
+        for (msg, range) in errors {
+            diagnostics.push(Diagnostic {
+                range: ast_range_to_lsp(&range),
+                severity: Some(DiagnosticSeverity::ERROR),
+                message: msg,
+                ..Default::default()
+            });
+        }
+
+        for entry in script.entries {
+            if let ast::Entry::Assignment(ass) = entry {
+                if ass.key.to_lowercase() == "adjacency_rule" {
+                    if let ast::Value::Block(rule_entries) = &ass.value.value {
+                        for rule_entry in rule_entries {
+                            if let ast::Entry::Assignment(r_ass) = rule_entry {
+                                if r_ass.key.to_lowercase() == "required_provinces" {
+                                    if let ast::Value::Block(prov_entries) = &r_ass.value.value {
+                                        for p_entry in prov_entries {
+                                            if let ast::Entry::Value(p_val) = p_entry {
+                                                if let ast::Value::Number(n) = &p_val.value {
+                                                    let prov_id = *n as u32;
+                                                    if !provs.is_empty() && !provs.contains_key(&prov_id) {
+                                                        diagnostics.push(Diagnostic {
+                                                            range: ast_range_to_lsp(&p_val.range),
+                                                            severity: Some(DiagnosticSeverity::WARNING),
+                                                            message: format!("Unknown province ID: {}", prov_id),
+                                                            ..Default::default()
+                                                        });
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -5756,6 +5968,10 @@ impl Backend {
         }
 
         for (line_idx, line) in content.lines().enumerate() {
+            // Skip styling checks for CSV files as they have their own formatting rules
+            if uri.ends_with(".csv") {
+                continue;
+            }
             // 1. Trailing whitespace
             if line.ends_with(' ') || line.ends_with('\t') {
                 let trimmed_len = line.trim_end().len();
@@ -7437,9 +7653,9 @@ fn find_identifier_at(
     pos: Position,
     scope_stack: &mut scope::ScopeStack,
     achievements: &HashMap<String, achievement_scanner::Achievement>,
-) -> Option<(String, Vec<scope::Scope>, Option<ast::Value>)> {
+) -> Option<(String, Vec<scope::Scope>, Option<ast::Value>, Option<String>)> {
     for entry in &script.entries {
-        if let Some(res) = find_in_entry(entry, pos, scope_stack, achievements) {
+        if let Some(res) = find_in_entry(entry, pos, scope_stack, achievements, None) {
             return Some(res);
         }
     }
@@ -7451,7 +7667,8 @@ fn find_in_entry(
     pos: Position,
     scope_stack: &mut scope::ScopeStack,
     achievements: &HashMap<String, achievement_scanner::Achievement>,
-) -> Option<(String, Vec<scope::Scope>, Option<ast::Value>)> {
+    context_key: Option<String>,
+) -> Option<(String, Vec<scope::Scope>, Option<ast::Value>, Option<String>)> {
     match entry {
         ast::Entry::Assignment(ass) => {
             if is_pos_in_range(pos, &ass.key_range) {
@@ -7459,6 +7676,7 @@ fn find_in_entry(
                     ass.key.clone(),
                     scope_stack.iter().cloned().collect(),
                     Some(ass.value.value.clone()),
+                    context_key,
                 ));
             }
 
@@ -7481,9 +7699,10 @@ fn find_in_entry(
                 }
             }
 
-            let mut res = find_in_value(&ass.value, pos, scope_stack, achievements);
+            let mut res =
+                find_in_value(&ass.value, pos, scope_stack, achievements, Some(ass.key.clone()));
 
-            if let Some((ref mut id, _, ref mut val_opt)) = res {
+            if let Some((ref mut id, _, ref mut val_opt, _)) = res {
                 if let ast::Value::Number(_) | ast::Value::Boolean(_) = &ass.value.value {
                     *id = ass.key.clone();
                     *val_opt = Some(ass.value.value.clone());
@@ -7495,7 +7714,7 @@ fn find_in_entry(
             }
             res
         }
-        ast::Entry::Value(val) => find_in_value(val, pos, scope_stack, achievements),
+        ast::Entry::Value(val) => find_in_value(val, pos, scope_stack, achievements, context_key),
         _ => None,
     }
 }
@@ -7505,7 +7724,8 @@ fn find_in_value(
     pos: Position,
     scope_stack: &mut scope::ScopeStack,
     achievements: &HashMap<String, achievement_scanner::Achievement>,
-) -> Option<(String, Vec<scope::Scope>, Option<ast::Value>)> {
+    context_key: Option<String>,
+) -> Option<(String, Vec<scope::Scope>, Option<ast::Value>, Option<String>)> {
     match &val.value {
         ast::Value::String(s) => {
             if is_pos_in_range(pos, &val.range) {
@@ -7536,6 +7756,7 @@ fn find_in_value(
                                             part.to_string(),
                                             scope_stack.iter().cloned().collect(),
                                             None,
+                                            context_key,
                                         ));
                                     }
                                     current_part_start += part.len() + 1;
@@ -7544,6 +7765,7 @@ fn find_in_value(
                                     inner.to_string(),
                                     scope_stack.iter().cloned().collect(),
                                     None,
+                                    context_key,
                                 ));
                             }
                             start_search = abs_close + 1;
@@ -7552,13 +7774,42 @@ fn find_in_value(
                         }
                     }
                 }
-                return Some((s.clone(), scope_stack.iter().cloned().collect(), None));
+                return Some((
+                    s.clone(),
+                    scope_stack.iter().cloned().collect(),
+                    None,
+                    context_key,
+                ));
+            }
+            None
+        }
+        ast::Value::Number(n) => {
+            if is_pos_in_range(pos, &val.range) {
+                return Some((
+                    n.to_string(),
+                    scope_stack.iter().cloned().collect(),
+                    Some(ast::Value::Number(*n)),
+                    context_key,
+                ));
+            }
+            None
+        }
+        ast::Value::Boolean(b) => {
+            if is_pos_in_range(pos, &val.range) {
+                return Some((
+                    (if *b { "yes" } else { "no" }).to_string(),
+                    scope_stack.iter().cloned().collect(),
+                    Some(ast::Value::Boolean(*b)),
+                    context_key,
+                ));
             }
             None
         }
         ast::Value::Block(entries) => {
             for entry in entries {
-                if let Some(res) = find_in_entry(entry, pos, scope_stack, achievements) {
+                if let Some(res) =
+                    find_in_entry(entry, pos, scope_stack, achievements, context_key.clone())
+                {
                     return Some(res);
                 }
             }
@@ -7566,13 +7817,14 @@ fn find_in_value(
         }
         ast::Value::TaggedBlock(_, entries, _) => {
             for entry in entries {
-                if let Some(res) = find_in_entry(entry, pos, scope_stack, achievements) {
+                if let Some(res) =
+                    find_in_entry(entry, pos, scope_stack, achievements, context_key.clone())
+                {
                     return Some(res);
                 }
             }
             None
         }
-        _ => None,
     }
 }
 

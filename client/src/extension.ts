@@ -170,11 +170,15 @@ async function startServer(context: ExtensionContext, statusBarItem: any) {
         // Register the server for HOI4 and HOI4 Localisation documents
         documentSelector: [
             { scheme: 'file', language: 'hoi4' },
-            { scheme: 'file', language: 'hoi4-localisation' }
+            { scheme: 'file', language: 'hoi4-localisation' },
+            { scheme: 'file', language: 'hoi4-csv' }
         ],
         synchronize: {
             // Notify the server about file changes to '.txt files contained in the workspace
-            fileEvents: workspace.createFileSystemWatcher('**/*.txt')
+            fileEvents: [
+                workspace.createFileSystemWatcher('**/*.txt'),
+                workspace.createFileSystemWatcher('**/*.csv')
+            ]
         },
         outputChannel: outputChannel,
         initializationOptions: {

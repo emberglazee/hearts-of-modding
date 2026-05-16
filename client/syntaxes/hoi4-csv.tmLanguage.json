@@ -1,0 +1,47 @@
+{
+    "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+    "name": "HOI4 Map CSV",
+    "patterns": [
+        {
+            "include": "#comments"
+        },
+        {
+            "include": "#rows"
+        }
+    ],
+    "repository": {
+        "comments": {
+            "patterns": [
+                {
+                    "name": "comment.line.number-sign.hoi4-csv",
+                    "match": "#.*$"
+                }
+            ]
+        },
+        "rows": {
+            "patterns": [
+                {
+                    "match": "(?i)^\\s*(From;To;Type;Through;start_x;start_y;stop_x;stop_y;adjacency_rule_name)",
+                    "name": "keyword.other.header.hoi4-csv"
+                },
+                {
+                    "match": "(?i)^\\s*(Province;R;G;B;Terrain;Coastal;Continent;ID)",
+                    "name": "keyword.other.header.hoi4-csv"
+                },
+                {
+                    "match": ";",
+                    "name": "punctuation.separator.delimiter.hoi4-csv"
+                },
+                {
+                    "match": "\\b[0-9]+\\b",
+                    "name": "constant.numeric.hoi4-csv"
+                },
+                {
+                    "match": "\\b(true|false|sea|land|lake)\\b",
+                    "name": "constant.language.hoi4-csv"
+                }
+            ]
+        }
+    },
+    "scopeName": "source.hoi4-csv"
+}

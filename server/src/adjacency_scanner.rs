@@ -18,9 +18,10 @@ pub struct Adjacency {
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
-#[allow(dead_code)]
 pub struct AdjacencyRule {
     pub name: String,
+    pub required_provinces: Vec<u32>,
+    pub icon: Option<u32>,
     pub path: String,
     pub range: ast::Range,
 }
@@ -82,12 +83,41 @@ where
                             if ass.key.to_lowercase() == "adjacency_rule" {
                                 if let ast::Value::Block(rule_entries) = &ass.value.value {
                                     let mut name = None;
+                                    let mut required_provinces = Vec::new();
+                                    let mut icon = None;
+
                                     for rule_entry in rule_entries {
                                         if let ast::Entry::Assignment(r_ass) = rule_entry {
-                                            if r_ass.key.to_lowercase() == "name" {
-                                                if let ast::Value::String(s) = &r_ass.value.value {
-                                                    name = Some(s.clone());
+                                            match r_ass.key.to_lowercase().as_str() {
+                                                "name" => {
+                                                    if let ast::Value::String(s) = &r_ass.value.value
+                                                    {
+                                                        name = Some(s.clone());
+                                                    }
                                                 }
+                                                "required_provinces" => {
+                                                    if let ast::Value::Block(prov_entries) =
+                                                        &r_ass.value.value
+                                                    {
+                                                        for p_entry in prov_entries {
+                                                            if let ast::Entry::Value(p_val) = p_entry {
+                                                                if let ast::Value::Number(n) =
+                                                                    &p_val.value
+                                                                {
+                                                                    required_provinces
+                                                                        .push(*n as u32);
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                                "icon" => {
+                                                    if let ast::Value::Number(n) = &r_ass.value.value
+                                                    {
+                                                        icon = Some(*n as u32);
+                                                    }
+                                                }
+                                                _ => {}
                                             }
                                         }
                                     }
@@ -96,6 +126,8 @@ where
                                             n.clone(),
                                             AdjacencyRule {
                                                 name: n,
+                                                required_provinces,
+                                                icon,
                                                 path: rules_path.to_string_lossy().to_string(),
                                                 range: ass.key_range.clone(),
                                             },

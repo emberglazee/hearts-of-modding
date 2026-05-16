@@ -2,7 +2,7 @@
     "name": "hearts-of-modding",
     "displayName": "Hearts of Modding",
     "description": "VS Code extension for Hearts of Iron IV modding",
-    "version": "0.5.5",
+    "version": "0.6.0",
     "publisher": "emberglaze",
     "repository": {
         "type": "git",
@@ -134,6 +134,17 @@
                 "configuration": "./language-configuration.json"
             },
             {
+                "id": "hoi4-csv",
+                "aliases": [
+                    "HOI4 Map CSV",
+                    "hoi4-csv"
+                ],
+                "filenamePatterns": [
+                    "**/map/**/*.csv"
+                ],
+                "configuration": "./language-configuration.json"
+            },
+            {
                 "id": "cwt",
                 "aliases": [
                     "CWTools Schema",
@@ -155,6 +166,11 @@
                 "language": "hoi4-localisation",
                 "scopeName": "source.hoi4-localisation",
                 "path": "./syntaxes/hoi4-localisation.tmLanguage.json"
+            },
+            {
+                "language": "hoi4-csv",
+                "scopeName": "source.hoi4-csv",
+                "path": "./syntaxes/hoi4-csv.tmLanguage.json"
             },
             {
                 "language": "cwt",
