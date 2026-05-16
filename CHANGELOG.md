@@ -2,6 +2,12 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
+## [0.5.3] - 2026-05-16
+
+### Removed
+
+- Removed .cwt (CWTools) schema parsing and validation to be replaced in a future version.
+
 ## [0.5.2] - 2026-05-16
 
 ### Changed

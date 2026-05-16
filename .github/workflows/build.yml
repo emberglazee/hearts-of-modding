@@ -122,7 +122,6 @@ jobs:
           
       - name: Copy Resources
         run: |
-          cp -r server/Config client/server-bin/
           cp -r server/assets client/server-bin/
           mv README.md client/README.md
           mv CHANGELOG.md client/CHANGELOG.md
