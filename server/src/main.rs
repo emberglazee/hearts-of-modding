@@ -4036,6 +4036,7 @@ impl Backend {
             "leader_traits",
             "country_leader_traits",
             "traits",
+            "orientation",
         ];
 
         for entry in entries {
@@ -6134,6 +6135,7 @@ impl Backend {
                         "leader_traits",
                         "country_leader_traits",
                         "traits",
+                        "orientation",
                     ];
 
                     for kw in keywords {
@@ -6145,6 +6147,10 @@ impl Backend {
                             if kw.to_lowercase().contains("sprite") || kw == "texturefile" {
                                 message.push_str(
                                     "\nReference: https://hoi4.paradoxwikis.com/Modding#GFX",
+                                );
+                            } else if kw == "orientation" {
+                                message.push_str(
+                                    "\nReference: https://hoi4.paradoxwikis.com/Interface_modding",
                                 );
                             }
 

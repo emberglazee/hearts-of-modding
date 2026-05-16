@@ -7,14 +7,15 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 ### Added
 
 - **Idea Picture Resolution & Validation:**
-  - Implemented engine-accurate resolution for the `picture` field in country ideas. The extension now strictly prepends the `GFX_idea_` prefix to the `picture` attribute value, matching HOI4's internal sprite lookup.
-  - Added support for graphical culture fallbacks. Validation and hover resolution now intelligently check for culture-specific variants (e.g., `_middle_eastern_2d`) when the base sprite is not found.
-  - Added default picture resolution: if the `picture` field is omitted, the extension automatically validates against the implied `GFX_idea_[idea_name]` sprite.
-  - Introduced a specialized internal `Idea` scope to correctly handle these context-sensitive resolution and validation rules within idea definition blocks.
+  ### Fixed
 
-### Fixed
-
-- **Scoped References in Ideology Fields:** `ideology = ROOT` (and other scoped references like `FROM`, `PREV`, `THIS`, `OWNER`, `CONTROLLER`, `CAPITAL`) are now recognized as valid runtime scope references instead of being flagged as unknown ideologies. This pattern is used extensively in vanilla HOI4 and workshop mods for `start_civil_war`, `add_popularity`, and similar effects.
+  - **Idea Picture Resolution & Validation:**
+    - Implemented engine-accurate resolution for the `picture` field in country ideas. The extension now strictly prepends the `GFX_idea_` prefix to the `picture` attribute value, matching HOI4's internal sprite lookup.
+    - Added support for graphical culture fallbacks. Validation and hover resolution now intelligently check for culture-specific variants (e.g., `_middle_eastern_2d`) when the base sprite is not found.
+    - Added default picture resolution: if the `picture` field is omitted, the extension automatically validates against the implied `GFX_idea_[idea_name]` sprite.
+    - Introduced a specialized internal `Idea` scope to correctly handle these context-sensitive resolution and validation rules within idea definition blocks.
+  - **Orientation Casing Diagnostic:** Added `orientation` to the keyword casing check. The extension now flags non-standard casing (e.g., `Orientation`) in `.gui` and script files, providing a link to interface modding documentation and a bulk fix to standardize casing across the entire file.
+  - **Scoped References in Ideology Fields:** `ideology = ROOT` (and other scoped references like `FROM`, `PREV`, `THIS`, `OWNER`, `CONTROLLER`, `CAPITAL`) are now recognized as valid runtime scope references instead of being flagged as unknown ideologies. This pattern is used extensively in vanilla HOI4 and workshop mods for `start_civil_war`, `add_popularity`, and similar effects.
 
 ## [0.5.3] - 2026-05-16
 
