@@ -4802,7 +4802,13 @@ impl Backend {
 
         if styling_enabled {
             let is_yaml = uri.as_str().ends_with(".yml");
-            self.check_styling(content, script_opt.as_ref(), &mut diagnostics, is_yaml);
+            self.check_styling(
+                content,
+                script_opt.as_ref(),
+                &mut diagnostics,
+                is_yaml,
+                uri.as_str(),
+            );
         }
 
         diagnostics
@@ -4881,6 +4887,26 @@ impl Backend {
     ) {
         let states = self.states.read().await;
         for (i, line) in content.lines().enumerate() {
+            if line.trim().is_empty() {
+                diagnostics.push(Diagnostic {
+                    range: Range {
+                        start: Position {
+                            line: i as u32,
+                            character: 0,
+                        },
+                        end: Position {
+                            line: i as u32,
+                            character: line.len() as u32,
+                        },
+                    },
+                    severity: Some(DiagnosticSeverity::WARNING),
+                    message:
+                        "Empty line in buildings.txt is counted as an error in HOI4 error logs."
+                            .to_string(),
+                    ..Default::default()
+                });
+                continue;
+            }
             let parts: Vec<&str> = line.split(';').collect();
             if parts.len() >= 7 {
                 if let Ok(id) = parts[0].parse::<u32>() {
@@ -5690,8 +5716,13 @@ impl Backend {
         script_opt: Option<&ast::Script>,
         diagnostics: &mut Vec<Diagnostic>,
         is_yaml: bool,
+        uri: &str,
     ) {
-        if !content.is_empty() && !content.ends_with('\n') && !content.ends_with("\r\n") {
+        if !content.is_empty()
+            && !content.ends_with('\n')
+            && !content.ends_with("\r\n")
+            && !uri.ends_with("map/buildings.txt")
+        {
             let line_count = content.lines().count();
             let last_line = content.lines().last().unwrap_or("");
             let line_idx = if line_count > 0 {

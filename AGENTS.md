@@ -136,11 +136,11 @@ Key workspace settings:
 
 ## Commands
 
-- `HOI4: Activate Extension` - Manually start LSP
-- `HOI4: Set Game Path` - Update game path
-- `HOI4: Toggle Styling Checks` - Enable/disable cosmetic checks
-- `HOI4: Toggle Workspace Scan` - Enable/disable auto workspace scan
-- `HOI4: Show Memory Usage` - Toggle memory status bar
+- `Hearts of Modding: Activate Extension` - Manually start LSP
+- `Hearts of Modding: Set Game Path` - Update game path
+- `Hearts of Modding: Toggle Styling Checks` - Enable/disable cosmetic checks
+- `Hearts of Modding: Toggle Workspace Scan` - Enable/disable auto workspace scan
+- `Hearts of Modding: Show Memory Usage` - Toggle memory status bar
 
 ## HOI4-Specific Parsing Rules
 

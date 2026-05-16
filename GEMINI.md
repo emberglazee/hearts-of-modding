@@ -8,14 +8,19 @@ This project is a high-performance Visual Studio Code extension specifically tai
 - **VFS Integrity:** The extension must always respect the "Vanilla + Mod" loading priority (VFS), where mod files correctly override vanilla definitions.
 
 ## Project Structure
-- `client/`: TypeScript VS Code extension. Manages IDE integration, launches the server, and provides TextMate grammars.
-- `server/`: Rust LSP Server.
+- `client/`: TypeScript VS Code extension (Node.js/npm, esbuild for packaging). Manages IDE integration, launches the server, and provides TextMate grammars.
+- `server/`: Rust LSP Server (Cargo, `tower-lsp` + `tokio`).
+    - `src/main.rs`: LSP implementation (~7900 lines, core logic).
     - `src/parser.rs`: A robust `nom`-based parser for HOI4 script. Handles complex identifiers (`daw.2.t`, `[?var]`, `array^0`), escapes, and range tracking.
     - `src/ast.rs`: Abstract Syntax Tree definition including `TaggedBlock` support for color formats.
+    - `src/loc_parser.rs`: Localization `.yml` parser.
     - `src/semantic_tokens.rs`: Logic for context-aware syntax highlighting.
     - `src/scope.rs`: Implements the `ScopeStack` and inference logic (Global > Country > State, etc.).
     - `src/hoi4_data.rs`: Static database of core game triggers, effects, scopes, and localization commands.
-    - `src/*_scanner.rs`: Discovery modules for localization, ideologies, traits, sprites, ideas, scripted elements, variables, provinces, modifiers, and events.
+    - `src/*_scanner.rs`: Discovery modules for localization, ideologies, traits, sprites, ideas, scripted elements, variables, provinces, modifiers, events, music, characters, buildings, states, and more.
+    - `src/schema.rs`: CWTools schema loading (`Config/*.cwt`).
+- `server/Config/`: CWTools schema files (triggers, effects, modifiers, scopes).
+- `server/assets/`: Modifier mappings and formats (`.json`).
 
 ## Key Features
 
@@ -54,14 +59,102 @@ The LSP automatically indexes the following across both Vanilla and Mod roots us
 - **Color Support:** Integrated color picker and preview for various Paradox color formats.
 - **Event Graphing:** Backend support for generating event trigger relationship graphs.
 
-## Technical Nuances
-- **Identifier Rules:** Identifiers can start with digits and contain `.`, `:`, `@`, `[ ]`, `?`, `^`, `$`, `/`, and `-`.
+## Technical Nuances & Parsing Rules
+- **Identifiers:** Can start with digits and contain `.`, `:`, `@`, `[ ]`, `?`, `^`, `$`, `/`, `-`, `'`, `%`. Supports complex forms: `daw.2.t`, `[?var]`, `array^0`.
+- **Localization:** 
+    - Keys support dots and automatic versioning resolution (`key` -> `key:0`).
+    - Version numbers (e.g., `:0`) are cosmetic only and never read by the engine.
+    - Handles UTF-8 BOM in both script and `.yml` files.
+    - Localization parser must handle escaped quotes (`\"`) to avoid truncation.
 - **Proactive Refresh:** Automatically re-validates open documents after initial workspace scans complete to prevent race-condition warnings.
 - **Hyperlinked Tooltips:** All file paths and sprite textures in tooltips are hyperlinked for direct navigation.
+- **Positioning:** LSP uses UTF-16 code units; Rust uses UTF-8. Conversion is mandatory, especially for multi-byte characters like `§` or emojis.
 
-## Development & Build Process
-- **Rust Server Compilation:** The LSP server requires cross-compilation for Windows (`x86_64-pc-windows-gnu`) and Linux. The `npm run package` script in the `client/` folder handles building both binaries via Cargo and copying them to `client/server-bin/`.
-- **Local Fallback:** During local development, if the `server-bin` executables are not found, the VS Code client automatically falls back to looking for `../server/target/release/server` or `../server/target/debug/server`.
+## Build & Development
+
+### Commands
+
+#### Client (TypeScript)
+```bash
+cd client
+npm install              # Install dependencies
+npm run compile          # Compile TypeScript to out/
+npm run watch            # Watch mode for development
+npm run lint             # Run ESLint
+npm run package          # Full build: server + client + VSIX
+```
+
+#### Server (Rust)
+```bash
+cd server
+cargo build              # Debug build
+cargo build --release    # Release build
+cargo check              # Fast syntax/type check
+cargo clippy             # Linting
+cargo test               # Run tests (server/src/test_*.rs)
+```
+
+### VS Code Debugging
+- Use "Launch Extension" configuration (`.vscode/launch.json`).
+- Pre-launch task: `npm: compile` in `client/`.
+- Server binary fallback: `../server/target/release/server` or `../server/target/debug/server` if `client/server-bin/` not found.
+
+### Packaging (`npm run package`)
+1. Builds Rust server with `cargo build --release`.
+2. Copies binary to `client/server-bin/` (platform-specific name).
+3. Copies `Config/` and `assets/` to `client/server-bin/`.
+4. Compiles TypeScript via `tsc`, bundles via `esbuild`.
+5. Packages VSIX with `vsce package`.
+
+**Distribution requires binaries for Linux, Windows (msvc), and macOS ARM64.** CI handles cross-compilation. CI uses `x86_pc-windows-msvc` (not `gnu`) for Windows distribution.
+
+## CI/CD Workflows
+
+### `.github/workflows/build.yml`
+- Triggers on push/PR to `main` affecting `client/`, `server/`, or workflows.
+- Builds server for three targets in parallel: Linux (`x86_64-unknown-linux-gnu`), Windows (`x86_64-pc-windows-msvc`), and macOS (`aarch64-apple-darwin`).
+- Packages VSIX and uploads as `extension-vsix` artifact.
+
+### `.github/workflows/release.yml`
+- Manual trigger only (`workflow_dispatch`).
+- Reads version from `client/package.json` (single source of truth).
+- Creates GitHub release with tagged VSIX.
+
+## Configuration & Extension Info
+
+### Extension Activation
+Activates when:
+- Opening a file with `hoi4` or `hoi4-localisation` language ID.
+- Workspace contains `descriptor.mod`.
+- User runs `HOI4: Activate Extension`.
+
+**Language Associations (`hoi4`):** `.txt` (common, events, map, history, script), `descriptor.mod`, `.gui`, `.gfx`, `.asset`.
+**Language Associations (`hoi4-localisation`):** `.yml` (localization).
+
+### Workspace Settings
+- `hoi4.enabled`: Enable/disable extension.
+- `hoi4.gamePath`: HOI4 installation path (required for VFS).
+- `hoi4.styling.enabled`: Toggle cosmetic checks (casing, indentation, whitespace).
+- `hoi4.styling.cosmeticLocalizationIndentation`: Extra tab for `_DEF`, `_ADJ` variants.
+- `hoi4.showMemoryUsage.enabled`: Status bar memory display.
+- `hoi4.validator.ignoreLocalization`: Regex patterns for missing loc keys to ignore.
+- `hoi4.validator.ignoreFiles`: Regex patterns for files/dirs to skip during workspace scan.
+- `hoi4.validator.workspaceScan.enabled`: Auto workspace-wide diagnostic scan on init.
+
+### VS Code Commands
+- `Hearts of Modding: Activate Extension` - Manually start LSP.
+- `Hearts of Modding: Set Game Path` - Update game path.
+- `Hearts of Modding: Toggle Styling Checks` - Enable/disable cosmetic checks.
+- `Hearts of Modding: Toggle Workspace Scan` - Enable/disable auto workspace scan.
+- `Hearts of Modding: Show Memory Usage` - Toggle memory status bar.
+
+## Development Gotchas
+- **Packaging:** Server must copy `Config/` and `assets/` to `client/server-bin/` for the VSIX to work.
+- **Binary Naming:** Distribution requires specific names: `server-linux`, `server-win.exe`, `server-macos-arm64`.
+- **YAML Handling:** YAML files can be parsed by the HOI4 script parser, but should be handled separately for proper indentation rules.
+- **Semantic Tokens:** These override TextMate grammars; skip for `.yml` files to avoid highlighting conflicts.
+- **UTF Conversion:** Always convert between Rust (UTF-8) and LSP (UTF-16) offsets.
+- **Version Source:** `client/package.json` is the single source of truth for the version.
 
 ## Configuration & Schemas
 - **CWTools Compatibility:** The server uses `.cwt` files in `server/Config/` (e.g., `triggers.cwt`, `effects.cwt`, `links.cwt`) to load schema definitions.

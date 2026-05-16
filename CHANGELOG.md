@@ -2,6 +2,14 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
+## [0.5.5] - 2026-05-16
+
+### Added
+
+- **Map Validation Improvements:**
+  - Added specific validation for `map/buildings.txt` to warn about empty lines, which are counted as errors by the HOI4 engine.
+  - Added a styling exception for `map/buildings.txt` to suppress the end-of-file newline diagnostic, preventing forced empty lines at the end of the file.
+
 ## [0.5.4] - 2026-05-16
 
 ### Added
