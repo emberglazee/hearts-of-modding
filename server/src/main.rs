@@ -6621,7 +6621,7 @@ impl Backend {
                     || key_lower == "remove_ideas"
                 {
                     if let ast::Value::String(val) = &ass.value.value {
-                        if !ids.contains_key(val) {
+                        if val != "all" && !ids.contains_key(val) {
                             diagnostics.push(Diagnostic {
                                 range: ast_range_to_lsp(&ass.value.range),
                                 severity: Some(DiagnosticSeverity::WARNING),
