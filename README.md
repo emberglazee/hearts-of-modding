@@ -11,7 +11,7 @@ Inspired by the extensions [CWTools](https://github.com/cwtools/cwtools) and [VM
 ## Key Features
 
 ### 🚀 High-Performance Intelligence
-- **Rust-Powered LSP:** Instantaneous response times even in massive mods like Millennium Dawn or Kaiserreich.
+- **Rust-Powered LSP:** Quick response times even in massive mods like Millennium Dawn or Kaiserreich.
 - **Parallelized Workspace Scanning:** Rapidly indexes your entire mod and the vanilla game files on startup.
 - **Virtual File System (VFS):** Correctly respects mod loading priority, ensuring your mod's overrides are always accurately represented.
 
@@ -44,11 +44,11 @@ Inspired by the extensions [CWTools](https://github.com/cwtools/cwtools) and [VM
 
 ## Commands
 
-- `HOI4: Activate Extension`: Manually starts the LSP server if it hasn't already.
-- `HOI4: Set Game Path`: Quickly update your game path for VFS merging.
-- `HOI4: Toggle Styling Checks`: Enable or disable cosmetic casing and whitespace diagnostics.
-- `HOI4: Toggle Workspace Scan`: Enable or disable automatic workspace-wide diagnostic scanning.
-- `HOI4: Show Memory Usage`: Toggle the real-time memory usage display in the status bar.
+- `Hearts of Modding: Activate Extension`: Manually starts the LSP server if it hasn't already.
+- `Hearts of Modding: Set Game Path`: Quickly update your game path for VFS merging.
+- `Hearts of Modding: Toggle Styling Checks`: Enable or disable cosmetic casing and whitespace diagnostics.
+- `Hearts of Modding: Toggle Workspace Scan`: Enable or disable automatic workspace-wide diagnostic scanning.
+- `Hearts of Modding: Show Memory Usage`: Toggle the real-time memory usage display in the status bar.
 
 ## Requirements
 

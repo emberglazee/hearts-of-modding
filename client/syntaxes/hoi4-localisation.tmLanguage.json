@@ -63,7 +63,7 @@
             "patterns": [
                 {
                     "name": "constant.other.color.hoi4-loc",
-                    "match": "§[a-zA-Z!]"
+                    "match": "§[a-zA-Z0-9!]"
                 }
             ]
         },
@@ -72,6 +72,10 @@
                 {
                     "name": "variable.other.member.hoi4-loc",
                     "match": "\\[[^\\]]+\\]"
+                },
+                {
+                    "name": "variable.other.hoi4-loc",
+                    "match": "\\$[a-zA-Z0-9_\\.-]+\\$"
                 }
             ]
         }

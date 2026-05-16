@@ -57,14 +57,18 @@ struct RawToken {
 fn push_entry_tokens(entry: &Entry, tokens: &mut Vec<RawToken>, keywords: &HashSet<String>) {
     match entry {
         Entry::Assignment(ass) => {
-            let is_keyword = keywords.contains(&ass.key)
-                || ass.key.chars().all(|c| c.is_lowercase() || c == '_');
-            tokens.push(RawToken {
-                line: ass.key_range.start_line,
-                start: ass.key_range.start_col,
-                length: ass.key_range.end_col - ass.key_range.start_col,
-                token_type: if is_keyword { 0 } else { 1 }, // KEYWORD (0) or VARIABLE (1)
-            });
+            let is_keyword = keywords.contains(&ass.key);
+
+            // Only push a token if we're sure it's a keyword or if it's an operator
+            if is_keyword {
+                tokens.push(RawToken {
+                    line: ass.key_range.start_line,
+                    start: ass.key_range.start_col,
+                    length: ass.key_range.end_col - ass.key_range.start_col,
+                    token_type: 0, // KEYWORD
+                });
+            }
+
             tokens.push(RawToken {
                 line: ass.operator_range.start_line,
                 start: ass.operator_range.start_col,
@@ -89,13 +93,24 @@ fn push_entry_tokens(entry: &Entry, tokens: &mut Vec<RawToken>, keywords: &HashS
 
 fn push_value_tokens(val: &NodeedValue, tokens: &mut Vec<RawToken>, keywords: &HashSet<String>) {
     match &val.value {
-        Value::String(_) => {
-            tokens.push(RawToken {
-                line: val.range.start_line,
-                start: val.range.start_col,
-                length: val.range.end_col - val.range.start_col,
-                token_type: 2, // STRING
-            });
+        Value::String(s) => {
+            // Only provide semantic tokens for things TextMate might miss or we know for sure
+            if keywords.contains(s) {
+                tokens.push(RawToken {
+                    line: val.range.start_line,
+                    start: val.range.start_col,
+                    length: val.range.end_col - val.range.start_col,
+                    token_type: 0, // KEYWORD
+                });
+            } else if s.starts_with("var:") || s.starts_with("temp_var:") {
+                tokens.push(RawToken {
+                    line: val.range.start_line,
+                    start: val.range.start_col,
+                    length: val.range.end_col - val.range.start_col,
+                    token_type: 1, // VARIABLE
+                });
+            }
+            // Generic strings/identifiers are left to TextMate
         }
         Value::Number(_) => {
             tokens.push(RawToken {

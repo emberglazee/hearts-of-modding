@@ -419,6 +419,14 @@ impl LanguageServer for Backend {
                 keywords.insert("traits".to_string());
                 keywords.insert("skill".to_string());
 
+                // Ability keywords
+                keywords.insert("ability".to_string());
+                keywords.insert("cost".to_string());
+                keywords.insert("duration".to_string());
+                keywords.insert("one_time_effect".to_string());
+                keywords.insert("unit_modifiers".to_string());
+                keywords.insert("ai_will_do".to_string());
+
                 Ok(Some(semantic_tokens::get_semantic_tokens(
                     &script, &keywords,
                 )))
@@ -4037,6 +4045,7 @@ impl Backend {
             "country_leader_traits",
             "traits",
             "orientation",
+            "buttonType",
         ];
 
         for entry in entries {
@@ -5983,8 +5992,7 @@ impl Backend {
                     }
                 }
 
-                if s != scope::Scope::Unknown || ass.key.contains(':') || ass.key.contains('.')
-                {
+                if s != scope::Scope::Unknown || ass.key.contains(':') || ass.key.contains('.') {
                     match &ass.value.value {
                         ast::Value::Block(entries) | ast::Value::TaggedBlock(_, entries, _) => {
                             // Default picture check for ideas: If omitted, defaults to GFX_idea_[idea_name]
@@ -5998,7 +6006,10 @@ impl Backend {
                                 });
                                 if !has_picture {
                                     let default_gfx = format!("GFX_idea_{}", ass.key);
-                                    let exists = sp.contains_key(&default_gfx) || sp.keys().any(|k| k.starts_with(&format!("{}_", default_gfx)));
+                                    let exists = sp.contains_key(&default_gfx)
+                                        || sp
+                                            .keys()
+                                            .any(|k| k.starts_with(&format!("{}_", default_gfx)));
                                     if !exists {
                                         diagnostics.push(Diagnostic {
                                             range: ast_range_to_lsp(&ass.key_range),
@@ -6136,6 +6147,7 @@ impl Backend {
                         "country_leader_traits",
                         "traits",
                         "orientation",
+                        "buttonType",
                     ];
 
                     for kw in keywords {
@@ -6148,7 +6160,7 @@ impl Backend {
                                 message.push_str(
                                     "\nReference: https://hoi4.paradoxwikis.com/Modding#GFX",
                                 );
-                            } else if kw == "orientation" {
+                            } else if kw == "orientation" || kw == "buttonType" {
                                 message.push_str(
                                     "\nReference: https://hoi4.paradoxwikis.com/Interface_modding",
                                 );
@@ -6239,13 +6251,28 @@ impl Backend {
                 if key_lower == "ideology" || key_lower == "has_ideology" {
                     if let ast::Value::String(val) = &ass.value.value {
                         // Allow scoped references (ROOT, FROM, PREV, THIS, etc.) which resolve at runtime
-                        let is_scope_ref = matches!(val.to_uppercase().as_str(),
-                            "ROOT" | "FROM" | "PREV" | "THIS" | "PREVPREV" | "PREVPREVPREV" | "PREVPREVPREVPREV" |
-                            "OWNER" | "CONTROLLER" | "CAPITAL" | "FROM.FROM" | "FROM.FROM.FROM"
+                        let is_scope_ref = matches!(
+                            val.to_uppercase().as_str(),
+                            "ROOT"
+                                | "FROM"
+                                | "PREV"
+                                | "THIS"
+                                | "PREVPREV"
+                                | "PREVPREVPREV"
+                                | "PREVPREVPREVPREV"
+                                | "OWNER"
+                                | "CONTROLLER"
+                                | "CAPITAL"
+                                | "FROM.FROM"
+                                | "FROM.FROM.FROM"
                         );
                         // Allow variable references (var:SCOPE@name or var:name) which resolve at runtime
                         let is_var_ref = val.starts_with("var:");
-                        if !id.contains_key(val) && !sid.contains_key(val) && !is_scope_ref && !is_var_ref {
+                        if !id.contains_key(val)
+                            && !sid.contains_key(val)
+                            && !is_scope_ref
+                            && !is_var_ref
+                        {
                             diagnostics.push(Diagnostic {
                                 range: ast_range_to_lsp(&ass.value.range),
                                 severity: Some(DiagnosticSeverity::WARNING),
@@ -6294,13 +6321,25 @@ impl Backend {
                             lookup_key = format!("GFX_idea_{}", val);
                         }
 
-                        let exists = sp.contains_key(&lookup_key) || (key_lower == "picture" && scope_stack.current() == scope::Scope::Idea && sp.keys().any(|k| k.starts_with(&format!("{}_", lookup_key))));
+                        let exists = sp.contains_key(&lookup_key)
+                            || (key_lower == "picture"
+                                && scope_stack.current() == scope::Scope::Idea
+                                && sp
+                                    .keys()
+                                    .any(|k| k.starts_with(&format!("{}_", lookup_key))));
 
-                        if !exists && (lookup_key.starts_with("GFX_") || (key_lower == "picture" && scope_stack.current() == scope::Scope::Idea)) {
+                        if !exists
+                            && (lookup_key.starts_with("GFX_")
+                                || (key_lower == "picture"
+                                    && scope_stack.current() == scope::Scope::Idea))
+                        {
                             diagnostics.push(Diagnostic {
                                 range: ast_range_to_lsp(&ass.value.range),
                                 severity: Some(DiagnosticSeverity::WARNING),
-                                message: format!("Unknown sprite/GFX: '{}' (resolved from '{}')", lookup_key, val),
+                                message: format!(
+                                    "Unknown sprite/GFX: '{}' (resolved from '{}')",
+                                    lookup_key, val
+                                ),
                                 code: Some(NumberOrString::String(
                                     advanced_validation::UNKNOWN_TRIGGER.to_string(),
                                 )),

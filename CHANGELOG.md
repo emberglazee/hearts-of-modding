@@ -7,15 +7,25 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 ### Added
 
 - **Idea Picture Resolution & Validation:**
-  ### Fixed
+  - Implemented engine-accurate resolution for the `picture` field in country ideas. The extension now strictly prepends the `GFX_idea_` prefix to the `picture` attribute value, matching HOI4's internal sprite lookup.
+  - Added support for graphical culture fallbacks. Validation and hover resolution now intelligently check for culture-specific variants (e.g., `_middle_eastern_2d`) when the base sprite is not found.
+  - Added default picture resolution: if the `picture` field is omitted, the extension automatically validates against the implied `GFX_idea_[idea_name]` sprite.
+  - Introduced a specialized internal `Idea` scope to correctly handle these context-sensitive resolution and validation rules within idea definition blocks.
+- **UI Keyword Casing Diagnostic:** Expanded the keyword casing check to include `orientation` and `buttonType`. The extension now flags non-standard casing (e.g., `Orientation` or `buttontype`) in `.gui` and script files, providing links to interface modding documentation and a bulk fix to standardize casing across the entire file.
+- **Major TextMate Grammar Expansion:** Significantly expanded the base TextMate syntax highlighting using official engine documentation and vanilla file analysis to provide richer, high-fidelity colors without relying on the LSP.
+  - Categorized highlighting for hundreds of Effects, Triggers, and Modifiers extracted directly from the HOI4 documentation.
+  - Added specialized highlighting for scopes (`ROOT`, `FROM`, etc.), 3-letter country tags, and event IDs.
+  - Improved variable highlighting for `[?var]` and scoped variables (e.g., `var:tag@name`).
+  - Added full support for GUI files (`.gui`), including component types (`containerWindowType`, `buttonType`, etc.) and common UI properties (`font`, `clipping`, `shortcut`).
+  - Improved numeric highlighting to support double-percentage values (e.g., `100%%`) commonly used in UI layouts.
+  - Added highlighting for punctuation (braces/brackets) and hundreds of additional top-level blocks and effects.
+  - Localization grammars now correctly highlight numeric color codes and bindable `$VAR$` variables.
+- **Enhanced Leader Ability Support:** Expanded semantic highlighting for leader abilities to include key fields like `cost`, `duration`, `one_time_effect`, and `unit_modifiers`, ensuring better visual hierarchy in ability definition files.
+- **Refined Hybrid Syntax Highlighting:** Improved the balance between TextMate and Semantic highlighting. Semantic tokens are now more conservative, only applying to known HOI4 keywords, operators, and variables. This ensures that TextMate's specialized colors for identifiers, country tags, and scopes are preserved and no longer overwritten by generic LSP tokens.
 
-  - **Idea Picture Resolution & Validation:**
-    - Implemented engine-accurate resolution for the `picture` field in country ideas. The extension now strictly prepends the `GFX_idea_` prefix to the `picture` attribute value, matching HOI4's internal sprite lookup.
-    - Added support for graphical culture fallbacks. Validation and hover resolution now intelligently check for culture-specific variants (e.g., `_middle_eastern_2d`) when the base sprite is not found.
-    - Added default picture resolution: if the `picture` field is omitted, the extension automatically validates against the implied `GFX_idea_[idea_name]` sprite.
-    - Introduced a specialized internal `Idea` scope to correctly handle these context-sensitive resolution and validation rules within idea definition blocks.
-  - **Orientation Casing Diagnostic:** Added `orientation` to the keyword casing check. The extension now flags non-standard casing (e.g., `Orientation`) in `.gui` and script files, providing a link to interface modding documentation and a bulk fix to standardize casing across the entire file.
-  - **Scoped References in Ideology Fields:** `ideology = ROOT` (and other scoped references like `FROM`, `PREV`, `THIS`, `OWNER`, `CONTROLLER`, `CAPITAL`) are now recognized as valid runtime scope references instead of being flagged as unknown ideologies. This pattern is used extensively in vanilla HOI4 and workshop mods for `start_civil_war`, `add_popularity`, and similar effects.
+### Fixed
+
+- **Scoped References in Ideology Fields:** `ideology = ROOT` (and other scoped references like `FROM`, `PREV`, `THIS`, `OWNER`, `CONTROLLER`, `CAPITAL`) are now recognized as valid runtime scope references instead of being flagged as unknown ideologies. This pattern is used extensively in vanilla HOI4 and workshop mods for `start_civil_war`, `add_popularity`, and similar effects.
 
 ## [0.5.3] - 2026-05-16
 

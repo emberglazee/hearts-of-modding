@@ -75,24 +75,28 @@
         "commands": [
             {
                 "command": "hearts-of-modding.activate",
-                "title": "HOI4: Activate Extension"
+                "title": "Activate Extension",
+                "category": "Hearts of Modding"
             },
             {
                 "command": "hearts-of-modding.setGamePath",
-                "title": "HOI4: Set Game Path"
+                "title": "Set Game Path",
+                "category": "Hearts of Modding"
             },
             {
                 "command": "hearts-of-modding.toggleStyling",
-                "title": "HOI4: Toggle Styling Checks"
+                "title": "Toggle Styling Checks",
+                "category": "Hearts of Modding"
             },
             {
                 "command": "hearts-of-modding.toggleWorkspaceScan",
-                "title": "HOI4: Toggle Workspace Scan",
+                "title": "Toggle Workspace Scan",
                 "category": "Hearts of Modding"
             },
             {
                 "command": "hearts-of-modding.showMemoryUsage",
-                "title": "HOI4: Show Memory Usage"
+                "title": "Show Memory Usage",
+                "category": "Hearts of Modding"
             }
         ],
         "languages": [

@@ -112,12 +112,15 @@ where
                                                 if filter(&path) {
                                                     continue;
                                                 }
-                                                let ext =
-                                                    path.extension().and_then(|e| e.to_str()).unwrap_or("");
+                                                let ext = path
+                                                    .extension()
+                                                    .and_then(|e| e.to_str())
+                                                    .unwrap_or("");
                                                 if ext == "asset" {
                                                     if let Ok(content) = fs::read_to_string(&path) {
                                                         {
-                                                            let (script, _) = parser::parse_script(&content);
+                                                            let (script, _) =
+                                                                parser::parse_script(&content);
                                                             find_sound_definitions(
                                                                 &script.entries,
                                                                 &path.to_string_lossy(),
