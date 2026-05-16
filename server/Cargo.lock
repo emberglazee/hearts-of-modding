@@ -676,7 +676,7 @@ dependencies = [
 
 [[package]]
 name = "server"
-version = "0.5.3"
+version = "0.5.4"
 dependencies = [
  "base64",
  "dashmap 6.1.0",

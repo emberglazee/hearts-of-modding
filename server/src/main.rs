@@ -5968,11 +5968,48 @@ impl Backend {
                 let mut pushed_scope = false;
 
                 // Structural blocks that push scope
-                let s = scope::Scope::from_str(&ass.key);
+                let mut s = scope::Scope::from_str(&ass.key);
+
+                // Internal 'idea' definition block context
+                if s == scope::Scope::Unknown {
+                    let stack = scope_stack.stack();
+                    if stack.contains(&scope::Scope::Idea) {
+                        // We are inside 'ideas'. If depth is 2 (Global, Idea), this is a category.
+                        // If depth is 3 (Global, Idea, Category), this is an idea definition.
+                        if stack.len() == 2 || stack.len() == 3 {
+                            s = scope::Scope::Idea;
+                        }
+                    }
+                }
+
                 if s != scope::Scope::Unknown || ass.key.contains(':') || ass.key.contains('.')
                 {
                     match &ass.value.value {
-                        ast::Value::Block(_) | ast::Value::TaggedBlock(_, _, _) => {
+                        ast::Value::Block(entries) | ast::Value::TaggedBlock(_, entries, _) => {
+                            // Default picture check for ideas: If omitted, defaults to GFX_idea_[idea_name]
+                            if s == scope::Scope::Idea && scope_stack.stack().len() == 3 {
+                                let has_picture = entries.iter().any(|e| {
+                                    if let ast::Entry::Assignment(a) = e {
+                                        a.key.to_lowercase() == "picture"
+                                    } else {
+                                        false
+                                    }
+                                });
+                                if !has_picture {
+                                    let default_gfx = format!("GFX_idea_{}", ass.key);
+                                    let exists = sp.contains_key(&default_gfx) || sp.keys().any(|k| k.starts_with(&format!("{}_", default_gfx)));
+                                    if !exists {
+                                        diagnostics.push(Diagnostic {
+                                            range: ast_range_to_lsp(&ass.key_range),
+                                            severity: Some(DiagnosticSeverity::WARNING),
+                                            message: format!("Idea '{}' is missing a 'picture' field and the default GFX '{}' was not found.", ass.key, default_gfx),
+                                            source: Some("Hearts of Modding".to_string()),
+                                            ..Default::default()
+                                        });
+                                    }
+                                }
+                            }
+
                             scope_stack.push(s);
                             pushed_scope = true;
                         }
@@ -6195,7 +6232,14 @@ impl Backend {
                 // Ideology checks
                 if key_lower == "ideology" || key_lower == "has_ideology" {
                     if let ast::Value::String(val) = &ass.value.value {
-                        if !id.contains_key(val) && !sid.contains_key(val) {
+                        // Allow scoped references (ROOT, FROM, PREV, THIS, etc.) which resolve at runtime
+                        let is_scope_ref = matches!(val.to_uppercase().as_str(),
+                            "ROOT" | "FROM" | "PREV" | "THIS" | "PREVPREV" | "PREVPREVPREV" | "PREVPREVPREVPREV" |
+                            "OWNER" | "CONTROLLER" | "CAPITAL" | "FROM.FROM" | "FROM.FROM.FROM"
+                        );
+                        // Allow variable references (var:SCOPE@name or var:name) which resolve at runtime
+                        let is_var_ref = val.starts_with("var:");
+                        if !id.contains_key(val) && !sid.contains_key(val) && !is_scope_ref && !is_var_ref {
                             diagnostics.push(Diagnostic {
                                 range: ast_range_to_lsp(&ass.value.range),
                                 severity: Some(DiagnosticSeverity::WARNING),
@@ -6238,11 +6282,19 @@ impl Backend {
                     || key_lower == "picture"
                 {
                     if let ast::Value::String(val) = &ass.value.value {
-                        if !sp.contains_key(val) && val.starts_with("GFX_") {
+                        let mut lookup_key = val.clone();
+                        // Country idea "picture" field resolution: picture = [name] resolves to GFX_idea_[name]
+                        if key_lower == "picture" && scope_stack.current() == scope::Scope::Idea {
+                            lookup_key = format!("GFX_idea_{}", val);
+                        }
+
+                        let exists = sp.contains_key(&lookup_key) || (key_lower == "picture" && scope_stack.current() == scope::Scope::Idea && sp.keys().any(|k| k.starts_with(&format!("{}_", lookup_key))));
+
+                        if !exists && (lookup_key.starts_with("GFX_") || (key_lower == "picture" && scope_stack.current() == scope::Scope::Idea)) {
                             diagnostics.push(Diagnostic {
                                 range: ast_range_to_lsp(&ass.value.range),
                                 severity: Some(DiagnosticSeverity::WARNING),
-                                message: format!("Unknown sprite/GFX: '{}'", val),
+                                message: format!("Unknown sprite/GFX: '{}' (resolved from '{}')", lookup_key, val),
                                 code: Some(NumberOrString::String(
                                     advanced_validation::UNKNOWN_TRIGGER.to_string(),
                                 )),

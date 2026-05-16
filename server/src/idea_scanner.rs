@@ -8,6 +8,7 @@ use std::path::Path;
 pub struct Idea {
     pub name: String,
     pub category: String,
+    pub picture: Option<String>,
     pub path: String,
     pub range: ast::Range,
 }
@@ -86,11 +87,25 @@ fn parse_ideas_block(ass: &ast::Assignment, file_path: &str, map: &mut HashMap<S
                 if let ast::Value::Block(ideas) = &cat_ass.value.value {
                     for idea_entry in ideas {
                         if let ast::Entry::Assignment(idea_ass) = idea_entry {
+                            let mut picture = None;
+                            if let ast::Value::Block(details) = &idea_ass.value.value {
+                                for detail in details {
+                                    if let ast::Entry::Assignment(d_ass) = detail {
+                                        if d_ass.key.to_lowercase() == "picture" {
+                                            if let ast::Value::String(s) = &d_ass.value.value {
+                                                picture = Some(s.clone());
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
                             map.insert(
                                 idea_ass.key.clone(),
                                 Idea {
                                     name: idea_ass.key.clone(),
                                     category: category_name.clone(),
+                                    picture,
                                     path: file_path.to_string(),
                                     range: idea_ass.key_range.clone(),
                                 },

@@ -11,6 +11,7 @@ pub enum Scope {
     MusicTrack,
     Achievement,
     Ribbon,
+    Idea,
     Unknown,
 }
 
@@ -26,6 +27,7 @@ impl Scope {
             Scope::MusicTrack => "Music Track",
             Scope::Achievement => "Achievement",
             Scope::Ribbon => "Ribbon",
+            Scope::Idea => "Idea",
             Scope::Unknown => "Unknown",
         }
     }
@@ -36,6 +38,7 @@ impl Scope {
             "music_station" => Scope::MusicStation,
             "music" => Scope::MusicTrack,
             "state" => Scope::State,
+            "ideas" => Scope::Idea,
             "country"
             | "ger"
             | "eng"
