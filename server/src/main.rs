@@ -3216,6 +3216,10 @@ impl LanguageServer for Backend {
             &self.adjacency_rules,
             &self.strategic_regions,
             &self.custom_modifiers,
+            &self.sounds,
+            &self.sound_effects,
+            &self.falloffs,
+            &self.sound_categories,
         )
         .await;
 
@@ -5856,6 +5860,7 @@ impl Backend {
         let ig_loc = self.ignored_loc_regex.read().await;
         let buildings = self.buildings.read().await;
         let defines = self.defines.read().await;
+        let s_effects = self.sound_effects.read().await;
 
         let mut comments = Vec::new();
         for entry in &script.entries {
@@ -5932,6 +5937,7 @@ impl Backend {
                 &comments,
                 styling_enabled,
                 &mut scope_stack,
+                &s_effects,
             );
         }
     }
@@ -5954,6 +5960,7 @@ impl Backend {
         comments: &[(String, ast::Range)],
         styling_enabled: bool,
         scope_stack: &mut scope::ScopeStack,
+        s_effects: &HashMap<String, sound_scanner::SoundEffect>,
     ) {
         match entry {
             ast::Entry::Assignment(ass) => {
@@ -6246,6 +6253,24 @@ impl Backend {
                     }
                 }
 
+                // Sound effect checks
+                if key_lower == "sound_effect" {
+                    if let ast::Value::String(val) = &ass.value.value {
+                        if !s_effects.contains_key(val) {
+                            diagnostics.push(Diagnostic {
+                                range: ast_range_to_lsp(&ass.value.range),
+                                severity: Some(DiagnosticSeverity::WARNING),
+                                message: format!("Unknown sound effect: '{}'", val),
+                                code: Some(NumberOrString::String(
+                                    advanced_validation::UNKNOWN_TRIGGER.to_string(),
+                                )),
+                                source: Some("Hearts of Modding".to_string()),
+                                ..Default::default()
+                            });
+                        }
+                    }
+                }
+
                 // Idea checks
                 if key_lower == "add_ideas"
                     || key_lower == "has_idea"
@@ -6301,6 +6326,7 @@ impl Backend {
                     comments,
                     styling_enabled,
                     scope_stack,
+                    s_effects,
                 );
 
                 if pushed_scope {
@@ -6325,6 +6351,7 @@ impl Backend {
                     comments,
                     styling_enabled,
                     scope_stack,
+                    s_effects,
                 );
             }
             _ => {}
@@ -6349,6 +6376,7 @@ impl Backend {
         comments: &[(String, ast::Range)],
         styling_enabled: bool,
         scope_stack: &mut scope::ScopeStack,
+        s_effects: &HashMap<String, sound_scanner::SoundEffect>,
     ) {
         match &val.value {
             ast::Value::Block(entries) => {
@@ -6371,6 +6399,7 @@ impl Backend {
                         comments,
                         styling_enabled,
                         scope_stack,
+                        s_effects,
                     );
                 }
             }
@@ -6440,6 +6469,7 @@ impl Backend {
                         comments,
                         styling_enabled,
                         scope_stack,
+                        s_effects,
                     );
                 }
             }

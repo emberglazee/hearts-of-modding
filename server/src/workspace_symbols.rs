@@ -46,6 +46,10 @@ pub async fn generate_workspace_symbols(
     adjacency_rules: &Arc<RwLock<HashMap<String, crate::adjacency_scanner::AdjacencyRule>>>,
     strategic_regions: &Arc<RwLock<HashMap<u32, crate::strategic_region_scanner::StrategicRegion>>>,
     custom_modifiers: &Arc<RwLock<HashMap<String, crate::modifier_scanner::Modifier>>>,
+    sounds: &Arc<RwLock<HashMap<String, crate::sound_scanner::Sound>>>,
+    sound_effects: &Arc<RwLock<HashMap<String, crate::sound_scanner::SoundEffect>>>,
+    falloffs: &Arc<RwLock<HashMap<String, crate::sound_scanner::Falloff>>>,
+    sound_categories: &Arc<RwLock<HashMap<String, crate::sound_scanner::SoundCategory>>>,
 ) -> Vec<SymbolInformation> {
     let mut symbols = Vec::new();
     let query_lower = query.to_lowercase();
@@ -591,6 +595,82 @@ pub async fn generate_workspace_symbols(
                     container_name: Some("Variable".to_string()),
                 });
             }
+        }
+    }
+
+    // Search sounds
+    let sounds_lock = sounds.read().await;
+    for (name, sound) in sounds_lock.iter() {
+        if fuzzy_match(&query_lower, &name.to_lowercase()) {
+            #[allow(deprecated)]
+            symbols.push(SymbolInformation {
+                name: name.clone(),
+                kind: SymbolKind::EVENT,
+                tags: None,
+                deprecated: None,
+                location: Location {
+                    uri: path_to_url(&sound.path),
+                    range: range_to_lsp(&sound.range),
+                },
+                container_name: Some("Sound".to_string()),
+            });
+        }
+    }
+
+    // Search sound effects
+    let effects_lock = sound_effects.read().await;
+    for (name, effect) in effects_lock.iter() {
+        if fuzzy_match(&query_lower, &name.to_lowercase()) {
+            #[allow(deprecated)]
+            symbols.push(SymbolInformation {
+                name: name.clone(),
+                kind: SymbolKind::EVENT,
+                tags: None,
+                deprecated: None,
+                location: Location {
+                    uri: path_to_url(&effect.path),
+                    range: range_to_lsp(&effect.range),
+                },
+                container_name: Some("Sound Effect".to_string()),
+            });
+        }
+    }
+
+    // Search falloffs
+    let falloffs_lock = falloffs.read().await;
+    for (name, falloff) in falloffs_lock.iter() {
+        if fuzzy_match(&query_lower, &name.to_lowercase()) {
+            #[allow(deprecated)]
+            symbols.push(SymbolInformation {
+                name: name.clone(),
+                kind: SymbolKind::EVENT,
+                tags: None,
+                deprecated: None,
+                location: Location {
+                    uri: path_to_url(&falloff.path),
+                    range: range_to_lsp(&falloff.range),
+                },
+                container_name: Some("Sound Falloff".to_string()),
+            });
+        }
+    }
+
+    // Search sound categories
+    let categories_lock = sound_categories.read().await;
+    for (name, category) in categories_lock.iter() {
+        if fuzzy_match(&query_lower, &name.to_lowercase()) {
+            #[allow(deprecated)]
+            symbols.push(SymbolInformation {
+                name: name.clone(),
+                kind: SymbolKind::EVENT,
+                tags: None,
+                deprecated: None,
+                location: Location {
+                    uri: path_to_url(&category.path),
+                    range: range_to_lsp(&category.range),
+                },
+                container_name: Some("Sound Category".to_string()),
+            });
         }
     }
 

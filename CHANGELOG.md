@@ -4,9 +4,15 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ## [0.5.3] - 2026-05-16
 
+### Added
+
+- **Sound Effects Support:**
+  - Added sound effects, sounds, falloffs, and sound categories to Workspace Symbols (`Ctrl+T`), enabling direct navigation to sound asset definitions.
+  - Added validation for `sound_effect` references in ability files, warning when referencing undefined sound effects.
+
 ### Removed
 
-- Removed .cwt (CWTools) schema parsing and validation to be replaced in a future version.
+- Removed .cwt (CWTools) schema parsing and validation to be replaced with an alternative in a future version.
 
 ## [0.5.2] - 2026-05-16
 
