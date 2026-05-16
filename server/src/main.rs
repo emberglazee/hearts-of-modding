@@ -23,7 +23,6 @@ mod music_scanner;
 mod parser;
 mod province_scanner;
 mod rename;
-mod schema;
 mod scope;
 mod scripted_loc_scanner;
 mod scripted_scanner;
@@ -105,7 +104,6 @@ struct Backend {
     ignored_loc_regex: Arc<RwLock<Vec<regex::Regex>>>,
     ignored_files_regex: Arc<RwLock<Vec<regex::Regex>>>,
     workspace_scan_enabled: Arc<RwLock<bool>>,
-    schema: Arc<RwLock<schema::Schema>>,
     styling_enabled: Arc<RwLock<bool>>,
     cosmetic_loc_indent: Arc<RwLock<bool>>,
     game_path: Arc<RwLock<Option<String>>>,
@@ -252,7 +250,7 @@ impl LanguageServer for Backend {
 
         tokio::join!(
             self.scan_localization(&roots),
-            self.load_schema(),
+            self.load_assets(),
             self.scan_scripted(&roots),
             self.scan_ideologies(&roots),
             self.scan_traits(&roots),
@@ -385,17 +383,7 @@ impl LanguageServer for Backend {
         match self.documents.get(&uri) {
             Some(content) => {
                 let (script, _) = parser::parse_script(&content);
-                let schema = self.schema.read().await;
                 let mut keywords = HashSet::new();
-                for k in schema.triggers.keys() {
-                    keywords.insert(k.clone());
-                }
-                for k in schema.effects.keys() {
-                    keywords.insert(k.clone());
-                }
-                for k in schema.links.keys() {
-                    keywords.insert(k.clone());
-                }
 
                 for k in TRIGGERS.keys() {
                     keywords.insert(k.to_string());
@@ -1198,21 +1186,8 @@ impl LanguageServer for Backend {
                         }
                     }
 
-                    // Check triggers/effects/links
-                    let schema = self.schema.read().await;
-                    if let Some(rule) = schema
-                        .triggers
-                        .get(&identifier)
-                        .or_else(|| schema.effects.get(&identifier))
-                        .or_else(|| schema.links.get(&identifier))
-                    {
-                        let mut text = format!("### 📜 Rule: {}\n", identifier);
-                        if let Some(desc) = &rule.description {
-                            text.push_str(&format!("\n{}\n", desc));
-                        }
-                        text.push_str(&format!("\nExpected Value: `{:?}`", rule.value_type));
-                        push_section(&mut hover_text, &text);
-                    } else if let Some(entity) = TRIGGERS.get(identifier.as_str()) {
+                    // Check triggers/effects from hardcoded data
+                    if let Some(entity) = TRIGGERS.get(identifier.as_str()) {
                         push_section(
                             &mut hover_text,
                             &format!("### 🔍 Trigger: {}\n\n{}", entity.name, entity.description),
@@ -2088,44 +2063,6 @@ impl LanguageServer for Backend {
         }
 
         let mut items = Vec::new();
-
-        let schema = self.schema.read().await;
-        for trigger in schema.triggers.values() {
-            items.push(CompletionItem {
-                label: trigger.key.clone(),
-                kind: Some(CompletionItemKind::KEYWORD),
-                detail: Some("Trigger (Schema)".to_string()),
-                documentation: trigger
-                    .description
-                    .as_ref()
-                    .map(|d| Documentation::String(d.clone())),
-                ..Default::default()
-            });
-        }
-        for effect in schema.effects.values() {
-            items.push(CompletionItem {
-                label: effect.key.clone(),
-                kind: Some(CompletionItemKind::FUNCTION),
-                detail: Some("Effect (Schema)".to_string()),
-                documentation: effect
-                    .description
-                    .as_ref()
-                    .map(|d| Documentation::String(d.clone())),
-                ..Default::default()
-            });
-        }
-        for link in schema.links.values() {
-            items.push(CompletionItem {
-                label: link.key.clone(),
-                kind: Some(CompletionItemKind::CLASS),
-                detail: Some(format!("Link / Scope (Push: {:?})", link.push_scope)),
-                documentation: link
-                    .description
-                    .as_ref()
-                    .map(|d| Documentation::String(d.clone())),
-                ..Default::default()
-            });
-        }
 
         let current_scope = *current_scopes.last().unwrap_or(&scope::Scope::Global);
 
@@ -4542,119 +4479,16 @@ impl Backend {
             .await;
     }
 
-    async fn load_schema(&self) {
-        let mut schema = schema::Schema::new();
-
-        // Resolve paths relative to executable (production) or CWD (development)
+    async fn load_assets(&self) {
         let exe_path = std::env::current_exe().unwrap_or_default();
         let exe_dir = exe_path.parent().unwrap_or(std::path::Path::new("."));
 
         let possible_roots = vec![
             std::path::PathBuf::from("."),
             exe_dir.to_path_buf(),
-            exe_dir.join(".."), // Handle bin/server case
+            exe_dir.join(".."),
         ];
 
-        let mut triggers_path = None;
-        let mut effects_path = None;
-        let mut links_path = None;
-        let mut enums_path = None;
-
-        for root in &possible_roots {
-            let t = root.join("Config/triggers.cwt");
-            let e = root.join("Config/effects.cwt");
-            let l = root.join("Config/links.cwt");
-            let en = root.join("Config/shared_enums.cwt");
-            if t.exists() {
-                triggers_path = Some(t);
-            }
-            if e.exists() {
-                effects_path = Some(e);
-            }
-            if l.exists() {
-                links_path = Some(l);
-            }
-            if en.exists() {
-                enums_path = Some(en);
-            }
-        }
-
-        if let Some(path) = enums_path {
-            if let Ok(content) = std::fs::read_to_string(&path) {
-                {
-                    let (parsed, _) = parser::parse_script(&content);
-                    schema.parse_cwt_ast(&parsed, None);
-                }
-            }
-        }
-
-        if let Some(path) = triggers_path {
-            if let Ok(content) = std::fs::read_to_string(&path) {
-                schema.parse_cwt(&content, true);
-            }
-        }
-
-        if let Some(path) = effects_path {
-            if let Ok(content) = std::fs::read_to_string(&path) {
-                schema.parse_cwt(&content, false);
-            }
-        }
-
-        if let Some(path) = links_path {
-            if let Ok(content) = std::fs::read_to_string(&path) {
-                {
-                    let (parsed, _) = parser::parse_script(&content);
-                    schema.parse_links(&parsed);
-                }
-            }
-        }
-
-        // Load custom project-level schemas
-        let project_root = std::path::PathBuf::from(".");
-        let custom_config_dir = project_root.join(".cwtools");
-        if custom_config_dir.exists() {
-            if let Ok(entries) = std::fs::read_dir(custom_config_dir) {
-                for entry in entries.flatten() {
-                    let path = entry.path();
-                    if path.extension().map_or(false, |ext| ext == "cwt") {
-                        if let Ok(content) = std::fs::read_to_string(&path) {
-                            {
-                                let (parsed, _) = parser::parse_script(&content);
-                                // Try to determine kind from filename
-                                let filename =
-                                    path.file_name().unwrap_or_default().to_string_lossy();
-                                let kind = if filename.contains("trigger") {
-                                    Some("trigger")
-                                } else if filename.contains("effect") {
-                                    Some("effect")
-                                } else {
-                                    None
-                                };
-                                schema.parse_cwt_ast(&parsed, kind);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        self.client
-            .log_message(
-                MessageType::INFO,
-                format!(
-                    "Schema loaded: {} triggers, {} effects, {} links, {} enums",
-                    schema.triggers.len(),
-                    schema.effects.len(),
-                    schema.links.len(),
-                    schema.enums.len()
-                ),
-            )
-            .await;
-
-        let mut s = self.schema.write().await;
-        *s = schema;
-
-        // Resolve assets
         let mut mapping_path = None;
         let mut formats_path = None;
 
@@ -6007,7 +5841,7 @@ impl Backend {
         script: &ast::Script,
         diagnostics: &mut Vec<Diagnostic>,
         styling_enabled: bool,
-        uri: &str,
+        _uri: &str,
     ) {
         let loc = self.localization.read().await;
         let st = self.scripted_triggers.read().await;
@@ -6018,7 +5852,6 @@ impl Backend {
         let sp = self.sprites.read().await;
         let ids = self.ideas.read().await;
         let provs = self.provinces.read().await;
-        let schema = self.schema.read().await;
         let mod_maps = self.modifier_mappings.read().await;
         let ig_loc = self.ignored_loc_regex.read().await;
         let buildings = self.buildings.read().await;
@@ -6047,54 +5880,6 @@ impl Backend {
         );
         advanced_validation::validate_victory_points(&script.entries, &mut advanced_diags);
         advanced_validation::validate_achievements(&script.entries, &loc, &mut advanced_diags);
-
-        // Schema-based validation
-        // Heuristic: determine which rule to apply based on file path
-        if uri.contains("common/scripted_triggers") {
-            for entry in &script.entries {
-                if let ast::Entry::Assignment(ass) = entry {
-                    if let ast::Value::Block(inner) = &ass.value.value {
-                        advanced_validation::validate_against_rule(
-                            inner,
-                            &crate::schema::Rule {
-                                key: "scripted_trigger".to_string(),
-                                value_type: crate::schema::ValueType::Alias("trigger".to_string()),
-                                description: None,
-                                scopes: Vec::new(),
-                                push_scope: None,
-                                cardinality: crate::schema::Cardinality::default(),
-                                severity: None,
-                                children: Vec::new(),
-                            },
-                            &schema,
-                            &mut advanced_diags,
-                        );
-                    }
-                }
-            }
-        } else if uri.contains("common/scripted_effects") {
-            for entry in &script.entries {
-                if let ast::Entry::Assignment(ass) = entry {
-                    if let ast::Value::Block(inner) = &ass.value.value {
-                        advanced_validation::validate_against_rule(
-                            inner,
-                            &crate::schema::Rule {
-                                key: "scripted_effect".to_string(),
-                                value_type: crate::schema::ValueType::Alias("effect".to_string()),
-                                description: None,
-                                scopes: Vec::new(),
-                                push_scope: None,
-                                cardinality: crate::schema::Cardinality::default(),
-                                severity: None,
-                                children: Vec::new(),
-                            },
-                            &schema,
-                            &mut advanced_diags,
-                        );
-                    }
-                }
-            }
-        }
 
         // Convert advanced diagnostics to LSP diagnostics
         for diag in advanced_diags {
@@ -6142,7 +5927,6 @@ impl Backend {
                 &sp,
                 &ids,
                 &provs,
-                &schema,
                 &mod_maps,
                 &ig_loc,
                 &comments,
@@ -6165,7 +5949,6 @@ impl Backend {
         sp: &HashMap<String, sprite_scanner::Sprite>,
         ids: &HashMap<String, idea_scanner::Idea>,
         provs: &HashMap<u32, province_scanner::Province>,
-        schema: &schema::Schema,
         mod_maps: &HashMap<String, String>,
         ig_loc: &[regex::Regex],
         comments: &[(String, ast::Range)],
@@ -6177,91 +5960,16 @@ impl Backend {
                 let key_lower = ass.key.to_lowercase();
                 let mut pushed_scope = false;
 
-                // Schema validation for triggers, effects, and links
-                if let Some(rule) = schema
-                    .triggers
-                    .get(&ass.key)
-                    .or_else(|| schema.effects.get(&ass.key))
-                    .or_else(|| schema.links.get(&ass.key))
+                // Structural blocks that push scope
+                let s = scope::Scope::from_str(&ass.key);
+                if s != scope::Scope::Unknown || ass.key.contains(':') || ass.key.contains('.')
                 {
-                    if let Some(push) = &rule.push_scope {
-                        scope_stack.push(scope::Scope::from_str(push));
-                        pushed_scope = true;
-                    }
-
-                    if !rule.scopes.is_empty() {
-                        let current_scope = scope_stack.current();
-                        let current_str = current_scope.as_str().to_lowercase();
-                        let mut valid = false;
-                        for s in &rule.scopes {
-                            if s.to_lowercase() == "any"
-                                || s.to_lowercase() == "all"
-                                || s.to_lowercase() == current_str
-                                || current_scope == scope::Scope::Unknown
-                                || current_scope == scope::Scope::Global
-                            {
-                                valid = true;
-                                break;
-                            }
-                        }
-                        if !valid {
-                            diagnostics.push(Diagnostic {
-                                range: ast_range_to_lsp(&ass.key_range),
-                                severity: Some(DiagnosticSeverity::WARNING),
-                                message: format!("Invalid scope. '{}' is not supported in {:?} scope. Supported scopes: {:?}", ass.key, current_scope, rule.scopes),
-                                ..Default::default()
-                            });
-                        }
-                    }
-
-                    // Type checking
-                    match rule.value_type {
-                        schema::ValueType::Bool => match &ass.value.value {
-                            ast::Value::Boolean(_) => {}
-                            ast::Value::String(s) if s == "yes" || s == "no" => {}
-                            _ => {
-                                diagnostics.push(Diagnostic {
-                                    range: ast_range_to_lsp(&ass.value.range),
-                                    severity: Some(DiagnosticSeverity::ERROR),
-                                    message: format!("Expected boolean (yes/no) for '{}'", ass.key),
-                                    ..Default::default()
-                                });
-                            }
-                        },
-                        schema::ValueType::Int => {
-                            if let ast::Value::Number(_) = &ass.value.value {
-                            } else if let ast::Value::String(s) = &ass.value.value {
-                                if s.parse::<i64>().is_err() {
-                                    diagnostics.push(Diagnostic {
-                                        range: ast_range_to_lsp(&ass.value.range),
-                                        severity: Some(DiagnosticSeverity::ERROR),
-                                        message: format!("Expected integer for '{}'", ass.key),
-                                        ..Default::default()
-                                    });
-                                }
-                            } else {
-                                diagnostics.push(Diagnostic {
-                                    range: ast_range_to_lsp(&ass.value.range),
-                                    severity: Some(DiagnosticSeverity::ERROR),
-                                    message: format!("Expected integer for '{}'", ass.key),
-                                    ..Default::default()
-                                });
-                            }
+                    match &ass.value.value {
+                        ast::Value::Block(_) | ast::Value::TaggedBlock(_, _, _) => {
+                            scope_stack.push(s);
+                            pushed_scope = true;
                         }
                         _ => {}
-                    }
-                } else {
-                    // Structural blocks that push scope but aren't in the schema
-                    let s = scope::Scope::from_str(&ass.key);
-                    if s != scope::Scope::Unknown || ass.key.contains(':') || ass.key.contains('.')
-                    {
-                        match &ass.value.value {
-                            ast::Value::Block(_) | ast::Value::TaggedBlock(_, _, _) => {
-                                scope_stack.push(s);
-                                pushed_scope = true;
-                            }
-                            _ => {}
-                        }
                     }
                 }
 
@@ -6588,7 +6296,6 @@ impl Backend {
                     sp,
                     ids,
                     provs,
-                    schema,
                     mod_maps,
                     ig_loc,
                     comments,
@@ -6613,7 +6320,6 @@ impl Backend {
                     sp,
                     ids,
                     provs,
-                    schema,
                     mod_maps,
                     ig_loc,
                     comments,
@@ -6638,7 +6344,6 @@ impl Backend {
         sp: &HashMap<String, sprite_scanner::Sprite>,
         ids: &HashMap<String, idea_scanner::Idea>,
         provs: &HashMap<u32, province_scanner::Province>,
-        schema: &schema::Schema,
         mod_maps: &HashMap<String, String>,
         ig_loc: &[regex::Regex],
         comments: &[(String, ast::Range)],
@@ -6647,7 +6352,7 @@ impl Backend {
     ) {
         match &val.value {
             ast::Value::Block(entries) => {
-                self.check_duplicate_keys(entries, diagnostics, schema, mod_maps);
+                self.check_duplicate_keys(entries, diagnostics, &mod_maps);
                 for entry in entries {
                     self.check_entry_semantic(
                         entry,
@@ -6661,7 +6366,6 @@ impl Backend {
                         sp,
                         ids,
                         provs,
-                        schema,
                         mod_maps,
                         ig_loc,
                         comments,
@@ -6717,7 +6421,7 @@ impl Backend {
                         }
                     }
                 }
-                self.check_duplicate_keys(entries, diagnostics, schema, mod_maps);
+                self.check_duplicate_keys(entries, diagnostics, &mod_maps);
                 for entry in entries {
                     self.check_entry_semantic(
                         entry,
@@ -6731,7 +6435,6 @@ impl Backend {
                         sp,
                         ids,
                         provs,
-                        schema,
                         mod_maps,
                         ig_loc,
                         comments,
@@ -6748,7 +6451,6 @@ impl Backend {
         &self,
         entries: &[ast::Entry],
         diagnostics: &mut Vec<Diagnostic>,
-        schema: &schema::Schema,
         mod_maps: &HashMap<String, String>,
     ) {
         let mut seen_keys: HashMap<String, ast::Range> = HashMap::new();
@@ -6759,9 +6461,7 @@ impl Backend {
                 // Some Paradox keys (like 'modifier = { ... }' or 'option = { ... }') are intended to be duplicates.
                 // But specific engine modifiers (like 'stability_factor') should NEVER be duplicated.
 
-                let is_modifier = mod_maps.contains_key(&ass.key)
-                    || schema.triggers.contains_key(&ass.key)
-                    || schema.effects.contains_key(&ass.key);
+                let is_modifier = mod_maps.contains_key(&ass.key);
 
                 // Exceptions: Some effects/triggers are specifically designed to be used multiple times
                 let is_exception = ass.key == "modifier"
@@ -6834,7 +6534,6 @@ async fn main() {
         ignored_loc_regex: Arc::new(RwLock::new(Vec::new())),
         ignored_files_regex: Arc::new(RwLock::new(Vec::new())),
         workspace_scan_enabled: Arc::new(RwLock::new(false)),
-        schema: Arc::new(RwLock::new(schema::Schema::new())),
         styling_enabled: Arc::new(RwLock::new(true)),
         cosmetic_loc_indent: Arc::new(RwLock::new(false)),
         game_path: Arc::new(RwLock::new(None)),
