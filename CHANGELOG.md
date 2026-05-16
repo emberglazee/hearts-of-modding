@@ -10,6 +10,10 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
   - Added sound effects, sounds, falloffs, and sound categories to Workspace Symbols (`Ctrl+T`), enabling direct navigation to sound asset definitions.
   - Added validation for `sound_effect` references in ability files, warning when referencing undefined sound effects.
 
+### Fixed
+
+- **VFS-Aware Sound Effect Validation:** Sound effect scanner now scans `integrated_dlc/` and `dlc/` directories from the HOI4 game path, eliminating false-positive "Unknown sound effect" warnings for vanilla sound effects defined in DLC files.
+
 ### Removed
 
 - Removed .cwt (CWTools) schema parsing and validation to be replaced with an alternative in a future version.
