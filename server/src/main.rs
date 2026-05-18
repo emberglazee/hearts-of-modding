@@ -3285,6 +3285,83 @@ impl LanguageServer for Backend {
             }
         }
 
+        let has_any_styling_diagnostic = has_casing_diagnostic
+            || has_trailing_whitespace_diagnostic
+            || has_mixed_indentation_diagnostic
+            || has_assignment_space_diagnostic
+            || has_brace_space_diagnostic
+            || has_unnecessary_version_diagnostic
+            || has_unescaped_quote_diagnostic;
+
+        if has_any_styling_diagnostic {
+            if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
+                let mut all_changes = Vec::new();
+                let is_yaml = params.text_document.uri.as_str().ends_with(".yml");
+                let (script, _) = parser::parse_script(&content);
+
+                let mut casing_fixes = Vec::new();
+                self.collect_casing_fixes(&script.entries, &mut casing_fixes);
+                for (range, text) in casing_fixes {
+                    all_changes.push(TextEdit { range: ast_range_to_lsp(&range), new_text: text });
+                }
+
+                let mut tw_fixes = Vec::new();
+                self.collect_styling_fixes(&content, &mut tw_fixes);
+                for (range, text) in tw_fixes {
+                    all_changes.push(TextEdit { range, new_text: text });
+                }
+
+                let mut indent_fixes = Vec::new();
+                let script_opt = if is_yaml { None } else { Some(&script) };
+                self.collect_indentation_fixes(&content, script_opt, &mut indent_fixes);
+                for (range, text) in indent_fixes {
+                    all_changes.push(TextEdit { range, new_text: text });
+                }
+
+                let mut assign_fixes = Vec::new();
+                self.collect_assignment_space_fixes(&script.entries, &mut assign_fixes, &content);
+                for (range, text) in assign_fixes {
+                    all_changes.push(TextEdit { range: ast_range_to_lsp(&range), new_text: text });
+                }
+
+                let mut brace_fixes = Vec::new();
+                self.collect_brace_space_fixes(&script.entries, &mut brace_fixes, &content);
+                self.collect_brace_newline_fixes(&script.entries, &mut brace_fixes);
+                for (range, text) in brace_fixes {
+                    all_changes.push(TextEdit { range: ast_range_to_lsp(&range), new_text: text });
+                }
+
+                let path_str = params.text_document.uri.to_file_path().unwrap_or_default().to_string_lossy().to_string();
+                let (parsed, _, _) = loc_parser::parse_loc_file(&content, &path_str);
+                for entry in parsed.values() {
+                    if let Some(d) = loc_parser::check_unnecessary_version(entry) {
+                        all_changes.push(TextEdit { range: ast_range_to_lsp(&d.range), new_text: "".to_string() });
+                    }
+                }
+
+                let quote_diagnostics = loc_parser::validate_unescaped_quotes_in_file(&content);
+                for d in quote_diagnostics {
+                    all_changes.push(TextEdit { range: ast_range_to_lsp(&d.range), new_text: "\\\"".to_string() });
+                }
+
+                if !all_changes.is_empty() {
+                    let mut changes = HashMap::new();
+                    changes.insert(params.text_document.uri.clone(), all_changes);
+
+                    actions.push(CodeActionOrCommand::CodeAction(CodeAction {
+                        title: "Fix all styling issues in this file".to_string(),
+                        kind: Some(CodeActionKind::QUICKFIX),
+                        edit: Some(WorkspaceEdit {
+                            changes: Some(changes),
+                            ..Default::default()
+                        }),
+                        is_preferred: Some(true),
+                        ..Default::default()
+                    }));
+                }
+            }
+        }
+
         if actions.is_empty() {
             Ok(None)
         } else {
