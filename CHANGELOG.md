@@ -2,6 +2,18 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
+## [0.6.1] - 2026-05-22
+
+### Changed
+
+- Optimized the localization parser to fix a performance bottleneck.
+
+- Added `containerWindowType` and `origo` to the keyword casing styling check.
+
+- Added the trailing newline check in the "Fix all styling issues" bulk code action.
+
+- Updated Rust LSP and extension dependencies.
+
 ## [0.6.0] - 2026-05-17
 
 ### Added

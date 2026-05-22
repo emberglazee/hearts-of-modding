@@ -36,7 +36,11 @@ pub fn format_csv(content: &str, separator: char) -> String {
         for (i, part) in parts.iter().enumerate() {
             let part_trimmed = part.trim();
             if i < max_column_widths.len() {
-                formatted_parts.push(format!("{:width$}", part_trimmed, width = max_column_widths[i]));
+                formatted_parts.push(format!(
+                    "{:width$}",
+                    part_trimmed,
+                    width = max_column_widths[i]
+                ));
             } else {
                 formatted_parts.push(part_trimmed.to_string());
             }

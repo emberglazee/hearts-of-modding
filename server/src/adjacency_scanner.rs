@@ -90,7 +90,8 @@ where
                                         if let ast::Entry::Assignment(r_ass) = rule_entry {
                                             match r_ass.key.to_lowercase().as_str() {
                                                 "name" => {
-                                                    if let ast::Value::String(s) = &r_ass.value.value
+                                                    if let ast::Value::String(s) =
+                                                        &r_ass.value.value
                                                     {
                                                         name = Some(s.clone());
                                                     }
@@ -100,7 +101,9 @@ where
                                                         &r_ass.value.value
                                                     {
                                                         for p_entry in prov_entries {
-                                                            if let ast::Entry::Value(p_val) = p_entry {
+                                                            if let ast::Entry::Value(p_val) =
+                                                                p_entry
+                                                            {
                                                                 if let ast::Value::Number(n) =
                                                                     &p_val.value
                                                                 {
@@ -112,7 +115,8 @@ where
                                                     }
                                                 }
                                                 "icon" => {
-                                                    if let ast::Value::Number(n) = &r_ass.value.value
+                                                    if let ast::Value::Number(n) =
+                                                        &r_ass.value.value
                                                     {
                                                         icon = Some(*n as u32);
                                                     }

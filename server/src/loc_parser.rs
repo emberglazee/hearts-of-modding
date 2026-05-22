@@ -594,7 +594,12 @@ pub fn parse_loc_file(
 
     // Fast forward to the header while preserving the nom_locate line/column tracking
     while !current.fragment().is_empty() {
-        if current.fragment().starts_with("l_") && current.fragment().contains(':') {
+        let frag = current.fragment();
+        let line_end = frag.find('\n').unwrap_or(frag.len());
+        let line = &frag[..line_end];
+        let trimmed = line.trim();
+
+        if trimmed.starts_with("l_") && trimmed.contains(':') {
             if let Ok((rem, lang)) =
                 take_until::<&str, Span, nom::error::Error<Span>>(":").parse(current)
             {
@@ -607,7 +612,16 @@ pub fn parse_loc_file(
             }
         }
 
-        match nom::bytes::complete::take::<usize, Span, nom::error::Error<Span>>(1usize)
+        let advance = if line_end < frag.len() {
+            line_end + 1
+        } else {
+            frag.len()
+        };
+        if advance == 0 {
+            break;
+        }
+
+        match nom::bytes::complete::take::<usize, Span, nom::error::Error<Span>>(advance)
             .parse(current)
         {
             Ok((rem, _)) => {

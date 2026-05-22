@@ -703,7 +703,8 @@ impl LanguageServer for Backend {
                     }));
                 }
                 return Ok(None);
-            } else if uri.ends_with("/map/unitstacks.txt") || uri.ends_with("\\map\\unitstacks.txt") {
+            } else if uri.ends_with("/map/unitstacks.txt") || uri.ends_with("\\map\\unitstacks.txt")
+            {
                 if let Some(line) = content.lines().nth(position.line as usize) {
                     let mut hover_text = String::from("### 🪖 Unit Stack Definition\n\n");
                     hover_text.push_str("`Province ID (integer); Type (integer); X position; Y position; Z position; Rotation; Offset`\n\n---\n\n");
@@ -772,7 +773,9 @@ impl LanguageServer for Backend {
                     }));
                 }
                 return Ok(None);
-            } else if uri.ends_with("/map/weatherpositions.txt") || uri.ends_with("\\map\\weatherpositions.txt") {
+            } else if uri.ends_with("/map/weatherpositions.txt")
+                || uri.ends_with("\\map\\weatherpositions.txt")
+            {
                 if let Some(line) = content.lines().nth(position.line as usize) {
                     let mut hover_text = String::from("### ☁️ Weather Position Definition\n\n");
                     hover_text.push_str("`Strategic Region ID (integer); X position; Y position; Z position; Size (string: small or large)`\n\n---\n\n");
@@ -842,7 +845,9 @@ impl LanguageServer for Backend {
                     }));
                 }
                 return Ok(None);
-            } else if uri.ends_with("/map/supply_nodes.txt") || uri.ends_with("\\map\\supply_nodes.txt") {
+            } else if uri.ends_with("/map/supply_nodes.txt")
+                || uri.ends_with("\\map\\supply_nodes.txt")
+            {
                 let hover_text = String::from(
                     "### 📦 Supply Node Definition\n\n`Level (integer) Province ID (integer)`",
                 );
@@ -2717,6 +2722,7 @@ impl LanguageServer for Backend {
         let mut has_brace_space_diagnostic = false;
         let mut has_unnecessary_version_diagnostic = false;
         let mut has_unescaped_quote_diagnostic = false;
+        let mut has_eof_newline_diagnostic = false;
 
         for diagnostic in &params.context.diagnostics {
             if let Some(target_casing) = diagnostic.data.as_ref().and_then(|v| v.as_str()) {
@@ -2777,6 +2783,7 @@ impl LanguageServer for Backend {
                             ..Default::default()
                         }));
                     } else if code == "styling_eof_newline" {
+                        has_eof_newline_diagnostic = true;
                         let mut changes = HashMap::new();
                         changes.insert(
                             params.text_document.uri.clone(),
@@ -3291,57 +3298,114 @@ impl LanguageServer for Backend {
             || has_assignment_space_diagnostic
             || has_brace_space_diagnostic
             || has_unnecessary_version_diagnostic
-            || has_unescaped_quote_diagnostic;
+            || has_unescaped_quote_diagnostic
+            || has_eof_newline_diagnostic;
 
         if has_any_styling_diagnostic {
             if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
                 let mut all_changes = Vec::new();
-                let is_yaml = params.text_document.uri.as_str().ends_with(".yml");
+                let uri_str = params.text_document.uri.as_str();
+                let is_yaml = uri_str.ends_with(".yml");
                 let (script, _) = parser::parse_script(&content);
+
+                // Add EOF newline fix if needed
+                if !content.is_empty()
+                    && !content.ends_with('\n')
+                    && !content.ends_with("\r\n")
+                    && !uri_str.ends_with("map/buildings.txt")
+                {
+                    let line_count = content.lines().count();
+                    let last_line = content.lines().last().unwrap_or("");
+                    let line_idx = if line_count > 0 {
+                        line_count as u32 - 1
+                    } else {
+                        0
+                    };
+                    all_changes.push(TextEdit {
+                        range: Range {
+                            start: Position {
+                                line: line_idx,
+                                character: last_line.len() as u32,
+                            },
+                            end: Position {
+                                line: line_idx,
+                                character: last_line.len() as u32,
+                            },
+                        },
+                        new_text: "\n".to_string(),
+                    });
+                }
 
                 let mut casing_fixes = Vec::new();
                 self.collect_casing_fixes(&script.entries, &mut casing_fixes);
                 for (range, text) in casing_fixes {
-                    all_changes.push(TextEdit { range: ast_range_to_lsp(&range), new_text: text });
+                    all_changes.push(TextEdit {
+                        range: ast_range_to_lsp(&range),
+                        new_text: text,
+                    });
                 }
 
                 let mut tw_fixes = Vec::new();
                 self.collect_styling_fixes(&content, &mut tw_fixes);
                 for (range, text) in tw_fixes {
-                    all_changes.push(TextEdit { range, new_text: text });
+                    all_changes.push(TextEdit {
+                        range,
+                        new_text: text,
+                    });
                 }
 
                 let mut indent_fixes = Vec::new();
                 let script_opt = if is_yaml { None } else { Some(&script) };
                 self.collect_indentation_fixes(&content, script_opt, &mut indent_fixes);
                 for (range, text) in indent_fixes {
-                    all_changes.push(TextEdit { range, new_text: text });
+                    all_changes.push(TextEdit {
+                        range,
+                        new_text: text,
+                    });
                 }
 
                 let mut assign_fixes = Vec::new();
                 self.collect_assignment_space_fixes(&script.entries, &mut assign_fixes, &content);
                 for (range, text) in assign_fixes {
-                    all_changes.push(TextEdit { range: ast_range_to_lsp(&range), new_text: text });
+                    all_changes.push(TextEdit {
+                        range: ast_range_to_lsp(&range),
+                        new_text: text,
+                    });
                 }
 
                 let mut brace_fixes = Vec::new();
                 self.collect_brace_space_fixes(&script.entries, &mut brace_fixes, &content);
                 self.collect_brace_newline_fixes(&script.entries, &mut brace_fixes);
                 for (range, text) in brace_fixes {
-                    all_changes.push(TextEdit { range: ast_range_to_lsp(&range), new_text: text });
+                    all_changes.push(TextEdit {
+                        range: ast_range_to_lsp(&range),
+                        new_text: text,
+                    });
                 }
 
-                let path_str = params.text_document.uri.to_file_path().unwrap_or_default().to_string_lossy().to_string();
+                let path_str = params
+                    .text_document
+                    .uri
+                    .to_file_path()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .to_string();
                 let (parsed, _, _) = loc_parser::parse_loc_file(&content, &path_str);
                 for entry in parsed.values() {
                     if let Some(d) = loc_parser::check_unnecessary_version(entry) {
-                        all_changes.push(TextEdit { range: ast_range_to_lsp(&d.range), new_text: "".to_string() });
+                        all_changes.push(TextEdit {
+                            range: ast_range_to_lsp(&d.range),
+                            new_text: "".to_string(),
+                        });
                     }
                 }
 
                 let quote_diagnostics = loc_parser::validate_unescaped_quotes_in_file(&content);
                 for d in quote_diagnostics {
-                    all_changes.push(TextEdit { range: ast_range_to_lsp(&d.range), new_text: "\\\"".to_string() });
+                    all_changes.push(TextEdit {
+                        range: ast_range_to_lsp(&d.range),
+                        new_text: "\\\"".to_string(),
+                    });
                 }
 
                 if !all_changes.is_empty() {
@@ -4265,6 +4329,8 @@ impl Backend {
             "traits",
             "orientation",
             "buttonType",
+            "containerWindowType",
+            "origo",
         ];
 
         for entry in entries {
@@ -4951,19 +5017,29 @@ impl Backend {
         if uri.as_str().ends_with(".yml") {
             self.validate_localization_content(uri, content, &mut diagnostics)
                 .await;
-        } else if uri.as_str().ends_with("/map/supply_nodes.txt") || uri.as_str().ends_with("\\map\\supply_nodes.txt") {
+        } else if uri.as_str().ends_with("/map/supply_nodes.txt")
+            || uri.as_str().ends_with("\\map\\supply_nodes.txt")
+        {
             self.validate_supply_nodes_content(content, &mut diagnostics)
                 .await;
-        } else if uri.as_str().ends_with("/map/railways.txt") || uri.as_str().ends_with("\\map\\railways.txt") {
+        } else if uri.as_str().ends_with("/map/railways.txt")
+            || uri.as_str().ends_with("\\map\\railways.txt")
+        {
             self.validate_railways_content(content, &mut diagnostics)
                 .await;
-        } else if uri.as_str().ends_with("/map/buildings.txt") || uri.as_str().ends_with("\\map\\buildings.txt") {
+        } else if uri.as_str().ends_with("/map/buildings.txt")
+            || uri.as_str().ends_with("\\map\\buildings.txt")
+        {
             self.validate_map_buildings_content(content, &mut diagnostics)
                 .await;
-        } else if uri.as_str().ends_with("/map/unitstacks.txt") || uri.as_str().ends_with("\\map\\unitstacks.txt") {
+        } else if uri.as_str().ends_with("/map/unitstacks.txt")
+            || uri.as_str().ends_with("\\map\\unitstacks.txt")
+        {
             self.validate_unitstacks_content(content, &mut diagnostics)
                 .await;
-        } else if uri.as_str().ends_with("/map/weatherpositions.txt") || uri.as_str().ends_with("\\map\\weatherpositions.txt") {
+        } else if uri.as_str().ends_with("/map/weatherpositions.txt")
+            || uri.as_str().ends_with("\\map\\weatherpositions.txt")
+        {
             self.validate_weather_positions_content(content, &mut diagnostics)
                 .await;
         } else if uri.as_str().ends_with("adjacency_rules.txt") {
@@ -5594,11 +5670,18 @@ impl Backend {
                                             if let ast::Entry::Value(p_val) = p_entry {
                                                 if let ast::Value::Number(n) = &p_val.value {
                                                     let prov_id = *n as u32;
-                                                    if !provs.is_empty() && !provs.contains_key(&prov_id) {
+                                                    if !provs.is_empty()
+                                                        && !provs.contains_key(&prov_id)
+                                                    {
                                                         diagnostics.push(Diagnostic {
                                                             range: ast_range_to_lsp(&p_val.range),
-                                                            severity: Some(DiagnosticSeverity::WARNING),
-                                                            message: format!("Unknown province ID: {}", prov_id),
+                                                            severity: Some(
+                                                                DiagnosticSeverity::WARNING,
+                                                            ),
+                                                            message: format!(
+                                                                "Unknown province ID: {}",
+                                                                prov_id
+                                                            ),
                                                             ..Default::default()
                                                         });
                                                     }
@@ -7730,7 +7813,12 @@ fn find_identifier_at(
     pos: Position,
     scope_stack: &mut scope::ScopeStack,
     achievements: &HashMap<String, achievement_scanner::Achievement>,
-) -> Option<(String, Vec<scope::Scope>, Option<ast::Value>, Option<String>)> {
+) -> Option<(
+    String,
+    Vec<scope::Scope>,
+    Option<ast::Value>,
+    Option<String>,
+)> {
     for entry in &script.entries {
         if let Some(res) = find_in_entry(entry, pos, scope_stack, achievements, None) {
             return Some(res);
@@ -7745,7 +7833,12 @@ fn find_in_entry(
     scope_stack: &mut scope::ScopeStack,
     achievements: &HashMap<String, achievement_scanner::Achievement>,
     context_key: Option<String>,
-) -> Option<(String, Vec<scope::Scope>, Option<ast::Value>, Option<String>)> {
+) -> Option<(
+    String,
+    Vec<scope::Scope>,
+    Option<ast::Value>,
+    Option<String>,
+)> {
     match entry {
         ast::Entry::Assignment(ass) => {
             if is_pos_in_range(pos, &ass.key_range) {
@@ -7776,8 +7869,13 @@ fn find_in_entry(
                 }
             }
 
-            let mut res =
-                find_in_value(&ass.value, pos, scope_stack, achievements, Some(ass.key.clone()));
+            let mut res = find_in_value(
+                &ass.value,
+                pos,
+                scope_stack,
+                achievements,
+                Some(ass.key.clone()),
+            );
 
             if let Some((ref mut id, _, ref mut val_opt, _)) = res {
                 if let ast::Value::Number(_) | ast::Value::Boolean(_) = &ass.value.value {
@@ -7802,7 +7900,12 @@ fn find_in_value(
     scope_stack: &mut scope::ScopeStack,
     achievements: &HashMap<String, achievement_scanner::Achievement>,
     context_key: Option<String>,
-) -> Option<(String, Vec<scope::Scope>, Option<ast::Value>, Option<String>)> {
+) -> Option<(
+    String,
+    Vec<scope::Scope>,
+    Option<ast::Value>,
+    Option<String>,
+)> {
     match &val.value {
         ast::Value::String(s) => {
             if is_pos_in_range(pos, &val.range) {
