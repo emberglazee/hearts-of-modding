@@ -1,5 +1,5 @@
 use crate::ast::{Entry, Range, Value};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use tower_lsp::lsp_types::{
     Position as LspPosition, PrepareRenameResponse, Range as LspRange, TextEdit, Url, WorkspaceEdit,
@@ -119,6 +119,7 @@ pub async fn rename_symbol(
     variables: &Arc<arc_swap::ArcSwap<HashMap<String, Vec<crate::variable_scanner::Variable>>>>,
     abilities: &Arc<arc_swap::ArcSwap<HashMap<String, crate::ability_scanner::Ability>>>,
     documents: &dashmap::DashMap<String, String>,
+    workspace_files: &HashSet<String>,
 ) -> Option<WorkspaceEdit> {
     let path = uri.trim_start_matches("file://");
 
@@ -141,25 +142,67 @@ pub async fn rename_symbol(
 
     match symbol {
         RenameableSymbol::Event(old_name) => {
-            find_event_references(&old_name, new_name, documents, &mut changes);
+            find_event_references(
+                &old_name,
+                new_name,
+                documents,
+                workspace_files,
+                &mut changes,
+            );
         }
         RenameableSymbol::ScriptedTrigger(old_name) => {
-            find_scripted_trigger_references(&old_name, new_name, documents, &mut changes);
+            find_scripted_trigger_references(
+                &old_name,
+                new_name,
+                documents,
+                workspace_files,
+                &mut changes,
+            );
         }
         RenameableSymbol::ScriptedEffect(old_name) => {
-            find_scripted_effect_references(&old_name, new_name, documents, &mut changes);
+            find_scripted_effect_references(
+                &old_name,
+                new_name,
+                documents,
+                workspace_files,
+                &mut changes,
+            );
         }
         RenameableSymbol::Idea(old_name) => {
-            find_idea_references(&old_name, new_name, documents, &mut changes);
+            find_idea_references(
+                &old_name,
+                new_name,
+                documents,
+                workspace_files,
+                &mut changes,
+            );
         }
         RenameableSymbol::Character(old_name) => {
-            find_character_references(&old_name, new_name, documents, &mut changes);
+            find_character_references(
+                &old_name,
+                new_name,
+                documents,
+                workspace_files,
+                &mut changes,
+            );
         }
         RenameableSymbol::Ability(old_name) => {
-            find_ability_references(&old_name, new_name, documents, &mut changes);
+            find_ability_references(
+                &old_name,
+                new_name,
+                documents,
+                workspace_files,
+                &mut changes,
+            );
         }
         RenameableSymbol::Variable(old_name) => {
-            find_variable_references(&old_name, new_name, documents, &mut changes);
+            find_variable_references(
+                &old_name,
+                new_name,
+                documents,
+                workspace_files,
+                &mut changes,
+            );
         }
     }
 
@@ -261,6 +304,7 @@ fn find_event_references(
     old_name: &str,
     new_name: &str,
     documents: &dashmap::DashMap<String, String>,
+    workspace_files: &HashSet<String>,
     changes: &mut HashMap<Url, Vec<TextEdit>>,
 ) {
     for entry in documents.iter() {
@@ -277,6 +321,25 @@ fn find_event_references(
                 if let Ok(url) = Url::parse(uri_str) {
                     changes.insert(url, edits);
                 }
+            }
+        }
+    }
+
+    // Process unopened workspace files
+    for file_path in workspace_files.iter() {
+        let Ok(url) = Url::from_file_path(std::path::Path::new(file_path)) else {
+            continue;
+        };
+        let uri_str = url.as_str().to_string();
+        if documents.contains_key(&uri_str) {
+            continue;
+        }
+        if let Ok(content) = std::fs::read_to_string(file_path) {
+            let (script, _) = crate::parser::parse_script(&content);
+            let mut edits = Vec::new();
+            find_event_references_in_entries(&script.entries, old_name, new_name, &mut edits);
+            if !edits.is_empty() {
+                changes.insert(url, edits);
             }
         }
     }
@@ -331,6 +394,7 @@ fn find_scripted_trigger_references(
     old_name: &str,
     new_name: &str,
     documents: &dashmap::DashMap<String, String>,
+    workspace_files: &HashSet<String>,
     changes: &mut HashMap<Url, Vec<TextEdit>>,
 ) {
     for entry in documents.iter() {
@@ -355,6 +419,31 @@ fn find_scripted_trigger_references(
             }
         }
     }
+
+    // Process unopened workspace files
+    for file_path in workspace_files.iter() {
+        let Ok(url) = Url::from_file_path(std::path::Path::new(file_path)) else {
+            continue;
+        };
+        let uri_str = url.as_str().to_string();
+        if documents.contains_key(&uri_str) {
+            continue;
+        }
+        if let Ok(content) = std::fs::read_to_string(file_path) {
+            let (script, _) = crate::parser::parse_script(&content);
+            let mut edits = Vec::new();
+            find_scripted_references_in_entries(
+                &script.entries,
+                old_name,
+                new_name,
+                &mut edits,
+                true,
+            );
+            if !edits.is_empty() {
+                changes.insert(url, edits);
+            }
+        }
+    }
 }
 
 /// Find all references to a scripted effect
@@ -362,6 +451,7 @@ fn find_scripted_effect_references(
     old_name: &str,
     new_name: &str,
     documents: &dashmap::DashMap<String, String>,
+    workspace_files: &HashSet<String>,
     changes: &mut HashMap<Url, Vec<TextEdit>>,
 ) {
     for entry in documents.iter() {
@@ -383,6 +473,31 @@ fn find_scripted_effect_references(
                 if let Ok(url) = Url::parse(uri_str) {
                     changes.insert(url, edits);
                 }
+            }
+        }
+    }
+
+    // Process unopened workspace files
+    for file_path in workspace_files.iter() {
+        let Ok(url) = Url::from_file_path(std::path::Path::new(file_path)) else {
+            continue;
+        };
+        let uri_str = url.as_str().to_string();
+        if documents.contains_key(&uri_str) {
+            continue;
+        }
+        if let Ok(content) = std::fs::read_to_string(file_path) {
+            let (script, _) = crate::parser::parse_script(&content);
+            let mut edits = Vec::new();
+            find_scripted_references_in_entries(
+                &script.entries,
+                old_name,
+                new_name,
+                &mut edits,
+                false,
+            );
+            if !edits.is_empty() {
+                changes.insert(url, edits);
             }
         }
     }
@@ -432,6 +547,7 @@ fn find_idea_references(
     old_name: &str,
     new_name: &str,
     documents: &dashmap::DashMap<String, String>,
+    workspace_files: &HashSet<String>,
     changes: &mut HashMap<Url, Vec<TextEdit>>,
 ) {
     for entry in documents.iter() {
@@ -447,6 +563,25 @@ fn find_idea_references(
                 if let Ok(url) = Url::parse(uri_str) {
                     changes.insert(url, edits);
                 }
+            }
+        }
+    }
+
+    // Process unopened workspace files
+    for file_path in workspace_files.iter() {
+        let Ok(url) = Url::from_file_path(std::path::Path::new(file_path)) else {
+            continue;
+        };
+        let uri_str = url.as_str().to_string();
+        if documents.contains_key(&uri_str) {
+            continue;
+        }
+        if let Ok(content) = std::fs::read_to_string(file_path) {
+            let (script, _) = crate::parser::parse_script(&content);
+            let mut edits = Vec::new();
+            find_idea_references_in_entries(&script.entries, old_name, new_name, &mut edits);
+            if !edits.is_empty() {
+                changes.insert(url, edits);
             }
         }
     }
@@ -501,6 +636,7 @@ fn find_character_references(
     old_name: &str,
     new_name: &str,
     documents: &dashmap::DashMap<String, String>,
+    workspace_files: &HashSet<String>,
     changes: &mut HashMap<Url, Vec<TextEdit>>,
 ) {
     for entry in documents.iter() {
@@ -516,6 +652,25 @@ fn find_character_references(
                 if let Ok(url) = Url::parse(uri_str) {
                     changes.insert(url, edits);
                 }
+            }
+        }
+    }
+
+    // Process unopened workspace files
+    for file_path in workspace_files.iter() {
+        let Ok(url) = Url::from_file_path(std::path::Path::new(file_path)) else {
+            continue;
+        };
+        let uri_str = url.as_str().to_string();
+        if documents.contains_key(&uri_str) {
+            continue;
+        }
+        if let Ok(content) = std::fs::read_to_string(file_path) {
+            let (script, _) = crate::parser::parse_script(&content);
+            let mut edits = Vec::new();
+            find_character_references_in_entries(&script.entries, old_name, new_name, &mut edits);
+            if !edits.is_empty() {
+                changes.insert(url, edits);
             }
         }
     }
@@ -582,6 +737,7 @@ fn find_variable_references(
     old_name: &str,
     new_name: &str,
     documents: &dashmap::DashMap<String, String>,
+    workspace_files: &HashSet<String>,
     changes: &mut HashMap<Url, Vec<TextEdit>>,
 ) {
     for entry in documents.iter() {
@@ -597,6 +753,25 @@ fn find_variable_references(
                 if let Ok(url) = Url::parse(uri_str) {
                     changes.insert(url, edits);
                 }
+            }
+        }
+    }
+
+    // Process unopened workspace files
+    for file_path in workspace_files.iter() {
+        let Ok(url) = Url::from_file_path(std::path::Path::new(file_path)) else {
+            continue;
+        };
+        let uri_str = url.as_str().to_string();
+        if documents.contains_key(&uri_str) {
+            continue;
+        }
+        if let Ok(content) = std::fs::read_to_string(file_path) {
+            let (script, _) = crate::parser::parse_script(&content);
+            let mut edits = Vec::new();
+            find_variable_references_in_entries(&script.entries, old_name, new_name, &mut edits);
+            if !edits.is_empty() {
+                changes.insert(url, edits);
             }
         }
     }
@@ -655,6 +830,7 @@ fn find_ability_references(
     old_name: &str,
     new_name: &str,
     documents: &dashmap::DashMap<String, String>,
+    workspace_files: &HashSet<String>,
     changes: &mut HashMap<Url, Vec<TextEdit>>,
 ) {
     for entry in documents.iter() {
@@ -670,6 +846,25 @@ fn find_ability_references(
                 if let Ok(url) = Url::parse(uri_str) {
                     changes.insert(url, edits);
                 }
+            }
+        }
+    }
+
+    // Process unopened workspace files
+    for file_path in workspace_files.iter() {
+        let Ok(url) = Url::from_file_path(std::path::Path::new(file_path)) else {
+            continue;
+        };
+        let uri_str = url.as_str().to_string();
+        if documents.contains_key(&uri_str) {
+            continue;
+        }
+        if let Ok(content) = std::fs::read_to_string(file_path) {
+            let (script, _) = crate::parser::parse_script(&content);
+            let mut edits = Vec::new();
+            find_ability_references_in_entries(&script.entries, old_name, new_name, &mut edits);
+            if !edits.is_empty() {
+                changes.insert(url, edits);
             }
         }
     }

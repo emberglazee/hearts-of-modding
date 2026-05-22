@@ -120,6 +120,7 @@ struct Backend {
     adjacency_rules: Arc<arc_swap::ArcSwap<HashMap<String, adjacency_scanner::AdjacencyRule>>>,
     strategic_regions:
         Arc<arc_swap::ArcSwap<HashMap<u32, strategic_region_scanner::StrategicRegion>>>,
+    workspace_files: Arc<arc_swap::ArcSwap<HashSet<String>>>,
 }
 
 #[tower_lsp::async_trait]
@@ -277,6 +278,10 @@ impl LanguageServer for Backend {
             self.scan_sounds(&roots),
             self.scan_abilities(&roots),
         );
+
+        // Collect workspace file paths for rename operations
+        // Only scan the mod workspace (first root), not the game path
+        self.collect_workspace_files(&roots[..1]).await;
 
         // Re-validate all open documents now that we have all data
         for entry in self.documents.iter() {
@@ -3605,6 +3610,7 @@ impl LanguageServer for Backend {
         let position = params.text_document_position.position;
         let new_name = &params.new_name;
 
+        let files = self.workspace_files.load();
         let result = rename::rename_symbol(
             uri,
             position,
@@ -3617,6 +3623,7 @@ impl LanguageServer for Backend {
             &self.variables,
             &self.abilities,
             &self.documents,
+            &files,
         )
         .await;
 
@@ -5013,6 +5020,44 @@ impl Backend {
                 format!("Workspace scan complete. Scanned {} files.", file_count),
             )
             .await;
+    }
+
+    /// Collect all workspace file paths for rename operations
+    async fn collect_workspace_files(&self, roots: &[std::path::PathBuf]) {
+        let mut all_files = HashSet::new();
+        let extensions = ["txt", "yml"];
+        let ignored = self.ignored_files_regex.load();
+
+        for root in roots {
+            let mut dirs_to_check = vec![root.to_path_buf()];
+            while let Some(current_dir) = dirs_to_check.pop() {
+                let path_str = current_dir.to_string_lossy();
+                if ignored.iter().any(|re| re.is_match(&path_str)) {
+                    continue;
+                }
+                if let Ok(entries) = std::fs::read_dir(&current_dir) {
+                    for entry in entries.flatten() {
+                        let path = entry.path();
+                        if path.is_dir() {
+                            if !path.file_name().map_or(false, |n| n == ".git") {
+                                let path_str = path.to_string_lossy();
+                                if !ignored.iter().any(|re| re.is_match(&path_str)) {
+                                    dirs_to_check.push(path);
+                                }
+                            }
+                        } else if path.extension().map_or(false, |ext| {
+                            extensions.contains(&ext.to_string_lossy().as_ref())
+                        }) {
+                            if let Ok(abs_path) = path.canonicalize() {
+                                all_files.insert(abs_path.to_string_lossy().to_string());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        self.workspace_files.store(std::sync::Arc::new(all_files));
     }
 
     async fn validate_document(&self, uri: Url) {
@@ -7106,6 +7151,7 @@ async fn main() {
         adjacencies: Arc::new(arc_swap::ArcSwap::from_pointee(Vec::new())),
         adjacency_rules: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
         strategic_regions: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
+        workspace_files: Arc::new(arc_swap::ArcSwap::from_pointee(HashSet::new())),
     });
     Server::new(stdin, stdout, socket).serve(service).await;
 }
