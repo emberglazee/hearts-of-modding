@@ -187,9 +187,20 @@ fn parse_value(input: Span) -> IResult<Span, NodeedValue> {
             range: r,
         }),
         // Try identifier FIRST because it can contain dots and start with numbers (like 1.0.1)
-        map(identifier, |(s, r)| NodeedValue {
-            value: Value::String(s),
-            range: r,
+        map(identifier, |(s, r)| {
+            // Fallback to Value::Number if the parsed string is a valid finite float
+            if let Ok(n) = s.parse::<f64>() {
+                if n.is_finite() {
+                    return NodeedValue {
+                        value: Value::Number(n),
+                        range: r,
+                    };
+                }
+            }
+            NodeedValue {
+                value: Value::String(s),
+                range: r,
+            }
         }),
         map(number, |(n, r)| NodeedValue {
             value: Value::Number(n),
