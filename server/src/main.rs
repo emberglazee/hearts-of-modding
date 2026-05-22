@@ -46,7 +46,6 @@ use dashmap::DashMap;
 use once_cell::sync::Lazy;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
-use tokio::sync::RwLock;
 
 static TRIGGERS: Lazy<HashMap<&'static str, hoi4_data::HOI4Entity>> =
     Lazy::new(hoi4_data::get_triggers);
@@ -76,50 +75,51 @@ fn utf16_len(s: &str) -> u32 {
 struct Backend {
     client: Client,
     documents: DashMap<String, String>,
-    localization: Arc<RwLock<HashMap<String, loc_parser::LocEntry>>>,
-    scripted_triggers: Arc<RwLock<HashMap<String, scripted_scanner::ScriptedEntity>>>,
-    scripted_effects: Arc<RwLock<HashMap<String, scripted_scanner::ScriptedEntity>>>,
-    ideologies: Arc<RwLock<HashMap<String, ideology_scanner::Ideology>>>,
-    sub_ideologies: Arc<RwLock<HashMap<String, (String, ast::Range, String)>>>, // Sub-ideology -> (Parent Ideology, Range, Path)
-    traits: Arc<RwLock<HashMap<String, trait_scanner::Trait>>>,
-    sprites: Arc<RwLock<HashMap<String, sprite_scanner::Sprite>>>,
-    ideas: Arc<RwLock<HashMap<String, idea_scanner::Idea>>>,
-    characters: Arc<RwLock<HashMap<String, character_scanner::Character>>>,
-    variables: Arc<RwLock<HashMap<String, Vec<variable_scanner::Variable>>>>,
-    event_targets: Arc<RwLock<HashMap<String, Vec<variable_scanner::EventTarget>>>>,
-    provinces: Arc<RwLock<HashMap<u32, province_scanner::Province>>>,
-    custom_modifiers: Arc<RwLock<HashMap<String, modifier_scanner::Modifier>>>,
-    modifier_mappings: Arc<RwLock<HashMap<String, String>>>,
-    modifier_formats: Arc<RwLock<HashMap<String, String>>>,
-    events: Arc<RwLock<HashMap<String, event_scanner::Event>>>,
-    music_assets: Arc<RwLock<HashMap<String, music_scanner::MusicAsset>>>,
-    music_stations: Arc<RwLock<HashMap<String, music_scanner::MusicStation>>>,
-    songs: Arc<RwLock<HashMap<String, music_scanner::Song>>>,
-    sounds: Arc<RwLock<HashMap<String, sound_scanner::Sound>>>,
-    sound_effects: Arc<RwLock<HashMap<String, sound_scanner::SoundEffect>>>,
-    falloffs: Arc<RwLock<HashMap<String, sound_scanner::Falloff>>>,
-    sound_categories: Arc<RwLock<HashMap<String, sound_scanner::SoundCategory>>>,
-    buildings: Arc<RwLock<HashMap<String, building_scanner::Building>>>,
-    achievements: Arc<RwLock<HashMap<String, achievement_scanner::Achievement>>>,
-    defines: Arc<RwLock<defines_parser::GameDefines>>,
-    ignored_loc_regex: Arc<RwLock<Vec<regex::Regex>>>,
-    ignored_files_regex: Arc<RwLock<Vec<regex::Regex>>>,
-    workspace_scan_enabled: Arc<RwLock<bool>>,
-    styling_enabled: Arc<RwLock<bool>>,
-    cosmetic_loc_indent: Arc<RwLock<bool>>,
-    game_path: Arc<RwLock<Option<String>>>,
-    abilities: Arc<RwLock<HashMap<String, ability_scanner::Ability>>>,
-    scripted_locs: Arc<RwLock<HashMap<String, scripted_loc_scanner::ScriptedLoc>>>,
-    duplicated_loc_keys: Arc<RwLock<HashSet<(String, String)>>>,
-    states: Arc<RwLock<HashMap<u32, state_scanner::State>>>,
-    supply_nodes: Arc<RwLock<Vec<logistics_scanner::SupplyNode>>>,
-    railways: Arc<RwLock<Vec<logistics_scanner::Railway>>>,
-    map_buildings: Arc<RwLock<Vec<map_object_scanner::MapBuilding>>>,
-    unitstacks: Arc<RwLock<Vec<map_object_scanner::UnitStack>>>,
-    weather_positions: Arc<RwLock<Vec<map_object_scanner::WeatherPosition>>>,
-    adjacencies: Arc<RwLock<Vec<adjacency_scanner::Adjacency>>>,
-    adjacency_rules: Arc<RwLock<HashMap<String, adjacency_scanner::AdjacencyRule>>>,
-    strategic_regions: Arc<RwLock<HashMap<u32, strategic_region_scanner::StrategicRegion>>>,
+    localization: Arc<arc_swap::ArcSwap<HashMap<String, loc_parser::LocEntry>>>,
+    scripted_triggers: Arc<arc_swap::ArcSwap<HashMap<String, scripted_scanner::ScriptedEntity>>>,
+    scripted_effects: Arc<arc_swap::ArcSwap<HashMap<String, scripted_scanner::ScriptedEntity>>>,
+    ideologies: Arc<arc_swap::ArcSwap<HashMap<String, ideology_scanner::Ideology>>>,
+    sub_ideologies: Arc<arc_swap::ArcSwap<HashMap<String, (String, ast::Range, String)>>>, // Sub-ideology -> (Parent Ideology, Range, Path)
+    traits: Arc<arc_swap::ArcSwap<HashMap<String, trait_scanner::Trait>>>,
+    sprites: Arc<arc_swap::ArcSwap<HashMap<String, sprite_scanner::Sprite>>>,
+    ideas: Arc<arc_swap::ArcSwap<HashMap<String, idea_scanner::Idea>>>,
+    characters: Arc<arc_swap::ArcSwap<HashMap<String, character_scanner::Character>>>,
+    variables: Arc<arc_swap::ArcSwap<HashMap<String, Vec<variable_scanner::Variable>>>>,
+    event_targets: Arc<arc_swap::ArcSwap<HashMap<String, Vec<variable_scanner::EventTarget>>>>,
+    provinces: Arc<arc_swap::ArcSwap<HashMap<u32, province_scanner::Province>>>,
+    custom_modifiers: Arc<arc_swap::ArcSwap<HashMap<String, modifier_scanner::Modifier>>>,
+    modifier_mappings: Arc<arc_swap::ArcSwap<HashMap<String, String>>>,
+    modifier_formats: Arc<arc_swap::ArcSwap<HashMap<String, String>>>,
+    events: Arc<arc_swap::ArcSwap<HashMap<String, event_scanner::Event>>>,
+    music_assets: Arc<arc_swap::ArcSwap<HashMap<String, music_scanner::MusicAsset>>>,
+    music_stations: Arc<arc_swap::ArcSwap<HashMap<String, music_scanner::MusicStation>>>,
+    songs: Arc<arc_swap::ArcSwap<HashMap<String, music_scanner::Song>>>,
+    sounds: Arc<arc_swap::ArcSwap<HashMap<String, sound_scanner::Sound>>>,
+    sound_effects: Arc<arc_swap::ArcSwap<HashMap<String, sound_scanner::SoundEffect>>>,
+    falloffs: Arc<arc_swap::ArcSwap<HashMap<String, sound_scanner::Falloff>>>,
+    sound_categories: Arc<arc_swap::ArcSwap<HashMap<String, sound_scanner::SoundCategory>>>,
+    buildings: Arc<arc_swap::ArcSwap<HashMap<String, building_scanner::Building>>>,
+    achievements: Arc<arc_swap::ArcSwap<HashMap<String, achievement_scanner::Achievement>>>,
+    defines: Arc<arc_swap::ArcSwap<defines_parser::GameDefines>>,
+    ignored_loc_regex: Arc<arc_swap::ArcSwap<Vec<regex::Regex>>>,
+    ignored_files_regex: Arc<arc_swap::ArcSwap<Vec<regex::Regex>>>,
+    workspace_scan_enabled: Arc<arc_swap::ArcSwap<bool>>,
+    styling_enabled: Arc<arc_swap::ArcSwap<bool>>,
+    cosmetic_loc_indent: Arc<arc_swap::ArcSwap<bool>>,
+    game_path: Arc<arc_swap::ArcSwap<Option<String>>>,
+    abilities: Arc<arc_swap::ArcSwap<HashMap<String, ability_scanner::Ability>>>,
+    scripted_locs: Arc<arc_swap::ArcSwap<HashMap<String, scripted_loc_scanner::ScriptedLoc>>>,
+    duplicated_loc_keys: Arc<arc_swap::ArcSwap<HashSet<(String, String)>>>,
+    states: Arc<arc_swap::ArcSwap<HashMap<u32, state_scanner::State>>>,
+    supply_nodes: Arc<arc_swap::ArcSwap<Vec<logistics_scanner::SupplyNode>>>,
+    railways: Arc<arc_swap::ArcSwap<Vec<logistics_scanner::Railway>>>,
+    map_buildings: Arc<arc_swap::ArcSwap<Vec<map_object_scanner::MapBuilding>>>,
+    unitstacks: Arc<arc_swap::ArcSwap<Vec<map_object_scanner::UnitStack>>>,
+    weather_positions: Arc<arc_swap::ArcSwap<Vec<map_object_scanner::WeatherPosition>>>,
+    adjacencies: Arc<arc_swap::ArcSwap<Vec<adjacency_scanner::Adjacency>>>,
+    adjacency_rules: Arc<arc_swap::ArcSwap<HashMap<String, adjacency_scanner::AdjacencyRule>>>,
+    strategic_regions:
+        Arc<arc_swap::ArcSwap<HashMap<u32, strategic_region_scanner::StrategicRegion>>>,
 }
 
 #[tower_lsp::async_trait]
@@ -128,8 +128,9 @@ impl LanguageServer for Backend {
         if let Some(options) = params.initialization_options {
             if let Some(path) = options.get("gamePath").and_then(|v| v.as_str()) {
                 if !path.is_empty() {
-                    let mut gp = self.game_path.write().await;
-                    *gp = Some(path.to_string());
+                    self.game_path
+                        .store(std::sync::Arc::new(Some(path.to_string())));
+                    let _gp = self.game_path.load();
                 }
             }
             if let Some(ignore_list) = options.get("ignoreLocalization").and_then(|v| v.as_array())
@@ -142,8 +143,8 @@ impl LanguageServer for Backend {
                         }
                     }
                 }
-                let mut ig = self.ignored_loc_regex.write().await;
-                *ig = patterns;
+                self.ignored_loc_regex.store(std::sync::Arc::new(patterns));
+                let _ig = self.ignored_loc_regex.load();
             }
             if let Some(ignore_list) = options.get("ignoreFiles").and_then(|v| v.as_array()) {
                 let mut patterns = Vec::new();
@@ -154,23 +155,25 @@ impl LanguageServer for Backend {
                         }
                     }
                 }
-                let mut ig = self.ignored_files_regex.write().await;
-                *ig = patterns;
+                self.ignored_files_regex
+                    .store(std::sync::Arc::new(patterns));
+                let _ig = self.ignored_files_regex.load();
             }
             if let Some(enabled) = options
                 .get("workspaceScanEnabled")
                 .and_then(|v| v.as_bool())
             {
-                let mut ws = self.workspace_scan_enabled.write().await;
-                *ws = enabled;
+                self.workspace_scan_enabled
+                    .store(std::sync::Arc::new(enabled));
+                let _ws = self.workspace_scan_enabled.load();
             }
             if let Some(enabled) = options.get("stylingEnabled").and_then(|v| v.as_bool()) {
-                let mut st = self.styling_enabled.write().await;
-                *st = enabled;
+                self.styling_enabled.store(std::sync::Arc::new(enabled));
+                let _st = self.styling_enabled.load();
             }
             if let Some(enabled) = options.get("cosmeticLocIndent").and_then(|v| v.as_bool()) {
-                let mut ci = self.cosmetic_loc_indent.write().await;
-                *ci = enabled;
+                self.cosmetic_loc_indent.store(std::sync::Arc::new(enabled));
+                let _ci = self.cosmetic_loc_indent.load();
             }
         }
         Ok(InitializeResult {
@@ -241,8 +244,8 @@ impl LanguageServer for Backend {
             .await;
 
         let mut roots = vec![std::path::PathBuf::from(".")];
-        let gp = self.game_path.read().await;
-        if let Some(ref path) = *gp {
+        let gp = self.game_path.load();
+        if let Some(ref path) = **gp {
             roots.insert(0, std::path::PathBuf::from(path));
             self.client
                 .log_message(MessageType::INFO, format!("Using HOI4 game path: {}", path))
@@ -283,7 +286,7 @@ impl LanguageServer for Backend {
         }
 
         // Workspace-wide scan
-        if *self.workspace_scan_enabled.read().await {
+        if **self.workspace_scan_enabled.load() {
             self.validate_workspace(std::path::Path::new(".")).await;
         }
     }
@@ -304,8 +307,8 @@ impl LanguageServer for Backend {
                                 }
                             }
                         }
-                        let mut ig = self.ignored_loc_regex.write().await;
-                        *ig = patterns;
+                        self.ignored_loc_regex.store(std::sync::Arc::new(patterns));
+                        let _ig = self.ignored_loc_regex.load();
                     }
                     if let Some(ignore_list) =
                         validator.get("ignoreFiles").and_then(|v| v.as_array())
@@ -318,8 +321,9 @@ impl LanguageServer for Backend {
                                 }
                             }
                         }
-                        let mut ig = self.ignored_files_regex.write().await;
-                        *ig = patterns;
+                        self.ignored_files_regex
+                            .store(std::sync::Arc::new(patterns));
+                        let _ig = self.ignored_files_regex.load();
                     }
                     if let Some(enabled) = validator
                         .get("workspaceScan")
@@ -327,21 +331,22 @@ impl LanguageServer for Backend {
                         .and_then(|v| v.get("enabled"))
                         .and_then(|v| v.as_bool())
                     {
-                        let mut ws = self.workspace_scan_enabled.write().await;
-                        *ws = enabled;
+                        self.workspace_scan_enabled
+                            .store(std::sync::Arc::new(enabled));
+                        let _ws = self.workspace_scan_enabled.load();
                     }
                 }
                 if let Some(styling) = hoi4.get("styling").and_then(|v| v.as_object()) {
                     if let Some(enabled) = styling.get("enabled").and_then(|v| v.as_bool()) {
-                        let mut st = self.styling_enabled.write().await;
-                        *st = enabled;
+                        self.styling_enabled.store(std::sync::Arc::new(enabled));
+                        let _st = self.styling_enabled.load();
                     }
                     if let Some(enabled) = styling
                         .get("cosmeticLocalizationIndentation")
                         .and_then(|v| v.as_bool())
                     {
-                        let mut ci = self.cosmetic_loc_indent.write().await;
-                        *ci = enabled;
+                        self.cosmetic_loc_indent.store(std::sync::Arc::new(enabled));
+                        let _ci = self.cosmetic_loc_indent.load();
                     }
                 }
                 // Re-validate all documents
@@ -463,7 +468,7 @@ impl LanguageServer for Backend {
         };
 
         // Get color modifiers from defines
-        let defines = self.defines.read().await;
+        let defines = self.defines.load();
         let modifiers = enhanced_color::ColorModifiers::from_defines(&defines);
 
         // Generate presentations for both RGB and HSV formats
@@ -479,7 +484,7 @@ impl LanguageServer for Backend {
         let uri = params.text_document.uri.to_string();
         if let Some(content) = self.documents.get(&uri) {
             if uri.ends_with(".yml") {
-                let cosmetic_indent = *self.cosmetic_loc_indent.read().await;
+                let cosmetic_indent = **self.cosmetic_loc_indent.load();
                 let formatted = loc_parser::format_loc_file(&content, cosmetic_indent);
                 let full_range = Range {
                     start: Position {
@@ -527,7 +532,7 @@ impl LanguageServer for Backend {
         if let Some(content) = self.documents.get(&uri) {
             if uri.ends_with(".yml") {
                 let (locs, _, _) = loc_parser::parse_loc_file(&content, &uri);
-                let global_loc = self.localization.read().await;
+                let global_loc = self.localization.load();
                 for entry in locs.values() {
                     // Check key
                     if position.line == entry.range.start_line
@@ -537,7 +542,7 @@ impl LanguageServer for Backend {
                         let mut hover_text = format!("### 🌐 Localization: {}\n\n", entry.key);
 
                         // Add achievement context
-                        let achievements = self.achievements.read().await;
+                        let achievements = self.achievements.load();
                         if entry.key.ends_with("_NAME") {
                             let ach_id = &entry.key[..entry.key.len() - 5];
                             if let Some(ach) = achievements.get(ach_id) {
@@ -634,9 +639,9 @@ impl LanguageServer for Backend {
                         match hovered_index {
                             Some(0) => {
                                 if let Ok(state_id) = parts[0].parse::<u32>() {
-                                    let states = self.states.read().await;
+                                    let states = self.states.load();
                                     if let Some(state) = states.get(&state_id) {
-                                        let loc = self.localization.read().await;
+                                        let loc = self.localization.load();
                                         let state_name =
                                             if let Some(loc_entry) = loc.get(&state.name) {
                                                 loc_entry.value.clone()
@@ -679,7 +684,7 @@ impl LanguageServer for Backend {
                             }
                             Some(6) => {
                                 if let Ok(prov_id) = parts[6].parse::<u32>() {
-                                    let provs = self.provinces.read().await;
+                                    let provs = self.provinces.load();
                                     if let Some(province) = provs.get(&prov_id) {
                                         hover_text.push_str(&format!("**Hovered:** Adjacent Sea Province `{}` (Coastal: {}, Terrain: {})\n", prov_id, province.is_coastal, province.terrain));
                                     } else {
@@ -725,7 +730,7 @@ impl LanguageServer for Backend {
                         match hovered_index {
                             Some(0) => {
                                 if let Ok(prov_id) = parts[0].parse::<u32>() {
-                                    let provs = self.provinces.read().await;
+                                    let provs = self.provinces.load();
                                     if let Some(province) = provs.get(&prov_id) {
                                         hover_text.push_str(&format!("**Hovered:** Province ID `{}` (Coastal: {}, Terrain: {})\n", prov_id, province.is_coastal, province.terrain));
                                     } else {
@@ -796,9 +801,9 @@ impl LanguageServer for Backend {
                         match hovered_index {
                             Some(0) => {
                                 if let Ok(region_id) = parts[0].parse::<u32>() {
-                                    let regions = self.strategic_regions.read().await;
+                                    let regions = self.strategic_regions.load();
                                     if let Some(region) = regions.get(&region_id) {
-                                        let loc = self.localization.read().await;
+                                        let loc = self.localization.load();
                                         let region_name =
                                             if let Some(loc_entry) = loc.get(&region.name) {
                                                 loc_entry.value.clone()
@@ -898,7 +903,7 @@ impl LanguageServer for Backend {
                                     _ => "Through Province ID",
                                 };
                                 if let Ok(prov_id) = parts[hovered_index.unwrap()].parse::<u32>() {
-                                    let provs = self.provinces.read().await;
+                                    let provs = self.provinces.load();
                                     if let Some(province) = provs.get(&prov_id) {
                                         hover_text.push_str(&format!(
                                             "**Hovered:** {} `{}` (Terrain: {}, Type: {})\n",
@@ -937,7 +942,7 @@ impl LanguageServer for Backend {
                             Some(8) => {
                                 let rule_name = parts[8].trim();
                                 if !rule_name.is_empty() {
-                                    let rules = self.adjacency_rules.read().await;
+                                    let rules = self.adjacency_rules.load();
                                     if let Some(rule) = rules.get(rule_name) {
                                         let mut rule_info = format!(
                                             "**Hovered:** Adjacency Rule `{}`\n",
@@ -1060,7 +1065,7 @@ impl LanguageServer for Backend {
             {
                 let (script, _) = parser::parse_script(&content);
                 let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
-                let achievements = self.achievements.read().await;
+                let achievements = self.achievements.load();
                 if let Some((identifier, final_scopes, assigned_value, context_key)) =
                     find_identifier_at(&script, position, &mut scope_stack, &achievements)
                 {
@@ -1106,7 +1111,7 @@ impl LanguageServer for Backend {
                             format!("### 🏆 Achievement: `{}`\n", identifier)
                         };
 
-                        let loc = self.localization.read().await;
+                        let loc = self.localization.load();
 
                         let name_key = format!("{}_NAME", identifier);
                         if let Some(name_loc) = loc.get(&name_key) {
@@ -1149,7 +1154,7 @@ impl LanguageServer for Backend {
                     }
 
                     if let Some(id) = id_opt {
-                        let states = self.states.read().await;
+                        let states = self.states.load();
                         if let Some(state) = states.get(&id) {
                             // To prevent false positives, we only show this if the identifier is explicitly related to states
                             // Or if the identifier *is* the number (meaning it's an element in an array, like in any_state_of)
@@ -1166,7 +1171,7 @@ impl LanguageServer for Backend {
                                         .map_or(false, |ck| ck.contains("state")));
 
                             if is_state_key {
-                                let loc = self.localization.read().await;
+                                let loc = self.localization.load();
                                 let state_name = if let Some(loc_entry) = loc.get(&state.name) {
                                     paradox_to_markdown(&loc_entry.value, Some(&loc))
                                 } else {
@@ -1185,7 +1190,7 @@ impl LanguageServer for Backend {
                             }
                         }
 
-                        let provinces = self.provinces.read().await;
+                        let provinces = self.provinces.load();
                         if let Some(province) = provinces.get(&id) {
                             let ident_lower = identifier.to_lowercase();
                             let is_province_key = ident_lower.contains("province")
@@ -1215,7 +1220,7 @@ impl LanguageServer for Backend {
                             }
                         }
 
-                        let regions = self.strategic_regions.read().await;
+                        let regions = self.strategic_regions.load();
                         if let Some(region) = regions.get(&id) {
                             let ident_lower = identifier.to_lowercase();
                             let is_region_key = ident_lower.contains("strategic_region")
@@ -1227,7 +1232,7 @@ impl LanguageServer for Backend {
                                         .map_or(false, |ck| ck.contains("strategic_region")));
 
                             if is_region_key {
-                                let loc = self.localization.read().await;
+                                let loc = self.localization.load();
                                 let region_name = if let Some(loc_entry) = loc.get(&region.name) {
                                     loc_entry.value.clone()
                                 } else {
@@ -1287,7 +1292,7 @@ impl LanguageServer for Backend {
                     }
 
                     // Check localization
-                    let loc = self.localization.read().await;
+                    let loc = self.localization.load();
                     // Try exact match first, then try keys starting with ID:
                     let entry = loc.get(&identifier).or_else(|| {
                         // Find any key that starts with "identifier:"
@@ -1305,7 +1310,7 @@ impl LanguageServer for Backend {
                         push_section(&mut hover_text, &text);
                     } else {
                         // Check scripted triggers
-                        let st = self.scripted_triggers.read().await;
+                        let st = self.scripted_triggers.load();
                         if let Some(entity) = st.get(&identifier) {
                             push_section(
                                 &mut hover_text,
@@ -1317,7 +1322,7 @@ impl LanguageServer for Backend {
                             );
                         } else {
                             // Check scripted effects
-                            let se = self.scripted_effects.read().await;
+                            let se = self.scripted_effects.load();
                             if let Some(entity) = se.get(&identifier) {
                                 push_section(
                                     &mut hover_text,
@@ -1329,7 +1334,7 @@ impl LanguageServer for Backend {
                                 );
                             } else {
                                 // Check scripted locs
-                                let sl = self.scripted_locs.read().await;
+                                let sl = self.scripted_locs.load();
                                 if let Some(loc) = sl.get(&identifier) {
                                     push_section(
                                         &mut hover_text,
@@ -1345,7 +1350,7 @@ impl LanguageServer for Backend {
                     }
 
                     // Check ideologies
-                    let id_map = self.ideologies.read().await;
+                    let id_map = self.ideologies.load();
                     if let Some(ideology) = id_map.get(&identifier) {
                         push_section(
                             &mut hover_text,
@@ -1359,7 +1364,7 @@ impl LanguageServer for Backend {
                     }
 
                     // Check sub-ideologies
-                    let sid_map = self.sub_ideologies.read().await;
+                    let sid_map = self.sub_ideologies.load();
                     if let Some((parent, _, path)) = sid_map.get(&identifier) {
                         push_section(
                             &mut hover_text,
@@ -1373,7 +1378,7 @@ impl LanguageServer for Backend {
                     }
 
                     // Check traits
-                    let t_map = self.traits.read().await;
+                    let t_map = self.traits.load();
                     if let Some(trait_info) = t_map.get(&identifier) {
                         push_section(
                             &mut hover_text,
@@ -1387,7 +1392,7 @@ impl LanguageServer for Backend {
                     }
 
                     // Check sprites
-                    let s_map = self.sprites.read().await;
+                    let s_map = self.sprites.load();
                     if let Some(sprite) = s_map.get(&identifier) {
                         let mut texture_link = sprite.texture_file.clone();
                         // Attempt to resolve texture path relative to root
@@ -1417,7 +1422,7 @@ impl LanguageServer for Backend {
                     }
 
                     // Check events
-                    let e_map = self.events.read().await;
+                    let e_map = self.events.load();
                     if let Some(event) = e_map.get(&identifier) {
                         push_section(
                             &mut hover_text,
@@ -1436,7 +1441,7 @@ impl LanguageServer for Backend {
                     }
 
                     // Check ideas
-                    let idea_map = self.ideas.read().await;
+                    let idea_map = self.ideas.load();
                     if let Some(idea) = idea_map.get(&identifier) {
                         push_section(
                             &mut hover_text,
@@ -1450,11 +1455,11 @@ impl LanguageServer for Backend {
                     }
 
                     // Check characters
-                    let char_map = self.characters.read().await;
+                    let char_map = self.characters.load();
                     if let Some(character) = char_map.get(&identifier) {
                         let mut char_text = format!("### 👤 Character: `{}`\n", identifier);
 
-                        let loc = self.localization.read().await;
+                        let loc = self.localization.load();
                         if let Some(name_key) = &character.name {
                             if let Some(name_loc) = loc.get(name_key) {
                                 char_text.push_str(&format!(
@@ -1469,7 +1474,7 @@ impl LanguageServer for Backend {
 
                         if !character.portraits.is_empty() {
                             char_text.push_str("\n**Portraits:**\n");
-                            let s_map = self.sprites.read().await;
+                            let s_map = self.sprites.load();
                             for (cat, sprite_name) in &character.portraits {
                                 let mut texture_link = sprite_name.clone();
                                 if let Some(sprite) = s_map.get(sprite_name) {
@@ -1569,10 +1574,10 @@ impl LanguageServer for Backend {
                     }
 
                     // Check abilities
-                    let ability_map = self.abilities.read().await;
+                    let ability_map = self.abilities.load();
                     if let Some(ability) = ability_map.get(&identifier) {
                         let mut text = format!("### ⚔️ Leader Ability: `{}`\n", ability.key);
-                        let loc = self.localization.read().await;
+                        let loc = self.localization.load();
 
                         if let Some(name_key) = &ability.name_loc {
                             if let Some(name_loc) = loc.get(name_key) {
@@ -1619,14 +1624,14 @@ impl LanguageServer for Backend {
                     if (identifier_lower == "modifier" || identifier_lower == "modifiers")
                         && matches!(assigned_value, Some(ast::Value::Block(_)))
                     {
-                        let mappings = self.modifier_mappings.read().await;
-                        let formats = self.modifier_formats.read().await;
-                        let loc = self.localization.read().await;
+                        let mappings = self.modifier_mappings.load();
+                        let formats = self.modifier_formats.load();
+                        let loc = self.localization.load();
 
                         let display_service = modifier_display::ModifierDisplayService::new(
-                            mappings.clone(),
-                            formats.clone(),
-                            loc.clone(),
+                            (**mappings).clone(),
+                            (**formats).clone(),
+                            (**loc).clone(),
                         );
 
                         if let Some(value) = &assigned_value {
@@ -1642,7 +1647,7 @@ impl LanguageServer for Backend {
                     }
 
                     // Check modifiers
-                    let custom_mods = self.custom_modifiers.read().await;
+                    let custom_mods = self.custom_modifiers.load();
                     if let Some(modifier) = custom_mods.get(&identifier) {
                         push_section(
                             &mut hover_text,
@@ -1653,16 +1658,16 @@ impl LanguageServer for Backend {
                             ),
                         );
                     }
-                    let mappings = self.modifier_mappings.read().await;
+                    let mappings = self.modifier_mappings.load();
                     if let Some(loc_key) = mappings.get(&identifier) {
-                        let loc = self.localization.read().await;
+                        let loc = self.localization.load();
                         let loc_text = if let Some(e) = loc.get(loc_key) {
                             paradox_to_markdown(&e.value, Some(&loc))
                         } else {
                             loc_key.clone()
                         };
 
-                        let formats = self.modifier_formats.read().await;
+                        let formats = self.modifier_formats.load();
                         let format_info = formats.get(loc_key);
 
                         let parsed_val = match assigned_value {
@@ -1690,7 +1695,7 @@ impl LanguageServer for Backend {
                     }
 
                     // Check variables
-                    let var_map = self.variables.read().await;
+                    let var_map = self.variables.load();
                     if let Some(vars) = var_map.get(&identifier) {
                         let paths: Vec<String> =
                             vars.iter().map(|v| self.make_file_link(&v.path)).collect();
@@ -1705,7 +1710,7 @@ impl LanguageServer for Backend {
                     }
 
                     // Check event targets
-                    let target_map = self.event_targets.read().await;
+                    let target_map = self.event_targets.load();
                     if let Some(targets) = target_map.get(&identifier) {
                         let paths: Vec<String> = targets
                             .iter()
@@ -1728,7 +1733,7 @@ impl LanguageServer for Backend {
                     }
 
                     // Check music
-                    let m_assets = self.music_assets.read().await;
+                    let m_assets = self.music_assets.load();
                     if let Some(asset) = m_assets.get(&identifier) {
                         push_section(
                             &mut hover_text,
@@ -1741,7 +1746,7 @@ impl LanguageServer for Backend {
                         );
                     }
 
-                    let m_stations = self.music_stations.read().await;
+                    let m_stations = self.music_stations.load();
                     if let Some(station) = m_stations.get(&identifier) {
                         push_section(
                             &mut hover_text,
@@ -1753,7 +1758,7 @@ impl LanguageServer for Backend {
                         );
                     }
 
-                    let m_songs = self.songs.read().await;
+                    let m_songs = self.songs.load();
                     if let Some(song) = m_songs.get(&identifier) {
                         push_section(
                             &mut hover_text,
@@ -1766,7 +1771,7 @@ impl LanguageServer for Backend {
                     }
 
                     // Check sounds
-                    let s_sounds = self.sounds.read().await;
+                    let s_sounds = self.sounds.load();
                     if let Some(sound) = s_sounds.get(&identifier) {
                         let mut file_link = sound.file.clone();
                         // Try to resolve file link
@@ -1789,7 +1794,7 @@ impl LanguageServer for Backend {
                         );
                     }
 
-                    let s_effects = self.sound_effects.read().await;
+                    let s_effects = self.sound_effects.load();
                     if let Some(effect) = s_effects.get(&identifier) {
                         push_section(
                             &mut hover_text,
@@ -1802,7 +1807,7 @@ impl LanguageServer for Backend {
                         );
                     }
 
-                    let s_falloffs = self.falloffs.read().await;
+                    let s_falloffs = self.falloffs.load();
                     if let Some(falloff) = s_falloffs.get(&identifier) {
                         push_section(
                             &mut hover_text,
@@ -1814,7 +1819,7 @@ impl LanguageServer for Backend {
                         );
                     }
 
-                    let s_categories = self.sound_categories.read().await;
+                    let s_categories = self.sound_categories.load();
                     if let Some(category) = s_categories.get(&identifier) {
                         push_section(
                             &mut hover_text,
@@ -1876,7 +1881,7 @@ impl LanguageServer for Backend {
                                     ..Default::default()
                                 });
                             }
-                            let target_map = self.event_targets.read().await;
+                            let target_map = self.event_targets.load();
                             for target_name in target_map.keys() {
                                 items.push(CompletionItem {
                                     label: target_name.clone(),
@@ -1914,7 +1919,7 @@ impl LanguageServer for Backend {
 
                         if let Some(8) = hovered_index {
                             let mut items = Vec::new();
-                            let rules = self.adjacency_rules.read().await;
+                            let rules = self.adjacency_rules.load();
                             for rule_name in rules.keys() {
                                 items.push(CompletionItem {
                                     label: rule_name.clone(),
@@ -2193,7 +2198,7 @@ impl LanguageServer for Backend {
         if let Some(content) = self.documents.get(&uri) {
             {
                 let (script, _) = parser::parse_script(&content);
-                let achievements = self.achievements.read().await;
+                let achievements = self.achievements.load();
                 let (ctx, scopes) = find_scope_context_at(&script, position, &achievements);
                 current_scopes = scopes;
                 if let Some(context_key) = ctx {
@@ -2259,7 +2264,7 @@ impl LanguageServer for Backend {
             });
         }
 
-        let st = self.scripted_triggers.read().await;
+        let st = self.scripted_triggers.load();
         for trigger in st.values() {
             items.push(CompletionItem {
                 label: trigger.name.clone(),
@@ -2273,7 +2278,7 @@ impl LanguageServer for Backend {
             });
         }
 
-        let se = self.scripted_effects.read().await;
+        let se = self.scripted_effects.load();
         for effect in se.values() {
             items.push(CompletionItem {
                 label: effect.name.clone(),
@@ -2287,7 +2292,7 @@ impl LanguageServer for Backend {
             });
         }
 
-        let ids = self.ideologies.read().await;
+        let ids = self.ideologies.load();
         for ideology in ids.values() {
             items.push(CompletionItem {
                 label: ideology.name.clone(),
@@ -2301,7 +2306,7 @@ impl LanguageServer for Backend {
             });
         }
 
-        let sids = self.sub_ideologies.read().await;
+        let sids = self.sub_ideologies.load();
         for (sid, (parent, _, _)) in sids.iter() {
             items.push(CompletionItem {
                 label: sid.clone(),
@@ -2311,7 +2316,7 @@ impl LanguageServer for Backend {
             });
         }
 
-        let traits = self.traits.read().await;
+        let traits = self.traits.load();
         for trait_info in traits.values() {
             items.push(CompletionItem {
                 label: trait_info.name.clone(),
@@ -2325,7 +2330,7 @@ impl LanguageServer for Backend {
             });
         }
 
-        let s_map = self.sprites.read().await;
+        let s_map = self.sprites.load();
         for sprite in s_map.values() {
             items.push(CompletionItem {
                 label: sprite.name.clone(),
@@ -2339,7 +2344,7 @@ impl LanguageServer for Backend {
             });
         }
 
-        let id_map = self.ideas.read().await;
+        let id_map = self.ideas.load();
         for idea in id_map.values() {
             items.push(CompletionItem {
                 label: idea.name.clone(),
@@ -2353,7 +2358,7 @@ impl LanguageServer for Backend {
             });
         }
 
-        let ability_map = self.abilities.read().await;
+        let ability_map = self.abilities.load();
         for ability in ability_map.values() {
             items.push(CompletionItem {
                 label: ability.key.clone(),
@@ -2363,7 +2368,7 @@ impl LanguageServer for Backend {
             });
         }
 
-        let a_map = self.achievements.read().await;
+        let a_map = self.achievements.load();
         for achievement in a_map.values() {
             items.push(CompletionItem {
                 label: achievement.name.clone(),
@@ -2377,7 +2382,7 @@ impl LanguageServer for Backend {
             });
         }
 
-        let var_map = self.variables.read().await;
+        let var_map = self.variables.load();
         for var_name in var_map.keys() {
             items.push(CompletionItem {
                 label: var_name.clone(),
@@ -2387,7 +2392,7 @@ impl LanguageServer for Backend {
             });
         }
 
-        let target_map = self.event_targets.read().await;
+        let target_map = self.event_targets.load();
         for target_name in target_map.keys() {
             items.push(CompletionItem {
                 label: target_name.clone(),
@@ -2397,7 +2402,7 @@ impl LanguageServer for Backend {
             });
         }
 
-        let m_assets = self.music_assets.read().await;
+        let m_assets = self.music_assets.load();
         for asset in m_assets.values() {
             items.push(CompletionItem {
                 label: asset.name.clone(),
@@ -2408,7 +2413,7 @@ impl LanguageServer for Backend {
             });
         }
 
-        let m_stations = self.music_stations.read().await;
+        let m_stations = self.music_stations.load();
         for station in m_stations.values() {
             items.push(CompletionItem {
                 label: station.name.clone(),
@@ -2418,7 +2423,7 @@ impl LanguageServer for Backend {
             });
         }
 
-        let m_songs = self.songs.read().await;
+        let m_songs = self.songs.load();
         for song in m_songs.values() {
             items.push(CompletionItem {
                 label: song.name.clone(),
@@ -2428,7 +2433,7 @@ impl LanguageServer for Backend {
             });
         }
 
-        let s_sounds = self.sounds.read().await;
+        let s_sounds = self.sounds.load();
         for sound in s_sounds.values() {
             items.push(CompletionItem {
                 label: sound.name.clone(),
@@ -2439,7 +2444,7 @@ impl LanguageServer for Backend {
             });
         }
 
-        let s_effects = self.sound_effects.read().await;
+        let s_effects = self.sound_effects.load();
         for effect in s_effects.values() {
             items.push(CompletionItem {
                 label: effect.name.clone(),
@@ -2449,7 +2454,7 @@ impl LanguageServer for Backend {
             });
         }
 
-        let s_falloffs = self.falloffs.read().await;
+        let s_falloffs = self.falloffs.load();
         for falloff in s_falloffs.values() {
             items.push(CompletionItem {
                 label: falloff.name.clone(),
@@ -2459,7 +2464,7 @@ impl LanguageServer for Backend {
             });
         }
 
-        let s_categories = self.sound_categories.read().await;
+        let s_categories = self.sound_categories.load();
         for category in s_categories.values() {
             items.push(CompletionItem {
                 label: category.name.clone(),
@@ -2493,7 +2498,7 @@ impl LanguageServer for Backend {
             } else {
                 let (script, _) = parser::parse_script(&content);
                 let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
-                let achievements = self.achievements.read().await;
+                let achievements = self.achievements.load();
                 find_identifier_at(&script, position, &mut scope_stack, &achievements)
                     .map(|(id, _, _, _)| id)
             };
@@ -2503,34 +2508,34 @@ impl LanguageServer for Backend {
                 let mut localizations = Vec::new();
 
                 // Check scripted elements
-                let st = self.scripted_triggers.read().await;
+                let st = self.scripted_triggers.load();
                 if let Some(entity) = st.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(&entity.range, &entity.path));
                 }
 
-                let se = self.scripted_effects.read().await;
+                let se = self.scripted_effects.load();
                 if let Some(entity) = se.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(&entity.range, &entity.path));
                 }
 
-                let sl = self.scripted_locs.read().await;
+                let sl = self.scripted_locs.load();
                 if let Some(loc) = sl.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(&loc.range, &loc.path));
                 }
 
                 // Check ideologies
-                let id_map = self.ideologies.read().await;
+                let id_map = self.ideologies.load();
                 if let Some(ideology) = id_map.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(&ideology.range, &ideology.path));
                 }
 
-                let sid_map = self.sub_ideologies.read().await;
+                let sid_map = self.sub_ideologies.load();
                 if let Some((_, range, path)) = sid_map.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(range, path));
                 }
 
                 // Check traits
-                let t_map = self.traits.read().await;
+                let t_map = self.traits.load();
                 if let Some(trait_info) = t_map.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(
                         &trait_info.range,
@@ -2539,31 +2544,31 @@ impl LanguageServer for Backend {
                 }
 
                 // Check sprites
-                let s_map = self.sprites.read().await;
+                let s_map = self.sprites.load();
                 if let Some(sprite) = s_map.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(&sprite.range, &sprite.path));
                 }
 
                 // Check events
-                let e_map = self.events.read().await;
+                let e_map = self.events.load();
                 if let Some(event) = e_map.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(&event.range, &event.path));
                 }
 
                 // Check abilities
-                let ability_map = self.abilities.read().await;
+                let ability_map = self.abilities.load();
                 if let Some(ability) = ability_map.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(&ability.range, &ability.path));
                 }
 
                 // Check ideas
-                let idea_map = self.ideas.read().await;
+                let idea_map = self.ideas.load();
                 if let Some(idea) = idea_map.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(&idea.range, &idea.path));
                 }
 
                 // Check achievements
-                let a_map = self.achievements.read().await;
+                let a_map = self.achievements.load();
                 if let Some(achievement) = a_map.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(
                         &achievement.range,
@@ -2572,7 +2577,7 @@ impl LanguageServer for Backend {
                 }
 
                 // Check variables
-                let var_map = self.variables.read().await;
+                let var_map = self.variables.load();
                 if let Some(vars) = var_map.get(&identifier) {
                     for var in vars {
                         sources.push(ast_range_to_lsp_location(&var.range, &var.path));
@@ -2580,7 +2585,7 @@ impl LanguageServer for Backend {
                 }
 
                 // Check event targets
-                let target_map = self.event_targets.read().await;
+                let target_map = self.event_targets.load();
                 if let Some(targets) = target_map.get(&identifier) {
                     for target in targets {
                         sources.push(ast_range_to_lsp_location(&target.range, &target.path));
@@ -2588,72 +2593,72 @@ impl LanguageServer for Backend {
                 }
 
                 // Check modifiers
-                let custom_mods = self.custom_modifiers.read().await;
+                let custom_mods = self.custom_modifiers.load();
                 if let Some(modifier) = custom_mods.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(&modifier.range, &modifier.path));
                 }
 
                 // Check music
-                let m_assets = self.music_assets.read().await;
+                let m_assets = self.music_assets.load();
                 if let Some(asset) = m_assets.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(&asset.range, &asset.path));
                 }
 
-                let m_stations = self.music_stations.read().await;
+                let m_stations = self.music_stations.load();
                 if let Some(station) = m_stations.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(&station.range, &station.path));
                 }
 
-                let m_songs = self.songs.read().await;
+                let m_songs = self.songs.load();
                 if let Some(song) = m_songs.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(&song.range, &song.path));
                 }
 
                 // Check sounds
-                let s_sounds = self.sounds.read().await;
+                let s_sounds = self.sounds.load();
                 if let Some(sound) = s_sounds.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(&sound.range, &sound.path));
                 }
 
-                let s_effects = self.sound_effects.read().await;
+                let s_effects = self.sound_effects.load();
                 if let Some(effect) = s_effects.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(&effect.range, &effect.path));
                 }
 
-                let s_falloffs = self.falloffs.read().await;
+                let s_falloffs = self.falloffs.load();
                 if let Some(falloff) = s_falloffs.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(&falloff.range, &falloff.path));
                 }
 
-                let s_categories = self.sound_categories.read().await;
+                let s_categories = self.sound_categories.load();
                 if let Some(category) = s_categories.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(&category.range, &category.path));
                 }
 
                 // Check adjacency rules
-                let rule_lock = self.adjacency_rules.read().await;
+                let rule_lock = self.adjacency_rules.load();
                 if let Some(rule) = rule_lock.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(&rule.range, &rule.path));
                 }
 
                 // Check strategic regions
-                let regions = self.strategic_regions.read().await;
+                let regions = self.strategic_regions.load();
                 if let Ok(id) = identifier.parse::<u32>() {
                     if let Some(region) = regions.get(&id) {
                         sources.push(ast_range_to_lsp_location(&region.range, &region.path));
                     }
                 }
 
-                let mappings = self.modifier_mappings.read().await;
+                let mappings = self.modifier_mappings.load();
                 if let Some(loc_key) = mappings.get(&identifier) {
-                    let loc = self.localization.read().await;
+                    let loc = self.localization.load();
                     if let Some(e) = loc.get(loc_key) {
                         localizations.push(ast_range_to_lsp_location(&e.range, &e.path));
                     }
                 }
 
                 // Check localization
-                let loc = self.localization.read().await;
+                let loc = self.localization.load();
                 // Try exact match
                 if let Some(e) = loc.get(&identifier) {
                     localizations.push(ast_range_to_lsp_location(&e.range, &e.path));
@@ -2686,7 +2691,7 @@ impl LanguageServer for Backend {
             {
                 let (script, _) = parser::parse_script(&content);
                 let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
-                let achievements = self.achievements.read().await;
+                let achievements = self.achievements.load();
                 if let Some((identifier, _, _, _)) =
                     find_identifier_at(&script, position, &mut scope_stack, &achievements)
                 {
@@ -2694,8 +2699,8 @@ impl LanguageServer for Backend {
 
                     // Search in all roots
                     let mut roots = vec![std::path::PathBuf::from(".")];
-                    let gp = self.game_path.read().await;
-                    if let Some(ref path) = *gp {
+                    let gp = self.game_path.load();
+                    if let Some(ref path) = **gp {
                         roots.push(std::path::PathBuf::from(path));
                     }
 
@@ -3438,8 +3443,8 @@ impl LanguageServer for Backend {
         params: ExecuteCommandParams,
     ) -> Result<Option<serde_json::Value>> {
         if params.command == "hoi4.getEventGraph" {
-            let events = self.events.read().await;
-            let json = serde_json::to_value(&*events).unwrap();
+            let events = self.events.load();
+            let json = serde_json::to_value(&**events).unwrap();
             return Ok(Some(json));
         } else if params.command == "hoi4/getMemoryUsage" {
             let mut sys = sysinfo::System::new();
@@ -3673,8 +3678,8 @@ impl Backend {
         })
         .await
         .unwrap();
-        let mut provinces = self.provinces.write().await;
-        *provinces = result;
+        self.provinces.store(std::sync::Arc::new(result));
+        let provinces = self.provinces.load();
         self.client
             .log_message(
                 MessageType::INFO,
@@ -3691,8 +3696,8 @@ impl Backend {
                 .await
                 .unwrap();
 
-        let mut map = self.states.write().await;
-        *map = result;
+        self.states.store(std::sync::Arc::new(result));
+        let map = self.states.load();
         self.client
             .log_message(MessageType::INFO, format!("Loaded {} states", map.len()))
             .await;
@@ -3707,11 +3712,12 @@ impl Backend {
         .await
         .unwrap();
 
-        let mut sn = self.supply_nodes.write().await;
-        *sn = result.supply_nodes;
+        self.supply_nodes
+            .store(std::sync::Arc::new(result.supply_nodes));
+        let sn = self.supply_nodes.load();
 
-        let mut rw = self.railways.write().await;
-        *rw = result.railways;
+        self.railways.store(std::sync::Arc::new(result.railways));
+        let rw = self.railways.load();
 
         self.client
             .log_message(
@@ -3730,14 +3736,17 @@ impl Backend {
         .await
         .unwrap();
 
-        let mut mb = self.map_buildings.write().await;
-        *mb = result.buildings;
+        self.map_buildings
+            .store(std::sync::Arc::new(result.buildings));
+        let mb = self.map_buildings.load();
 
-        let mut us = self.unitstacks.write().await;
-        *us = result.unitstacks;
+        self.unitstacks
+            .store(std::sync::Arc::new(result.unitstacks));
+        let us = self.unitstacks.load();
 
-        let mut wp = self.weather_positions.write().await;
-        *wp = result.weather_positions;
+        self.weather_positions
+            .store(std::sync::Arc::new(result.weather_positions));
+        let wp = self.weather_positions.load();
 
         self.client
             .log_message(
@@ -3761,11 +3770,13 @@ impl Backend {
         .await
         .unwrap();
 
-        let mut adj = self.adjacencies.write().await;
-        *adj = result.adjacencies;
+        self.adjacencies
+            .store(std::sync::Arc::new(result.adjacencies));
+        let adj = self.adjacencies.load();
 
-        let mut rules = self.adjacency_rules.write().await;
-        *rules = result.rules;
+        self.adjacency_rules
+            .store(std::sync::Arc::new(result.rules));
+        let rules = self.adjacency_rules.load();
 
         self.client
             .log_message(
@@ -3788,8 +3799,8 @@ impl Backend {
         .await
         .unwrap();
 
-        let mut regions = self.strategic_regions.write().await;
-        *regions = result;
+        self.strategic_regions.store(std::sync::Arc::new(result));
+        let regions = self.strategic_regions.load();
 
         self.client
             .log_message(
@@ -3806,8 +3817,8 @@ impl Backend {
             tokio::task::spawn_blocking(move || event_scanner::scan_events(&roots_owned, &filter))
                 .await
                 .unwrap();
-        let mut events = self.events.write().await;
-        *events = result;
+        self.events.store(std::sync::Arc::new(result));
+        let events = self.events.load();
         self.client
             .log_message(
                 MessageType::INFO,
@@ -3824,8 +3835,8 @@ impl Backend {
         })
         .await
         .unwrap();
-        let mut map = self.abilities.write().await;
-        *map = result;
+        self.abilities.store(std::sync::Arc::new(result));
+        let map = self.abilities.load();
         self.client
             .log_message(
                 MessageType::INFO,
@@ -3842,14 +3853,15 @@ impl Backend {
                 .await
                 .unwrap();
 
-        let mut assets = self.music_assets.write().await;
-        *assets = result.assets;
+        self.music_assets.store(std::sync::Arc::new(result.assets));
+        let assets = self.music_assets.load();
 
-        let mut stations = self.music_stations.write().await;
-        *stations = result.stations;
+        self.music_stations
+            .store(std::sync::Arc::new(result.stations));
+        let stations = self.music_stations.load();
 
-        let mut songs = self.songs.write().await;
-        *songs = result.songs;
+        self.songs.store(std::sync::Arc::new(result.songs));
+        let songs = self.songs.load();
 
         self.client
             .log_message(
@@ -3872,17 +3884,19 @@ impl Backend {
                 .await
                 .unwrap();
 
-        let mut sounds = self.sounds.write().await;
-        *sounds = result.sounds;
+        self.sounds.store(std::sync::Arc::new(result.sounds));
+        let sounds = self.sounds.load();
 
-        let mut effects = self.sound_effects.write().await;
-        *effects = result.sound_effects;
+        self.sound_effects
+            .store(std::sync::Arc::new(result.sound_effects));
+        let effects = self.sound_effects.load();
 
-        let mut falloffs = self.falloffs.write().await;
-        *falloffs = result.falloffs;
+        self.falloffs.store(std::sync::Arc::new(result.falloffs));
+        let falloffs = self.falloffs.load();
 
-        let mut categories = self.sound_categories.write().await;
-        *categories = result.categories;
+        self.sound_categories
+            .store(std::sync::Arc::new(result.categories));
+        let categories = self.sound_categories.load();
 
         self.client
             .log_message(
@@ -3907,11 +3921,13 @@ impl Backend {
         .await
         .unwrap();
 
-        let mut custom = self.custom_modifiers.write().await;
-        *custom = result.custom_modifiers;
+        self.custom_modifiers
+            .store(std::sync::Arc::new(result.custom_modifiers));
+        let custom = self.custom_modifiers.load();
 
-        let mut mappings = self.modifier_mappings.write().await;
-        *mappings = result.builtin_mappings;
+        self.modifier_mappings
+            .store(std::sync::Arc::new(result.builtin_mappings));
+        let mappings = self.modifier_mappings.load();
 
         self.client
             .log_message(
@@ -3934,8 +3950,8 @@ impl Backend {
         .await
         .unwrap();
 
-        let mut b = self.buildings.write().await;
-        *b = buildings;
+        self.buildings.store(std::sync::Arc::new(buildings));
+        let b = self.buildings.load();
 
         self.client
             .log_message(
@@ -3954,8 +3970,8 @@ impl Backend {
         .await
         .unwrap();
 
-        let mut a = self.achievements.write().await;
-        *a = achievements;
+        self.achievements.store(std::sync::Arc::new(achievements));
+        let a = self.achievements.load();
 
         self.client
             .log_message(
@@ -3974,8 +3990,8 @@ impl Backend {
         .await
         .unwrap();
 
-        let mut d = self.defines.write().await;
-        *d = defines;
+        self.defines.store(std::sync::Arc::new(defines));
+        let _d = self.defines.load();
 
         self.client
             .log_message(MessageType::INFO, "Loaded game defines")
@@ -3991,11 +4007,12 @@ impl Backend {
         .await
         .unwrap();
 
-        let mut vars = self.variables.write().await;
-        *vars = result.variables;
+        self.variables.store(std::sync::Arc::new(result.variables));
+        let vars = self.variables.load();
 
-        let mut targets = self.event_targets.write().await;
-        *targets = result.event_targets;
+        self.event_targets
+            .store(std::sync::Arc::new(result.event_targets));
+        let targets = self.event_targets.load();
 
         self.client
             .log_message(
@@ -4535,11 +4552,11 @@ impl Backend {
             self.client.log_message(level, msg).await;
         }
 
-        let mut d_map = self.duplicated_loc_keys.write().await;
-        *d_map = dups;
+        self.duplicated_loc_keys.store(std::sync::Arc::new(dups));
+        let _d_map = self.duplicated_loc_keys.load();
 
-        let mut loc = self.localization.write().await;
-        *loc = all_locs;
+        self.localization.store(std::sync::Arc::new(all_locs));
+        let loc = self.localization.load();
         self.client
             .log_message(
                 MessageType::INFO,
@@ -4580,14 +4597,16 @@ impl Backend {
         .await
         .unwrap();
 
-        let mut t_map = self.scripted_triggers.write().await;
-        *t_map = all_triggers;
+        self.scripted_triggers
+            .store(std::sync::Arc::new(all_triggers));
+        let t_map = self.scripted_triggers.load();
 
-        let mut e_map = self.scripted_effects.write().await;
-        *e_map = all_effects;
+        self.scripted_effects
+            .store(std::sync::Arc::new(all_effects));
+        let e_map = self.scripted_effects.load();
 
-        let mut l_map = self.scripted_locs.write().await;
-        *l_map = all_locs;
+        self.scripted_locs.store(std::sync::Arc::new(all_locs));
+        let l_map = self.scripted_locs.load();
 
         self.client
             .log_message(
@@ -4630,11 +4649,11 @@ impl Backend {
         .await
         .unwrap();
 
-        let mut i_map = self.ideologies.write().await;
-        *i_map = all_results;
+        self.ideologies.store(std::sync::Arc::new(all_results));
+        let i_map = self.ideologies.load();
 
-        let mut s_map = self.sub_ideologies.write().await;
-        *s_map = sub_map;
+        self.sub_ideologies.store(std::sync::Arc::new(sub_map));
+        let s_map = self.sub_ideologies.load();
 
         self.client
             .log_message(
@@ -4683,8 +4702,8 @@ impl Backend {
         .await
         .unwrap();
 
-        let mut t_map = self.traits.write().await;
-        *t_map = all_traits;
+        self.traits.store(std::sync::Arc::new(all_traits));
+        let t_map = self.traits.load();
 
         self.client
             .log_message(
@@ -4712,8 +4731,8 @@ impl Backend {
         .await
         .unwrap();
 
-        let mut s_map = self.sprites.write().await;
-        *s_map = all_sprites;
+        self.sprites.store(std::sync::Arc::new(all_sprites));
+        let s_map = self.sprites.load();
 
         self.client
             .log_message(
@@ -4732,8 +4751,8 @@ impl Backend {
         .await
         .unwrap();
 
-        let mut c_map = self.characters.write().await;
-        *c_map = found;
+        self.characters.store(std::sync::Arc::new(found));
+        let c_map = self.characters.load();
 
         self.client
             .log_message(
@@ -4761,8 +4780,8 @@ impl Backend {
         .await
         .unwrap();
 
-        let mut i_map = self.ideas.write().await;
-        *i_map = all_ideas;
+        self.ideas.store(std::sync::Arc::new(all_ideas));
+        let i_map = self.ideas.load();
 
         self.client
             .log_message(
@@ -4799,10 +4818,12 @@ impl Backend {
         if let Some(path) = mapping_path {
             if let Ok(content) = std::fs::read_to_string(&path) {
                 if let Ok(mappings) = serde_json::from_str::<HashMap<String, String>>(&content) {
-                    let mut m = self.modifier_mappings.write().await;
+                    let mut m = (**self.modifier_mappings.load()).clone();
                     for (k, v) in mappings {
                         m.insert(k, v);
                     }
+                    self.modifier_mappings.store(std::sync::Arc::new(m));
+                    let m = self.modifier_mappings.load();
                     self.client
                         .log_message(
                             MessageType::INFO,
@@ -4816,10 +4837,12 @@ impl Backend {
         if let Some(path) = formats_path {
             if let Ok(content) = std::fs::read_to_string(&path) {
                 if let Ok(formats) = serde_json::from_str::<HashMap<String, String>>(&content) {
-                    let mut f = self.modifier_formats.write().await;
+                    let mut f = (**self.modifier_formats.load()).clone();
                     for (k, v) in formats {
                         f.insert(k, v);
                     }
+                    self.modifier_formats.store(std::sync::Arc::new(f));
+                    let f = self.modifier_formats.load();
                     self.client
                         .log_message(
                             MessageType::INFO,
@@ -4909,7 +4932,7 @@ impl Backend {
 
     async fn should_ignore_file(&self, path: &std::path::Path) -> bool {
         let path_str = path.to_string_lossy();
-        let ignored = self.ignored_files_regex.read().await;
+        let ignored = self.ignored_files_regex.load();
         for re in ignored.iter() {
             if re.is_match(&path_str) {
                 return true;
@@ -4922,7 +4945,8 @@ impl Backend {
         let regexes = self.ignored_files_regex.clone();
         move |path: &std::path::Path| {
             let path_str = path.to_string_lossy();
-            if let Ok(ignored) = regexes.try_read() {
+            let ignored = regexes.load();
+            {
                 for re in ignored.iter() {
                     if re.is_match(&path_str) {
                         return true;
@@ -5008,7 +5032,7 @@ impl Backend {
     async fn validate_content(&self, uri: &Url, content: &str) -> Vec<Diagnostic> {
         let mut diagnostics = Vec::new();
 
-        let styling_enabled = *self.styling_enabled.read().await;
+        let styling_enabled = **self.styling_enabled.load();
         let mut script_opt = None;
 
         if uri.as_str().ends_with(".yml") {
@@ -5114,7 +5138,7 @@ impl Backend {
         content: &str,
         diagnostics: &mut Vec<Diagnostic>,
     ) {
-        let provs = self.provinces.read().await;
+        let provs = self.provinces.load();
         for (i, line) in content.lines().enumerate() {
             let parts: Vec<&str> = line.split_whitespace().collect();
             if parts.len() >= 2 {
@@ -5142,7 +5166,7 @@ impl Backend {
     }
 
     async fn validate_railways_content(&self, content: &str, diagnostics: &mut Vec<Diagnostic>) {
-        let provs = self.provinces.read().await;
+        let provs = self.provinces.load();
         for (i, line) in content.lines().enumerate() {
             let parts: Vec<&str> = line.split_whitespace().collect();
             if parts.len() >= 2 {
@@ -5180,7 +5204,7 @@ impl Backend {
         content: &str,
         diagnostics: &mut Vec<Diagnostic>,
     ) {
-        let states = self.states.read().await;
+        let states = self.states.load();
         for (i, line) in content.lines().enumerate() {
             if line.trim().is_empty() {
                 diagnostics.push(Diagnostic {
@@ -5232,7 +5256,7 @@ impl Backend {
         content: &str,
         diagnostics: &mut Vec<Diagnostic>,
     ) {
-        let regions = self.strategic_regions.read().await;
+        let regions = self.strategic_regions.load();
         for (i, line) in content.lines().enumerate() {
             let parts: Vec<&str> = line.split(';').collect();
             if parts.len() >= 5 {
@@ -5260,7 +5284,7 @@ impl Backend {
     }
 
     async fn validate_unitstacks_content(&self, content: &str, diagnostics: &mut Vec<Diagnostic>) {
-        let provs = self.provinces.read().await;
+        let provs = self.provinces.load();
         for (i, line) in content.lines().enumerate() {
             let parts: Vec<&str> = line.split(';').collect();
             if parts.len() >= 7 {
@@ -5426,8 +5450,8 @@ impl Backend {
     }
 
     async fn validate_adjacencies_content(&self, content: &str, diagnostics: &mut Vec<Diagnostic>) {
-        let provs = self.provinces.read().await;
-        let rules = self.adjacency_rules.read().await;
+        let provs = self.provinces.load();
+        let rules = self.adjacency_rules.load();
         for (i, line) in content.lines().enumerate() {
             let trimmed = line.trim();
             if trimmed.is_empty() || trimmed.starts_with('#') || trimmed.starts_with("From;To;") {
@@ -5644,7 +5668,7 @@ impl Backend {
         content: &str,
         diagnostics: &mut Vec<Diagnostic>,
     ) {
-        let provs = self.provinces.read().await;
+        let provs = self.provinces.load();
         let (script, errors) = parser::parse_script(content);
         for (msg, range) in errors {
             diagnostics.push(Diagnostic {
@@ -5700,7 +5724,7 @@ impl Backend {
         script: &ast::Script,
         diagnostics: &mut Vec<Diagnostic>,
     ) {
-        let provs = self.provinces.read().await;
+        let provs = self.provinces.load();
 
         for entry in &script.entries {
             if let ast::Entry::Assignment(ass) = entry {
@@ -5781,9 +5805,9 @@ impl Backend {
         let (parsed, loc_diagnostics_structural, doc_lang) =
             loc_parser::parse_loc_file(content, &path_str);
         let doc_lang_str = doc_lang.unwrap_or_else(|| "unknown".to_string());
-        let event_targets = self.event_targets.read().await;
-        let scripted_locs = self.scripted_locs.read().await;
-        let dups = self.duplicated_loc_keys.read().await;
+        let event_targets = self.event_targets.load();
+        let scripted_locs = self.scripted_locs.load();
+        let dups = self.duplicated_loc_keys.load();
 
         // Add structural diagnostics
         for d in loc_diagnostics_structural {
@@ -5887,7 +5911,7 @@ impl Backend {
             let is_duplicated = dups.contains(&(doc_lang_str.clone(), entry.key.clone()));
 
             if is_duplicated {
-                let loc_map = self.localization.read().await;
+                let loc_map = self.localization.load();
                 let mut is_intentional_override = false;
                 if entry.path.contains("replace") {
                     is_intentional_override = true;
@@ -6261,20 +6285,20 @@ impl Backend {
         styling_enabled: bool,
         _uri: &str,
     ) {
-        let loc = self.localization.read().await;
-        let st = self.scripted_triggers.read().await;
-        let se = self.scripted_effects.read().await;
-        let id = self.ideologies.read().await;
-        let sid = self.sub_ideologies.read().await;
-        let tr = self.traits.read().await;
-        let sp = self.sprites.read().await;
-        let ids = self.ideas.read().await;
-        let provs = self.provinces.read().await;
-        let mod_maps = self.modifier_mappings.read().await;
-        let ig_loc = self.ignored_loc_regex.read().await;
-        let buildings = self.buildings.read().await;
-        let defines = self.defines.read().await;
-        let s_effects = self.sound_effects.read().await;
+        let loc = self.localization.load();
+        let st = self.scripted_triggers.load();
+        let se = self.scripted_effects.load();
+        let id = self.ideologies.load();
+        let sid = self.sub_ideologies.load();
+        let tr = self.traits.load();
+        let sp = self.sprites.load();
+        let ids = self.ideas.load();
+        let provs = self.provinces.load();
+        let mod_maps = self.modifier_mappings.load();
+        let ig_loc = self.ignored_loc_regex.load();
+        let buildings = self.buildings.load();
+        let defines = self.defines.load();
+        let s_effects = self.sound_effects.load();
 
         let mut comments = Vec::new();
         for entry in &script.entries {
@@ -7036,50 +7060,52 @@ async fn main() {
     let (service, socket) = LspService::new(|client| Backend {
         client,
         documents: DashMap::new(),
-        localization: Arc::new(RwLock::new(HashMap::new())),
-        scripted_triggers: Arc::new(RwLock::new(HashMap::new())),
-        scripted_effects: Arc::new(RwLock::new(HashMap::new())),
-        ideologies: Arc::new(RwLock::new(HashMap::new())),
-        sub_ideologies: Arc::new(RwLock::new(HashMap::new())),
-        traits: Arc::new(RwLock::new(HashMap::new())),
-        sprites: Arc::new(RwLock::new(HashMap::new())),
-        ideas: Arc::new(RwLock::new(HashMap::new())),
-        characters: Arc::new(RwLock::new(HashMap::new())),
-        variables: Arc::new(RwLock::new(HashMap::new())),
-        event_targets: Arc::new(RwLock::new(HashMap::new())),
-        provinces: Arc::new(RwLock::new(HashMap::new())),
-        custom_modifiers: Arc::new(RwLock::new(HashMap::new())),
-        modifier_mappings: Arc::new(RwLock::new(HashMap::new())),
-        modifier_formats: Arc::new(RwLock::new(HashMap::new())),
-        events: Arc::new(RwLock::new(HashMap::new())),
-        music_assets: Arc::new(RwLock::new(HashMap::new())),
-        music_stations: Arc::new(RwLock::new(HashMap::new())),
-        songs: Arc::new(RwLock::new(HashMap::new())),
-        sounds: Arc::new(RwLock::new(HashMap::new())),
-        sound_effects: Arc::new(RwLock::new(HashMap::new())),
-        falloffs: Arc::new(RwLock::new(HashMap::new())),
-        sound_categories: Arc::new(RwLock::new(HashMap::new())),
-        buildings: Arc::new(RwLock::new(HashMap::new())),
-        achievements: Arc::new(RwLock::new(HashMap::new())),
-        defines: Arc::new(RwLock::new(defines_parser::GameDefines::new())),
-        ignored_loc_regex: Arc::new(RwLock::new(Vec::new())),
-        ignored_files_regex: Arc::new(RwLock::new(Vec::new())),
-        workspace_scan_enabled: Arc::new(RwLock::new(false)),
-        styling_enabled: Arc::new(RwLock::new(true)),
-        cosmetic_loc_indent: Arc::new(RwLock::new(false)),
-        game_path: Arc::new(RwLock::new(None)),
-        abilities: Arc::new(RwLock::new(HashMap::new())),
-        scripted_locs: Arc::new(RwLock::new(HashMap::new())),
-        duplicated_loc_keys: Arc::new(RwLock::new(HashSet::new())),
-        states: Arc::new(RwLock::new(HashMap::new())),
-        supply_nodes: Arc::new(RwLock::new(Vec::new())),
-        railways: Arc::new(RwLock::new(Vec::new())),
-        map_buildings: Arc::new(RwLock::new(Vec::new())),
-        unitstacks: Arc::new(RwLock::new(Vec::new())),
-        weather_positions: Arc::new(RwLock::new(Vec::new())),
-        adjacencies: Arc::new(RwLock::new(Vec::new())),
-        adjacency_rules: Arc::new(RwLock::new(HashMap::new())),
-        strategic_regions: Arc::new(RwLock::new(HashMap::new())),
+        localization: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
+        scripted_triggers: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
+        scripted_effects: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
+        ideologies: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
+        sub_ideologies: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
+        traits: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
+        sprites: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
+        ideas: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
+        characters: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
+        variables: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
+        event_targets: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
+        provinces: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
+        custom_modifiers: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
+        modifier_mappings: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
+        modifier_formats: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
+        events: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
+        music_assets: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
+        music_stations: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
+        songs: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
+        sounds: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
+        sound_effects: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
+        falloffs: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
+        sound_categories: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
+        buildings: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
+        achievements: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
+        defines: Arc::new(arc_swap::ArcSwap::from_pointee(
+            defines_parser::GameDefines::new(),
+        )),
+        ignored_loc_regex: Arc::new(arc_swap::ArcSwap::from_pointee(Vec::new())),
+        ignored_files_regex: Arc::new(arc_swap::ArcSwap::from_pointee(Vec::new())),
+        workspace_scan_enabled: Arc::new(arc_swap::ArcSwap::from_pointee(false)),
+        styling_enabled: Arc::new(arc_swap::ArcSwap::from_pointee(true)),
+        cosmetic_loc_indent: Arc::new(arc_swap::ArcSwap::from_pointee(false)),
+        game_path: Arc::new(arc_swap::ArcSwap::from_pointee(None)),
+        abilities: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
+        scripted_locs: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
+        duplicated_loc_keys: Arc::new(arc_swap::ArcSwap::from_pointee(HashSet::new())),
+        states: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
+        supply_nodes: Arc::new(arc_swap::ArcSwap::from_pointee(Vec::new())),
+        railways: Arc::new(arc_swap::ArcSwap::from_pointee(Vec::new())),
+        map_buildings: Arc::new(arc_swap::ArcSwap::from_pointee(Vec::new())),
+        unitstacks: Arc::new(arc_swap::ArcSwap::from_pointee(Vec::new())),
+        weather_positions: Arc::new(arc_swap::ArcSwap::from_pointee(Vec::new())),
+        adjacencies: Arc::new(arc_swap::ArcSwap::from_pointee(Vec::new())),
+        adjacency_rules: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
+        strategic_regions: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
     });
     Server::new(stdin, stdout, socket).serve(service).await;
 }

@@ -1,7 +1,6 @@
 use crate::ast::Range;
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::RwLock;
 use tower_lsp::lsp_types::{
     Location, Position as LspPosition, Range as LspRange, SymbolInformation, SymbolKind, Url,
 };
@@ -22,40 +21,50 @@ fn path_to_url(path: &str) -> Url {
 /// Generate workspace symbols from indexed data
 pub async fn generate_workspace_symbols(
     query: &str,
-    events: &Arc<RwLock<HashMap<String, crate::event_scanner::Event>>>,
-    ideas: &Arc<RwLock<HashMap<String, crate::idea_scanner::Idea>>>,
-    traits: &Arc<RwLock<HashMap<String, crate::trait_scanner::Trait>>>,
-    scripted_triggers: &Arc<RwLock<HashMap<String, crate::scripted_scanner::ScriptedEntity>>>,
-    scripted_effects: &Arc<RwLock<HashMap<String, crate::scripted_scanner::ScriptedEntity>>>,
-    ideologies: &Arc<RwLock<HashMap<String, crate::ideology_scanner::Ideology>>>,
-    sub_ideologies: &Arc<RwLock<HashMap<String, (String, crate::ast::Range, String)>>>,
-    sprites: &Arc<RwLock<HashMap<String, crate::sprite_scanner::Sprite>>>,
-    characters: &Arc<RwLock<HashMap<String, crate::character_scanner::Character>>>,
-    variables: &Arc<RwLock<HashMap<String, Vec<crate::variable_scanner::Variable>>>>,
-    achievements: &Arc<RwLock<HashMap<String, crate::achievement_scanner::Achievement>>>,
-    abilities: &Arc<RwLock<HashMap<String, crate::ability_scanner::Ability>>>,
-    scripted_locs: &Arc<RwLock<HashMap<String, crate::scripted_loc_scanner::ScriptedLoc>>>,
-    localization: &Arc<RwLock<HashMap<String, crate::loc_parser::LocEntry>>>,
-    states: &Arc<RwLock<HashMap<u32, crate::state_scanner::State>>>,
-    supply_nodes: &Arc<RwLock<Vec<crate::logistics_scanner::SupplyNode>>>,
-    railways: &Arc<RwLock<Vec<crate::logistics_scanner::Railway>>>,
-    map_buildings: &Arc<RwLock<Vec<crate::map_object_scanner::MapBuilding>>>,
-    unitstacks: &Arc<RwLock<Vec<crate::map_object_scanner::UnitStack>>>,
-    weather_positions: &Arc<RwLock<Vec<crate::map_object_scanner::WeatherPosition>>>,
-    adjacencies: &Arc<RwLock<Vec<crate::adjacency_scanner::Adjacency>>>,
-    adjacency_rules: &Arc<RwLock<HashMap<String, crate::adjacency_scanner::AdjacencyRule>>>,
-    strategic_regions: &Arc<RwLock<HashMap<u32, crate::strategic_region_scanner::StrategicRegion>>>,
-    custom_modifiers: &Arc<RwLock<HashMap<String, crate::modifier_scanner::Modifier>>>,
-    sounds: &Arc<RwLock<HashMap<String, crate::sound_scanner::Sound>>>,
-    sound_effects: &Arc<RwLock<HashMap<String, crate::sound_scanner::SoundEffect>>>,
-    falloffs: &Arc<RwLock<HashMap<String, crate::sound_scanner::Falloff>>>,
-    sound_categories: &Arc<RwLock<HashMap<String, crate::sound_scanner::SoundCategory>>>,
+    events: &Arc<arc_swap::ArcSwap<HashMap<String, crate::event_scanner::Event>>>,
+    ideas: &Arc<arc_swap::ArcSwap<HashMap<String, crate::idea_scanner::Idea>>>,
+    traits: &Arc<arc_swap::ArcSwap<HashMap<String, crate::trait_scanner::Trait>>>,
+    scripted_triggers: &Arc<
+        arc_swap::ArcSwap<HashMap<String, crate::scripted_scanner::ScriptedEntity>>,
+    >,
+    scripted_effects: &Arc<
+        arc_swap::ArcSwap<HashMap<String, crate::scripted_scanner::ScriptedEntity>>,
+    >,
+    ideologies: &Arc<arc_swap::ArcSwap<HashMap<String, crate::ideology_scanner::Ideology>>>,
+    sub_ideologies: &Arc<arc_swap::ArcSwap<HashMap<String, (String, crate::ast::Range, String)>>>,
+    sprites: &Arc<arc_swap::ArcSwap<HashMap<String, crate::sprite_scanner::Sprite>>>,
+    characters: &Arc<arc_swap::ArcSwap<HashMap<String, crate::character_scanner::Character>>>,
+    variables: &Arc<arc_swap::ArcSwap<HashMap<String, Vec<crate::variable_scanner::Variable>>>>,
+    achievements: &Arc<arc_swap::ArcSwap<HashMap<String, crate::achievement_scanner::Achievement>>>,
+    abilities: &Arc<arc_swap::ArcSwap<HashMap<String, crate::ability_scanner::Ability>>>,
+    scripted_locs: &Arc<
+        arc_swap::ArcSwap<HashMap<String, crate::scripted_loc_scanner::ScriptedLoc>>,
+    >,
+    localization: &Arc<arc_swap::ArcSwap<HashMap<String, crate::loc_parser::LocEntry>>>,
+    states: &Arc<arc_swap::ArcSwap<HashMap<u32, crate::state_scanner::State>>>,
+    supply_nodes: &Arc<arc_swap::ArcSwap<Vec<crate::logistics_scanner::SupplyNode>>>,
+    railways: &Arc<arc_swap::ArcSwap<Vec<crate::logistics_scanner::Railway>>>,
+    map_buildings: &Arc<arc_swap::ArcSwap<Vec<crate::map_object_scanner::MapBuilding>>>,
+    unitstacks: &Arc<arc_swap::ArcSwap<Vec<crate::map_object_scanner::UnitStack>>>,
+    weather_positions: &Arc<arc_swap::ArcSwap<Vec<crate::map_object_scanner::WeatherPosition>>>,
+    adjacencies: &Arc<arc_swap::ArcSwap<Vec<crate::adjacency_scanner::Adjacency>>>,
+    adjacency_rules: &Arc<
+        arc_swap::ArcSwap<HashMap<String, crate::adjacency_scanner::AdjacencyRule>>,
+    >,
+    strategic_regions: &Arc<
+        arc_swap::ArcSwap<HashMap<u32, crate::strategic_region_scanner::StrategicRegion>>,
+    >,
+    custom_modifiers: &Arc<arc_swap::ArcSwap<HashMap<String, crate::modifier_scanner::Modifier>>>,
+    sounds: &Arc<arc_swap::ArcSwap<HashMap<String, crate::sound_scanner::Sound>>>,
+    sound_effects: &Arc<arc_swap::ArcSwap<HashMap<String, crate::sound_scanner::SoundEffect>>>,
+    falloffs: &Arc<arc_swap::ArcSwap<HashMap<String, crate::sound_scanner::Falloff>>>,
+    sound_categories: &Arc<arc_swap::ArcSwap<HashMap<String, crate::sound_scanner::SoundCategory>>>,
 ) -> Vec<SymbolInformation> {
     let mut symbols = Vec::new();
     let query_lower = query.to_lowercase();
 
     // Search custom modifiers
-    let modifiers_lock = custom_modifiers.read().await;
+    let modifiers_lock = custom_modifiers.load();
     for (name, modifier) in modifiers_lock.iter() {
         if fuzzy_match(&query_lower, &name.to_lowercase()) {
             #[allow(deprecated)]
@@ -74,7 +83,7 @@ pub async fn generate_workspace_symbols(
     }
 
     // Search achievements
-    let achievements_lock = achievements.read().await;
+    let achievements_lock = achievements.load();
     for (name, achievement) in achievements_lock.iter() {
         if fuzzy_match(&query_lower, &name.to_lowercase()) {
             #[allow(deprecated)]
@@ -93,7 +102,7 @@ pub async fn generate_workspace_symbols(
     }
 
     // Search events
-    let events_lock = events.read().await;
+    let events_lock = events.load();
     for (id, event) in events_lock.iter() {
         if fuzzy_match(&query_lower, &id.to_lowercase()) {
             #[allow(deprecated)]
@@ -112,7 +121,7 @@ pub async fn generate_workspace_symbols(
     }
 
     // Search ideas
-    let ideas_lock = ideas.read().await;
+    let ideas_lock = ideas.load();
     for (name, idea) in ideas_lock.iter() {
         if fuzzy_match(&query_lower, &name.to_lowercase()) {
             #[allow(deprecated)]
@@ -131,7 +140,7 @@ pub async fn generate_workspace_symbols(
     }
 
     // Search traits
-    let traits_lock = traits.read().await;
+    let traits_lock = traits.load();
     for (name, trait_data) in traits_lock.iter() {
         if fuzzy_match(&query_lower, &name.to_lowercase()) {
             #[allow(deprecated)]
@@ -150,7 +159,7 @@ pub async fn generate_workspace_symbols(
     }
 
     // Search scripted triggers
-    let triggers_lock = scripted_triggers.read().await;
+    let triggers_lock = scripted_triggers.load();
     for (name, trigger) in triggers_lock.iter() {
         if fuzzy_match(&query_lower, &name.to_lowercase()) {
             #[allow(deprecated)]
@@ -169,7 +178,7 @@ pub async fn generate_workspace_symbols(
     }
 
     // Search scripted effects
-    let effects_lock = scripted_effects.read().await;
+    let effects_lock = scripted_effects.load();
     for (name, effect) in effects_lock.iter() {
         if fuzzy_match(&query_lower, &name.to_lowercase()) {
             #[allow(deprecated)]
@@ -188,7 +197,7 @@ pub async fn generate_workspace_symbols(
     }
 
     // Search scripted locs
-    let locs_lock = scripted_locs.read().await;
+    let locs_lock = scripted_locs.load();
     for (name, loc) in locs_lock.iter() {
         if fuzzy_match(&query_lower, &name.to_lowercase()) {
             #[allow(deprecated)]
@@ -207,7 +216,7 @@ pub async fn generate_workspace_symbols(
     }
 
     // Search states
-    let states_lock = states.read().await;
+    let states_lock = states.load();
     for (id, state) in states_lock.iter() {
         if fuzzy_match(&query_lower, &id.to_string())
             || fuzzy_match(&query_lower, &state.name.to_lowercase())
@@ -228,7 +237,7 @@ pub async fn generate_workspace_symbols(
     }
 
     // Search logistics
-    let sn_lock = supply_nodes.read().await;
+    let sn_lock = supply_nodes.load();
     for node in sn_lock.iter() {
         let name = format!("Supply Node in Province {}", node.province_id);
         if fuzzy_match(&query_lower, &name.to_lowercase())
@@ -258,7 +267,7 @@ pub async fn generate_workspace_symbols(
         }
     }
 
-    let rw_lock = railways.read().await;
+    let rw_lock = railways.load();
     for rw in rw_lock.iter() {
         let name = format!("Railway (Lvl {})", rw.level);
         if fuzzy_match(&query_lower, "railway") {
@@ -287,7 +296,7 @@ pub async fn generate_workspace_symbols(
     }
 
     // Search Map Buildings
-    let mb_lock = map_buildings.read().await;
+    let mb_lock = map_buildings.load();
     for mb in mb_lock.iter() {
         let name = format!("Building '{}' in State {}", mb.building_id, mb.state_id);
         if fuzzy_match(&query_lower, &mb.building_id.to_lowercase())
@@ -318,7 +327,7 @@ pub async fn generate_workspace_symbols(
     }
 
     // Search Unitstacks
-    let us_lock = unitstacks.read().await;
+    let us_lock = unitstacks.load();
     for us in us_lock.iter() {
         let name = format!("Unitstack {} in Province {}", us.stack_type, us.province_id);
         if fuzzy_match(&query_lower, "unitstack")
@@ -349,7 +358,7 @@ pub async fn generate_workspace_symbols(
     }
 
     // Search Weather Positions
-    let wp_lock = weather_positions.read().await;
+    let wp_lock = weather_positions.load();
     for wp in wp_lock.iter() {
         let name = format!("Weather Position in Strategic Region {}", wp.region_id);
         if fuzzy_match(&query_lower, "weather")
@@ -380,7 +389,7 @@ pub async fn generate_workspace_symbols(
     }
 
     // Search Adjacencies
-    let adj_lock = adjacencies.read().await;
+    let adj_lock = adjacencies.load();
     for adj in adj_lock.iter() {
         let name = format!(
             "Adjacency ({}) {} <-> {}",
@@ -415,7 +424,7 @@ pub async fn generate_workspace_symbols(
     }
 
     // Search Adjacency Rules
-    let rule_lock = adjacency_rules.read().await;
+    let rule_lock = adjacency_rules.load();
     for (name, rule) in rule_lock.iter() {
         if fuzzy_match(&query_lower, &name.to_lowercase()) {
             #[allow(deprecated)]
@@ -434,7 +443,7 @@ pub async fn generate_workspace_symbols(
     }
 
     // Search Strategic Regions
-    let regions_lock = strategic_regions.read().await;
+    let regions_lock = strategic_regions.load();
     for (id, region) in regions_lock.iter() {
         if fuzzy_match(&query_lower, &id.to_string())
             || fuzzy_match(&query_lower, &region.name.to_lowercase())
@@ -456,7 +465,7 @@ pub async fn generate_workspace_symbols(
 
     // Search localization
     // Note: Localization can be extremely large. We only return matches if they fuzzy match
-    let loc_lock = localization.read().await;
+    let loc_lock = localization.load();
     // Limit to prevent overwhelming the client
     let mut loc_count = 0;
     for (name, loc) in loc_lock.iter() {
@@ -482,7 +491,7 @@ pub async fn generate_workspace_symbols(
     }
 
     // Search ideologies
-    let ideologies_lock = ideologies.read().await;
+    let ideologies_lock = ideologies.load();
     for (name, ideology) in ideologies_lock.iter() {
         if fuzzy_match(&query_lower, &name.to_lowercase()) {
             #[allow(deprecated)]
@@ -501,7 +510,7 @@ pub async fn generate_workspace_symbols(
     }
 
     // Search sub-ideologies
-    let sub_ideologies_lock = sub_ideologies.read().await;
+    let sub_ideologies_lock = sub_ideologies.load();
     for (name, (parent, range, path)) in sub_ideologies_lock.iter() {
         if fuzzy_match(&query_lower, &name.to_lowercase()) {
             #[allow(deprecated)]
@@ -520,7 +529,7 @@ pub async fn generate_workspace_symbols(
     }
 
     // Search sprites
-    let sprites_lock = sprites.read().await;
+    let sprites_lock = sprites.load();
     for (name, sprite) in sprites_lock.iter() {
         if fuzzy_match(&query_lower, &name.to_lowercase()) {
             #[allow(deprecated)]
@@ -539,7 +548,7 @@ pub async fn generate_workspace_symbols(
     }
 
     // Search characters
-    let characters_lock = characters.read().await;
+    let characters_lock = characters.load();
     for (name, character) in characters_lock.iter() {
         if fuzzy_match(&query_lower, &name.to_lowercase()) {
             #[allow(deprecated)]
@@ -558,7 +567,7 @@ pub async fn generate_workspace_symbols(
     }
 
     // Search abilities
-    let abilities_lock = abilities.read().await;
+    let abilities_lock = abilities.load();
     for (name, ability) in abilities_lock.iter() {
         if fuzzy_match(&query_lower, &name.to_lowercase()) {
             #[allow(deprecated)]
@@ -577,7 +586,7 @@ pub async fn generate_workspace_symbols(
     }
 
     // Search variables
-    let variables_lock = variables.read().await;
+    let variables_lock = variables.load();
     for (name, var_list) in variables_lock.iter() {
         if fuzzy_match(&query_lower, &name.to_lowercase()) {
             // Add the first occurrence
@@ -599,7 +608,7 @@ pub async fn generate_workspace_symbols(
     }
 
     // Search sounds
-    let sounds_lock = sounds.read().await;
+    let sounds_lock = sounds.load();
     for (name, sound) in sounds_lock.iter() {
         if fuzzy_match(&query_lower, &name.to_lowercase()) {
             #[allow(deprecated)]
@@ -618,7 +627,7 @@ pub async fn generate_workspace_symbols(
     }
 
     // Search sound effects
-    let effects_lock = sound_effects.read().await;
+    let effects_lock = sound_effects.load();
     for (name, effect) in effects_lock.iter() {
         if fuzzy_match(&query_lower, &name.to_lowercase()) {
             #[allow(deprecated)]
@@ -637,7 +646,7 @@ pub async fn generate_workspace_symbols(
     }
 
     // Search falloffs
-    let falloffs_lock = falloffs.read().await;
+    let falloffs_lock = falloffs.load();
     for (name, falloff) in falloffs_lock.iter() {
         if fuzzy_match(&query_lower, &name.to_lowercase()) {
             #[allow(deprecated)]
@@ -656,7 +665,7 @@ pub async fn generate_workspace_symbols(
     }
 
     // Search sound categories
-    let categories_lock = sound_categories.read().await;
+    let categories_lock = sound_categories.load();
     for (name, category) in categories_lock.iter() {
         if fuzzy_match(&query_lower, &name.to_lowercase()) {
             #[allow(deprecated)]
