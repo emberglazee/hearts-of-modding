@@ -3666,8 +3666,13 @@ impl Backend {
     }
 
     async fn scan_provinces(&self, roots: &[std::path::PathBuf]) {
-        let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
-        let result = province_scanner::scan_provinces(roots, &filter);
+        let filter = self.get_sync_filter();
+        let roots_owned = roots.to_vec();
+        let result = tokio::task::spawn_blocking(move || {
+            province_scanner::scan_provinces(&roots_owned, &filter)
+        })
+        .await
+        .unwrap();
         let mut provinces = self.provinces.write().await;
         *provinces = result;
         self.client
@@ -3679,8 +3684,12 @@ impl Backend {
     }
 
     async fn scan_states(&self, roots: &[std::path::PathBuf]) {
-        let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
-        let result = state_scanner::scan_states(roots, &filter);
+        let filter = self.get_sync_filter();
+        let roots_owned = roots.to_vec();
+        let result =
+            tokio::task::spawn_blocking(move || state_scanner::scan_states(&roots_owned, &filter))
+                .await
+                .unwrap();
 
         let mut map = self.states.write().await;
         *map = result;
@@ -3690,8 +3699,13 @@ impl Backend {
     }
 
     async fn scan_logistics(&self, roots: &[std::path::PathBuf]) {
-        let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
-        let result = logistics_scanner::scan_logistics(roots, &filter);
+        let filter = self.get_sync_filter();
+        let roots_owned = roots.to_vec();
+        let result = tokio::task::spawn_blocking(move || {
+            logistics_scanner::scan_logistics(&roots_owned, &filter)
+        })
+        .await
+        .unwrap();
 
         let mut sn = self.supply_nodes.write().await;
         *sn = result.supply_nodes;
@@ -3708,8 +3722,13 @@ impl Backend {
     }
 
     async fn scan_map_objects(&self, roots: &[std::path::PathBuf]) {
-        let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
-        let result = map_object_scanner::scan_map_objects(roots, &filter);
+        let filter = self.get_sync_filter();
+        let roots_owned = roots.to_vec();
+        let result = tokio::task::spawn_blocking(move || {
+            map_object_scanner::scan_map_objects(&roots_owned, &filter)
+        })
+        .await
+        .unwrap();
 
         let mut mb = self.map_buildings.write().await;
         *mb = result.buildings;
@@ -3734,8 +3753,13 @@ impl Backend {
     }
 
     async fn scan_adjacencies(&self, roots: &[std::path::PathBuf]) {
-        let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
-        let result = adjacency_scanner::scan_adjacencies(roots, &filter);
+        let filter = self.get_sync_filter();
+        let roots_owned = roots.to_vec();
+        let result = tokio::task::spawn_blocking(move || {
+            adjacency_scanner::scan_adjacencies(&roots_owned, &filter)
+        })
+        .await
+        .unwrap();
 
         let mut adj = self.adjacencies.write().await;
         *adj = result.adjacencies;
@@ -3756,8 +3780,13 @@ impl Backend {
     }
 
     async fn scan_strategic_regions(&self, roots: &[std::path::PathBuf]) {
-        let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
-        let result = strategic_region_scanner::scan_strategic_regions(roots, &filter);
+        let filter = self.get_sync_filter();
+        let roots_owned = roots.to_vec();
+        let result = tokio::task::spawn_blocking(move || {
+            strategic_region_scanner::scan_strategic_regions(&roots_owned, &filter)
+        })
+        .await
+        .unwrap();
 
         let mut regions = self.strategic_regions.write().await;
         *regions = result;
@@ -3771,8 +3800,12 @@ impl Backend {
     }
 
     async fn scan_events(&self, roots: &[std::path::PathBuf]) {
-        let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
-        let result = event_scanner::scan_events(roots, &filter);
+        let filter = self.get_sync_filter();
+        let roots_owned = roots.to_vec();
+        let result =
+            tokio::task::spawn_blocking(move || event_scanner::scan_events(&roots_owned, &filter))
+                .await
+                .unwrap();
         let mut events = self.events.write().await;
         *events = result;
         self.client
@@ -3784,18 +3817,15 @@ impl Backend {
     }
 
     async fn scan_abilities(&self, roots: &[std::path::PathBuf]) {
-        let filter = |path: &std::path::Path| -> bool {
-            let ig = futures::executor::block_on(self.ignored_files_regex.read());
-            let s = path.to_string_lossy();
-            for re in ig.iter() {
-                if re.is_match(&s) {
-                    return true;
-                }
-            }
-            false
-        };
+        let filter = self.get_sync_filter();
+        let roots_owned = roots.to_vec();
+        let result = tokio::task::spawn_blocking(move || {
+            ability_scanner::scan_abilities(&roots_owned, &filter)
+        })
+        .await
+        .unwrap();
         let mut map = self.abilities.write().await;
-        *map = ability_scanner::scan_abilities(roots, &filter);
+        *map = result;
         self.client
             .log_message(
                 MessageType::INFO,
@@ -3805,8 +3835,12 @@ impl Backend {
     }
 
     async fn scan_music(&self, roots: &[std::path::PathBuf]) {
-        let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
-        let result = music_scanner::scan_music(roots, &filter);
+        let filter = self.get_sync_filter();
+        let roots_owned = roots.to_vec();
+        let result =
+            tokio::task::spawn_blocking(move || music_scanner::scan_music(&roots_owned, &filter))
+                .await
+                .unwrap();
 
         let mut assets = self.music_assets.write().await;
         *assets = result.assets;
@@ -3831,8 +3865,12 @@ impl Backend {
     }
 
     async fn scan_sounds(&self, roots: &[std::path::PathBuf]) {
-        let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
-        let result = sound_scanner::scan_sounds(roots, &filter);
+        let filter = self.get_sync_filter();
+        let roots_owned = roots.to_vec();
+        let result =
+            tokio::task::spawn_blocking(move || sound_scanner::scan_sounds(&roots_owned, &filter))
+                .await
+                .unwrap();
 
         let mut sounds = self.sounds.write().await;
         *sounds = result.sounds;
@@ -3861,8 +3899,13 @@ impl Backend {
     }
 
     async fn scan_modifiers(&self, roots: &[std::path::PathBuf]) {
-        let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
-        let result = modifier_scanner::scan_modifiers(roots, &filter);
+        let filter = self.get_sync_filter();
+        let roots_owned = roots.to_vec();
+        let result = tokio::task::spawn_blocking(move || {
+            modifier_scanner::scan_modifiers(&roots_owned, &filter)
+        })
+        .await
+        .unwrap();
 
         let mut custom = self.custom_modifiers.write().await;
         *custom = result.custom_modifiers;
@@ -3883,8 +3926,13 @@ impl Backend {
     }
 
     async fn scan_buildings(&self, roots: &[std::path::PathBuf]) {
-        let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
-        let buildings = building_scanner::scan_buildings(roots, &filter);
+        let filter = self.get_sync_filter();
+        let roots_owned = roots.to_vec();
+        let buildings = tokio::task::spawn_blocking(move || {
+            building_scanner::scan_buildings(&roots_owned, &filter)
+        })
+        .await
+        .unwrap();
 
         let mut b = self.buildings.write().await;
         *b = buildings;
@@ -3898,8 +3946,13 @@ impl Backend {
     }
 
     async fn scan_achievements(&self, roots: &[std::path::PathBuf]) {
-        let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
-        let achievements = achievement_scanner::scan_achievements(roots, &filter);
+        let filter = self.get_sync_filter();
+        let roots_owned = roots.to_vec();
+        let achievements = tokio::task::spawn_blocking(move || {
+            achievement_scanner::scan_achievements(&roots_owned, &filter)
+        })
+        .await
+        .unwrap();
 
         let mut a = self.achievements.write().await;
         *a = achievements;
@@ -3913,8 +3966,13 @@ impl Backend {
     }
 
     async fn scan_defines(&self, roots: &[std::path::PathBuf]) {
-        let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
-        let defines = defines_parser::scan_defines(roots, &filter);
+        let filter = self.get_sync_filter();
+        let roots_owned = roots.to_vec();
+        let defines = tokio::task::spawn_blocking(move || {
+            defines_parser::scan_defines(&roots_owned, &filter)
+        })
+        .await
+        .unwrap();
 
         let mut d = self.defines.write().await;
         *d = defines;
@@ -3925,8 +3983,13 @@ impl Backend {
     }
 
     async fn scan_variables(&self, roots: &[std::path::PathBuf]) {
-        let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
-        let result = variable_scanner::scan_roots(roots, &filter);
+        let filter = self.get_sync_filter();
+        let roots_owned = roots.to_vec();
+        let result = tokio::task::spawn_blocking(move || {
+            variable_scanner::scan_roots(&roots_owned, &filter)
+        })
+        .await
+        .unwrap();
 
         let mut vars = self.variables.write().await;
         *vars = result.variables;
@@ -4331,6 +4394,7 @@ impl Backend {
             "buttonType",
             "containerWindowType",
             "origo",
+            "alwaystransparent",
         ];
 
         for entry in entries {
@@ -4363,10 +4427,6 @@ impl Backend {
     }
 
     async fn scan_localization(&self, roots: &[std::path::PathBuf]) {
-        let mut all_locs = HashMap::new();
-        let mut dups = HashSet::new();
-        let mut seen_locs_by_lang: HashSet<(String, String)> = HashSet::new();
-
         self.client
             .log_message(
                 MessageType::INFO,
@@ -4374,120 +4434,105 @@ impl Backend {
             )
             .await;
 
-        for root in roots {
-            let loc_dir = root.join("localisation");
-            self.client
-                .log_message(
-                    MessageType::INFO,
-                    format!("Checking for localization in: {:?}", loc_dir),
-                )
-                .await;
+        let filter = self.get_sync_filter();
+        let roots_owned = roots.to_vec();
 
-            if !loc_dir.exists() {
-                self.client
-                    .log_message(
-                        MessageType::INFO,
-                        format!("Directory does not exist: {:?}", loc_dir),
-                    )
-                    .await;
-                continue;
-            }
+        let (all_locs, dups, logs) = tokio::task::spawn_blocking(move || {
+            let mut all_locs = HashMap::new();
+            let mut dups = HashSet::new();
+            let mut seen_locs_by_lang: HashSet<(String, String)> = HashSet::new();
+            let mut logs = Vec::new();
 
-            let mut files_to_scan = Vec::new();
-            let mut dirs_to_check = vec![loc_dir.clone()];
-
-            while let Some(current_dir) = dirs_to_check.pop() {
-                if self.should_ignore_file(&current_dir).await {
+            for root in roots_owned {
+                let loc_dir = root.join("localisation");
+                if !loc_dir.exists() {
                     continue;
                 }
-                if let Ok(entries) = std::fs::read_dir(current_dir) {
-                    for entry in entries.flatten() {
-                        let path = entry.path();
-                        if path.is_dir() {
-                            dirs_to_check.push(path);
-                        } else if path.extension().map_or(false, |ext| ext == "yml") {
-                            if self.should_ignore_file(&path).await {
-                                continue;
-                            }
-                            // By default, prefer english localization. Ignore other languages to prevent overwriting keys
-                            // with translated versions (e.g. Chinese or Russian)
-                            let path_str = path.to_string_lossy().to_lowercase();
-                            if path_str.contains("english") {
-                                files_to_scan.push(path);
+
+                let mut files_to_scan = Vec::new();
+                let mut dirs_to_check = vec![loc_dir.clone()];
+
+                while let Some(current_dir) = dirs_to_check.pop() {
+                    if filter(&current_dir) {
+                        continue;
+                    }
+                    if let Ok(entries) = std::fs::read_dir(current_dir) {
+                        for entry in entries.flatten() {
+                            let path = entry.path();
+                            if path.is_dir() {
+                                dirs_to_check.push(path);
+                            } else if path.extension().map_or(false, |ext| ext == "yml") {
+                                if filter(&path) {
+                                    continue;
+                                }
+                                let path_str = path.to_string_lossy().to_lowercase();
+                                if path_str.contains("english") {
+                                    files_to_scan.push(path);
+                                }
                             }
                         }
                     }
                 }
-            }
 
-            self.client
-                .log_message(
-                    MessageType::INFO,
-                    format!(
-                        "Found {} english .yml files in {:?}",
-                        files_to_scan.len(),
-                        loc_dir
-                    ),
-                )
-                .await;
+                files_to_scan.sort_by(|a, b| {
+                    let a_is_replace = a.to_string_lossy().contains("replace");
+                    let b_is_replace = b.to_string_lossy().contains("replace");
+                    match (a_is_replace, b_is_replace) {
+                        (true, false) => std::cmp::Ordering::Greater,
+                        (false, true) => std::cmp::Ordering::Less,
+                        _ => a.cmp(b),
+                    }
+                });
 
-            // Sort files to ensure those in "replace" folders come last, correctly overriding other keys
-            files_to_scan.sort_by(|a, b| {
-                let a_is_replace = a.to_string_lossy().contains("replace");
-                let b_is_replace = b.to_string_lossy().contains("replace");
-                match (a_is_replace, b_is_replace) {
-                    (true, false) => std::cmp::Ordering::Greater,
-                    (false, true) => std::cmp::Ordering::Less,
-                    _ => a.cmp(b),
-                }
-            });
+                for path in files_to_scan {
+                    match std::fs::read_to_string(&path) {
+                        Ok(content) => {
+                            let path_str = path.to_string_lossy().to_string();
+                            let (parsed, _, doc_lang) =
+                                loc_parser::parse_loc_file(&content, &path_str);
+                            let lang_str = doc_lang.unwrap_or_else(|| "unknown".to_string());
 
-            for path in files_to_scan {
-                match std::fs::read_to_string(&path) {
-                    Ok(content) => {
-                        let path_str = path.to_string_lossy().to_string();
-                        let (parsed, _, doc_lang) = loc_parser::parse_loc_file(&content, &path_str);
-                        let lang_str = doc_lang.unwrap_or_else(|| "unknown".to_string());
-
-                        if parsed.is_empty() {
-                            self.client
-                                .log_message(
+                            if parsed.is_empty() {
+                                logs.push((
                                     MessageType::LOG,
                                     format!(
                                         "Warning: No keys found in localization file: {:?}",
                                         path
                                     ),
-                                )
-                                .await;
-                        } else {
-                            self.client
-                                .log_message(
+                                ));
+                            } else {
+                                logs.push((
                                     MessageType::LOG,
                                     format!("Loaded {} keys from {:?}", parsed.len(), path),
-                                )
-                                .await;
-                        }
-                        for (key, entry) in parsed {
-                            let lang_key_pair = (lang_str.clone(), key.clone());
-                            if seen_locs_by_lang.contains(&lang_key_pair) {
-                                dups.insert(lang_key_pair.clone());
-                            } else {
-                                seen_locs_by_lang.insert(lang_key_pair);
+                                ));
                             }
 
-                            all_locs.insert(key, entry);
+                            for (key, entry) in parsed {
+                                let lang_key_pair = (lang_str.clone(), key.clone());
+                                if seen_locs_by_lang.contains(&lang_key_pair) {
+                                    dups.insert(lang_key_pair.clone());
+                                } else {
+                                    seen_locs_by_lang.insert(lang_key_pair);
+                                }
+                                all_locs.insert(key, entry);
+                            }
                         }
-                    }
-                    Err(e) => {
-                        self.client
-                            .log_message(
+                        Err(e) => {
+                            logs.push((
                                 MessageType::ERROR,
                                 format!("Failed to read localization file {:?}: {}", path, e),
-                            )
-                            .await;
+                            ));
+                        }
                     }
                 }
             }
+            (all_locs, dups, logs)
+        })
+        .await
+        .unwrap();
+
+        for (level, msg) in logs {
+            self.client.log_message(level, msg).await;
         }
 
         let mut d_map = self.duplicated_loc_keys.write().await;
@@ -4504,55 +4549,36 @@ impl Backend {
     }
 
     async fn scan_scripted(&self, roots: &[std::path::PathBuf]) {
-        let mut all_triggers = HashMap::new();
-        let mut all_effects = HashMap::new();
-        let mut all_locs = HashMap::new();
+        let filter = self.get_sync_filter();
+        let roots_owned = roots.to_vec();
 
-        for root in roots {
-            let triggers_dir = root.join("common/scripted_triggers");
-            let effects_dir = root.join("common/scripted_effects");
-            let locs_dir = root.join("common/scripted_localisation");
-            let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
+        let (all_triggers, all_effects, all_locs) = tokio::task::spawn_blocking(move || {
+            let mut all_triggers = HashMap::new();
+            let mut all_effects = HashMap::new();
+            let mut all_locs = HashMap::new();
 
-            if triggers_dir.exists() {
-                let found = scripted_scanner::scan_directory(&triggers_dir, &filter);
-                self.client
-                    .log_message(
-                        MessageType::LOG,
-                        format!(
-                            "Loaded {} scripted triggers from {:?}",
-                            found.len(),
-                            triggers_dir
-                        ),
-                    )
-                    .await;
-                all_triggers.extend(found);
+            for root in &roots_owned {
+                let triggers_dir = root.join("common/scripted_triggers");
+                let effects_dir = root.join("common/scripted_effects");
+                let locs_dir = root.join("common/scripted_localisation");
+
+                if triggers_dir.exists() {
+                    let found = scripted_scanner::scan_directory(&triggers_dir, &filter);
+                    all_triggers.extend(found);
+                }
+                if effects_dir.exists() {
+                    let found = scripted_scanner::scan_directory(&effects_dir, &filter);
+                    all_effects.extend(found);
+                }
+                if locs_dir.exists() {
+                    let found = scripted_loc_scanner::scan_directory(&locs_dir, &filter);
+                    all_locs.extend(found);
+                }
             }
-            if effects_dir.exists() {
-                let found = scripted_scanner::scan_directory(&effects_dir, &filter);
-                self.client
-                    .log_message(
-                        MessageType::LOG,
-                        format!(
-                            "Loaded {} scripted effects from {:?}",
-                            found.len(),
-                            effects_dir
-                        ),
-                    )
-                    .await;
-                all_effects.extend(found);
-            }
-            if locs_dir.exists() {
-                let found = scripted_loc_scanner::scan_directory(&locs_dir, &filter);
-                self.client
-                    .log_message(
-                        MessageType::LOG,
-                        format!("Loaded {} scripted locs from {:?}", found.len(), locs_dir),
-                    )
-                    .await;
-                all_locs.extend(found);
-            }
-        }
+            (all_triggers, all_effects, all_locs)
+        })
+        .await
+        .unwrap();
 
         let mut t_map = self.scripted_triggers.write().await;
         *t_map = all_triggers;
@@ -4577,38 +4603,32 @@ impl Backend {
     }
 
     async fn scan_ideologies(&self, roots: &[std::path::PathBuf]) {
-        let mut all_results = HashMap::new();
-        let mut sub_map = HashMap::new();
-        let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
+        let filter = self.get_sync_filter();
+        let roots_owned = roots.to_vec();
 
-        for root in roots {
-            let dir = root.join("common/ideologies");
-            if dir.exists() {
-                let results = ideology_scanner::scan_ideologies(&dir, &filter);
-                let mut sub_count = 0;
-                for ideology in results.values() {
-                    for (sub, range) in &ideology.sub_ideology_ranges {
-                        sub_count += 1;
-                        sub_map.insert(
-                            sub.clone(),
-                            (ideology.name.clone(), range.clone(), ideology.path.clone()),
-                        );
+        let (all_results, sub_map) = tokio::task::spawn_blocking(move || {
+            let mut all_results = HashMap::new();
+            let mut sub_map = HashMap::new();
+
+            for root in &roots_owned {
+                let dir = root.join("common/ideologies");
+                if dir.exists() {
+                    let results = ideology_scanner::scan_ideologies(&dir, &filter);
+                    for ideology in results.values() {
+                        for (sub, range) in &ideology.sub_ideology_ranges {
+                            sub_map.insert(
+                                sub.clone(),
+                                (ideology.name.clone(), range.clone(), ideology.path.clone()),
+                            );
+                        }
                     }
+                    all_results.extend(results);
                 }
-                self.client
-                    .log_message(
-                        MessageType::LOG,
-                        format!(
-                            "Loaded {} ideologies and {} sub-ideologies from {:?}",
-                            results.len(),
-                            sub_count,
-                            dir
-                        ),
-                    )
-                    .await;
-                all_results.extend(results);
             }
-        }
+            (all_results, sub_map)
+        })
+        .await
+        .unwrap();
 
         let mut i_map = self.ideologies.write().await;
         *i_map = all_results;
@@ -4629,59 +4649,39 @@ impl Backend {
     }
 
     async fn scan_traits(&self, roots: &[std::path::PathBuf]) {
-        let mut all_traits = HashMap::new();
-        let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
+        let filter = self.get_sync_filter();
+        let roots_owned = roots.to_vec();
 
-        for root in roots {
-            let unit_leader_dir = root.join("common/unit_leader");
-            if unit_leader_dir.exists() {
-                let found =
-                    trait_scanner::scan_traits(&unit_leader_dir, "Unit Leader Trait", &filter);
-                self.client
-                    .log_message(
-                        MessageType::LOG,
-                        format!(
-                            "Loaded {} unit leader traits from {:?}",
-                            found.len(),
-                            unit_leader_dir
-                        ),
-                    )
-                    .await;
-                all_traits.extend(found);
-            }
+        let all_traits = tokio::task::spawn_blocking(move || {
+            let mut all_traits = HashMap::new();
+            for root in &roots_owned {
+                let unit_leader_dir = root.join("common/unit_leader");
+                if unit_leader_dir.exists() {
+                    let found =
+                        trait_scanner::scan_traits(&unit_leader_dir, "Unit Leader Trait", &filter);
+                    all_traits.extend(found);
+                }
 
-            let country_leader_dir = root.join("common/country_leader");
-            if country_leader_dir.exists() {
-                let found = trait_scanner::scan_traits(
-                    &country_leader_dir,
-                    "Country Leader Trait",
-                    &filter,
-                );
-                self.client
-                    .log_message(
-                        MessageType::LOG,
-                        format!(
-                            "Loaded {} country leader traits from {:?}",
-                            found.len(),
-                            country_leader_dir
-                        ),
-                    )
-                    .await;
-                all_traits.extend(found);
-            }
+                let country_leader_dir = root.join("common/country_leader");
+                if country_leader_dir.exists() {
+                    let found = trait_scanner::scan_traits(
+                        &country_leader_dir,
+                        "Country Leader Trait",
+                        &filter,
+                    );
+                    all_traits.extend(found);
+                }
 
-            let trait_dir = root.join("common/traits");
-            if trait_dir.exists() {
-                let found = trait_scanner::scan_traits(&trait_dir, "Trait", &filter);
-                self.client
-                    .log_message(
-                        MessageType::LOG,
-                        format!("Loaded {} general traits from {:?}", found.len(), trait_dir),
-                    )
-                    .await;
-                all_traits.extend(found);
+                let trait_dir = root.join("common/traits");
+                if trait_dir.exists() {
+                    let found = trait_scanner::scan_traits(&trait_dir, "Trait", &filter);
+                    all_traits.extend(found);
+                }
             }
-        }
+            all_traits
+        })
+        .await
+        .unwrap();
 
         let mut t_map = self.traits.write().await;
         *t_map = all_traits;
@@ -4695,33 +4695,22 @@ impl Backend {
     }
 
     async fn scan_sprites(&self, roots: &[std::path::PathBuf]) {
-        let mut all_sprites = HashMap::new();
-        let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
+        let filter = self.get_sync_filter();
+        let roots_owned = roots.to_vec();
 
-        for root in roots {
-            let interface_dir = root.join("interface");
-            if !interface_dir.exists() {
-                self.client
-                    .log_message(
-                        MessageType::LOG,
-                        format!("Directory does not exist: {:?}", interface_dir),
-                    )
-                    .await;
-                continue;
+        let all_sprites = tokio::task::spawn_blocking(move || {
+            let mut all_sprites = HashMap::new();
+            for root in &roots_owned {
+                let interface_dir = root.join("interface");
+                if interface_dir.exists() {
+                    let found = sprite_scanner::scan_sprites(&interface_dir, &filter);
+                    all_sprites.extend(found);
+                }
             }
-            let found = sprite_scanner::scan_sprites(&interface_dir, &filter);
-            self.client
-                .log_message(
-                    MessageType::LOG,
-                    format!(
-                        "Loaded {} sprite definitions from {:?}",
-                        found.len(),
-                        interface_dir
-                    ),
-                )
-                .await;
-            all_sprites.extend(found);
-        }
+            all_sprites
+        })
+        .await
+        .unwrap();
 
         let mut s_map = self.sprites.write().await;
         *s_map = all_sprites;
@@ -4735,8 +4724,13 @@ impl Backend {
     }
 
     async fn scan_characters(&self, roots: &[std::path::PathBuf]) {
-        let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
-        let found = character_scanner::scan_characters(roots, &filter);
+        let filter = self.get_sync_filter();
+        let roots_owned = roots.to_vec();
+        let found = tokio::task::spawn_blocking(move || {
+            character_scanner::scan_characters(&roots_owned, &filter)
+        })
+        .await
+        .unwrap();
 
         let mut c_map = self.characters.write().await;
         *c_map = found;
@@ -4750,22 +4744,22 @@ impl Backend {
     }
 
     async fn scan_ideas(&self, roots: &[std::path::PathBuf]) {
-        let mut all_ideas = HashMap::new();
-        let filter = |p: &std::path::Path| self.should_ignore_file_sync(p);
+        let filter = self.get_sync_filter();
+        let roots_owned = roots.to_vec();
 
-        for root in roots {
-            let ideas_dir = root.join("common/ideas");
-            if ideas_dir.exists() {
-                let found = idea_scanner::scan_ideas(&ideas_dir, &filter);
-                self.client
-                    .log_message(
-                        MessageType::LOG,
-                        format!("Loaded {} ideas from {:?}", found.len(), ideas_dir),
-                    )
-                    .await;
-                all_ideas.extend(found);
+        let all_ideas = tokio::task::spawn_blocking(move || {
+            let mut all_ideas = HashMap::new();
+            for root in &roots_owned {
+                let ideas_dir = root.join("common/ideas");
+                if ideas_dir.exists() {
+                    let found = idea_scanner::scan_ideas(&ideas_dir, &filter);
+                    all_ideas.extend(found);
+                }
             }
-        }
+            all_ideas
+        })
+        .await
+        .unwrap();
 
         let mut i_map = self.ideas.write().await;
         *i_map = all_ideas;
@@ -4924,16 +4918,19 @@ impl Backend {
         false
     }
 
-    fn should_ignore_file_sync(&self, path: &std::path::Path) -> bool {
-        let path_str = path.to_string_lossy();
-        if let Ok(ignored) = self.ignored_files_regex.try_read() {
-            for re in ignored.iter() {
-                if re.is_match(&path_str) {
-                    return true;
+    fn get_sync_filter(&self) -> impl Fn(&std::path::Path) -> bool + Send + Sync + 'static {
+        let regexes = self.ignored_files_regex.clone();
+        move |path: &std::path::Path| {
+            let path_str = path.to_string_lossy();
+            if let Ok(ignored) = regexes.try_read() {
+                for re in ignored.iter() {
+                    if re.is_match(&path_str) {
+                        return true;
+                    }
                 }
             }
+            false
         }
-        false
     }
 
     async fn validate_workspace(&self, root: &std::path::Path) {
