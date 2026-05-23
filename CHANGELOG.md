@@ -10,6 +10,10 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Expanded character support:** Better syntax highlighting, validation, and completions for characters, including better portrait validation.
 
+- **Handle escaped square brackets in localization.**
+
+  - Having literal text inside square brackets was already handled 'literally' by HOI4 but there is no indication of intent: was it meant to be literal text or is it an invalid command? This addresses it by offering to 'escape' (e.g., `-[NON-EXISTANT]-` -> `-\[NON-EXISTANT\]-`) the square brackets with backslashes. They're correctly parsed by the HOI4 localization parser and show the intent of this being meant as literal text.
+
 ### Changed
 
 - **Huge Rust LSP refactor:** Refactored the LSP server code to be more modular and maintainable.
@@ -19,6 +23,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 - Stop the conflicts between TextMate and LSP semantic syntax highlighting by reducing the TextMate scope to the structural basics.
 
 - Don't highlight entity references when a string value's parent assignment key is one of `name`, `desc`, `custom_description`, or `text`.
+
+- Fix handling escaped square brackets in localization preview.
 
 ## [v0.7.0] - 2026-05-23
 

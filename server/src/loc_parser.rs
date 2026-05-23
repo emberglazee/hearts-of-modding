@@ -237,6 +237,15 @@ pub fn validate_loc_string(
         let mut inner = cap.get(1).unwrap().as_str();
         let start_pos = full_match.start();
 
+        // Skip already-escaped brackets \[...\]
+        if start_pos > 0 {
+            let preceding = &entry.value[..start_pos];
+            let backslash_count = preceding.bytes().rev().take_while(|b| *b == b'\\').count();
+            if backslash_count % 2 == 1 {
+                continue;
+            }
+        }
+
         // Handle ternary conditions: [(OBJECT ? TRUE_CASE : FALSE_CASE)]
         if inner.starts_with('(') && inner.ends_with(')') {
             inner = &inner[1..inner.len() - 1];
@@ -324,6 +333,7 @@ pub fn validate_loc_string(
 
         let parts: Vec<&str> = inner.split('.').collect();
         let mut current_part_start = start_pos + 1; // +1 for [
+        let mut all_parts_invalid = true;
 
         for (i, part) in parts.iter().enumerate() {
             let is_last = i == parts.len() - 1;
@@ -362,16 +372,37 @@ pub fn validate_loc_string(
                 diagnostics.push(LocDiagnostic {
                     range,
                     message: format!(
-                        "Potential invalid localization scope or command: '{}'",
-                        part
+                        "Unrecognized '{}' scope or command in square brackets. If you intended literal text, escape with backslashes (\\[{}\\]). The game displays either form correctly, but escaping makes intent clear.",
+                        part, part
                     ),
-                    severity: DiagnosticSeverity::Warning,
+                    severity: DiagnosticSeverity::Information,
                     code: Some("invalid_loc_scope".to_string()),
                     related_information: Vec::new(),
                     tags: Vec::new(),
                 });
+            } else {
+                all_parts_invalid = false;
             }
             current_part_start += part.len() + 1; // +1 for .
+        }
+
+        if all_parts_invalid {
+            diagnostics.push(LocDiagnostic {
+                range: Range {
+                    start_line: entry.range.start_line,
+                    start_col: entry.value_start_col + start_pos as u32,
+                    end_line: entry.range.start_line,
+                    end_col: entry.value_start_col + start_pos as u32 + 2 + inner.len() as u32,
+                },
+                message: format!(
+                    "Entirely unrecognized bracket content. Escape with backslashes to display literally: \\[{}]",
+                    inner
+                ),
+                severity: DiagnosticSeverity::Hint,
+                code: Some("unescaped_bracket".to_string()),
+                related_information: Vec::new(),
+                tags: Vec::new(),
+            });
         }
     }
 
