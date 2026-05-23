@@ -12555,6 +12555,39 @@ remove_trait = {
         },
     );
     m.insert(
+        "add_ability",
+        HOI4Entity {
+            name: "add_ability",
+            description: r#"Adds the specified ability to the unit leader.
+
+**Example:**
+```paradox
+add_ability = siege_artillery
+```
+
+```paradox
+add_ability = {
+    character = TAG_my_leader
+    ability = glider_planes
+}
+```"#,
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
+        "remove_ability",
+        HOI4Entity {
+            name: "remove_ability",
+            description: r#"Removes the specified ability from the unit leader.
+
+**Example:**
+```paradox
+remove_ability = siege_artillery
+```"#,
+            scopes: &[crate::scope::Scope::Character],
+        },
+    );
+    m.insert(
         "create_corps_commander",
         HOI4Entity {
             name: "create_corps_commander",

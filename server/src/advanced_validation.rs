@@ -16,6 +16,9 @@ pub const BUILDING_LEVEL_EXCEEDS_MAX: &str = "HOM1002";
 pub const CHARACTER_SKILL_EXCEEDS_MAX: &str = "HOM1004";
 pub const VICTORY_POINT_PROVINCE_NOT_IN_STATE: &str = "HOM2001";
 pub const ACHIEVEMENT_MISSING_LOCALIZATION: &str = "HOM3001";
+pub const ABILITY_MISSING_LOCALIZATION: &str = "HOM3002";
+pub const ABILITY_MISSING_REQUIRED_FIELD: &str = "HOM3003";
+pub const ABILITY_MISSING_AI_LOGIC: &str = "HOM3004";
 
 #[derive(Debug, Clone)]
 pub struct ValidationDiagnostic {
@@ -69,6 +72,173 @@ pub fn validate_achievements(
                         related_information: Vec::new(),
                         tags: Vec::new(),
                     });
+                }
+            }
+        }
+    }
+}
+
+/// Validate ability definitions
+pub fn validate_abilities(
+    entries: &[ast::Entry],
+    localization: &HashMap<String, crate::loc_parser::LocEntry>,
+    diagnostics: &mut Vec<ValidationDiagnostic>,
+) {
+    for entry in entries {
+        if let ast::Entry::Assignment(ass) = entry {
+            if ass.key.to_lowercase() == "ability" {
+                if let ast::Value::Block(ability_entries) = &ass.value.value {
+                    for ability_entry in ability_entries {
+                        if let ast::Entry::Assignment(a_ass) = ability_entry {
+                            if let ast::Value::Block(props) = &a_ass.value.value {
+                                let mut has_name = false;
+                                let mut has_desc = false;
+                                let mut has_cost = false;
+                                let mut has_duration = false;
+                                let mut has_type = false;
+                                let mut has_ai_will_do = false;
+
+                                for prop in props {
+                                    if let ast::Entry::Assignment(p_ass) = prop {
+                                        match p_ass.key.to_lowercase().as_str() {
+                                            "name" => {
+                                                has_name = true;
+                                                if let ast::Value::String(s) =
+                                                    &p_ass.value.value
+                                                {
+                                                    if !localization.contains_key(s) {
+                                                        diagnostics.push(ValidationDiagnostic {
+                                                            range: p_ass.value.range.clone(),
+                                                            severity: ast::DiagnosticSeverity::Warning,
+                                                            message: format!(
+                                                                "Ability '{}' is missing localization key: '{}'",
+                                                                a_ass.key, s
+                                                            ),
+                                                            code: ABILITY_MISSING_LOCALIZATION.to_string(),
+                                                            fix_suggestion: None,
+                                                            related_information: Vec::new(),
+                                                            tags: Vec::new(),
+                                                        });
+                                                    }
+                                                }
+                                            }
+                                            "desc" => {
+                                                has_desc = true;
+                                                if let ast::Value::String(s) =
+                                                    &p_ass.value.value
+                                                {
+                                                    if !localization.contains_key(s) {
+                                                        diagnostics.push(ValidationDiagnostic {
+                                                            range: p_ass.value.range.clone(),
+                                                            severity: ast::DiagnosticSeverity::Warning,
+                                                            message: format!(
+                                                                "Ability '{}' is missing localization key: '{}'",
+                                                                a_ass.key, s
+                                                            ),
+                                                            code: ABILITY_MISSING_LOCALIZATION.to_string(),
+                                                            fix_suggestion: None,
+                                                            related_information: Vec::new(),
+                                                            tags: Vec::new(),
+                                                        });
+                                                    }
+                                                }
+                                            }
+                                            "cost" => has_cost = true,
+                                            "duration" => has_duration = true,
+                                            "type" => has_type = true,
+                                            "ai_will_do" => has_ai_will_do = true,
+                                            _ => {}
+                                        }
+                                    }
+                                }
+
+                                if !has_name {
+                                    diagnostics.push(ValidationDiagnostic {
+                                        range: a_ass.key_range.clone(),
+                                        severity: ast::DiagnosticSeverity::Warning,
+                                        message: format!(
+                                            "Ability '{}' is missing required 'name' field",
+                                            a_ass.key
+                                        ),
+                                        code: ABILITY_MISSING_REQUIRED_FIELD.to_string(),
+                                        fix_suggestion: None,
+                                        related_information: Vec::new(),
+                                        tags: Vec::new(),
+                                    });
+                                }
+                                if !has_desc {
+                                    diagnostics.push(ValidationDiagnostic {
+                                        range: a_ass.key_range.clone(),
+                                        severity: ast::DiagnosticSeverity::Warning,
+                                        message: format!(
+                                            "Ability '{}' is missing required 'desc' field",
+                                            a_ass.key
+                                        ),
+                                        code: ABILITY_MISSING_REQUIRED_FIELD.to_string(),
+                                        fix_suggestion: None,
+                                        related_information: Vec::new(),
+                                        tags: Vec::new(),
+                                    });
+                                }
+                                if !has_cost {
+                                    diagnostics.push(ValidationDiagnostic {
+                                        range: a_ass.key_range.clone(),
+                                        severity: ast::DiagnosticSeverity::Warning,
+                                        message: format!(
+                                            "Ability '{}' is missing required 'cost' field",
+                                            a_ass.key
+                                        ),
+                                        code: ABILITY_MISSING_REQUIRED_FIELD.to_string(),
+                                        fix_suggestion: None,
+                                        related_information: Vec::new(),
+                                        tags: Vec::new(),
+                                    });
+                                }
+                                if !has_duration {
+                                    diagnostics.push(ValidationDiagnostic {
+                                        range: a_ass.key_range.clone(),
+                                        severity: ast::DiagnosticSeverity::Information,
+                                        message: format!(
+                                            "Ability '{}' is missing 'duration' field (ability will use indefinite duration)",
+                                            a_ass.key
+                                        ),
+                                        code: ABILITY_MISSING_REQUIRED_FIELD.to_string(),
+                                        fix_suggestion: None,
+                                        related_information: Vec::new(),
+                                        tags: Vec::new(),
+                                    });
+                                }
+                                if !has_type {
+                                    diagnostics.push(ValidationDiagnostic {
+                                        range: a_ass.key_range.clone(),
+                                        severity: ast::DiagnosticSeverity::Information,
+                                        message: format!(
+                                            "Ability '{}' is missing 'type' field (defaults may apply)",
+                                            a_ass.key
+                                        ),
+                                        code: ABILITY_MISSING_REQUIRED_FIELD.to_string(),
+                                        fix_suggestion: None,
+                                        related_information: Vec::new(),
+                                        tags: Vec::new(),
+                                    });
+                                }
+                                if !has_ai_will_do {
+                                    diagnostics.push(ValidationDiagnostic {
+                                        range: a_ass.key_range.clone(),
+                                        severity: ast::DiagnosticSeverity::Information,
+                                        message: format!(
+                                            "Ability '{}' is missing 'ai_will_do' block (AI will never use this ability)",
+                                            a_ass.key
+                                        ),
+                                        code: ABILITY_MISSING_AI_LOGIC.to_string(),
+                                        fix_suggestion: None,
+                                        related_information: Vec::new(),
+                                        tags: Vec::new(),
+                                    });
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

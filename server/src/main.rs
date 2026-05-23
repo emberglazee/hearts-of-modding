@@ -435,14 +435,32 @@ impl LanguageServer for Backend {
 
                 // Ability keywords
                 keywords.insert("ability".to_string());
+                keywords.insert("name".to_string());
+                keywords.insert("desc".to_string());
+                keywords.insert("type".to_string());
                 keywords.insert("cost".to_string());
                 keywords.insert("duration".to_string());
+                keywords.insert("cooldown".to_string());
+                keywords.insert("icon".to_string());
+                keywords.insert("sound_effect".to_string());
+                keywords.insert("cancelable".to_string());
+                keywords.insert("allowed".to_string());
                 keywords.insert("one_time_effect".to_string());
                 keywords.insert("unit_modifiers".to_string());
                 keywords.insert("ai_will_do".to_string());
+                keywords.insert("has_ability".to_string());
+                keywords.insert("add_ability".to_string());
+                keywords.insert("remove_ability".to_string());
+
+                let ability_names: HashSet<String> = self
+                    .abilities
+                    .load()
+                    .keys()
+                    .map(|k| k.to_string())
+                    .collect();
 
                 Ok(Some(semantic_tokens::get_semantic_tokens(
-                    &script, &keywords,
+                    &script, &keywords, &ability_names,
                 )))
             }
             _ => Ok(None),
@@ -1608,11 +1626,30 @@ impl LanguageServer for Backend {
                         if let Some(duration) = ability.duration {
                             text.push_str(&format!("\n**Duration:** {} hours\n", duration));
                         }
+                        if let Some(cooldown) = ability.cooldown {
+                            text.push_str(&format!("\n**Cooldown:** {} hours\n", cooldown));
+                        }
                         if let Some(type_name) = &ability.type_name {
                             text.push_str(&format!("\n**Type:** `{}`\n", type_name));
                         }
+                        if let Some(cancelable) = ability.cancelable {
+                            text.push_str(&format!("\n**Cancelable:** {}\n", if cancelable { "Yes" } else { "No" }));
+                        }
                         if let Some(sound) = &ability.sound_effect {
                             text.push_str(&format!("\n**Sound Effect:** `{}`\n", sound));
+                        }
+                        if let Some(icon) = &ability.icon {
+                            text.push_str(&format!("\n**Icon:** `{}`\n", icon));
+                        }
+
+                        // Block presence indicators
+                        let mut blocks = Vec::new();
+                        if ability.has_allowed { blocks.push("allowed"); }
+                        if ability.has_unit_modifiers { blocks.push("unit_modifiers"); }
+                        if ability.has_one_time_effect { blocks.push("one_time_effect"); }
+                        if ability.has_ai_will_do { blocks.push("ai_will_do"); }
+                        if !blocks.is_empty() {
+                            text.push_str(&format!("\n**Blocks:** {}\n", blocks.join(", ")));
                         }
 
                         text.push_str(&format!(
@@ -1624,7 +1661,8 @@ impl LanguageServer for Backend {
 
                     // Check for modifier blocks (modifier = { ... } or modifiers = { ... })
                     let identifier_lower = identifier.to_lowercase();
-                    if (identifier_lower == "modifier" || identifier_lower == "modifiers")
+                    if (identifier_lower == "modifier" || identifier_lower == "modifiers"
+                        || identifier_lower == "unit_modifiers")
                         && matches!(assigned_value, Some(ast::Value::Block(_)))
                     {
                         let mappings = self.modifier_mappings.load();
@@ -1640,10 +1678,43 @@ impl LanguageServer for Backend {
                         if let Some(value) = &assigned_value {
                             let blocks = display_service.extract_modifier_blocks(value);
                             if !blocks.is_empty() {
+                                let section_title = if identifier_lower == "unit_modifiers" {
+                                    "### 📊 Unit Modifiers\n\n"
+                                } else {
+                                    "### 📊 Modifier Block\n\n"
+                                };
                                 let formatted = display_service.format_all_blocks(&blocks);
                                 push_section(
                                     &mut hover_text,
-                                    &format!("### 📊 Modifier Block\n\n{}", formatted),
+                                    &format!("{}{}", section_title, formatted),
+                                );
+                            }
+                        }
+                    }
+
+                    // Check for one_time_effect blocks
+                    if identifier_lower == "one_time_effect"
+                        && matches!(assigned_value, Some(ast::Value::Block(_)))
+                    {
+                        if let Some(ast::Value::Block(entries)) = &assigned_value {
+                            let mut effect_list = Vec::new();
+                            for entry in entries {
+                                if let ast::Entry::Assignment(ass) = entry {
+                                    let key = &ass.key;
+                                    if matches!(&ass.value.value, ast::Value::Block(_)) {
+                                        effect_list.push(format!("`{}` {{ ... }}", key));
+                                    } else {
+                                        effect_list.push(format!("`{}`", key));
+                                    }
+                                }
+                            }
+                            if !effect_list.is_empty() {
+                                push_section(
+                                    &mut hover_text,
+                                    &format!(
+                                        "### ⚡ One-Time Effects\n\n{}",
+                                        effect_list.join("\n")
+                                    ),
                                 );
                             }
                         }
@@ -6318,7 +6389,7 @@ impl Backend {
         script: &ast::Script,
         diagnostics: &mut Vec<Diagnostic>,
         styling_enabled: bool,
-        _uri: &str,
+        uri: &str,
     ) {
         let loc = self.localization.load();
         let st = self.scripted_triggers.load();
@@ -6342,7 +6413,13 @@ impl Backend {
             }
         }
 
-        let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
+        // Detect file type from URI for scope inference
+        let initial_scope = if uri.contains("/common/abilities/") {
+            scope::Scope::Character
+        } else {
+            scope::Scope::Global
+        };
+        let mut scope_stack = scope::ScopeStack::new(initial_scope);
 
         // Run advanced validations
         let mut advanced_diags = Vec::new();
@@ -6358,6 +6435,7 @@ impl Backend {
         );
         advanced_validation::validate_victory_points(&script.entries, &mut advanced_diags);
         advanced_validation::validate_achievements(&script.entries, &loc, &mut advanced_diags);
+        advanced_validation::validate_abilities(&script.entries, &loc, &mut advanced_diags);
 
         // Convert advanced diagnostics to LSP diagnostics
         for diag in advanced_diags {
@@ -6759,6 +6837,28 @@ impl Backend {
                                 range: ast_range_to_lsp(&ass.value.range),
                                 severity: Some(DiagnosticSeverity::WARNING),
                                 message: format!("Unknown trait: '{}'", val),
+                                code: Some(NumberOrString::String(
+                                    advanced_validation::UNKNOWN_TRIGGER.to_string(),
+                                )),
+                                source: Some("Hearts of Modding".to_string()),
+                                ..Default::default()
+                            });
+                        }
+                    }
+                }
+
+                // Ability checks
+                if key_lower == "has_ability"
+                    || key_lower == "add_ability"
+                    || key_lower == "remove_ability"
+                {
+                    if let ast::Value::String(val) = &ass.value.value {
+                        let abilities = self.abilities.load();
+                        if !abilities.contains_key(val) {
+                            diagnostics.push(Diagnostic {
+                                range: ast_range_to_lsp(&ass.value.range),
+                                severity: Some(DiagnosticSeverity::WARNING),
+                                message: format!("Unknown ability: '{}'", val),
                                 code: Some(NumberOrString::String(
                                     advanced_validation::UNKNOWN_TRIGGER.to_string(),
                                 )),

@@ -4,6 +4,20 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 
+/// Vanilla ability names used as fallback when no ability files are found in workspace
+pub const VANILLA_ABILITY_NAMES: &[&str] = &[
+    "force_attack",
+    "last_stand",
+    "staff_office_plan",
+    "siege_artillery",
+    "glider_planes",
+    "faster_naval_invasion_planning",
+    "probing_attack",
+    "makeshift_bridges",
+    "extra_suplies",
+    "requisition_winter_gear",
+];
+
 #[derive(Debug, Clone)]
 pub struct Ability {
     pub key: String,
@@ -13,6 +27,13 @@ pub struct Ability {
     pub duration: Option<i32>,
     pub sound_effect: Option<String>,
     pub type_name: Option<String>,
+    pub cancelable: Option<bool>,
+    pub cooldown: Option<i32>,
+    pub icon: Option<String>,
+    pub has_allowed: bool,
+    pub has_one_time_effect: bool,
+    pub has_unit_modifiers: bool,
+    pub has_ai_will_do: bool,
     pub path: String,
     pub range: ast::Range,
 }
@@ -57,6 +78,39 @@ where
             }
         }
     }
+
+    // Fallback: if no abilities were scanned, seed with vanilla names for completions
+    if map.is_empty() {
+        for name in VANILLA_ABILITY_NAMES {
+            map.insert(
+                name.to_string(),
+                Ability {
+                    key: name.to_string(),
+                    name_loc: None,
+                    desc_loc: None,
+                    cost: None,
+                    duration: None,
+                    sound_effect: None,
+                    type_name: Some("army_leader".to_string()),
+                    cancelable: None,
+                    cooldown: None,
+                    icon: None,
+                    has_allowed: false,
+                    has_one_time_effect: false,
+                    has_unit_modifiers: false,
+                    has_ai_will_do: false,
+                    path: String::new(),
+                    range: ast::Range {
+                        start_line: 0,
+                        start_col: 0,
+                        end_line: 0,
+                        end_col: 0,
+                    },
+                },
+            );
+        }
+    }
+
     map
 }
 
@@ -79,6 +133,13 @@ fn find_abilities_in_entries(
                                 let mut duration = None;
                                 let mut sound_effect = None;
                                 let mut type_name = None;
+                                let mut cancelable = None;
+                                let mut cooldown = None;
+                                let mut icon = None;
+                                let mut has_allowed = false;
+                                let mut has_one_time_effect = false;
+                                let mut has_unit_modifiers = false;
+                                let mut has_ai_will_do = false;
 
                                 if let ast::Value::Block(props) = &a_ass.value.value {
                                     for prop in props {
@@ -132,6 +193,40 @@ fn find_abilities_in_entries(
                                                     }
                                                     _ => {}
                                                 },
+                                                "cancelable" => {
+                                                    cancelable = match &p_ass.value.value {
+                                                        ast::Value::String(s) => {
+                                                            Some(s == "yes")
+                                                        }
+                                                        _ => None,
+                                                    };
+                                                }
+                                                "cooldown" => match &p_ass.value.value {
+                                                    ast::Value::Number(n) => {
+                                                        cooldown = Some(*n as i32)
+                                                    }
+                                                    ast::Value::String(s) => {
+                                                        if let Ok(n) = s.parse() {
+                                                            cooldown = Some(n);
+                                                        }
+                                                    }
+                                                    _ => {}
+                                                },
+                                                "icon" => {
+                                                    if let ast::Value::String(s) =
+                                                        &p_ass.value.value
+                                                    {
+                                                        icon = Some(s.clone());
+                                                    }
+                                                }
+                                                "allowed" => has_allowed = true,
+                                                "one_time_effect" => {
+                                                    has_one_time_effect = true
+                                                }
+                                                "unit_modifiers" => {
+                                                    has_unit_modifiers = true
+                                                }
+                                                "ai_will_do" => has_ai_will_do = true,
                                                 _ => {}
                                             }
                                         }
@@ -148,6 +243,13 @@ fn find_abilities_in_entries(
                                         duration,
                                         sound_effect,
                                         type_name,
+                                        cancelable,
+                                        cooldown,
+                                        icon,
+                                        has_allowed,
+                                        has_one_time_effect,
+                                        has_unit_modifiers,
+                                        has_ai_will_do,
                                         path: file_path.to_string(),
                                         range: a_ass.key_range.clone(),
                                     },

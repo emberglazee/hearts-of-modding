@@ -6,9 +6,26 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### Added
 
-- Added `alwaystransparent` to the casing styling check.
+- **Expanded Leader Ability Intelligence:**
+  - Added validation for ability definitions: warns on missing `name`/`desc` localization keys, missing required fields (`cost`, `duration`, `type`), and missing `ai_will_do` block (AI will never use the ability).
+  - Enhanced ability scanner to extract additional fields: `cancelable`, `cooldown`, `icon`, and block presence indicators (`allowed`, `unit_modifiers`, `one_time_effect`, `ai_will_do`).
+  - Built-in fallback of 10 vanilla ability names for completions when no ability files exist in the workspace.
+  - Semantic highlighting now uses token type `TYPE` for ability names (e.g. `force_attack`) to make them visually distinct from keywords.
+  - `unit_modifiers` blocks now display formatted modifier tooltips on hover.
+  - `one_time_effect` blocks now show a summary of contained effects on hover.
+  - Added `has_ability`, `add_ability`, `remove_ability` to semantic highlighting and TextMate grammar.
+  - Warning diagnostics for unknown ability names in `has_ability`/`add_ability`/`remove_ability` values.
+- **Hover Documentation:**
+  - Added hover documentation for `add_ability` and `remove_ability` effects.
+  - Richer ability hover card now shows cooldown, cancelable flag, icon, and block presence.
+- **Document Symbols:** Ability files now show `ability` blocks as `METHOD` symbols in the outline view with proper child classification for `duration`, `cooldown`, `type`, `sound_effect`, and `cancelable`.
+- **Scope Inference:** Files in `common/abilities/` now start with `Character` scope for more accurate trigger/effect validation.
 
 ### Changed
+
+- Added `name`, `desc`, `type`, `icon`, `sound_effect`, `cancelable`, `allowed`, `cooldown` to semantic token keyword highlighting.
+
+- Added `alwaystransparent` to the casing styling check.
 
 - Numerous LSP performance optimizations.
 

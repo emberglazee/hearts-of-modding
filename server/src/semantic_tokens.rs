@@ -2,10 +2,14 @@ use crate::ast::*;
 use std::collections::HashSet;
 use tower_lsp::lsp_types::{SemanticToken, SemanticTokens, SemanticTokensResult};
 
-pub fn get_semantic_tokens(script: &Script, keywords: &HashSet<String>) -> SemanticTokensResult {
+pub fn get_semantic_tokens(
+    script: &Script,
+    keywords: &HashSet<String>,
+    abilities: &HashSet<String>,
+) -> SemanticTokensResult {
     let mut tokens = Vec::new();
     for entry in &script.entries {
-        push_entry_tokens(entry, &mut tokens, keywords);
+        push_entry_tokens(entry, &mut tokens, keywords, abilities);
     }
 
     // Sort tokens by line and column
@@ -54,10 +58,16 @@ struct RawToken {
     token_type: u32,
 }
 
-fn push_entry_tokens(entry: &Entry, tokens: &mut Vec<RawToken>, keywords: &HashSet<String>) {
+fn push_entry_tokens(
+    entry: &Entry,
+    tokens: &mut Vec<RawToken>,
+    keywords: &HashSet<String>,
+    abilities: &HashSet<String>,
+) {
     match entry {
         Entry::Assignment(ass) => {
             let is_keyword = keywords.contains(&ass.key);
+            let is_ability = abilities.contains(&ass.key);
 
             // Only push a token if we're sure it's a keyword or if it's an operator
             if is_keyword {
@@ -67,6 +77,13 @@ fn push_entry_tokens(entry: &Entry, tokens: &mut Vec<RawToken>, keywords: &HashS
                     length: ass.key_range.end_col - ass.key_range.start_col,
                     token_type: 0, // KEYWORD
                 });
+            } else if is_ability {
+                tokens.push(RawToken {
+                    line: ass.key_range.start_line,
+                    start: ass.key_range.start_col,
+                    length: ass.key_range.end_col - ass.key_range.start_col,
+                    token_type: 6, // TYPE (used for ability names)
+                });
             }
 
             tokens.push(RawToken {
@@ -75,10 +92,10 @@ fn push_entry_tokens(entry: &Entry, tokens: &mut Vec<RawToken>, keywords: &HashS
                 length: ass.operator_range.end_col - ass.operator_range.start_col,
                 token_type: 4, // OPERATOR
             });
-            push_value_tokens(&ass.value, tokens, keywords);
+            push_value_tokens(&ass.value, tokens, keywords, abilities);
         }
         Entry::Value(val) => {
-            push_value_tokens(val, tokens, keywords);
+            push_value_tokens(val, tokens, keywords, abilities);
         }
         Entry::Comment(_, range) => {
             tokens.push(RawToken {
@@ -91,7 +108,12 @@ fn push_entry_tokens(entry: &Entry, tokens: &mut Vec<RawToken>, keywords: &HashS
     }
 }
 
-fn push_value_tokens(val: &NodeedValue, tokens: &mut Vec<RawToken>, keywords: &HashSet<String>) {
+fn push_value_tokens(
+    val: &NodeedValue,
+    tokens: &mut Vec<RawToken>,
+    keywords: &HashSet<String>,
+    abilities: &HashSet<String>,
+) {
     match &val.value {
         Value::String(s) => {
             // Only provide semantic tokens for things TextMate might miss or we know for sure
@@ -101,6 +123,13 @@ fn push_value_tokens(val: &NodeedValue, tokens: &mut Vec<RawToken>, keywords: &H
                     start: val.range.start_col,
                     length: val.range.end_col - val.range.start_col,
                     token_type: 0, // KEYWORD
+                });
+            } else if abilities.contains(s) {
+                tokens.push(RawToken {
+                    line: val.range.start_line,
+                    start: val.range.start_col,
+                    length: val.range.end_col - val.range.start_col,
+                    token_type: 6, // TYPE (used for ability names in values)
                 });
             } else if s.starts_with("var:") || s.starts_with("temp_var:") {
                 tokens.push(RawToken {
@@ -130,7 +159,7 @@ fn push_value_tokens(val: &NodeedValue, tokens: &mut Vec<RawToken>, keywords: &H
         }
         Value::Block(entries) => {
             for entry in entries {
-                push_entry_tokens(entry, tokens, keywords);
+                push_entry_tokens(entry, tokens, keywords, abilities);
             }
         }
         Value::TaggedBlock(tag, entries, _) => {
@@ -142,7 +171,7 @@ fn push_value_tokens(val: &NodeedValue, tokens: &mut Vec<RawToken>, keywords: &H
                 token_type: 0, // KEYWORD
             });
             for entry in entries {
-                push_entry_tokens(entry, tokens, keywords);
+                push_entry_tokens(entry, tokens, keywords, abilities);
             }
         }
     }
