@@ -2,7 +2,27 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
-## [0.6.1] - 2026-05-22
+## [v0.7.0] - 2026-05-23
+
+### Added
+
+- Added `alwaystransparent` to the casing styling check.
+
+### Changed
+
+- Numerous LSP performance optimizations.
+
+- Proper Workspace-wide rename symbol support, including for files that aren't opened in the editor.
+
+- Extensive modernization throughout the LSP codebase and adopting Rust 2024 idioms by addressing `cargo clippy` errors and warnings.
+
+### Fixed
+
+- Properly parse localization keys with dashes (`-`) in them (TextMate syntax highlighting).
+
+- Proper float number parsing fallback to a number type.
+
+## [v0.6.1] - 2026-05-22
 
 ### Changed
 
@@ -14,7 +34,7 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - Updated Rust LSP and extension dependencies.
 
-## [0.6.0] - 2026-05-17
+## [v0.6.0] - 2026-05-17
 
 ### Added
 
@@ -42,20 +62,20 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - Added an option to bulk fix all styling issues in a file.
 
-## [0.5.4] - 2026-05-16
+## [v0.5.4] - 2026-05-16
 
 ### Added
 
 - **Idea Picture Resolution & Validation:**
   - Implemented engine-accurate resolution for the `picture` field in country ideas. The extension now strictly prepends the `GFX_idea_` prefix to the `picture` attribute value, matching HOI4's internal sprite lookup.
   - Added support for graphical culture fallbacks. Validation and hover resolution now intelligently check for culture-specific variants (e.g., `_middle_eastern_2d`) when the base sprite is not found.
-  - Added default picture resolution: if the `picture` field is omitted, the extension automatically validates against the implied `GFX_idea_[idea_name]` sprite.
+  - Added default picture resolution: if the `picture` field is omitted, the extension automatically validates against the implied `GFX_idea_[videa_name]` sprite.
   - Introduced a specialized internal `Idea` scope to correctly handle these context-sensitive resolution and validation rules within idea definition blocks.
 - **UI Keyword Casing Diagnostic:** Expanded the keyword casing check to include `orientation` and `buttonType`. The extension now flags non-standard casing (e.g., `Orientation` or `buttontype`) in `.gui` and script files, providing links to interface modding documentation and a bulk fix to standardize casing across the entire file.
 - **Major TextMate Grammar Expansion:** Significantly expanded the base TextMate syntax highlighting using official engine documentation and vanilla file analysis to provide richer, high-fidelity colors without relying on the LSP.
   - Categorized highlighting for hundreds of Effects, Triggers, and Modifiers extracted directly from the HOI4 documentation.
   - Added specialized highlighting for scopes (`ROOT`, `FROM`, etc.), 3-letter country tags, and event IDs.
-  - Improved variable highlighting for `[?var]` and scoped variables (e.g., `var:tag@name`).
+  - Improved variable highlighting for `[v?var]` and scoped variables (e.g., `var:tag@name`).
   - Added full support for GUI files (`.gui`), including component types (`containerWindowType`, `buttonType`, etc.) and common UI properties (`font`, `clipping`, `shortcut`).
   - Improved numeric highlighting to support double-percentage values (e.g., `100%%`) commonly used in UI layouts.
   - Added highlighting for punctuation (braces/brackets) and hundreds of additional top-level blocks and effects.
@@ -67,7 +87,7 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Scoped References in Ideology Fields:** `ideology = ROOT` (and other scoped references like `FROM`, `PREV`, `THIS`, `OWNER`, `CONTROLLER`, `CAPITAL`) are now recognized as valid runtime scope references instead of being flagged as unknown ideologies. This pattern is used extensively in vanilla HOI4 and workshop mods for `start_civil_war`, `add_popularity`, and similar effects.
 
-## [0.5.3] - 2026-05-16
+## [v0.5.3] - 2026-05-16
 
 ### Added
 
@@ -83,7 +103,7 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - Removed .cwt (CWTools) schema parsing and validation to be replaced with an alternative in a future version.
 
-## [0.5.2] - 2026-05-16
+## [v0.5.2] - 2026-05-16
 
 ### Changed
 
@@ -91,7 +111,7 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - Bundle VSCode extension with `esbuild` for better performance.
 
-## [0.5.1] - 2026-05-16
+## [v0.5.1] - 2026-05-16
 
 ### Added
 
@@ -109,7 +129,7 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 - **Commented Localization Parsing:** Fixed an issue where the parser incorrectly interpreted commented-out localization keys as valid entries when they were preceded by specific multi-byte characters, resolving false positive duplicate key warnings.
 - **Localization Version False Positives:** Fixed a bug where version numbers were incorrectly flagged due to improper file path tracking during duplicate checks.
 
-## [0.5.0] - 2026-05-15
+## [v0.5.0] - 2026-05-15
 
 ### Added
 
@@ -149,7 +169,7 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 Because this version also scans the map files expect a major jump in extension memory usage in total conversion mod code bases. You can track Rust LSP server memory usage in the status bar with the `HOI4: Show Memory Usage` command.
 
-## [0.4.0] - 2026-05-12
+## [v0.4.0] - 2026-05-12
 
 ### Added
 
@@ -168,7 +188,7 @@ Because this version also scans the map files expect a major jump in extension m
   - **Quick Fixes:** Added both individual "Escape double quote" and bulk "Escape all unescaped double quotes in this file" code actions.
 - **Advanced Localization Support (Patch 1.15+):**
   - **Contextual Objects:** Support for 1.15 objects like `IndustrialOrg`, `SpecialProject`, `PurchaseContract`, and `Ace`.
-  - **Ternary Logic:** Full validation and preview support for conditional localization: `[(Object.Property ? TRUE_KEY : FALSE_KEY)]`.
+  - **Ternary Logic:** Full validation and preview support for conditional localization: `[v(Object.Property ? TRUE_KEY : FALSE_KEY)]`.
   - **Localization Formatters:** Support for `<formatter>|<token>` syntax (e.g., `tech_effect|id`).
   - **Bindable Localization:** Support for `$VAR$` style bindable variables within localization strings.
   - **New Formatting Codes:** Added support for `^` (SI units) and `%%` (literal percentage sign) in variable blocks.
@@ -188,7 +208,7 @@ Because this version also scans the map files expect a major jump in extension m
 
 - **Workspace Symbols Path Resolution:** Fixed an issue where `Url::from_file_path` incorrectly generated invalid paths like `//./` for workspace symbols and call hierarchies on relative paths. Paths are now correctly resolved to their absolute form before parsing.
 
-## [0.3.0] - 2026-05-10
+## [v0.3.0] - 2026-05-10
 
 ### Added
 
@@ -213,7 +233,7 @@ Because this version also scans the map files expect a major jump in extension m
   - Cleaned up unused imports and suppressed dead code warnings across the server for a more stable build.
   - Improved workspace symbol search (`Ctrl+T`) by making fuzzy matching case-insensitive.
 
-## [0.2.2] - 2026-05-10
+## [v0.2.2] - 2026-05-10
 
 ### Added
 
@@ -223,13 +243,13 @@ Because this version also scans the map files expect a major jump in extension m
 
 - Move README.md and CHANGELOG.md files from root into `client/` during extension compilation/packaging, otherwise the Marketplace is oblivious to them.
 
-## [0.2.1] - 2026-05-10
+## [v0.2.1] - 2026-05-10
 
 ### Changed
 
-- Bumped [fast-uri](https://github.com/fastify/fast-uri) from v3.1.0 to v3.1.2 ([security update](https://github.com/fastify/fast-uri/releases/tag/v3.1.2)) | [PR #1](https://github.com/emberglazee/hearts-of-modding/pull/1)
+- Bumped [vfast-uri](https://github.com/fastify/fast-uri) from v3.1.0 to v3.1.2 ([vsecurity update](https://github.com/fastify/fast-uri/releases/tag/v3.1.2)) | [vPR #1](https://github.com/emberglazee/hearts-of-modding/pull/1)
 
-## [0.2.0] - 2026-05-10
+## [v0.2.0] - 2026-05-10
 
 ### Added
 
@@ -276,7 +296,7 @@ Because this version also scans the map files expect a major jump in extension m
 - Removed redundant achievement hover blocks that caused duplicate tooltips.
 - Resolved various unused import and dead code warnings across the server.
 
-## [0.1.0] - 2024-05-09
+## [v0.1.0] - 2024-05-09
 
 ### Added
 
@@ -287,7 +307,7 @@ Because this version also scans the map files expect a major jump in extension m
   - Implemented Sound scanner for `sound/*.asset` files. Tracks sounds, sound effects, falloffs, and categories.
 - **Advanced Localization Support:**
   - Added first-class support for `.yml` localization files with full syntax highlighting and validation.
-  - Added validation for bracketed scopes (e.g., `[Root.GetName]`) within localization strings.
+  - Added validation for bracketed scopes (e.g., `[vRoot.GetName]`) within localization strings.
   - Added validation for Paradox color codes (`§Y...§!`) and support for numeric color codes (`§5`).
   - Implemented "Cosmetic Localization Indentation" heuristic to improve visual hierarchy of localization variants (e.g., `_DEF`, `_ADJ`).
 - **Refined Activation Logic:**
@@ -315,6 +335,6 @@ Because this version also scans the map files expect a major jump in extension m
 - Improved identifier boundary checks in the parser to prevent false positives for keywords like `yes`/`no` when part of a longer string.
 - Fixed styling code action "Convert indentation to tabs" not doing anything.
 
-## [0.0.1] - 2026-04-26
+## [v0.0.1] - 2026-04-26
 
 Initial release.
