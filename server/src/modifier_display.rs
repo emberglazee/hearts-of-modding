@@ -255,10 +255,8 @@ impl ModifierDisplayService {
                 if fmt.contains("%%") {
                     is_double_percent = true;
                     is_percentage = false;
-                } else if fmt.contains('%') {
-                    is_percentage = true;
                 } else {
-                    is_percentage = false;
+                    is_percentage = fmt.contains('%');
                 }
 
                 // Extract decimal places from format string

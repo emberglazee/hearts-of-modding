@@ -209,52 +209,49 @@ fn find_references_in_entries(entries: &[Entry], target: &str) -> Vec<Range> {
 }
 
 fn find_references_recursive(entry: &Entry, target: &str, references: &mut Vec<Range>) {
-    match entry {
-        Entry::Assignment(ass) => {
-            // Check for event triggers: country_event = { id = target }
-            if ass.key == "country_event" || ass.key == "state_event" || ass.key == "news_event" {
-                if let Value::Block(children) = &ass.value.value {
-                    for child in children {
-                        if let Entry::Assignment(child_ass) = child {
-                            if child_ass.key == "id" {
-                                if let Value::String(id) = &child_ass.value.value {
-                                    if id == target {
-                                        let range = Range {
-                                            start_line: ass.key_range.start_line,
-                                            start_col: ass.key_range.start_col,
-                                            end_line: ass.value.range.end_line,
-                                            end_col: ass.value.range.end_col,
-                                        };
-                                        references.push(range);
-                                    }
+    if let Entry::Assignment(ass) = entry {
+        // Check for event triggers: country_event = { id = target }
+        if ass.key == "country_event" || ass.key == "state_event" || ass.key == "news_event" {
+            if let Value::Block(children) = &ass.value.value {
+                for child in children {
+                    if let Entry::Assignment(child_ass) = child {
+                        if child_ass.key == "id" {
+                            if let Value::String(id) = &child_ass.value.value {
+                                if id == target {
+                                    let range = Range {
+                                        start_line: ass.key_range.start_line,
+                                        start_col: ass.key_range.start_col,
+                                        end_line: ass.value.range.end_line,
+                                        end_col: ass.value.range.end_col,
+                                    };
+                                    references.push(range);
                                 }
                             }
                         }
                     }
                 }
             }
+        }
 
-            // Check for scripted trigger/effect calls
-            if let Value::String(s) = &ass.value.value {
-                if s == target {
-                    let range = Range {
-                        start_line: ass.key_range.start_line,
-                        start_col: ass.key_range.start_col,
-                        end_line: ass.value.range.end_line,
-                        end_col: ass.value.range.end_col,
-                    };
-                    references.push(range);
-                }
-            }
-
-            // Recurse into blocks
-            if let Value::Block(children) = &ass.value.value {
-                for child in children {
-                    find_references_recursive(child, target, references);
-                }
+        // Check for scripted trigger/effect calls
+        if let Value::String(s) = &ass.value.value {
+            if s == target {
+                let range = Range {
+                    start_line: ass.key_range.start_line,
+                    start_col: ass.key_range.start_col,
+                    end_line: ass.value.range.end_line,
+                    end_col: ass.value.range.end_col,
+                };
+                references.push(range);
             }
         }
-        _ => {}
+
+        // Recurse into blocks
+        if let Value::Block(children) = &ass.value.value {
+            for child in children {
+                find_references_recursive(child, target, references);
+            }
+        }
     }
 }
 
@@ -274,53 +271,50 @@ fn find_calls_recursive(
     target_range: &Range,
     calls: &mut HashMap<String, Vec<Range>>,
 ) {
-    match entry {
-        Entry::Assignment(ass) => {
-            let range = Range {
-                start_line: ass.key_range.start_line,
-                start_col: ass.key_range.start_col,
-                end_line: ass.value.range.end_line,
-                end_col: ass.value.range.end_col,
-            };
+    if let Entry::Assignment(ass) = entry {
+        let range = Range {
+            start_line: ass.key_range.start_line,
+            start_col: ass.key_range.start_col,
+            end_line: ass.value.range.end_line,
+            end_col: ass.value.range.end_col,
+        };
 
-            if !range_overlaps(&range, target_range) {
-                return;
-            }
+        if !range_overlaps(&range, target_range) {
+            return;
+        }
 
-            // Check for event triggers
-            if ass.key == "country_event" || ass.key == "state_event" || ass.key == "news_event" {
-                if let Value::Block(children) = &ass.value.value {
-                    for child in children {
-                        if let Entry::Assignment(child_ass) = child {
-                            if child_ass.key == "id" {
-                                if let Value::String(id) = &child_ass.value.value {
-                                    calls
-                                        .entry(id.clone())
-                                        .or_insert_with(Vec::new)
-                                        .push(range.clone());
-                                }
+        // Check for event triggers
+        if ass.key == "country_event" || ass.key == "state_event" || ass.key == "news_event" {
+            if let Value::Block(children) = &ass.value.value {
+                for child in children {
+                    if let Entry::Assignment(child_ass) = child {
+                        if child_ass.key == "id" {
+                            if let Value::String(id) = &child_ass.value.value {
+                                calls
+                                    .entry(id.clone())
+                                    .or_default()
+                                    .push(range.clone());
                             }
                         }
                     }
                 }
             }
+        }
 
-            // Check for scripted trigger/effect calls
-            if let Value::String(s) = &ass.value.value {
-                calls
-                    .entry(s.clone())
-                    .or_insert_with(Vec::new)
-                    .push(range.clone());
-            }
+        // Check for scripted trigger/effect calls
+        if let Value::String(s) = &ass.value.value {
+            calls
+                .entry(s.clone())
+                .or_default()
+                .push(range.clone());
+        }
 
-            // Recurse into blocks
-            if let Value::Block(children) = &ass.value.value {
-                for child in children {
-                    find_calls_recursive(child, target_range, calls);
-                }
+        // Recurse into blocks
+        if let Value::Block(children) = &ass.value.value {
+            for child in children {
+                find_calls_recursive(child, target_range, calls);
             }
         }
-        _ => {}
     }
 }
 

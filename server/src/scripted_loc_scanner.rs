@@ -30,7 +30,7 @@ where
                     if !filter(&path) {
                         dirs_to_check.push(path);
                     }
-                } else if path.extension().map_or(false, |ext| ext == "txt") {
+                } else if path.extension().is_some_and(|ext| ext == "txt") {
                     if filter(&path) {
                         continue;
                     }
@@ -57,25 +57,17 @@ fn find_scripted_locs_in_entries(
     map: &mut HashMap<String, ScriptedLoc>,
 ) {
     for entry in entries {
-        if let Entry::Assignment(ass) = entry {
-            if ass.key == "defined_text" {
-                if let Value::Block(children) = &ass.value.value {
-                    for child in children {
-                        if let Entry::Assignment(child_ass) = child {
-                            if child_ass.key == "name" {
-                                if let Value::String(name) = &child_ass.value.value {
-                                    map.insert(
-                                        name.clone(),
-                                        ScriptedLoc {
-                                            name: name.clone(),
-                                            path: file_path.to_string(),
-                                            range: child_ass.value.range.clone(),
-                                        },
-                                    );
-                                }
-                            }
-                        }
-                    }
+        if let Entry::Assignment(ass) = entry && ass.key == "defined_text" && let Value::Block(children) = &ass.value.value {
+            for child in children {
+                if let Entry::Assignment(child_ass) = child && child_ass.key == "name" && let Value::String(name) = &child_ass.value.value {
+                    map.insert(
+                        name.clone(),
+                        ScriptedLoc {
+                            name: name.clone(),
+                            path: file_path.to_string(),
+                            range: child_ass.value.range.clone(),
+                        },
+                    );
                 }
             }
         }

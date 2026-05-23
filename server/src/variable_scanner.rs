@@ -55,7 +55,7 @@ where
                             continue;
                         }
                         dirs_to_check.push(path);
-                    } else if path.extension().map_or(false, |ext| ext == "txt") {
+                    } else if path.extension().is_some_and(|ext| ext == "txt") {
                         if filter(&path) {
                             continue;
                         }

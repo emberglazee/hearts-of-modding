@@ -30,7 +30,7 @@ where
                     if !filter(&path) {
                         dirs_to_check.push(path);
                     }
-                } else if path.extension().map_or(false, |ext| ext == "gfx") {
+                } else if path.extension().is_some_and(|ext| ext == "gfx") {
                     if filter(&path) {
                         continue;
                     }

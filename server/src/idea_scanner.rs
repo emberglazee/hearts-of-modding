@@ -8,6 +8,7 @@ use std::path::Path;
 pub struct Idea {
     pub name: String,
     pub category: String,
+    #[allow(dead_code)]
     pub picture: Option<String>,
     pub path: String,
     pub range: ast::Range,
@@ -31,7 +32,7 @@ where
                     if !filter(&path) {
                         dirs_to_check.push(path);
                     }
-                } else if path.extension().map_or(false, |ext| ext == "txt") {
+                } else if path.extension().is_some_and(|ext| ext == "txt") {
                     if filter(&path) {
                         continue;
                     }
@@ -90,12 +91,8 @@ fn parse_ideas_block(ass: &ast::Assignment, file_path: &str, map: &mut HashMap<S
                             let mut picture = None;
                             if let ast::Value::Block(details) = &idea_ass.value.value {
                                 for detail in details {
-                                    if let ast::Entry::Assignment(d_ass) = detail {
-                                        if d_ass.key.to_lowercase() == "picture" {
-                                            if let ast::Value::String(s) = &d_ass.value.value {
-                                                picture = Some(s.clone());
-                                            }
-                                        }
+                                    if let ast::Entry::Assignment(d_ass) = detail && d_ass.key.to_lowercase() == "picture" && let ast::Value::String(s) = &d_ass.value.value {
+                                        picture = Some(s.clone());
                                     }
                                 }
                             }

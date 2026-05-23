@@ -64,7 +64,9 @@ pub struct EnhancedColorInfo {
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[allow(dead_code)]
 pub enum ColorFormat {
+    #[allow(clippy::upper_case_acronyms)]
     RGB,
+    #[allow(clippy::upper_case_acronyms)]
     HSV,
 }
 

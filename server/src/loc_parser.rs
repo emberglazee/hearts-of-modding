@@ -261,8 +261,7 @@ pub fn validate_loc_string(
         }
 
         // Handle variables [?var|formatting]
-        if inner.starts_with('?') {
-            let var_inner = &inner[1..];
+        if let Some(var_inner) = inner.strip_prefix('?') {
             if let Some(pipe_pos) = var_inner.find('|') {
                 let formatting = &var_inner[pipe_pos + 1..];
                 // Validate formatting codes: *, ^, =, 0..9, %, %%, +, -, or color chars
@@ -804,8 +803,7 @@ pub fn format_loc_file(input: &str, cosmetic_indent: bool) -> String {
             if cosmetic_indent {
                 let mut is_variant = false;
                 for var in variants {
-                    if key.ends_with(var) {
-                        let base = &key[..key.len() - var.len()];
+                    if let Some(base) = key.strip_suffix(var) {
                         if base == last_base_key {
                             is_variant = true;
                             break;

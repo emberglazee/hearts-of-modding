@@ -31,7 +31,7 @@ where
                     if !filter(&path) {
                         dirs_to_check.push(path);
                     }
-                } else if path.extension().map_or(false, |ext| ext == "txt") {
+                } else if path.extension().is_some_and(|ext| ext == "txt") {
                     if filter(&path) {
                         continue;
                     }
@@ -71,23 +71,14 @@ fn find_ideologies_in_entries(
                                     &ideology_ass.value.value
                                 {
                                     for detail in ideology_details {
-                                        if let ast::Entry::Assignment(detail_ass) = detail {
-                                            if detail_ass.key.to_lowercase() == "types" {
-                                                if let ast::Value::Block(type_entries) =
-                                                    &detail_ass.value.value
-                                                {
-                                                    for type_entry in type_entries {
-                                                        if let ast::Entry::Assignment(type_ass) =
-                                                            type_entry
-                                                        {
-                                                            sub_ideologies
-                                                                .push(type_ass.key.clone());
-                                                            sub_ideology_ranges.insert(
-                                                                type_ass.key.clone(),
-                                                                type_ass.key_range.clone(),
-                                                            );
-                                                        }
-                                                    }
+                                        if let ast::Entry::Assignment(detail_ass) = detail && detail_ass.key.to_lowercase() == "types" && let ast::Value::Block(type_entries) = &detail_ass.value.value {
+                                            for type_entry in type_entries {
+                                                if let ast::Entry::Assignment(type_ass) = type_entry {
+                                                    sub_ideologies.push(type_ass.key.clone());
+                                                    sub_ideology_ranges.insert(
+                                                        type_ass.key.clone(),
+                                                        type_ass.key_range.clone(),
+                                                    );
                                                 }
                                             }
                                         }

@@ -50,7 +50,7 @@ where
                     if !filter(&path) {
                         dirs_to_check.push(path);
                     }
-                } else if path.extension().map_or(false, |ext| ext == "txt") {
+                } else if path.extension().is_some_and(|ext| ext == "txt") {
                     if filter(&path) {
                         continue;
                     }
@@ -77,12 +77,10 @@ fn extract_buildings(entries: &[ast::Entry], path: &Path, map: &mut HashMap<Stri
             if let ast::Value::Block(building_entries) = &ass.value.value {
                 for building_entry in building_entries {
                     if let ast::Entry::Assignment(building_ass) = building_entry {
-                        if building_ass.key.to_lowercase() == "max_level" {
-                            if let ast::Value::Number(level) = &building_ass.value.value {
-                                max_level = Some(*level as i32);
-                            } else if let ast::Value::String(s) = &building_ass.value.value {
-                                max_level = s.parse::<i32>().ok();
-                            }
+                        if building_ass.key.to_lowercase() == "max_level" && let ast::Value::Number(level) = &building_ass.value.value {
+                            max_level = Some(*level as i32);
+                        } else if let ast::Value::String(s) = &building_ass.value.value {
+                            max_level = s.parse::<i32>().ok();
                         }
                     }
                 }

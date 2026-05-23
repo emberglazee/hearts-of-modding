@@ -353,8 +353,7 @@ fn find_event_references_in_entries(
     edits: &mut Vec<TextEdit>,
 ) {
     for entry in entries {
-        match entry {
-            Entry::Assignment(ass) => {
+        if let Entry::Assignment(ass) = entry {
                 // Check for event triggers: country_event = { id = old_name }
                 if ass.key == "country_event"
                     || ass.key == "state_event"
@@ -384,8 +383,6 @@ fn find_event_references_in_entries(
                     find_event_references_in_entries(children, old_name, new_name, edits);
                 }
             }
-            _ => {}
-        }
     }
 }
 
@@ -409,7 +406,6 @@ fn find_scripted_trigger_references(
                 old_name,
                 new_name,
                 &mut edits,
-                true,
             );
 
             if !edits.is_empty() {
@@ -437,7 +433,6 @@ fn find_scripted_trigger_references(
                 old_name,
                 new_name,
                 &mut edits,
-                true,
             );
             if !edits.is_empty() {
                 changes.insert(url, edits);
@@ -466,7 +461,6 @@ fn find_scripted_effect_references(
                 old_name,
                 new_name,
                 &mut edits,
-                false,
             );
 
             if !edits.is_empty() {
@@ -494,10 +488,11 @@ fn find_scripted_effect_references(
                 old_name,
                 new_name,
                 &mut edits,
-                false,
             );
             if !edits.is_empty() {
-                changes.insert(url, edits);
+                if let Ok(url) = Url::parse(&uri_str) {
+                    changes.insert(url, edits);
+                }
             }
         }
     }
@@ -509,35 +504,31 @@ fn find_scripted_references_in_entries(
     old_name: &str,
     new_name: &str,
     edits: &mut Vec<TextEdit>,
-    is_trigger: bool,
 ) {
     for entry in entries {
-        match entry {
-            Entry::Assignment(ass) => {
-                // Check for definition
-                if (is_trigger && ass.key == old_name) || (!is_trigger && ass.key == old_name) {
-                    edits.push(TextEdit {
-                        range: range_to_lsp(&ass.key_range),
-                        new_text: new_name.to_string(),
-                    });
-                }
-
-                // Check for usage: old_name = yes
-                if ass.key == old_name {
-                    edits.push(TextEdit {
-                        range: range_to_lsp(&ass.key_range),
-                        new_text: new_name.to_string(),
-                    });
-                }
-
-                // Recurse into blocks
-                if let Value::Block(children) = &ass.value.value {
-                    find_scripted_references_in_entries(
-                        children, old_name, new_name, edits, is_trigger,
-                    );
-                }
+        if let Entry::Assignment(ass) = entry {
+            // Check for definition
+            if ass.key == old_name {
+                edits.push(TextEdit {
+                    range: range_to_lsp(&ass.key_range),
+                    new_text: new_name.to_string(),
+                });
             }
-            _ => {}
+
+            // Check for usage: old_name = yes
+            if ass.key == old_name {
+                edits.push(TextEdit {
+                    range: range_to_lsp(&ass.key_range),
+                    new_text: new_name.to_string(),
+                });
+            }
+
+            // Recurse into blocks
+            if let Value::Block(children) = &ass.value.value {
+                find_scripted_references_in_entries(
+                    children, old_name, new_name, edits,
+                );
+            }
         }
     }
 }
@@ -595,8 +586,7 @@ fn find_idea_references_in_entries(
     edits: &mut Vec<TextEdit>,
 ) {
     for entry in entries {
-        match entry {
-            Entry::Assignment(ass) => {
+        if let Entry::Assignment(ass) = entry {
                 // Check for idea definition or usage
                 if ass.key == old_name {
                     edits.push(TextEdit {
@@ -626,8 +616,6 @@ fn find_idea_references_in_entries(
                     find_idea_references_in_entries(children, old_name, new_name, edits);
                 }
             }
-            _ => {}
-        }
     }
 }
 
@@ -684,8 +672,7 @@ fn find_character_references_in_entries(
     edits: &mut Vec<TextEdit>,
 ) {
     for entry in entries {
-        match entry {
-            Entry::Assignment(ass) => {
+        if let Entry::Assignment(ass) = entry {
                 // Character definition
                 if ass.key == old_name {
                     edits.push(TextEdit {
@@ -727,8 +714,6 @@ fn find_character_references_in_entries(
                     find_character_references_in_entries(children, old_name, new_name, edits);
                 }
             }
-            _ => {}
-        }
     }
 }
 
@@ -785,8 +770,7 @@ fn find_variable_references_in_entries(
     edits: &mut Vec<TextEdit>,
 ) {
     for entry in entries {
-        match entry {
-            Entry::Assignment(ass) => {
+        if let Entry::Assignment(ass) = entry {
                 // Check for set_variable, check_variable, etc.
                 if ass.key == "set_variable"
                     || ass.key == "check_variable"
@@ -820,8 +804,6 @@ fn find_variable_references_in_entries(
                     find_variable_references_in_entries(children, old_name, new_name, edits);
                 }
             }
-            _ => {}
-        }
     }
 }
 
@@ -878,8 +860,7 @@ fn find_ability_references_in_entries(
     edits: &mut Vec<TextEdit>,
 ) {
     for entry in entries {
-        match entry {
-            Entry::Assignment(ass) => {
+        if let Entry::Assignment(ass) = entry {
                 if ass.key == old_name {
                     edits.push(TextEdit {
                         range: range_to_lsp(&ass.key_range),
@@ -902,8 +883,6 @@ fn find_ability_references_in_entries(
                     }
                 }
             }
-            _ => {}
-        }
     }
 }
 

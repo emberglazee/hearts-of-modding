@@ -57,90 +57,78 @@ where
 
     for root in roots {
         let buildings_path = root.join("map/buildings.txt");
-        if buildings_path.exists() && !filter(&buildings_path) {
-            if let Ok(content) = fs::read_to_string(&buildings_path) {
-                for (line_idx, line) in content.lines().enumerate() {
-                    let parts: Vec<&str> = line.split(';').collect();
-                    if parts.len() >= 7 {
-                        if let Ok(state_id) = parts[0].parse::<u32>() {
-                            let building_id = parts[1].to_string();
-                            let x = parts[2].parse::<f64>().unwrap_or(0.0);
-                            let y = parts[3].parse::<f64>().unwrap_or(0.0);
-                            let z = parts[4].parse::<f64>().unwrap_or(0.0);
-                            let rotation = parts[5].parse::<f64>().unwrap_or(0.0);
-                            let sea_province = parts[6].parse::<u32>().unwrap_or(0);
+        if buildings_path.exists() && !filter(&buildings_path) && let Ok(content) = fs::read_to_string(&buildings_path) {
+            for (line_idx, line) in content.lines().enumerate() {
+                let parts: Vec<&str> = line.split(';').collect();
+                if parts.len() >= 7 && let Ok(state_id) = parts[0].parse::<u32>() {
+                    let building_id = parts[1].to_string();
+                    let x = parts[2].parse::<f64>().unwrap_or(0.0);
+                    let y = parts[3].parse::<f64>().unwrap_or(0.0);
+                    let z = parts[4].parse::<f64>().unwrap_or(0.0);
+                    let rotation = parts[5].parse::<f64>().unwrap_or(0.0);
+                    let sea_province = parts[6].parse::<u32>().unwrap_or(0);
 
-                            buildings.push(MapBuilding {
-                                state_id,
-                                building_id,
-                                x,
-                                y,
-                                z,
-                                rotation,
-                                sea_province,
-                                path: buildings_path.to_string_lossy().to_string(),
-                                start_line: line_idx as u32,
-                            });
-                        }
-                    }
+                    buildings.push(MapBuilding {
+                        state_id,
+                        building_id,
+                        x,
+                        y,
+                        z,
+                        rotation,
+                        sea_province,
+                        path: buildings_path.to_string_lossy().to_string(),
+                        start_line: line_idx as u32,
+                    });
                 }
             }
         }
 
         let unitstacks_path = root.join("map/unitstacks.txt");
-        if unitstacks_path.exists() && !filter(&unitstacks_path) {
-            if let Ok(content) = fs::read_to_string(&unitstacks_path) {
-                for (line_idx, line) in content.lines().enumerate() {
-                    let parts: Vec<&str> = line.split(';').collect();
-                    if parts.len() >= 7 {
-                        if let Ok(province_id) = parts[0].parse::<u32>() {
-                            let stack_type = parts[1].parse::<u32>().unwrap_or(0);
-                            let x = parts[2].parse::<f64>().unwrap_or(0.0);
-                            let y = parts[3].parse::<f64>().unwrap_or(0.0);
-                            let z = parts[4].parse::<f64>().unwrap_or(0.0);
-                            let rotation = parts[5].parse::<f64>().unwrap_or(0.0);
-                            let offset = parts[6].parse::<f64>().unwrap_or(0.0);
+        if unitstacks_path.exists() && !filter(&unitstacks_path) && let Ok(content) = fs::read_to_string(&unitstacks_path) {
+            for (line_idx, line) in content.lines().enumerate() {
+                let parts: Vec<&str> = line.split(';').collect();
+                if parts.len() >= 7 && let Ok(province_id) = parts[0].parse::<u32>() {
+                    let stack_type = parts[1].parse::<u32>().unwrap_or(0);
+                    let x = parts[2].parse::<f64>().unwrap_or(0.0);
+                    let y = parts[3].parse::<f64>().unwrap_or(0.0);
+                    let z = parts[4].parse::<f64>().unwrap_or(0.0);
+                    let rotation = parts[5].parse::<f64>().unwrap_or(0.0);
+                    let offset = parts[6].parse::<f64>().unwrap_or(0.0);
 
-                            unitstacks.push(UnitStack {
-                                province_id,
-                                stack_type,
-                                x,
-                                y,
-                                z,
-                                rotation,
-                                offset,
-                                path: unitstacks_path.to_string_lossy().to_string(),
-                                start_line: line_idx as u32,
-                            });
-                        }
-                    }
+                    unitstacks.push(UnitStack {
+                        province_id,
+                        stack_type,
+                        x,
+                        y,
+                        z,
+                        rotation,
+                        offset,
+                        path: unitstacks_path.to_string_lossy().to_string(),
+                        start_line: line_idx as u32,
+                    });
                 }
             }
         }
 
         let weather_path = root.join("map/weatherpositions.txt");
-        if weather_path.exists() && !filter(&weather_path) {
-            if let Ok(content) = fs::read_to_string(&weather_path) {
-                for (line_idx, line) in content.lines().enumerate() {
-                    let parts: Vec<&str> = line.split(';').collect();
-                    if parts.len() >= 5 {
-                        if let Ok(region_id) = parts[0].parse::<u32>() {
-                            let x = parts[1].parse::<f64>().unwrap_or(0.0);
-                            let y = parts[2].parse::<f64>().unwrap_or(0.0);
-                            let z = parts[3].parse::<f64>().unwrap_or(0.0);
-                            let size = parts[4].to_string();
+        if weather_path.exists() && !filter(&weather_path) && let Ok(content) = fs::read_to_string(&weather_path) {
+            for (line_idx, line) in content.lines().enumerate() {
+                let parts: Vec<&str> = line.split(';').collect();
+                if parts.len() >= 5 && let Ok(region_id) = parts[0].parse::<u32>() {
+                    let x = parts[1].parse::<f64>().unwrap_or(0.0);
+                    let y = parts[2].parse::<f64>().unwrap_or(0.0);
+                    let z = parts[3].parse::<f64>().unwrap_or(0.0);
+                    let size = parts[4].to_string();
 
-                            weather_positions.push(WeatherPosition {
-                                region_id,
-                                x,
-                                y,
-                                z,
-                                size,
-                                path: weather_path.to_string_lossy().to_string(),
-                                start_line: line_idx as u32,
-                            });
-                        }
-                    }
+                    weather_positions.push(WeatherPosition {
+                        region_id,
+                        x,
+                        y,
+                        z,
+                        size,
+                        path: weather_path.to_string_lossy().to_string(),
+                        start_line: line_idx as u32,
+                    });
                 }
             }
         }
@@ -175,7 +163,7 @@ mod tests {
         let weather_content = "1;10.0;20.0;30.0;large\n2;40.0;50.0;60.0;small";
         fs::write(map_dir.join("weatherpositions.txt"), weather_content).unwrap();
 
-        let result = scan_map_objects(&[temp_dir.clone()], &|_| false);
+        let result = scan_map_objects(std::slice::from_ref(&temp_dir), &|_| false);
 
         assert_eq!(result.buildings.len(), 2);
         assert_eq!(result.buildings[0].state_id, 1);

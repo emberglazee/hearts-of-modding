@@ -48,7 +48,7 @@ where
                     if !filter(&path) {
                         dirs_to_check.push(path);
                     }
-                } else if path.extension().map_or(false, |ext| ext == "txt") {
+                } else if path.extension().is_some_and(|ext| ext == "txt") {
                     if filter(&path) {
                         continue;
                     }
@@ -67,38 +67,32 @@ where
 
 fn extract_state(entries: &[ast::Entry], path: &Path, map: &mut HashMap<u32, State>) {
     for entry in entries {
-        if let ast::Entry::Assignment(ass) = entry {
-            if ass.key.to_lowercase() == "state" {
-                let mut state_id = None;
-                let mut state_name = String::new();
+        if let ast::Entry::Assignment(ass) = entry && ass.key.to_lowercase() == "state" {
+            let mut state_id = None;
+            let mut state_name = String::new();
 
-                if let ast::Value::Block(state_entries) = &ass.value.value {
-                    for state_entry in state_entries {
-                        if let ast::Entry::Assignment(state_ass) = state_entry {
-                            if state_ass.key.to_lowercase() == "id" {
-                                if let ast::Value::Number(id) = &state_ass.value.value {
-                                    state_id = Some(*id as u32);
-                                }
-                            } else if state_ass.key.to_lowercase() == "name" {
-                                if let ast::Value::String(name) = &state_ass.value.value {
-                                    state_name = name.clone();
-                                }
-                            }
+            if let ast::Value::Block(state_entries) = &ass.value.value {
+                for state_entry in state_entries {
+                    if let ast::Entry::Assignment(state_ass) = state_entry {
+                        if state_ass.key.to_lowercase() == "id" && let ast::Value::Number(id) = &state_ass.value.value {
+                            state_id = Some(*id as u32);
+                        } else if state_ass.key.to_lowercase() == "name" && let ast::Value::String(name) = &state_ass.value.value {
+                            state_name = name.clone();
                         }
                     }
                 }
+            }
 
-                if let Some(id) = state_id {
-                    map.insert(
+            if let Some(id) = state_id {
+                map.insert(
+                    id,
+                    State {
                         id,
-                        State {
-                            id,
-                            name: state_name,
-                            path: path.to_string_lossy().to_string(),
-                            range: ass.key_range.clone(),
-                        },
-                    );
-                }
+                        name: state_name,
+                        path: path.to_string_lossy().to_string(),
+                        range: ass.key_range.clone(),
+                    },
+                );
             }
         }
     }

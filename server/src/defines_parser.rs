@@ -75,7 +75,7 @@ where
             let path = entry.path();
             if path.is_dir() {
                 scan_defines_directory(&path, defines, filter);
-            } else if path.extension().map_or(false, |ext| ext == "lua") {
+            } else if path.extension().is_some_and(|ext| ext == "lua") {
                 if filter(&path) {
                     continue;
                 }

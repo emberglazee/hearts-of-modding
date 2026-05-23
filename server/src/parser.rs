@@ -324,7 +324,7 @@ pub fn parse_script(input: &str) -> (Script, Vec<(String, crate::ast::Range)>) {
                 let (next, _) = nom::bytes::complete::take::<usize, Span, nom::error::Error<Span>>(
                     1usize,
                 )(span)
-                .unwrap_or((span.clone(), span));
+                .unwrap_or((span, span));
                 span = next;
             }
         }

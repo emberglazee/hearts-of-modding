@@ -1,3 +1,6 @@
+#![allow(clippy::collapsible_if)]
+#![allow(clippy::type_complexity)]
+#![allow(clippy::too_many_arguments)]
 mod ability_scanner;
 mod achievement_scanner;
 mod adjacency_scanner;
@@ -533,6 +536,7 @@ impl LanguageServer for Backend {
             .uri
             .to_string();
         let position = params.text_document_position_params.position;
+        let map_config = crate::map_config::get_map_config(std::path::Path::new("."));
 
         if let Some(content) = self.documents.get(&uri) {
             if uri.ends_with(".yml") {
@@ -601,7 +605,7 @@ impl LanguageServer for Backend {
                         && position.character >= entry.value_start_col
                         && position.character <= entry.value_start_col + entry.value.len() as u32
                     {
-                        let mut hover_text = format!("### 👁️ Localization Preview\n\n");
+                        let mut hover_text = "### 👁️ Localization Preview\n\n".to_string();
                         hover_text.push_str(&paradox_to_markdown(&entry.value, Some(&global_loc)));
 
                         return Ok(Some(Hover {
@@ -879,10 +883,7 @@ impl LanguageServer for Backend {
                     }),
                     range: None,
                 }));
-            } else if {
-                let map_config = crate::map_config::get_map_config(std::path::Path::new("."));
-                uri.ends_with(&map_config.adjacencies)
-            } {
+            } else if uri.ends_with(&map_config.adjacencies) {
                 if let Some(line) = content.lines().nth(position.line as usize) {
                     let mut hover_text = String::from("### 🚢 Adjacency Definition\n\n");
                     hover_text.push_str("`Start province ID; End province ID; Adjacency type; Through province ID; Starting X; Starting Y; Ending X; Ending Y; Adjacency rule; Comment`\n\n---\n\n");
@@ -990,10 +991,7 @@ impl LanguageServer for Backend {
                     }));
                 }
                 return Ok(None);
-            } else if {
-                let map_config = crate::map_config::get_map_config(std::path::Path::new("."));
-                uri.ends_with(&map_config.definitions)
-            } {
+            } else if uri.ends_with(&map_config.definitions) {
                 if let Some(line) = content.lines().nth(position.line as usize) {
                     let mut hover_text = String::from("### 🗺️ Province Definition\n\n");
                     hover_text.push_str("`Province ID; R; G; B; Province type; Coastal status; Terrain; Continent`\n\n---\n\n");
@@ -1173,7 +1171,7 @@ impl LanguageServer for Backend {
                                 || (identifier.parse::<u32>().is_ok()
                                     && context_key_lower
                                         .as_ref()
-                                        .map_or(false, |ck| ck.contains("state")));
+                                        .is_some_and(|ck| ck.contains("state")));
 
                             if is_state_key {
                                 let loc = self.localization.load();
@@ -1201,7 +1199,7 @@ impl LanguageServer for Backend {
                             let is_province_key = ident_lower.contains("province")
                                 || ident_lower == "victory_points"
                                 || (identifier.parse::<u32>().is_ok()
-                                    && context_key_lower.as_ref().map_or(false, |ck| {
+                                    && context_key_lower.as_ref().is_some_and(|ck| {
                                         ck.contains("province") || ck == "victory_points"
                                     }));
 
@@ -1234,7 +1232,7 @@ impl LanguageServer for Backend {
                                 || (identifier.parse::<u32>().is_ok()
                                     && context_key_lower
                                         .as_ref()
-                                        .map_or(false, |ck| ck.contains("strategic_region")));
+                                        .is_some_and(|ck| ck.contains("strategic_region")));
 
                             if is_region_key {
                                 let loc = self.localization.load();
@@ -1567,7 +1565,7 @@ impl LanguageServer for Backend {
                                         role.traits.join(", ")
                                     ));
                                 }
-                                char_text.push_str("\n");
+                                char_text.push('\n');
                             }
                         }
 
@@ -1865,7 +1863,7 @@ impl LanguageServer for Backend {
 
                     // Check if we are inside a bracketed scope [Root.GetTag]
                     if let Some(bracket_start) = prefix.rfind('[') {
-                        if prefix.rfind(']').map_or(true, |i| i < bracket_start) {
+                        if prefix.rfind(']').is_none_or(|i| i < bracket_start) {
                             let _inner_prefix = &prefix[bracket_start + 1..];
                             let mut items = Vec::new();
 
@@ -2208,19 +2206,20 @@ impl LanguageServer for Backend {
                 current_scopes = scopes;
                 if let Some(context_key) = ctx {
                     if context_key.to_lowercase().contains("color") {
-                        let mut color_items = Vec::new();
-                        color_items.push(CompletionItem {
-                            label: "rgb".to_string(),
-                            kind: Some(CompletionItemKind::KEYWORD),
-                            detail: Some("RGB Color Format".to_string()),
-                            ..Default::default()
-                        });
-                        color_items.push(CompletionItem {
-                            label: "hsv".to_string(),
-                            kind: Some(CompletionItemKind::KEYWORD),
-                            detail: Some("HSV Color Format".to_string()),
-                            ..Default::default()
-                        });
+                        let color_items = vec![
+                            CompletionItem {
+                                label: "rgb".to_string(),
+                                kind: Some(CompletionItemKind::KEYWORD),
+                                detail: Some("RGB Color Format".to_string()),
+                                ..Default::default()
+                            },
+                            CompletionItem {
+                                label: "hsv".to_string(),
+                                kind: Some(CompletionItemKind::KEYWORD),
+                                detail: Some("HSV Color Format".to_string()),
+                                ..Default::default()
+                            },
+                        ];
                         return Ok(Some(CompletionResponse::Array(color_items)));
                     }
                 }
@@ -4332,65 +4331,63 @@ impl Backend {
         fixes: &mut Vec<(ast::Range, String)>,
     ) {
         match value {
-            ast::Value::Block(_) | ast::Value::TaggedBlock(_, _, _) => {
-                if range.start_line == range.end_line {
-                    let line_idx = range.start_line as usize;
-                    if let Some(line) = content.lines().nth(line_idx) {
-                        let start = range.start_col as usize;
-                        let end = range.end_col as usize;
-                        if start < end && end <= line.len() {
-                            let full_str = &line[start..end];
-                            if let Some(brace_start_rel) = full_str.find('{') {
-                                let block_str = &full_str[brace_start_rel..];
-                                let mut needs_fix = false;
+            ast::Value::Block(_) | ast::Value::TaggedBlock(_, _, _) if range.start_line == range.end_line => {
+                let line_idx = range.start_line as usize;
+                if let Some(line) = content.lines().nth(line_idx) {
+                    let start = range.start_col as usize;
+                    let end = range.end_col as usize;
+                    if start < end && end <= line.len() {
+                        let full_str = &line[start..end];
+                        if let Some(brace_start_rel) = full_str.find('{') {
+                            let block_str = &full_str[brace_start_rel..];
+                            let mut needs_fix = false;
 
-                                // 1. Check space BEFORE { if it's a TaggedBlock
-                                if let ast::Value::TaggedBlock(tag, _, _) = value {
-                                    if &full_str[tag.len()..brace_start_rel] != " " {
+                            // 1. Check space BEFORE { if it's a TaggedBlock
+                            if let ast::Value::TaggedBlock(tag, _, _) = value {
+                                if &full_str[tag.len()..brace_start_rel] != " " {
+                                    needs_fix = true;
+                                }
+                            }
+
+                            // 2. Check padding INSIDE
+                            if block_str.len() >= 2 {
+                                let inner = &block_str[1..block_str.len() - 1];
+                                if inner.trim().is_empty() {
+                                    if block_str != "{}" {
+                                        needs_fix = true;
+                                    }
+                                } else {
+                                    if !block_str.starts_with("{ ")
+                                        || !block_str.ends_with(" }")
+                                        || block_str.starts_with("{  ")
+                                        || block_str.ends_with("  }")
+                                    {
                                         needs_fix = true;
                                     }
                                 }
+                            }
 
-                                // 2. Check padding INSIDE
-                                if block_str.len() >= 2 {
-                                    let inner = &block_str[1..block_str.len() - 1];
-                                    if inner.trim().is_empty() {
-                                        if block_str != "{}" {
-                                            needs_fix = true;
-                                        }
+                            if needs_fix {
+                                let brace_end_rel =
+                                    full_str.rfind('}').unwrap_or(full_str.len() - 1);
+                                let inner = &full_str[brace_start_rel + 1..brace_end_rel];
+
+                                let before_brace = full_str[..brace_start_rel].trim();
+
+                                let new_text = if inner.trim().is_empty() {
+                                    if !before_brace.is_empty() {
+                                        format!("{} {{}}", before_brace)
                                     } else {
-                                        if !block_str.starts_with("{ ")
-                                            || !block_str.ends_with(" }")
-                                            || block_str.starts_with("{  ")
-                                            || block_str.ends_with("  }")
-                                        {
-                                            needs_fix = true;
-                                        }
+                                        "{}".to_string()
                                     }
-                                }
-
-                                if needs_fix {
-                                    let brace_end_rel =
-                                        full_str.rfind('}').unwrap_or(full_str.len() - 1);
-                                    let inner = &full_str[brace_start_rel + 1..brace_end_rel];
-
-                                    let before_brace = full_str[..brace_start_rel].trim();
-
-                                    let new_text = if inner.trim().is_empty() {
-                                        if !before_brace.is_empty() {
-                                            format!("{} {{}}", before_brace)
-                                        } else {
-                                            "{}".to_string()
-                                        }
+                                } else {
+                                    if !before_brace.is_empty() {
+                                        format!("{} {{ {} }}", before_brace, inner.trim())
                                     } else {
-                                        if !before_brace.is_empty() {
-                                            format!("{} {{ {} }}", before_brace, inner.trim())
-                                        } else {
-                                            format!("{{ {} }}", inner.trim())
-                                        }
-                                    };
-                                    fixes.push((range.clone(), new_text));
-                                }
+                                        format!("{{ {} }}", inner.trim())
+                                    }
+                                };
+                                fixes.push((range.clone(), new_text));
                             }
                         }
                     }
@@ -4485,7 +4482,7 @@ impl Backend {
                             let path = entry.path();
                             if path.is_dir() {
                                 dirs_to_check.push(path);
-                            } else if path.extension().map_or(false, |ext| ext == "yml") {
+                            } else if path.extension().is_some_and(|ext| ext == "yml") {
                                 if filter(&path) {
                                     continue;
                                 }
@@ -4879,7 +4876,7 @@ impl Backend {
                     let path = entry.path();
                     if path.is_dir() {
                         dirs_to_check.push(path);
-                    } else if path.extension().map_or(false, |ext| {
+                    } else if path.extension().is_some_and(|ext| {
                         extensions.contains(&ext.to_string_lossy().as_ref())
                     }) {
                         if self.should_ignore_file(&path).await {
@@ -4902,9 +4899,9 @@ impl Backend {
                                         let after = line.chars().nth(actual_pos + identifier.len());
 
                                         let is_word_start =
-                                            before.map_or(true, |c| !parser::is_identifier_char(c));
+                                            before.is_none_or(|c| !parser::is_identifier_char(c));
                                         let is_word_end =
-                                            after.map_or(true, |c| !parser::is_identifier_char(c));
+                                            after.is_none_or(|c| !parser::is_identifier_char(c));
 
                                         if is_word_start && is_word_end {
                                             locations.push(Location {
@@ -4986,10 +4983,10 @@ impl Backend {
                     if path.is_dir() {
                         // Skip .git and potentially other internal dirs if needed,
                         // but for HOI4 mods usually everything in subdirs is relevant
-                        if !path.file_name().map_or(false, |n| n == ".git") {
+                        if path.file_name().is_none_or(|n| n != ".git") {
                             dirs_to_check.push(path);
                         }
-                    } else if path.extension().map_or(false, |ext| {
+                    } else if path.extension().is_some_and(|ext| {
                         extensions.contains(&ext.to_string_lossy().as_ref())
                     }) {
                         if self.should_ignore_file(&path).await {
@@ -5039,13 +5036,13 @@ impl Backend {
                     for entry in entries.flatten() {
                         let path = entry.path();
                         if path.is_dir() {
-                            if !path.file_name().map_or(false, |n| n == ".git") {
+                            if path.file_name().is_none_or(|n| n != ".git") {
                                 let path_str = path.to_string_lossy();
                                 if !ignored.iter().any(|re| re.is_match(&path_str)) {
                                     dirs_to_check.push(path);
                                 }
                             }
-                        } else if path.extension().map_or(false, |ext| {
+                        } else if path.extension().is_some_and(|ext| {
                             extensions.contains(&ext.to_string_lossy().as_ref())
                         }) {
                             if let Ok(abs_path) = path.canonicalize() {
@@ -5079,6 +5076,7 @@ impl Backend {
 
         let styling_enabled = **self.styling_enabled.load();
         let mut script_opt = None;
+        let map_config = crate::map_config::get_map_config(std::path::Path::new("."));
 
         if uri.as_str().ends_with(".yml") {
             self.validate_localization_content(uri, content, &mut diagnostics)
@@ -5111,16 +5109,10 @@ impl Backend {
         } else if uri.as_str().ends_with("adjacency_rules.txt") {
             self.validate_adjacency_rules_content(content, &mut diagnostics)
                 .await;
-        } else if {
-            let map_config = crate::map_config::get_map_config(std::path::Path::new("."));
-            uri.as_str().ends_with(&map_config.adjacencies)
-        } {
+        } else if uri.as_str().ends_with(&map_config.adjacencies) {
             self.validate_adjacencies_content(content, &mut diagnostics)
                 .await;
-        } else if {
-            let map_config = crate::map_config::get_map_config(std::path::Path::new("."));
-            uri.as_str().ends_with(&map_config.definitions)
-        } {
+        } else if uri.as_str().ends_with(&map_config.definitions) {
             self.validate_definition_content(content, &mut diagnostics)
                 .await;
         } else if uri.as_str().contains("strategicregions") && uri.as_str().ends_with(".txt") {
@@ -5403,8 +5395,8 @@ impl Backend {
             for j in 1..=3 {
                 if parts[j].parse::<u8>().is_err() {
                     let mut start_col = 0;
-                    for k in 0..j {
-                        start_col += parts[k].len() as u32 + 1;
+                    for part in parts.iter().take(j) {
+                        start_col += part.len() as u32 + 1;
                     }
                     diagnostics.push(Diagnostic {
                         range: Range {
@@ -5427,8 +5419,8 @@ impl Backend {
             let p_type = parts[4].trim();
             if p_type != "land" && p_type != "sea" && p_type != "lake" {
                 let mut start_col = 0;
-                for k in 0..4 {
-                    start_col += parts[k].len() as u32 + 1;
+                for part in parts.iter().take(4) {
+                    start_col += part.len() as u32 + 1;
                 }
                 diagnostics.push(Diagnostic {
                     range: Range {
@@ -5450,8 +5442,8 @@ impl Backend {
             let coastal = parts[5].trim();
             if coastal != "true" && coastal != "false" {
                 let mut start_col = 0;
-                for k in 0..5 {
-                    start_col += parts[k].len() as u32 + 1;
+                for part in parts.iter().take(5) {
+                    start_col += part.len() as u32 + 1;
                 }
                 diagnostics.push(Diagnostic {
                     range: Range {
@@ -5472,8 +5464,8 @@ impl Backend {
 
             if parts[7].parse::<u32>().is_err() {
                 let mut start_col = 0;
-                for k in 0..7 {
-                    start_col += parts[k].len() as u32 + 1;
+                for part in parts.iter().take(7) {
+                    start_col += part.len() as u32 + 1;
                 }
                 diagnostics.push(Diagnostic {
                     range: Range {
@@ -5597,8 +5589,8 @@ impl Backend {
                 }
 
                 let mut p3_col = 0;
-                for k in 0..3 {
-                    p3_col += parts[k].len() as u32 + 1;
+                for part in parts.iter().take(3) {
+                    p3_col += part.len() as u32 + 1;
                 }
                 if let Ok(id) = parts[3].parse::<i32>() {
                     if id > 0 && !provs.is_empty() && !provs.contains_key(&(id as u32)) {
@@ -5658,8 +5650,8 @@ impl Backend {
                 for j in 4..=7 {
                     if !parts[j].trim().is_empty() && parts[j].parse::<i32>().is_err() {
                         let mut start_col = 0;
-                        for k in 0..j {
-                            start_col += parts[k].len() as u32 + 1;
+                        for part in parts.iter().take(j) {
+                            start_col += part.len() as u32 + 1;
                         }
                         diagnostics.push(Diagnostic {
                             range: Range {
@@ -5681,8 +5673,8 @@ impl Backend {
 
                 let p8_col = {
                     let mut c = 0;
-                    for k in 0..8 {
-                        c += parts[k].len() as u32 + 1;
+                    for part in parts.iter().take(8) {
+                        c += part.len() as u32 + 1;
                     }
                     c
                 };
@@ -6087,58 +6079,56 @@ impl Backend {
         diagnostics: &mut Vec<Diagnostic>,
     ) {
         match value {
-            ast::Value::Block(_) | ast::Value::TaggedBlock(_, _, _) => {
-                if range.start_line == range.end_line {
-                    let line_idx = range.start_line as usize;
-                    if let Some(line) = content.lines().nth(line_idx) {
-                        let start = range.start_col as usize;
-                        let end = range.end_col as usize;
-                        if start < end && end <= line.len() {
-                            let full_str = &line[start..end];
-                            if let Some(brace_start_rel) = full_str.find('{') {
-                                let mut needs_fix = false;
-                                let mut message = "Single-line block should have exactly one space padding inside curly braces.";
+            ast::Value::Block(_) | ast::Value::TaggedBlock(_, _, _) if range.start_line == range.end_line => {
+                let line_idx = range.start_line as usize;
+                if let Some(line) = content.lines().nth(line_idx) {
+                    let start = range.start_col as usize;
+                    let end = range.end_col as usize;
+                    if start < end && end <= line.len() {
+                        let full_str = &line[start..end];
+                        if let Some(brace_start_rel) = full_str.find('{') {
+                            let mut needs_fix = false;
+                            let mut message = "Single-line block should have exactly one space padding inside curly braces.";
 
-                                // 1. Check space BEFORE { if it's a TaggedBlock
-                                if let ast::Value::TaggedBlock(tag, _, _) = value {
-                                    if &full_str[tag.len()..brace_start_rel] != " " {
+                            // 1. Check space BEFORE { if it's a TaggedBlock
+                            if let ast::Value::TaggedBlock(tag, _, _) = value {
+                                if &full_str[tag.len()..brace_start_rel] != " " {
+                                    needs_fix = true;
+                                    message = "Single-line block should have exactly one space around curly braces.";
+                                }
+                            }
+
+                            // 2. Check padding INSIDE
+                            let block_str = &full_str[brace_start_rel..];
+                            if block_str.len() >= 2 {
+                                let inner = &block_str[1..block_str.len() - 1];
+                                if inner.trim().is_empty() {
+                                    if block_str != "{}" {
                                         needs_fix = true;
-                                        message = "Single-line block should have exactly one space around curly braces.";
+                                        message = "Empty single-line block should be '{}' without spaces.";
+                                    }
+                                } else {
+                                    if !block_str.starts_with("{ ")
+                                        || !block_str.ends_with(" }")
+                                        || block_str.starts_with("{  ")
+                                        || block_str.ends_with("  }")
+                                    {
+                                        needs_fix = true;
                                     }
                                 }
+                            }
 
-                                // 2. Check padding INSIDE
-                                let block_str = &full_str[brace_start_rel..];
-                                if block_str.len() >= 2 {
-                                    let inner = &block_str[1..block_str.len() - 1];
-                                    if inner.trim().is_empty() {
-                                        if block_str != "{}" {
-                                            needs_fix = true;
-                                            message = "Empty single-line block should be '{}' without spaces.";
-                                        }
-                                    } else {
-                                        if !block_str.starts_with("{ ")
-                                            || !block_str.ends_with(" }")
-                                            || block_str.starts_with("{  ")
-                                            || block_str.ends_with("  }")
-                                        {
-                                            needs_fix = true;
-                                        }
-                                    }
-                                }
-
-                                if needs_fix {
-                                    diagnostics.push(Diagnostic {
-                                        range: ast_range_to_lsp(range),
-                                        severity: Some(DiagnosticSeverity::INFORMATION),
-                                        code: Some(NumberOrString::String(
-                                            "styling_brace_space".to_string(),
-                                        )),
-                                        message: message.to_string(),
-                                        source: Some("Hearts of Modding".to_string()),
-                                        ..Default::default()
-                                    });
-                                }
+                            if needs_fix {
+                                diagnostics.push(Diagnostic {
+                                    range: ast_range_to_lsp(range),
+                                    severity: Some(DiagnosticSeverity::INFORMATION),
+                                    code: Some(NumberOrString::String(
+                                        "styling_brace_space".to_string(),
+                                    )),
+                                    message: message.to_string(),
+                                    source: Some("Hearts of Modding".to_string()),
+                                    ..Default::default()
+                                });
                             }
                         }
                     }
@@ -6538,28 +6528,26 @@ impl Backend {
 
                     // Brace newline check
                     match &ass.value.value {
-                        ast::Value::Block(_) => {
-                            if ass.value.range.start_line > ass.operator_range.end_line {
-                                diagnostics.push(Diagnostic {
-                                    range: Range {
-                                        start: Position {
-                                            line: ass.operator_range.end_line,
-                                            character: ass.operator_range.end_col,
-                                        },
-                                        end: Position {
-                                            line: ass.value.range.start_line,
-                                            character: ass.value.range.start_col,
-                                        },
+                        ast::Value::Block(_) if ass.value.range.start_line > ass.operator_range.end_line => {
+                            diagnostics.push(Diagnostic {
+                                range: Range {
+                                    start: Position {
+                                        line: ass.operator_range.end_line,
+                                        character: ass.operator_range.end_col,
                                     },
-                                    severity: Some(DiagnosticSeverity::INFORMATION),
-                                    code: Some(NumberOrString::String(
-                                        "styling_brace_newline".to_string(),
-                                    )),
-                                    message: "Curly brace should not be on a new line.".to_string(),
-                                    source: Some("Hearts of Modding".to_string()),
-                                    ..Default::default()
-                                });
-                            }
+                                    end: Position {
+                                        line: ass.value.range.start_line,
+                                        character: ass.value.range.start_col,
+                                    },
+                                },
+                                severity: Some(DiagnosticSeverity::INFORMATION),
+                                code: Some(NumberOrString::String(
+                                    "styling_brace_newline".to_string(),
+                                )),
+                                message: "Curly brace should not be on a new line.".to_string(),
+                                source: Some("Hearts of Modding".to_string()),
+                                ..Default::default()
+                            });
                         }
                         ast::Value::TaggedBlock(tag, _, block_range) => {
                             // Check if the brace part of the tagged block is on a new line
@@ -6671,7 +6659,7 @@ impl Backend {
                         }
 
                         // 2. Casing heuristic: If it starts with a capital and isn't all caps, it's likely a literal
-                        if should_flag && val.chars().next().map_or(false, |c| c.is_uppercase()) {
+                        if should_flag && val.chars().next().is_some_and(|c| c.is_uppercase()) {
                             let all_caps = val.chars().all(|c| !c.is_lowercase());
                             if !all_caps {
                                 should_flag = false;
@@ -6950,7 +6938,7 @@ impl Backend {
     ) {
         match &val.value {
             ast::Value::Block(entries) => {
-                self.check_duplicate_keys(entries, diagnostics, &mod_maps);
+                self.check_duplicate_keys(entries, diagnostics, mod_maps);
                 for entry in entries {
                     self.check_entry_semantic(
                         entry,
@@ -7020,7 +7008,7 @@ impl Backend {
                         }
                     }
                 }
-                self.check_duplicate_keys(entries, diagnostics, &mod_maps);
+                self.check_duplicate_keys(entries, diagnostics, mod_maps);
                 for entry in entries {
                     self.check_entry_semantic(
                         entry,
@@ -7342,10 +7330,8 @@ fn format_modifier_value(key: &str, val: f64, format_str: Option<&String>) -> St
         if fmt.contains("%%") {
             is_double_percent = true;
             is_percentage = false;
-        } else if fmt.contains('%') {
-            is_percentage = true;
         } else {
-            is_percentage = false;
+            is_percentage = fmt.contains('%');
         }
 
         for c in fmt.chars().rev() {
@@ -7454,8 +7440,7 @@ fn paradox_to_markdown(
             }
 
             // Handle variables: [?var|formatting]
-            if inner.starts_with('?') {
-                let var_inner = &inner[1..];
+            if let Some(var_inner) = inner.strip_prefix('?') {
                 if let Some(pipe_pos) = var_inner.find('|') {
                     return format!("**[Variable: {}]**", &var_inner[..pipe_pos]);
                 }

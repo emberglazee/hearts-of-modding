@@ -147,42 +147,39 @@ fn find_stations_and_songs_in_entries(
     songs: &mut HashMap<String, Song>,
 ) {
     for entry in entries {
-        match entry {
-            ast::Entry::Assignment(ass) => {
-                let key_lower = ass.key.to_lowercase();
-                if key_lower == "music_station" {
-                    if let ast::Value::String(name) = &ass.value.value {
-                        stations.insert(
-                            name.clone(),
-                            MusicStation {
-                                name: name.clone(),
-                                path: file_path.to_string(),
-                                range: ass.key_range.clone(),
-                            },
-                        );
-                    }
-                } else if key_lower == "music" {
-                    if let ast::Value::Block(details) = &ass.value.value {
-                        for detail in details {
-                            if let ast::Entry::Assignment(d_ass) = detail {
-                                if d_ass.key.to_lowercase() == "song" {
-                                    if let ast::Value::String(name) = &d_ass.value.value {
-                                        songs.insert(
-                                            name.clone(),
-                                            Song {
-                                                name: name.clone(),
-                                                path: file_path.to_string(),
-                                                range: d_ass.key_range.clone(),
-                                            },
-                                        );
-                                    }
+        if let ast::Entry::Assignment(ass) = entry {
+            let key_lower = ass.key.to_lowercase();
+            if key_lower == "music_station" {
+                if let ast::Value::String(name) = &ass.value.value {
+                    stations.insert(
+                        name.clone(),
+                        MusicStation {
+                            name: name.clone(),
+                            path: file_path.to_string(),
+                            range: ass.key_range.clone(),
+                        },
+                    );
+                }
+            } else if key_lower == "music" {
+                if let ast::Value::Block(details) = &ass.value.value {
+                    for detail in details {
+                        if let ast::Entry::Assignment(d_ass) = detail {
+                            if d_ass.key.to_lowercase() == "song" {
+                                if let ast::Value::String(name) = &d_ass.value.value {
+                                    songs.insert(
+                                        name.clone(),
+                                        Song {
+                                            name: name.clone(),
+                                            path: file_path.to_string(),
+                                            range: d_ass.key_range.clone(),
+                                        },
+                                    );
                                 }
                             }
                         }
                     }
                 }
             }
-            _ => {}
         }
     }
 }
@@ -215,7 +212,7 @@ mod tests {
         "#;
         fs::write(music_dir.join("music/test.txt"), txt_content).unwrap();
 
-        let result = scan_music(&[music_dir.clone()], &|_| false);
+        let result = scan_music(std::slice::from_ref(&music_dir), &|_| false);
 
         assert!(result.assets.contains_key("test_song"));
         assert_eq!(result.assets.get("test_song").unwrap().file, "test.ogg");
@@ -258,7 +255,7 @@ mod tests {
         "#;
         fs::write(music_dir.join("music/HoM_songs.txt"), txt_content).unwrap();
 
-        let result = scan_music(&[music_dir.clone()], &|_| false);
+        let result = scan_music(std::slice::from_ref(&music_dir), &|_| false);
 
         assert!(result.assets.contains_key("Makai_Symphony-Izanagi_izanami"));
         assert_eq!(

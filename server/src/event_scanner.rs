@@ -51,7 +51,7 @@ where
                     if !filter(&path) {
                         dirs_to_check.push(path);
                     }
-                } else if path.extension().map_or(false, |ext| ext == "txt") {
+                } else if path.extension().is_some_and(|ext| ext == "txt") {
                     if filter(&path) {
                         continue;
                     }
@@ -75,36 +75,31 @@ fn find_event_definitions(entries: &[ast::Entry], path: &str, events: &mut HashM
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
             let key = ass.key.as_str();
-            if key == "country_event"
+            if (key == "country_event"
                 || key == "state_event"
                 || key == "news_event"
-                || key == "unit_leader_event"
+                || key == "unit_leader_event")
+                && let ast::Value::Block(inner) = &ass.value.value
             {
-                if let ast::Value::Block(inner) = &ass.value.value {
-                    let mut id = None;
-                    for inner_entry in inner {
-                        if let ast::Entry::Assignment(inner_ass) = inner_entry {
-                            if inner_ass.key == "id" {
-                                if let ast::Value::String(s) = &inner_ass.value.value {
-                                    id = Some(s.clone());
-                                    break;
-                                }
-                            }
-                        }
+                let mut id = None;
+                for inner_entry in inner {
+                    if let ast::Entry::Assignment(inner_ass) = inner_entry && inner_ass.key == "id" && let ast::Value::String(s) = &inner_ass.value.value {
+                        id = Some(s.clone());
+                        break;
                     }
+                }
 
-                    if let Some(event_id) = id {
-                        events.insert(
-                            event_id.clone(),
-                            Event {
-                                id: event_id,
-                                event_type: key.to_string(),
-                                path: path.to_string(),
-                                range: ass.key_range.clone(),
-                                triggered_events: Vec::new(),
-                            },
-                        );
-                    }
+                if let Some(event_id) = id {
+                    events.insert(
+                        event_id.clone(),
+                        Event {
+                            id: event_id,
+                            event_type: key.to_string(),
+                            path: path.to_string(),
+                            range: ass.key_range.clone(),
+                            triggered_events: Vec::new(),
+                        },
+                    );
                 }
             }
         }
@@ -135,7 +130,7 @@ where
                         if !filter(&path) {
                             dirs_to_check.push(path);
                         }
-                    } else if path.extension().map_or(false, |ext| ext == "txt") {
+                    } else if path.extension().is_some_and(|ext| ext == "txt") {
                         if filter(&path) {
                             continue;
                         }
@@ -177,12 +172,8 @@ fn find_triggers_recursive(
                     // Extract ID
                     if let ast::Value::Block(inner) = &ass.value.value {
                         inner.iter().find_map(|e| {
-                            if let ast::Entry::Assignment(ia) = e {
-                                if ia.key == "id" {
-                                    if let ast::Value::String(s) = &ia.value.value {
-                                        return Some(s.as_str());
-                                    }
-                                }
+                            if let ast::Entry::Assignment(ia) = e && ia.key == "id" && let ast::Value::String(s) = &ia.value.value {
+                                return Some(s.as_str());
                             }
                             None
                         })
@@ -203,25 +194,17 @@ fn find_triggers_recursive(
                     let called_id = match &ass.value.value {
                         ast::Value::String(s) => Some(s.as_str()),
                         ast::Value::Block(inner) => inner.iter().find_map(|e| {
-                            if let ast::Entry::Assignment(ia) = e {
-                                if ia.key == "id" {
-                                    if let ast::Value::String(s) = &ia.value.value {
-                                        return Some(s.as_str());
-                                    }
-                                }
+                            if let ast::Entry::Assignment(ia) = e && ia.key == "id" && let ast::Value::String(s) = &ia.value.value {
+                                return Some(s.as_str());
                             }
                             None
                         }),
                         _ => None,
                     };
 
-                    if let (Some(source), Some(target)) = (current_event_id, called_id) {
-                        if source != target {
-                            if let Some(event) = events.get_mut(source) {
-                                if !event.triggered_events.contains(&target.to_string()) {
-                                    event.triggered_events.push(target.to_string());
-                                }
-                            }
+                    if let (Some(source), Some(target)) = (current_event_id, called_id) && source != target && let Some(event) = events.get_mut(source) {
+                        if !event.triggered_events.contains(&target.to_string()) {
+                            event.triggered_events.push(target.to_string());
                         }
                     }
                 }
