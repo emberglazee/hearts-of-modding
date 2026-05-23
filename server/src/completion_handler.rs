@@ -545,6 +545,36 @@ impl Backend {
             });
         }
 
+        // Portrait definitions
+        let p_map = self.portraits.load();
+        for portrait in p_map.values() {
+            items.push(CompletionItem {
+                label: portrait.name.clone(),
+                kind: Some(CompletionItemKind::ENUM),
+                detail: Some("Portrait Definition".to_string()),
+                documentation: Some(Documentation::String(format!(
+                    "Defined in: {}",
+                    portrait.path
+                ))),
+                ..Default::default()
+            });
+        }
+
+        // Character definitions
+        let char_map = self.characters.load();
+        for character in char_map.values() {
+            items.push(CompletionItem {
+                label: character.id.clone(),
+                kind: Some(CompletionItemKind::STRUCT),
+                detail: Some("Character".to_string()),
+                documentation: Some(Documentation::String(format!(
+                    "Defined in: {}",
+                    character.path
+                ))),
+                ..Default::default()
+            });
+        }
+
         let ap_map = self.ai_strategy_plans.load();
         for plan in ap_map.values() {
             items.push(CompletionItem {

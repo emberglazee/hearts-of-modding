@@ -22,6 +22,8 @@ pub struct CharacterRole {
 pub struct Character {
     pub id: String,
     pub name: Option<String>,               // The loc key
+    pub gender: Option<String>,             // "male", "female", or "undefined"
+    pub desc: Option<String>,               // Loc key for country_leader/scientist description
     pub portraits: HashMap<String, String>, // e.g. "army_large" -> "GFX_portrait...", "civilian_small" -> ...
     pub roles: Vec<CharacterRole>,
     pub path: String,
@@ -95,6 +97,8 @@ fn find_characters_in_entries(
                                 let mut character = Character {
                                     id: char_ass.key.clone(),
                                     name: None,
+                                    gender: None,
+                                    desc: None,
                                     portraits: HashMap::new(),
                                     roles: Vec::new(),
                                     path: file_path.to_string(),
@@ -134,6 +138,16 @@ fn parse_character_details(entries: &[ast::Entry], character: &mut Character) {
                         character.name = Some(s.clone());
                     }
                 }
+                "gender" => {
+                    if let ast::Value::String(s) = &ass.value.value {
+                        character.gender = Some(s.clone());
+                    }
+                }
+                "desc" => {
+                    if let ast::Value::String(s) = &ass.value.value {
+                        character.desc = Some(s.clone());
+                    }
+                }
                 "portraits" => {
                     if let ast::Value::Block(categories) = &ass.value.value {
                         for cat_entry in categories {
@@ -156,6 +170,12 @@ fn parse_character_details(entries: &[ast::Entry], character: &mut Character) {
                                 }
                             }
                         }
+                    }
+                }
+                "instance" => {
+                    // Characters in instance = { allowed = { ... } ... } blocks
+                    if let ast::Value::Block(instance_entries) = &ass.value.value {
+                        parse_character_details(instance_entries, character);
                     }
                 }
                 "advisor" | "country_leader" | "corps_commander" | "field_marshal"

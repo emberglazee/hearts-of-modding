@@ -19,6 +19,7 @@ pub const ACHIEVEMENT_MISSING_LOCALIZATION: &str = "HOM3001";
 pub const ABILITY_MISSING_LOCALIZATION: &str = "HOM3002";
 pub const ABILITY_MISSING_REQUIRED_FIELD: &str = "HOM3003";
 pub const ABILITY_MISSING_AI_LOGIC: &str = "HOM3004";
+pub const PORTRAIT_UNKNOWN_GFX: &str = "HOM4001";
 
 #[derive(Debug, Clone)]
 pub struct ValidationDiagnostic {
@@ -400,6 +401,76 @@ fn validate_character_skills_recursive(
                     validate_character_skills_recursive(inner, defines, diagnostics, char_type);
                 }
                 _ => {}
+            }
+        }
+    }
+}
+
+/// Validate portrait GFX references in character `portraits = { ... }` blocks
+pub fn validate_portrait_gfx(
+    entries: &[ast::Entry],
+    sprites: &HashMap<String, crate::sprite_scanner::Sprite>,
+    diagnostics: &mut Vec<ValidationDiagnostic>,
+) {
+    validate_portrait_gfx_recursive(entries, sprites, diagnostics);
+}
+
+fn validate_portrait_gfx_recursive(
+    entries: &[ast::Entry],
+    sprites: &HashMap<String, crate::sprite_scanner::Sprite>,
+    diagnostics: &mut Vec<ValidationDiagnostic>,
+) {
+    for entry in entries {
+        if let ast::Entry::Assignment(ass) = entry {
+            let key_lower = ass.key.to_lowercase();
+
+            if key_lower == "portraits" {
+                if let ast::Value::Block(portrait_entries) = &ass.value.value {
+                    validate_portrait_values(portrait_entries, sprites, diagnostics);
+                }
+            }
+
+            // Recurse into nested blocks
+            match &ass.value.value {
+                ast::Value::Block(inner) => {
+                    validate_portrait_gfx_recursive(inner, sprites, diagnostics);
+                }
+                ast::Value::TaggedBlock(_, inner, _) => {
+                    validate_portrait_gfx_recursive(inner, sprites, diagnostics);
+                }
+                _ => {}
+            }
+        }
+    }
+}
+
+fn validate_portrait_values(
+    entries: &[ast::Entry],
+    sprites: &HashMap<String, crate::sprite_scanner::Sprite>,
+    diagnostics: &mut Vec<ValidationDiagnostic>,
+) {
+    for entry in entries {
+        if let ast::Entry::Assignment(ass) = entry {
+            // Check if value is a string starting with GFX_
+            if let ast::Value::String(s) = &ass.value.value {
+                if s.starts_with("GFX_") && !sprites.contains_key(s) {
+                    diagnostics.push(ValidationDiagnostic {
+                        range: ass.value.range.clone(),
+                        severity: ast::DiagnosticSeverity::Warning,
+                        message: format!(
+                            "Unknown portrait sprite '{}' — not found in any .gfx sprite definition",
+                            s
+                        ),
+                        code: PORTRAIT_UNKNOWN_GFX.to_string(),
+                        fix_suggestion: None,
+                        related_information: Vec::new(),
+                        tags: Vec::new(),
+                    });
+                }
+            }
+            // Recurse into nested blocks (for civilian/army/navy categories)
+            if let ast::Value::Block(inner) = &ass.value.value {
+                validate_portrait_values(inner, sprites, diagnostics);
             }
         }
     }

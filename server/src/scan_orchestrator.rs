@@ -2,6 +2,7 @@ use crate::ability_scanner;
 use crate::achievement_scanner;
 use crate::adjacency_scanner;
 use crate::ai_strategy_plan_scanner;
+use crate::portrait_scanner;
 use crate::Backend;
 use crate::building_scanner;
 use crate::character_scanner;
@@ -219,6 +220,26 @@ impl Backend {
             .log_message(
                 MessageType::INFO,
                 format!("Total: Loaded {} AI strategy plans", p.len()),
+            )
+            .await;
+    }
+
+    pub(crate) async fn scan_portraits(&self, roots: &[std::path::PathBuf]) {
+        let filter = self.get_sync_filter();
+        let roots_owned = roots.to_vec();
+        let portraits = tokio::task::spawn_blocking(move || {
+            portrait_scanner::scan_portraits(&roots_owned, &filter)
+        })
+        .await
+        .unwrap();
+
+        self.portraits.store(std::sync::Arc::new(portraits));
+        let p = self.portraits.load();
+
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!("Total: Loaded {} portrait definitions", p.len()),
             )
             .await;
     }

@@ -958,6 +958,24 @@ impl Backend {
                             }
                         }
 
+                        if let Some(gender) = &character.gender {
+                            char_text.push_str(&format!("**Gender:** {}\n", gender));
+                        }
+
+                        if let Some(desc_key) = &character.desc {
+                            if let Some(desc_loc) = loc.get(desc_key) {
+                                char_text.push_str(&format!(
+                                    "**Description:** {}\n",
+                                    paradox_to_markdown(&desc_loc.value, Some(&loc))
+                                ));
+                            } else {
+                                char_text.push_str(&format!(
+                                    "**Description:** *Missing `{}`*\n",
+                                    desc_key
+                                ));
+                            }
+                        }
+
                         if !character.portraits.is_empty() {
                             char_text.push_str("\n**Portraits:**\n");
                             let s_map = self.sprites.load();
@@ -1121,6 +1139,55 @@ impl Backend {
                             "\n---\nDefined in: {}",
                             self.make_file_link(&ability.path)
                         ));
+                        push_section(&mut hover_text, &text);
+                    }
+
+                    // Check portraits
+                    let portrait_map = self.portraits.load();
+                    if let Some(portrait) = portrait_map.get(&identifier) {
+                        let block_kind = match portrait.block_type {
+                            crate::portrait_scanner::PortraitBlockType::Default => "Default",
+                            crate::portrait_scanner::PortraitBlockType::Continent => "Continent",
+                            crate::portrait_scanner::PortraitBlockType::Tag => "Country Tag",
+                        };
+
+                        let mut text = format!("### 🖼️ Portrait Definition: `{}`\n", portrait.name);
+                        text.push_str(&format!("\n**Type:** {}\n", block_kind));
+                        if let Some(cont) = &portrait.continent_name {
+                            text.push_str(&format!("**Continent:** `{}`\n", cont));
+                        }
+
+                        let mut blocks: Vec<String> = Vec::new();
+                        if portrait.has_male { blocks.push("male".to_string()); }
+                        if portrait.has_female { blocks.push("female".to_string()); }
+                        if portrait.has_army { blocks.push("army".to_string()); }
+                        if portrait.has_navy { blocks.push("navy".to_string()); }
+                        if portrait.has_operative { blocks.push("operative".to_string()); }
+                        if portrait.has_scientist { blocks.push("scientist".to_string()); }
+                        if portrait.has_political {
+                            blocks.push(format!("political [{}]", portrait.ideologies.join(", ")));
+                        }
+                        if !blocks.is_empty() {
+                            text.push_str(&format!("\n**Blocks:** {}\n", blocks.join(", ")));
+                        }
+
+                        if !portrait.gfx_entries.is_empty() {
+                            let gfx_count = portrait.gfx_entries.len();
+                            text.push_str(&format!("\n**GFX References:** {} sprite(s)\n", gfx_count));
+                            let s_map = self.sprites.load();
+                            for gfx in portrait.gfx_entries.iter().take(10) {
+                                if let Some(sprite) = s_map.get(gfx) {
+                                    text.push_str(&format!("\n- `{}` → `{}`", gfx, sprite.texture_file));
+                                } else {
+                                    text.push_str(&format!("\n- `{}`", gfx));
+                                }
+                            }
+                            if gfx_count > 10 {
+                                text.push_str(&format!("\n- ... and {} more", gfx_count - 10));
+                            }
+                        }
+
+                        text.push_str(&format!("\n\n---\nDefined in: {}", self.make_file_link(&portrait.path)));
                         push_section(&mut hover_text, &text);
                     }
 

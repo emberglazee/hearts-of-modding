@@ -22,6 +22,7 @@ mod loc_parser;
 mod logistics_scanner;
 mod map_config;
 mod map_object_scanner;
+mod portrait_scanner;
 mod modifier_display;
 mod modifier_scanner;
 mod music_scanner;
@@ -132,6 +133,7 @@ struct Backend {
     abilities: Arc<arc_swap::ArcSwap<HashMap<String, ability_scanner::Ability>>>,
     ai_strategy_plans:
         Arc<arc_swap::ArcSwap<HashMap<String, ai_strategy_plan_scanner::AiStrategyPlan>>>,
+    portraits: Arc<arc_swap::ArcSwap<HashMap<String, portrait_scanner::Portrait>>>,
     scripted_locs: Arc<arc_swap::ArcSwap<HashMap<String, scripted_loc_scanner::ScriptedLoc>>>,
     duplicated_loc_keys: Arc<arc_swap::ArcSwap<HashSet<(String, String)>>>,
     states: Arc<arc_swap::ArcSwap<HashMap<u32, state_scanner::State>>>,
@@ -302,6 +304,7 @@ impl LanguageServer for Backend {
             self.scan_sounds(&roots),
             self.scan_abilities(&roots),
             self.scan_ai_strategy_plans(&roots),
+            self.scan_portraits(&roots),
         );
 
         // Collect workspace file paths for rename operations
@@ -454,6 +457,13 @@ impl LanguageServer for Backend {
                 keywords.insert("portraits".to_string());
                 keywords.insert("traits".to_string());
                 keywords.insert("skill".to_string());
+                keywords.insert("gender".to_string());
+                keywords.insert("instance".to_string());
+                keywords.insert("idea_token".to_string());
+                keywords.insert("legacy_id".to_string());
+                keywords.insert("expire".to_string());
+                keywords.insert("recruit_character".to_string());
+                keywords.insert("ideology".to_string());
 
                 // Ability keywords
                 keywords.insert("ability".to_string());
@@ -498,8 +508,29 @@ impl LanguageServer for Backend {
                     .map(|k| k.to_string())
                     .collect();
 
+                let portrait_names: HashSet<String> = self
+                    .portraits
+                    .load()
+                    .keys()
+                    .map(|k| k.to_string())
+                    .collect();
+
+                let character_names: HashSet<String> = self
+                    .characters
+                    .load()
+                    .keys()
+                    .map(|k| k.to_string())
+                    .collect();
+
+                let ideology_types: HashSet<String> = self
+                    .sub_ideologies
+                    .load()
+                    .keys()
+                    .map(|k| k.to_string())
+                    .collect();
+
                 Ok(Some(semantic_tokens::get_semantic_tokens(
-                    &script, &keywords, &ability_names, &strategy_plan_names,
+                    &script, &keywords, &ability_names, &strategy_plan_names, &portrait_names, &character_names, &ideology_types,
                 )))
             }
             _ => Ok(None),
@@ -766,6 +797,21 @@ impl LanguageServer for Backend {
                     }
                 }
 
+                // Check portraits
+                let portrait_map = self.portraits.load();
+                if let Some(portrait) = portrait_map.get(&identifier) {
+                    sources.push(ast_range_to_lsp_location(&portrait.range, &portrait.path));
+                }
+
+                // Check characters
+                let char_map = self.characters.load();
+                if let Some(character) = char_map.get(&identifier) {
+                    sources.push(ast_range_to_lsp_location(
+                        &character.range,
+                        &character.path,
+                    ));
+                }
+
                 let mappings = self.modifier_mappings.load();
                 if let Some(loc_key) = mappings.get(&identifier) {
                     let loc = self.localization.load();
@@ -902,6 +948,7 @@ impl LanguageServer for Backend {
             &self.achievements,
             &self.abilities,
             &self.scripted_locs,
+            &self.portraits,
             &self.localization,
             &self.states,
             &self.supply_nodes,
@@ -2589,6 +2636,7 @@ impl Backend {
         advanced_validation::validate_victory_points(&script.entries, &mut advanced_diags);
         advanced_validation::validate_achievements(&script.entries, &loc, &mut advanced_diags);
         advanced_validation::validate_abilities(&script.entries, &loc, &mut advanced_diags);
+        advanced_validation::validate_portrait_gfx(&script.entries, &sp, &mut advanced_diags);
 
         // Convert advanced diagnostics to LSP diagnostics
         for diag in advanced_diags {
@@ -3382,6 +3430,7 @@ async fn main() {
         game_path: Arc::new(arc_swap::ArcSwap::from_pointee(None)),
         abilities: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
         ai_strategy_plans: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
+        portraits: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
         scripted_locs: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
         duplicated_loc_keys: Arc::new(arc_swap::ArcSwap::from_pointee(HashSet::new())),
         states: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),

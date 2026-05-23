@@ -40,6 +40,7 @@ pub async fn generate_workspace_symbols(
     scripted_locs: &Arc<
         arc_swap::ArcSwap<HashMap<String, crate::scripted_loc_scanner::ScriptedLoc>>,
     >,
+    portraits: &Arc<arc_swap::ArcSwap<HashMap<String, crate::portrait_scanner::Portrait>>>,
     localization: &Arc<arc_swap::ArcSwap<HashMap<String, crate::loc_parser::LocEntry>>>,
     states: &Arc<arc_swap::ArcSwap<HashMap<u32, crate::state_scanner::State>>>,
     supply_nodes: &Arc<arc_swap::ArcSwap<Vec<crate::logistics_scanner::SupplyNode>>>,
@@ -581,6 +582,25 @@ pub async fn generate_workspace_symbols(
                     range: range_to_lsp(&ability.range),
                 },
                 container_name: Some("Leader Ability".to_string()),
+            });
+        }
+    }
+
+    // Search portraits
+    let portraits_lock = portraits.load();
+    for (name, portrait) in portraits_lock.iter() {
+        if fuzzy_match(&query_lower, &name.to_lowercase()) {
+            #[allow(deprecated)]
+            symbols.push(SymbolInformation {
+                name: name.clone(),
+                kind: SymbolKind::ENUM,
+                tags: None,
+                deprecated: None,
+                location: Location {
+                    uri: path_to_url(&portrait.path),
+                    range: range_to_lsp(&portrait.range),
+                },
+                container_name: Some("Portrait".to_string()),
             });
         }
     }
