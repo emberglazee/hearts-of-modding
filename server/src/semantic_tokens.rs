@@ -2,6 +2,10 @@ use crate::ast::*;
 use std::collections::HashSet;
 use tower_lsp::lsp_types::{SemanticToken, SemanticTokens, SemanticTokensResult};
 
+/// Fields whose values are always localization keys, not entity references.
+/// Values under these keys skip entity-type semantic highlighting.
+const LOCALIZATION_VALUE_FIELDS: [&str; 4] = ["name", "desc", "custom_description", "text"];
+
 pub fn get_semantic_tokens(
     script: &Script,
     keywords: &HashSet<String>,
@@ -13,7 +17,7 @@ pub fn get_semantic_tokens(
 ) -> SemanticTokensResult {
     let mut tokens = Vec::new();
     for entry in &script.entries {
-        push_entry_tokens(entry, &mut tokens, keywords, abilities, strategy_plans, portrait_names, character_names, ideology_types);
+        push_entry_tokens(entry, &mut tokens, keywords, abilities, strategy_plans, portrait_names, character_names, ideology_types, None);
     }
 
     // Sort tokens by line and column
@@ -64,6 +68,7 @@ fn push_entry_tokens(
     portrait_names: &HashSet<String>,
     character_names: &HashSet<String>,
     ideology_types: &HashSet<String>,
+    parent_key: Option<&str>,
 ) {
     match entry {
         Entry::Assignment(ass) => {
@@ -95,10 +100,10 @@ fn push_entry_tokens(
                 length: ass.operator_range.end_col - ass.operator_range.start_col,
                 token_type: 4,
             });
-            push_value_tokens(&ass.value, tokens, keywords, abilities, strategy_plans, portrait_names, character_names, ideology_types);
+            push_value_tokens(&ass.value, tokens, keywords, abilities, strategy_plans, portrait_names, character_names, ideology_types, Some(&ass.key));
         }
         Entry::Value(val) => {
-            push_value_tokens(val, tokens, keywords, abilities, strategy_plans, portrait_names, character_names, ideology_types);
+            push_value_tokens(val, tokens, keywords, abilities, strategy_plans, portrait_names, character_names, ideology_types, parent_key);
         }
         Entry::Comment(_, range) => {
             tokens.push(RawToken {
@@ -120,9 +125,12 @@ fn push_value_tokens(
     portrait_names: &HashSet<String>,
     character_names: &HashSet<String>,
     ideology_types: &HashSet<String>,
+    parent_key: Option<&str>,
 ) {
     match &val.value {
         Value::String(s) => {
+            let is_localization_value = parent_key.is_some_and(|k| LOCALIZATION_VALUE_FIELDS.contains(&k));
+
             if keywords.contains(s) {
                 tokens.push(RawToken {
                     line: val.range.start_line,
@@ -130,8 +138,9 @@ fn push_value_tokens(
                     length: val.range.end_col - val.range.start_col,
                     token_type: 0,
                 });
-            } else if abilities.contains(s) || strategy_plans.contains(s) || portrait_names.contains(s)
-                || character_names.contains(s) || ideology_types.contains(s)
+            } else if !is_localization_value
+                && (abilities.contains(s) || strategy_plans.contains(s) || portrait_names.contains(s)
+                    || character_names.contains(s) || ideology_types.contains(s))
             {
                 tokens.push(RawToken {
                     line: val.range.start_line,
@@ -166,7 +175,7 @@ fn push_value_tokens(
         }
         Value::Block(entries) => {
             for entry in entries {
-                push_entry_tokens(entry, tokens, keywords, abilities, strategy_plans, portrait_names, character_names, ideology_types);
+                push_entry_tokens(entry, tokens, keywords, abilities, strategy_plans, portrait_names, character_names, ideology_types, parent_key);
             }
         }
         Value::TaggedBlock(tag, entries, _) => {
@@ -177,7 +186,7 @@ fn push_value_tokens(
                 token_type: 0,
             });
             for entry in entries {
-                push_entry_tokens(entry, tokens, keywords, abilities, strategy_plans, portrait_names, character_names, ideology_types);
+                push_entry_tokens(entry, tokens, keywords, abilities, strategy_plans, portrait_names, character_names, ideology_types, parent_key);
             }
         }
     }

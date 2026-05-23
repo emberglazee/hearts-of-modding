@@ -2,7 +2,7 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
-## [v0.8.0] - 2026-05-23
+## [v0.8.0] - 2026-05-24
 
 ### Added
 
@@ -17,6 +17,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 ### Fixed
 
 - Stop the conflicts between TextMate and LSP semantic syntax highlighting by reducing the TextMate scope to the structural basics.
+
+- Don't highlight entity references when a string value's parent assignment key is one of `name`, `desc`, `custom_description`, or `text`.
 
 ## [v0.7.0] - 2026-05-23
 
