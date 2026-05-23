@@ -21,7 +21,8 @@ Client helpers in `package.json`: `npm run cargo:test`, `cargo:check`, `cargo:fm
 
 - **CWT schemas removed.** `server/Config/*.cwt` and `src/schema.rs` are gone (v0.5.3). All validation is now custom Rust code in `server/src/`. Do not reference CWT.
 - **UTF-16/UTF-8:** LSP uses UTF-16 code units, Rust uses UTF-8. Always convert — `§`, emoji, etc. break otherwise.
-- **Semantic tokens** override TextMate grammars. Skip for `.yml` files (`main.rs:268`).
+- **Semantic tokens** override TextMate grammars. Skip for `.yml` files (`main.rs:415`). Semantic tokens use triggers/effects/modifiers from `hoi4_data.rs` + scanner data as the single source of truth for keyword highlighting.
+- **TextMate grammar** (`client/syntaxes/hoi4.tmLanguage.json`) is deliberately **minimal** — only structural patterns (comments, strings, numbers, operators, punctuation, GUI keywords). All effect/trigger/modifier/block name highlighting comes from semantic tokens. Do not add keyword lists to TextMate.
 - **YAML files** can be parsed by the HOI4 script parser (similar syntax). Handle indentation separately — force `script_opt = None` for YAML in bulk fixes.
 - **Version** is `client/package.json` (single source of truth). `server/Cargo.toml` version may lag.
 - **Distribution** ships binaries for 3 platforms: Linux (`x86_64-unknown-linux-gnu`), Windows (`x86_64-pc-windows-msvc`), macOS (`aarch64-apple-darwin`). CI names them `server-linux`, `server-win.exe`, `server-macos-arm64`.
@@ -32,7 +33,7 @@ Client helpers in `package.json`: `npm run cargo:test`, `cargo:check`, `cargo:fm
 ## Architecture
 
 **Key server modules** (`server/src/`):
-- `main.rs` (~7900 loc) — LSP core logic
+- `main.rs` (~3400 loc) — LSP core logic
 - `parser.rs` — `nom`-based HOI4 script parser (handles complex identifiers: `daw.2.t`, `[?var]`, `array^0`)
 - `ast.rs` — AST definitions
 - `loc_parser.rs` — Localization `.yml` parser
@@ -41,8 +42,14 @@ Client helpers in `package.json`: `npm run cargo:test`, `cargo:check`, `cargo:fm
 - `scope.rs` — Scope stack inference
 - `rename.rs` — Cross-file rename
 - `call_hierarchy.rs` — Event relationship graphs
+- `scan_orchestrator.rs` — All 22 scan methods + `load_assets`
+- `formatting.rs` — Styling fixes (collect fixes, brace checks)
+- `hover_handler.rs` — Hover logic (achievement/event/variable/scope context)
+- `completion_handler.rs` — Completion logic for script and localization
+- `code_action_handler.rs` — Code action logic (formatting, validation fixes)
+- `color_utils.rs`, `lsp_convert.rs`, `modifier_format.rs`, `loc_preview.rs`, `symbol_search.rs`, `scope_context.rs` — Utility modules extracted from main.rs
 
-**Scanner modules** (parallelized, recursive): `event_scanner`, `ideology_scanner`, `trait_scanner`, `idea_scanner`, `sprite_scanner`, `variable_scanner`, `modifier_scanner`, `province_scanner`, `music_scanner`, `sound_scanner`, `scripted_loc_scanner`, `scripted_scanner`, `achievement_scanner`, `character_scanner`, `building_scanner`, `state_scanner`, `strategic_region_scanner`, `map_object_scanner`, `logistics_scanner`, `ability_scanner`, `adjacency_scanner`.
+**Scanner modules** (parallelized, recursive): `event_scanner`, `ideology_scanner`, `trait_scanner`, `idea_scanner`, `sprite_scanner`, `variable_scanner`, `modifier_scanner`, `province_scanner`, `music_scanner`, `sound_scanner`, `scripted_loc_scanner`, `scripted_scanner`, `achievement_scanner`, `character_scanner`, `building_scanner`, `state_scanner`, `strategic_region_scanner`, `map_object_scanner`, `logistics_scanner`, `ability_scanner`, `adjacency_scanner`, `ai_strategy_plan_scanner`.
 
 ## Extension
 
