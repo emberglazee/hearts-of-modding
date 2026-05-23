@@ -1124,6 +1124,44 @@ impl Backend {
                         push_section(&mut hover_text, &text);
                     }
 
+                    // Check AI strategy plans
+                    let ap_map = self.ai_strategy_plans.load();
+                    if let Some(plan) = ap_map.get(&identifier) {
+                        let mut text = format!("### AI Strategy Plan: `{}`\n", plan.name);
+
+                        let mut blocks = Vec::new();
+                        if plan.has_ai_national_focuses {
+                            blocks.push("ai_national_focuses");
+                        }
+                        if plan.has_research {
+                            blocks.push("research");
+                        }
+                        if plan.has_ideas {
+                            blocks.push("ideas");
+                        }
+                        if plan.has_traits {
+                            blocks.push("traits");
+                        }
+                        if plan.has_ai_strategy {
+                            blocks.push("ai_strategy");
+                        }
+                        if plan.has_focus_factors {
+                            blocks.push("focus_factors");
+                        }
+                        if plan.has_weight {
+                            blocks.push("weight");
+                        }
+                        if !blocks.is_empty() {
+                            text.push_str(&format!("\n**Blocks:** {}\n", blocks.join(", ")));
+                        }
+
+                        text.push_str(&format!(
+                            "\n---\nDefined in: {}",
+                            self.make_file_link(&plan.path)
+                        ));
+                        push_section(&mut hover_text, &text);
+                    }
+
                     // Check for modifier blocks (modifier = { ... } or modifiers = { ... })
                     let identifier_lower = identifier.to_lowercase();
                     if (identifier_lower == "modifier" || identifier_lower == "modifiers"

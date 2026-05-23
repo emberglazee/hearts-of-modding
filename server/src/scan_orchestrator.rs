@@ -1,6 +1,7 @@
 use crate::ability_scanner;
 use crate::achievement_scanner;
 use crate::adjacency_scanner;
+use crate::ai_strategy_plan_scanner;
 use crate::Backend;
 use crate::building_scanner;
 use crate::character_scanner;
@@ -197,6 +198,27 @@ impl Backend {
             .log_message(
                 MessageType::INFO,
                 format!("Total: Loaded {} abilities", map.len()),
+            )
+            .await;
+    }
+
+    pub(crate) async fn scan_ai_strategy_plans(&self, roots: &[std::path::PathBuf]) {
+        let filter = self.get_sync_filter();
+        let roots_owned = roots.to_vec();
+        let plans = tokio::task::spawn_blocking(move || {
+            ai_strategy_plan_scanner::scan_ai_strategy_plans(&roots_owned, &filter)
+        })
+        .await
+        .unwrap();
+
+        self.ai_strategy_plans
+            .store(std::sync::Arc::new(plans));
+        let p = self.ai_strategy_plans.load();
+
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!("Total: Loaded {} AI strategy plans", p.len()),
             )
             .await;
     }

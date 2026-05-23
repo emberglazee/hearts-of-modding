@@ -545,6 +545,20 @@ impl Backend {
             });
         }
 
+        let ap_map = self.ai_strategy_plans.load();
+        for plan in ap_map.values() {
+            items.push(CompletionItem {
+                label: plan.name.clone(),
+                kind: Some(CompletionItemKind::FOLDER),
+                detail: Some("AI Strategy Plan".to_string()),
+                documentation: Some(Documentation::String(format!(
+                    "Defined in: {}",
+                    plan.path
+                ))),
+                ..Default::default()
+            });
+        }
+
         let var_map = self.variables.load();
         for var_name in var_map.keys() {
             items.push(CompletionItem {

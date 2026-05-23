@@ -4,6 +4,10 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ## [v0.8.0] - 2026-05-23
 
+### Added
+
+- **AI strategy plan support:** Parse, validate, and provide expanded syntax highlighting for `common/ai_strategy_plans/*.txt`.
+
 ### Changed
 
 - **Huge Rust LSP refactor:** Refactored the LSP server code to be more modular and maintainable.

@@ -3,6 +3,7 @@
 #![allow(clippy::too_many_arguments)]
 mod ability_scanner;
 mod achievement_scanner;
+mod ai_strategy_plan_scanner;
 mod adjacency_scanner;
 mod advanced_validation;
 mod ast;
@@ -129,6 +130,8 @@ struct Backend {
     cosmetic_loc_indent: Arc<arc_swap::ArcSwap<bool>>,
     game_path: Arc<arc_swap::ArcSwap<Option<String>>>,
     abilities: Arc<arc_swap::ArcSwap<HashMap<String, ability_scanner::Ability>>>,
+    ai_strategy_plans:
+        Arc<arc_swap::ArcSwap<HashMap<String, ai_strategy_plan_scanner::AiStrategyPlan>>>,
     scripted_locs: Arc<arc_swap::ArcSwap<HashMap<String, scripted_loc_scanner::ScriptedLoc>>>,
     duplicated_loc_keys: Arc<arc_swap::ArcSwap<HashSet<(String, String)>>>,
     states: Arc<arc_swap::ArcSwap<HashMap<u32, state_scanner::State>>>,
@@ -298,6 +301,7 @@ impl LanguageServer for Backend {
             self.scan_music(&roots),
             self.scan_sounds(&roots),
             self.scan_abilities(&roots),
+            self.scan_ai_strategy_plans(&roots),
         );
 
         // Collect workspace file paths for rename operations
@@ -470,6 +474,16 @@ impl LanguageServer for Backend {
                 keywords.insert("add_ability".to_string());
                 keywords.insert("remove_ability".to_string());
 
+                // AI strategy plan keywords
+                keywords.insert("enable".to_string());
+                keywords.insert("abort".to_string());
+                keywords.insert("ai_national_focuses".to_string());
+                keywords.insert("focus_factors".to_string());
+                keywords.insert("research".to_string());
+                keywords.insert("weight".to_string());
+                keywords.insert("planned_production".to_string());
+                keywords.insert("technologies".to_string());
+
                 let ability_names: HashSet<String> = self
                     .abilities
                     .load()
@@ -477,8 +491,15 @@ impl LanguageServer for Backend {
                     .map(|k| k.to_string())
                     .collect();
 
+                let strategy_plan_names: HashSet<String> = self
+                    .ai_strategy_plans
+                    .load()
+                    .keys()
+                    .map(|k| k.to_string())
+                    .collect();
+
                 Ok(Some(semantic_tokens::get_semantic_tokens(
-                    &script, &keywords, &ability_names,
+                    &script, &keywords, &ability_names, &strategy_plan_names,
                 )))
             }
             _ => Ok(None),
@@ -3360,6 +3381,7 @@ async fn main() {
         cosmetic_loc_indent: Arc::new(arc_swap::ArcSwap::from_pointee(false)),
         game_path: Arc::new(arc_swap::ArcSwap::from_pointee(None)),
         abilities: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
+        ai_strategy_plans: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
         scripted_locs: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
         duplicated_loc_keys: Arc::new(arc_swap::ArcSwap::from_pointee(HashSet::new())),
         states: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
