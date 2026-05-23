@@ -2,6 +2,12 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
+## [v0.8.0] - 2026-05-23
+
+### Changed
+
+- **Huge Rust LSP refactor:** Refactored the LSP server code to be more modular and maintainable.
+
 ## [v0.7.0] - 2026-05-23
 
 ### Added
