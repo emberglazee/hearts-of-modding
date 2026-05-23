@@ -12,6 +12,10 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Huge Rust LSP refactor:** Refactored the LSP server code to be more modular and maintainable.
 
+### Fixed
+
+- Stop the conflicts between TextMate and LSP semantic syntax highlighting by reducing the TextMate scope to the structural basics.
+
 ## [v0.7.0] - 2026-05-23
 
 ### Added
