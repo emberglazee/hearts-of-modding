@@ -32,7 +32,7 @@
         "entries": {
             "patterns": [
                 {
-                    "begin": "^\\s*([a-zA-Z0-9_\\.]+)(?:(:)([0-9]*))?\\s*(\")",
+                    "begin": "^\\s*([a-zA-Z0-9_\\.-]+)(?:(:)([0-9]*))?\\s*(\")",
                     "beginCaptures": {
                         "1": { "name": "entity.name.tag" },
                         "2": { "name": "punctuation.separator.key-value.hoi4-loc" },
