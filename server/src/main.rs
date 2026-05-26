@@ -2348,6 +2348,35 @@ impl Backend {
 
         // Run advanced validations
         let mut advanced_diags = Vec::new();
+
+        // Dynamic country tag check: warn if the file is in common/country_tags/ and
+        // the dynamic-to-static ratio suggests insufficient dynamic tags for civil wars.
+        if uri.contains("/common/country_tags/") || uri.contains("\\common\\country_tags\\") {
+            let total = ct.len();
+            let dynamic_count = ct.values().filter(|t| t.dynamic).count();
+            let static_count = total - dynamic_count;
+            if total > 0 && dynamic_count == 0 {
+                advanced_diags.push(advanced_validation::ValidationDiagnostic {
+                    range: ast::Range { start_line: 0, start_col: 0, end_line: 0, end_col: 0 },
+                    severity: ast::DiagnosticSeverity::Warning,
+                    message: "No dynamic country tags defined. Civil wars will fail for lack of dynamic tags, potentially causing a crash.".to_string(),
+                    code: "HOM5001".to_string(),
+                    fix_suggestion: None,
+                    related_information: vec![],
+                    tags: vec![],
+                });
+            } else if static_count > 10 && dynamic_count < (static_count / 10).max(3) {
+                advanced_diags.push(advanced_validation::ValidationDiagnostic {
+                    range: ast::Range { start_line: 0, start_col: 0, end_line: 0, end_col: 0 },
+                    severity: ast::DiagnosticSeverity::Information,
+                    message: format!("Only {} dynamic tags for {} static tags. Consider adding more dynamic tags for civil wars.", dynamic_count, static_count),
+                    code: "HOM5002".to_string(),
+                    fix_suggestion: None,
+                    related_information: vec![],
+                    tags: vec![],
+                });
+            }
+        }
         advanced_validation::validate_building_levels(
             &script.entries,
             &buildings,

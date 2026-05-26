@@ -29,6 +29,7 @@ pub struct CountryTag {
     pub name: String,
     pub path: String,
     pub range: ast::Range,
+    pub dynamic: bool,
 }
 
 pub fn scan_country_tags<F>(roots: &[PathBuf], filter: &F) -> HashMap<String, CountryTag>
@@ -52,9 +53,15 @@ where
                         continue;
                     }
                     if let Ok(content) = fs::read_to_string(&file_path) {
+                        let mut dynamic_mode = false;
                         for (line_idx, line) in content.lines().enumerate() {
                             let line = line.trim();
                             if line.is_empty() || line.starts_with('#') {
+                                continue;
+                            }
+                            // Check for dynamic_tags = yes
+                            if line.to_lowercase().starts_with("dynamic_tags") {
+                                dynamic_mode = line.to_lowercase().contains("= yes");
                                 continue;
                             }
                             // Format: TAG = "countries/TAG - Name.txt"
@@ -75,6 +82,7 @@ where
                                             end_line: line_no,
                                             end_col: 0,
                                         },
+                                        dynamic: dynamic_mode,
                                     });
                                 }
                             }
@@ -114,6 +122,7 @@ where
                                         end_line: 0,
                                         end_col: 0,
                                     },
+                                    dynamic: false,
                                 });
                             }
                         }
@@ -152,6 +161,7 @@ where
                                         end_line: 0,
                                         end_col: 0,
                                     },
+                                    dynamic: false,
                                 });
                             }
                         }
