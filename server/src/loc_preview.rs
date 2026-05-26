@@ -73,40 +73,23 @@ pub fn paradox_to_markdown(
 
     for cap in re_scope.captures_iter(&resolved) {
         let m = cap.get(0).unwrap();
-        let is_escaped = if m.start() > 0 {
-            let preceding_bs = &resolved.as_bytes()[..m.start()];
-            let bs_count = preceding_bs
-                .iter()
-                .rev()
-                .take_while(|&&b| b == b'\\')
-                .count();
-            bs_count % 2 == 1
-        } else {
-            false
-        };
-
         scope_result.push_str(&resolved[last_scope_end..m.start()]);
+        let inner = cap.get(1).unwrap().as_str();
 
-        if is_escaped {
-            scope_result.push_str(m.as_str());
-        } else {
-            let inner = cap.get(1).unwrap().as_str();
-
-            if inner.contains('?') && inner.contains(':') {
-                scope_result.push_str(&format!("**[Condition: {}]**", inner));
-            } else if let Some(var_inner) = inner.strip_prefix('?') {
-                if let Some(pipe_pos) = var_inner.find('|') {
-                    scope_result.push_str(&format!("**[Variable: {}]**", &var_inner[..pipe_pos]));
-                } else {
-                    scope_result.push_str(&format!("**[Variable: {}]**", var_inner));
-                }
-            } else if inner.find('|').is_some() {
-                scope_result.push_str(&format!("**[Format: {}]**", inner));
-            } else if inner.contains('.') || inner.chars().any(|c| c.is_uppercase()) {
-                scope_result.push_str(&format!("**[Scope: {}]**", inner));
+        if inner.contains('?') && inner.contains(':') {
+            scope_result.push_str(&format!("**[Condition: {}]**", inner));
+        } else if let Some(var_inner) = inner.strip_prefix('?') {
+            if let Some(pipe_pos) = var_inner.find('|') {
+                scope_result.push_str(&format!("**[Variable: {}]**", &var_inner[..pipe_pos]));
             } else {
-                scope_result.push_str(&format!("**[{}]**", inner));
+                scope_result.push_str(&format!("**[Variable: {}]**", var_inner));
             }
+        } else if inner.find('|').is_some() {
+            scope_result.push_str(&format!("**[Format: {}]**", inner));
+        } else if inner.contains('.') || inner.chars().any(|c| c.is_uppercase()) {
+            scope_result.push_str(&format!("**[Scope: {}]**", inner));
+        } else {
+            scope_result.push_str(&format!("**[{}]**", inner));
         }
 
         last_scope_end = m.end();
@@ -114,10 +97,6 @@ pub fn paradox_to_markdown(
 
     scope_result.push_str(&resolved[last_scope_end..]);
     resolved = scope_result;
-
-    // Strip escape backslashes from brackets that were kept as-is, so
-    // \[text\] displays as [text] instead of \[text\] in the preview.
-    resolved = resolved.replace("\\[", "[").replace("\\]", "]");
 
     let re_color = regex::Regex::new(r"§([a-zA-Z0-9!])").unwrap();
     let mut last_end = 0;
@@ -282,19 +261,6 @@ pub fn find_identifier_in_loc(content: &str, pos: Position) -> Option<String> {
     let re_scope = regex::Regex::new(r"\[([^\]]+)\]").unwrap();
     for cap in re_scope.captures_iter(line) {
         let m = cap.get(0).unwrap();
-
-        // Skip escaped brackets \[...\]
-        if m.start() > 0 {
-            let preceding_bs = &line.as_bytes()[..m.start()];
-            let bs_count = preceding_bs
-                .iter()
-                .rev()
-                .take_while(|&&b| b == b'\\')
-                .count();
-            if bs_count % 2 == 1 {
-                continue;
-            }
-        }
 
         if char_offset >= m.start() && char_offset < m.end() {
             let inner = cap.get(1).unwrap().as_str();

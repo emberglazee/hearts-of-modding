@@ -237,12 +237,24 @@ pub fn validate_loc_string(
         let mut inner = cap.get(1).unwrap().as_str();
         let start_pos = full_match.start();
 
-        // Skip already-escaped brackets \[...\]
+        // Warn about backslash before bracket — HOI4 does not recognize \[ as an escape
         if start_pos > 0 {
-            let preceding = &entry.value[..start_pos];
-            let backslash_count = preceding.bytes().rev().take_while(|b| *b == b'\\').count();
-            if backslash_count % 2 == 1 {
-                continue;
+            let preceding_char = entry.value[..start_pos].chars().last();
+            if preceding_char == Some('\\') {
+                let range = Range {
+                    start_line: entry.range.start_line,
+                    start_col: entry.value_start_col + start_pos as u32,
+                    end_line: entry.range.start_line,
+                    end_col: entry.value_start_col + start_pos as u32 + 1,
+                };
+                diagnostics.push(LocDiagnostic {
+                    range,
+                    message: "Backslash-escaped square bracket (\\) is not valid in HOI4. The game will treat \\ as an illegal break character and still attempt to parse [..]. Remove the backslash.".to_string(),
+                    severity: DiagnosticSeverity::Warning,
+                    code: Some("escaped_bracket".to_string()),
+                    related_information: Vec::new(),
+                    tags: Vec::new(),
+                });
             }
         }
 
@@ -372,8 +384,8 @@ pub fn validate_loc_string(
                 diagnostics.push(LocDiagnostic {
                     range,
                     message: format!(
-                        "Unrecognized '{}' scope or command in square brackets. If you intended literal text, escape with backslashes (\\[{}\\]). The game displays either form correctly, but escaping makes intent clear.",
-                        part, part
+                        "Unrecognized '{}' scope or command in square brackets. If you intended literal text, note that HOI4 does not support backslash-escaping — use a different approach (e.g., concatenation or rewriting).",
+                        part,
                     ),
                     severity: DiagnosticSeverity::Information,
                     code: Some("invalid_loc_scope".to_string()),
@@ -394,10 +406,7 @@ pub fn validate_loc_string(
                     end_line: entry.range.start_line,
                     end_col: entry.value_start_col + start_pos as u32 + 2 + inner.len() as u32,
                 },
-                message: format!(
-                    "Entirely unrecognized bracket content. Escape with backslashes to display literally: \\[{}]",
-                    inner
-                ),
+                message: "Entirely unrecognized bracket content. Backslash-escaping is not valid in HOI4; remove the brackets or rewrite the text.".to_string(),
                 severity: DiagnosticSeverity::Hint,
                 code: Some("unescaped_bracket".to_string()),
                 related_information: Vec::new(),

@@ -8,6 +8,10 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **AST cache**: Eliminated the bottleneck of having one document be parsed multiple times every single change in the document. Now it is parsed only once per change into the in-memory AST cache.
 
+### Fixed
+
+- **Undo escaped square brackets (>v0.8.0):** Anything other than newlines (`\n`) and escaped double quotes (`\"`) is considered invalid escape sequences by the HOI4 parser, this includes square brackets. The code action to escape square brackets was removed, and the diagnostic message was changed to reflect this.
+
 ## [v0.9.0] - 2026-05-26
 
 ### Added

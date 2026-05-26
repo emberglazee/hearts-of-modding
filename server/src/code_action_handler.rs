@@ -18,7 +18,7 @@ impl Backend {
         let mut has_brace_space_diagnostic = false;
         let mut has_unnecessary_version_diagnostic = false;
         let mut has_unescaped_quote_diagnostic = false;
-        let mut has_unescaped_bracket_diagnostic = false;
+
         let mut has_eof_newline_diagnostic = false;
 
         for diagnostic in &params.context.diagnostics {
@@ -278,47 +278,6 @@ impl Backend {
                             is_preferred: Some(true),
                             ..Default::default()
                         }));
-                    } else if code == "unescaped_bracket" {
-                        has_unescaped_bracket_diagnostic = true;
-                        if let Some(content) =
-                            self.documents.get(&params.text_document.uri.to_string())
-                        {
-                            let line_idx = diagnostic.range.start.line as usize;
-                            if let Some(line) = content.lines().nth(line_idx) {
-                                let chars: Vec<char> = line.chars().collect();
-                                let start_char = diagnostic.range.start.character as usize;
-                                let end_char = diagnostic.range.end.character as usize;
-
-                                if start_char < chars.len() && end_char <= chars.len() {
-                                    let bracket_text: String =
-                                        chars[start_char..end_char].iter().collect();
-                                    let escaped =
-                                        bracket_text.replace('[', r"\[").replace(']', r"\]");
-
-                                    let mut changes = HashMap::new();
-                                    changes.insert(
-                                        params.text_document.uri.clone(),
-                                        vec![TextEdit {
-                                            range: diagnostic.range,
-                                            new_text: escaped,
-                                        }],
-                                    );
-
-                                    actions.push(CodeActionOrCommand::CodeAction(CodeAction {
-                                        title: "Escape square brackets with backslashes"
-                                            .to_string(),
-                                        kind: Some(CodeActionKind::QUICKFIX),
-                                        edit: Some(WorkspaceEdit {
-                                            changes: Some(changes),
-                                            ..Default::default()
-                                        }),
-                                        diagnostics: Some(vec![diagnostic.clone()]),
-                                        is_preferred: Some(true),
-                                        ..Default::default()
-                                    }));
-                                }
-                            }
-                        }
                     } else if code == "styling_indent" {
                         has_mixed_indentation_diagnostic = true;
                         if let Some(content) =
@@ -632,64 +591,6 @@ impl Backend {
             }
         }
 
-        // Add "Escape all unescaped brackets" if any such diagnostic is present
-        if has_unescaped_bracket_diagnostic {
-            if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
-                let path_str = params
-                    .text_document
-                    .uri
-                    .to_file_path()
-                    .unwrap_or_default()
-                    .to_string_lossy()
-                    .to_string();
-                let (parsed, _, _) = loc_parser::parse_loc_file(&content, &path_str);
-                let event_targets = self.scanner_data.event_targets();
-                let scripted_locs = self.scanner_data.scripted_locs();
-                let mut edits = Vec::new();
-
-                for entry in parsed.values() {
-                    let diagnostics =
-                        loc_parser::validate_loc_string(entry, &event_targets, &scripted_locs);
-                    for d in diagnostics {
-                        if d.code.as_deref() == Some("unescaped_bracket") {
-                            let lsp_range = ast_range_to_lsp(&d.range);
-                            let line_idx = lsp_range.start.line as usize;
-                            if let Some(line) = content.lines().nth(line_idx) {
-                                let chars: Vec<char> = line.chars().collect();
-                                let start_char = lsp_range.start.character as usize;
-                                let end_char = lsp_range.end.character as usize;
-                                if start_char < chars.len() && end_char <= chars.len() {
-                                    let bracket_text: String =
-                                        chars[start_char..end_char].iter().collect();
-                                    let escaped =
-                                        bracket_text.replace('[', r"\[").replace(']', r"\]");
-                                    edits.push(TextEdit {
-                                        range: lsp_range,
-                                        new_text: escaped,
-                                    });
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if !edits.is_empty() {
-                    let mut changes = HashMap::new();
-                    changes.insert(params.text_document.uri.clone(), edits);
-                    actions.push(CodeActionOrCommand::CodeAction(CodeAction {
-                        title: "Escape all unescaped square brackets in this file".to_string(),
-                        kind: Some(CodeActionKind::QUICKFIX),
-                        edit: Some(WorkspaceEdit {
-                            changes: Some(changes),
-                            ..Default::default()
-                        }),
-                        is_preferred: Some(false),
-                        ..Default::default()
-                    }));
-                }
-            }
-        }
-
         let has_any_styling_diagnostic = has_casing_diagnostic
             || has_trailing_whitespace_diagnostic
             || has_mixed_indentation_diagnostic
@@ -697,7 +598,6 @@ impl Backend {
             || has_brace_space_diagnostic
             || has_unnecessary_version_diagnostic
             || has_unescaped_quote_diagnostic
-            || has_unescaped_bracket_diagnostic
             || has_eof_newline_diagnostic;
 
         if has_any_styling_diagnostic {
@@ -809,34 +709,6 @@ impl Backend {
                             range: ast_range_to_lsp(&d.range),
                             new_text: "\\\"".to_string(),
                         });
-                    }
-
-                    let event_targets = self.scanner_data.event_targets();
-                    let scripted_locs = self.scanner_data.scripted_locs();
-                    for entry in parsed.values() {
-                        let bracket_diagnostics =
-                            loc_parser::validate_loc_string(entry, &event_targets, &scripted_locs);
-                        for d in bracket_diagnostics {
-                            if d.code.as_deref() == Some("unescaped_bracket") {
-                                let lsp_range = ast_range_to_lsp(&d.range);
-                                let line_idx = lsp_range.start.line as usize;
-                                if let Some(line) = content.lines().nth(line_idx) {
-                                    let chars: Vec<char> = line.chars().collect();
-                                    let start_char = lsp_range.start.character as usize;
-                                    let end_char = lsp_range.end.character as usize;
-                                    if start_char < chars.len() && end_char <= chars.len() {
-                                        let bracket_text: String =
-                                            chars[start_char..end_char].iter().collect();
-                                        let escaped =
-                                            bracket_text.replace('[', r"\[").replace(']', r"\]");
-                                        all_changes.push(TextEdit {
-                                            range: lsp_range,
-                                            new_text: escaped,
-                                        });
-                                    }
-                                }
-                            }
-                        }
                     }
 
                     if !all_changes.is_empty() {
