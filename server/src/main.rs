@@ -5,6 +5,7 @@ mod ability_scanner;
 mod achievement_scanner;
 mod adjacency_scanner;
 mod advanced_validation;
+mod ai_area_scanner;
 mod ai_strategy_plan_scanner;
 mod ast;
 mod building_scanner;
@@ -14,6 +15,7 @@ mod code_action_handler;
 mod color_utils;
 mod completion_handler;
 mod config;
+mod continent_scanner;
 mod country_scanner;
 mod csv_parser;
 mod defines_parser;
@@ -260,6 +262,8 @@ impl LanguageServer for Backend {
             self.scan_sounds(&roots),
             self.scan_abilities(&roots),
             self.scan_ai_strategy_plans(&roots),
+            self.scan_ai_areas(&roots),
+            self.scan_continents(&roots),
             self.scan_portraits(&roots),
             self.scan_countries(&roots),
         );
@@ -454,11 +458,16 @@ impl LanguageServer for Backend {
                 keywords.insert("planned_production".to_string());
                 keywords.insert("technologies".to_string());
 
+                // AI area keywords
+                keywords.insert("continents".to_string());
+                keywords.insert("strategic_regions".to_string());
+
                 let lookup = entity_lookup::EntityLookup::new(&self.scanner_data);
                 let all_names = lookup.entity_names();
 
                 let mut ability_names = HashSet::new();
                 let mut strategy_plan_names = HashSet::new();
+                let mut ai_area_names = HashSet::new();
                 let mut portrait_names = HashSet::new();
                 let mut character_names = HashSet::new();
                 let mut ideology_types = HashSet::new();
@@ -474,6 +483,9 @@ impl LanguageServer for Backend {
                         }
                         entity_lookup::EntityKind::AiStrategyPlan => {
                             strategy_plan_names.insert(name);
+                        }
+                        entity_lookup::EntityKind::AiArea => {
+                            ai_area_names.insert(name);
                         }
                         entity_lookup::EntityKind::Portrait => {
                             portrait_names.insert(name);
@@ -505,6 +517,7 @@ impl LanguageServer for Backend {
                     &keywords,
                     &ability_names,
                     &strategy_plan_names,
+                    &ai_area_names,
                     &portrait_names,
                     &character_names,
                     &ideology_types,
@@ -2368,6 +2381,10 @@ impl Backend {
         };
         let mut scope_stack = scope::ScopeStack::new(initial_scope);
 
+        // Load AI area validation data
+        let continents = self.scanner_data.continents();
+        let strategic_regions = self.scanner_data.strategic_regions();
+
         // Run advanced validations
         let mut advanced_diags = Vec::new();
 
@@ -2445,6 +2462,86 @@ impl Backend {
                 data: diag.fix_suggestion.map(|s| serde_json::json!({ "fix": s })),
                 ..Default::default()
             });
+        }
+
+        // AI area validation: verify continents and strategic regions exist when editing AI area files
+        if uri.contains("/common/ai_areas/") || uri.contains("\\common\\ai_areas\\") {
+            for entry in &script.entries {
+                if let ast::Entry::Assignment(ass) = entry {
+                    if let ast::Value::Block(inner_entries) = &ass.value.value {
+                        for inner in inner_entries {
+                            if let ast::Entry::Assignment(inner_ass) = inner {
+                                match inner_ass.key.as_str() {
+                                    "continents" => {
+                                        if let ast::Value::Block(cont_entries) =
+                                            &inner_ass.value.value
+                                        {
+                                            for ce in cont_entries {
+                                                if let ast::Entry::Value(val) = ce {
+                                                    if let ast::Value::String(name) = &val.value {
+                                                        if !continents.contains_key(name) {
+                                                            diagnostics.push(Diagnostic {
+                                                                range: ast_range_to_lsp(&val.range),
+                                                                severity: Some(
+                                                                    DiagnosticSeverity::WARNING,
+                                                                ),
+                                                                message: format!(
+                                                                    "Unknown continent: '{}'",
+                                                                    name
+                                                                ),
+                                                                code: Some(NumberOrString::String(
+                                                                    "HOM6001".to_string(),
+                                                                )),
+                                                                source: Some(
+                                                                    "Hearts of Modding".to_string(),
+                                                                ),
+                                                                ..Default::default()
+                                                            });
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    "strategic_regions" => {
+                                        if let ast::Value::Block(sr_entries) =
+                                            &inner_ass.value.value
+                                        {
+                                            for se in sr_entries {
+                                                if let ast::Entry::Value(val) = se {
+                                                    if let ast::Value::Number(n) = &val.value {
+                                                        let id = *n as u32;
+                                                        if !strategic_regions.contains_key(&id) {
+                                                            diagnostics.push(Diagnostic {
+                                                                range: ast_range_to_lsp(&val.range),
+                                                                severity: Some(
+                                                                    DiagnosticSeverity::WARNING,
+                                                                ),
+                                                                message: format!(
+                                                                    "Unknown strategic region: {}",
+                                                                    id
+                                                                ),
+                                                                code: Some(NumberOrString::String(
+                                                                    "HOM6002".to_string(),
+                                                                )),
+                                                                source: Some(
+                                                                    "Hearts of Modding".to_string(),
+                                                                ),
+                                                                ..Default::default()
+                                                            });
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    _ => {}
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         for entry in &script.entries {

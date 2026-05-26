@@ -11,6 +11,7 @@ pub fn get_semantic_tokens(
     keywords: &HashSet<String>,
     abilities: &HashSet<String>,
     strategy_plans: &HashSet<String>,
+    ai_areas: &HashSet<String>,
     portrait_names: &HashSet<String>,
     character_names: &HashSet<String>,
     ideology_types: &HashSet<String>,
@@ -27,6 +28,7 @@ pub fn get_semantic_tokens(
             keywords,
             abilities,
             strategy_plans,
+            ai_areas,
             portrait_names,
             character_names,
             ideology_types,
@@ -83,6 +85,7 @@ fn push_entry_tokens(
     keywords: &HashSet<String>,
     abilities: &HashSet<String>,
     strategy_plans: &HashSet<String>,
+    ai_areas: &HashSet<String>,
     portrait_names: &HashSet<String>,
     character_names: &HashSet<String>,
     ideology_types: &HashSet<String>,
@@ -97,6 +100,7 @@ fn push_entry_tokens(
             let is_keyword = keywords.contains(&ass.key);
             let is_ability = abilities.contains(&ass.key);
             let is_strategy_plan = strategy_plans.contains(&ass.key);
+            let is_ai_area = ai_areas.contains(&ass.key);
             let is_portrait = portrait_names.contains(&ass.key);
             let is_character = character_names.contains(&ass.key);
             let is_achievement = achievement_names.contains(&ass.key);
@@ -110,6 +114,7 @@ fn push_entry_tokens(
                 });
             } else if is_ability
                 || is_strategy_plan
+                || is_ai_area
                 || is_portrait
                 || is_character
                 || is_achievement
@@ -137,6 +142,7 @@ fn push_entry_tokens(
                 keywords,
                 abilities,
                 strategy_plans,
+                ai_areas,
                 portrait_names,
                 character_names,
                 ideology_types,
@@ -154,6 +160,7 @@ fn push_entry_tokens(
                 keywords,
                 abilities,
                 strategy_plans,
+                ai_areas,
                 portrait_names,
                 character_names,
                 ideology_types,
@@ -181,6 +188,7 @@ fn push_value_tokens(
     keywords: &HashSet<String>,
     abilities: &HashSet<String>,
     strategy_plans: &HashSet<String>,
+    ai_areas: &HashSet<String>,
     portrait_names: &HashSet<String>,
     character_names: &HashSet<String>,
     ideology_types: &HashSet<String>,
@@ -205,6 +213,7 @@ fn push_value_tokens(
             } else if !is_localization_value
                 && (abilities.contains(s)
                     || strategy_plans.contains(s)
+                    || ai_areas.contains(s)
                     || portrait_names.contains(s)
                     || character_names.contains(s)
                     || ideology_types.contains(s)
@@ -252,6 +261,7 @@ fn push_value_tokens(
                     keywords,
                     abilities,
                     strategy_plans,
+                    ai_areas,
                     portrait_names,
                     character_names,
                     ideology_types,
@@ -277,6 +287,7 @@ fn push_value_tokens(
                     keywords,
                     abilities,
                     strategy_plans,
+                    ai_areas,
                     portrait_names,
                     character_names,
                     ideology_types,

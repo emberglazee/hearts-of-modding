@@ -19,6 +19,7 @@ pub enum EntityKind {
     Event,
     Ability,
     Achievement,
+    AiArea,
     Variable,
     EventTarget,
     CustomModifier,
@@ -76,6 +77,7 @@ impl EntityKind {
             EntityKind::StrategicRegion => SymbolKind::OBJECT,
             EntityKind::Portrait => SymbolKind::FILE,
             EntityKind::Building => SymbolKind::OBJECT,
+            EntityKind::AiArea => SymbolKind::CLASS,
             EntityKind::AiStrategyPlan => SymbolKind::CLASS,
             EntityKind::Province => SymbolKind::NUMBER,
             EntityKind::State => SymbolKind::OBJECT,
@@ -155,6 +157,7 @@ impl<'a> EntityLookup<'a> {
         try_lookup!(Event, events);
         try_lookup!(Ability, abilities);
         try_lookup!(Achievement, achievements);
+        try_lookup!(AiArea, ai_areas);
 
         {
             let map = self.data.variables();
@@ -304,6 +307,7 @@ impl<'a> EntityLookup<'a> {
         }
 
         collect_names!(Achievement, achievements);
+        collect_names!(AiArea, ai_areas);
         collect_names!(Event, events);
         collect_names!(ScriptedTrigger, scripted_triggers);
         collect_names!(ScriptedEffect, scripted_effects);
@@ -663,6 +667,7 @@ impl<'a> EntityLookup<'a> {
         push_symbols!(SoundCategory, sound_categories, "Sound Category");
         push_symbols!(Character, characters, "Character");
         push_symbols!(Ability, abilities, "Ability");
+        push_symbols!(AiArea, ai_areas, "AI Area");
         push_symbols!(AiStrategyPlan, ai_strategy_plans, "AI Strategy Plan");
         push_symbols!(CountryTag, country_tags, "Country Tag");
         push_symbols!(Portrait, portraits, "Portrait");

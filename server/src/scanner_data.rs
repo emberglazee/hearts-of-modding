@@ -1,10 +1,12 @@
 use crate::ability_scanner;
 use crate::achievement_scanner;
 use crate::adjacency_scanner;
+use crate::ai_area_scanner;
 use crate::ai_strategy_plan_scanner;
 use crate::ast;
 use crate::building_scanner;
 use crate::character_scanner;
+use crate::continent_scanner;
 use crate::country_scanner;
 use crate::defines_parser;
 use crate::event_scanner;
@@ -72,6 +74,8 @@ pub(crate) struct ScannerData {
     abilities_field: Arc<ArcSwap<HashMap<String, ability_scanner::Ability>>>,
     ai_strategy_plans_field:
         Arc<ArcSwap<HashMap<String, ai_strategy_plan_scanner::AiStrategyPlan>>>,
+    ai_areas_field: Arc<ArcSwap<HashMap<String, ai_area_scanner::AiArea>>>,
+    continents_field: Arc<ArcSwap<HashMap<String, continent_scanner::Continent>>>,
     portraits_field: Arc<ArcSwap<HashMap<String, portrait_scanner::Portrait>>>,
     scripted_locs_field: Arc<ArcSwap<HashMap<String, scripted_loc_scanner::ScriptedLoc>>>,
     duplicated_loc_keys_field: Arc<ArcSwap<HashSet<(String, String)>>>,
@@ -119,6 +123,8 @@ impl ScannerData {
             defines_field: Arc::new(ArcSwap::from_pointee(defines_parser::GameDefines::new())),
             abilities_field: Arc::new(ArcSwap::from_pointee(HashMap::new())),
             ai_strategy_plans_field: Arc::new(ArcSwap::from_pointee(HashMap::new())),
+            ai_areas_field: Arc::new(ArcSwap::from_pointee(HashMap::new())),
+            continents_field: Arc::new(ArcSwap::from_pointee(HashMap::new())),
             portraits_field: Arc::new(ArcSwap::from_pointee(HashMap::new())),
             scripted_locs_field: Arc::new(ArcSwap::from_pointee(HashMap::new())),
             duplicated_loc_keys_field: Arc::new(ArcSwap::from_pointee(HashSet::new())),
@@ -164,6 +170,8 @@ impl ScannerData {
     scanner_field!(defines, defines_parser::GameDefines);
     scanner_field!(abilities, HashMap<String, ability_scanner::Ability>);
     scanner_field!(ai_strategy_plans, HashMap<String, ai_strategy_plan_scanner::AiStrategyPlan>);
+    scanner_field!(ai_areas, HashMap<String, ai_area_scanner::AiArea>);
+    scanner_field!(continents, HashMap<String, continent_scanner::Continent>);
     scanner_field!(portraits, HashMap<String, portrait_scanner::Portrait>);
     scanner_field!(scripted_locs, HashMap<String, scripted_loc_scanner::ScriptedLoc>);
     scanner_field!(duplicated_loc_keys, HashSet<(String, String)>);

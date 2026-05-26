@@ -2,9 +2,11 @@ use crate::Backend;
 use crate::ability_scanner;
 use crate::achievement_scanner;
 use crate::adjacency_scanner;
+use crate::ai_area_scanner;
 use crate::ai_strategy_plan_scanner;
 use crate::building_scanner;
 use crate::character_scanner;
+use crate::continent_scanner;
 use crate::country_scanner;
 use crate::defines_parser;
 use crate::event_scanner;
@@ -215,6 +217,49 @@ impl Backend {
             .log_message(
                 MessageType::INFO,
                 format!("Total: Loaded {} AI strategy plans", p.len()),
+            )
+            .await;
+    }
+
+    pub(crate) async fn scan_ai_areas(&self, roots: &[std::path::PathBuf]) {
+        let filter = self.get_sync_filter();
+        let roots_owned = roots.to_vec();
+        let areas = tokio::task::spawn_blocking(move || {
+            ai_area_scanner::scan_ai_areas(&roots_owned, &filter)
+        })
+        .await
+        .unwrap();
+
+        self.scanner_data.set_ai_areas(areas);
+        let a = self.scanner_data.ai_areas();
+
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!("Total: Loaded {} AI areas", a.len()),
+            )
+            .await;
+    }
+
+    pub(crate) async fn scan_continents(&self, roots: &[std::path::PathBuf]) {
+        let roots_owned = roots.to_vec();
+        let result = tokio::task::spawn_blocking(move || {
+            let mut all_continents = std::collections::HashMap::new();
+            for root in &roots_owned {
+                all_continents.extend(continent_scanner::scan_continents(root));
+            }
+            all_continents
+        })
+        .await
+        .unwrap();
+
+        self.scanner_data.set_continents(result);
+        let c = self.scanner_data.continents();
+
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!("Total: Loaded {} continent definitions", c.len()),
             )
             .await;
     }
