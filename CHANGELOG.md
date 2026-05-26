@@ -8,6 +8,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Major LSP refactor:** Continued LSP refactors to increase modularity and improve maintainability.
 
+- **Improved Scripted Trigger and Effect Semantic Highlighting**: Now correctly highlights scripted triggers and effects, the same as custom advancemenets, characters, etc.
+
 ## [v0.8.1] - 2026-05-26
 
 ### Added

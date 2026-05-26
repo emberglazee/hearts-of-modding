@@ -461,6 +461,8 @@ impl LanguageServer for Backend {
                 let mut character_names = HashSet::new();
                 let mut ideology_types = HashSet::new();
                 let mut achievement_names = HashSet::new();
+                let mut scripted_trigger_names = HashSet::new();
+                let mut scripted_effect_names = HashSet::new();
 
                 for (name, kind) in all_names {
                     match kind {
@@ -470,12 +472,14 @@ impl LanguageServer for Backend {
                         entity_lookup::EntityKind::Character => { character_names.insert(name); }
                         entity_lookup::EntityKind::SubIdeology => { ideology_types.insert(name); }
                         entity_lookup::EntityKind::Achievement => { achievement_names.insert(name); }
+                        entity_lookup::EntityKind::ScriptedTrigger => { scripted_trigger_names.insert(name); }
+                        entity_lookup::EntityKind::ScriptedEffect => { scripted_effect_names.insert(name); }
                         _ => {}
                     }
                 }
 
                 Ok(Some(semantic_tokens::get_semantic_tokens(
-                    &script, &keywords, &ability_names, &strategy_plan_names, &portrait_names, &character_names, &ideology_types, &achievement_names,
+                    &script, &keywords, &ability_names, &strategy_plan_names, &portrait_names, &character_names, &ideology_types, &achievement_names, &scripted_trigger_names, &scripted_effect_names,
                 )))
             }
             _ => Ok(None),
