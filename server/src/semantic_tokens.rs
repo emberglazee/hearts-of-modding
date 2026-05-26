@@ -95,6 +95,7 @@ fn push_entry_tokens(
                     token_type: 0,
                 });
             } else if is_ability || is_strategy_plan || is_portrait || is_character || is_achievement
+                || country_tags.contains(&ass.key)
                 || scripted_triggers.contains(&ass.key) || scripted_effects.contains(&ass.key)
             {
                 tokens.push(RawToken {

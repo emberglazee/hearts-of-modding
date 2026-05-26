@@ -87,7 +87,16 @@ impl Scope {
             "character" | "any_character" | "every_character" | "random_character"
             | "any_unit_leader" | "any_army_leader" | "any_navy_leader" => Scope::Character,
             _ => {
-                if s.len() == 3 && s.chars().all(|c| c.is_ascii_alphabetic()) {
+                // HOI4 tags: 3 chars, first uppercase alphabetic, rest uppercase alphanumeric.
+                // Reserved words (NOT, AND, TAG, OOB, LOG, NUM, RED) excluded.
+                const RESERVED: [&str; 7] = ["NOT", "AND", "TAG", "OOB", "LOG", "NUM", "RED"];
+                if s.len() == 3
+                    && s.as_bytes()[0].is_ascii_alphabetic()
+                    && s.as_bytes()[0].is_ascii_uppercase()
+                    && s.as_bytes()[1].is_ascii_alphanumeric()
+                    && s.as_bytes()[2].is_ascii_alphanumeric()
+                    && !RESERVED.contains(&s)
+                {
                     Scope::Country
                 } else {
                     Scope::Unknown

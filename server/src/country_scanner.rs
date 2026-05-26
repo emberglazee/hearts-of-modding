@@ -4,6 +4,25 @@ use std::path::PathBuf;
 
 use crate::ast;
 
+/// HOI4 country tags: 3 chars, first char uppercase alphabetic, rest uppercase
+/// alphanumeric. Reserved words (NOT, AND, TAG, OOB, LOG, NUM, RED) and
+/// entirely-numeric tags are not valid.
+/// Examples: GER, D01, SOV, B42, USA
+const RESERVED_TAGS: [&str; 7] = ["NOT", "AND", "TAG", "OOB", "LOG", "NUM", "RED"];
+
+fn is_valid_tag(s: &str) -> bool {
+    if s.len() != 3 {
+        return false;
+    }
+    let bytes = s.as_bytes();
+    bytes[0].is_ascii_alphabetic()
+        && bytes[0].is_ascii_uppercase()
+        && bytes[1].is_ascii_alphanumeric()
+        && bytes[2].is_ascii_alphanumeric()
+        && !RESERVED_TAGS.contains(&s)
+        && !(bytes[1].is_ascii_digit() && bytes[2].is_ascii_digit()) // not entirely numeric (already covered by first char check but explicit)
+}
+
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct CountryTag {
@@ -42,7 +61,7 @@ where
                             // Format: TAG = "countries/TAG - Name.txt"
                             if let Some(eq_pos) = line.find('=') {
                                 let tag = line[..eq_pos].trim().to_uppercase();
-                                if tag.len() == 3 && tag.chars().all(|c| c.is_ascii_alphabetic()) {
+                                if is_valid_tag(&tag) {
                                     let rest = line[eq_pos + 1..].trim().trim_matches('"');
                                     let name = extract_country_name(rest);
                                     let source_path = file_path.to_string_lossy().to_string();
@@ -83,7 +102,7 @@ where
                         let stem = stem.to_string_lossy();
                         if stem.len() >= 4 && stem.as_bytes()[3] == b'-' {
                             let tag = stem[..3].to_uppercase();
-                            if tag.chars().all(|c| c.is_ascii_alphabetic()) {
+                            if is_valid_tag(&tag) {
                                 let name = stem[4..].trim().to_string();
                                 let source_path = file_path.to_string_lossy().to_string();
                                 tags.entry(tag.clone()).or_insert_with(|| CountryTag {
@@ -121,7 +140,7 @@ where
                         let stem = stem.to_string_lossy();
                         if stem.len() >= 4 && stem.as_bytes()[3] == b'-' {
                             let tag = stem[..3].to_uppercase();
-                            if tag.chars().all(|c| c.is_ascii_alphabetic()) {
+                            if is_valid_tag(&tag) {
                                 let name = stem[4..].trim().to_string();
                                 let source_path = file_path.to_string_lossy().to_string();
                                 tags.entry(tag.clone()).or_insert_with(|| CountryTag {

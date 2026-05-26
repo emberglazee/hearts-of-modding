@@ -2908,8 +2908,18 @@ impl Backend {
                                 | "OWNER" | "CONTROLLER" | "CAPITAL"
                         );
                         let is_var_ref = val.starts_with("var:");
-                        if !is_scope_ref && !is_var_ref && val.len() == 3
-                            && val.chars().all(|c| c.is_ascii_alphabetic())
+                        let b = val.as_bytes();
+                        let looks_like_tag = val.len() == 3
+                            && b[0].is_ascii_alphabetic()
+                            && b[0].is_ascii_uppercase()
+                            && b[1].is_ascii_alphanumeric()
+                            && b[2].is_ascii_alphanumeric()
+                            && !matches!(
+                                val.as_str(),
+                                "NOT" | "AND" | "TAG" | "OOB" | "LOG" | "NUM" | "RED"
+                            );
+
+                        if !is_scope_ref && !is_var_ref && looks_like_tag
                             && !ct.contains_key(val)
                         {
                             diagnostics.push(Diagnostic {
