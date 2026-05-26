@@ -6,6 +6,7 @@ use crate::portrait_scanner;
 use crate::Backend;
 use crate::building_scanner;
 use crate::character_scanner;
+use crate::country_scanner;
 use crate::defines_parser;
 use crate::event_scanner;
 use crate::idea_scanner;
@@ -754,6 +755,24 @@ impl Backend {
             .log_message(
                 MessageType::INFO,
                 format!("Total: Loaded {} ideas", i_map.len()),
+            )
+            .await;
+    }
+
+    pub(crate) async fn scan_countries(&self, roots: &[std::path::PathBuf]) {
+        let filter = self.get_sync_filter();
+        let roots_owned = roots.to_vec();
+        let result = tokio::task::spawn_blocking(move || {
+            country_scanner::scan_country_tags(&roots_owned, &filter)
+        })
+        .await
+        .unwrap();
+        self.scanner_data.set_country_tags(result);
+        let tags = self.scanner_data.country_tags();
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!("Loaded {} country tags", tags.len()),
             )
             .await;
     }

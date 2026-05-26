@@ -4,6 +4,10 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ## [v0.9.0] - 2026-05-26
 
+### Added
+
+- **Country Scanner:** Parse, validate, and syntax highlight country tags.
+
 ### Changed
 
 - **Major LSP refactor:** Continued LSP refactors to increase modularity and improve maintainability.

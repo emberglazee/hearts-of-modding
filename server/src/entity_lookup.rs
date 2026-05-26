@@ -44,6 +44,7 @@ pub enum EntityKind {
     Adjacency,
     Localization,
     ModifierMapping,
+    CountryTag,
 }
 
 impl EntityKind {
@@ -76,6 +77,7 @@ impl EntityKind {
             EntityKind::Adjacency => SymbolKind::OBJECT,
             EntityKind::Localization => SymbolKind::STRING,
             EntityKind::ModifierMapping => SymbolKind::PROPERTY,
+            EntityKind::CountryTag => SymbolKind::MODULE,
         }
     }
 }
@@ -193,6 +195,7 @@ impl<'a> EntityLookup<'a> {
         }
 
         try_lookup!(Portrait, portraits);
+        try_lookup!(CountryTag, country_tags);
         try_lookup!(Building, buildings);
         try_lookup!(AiStrategyPlan, ai_strategy_plans);
 
@@ -310,6 +313,7 @@ impl<'a> EntityLookup<'a> {
         collect_names!(SoundCategory, sound_categories);
         collect_names!(AdjacencyRule, adjacency_rules);
         collect_names!(Building, buildings);
+        collect_names!(CountryTag, country_tags);
 
         names
     }
@@ -610,6 +614,7 @@ impl<'a> EntityLookup<'a> {
         push_symbols!(Character, characters, "Character");
         push_symbols!(Ability, abilities, "Ability");
         push_symbols!(AiStrategyPlan, ai_strategy_plans, "AI Strategy Plan");
+        push_symbols!(CountryTag, country_tags, "Country Tag");
         push_symbols!(Portrait, portraits, "Portrait");
         push_symbols!(Building, buildings, "Building");
 

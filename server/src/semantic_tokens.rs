@@ -17,10 +17,11 @@ pub fn get_semantic_tokens(
     achievement_names: &HashSet<String>,
     scripted_triggers: &HashSet<String>,
     scripted_effects: &HashSet<String>,
+    country_tags: &HashSet<String>,
 ) -> SemanticTokensResult {
     let mut tokens = Vec::new();
     for entry in &script.entries {
-        push_entry_tokens(entry, &mut tokens, keywords, abilities, strategy_plans, portrait_names, character_names, ideology_types, achievement_names, scripted_triggers, scripted_effects, None);
+        push_entry_tokens(entry, &mut tokens, keywords, abilities, strategy_plans, portrait_names, character_names, ideology_types, achievement_names, scripted_triggers, scripted_effects, country_tags, None);
     }
 
     // Sort tokens by line and column
@@ -74,6 +75,7 @@ fn push_entry_tokens(
     achievement_names: &HashSet<String>,
     scripted_triggers: &HashSet<String>,
     scripted_effects: &HashSet<String>,
+    country_tags: &HashSet<String>,
     parent_key: Option<&str>,
 ) {
     match entry {
@@ -109,10 +111,10 @@ fn push_entry_tokens(
                 length: ass.operator_range.end_col - ass.operator_range.start_col,
                 token_type: 4,
             });
-            push_value_tokens(&ass.value, tokens, keywords, abilities, strategy_plans, portrait_names, character_names, ideology_types, achievement_names, scripted_triggers, scripted_effects, Some(&ass.key));
+            push_value_tokens(&ass.value, tokens, keywords, abilities, strategy_plans, portrait_names, character_names, ideology_types, achievement_names, scripted_triggers, scripted_effects, country_tags, Some(&ass.key));
         }
         Entry::Value(val) => {
-            push_value_tokens(val, tokens, keywords, abilities, strategy_plans, portrait_names, character_names, ideology_types, achievement_names, scripted_triggers, scripted_effects, parent_key);
+            push_value_tokens(val, tokens, keywords, abilities, strategy_plans, portrait_names, character_names, ideology_types, achievement_names, scripted_triggers, scripted_effects, country_tags, parent_key);
         }
         Entry::Comment(_, range) => {
             tokens.push(RawToken {
@@ -137,6 +139,7 @@ fn push_value_tokens(
     achievement_names: &HashSet<String>,
     scripted_triggers: &HashSet<String>,
     scripted_effects: &HashSet<String>,
+    country_tags: &HashSet<String>,
     parent_key: Option<&str>,
 ) {
     match &val.value {
@@ -154,6 +157,7 @@ fn push_value_tokens(
                 && (abilities.contains(s) || strategy_plans.contains(s) || portrait_names.contains(s)
                     || character_names.contains(s) || ideology_types.contains(s)
                     || achievement_names.contains(s)
+                    || country_tags.contains(s)
                     || scripted_triggers.contains(s) || scripted_effects.contains(s))
             {
                 tokens.push(RawToken {
@@ -189,7 +193,7 @@ fn push_value_tokens(
         }
         Value::Block(entries) => {
             for entry in entries {
-                push_entry_tokens(entry, tokens, keywords, abilities, strategy_plans, portrait_names, character_names, ideology_types, achievement_names, scripted_triggers, scripted_effects, parent_key);
+                push_entry_tokens(entry, tokens, keywords, abilities, strategy_plans, portrait_names, character_names, ideology_types, achievement_names, scripted_triggers, scripted_effects, country_tags, parent_key);
             }
         }
         Value::TaggedBlock(tag, entries, _) => {
@@ -200,7 +204,7 @@ fn push_value_tokens(
                 token_type: 0,
             });
             for entry in entries {
-                push_entry_tokens(entry, tokens, keywords, abilities, strategy_plans, portrait_names, character_names, ideology_types, achievement_names, scripted_triggers, scripted_effects, parent_key);
+                push_entry_tokens(entry, tokens, keywords, abilities, strategy_plans, portrait_names, character_names, ideology_types, achievement_names, scripted_triggers, scripted_effects, country_tags, parent_key);
             }
         }
     }

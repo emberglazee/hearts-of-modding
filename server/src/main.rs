@@ -10,6 +10,7 @@ mod ast;
 mod building_scanner;
 mod call_hierarchy;
 mod character_scanner;
+mod country_scanner;
 mod csv_parser;
 mod defines_parser;
 mod document_symbols;
@@ -259,6 +260,7 @@ impl LanguageServer for Backend {
             self.scan_abilities(&roots),
             self.scan_ai_strategy_plans(&roots),
             self.scan_portraits(&roots),
+            self.scan_countries(&roots),
         );
 
         // Collect workspace file paths for rename operations
@@ -463,6 +465,7 @@ impl LanguageServer for Backend {
                 let mut achievement_names = HashSet::new();
                 let mut scripted_trigger_names = HashSet::new();
                 let mut scripted_effect_names = HashSet::new();
+                let mut country_tag_names = HashSet::new();
 
                 for (name, kind) in all_names {
                     match kind {
@@ -474,12 +477,13 @@ impl LanguageServer for Backend {
                         entity_lookup::EntityKind::Achievement => { achievement_names.insert(name); }
                         entity_lookup::EntityKind::ScriptedTrigger => { scripted_trigger_names.insert(name); }
                         entity_lookup::EntityKind::ScriptedEffect => { scripted_effect_names.insert(name); }
+                        entity_lookup::EntityKind::CountryTag => { country_tag_names.insert(name); }
                         _ => {}
                     }
                 }
 
                 Ok(Some(semantic_tokens::get_semantic_tokens(
-                    &script, &keywords, &ability_names, &strategy_plan_names, &portrait_names, &character_names, &ideology_types, &achievement_names, &scripted_trigger_names, &scripted_effect_names,
+                    &script, &keywords, &ability_names, &strategy_plan_names, &portrait_names, &character_names, &ideology_types, &achievement_names, &scripted_trigger_names, &scripted_effect_names, &country_tag_names,
                 )))
             }
             _ => Ok(None),
@@ -2325,6 +2329,7 @@ impl Backend {
         let buildings = self.scanner_data.buildings();
         let defines = self.scanner_data.defines();
         let s_effects = self.scanner_data.sound_effects();
+        let ct = self.scanner_data.country_tags();
 
         let mut comments = Vec::new();
         for entry in &script.entries {
@@ -2410,6 +2415,7 @@ impl Backend {
                 styling_enabled,
                 &mut scope_stack,
                 &s_effects,
+                &ct,
             );
         }
     }
@@ -2433,6 +2439,7 @@ impl Backend {
         styling_enabled: bool,
         scope_stack: &mut scope::ScopeStack,
         s_effects: &HashMap<String, sound_scanner::SoundEffect>,
+        ct: &HashMap<String, country_scanner::CountryTag>,
     ) {
         match entry {
             ast::Entry::Assignment(ass) => {
@@ -2887,6 +2894,38 @@ impl Backend {
                     }
                 }
 
+                // Country tag checks
+                if (key_lower == "tag" && scope_stack.current() != scope::Scope::Idea)
+                    || key_lower == "original_tag"
+                    || key_lower == "original_tag_to_check"
+                {
+                    if let ast::Value::String(val) = &ass.value.value {
+                        // Allow scope references (ROOT, FROM, PREV, etc.)
+                        let is_scope_ref = matches!(
+                            val.to_uppercase().as_str(),
+                            "ROOT" | "FROM" | "PREV" | "THIS" | "PREVPREV"
+                                | "PREVPREVPREV" | "PREVPREVPREVPREV"
+                                | "OWNER" | "CONTROLLER" | "CAPITAL"
+                        );
+                        let is_var_ref = val.starts_with("var:");
+                        if !is_scope_ref && !is_var_ref && val.len() == 3
+                            && val.chars().all(|c| c.is_ascii_alphabetic())
+                            && !ct.contains_key(val)
+                        {
+                            diagnostics.push(Diagnostic {
+                                range: ast_range_to_lsp(&ass.value.range),
+                                severity: Some(DiagnosticSeverity::WARNING),
+                                message: format!("Unknown country tag: '{}'", val),
+                                code: Some(NumberOrString::String(
+                                    advanced_validation::UNKNOWN_TRIGGER.to_string(),
+                                )),
+                                source: Some("Hearts of Modding".to_string()),
+                                ..Default::default()
+                            });
+                        }
+                    }
+                }
+
                 // Check value recursively
                 self.check_value_semantic(
                     &ass.value,
@@ -2906,6 +2945,7 @@ impl Backend {
                     styling_enabled,
                     scope_stack,
                     s_effects,
+                    ct,
                 );
 
                 if pushed_scope {
@@ -2931,6 +2971,7 @@ impl Backend {
                     styling_enabled,
                     scope_stack,
                     s_effects,
+                    ct,
                 );
             }
             _ => {}
@@ -2956,6 +2997,7 @@ impl Backend {
         styling_enabled: bool,
         scope_stack: &mut scope::ScopeStack,
         s_effects: &HashMap<String, sound_scanner::SoundEffect>,
+        ct: &HashMap<String, country_scanner::CountryTag>,
     ) {
         match &val.value {
             ast::Value::Block(entries) => {
@@ -2979,6 +3021,7 @@ impl Backend {
                         styling_enabled,
                         scope_stack,
                         s_effects,
+                        ct,
                     );
                 }
             }
@@ -3049,6 +3092,7 @@ impl Backend {
                         styling_enabled,
                         scope_stack,
                         s_effects,
+                        ct,
                     );
                 }
             }

@@ -5,6 +5,7 @@ use crate::ai_strategy_plan_scanner;
 use crate::ast;
 use crate::building_scanner;
 use crate::character_scanner;
+use crate::country_scanner;
 use crate::defines_parser;
 use crate::event_scanner;
 use crate::idea_scanner;
@@ -82,6 +83,7 @@ pub(crate) struct ScannerData {
     adjacencies_field: Arc<ArcSwap<Vec<adjacency_scanner::Adjacency>>>,
     adjacency_rules_field: Arc<ArcSwap<HashMap<String, adjacency_scanner::AdjacencyRule>>>,
     strategic_regions_field: Arc<ArcSwap<HashMap<u32, strategic_region_scanner::StrategicRegion>>>,
+    country_tags_field: Arc<ArcSwap<HashMap<String, country_scanner::CountryTag>>>,
     workspace_files_field: Arc<ArcSwap<HashSet<String>>>,
 }
 
@@ -128,6 +130,7 @@ impl ScannerData {
             adjacencies_field: Arc::new(ArcSwap::from_pointee(Vec::new())),
             adjacency_rules_field: Arc::new(ArcSwap::from_pointee(HashMap::new())),
             strategic_regions_field: Arc::new(ArcSwap::from_pointee(HashMap::new())),
+            country_tags_field: Arc::new(ArcSwap::from_pointee(HashMap::new())),
             workspace_files_field: Arc::new(ArcSwap::from_pointee(HashSet::new())),
         }
     }
@@ -172,5 +175,6 @@ impl ScannerData {
     scanner_field!(adjacencies, Vec<adjacency_scanner::Adjacency>);
     scanner_field!(adjacency_rules, HashMap<String, adjacency_scanner::AdjacencyRule>);
     scanner_field!(strategic_regions, HashMap<u32, strategic_region_scanner::StrategicRegion>);
+    scanner_field!(country_tags, HashMap<String, country_scanner::CountryTag>);
     scanner_field!(workspace_files, HashSet<String>);
 }
