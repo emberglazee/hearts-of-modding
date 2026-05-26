@@ -24,7 +24,7 @@ impl Backend {
         if let Some(content) = self.documents.get(&uri) {
             if uri.ends_with(".yml") {
                 let (locs, _, _) = loc_parser::parse_loc_file(&content, &uri);
-                let global_loc = self.localization.load();
+                let global_loc = self.scanner_data.localization();
                 for entry in locs.values() {
                     // Check key
                     if position.line == entry.range.start_line
@@ -34,7 +34,7 @@ impl Backend {
                         let mut hover_text = format!("### 🌐 Localization: {}\n\n", entry.key);
 
                         // Add achievement context
-                        let achievements = self.achievements.load();
+                        let achievements = self.scanner_data.achievements();
                         if entry.key.ends_with("_NAME") {
                             let ach_id = &entry.key[..entry.key.len() - 5];
                             if let Some(ach) = achievements.get(ach_id) {
@@ -131,9 +131,9 @@ impl Backend {
                         match hovered_index {
                             Some(0) => {
                                 if let Ok(state_id) = parts[0].parse::<u32>() {
-                                    let states = self.states.load();
+                                    let states = self.scanner_data.states();
                                     if let Some(state) = states.get(&state_id) {
-                                        let loc = self.localization.load();
+                                        let loc = self.scanner_data.localization();
                                         let state_name =
                                             if let Some(loc_entry) = loc.get(&state.name) {
                                                 loc_entry.value.clone()
@@ -176,7 +176,7 @@ impl Backend {
                             }
                             Some(6) => {
                                 if let Ok(prov_id) = parts[6].parse::<u32>() {
-                                    let provs = self.provinces.load();
+                                    let provs = self.scanner_data.provinces();
                                     if let Some(province) = provs.get(&prov_id) {
                                         hover_text.push_str(&format!("**Hovered:** Adjacent Sea Province `{}` (Coastal: {}, Terrain: {})\n", prov_id, province.is_coastal, province.terrain));
                                     } else {
@@ -222,7 +222,7 @@ impl Backend {
                         match hovered_index {
                             Some(0) => {
                                 if let Ok(prov_id) = parts[0].parse::<u32>() {
-                                    let provs = self.provinces.load();
+                                    let provs = self.scanner_data.provinces();
                                     if let Some(province) = provs.get(&prov_id) {
                                         hover_text.push_str(&format!("**Hovered:** Province ID `{}` (Coastal: {}, Terrain: {})\n", prov_id, province.is_coastal, province.terrain));
                                     } else {
@@ -293,9 +293,9 @@ impl Backend {
                         match hovered_index {
                             Some(0) => {
                                 if let Ok(region_id) = parts[0].parse::<u32>() {
-                                    let regions = self.strategic_regions.load();
+                                    let regions = self.scanner_data.strategic_regions();
                                     if let Some(region) = regions.get(&region_id) {
-                                        let loc = self.localization.load();
+                                        let loc = self.scanner_data.localization();
                                         let region_name =
                                             if let Some(loc_entry) = loc.get(&region.name) {
                                                 loc_entry.value.clone()
@@ -392,7 +392,7 @@ impl Backend {
                                     _ => "Through Province ID",
                                 };
                                 if let Ok(prov_id) = parts[hovered_index.unwrap()].parse::<u32>() {
-                                    let provs = self.provinces.load();
+                                    let provs = self.scanner_data.provinces();
                                     if let Some(province) = provs.get(&prov_id) {
                                         hover_text.push_str(&format!(
                                             "**Hovered:** {} `{}` (Terrain: {}, Type: {})\n",
@@ -431,7 +431,7 @@ impl Backend {
                             Some(8) => {
                                 let rule_name = parts[8].trim();
                                 if !rule_name.is_empty() {
-                                    let rules = self.adjacency_rules.load();
+                                    let rules = self.scanner_data.adjacency_rules();
                                     if let Some(rule) = rules.get(rule_name) {
                                         let mut rule_info = format!(
                                             "**Hovered:** Adjacency Rule `{}`\n",
@@ -551,7 +551,7 @@ impl Backend {
             {
                 let (script, _) = parser::parse_script(&content);
                 let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
-                let achievements = self.achievements.load();
+                let achievements = self.scanner_data.achievements();
                 if let Some((identifier, final_scopes, assigned_value, context_key)) =
                     find_identifier_at(&script, position, &mut scope_stack, &achievements)
                 {
@@ -597,7 +597,7 @@ impl Backend {
                             format!("### 🏆 Achievement: `{}`\n", identifier)
                         };
 
-                        let loc = self.localization.load();
+                        let loc = self.scanner_data.localization();
 
                         let name_key = format!("{}_NAME", identifier);
                         if let Some(name_loc) = loc.get(&name_key) {
@@ -640,7 +640,7 @@ impl Backend {
                     }
 
                     if let Some(id) = id_opt {
-                        let states = self.states.load();
+                        let states = self.scanner_data.states();
                         if let Some(state) = states.get(&id) {
                             // To prevent false positives, we only show this if the identifier is explicitly related to states
                             // Or if the identifier *is* the number (meaning it's an element in an array, like in any_state_of)
@@ -657,7 +657,7 @@ impl Backend {
                                         .is_some_and(|ck| ck.contains("state")));
 
                             if is_state_key {
-                                let loc = self.localization.load();
+                                let loc = self.scanner_data.localization();
                                 let state_name = if let Some(loc_entry) = loc.get(&state.name) {
                                     paradox_to_markdown(&loc_entry.value, Some(&loc))
                                 } else {
@@ -676,7 +676,7 @@ impl Backend {
                             }
                         }
 
-                        let provinces = self.provinces.load();
+                        let provinces = self.scanner_data.provinces();
                         if let Some(province) = provinces.get(&id) {
                             let ident_lower = identifier.to_lowercase();
                             let is_province_key = ident_lower.contains("province")
@@ -706,7 +706,7 @@ impl Backend {
                             }
                         }
 
-                        let regions = self.strategic_regions.load();
+                        let regions = self.scanner_data.strategic_regions();
                         if let Some(region) = regions.get(&id) {
                             let ident_lower = identifier.to_lowercase();
                             let is_region_key = ident_lower.contains("strategic_region")
@@ -718,7 +718,7 @@ impl Backend {
                                         .is_some_and(|ck| ck.contains("strategic_region")));
 
                             if is_region_key {
-                                let loc = self.localization.load();
+                                let loc = self.scanner_data.localization();
                                 let region_name = if let Some(loc_entry) = loc.get(&region.name) {
                                     loc_entry.value.clone()
                                 } else {
@@ -778,7 +778,7 @@ impl Backend {
                     }
 
                     // Check localization
-                    let loc = self.localization.load();
+                    let loc = self.scanner_data.localization();
                     // Try exact match first, then try keys starting with ID:
                     let entry = loc.get(&identifier).or_else(|| {
                         // Find any key that starts with "identifier:"
@@ -796,7 +796,7 @@ impl Backend {
                         push_section(&mut hover_text, &text);
                     } else {
                         // Check scripted triggers
-                        let st = self.scripted_triggers.load();
+                        let st = self.scanner_data.scripted_triggers();
                         if let Some(entity) = st.get(&identifier) {
                             push_section(
                                 &mut hover_text,
@@ -808,7 +808,7 @@ impl Backend {
                             );
                         } else {
                             // Check scripted effects
-                            let se = self.scripted_effects.load();
+                            let se = self.scanner_data.scripted_effects();
                             if let Some(entity) = se.get(&identifier) {
                                 push_section(
                                     &mut hover_text,
@@ -820,7 +820,7 @@ impl Backend {
                                 );
                             } else {
                                 // Check scripted locs
-                                let sl = self.scripted_locs.load();
+                                let sl = self.scanner_data.scripted_locs();
                                 if let Some(loc) = sl.get(&identifier) {
                                     push_section(
                                         &mut hover_text,
@@ -836,7 +836,7 @@ impl Backend {
                     }
 
                     // Check ideologies
-                    let id_map = self.ideologies.load();
+                    let id_map = self.scanner_data.ideologies();
                     if let Some(ideology) = id_map.get(&identifier) {
                         push_section(
                             &mut hover_text,
@@ -850,7 +850,7 @@ impl Backend {
                     }
 
                     // Check sub-ideologies
-                    let sid_map = self.sub_ideologies.load();
+                    let sid_map = self.scanner_data.sub_ideologies();
                     if let Some((parent, _, path)) = sid_map.get(&identifier) {
                         push_section(
                             &mut hover_text,
@@ -864,7 +864,7 @@ impl Backend {
                     }
 
                     // Check traits
-                    let t_map = self.traits.load();
+                    let t_map = self.scanner_data.traits();
                     if let Some(trait_info) = t_map.get(&identifier) {
                         push_section(
                             &mut hover_text,
@@ -878,7 +878,7 @@ impl Backend {
                     }
 
                     // Check sprites
-                    let s_map = self.sprites.load();
+                    let s_map = self.scanner_data.sprites();
                     if let Some(sprite) = s_map.get(&identifier) {
                         let mut texture_link = sprite.texture_file.clone();
                         // Attempt to resolve texture path relative to root
@@ -908,7 +908,7 @@ impl Backend {
                     }
 
                     // Check events
-                    let e_map = self.events.load();
+                    let e_map = self.scanner_data.events();
                     if let Some(event) = e_map.get(&identifier) {
                         push_section(
                             &mut hover_text,
@@ -927,7 +927,7 @@ impl Backend {
                     }
 
                     // Check ideas
-                    let idea_map = self.ideas.load();
+                    let idea_map = self.scanner_data.ideas();
                     if let Some(idea) = idea_map.get(&identifier) {
                         push_section(
                             &mut hover_text,
@@ -941,11 +941,11 @@ impl Backend {
                     }
 
                     // Check characters
-                    let char_map = self.characters.load();
+                    let char_map = self.scanner_data.characters();
                     if let Some(character) = char_map.get(&identifier) {
                         let mut char_text = format!("### 👤 Character: `{}`\n", identifier);
 
-                        let loc = self.localization.load();
+                        let loc = self.scanner_data.localization();
                         if let Some(name_key) = &character.name {
                             if let Some(name_loc) = loc.get(name_key) {
                                 char_text.push_str(&format!(
@@ -978,7 +978,7 @@ impl Backend {
 
                         if !character.portraits.is_empty() {
                             char_text.push_str("\n**Portraits:**\n");
-                            let s_map = self.sprites.load();
+                            let s_map = self.scanner_data.sprites();
                             for (cat, sprite_name) in &character.portraits {
                                 let mut texture_link = sprite_name.clone();
                                 if let Some(sprite) = s_map.get(sprite_name) {
@@ -1078,10 +1078,10 @@ impl Backend {
                     }
 
                     // Check abilities
-                    let ability_map = self.abilities.load();
+                    let ability_map = self.scanner_data.abilities();
                     if let Some(ability) = ability_map.get(&identifier) {
                         let mut text = format!("### ⚔️ Leader Ability: `{}`\n", ability.key);
-                        let loc = self.localization.load();
+                        let loc = self.scanner_data.localization();
 
                         if let Some(name_key) = &ability.name_loc {
                             if let Some(name_loc) = loc.get(name_key) {
@@ -1143,7 +1143,7 @@ impl Backend {
                     }
 
                     // Check portraits
-                    let portrait_map = self.portraits.load();
+                    let portrait_map = self.scanner_data.portraits();
                     if let Some(portrait) = portrait_map.get(&identifier) {
                         let block_kind = match portrait.block_type {
                             crate::portrait_scanner::PortraitBlockType::Default => "Default",
@@ -1174,7 +1174,7 @@ impl Backend {
                         if !portrait.gfx_entries.is_empty() {
                             let gfx_count = portrait.gfx_entries.len();
                             text.push_str(&format!("\n**GFX References:** {} sprite(s)\n", gfx_count));
-                            let s_map = self.sprites.load();
+                            let s_map = self.scanner_data.sprites();
                             for gfx in portrait.gfx_entries.iter().take(10) {
                                 if let Some(sprite) = s_map.get(gfx) {
                                     text.push_str(&format!("\n- `{}` → `{}`", gfx, sprite.texture_file));
@@ -1192,7 +1192,7 @@ impl Backend {
                     }
 
                     // Check AI strategy plans
-                    let ap_map = self.ai_strategy_plans.load();
+                    let ap_map = self.scanner_data.ai_strategy_plans();
                     if let Some(plan) = ap_map.get(&identifier) {
                         let mut text = format!("### AI Strategy Plan: `{}`\n", plan.name);
 
@@ -1235,14 +1235,14 @@ impl Backend {
                         || identifier_lower == "unit_modifiers")
                         && matches!(assigned_value, Some(ast::Value::Block(_)))
                     {
-                        let mappings = self.modifier_mappings.load();
-                        let formats = self.modifier_formats.load();
-                        let loc = self.localization.load();
+                        let mappings = self.scanner_data.modifier_mappings();
+                        let formats = self.scanner_data.modifier_formats();
+                        let loc = self.scanner_data.localization();
 
                         let display_service = modifier_display::ModifierDisplayService::new(
-                            (**mappings).clone(),
-                            (**formats).clone(),
-                            (**loc).clone(),
+                            (*mappings).clone(),
+                            (*formats).clone(),
+                            (*loc).clone(),
                         );
 
                         if let Some(value) = &assigned_value {
@@ -1291,7 +1291,7 @@ impl Backend {
                     }
 
                     // Check modifiers
-                    let custom_mods = self.custom_modifiers.load();
+                    let custom_mods = self.scanner_data.custom_modifiers();
                     if let Some(modifier) = custom_mods.get(&identifier) {
                         push_section(
                             &mut hover_text,
@@ -1302,16 +1302,16 @@ impl Backend {
                             ),
                         );
                     }
-                    let mappings = self.modifier_mappings.load();
+                    let mappings = self.scanner_data.modifier_mappings();
                     if let Some(loc_key) = mappings.get(&identifier) {
-                        let loc = self.localization.load();
+                        let loc = self.scanner_data.localization();
                         let loc_text = if let Some(e) = loc.get(loc_key) {
                             paradox_to_markdown(&e.value, Some(&loc))
                         } else {
                             loc_key.clone()
                         };
 
-                        let formats = self.modifier_formats.load();
+                        let formats = self.scanner_data.modifier_formats();
                         let format_info = formats.get(loc_key);
 
                         let parsed_val = match assigned_value {
@@ -1339,7 +1339,7 @@ impl Backend {
                     }
 
                     // Check variables
-                    let var_map = self.variables.load();
+                    let var_map = self.scanner_data.variables();
                     if let Some(vars) = var_map.get(&identifier) {
                         let paths: Vec<String> =
                             vars.iter().map(|v| self.make_file_link(&v.path)).collect();
@@ -1354,7 +1354,7 @@ impl Backend {
                     }
 
                     // Check event targets
-                    let target_map = self.event_targets.load();
+                    let target_map = self.scanner_data.event_targets();
                     if let Some(targets) = target_map.get(&identifier) {
                         let paths: Vec<String> = targets
                             .iter()
@@ -1377,7 +1377,7 @@ impl Backend {
                     }
 
                     // Check music
-                    let m_assets = self.music_assets.load();
+                    let m_assets = self.scanner_data.music_assets();
                     if let Some(asset) = m_assets.get(&identifier) {
                         push_section(
                             &mut hover_text,
@@ -1390,7 +1390,7 @@ impl Backend {
                         );
                     }
 
-                    let m_stations = self.music_stations.load();
+                    let m_stations = self.scanner_data.music_stations();
                     if let Some(station) = m_stations.get(&identifier) {
                         push_section(
                             &mut hover_text,
@@ -1402,7 +1402,7 @@ impl Backend {
                         );
                     }
 
-                    let m_songs = self.songs.load();
+                    let m_songs = self.scanner_data.songs();
                     if let Some(song) = m_songs.get(&identifier) {
                         push_section(
                             &mut hover_text,
@@ -1415,7 +1415,7 @@ impl Backend {
                     }
 
                     // Check sounds
-                    let s_sounds = self.sounds.load();
+                    let s_sounds = self.scanner_data.sounds();
                     if let Some(sound) = s_sounds.get(&identifier) {
                         let mut file_link = sound.file.clone();
                         // Try to resolve file link
@@ -1438,7 +1438,7 @@ impl Backend {
                         );
                     }
 
-                    let s_effects = self.sound_effects.load();
+                    let s_effects = self.scanner_data.sound_effects();
                     if let Some(effect) = s_effects.get(&identifier) {
                         push_section(
                             &mut hover_text,
@@ -1451,7 +1451,7 @@ impl Backend {
                         );
                     }
 
-                    let s_falloffs = self.falloffs.load();
+                    let s_falloffs = self.scanner_data.falloffs();
                     if let Some(falloff) = s_falloffs.get(&identifier) {
                         push_section(
                             &mut hover_text,
@@ -1463,7 +1463,7 @@ impl Backend {
                         );
                     }
 
-                    let s_categories = self.sound_categories.load();
+                    let s_categories = self.scanner_data.sound_categories();
                     if let Some(category) = s_categories.get(&identifier) {
                         push_section(
                             &mut hover_text,

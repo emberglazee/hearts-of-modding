@@ -1,6 +1,5 @@
 use crate::ast::{Entry, Range, Value};
 use std::collections::{HashMap, HashSet};
-use std::sync::Arc;
 use tower_lsp::lsp_types::{
     Position as LspPosition, PrepareRenameResponse, Range as LspRange, TextEdit, Url, WorkspaceEdit,
 };
@@ -21,22 +20,12 @@ pub enum RenameableSymbol {
 pub async fn prepare_rename(
     uri: &str,
     position: LspPosition,
-    events: &Arc<arc_swap::ArcSwap<HashMap<String, crate::event_scanner::Event>>>,
-    scripted_triggers: &Arc<
-        arc_swap::ArcSwap<HashMap<String, crate::scripted_scanner::ScriptedEntity>>,
-    >,
-    scripted_effects: &Arc<
-        arc_swap::ArcSwap<HashMap<String, crate::scripted_scanner::ScriptedEntity>>,
-    >,
-    ideas: &Arc<arc_swap::ArcSwap<HashMap<String, crate::idea_scanner::Idea>>>,
-    characters: &Arc<arc_swap::ArcSwap<HashMap<String, crate::character_scanner::Character>>>,
-    variables: &Arc<arc_swap::ArcSwap<HashMap<String, Vec<crate::variable_scanner::Variable>>>>,
-    abilities: &Arc<arc_swap::ArcSwap<HashMap<String, crate::ability_scanner::Ability>>>,
+    data: &crate::ScannerData,
 ) -> Option<PrepareRenameResponse> {
     let path = uri.trim_start_matches("file://");
 
     // Check if position is on an event
-    let events_lock = events.load();
+    let events_lock = data.events();
     for (_id, event) in events_lock.iter() {
         if event.path == path && position_in_range(&position, &event.range) {
             return Some(PrepareRenameResponse::Range(range_to_lsp(&event.range)));
@@ -45,7 +34,7 @@ pub async fn prepare_rename(
     drop(events_lock);
 
     // Check if position is on a scripted trigger
-    let triggers_lock = scripted_triggers.load();
+    let triggers_lock = data.scripted_triggers();
     for (_name, trigger) in triggers_lock.iter() {
         if trigger.path == path && position_in_range(&position, &trigger.range) {
             return Some(PrepareRenameResponse::Range(range_to_lsp(&trigger.range)));
@@ -54,7 +43,7 @@ pub async fn prepare_rename(
     drop(triggers_lock);
 
     // Check if position is on a scripted effect
-    let effects_lock = scripted_effects.load();
+    let effects_lock = data.scripted_effects();
     for (_name, effect) in effects_lock.iter() {
         if effect.path == path && position_in_range(&position, &effect.range) {
             return Some(PrepareRenameResponse::Range(range_to_lsp(&effect.range)));
@@ -63,7 +52,7 @@ pub async fn prepare_rename(
     drop(effects_lock);
 
     // Check if position is on an idea
-    let ideas_lock = ideas.load();
+    let ideas_lock = data.ideas();
     for (_name, idea) in ideas_lock.iter() {
         if idea.path == path && position_in_range(&position, &idea.range) {
             return Some(PrepareRenameResponse::Range(range_to_lsp(&idea.range)));
@@ -72,7 +61,7 @@ pub async fn prepare_rename(
     drop(ideas_lock);
 
     // Check if position is on a character
-    let characters_lock = characters.load();
+    let characters_lock = data.characters();
     for (_name, character) in characters_lock.iter() {
         if character.path == path && position_in_range(&position, &character.range) {
             return Some(PrepareRenameResponse::Range(range_to_lsp(&character.range)));
@@ -81,7 +70,7 @@ pub async fn prepare_rename(
     drop(characters_lock);
 
     // Check if position is on an ability
-    let abilities_lock = abilities.load();
+    let abilities_lock = data.abilities();
     for (_name, ability) in abilities_lock.iter() {
         if ability.path == path && position_in_range(&position, &ability.range) {
             return Some(PrepareRenameResponse::Range(range_to_lsp(&ability.range)));
@@ -90,7 +79,7 @@ pub async fn prepare_rename(
     drop(abilities_lock);
 
     // Check if position is on a variable
-    let variables_lock = variables.load();
+    let variables_lock = data.variables();
     for (_name, var_list) in variables_lock.iter() {
         for var in var_list {
             if var.path == path && position_in_range(&position, &var.range) {
@@ -107,17 +96,7 @@ pub async fn rename_symbol(
     uri: &str,
     position: LspPosition,
     new_name: &str,
-    events: &Arc<arc_swap::ArcSwap<HashMap<String, crate::event_scanner::Event>>>,
-    scripted_triggers: &Arc<
-        arc_swap::ArcSwap<HashMap<String, crate::scripted_scanner::ScriptedEntity>>,
-    >,
-    scripted_effects: &Arc<
-        arc_swap::ArcSwap<HashMap<String, crate::scripted_scanner::ScriptedEntity>>,
-    >,
-    ideas: &Arc<arc_swap::ArcSwap<HashMap<String, crate::idea_scanner::Idea>>>,
-    characters: &Arc<arc_swap::ArcSwap<HashMap<String, crate::character_scanner::Character>>>,
-    variables: &Arc<arc_swap::ArcSwap<HashMap<String, Vec<crate::variable_scanner::Variable>>>>,
-    abilities: &Arc<arc_swap::ArcSwap<HashMap<String, crate::ability_scanner::Ability>>>,
+    data: &crate::ScannerData,
     documents: &dashmap::DashMap<String, String>,
     workspace_files: &HashSet<String>,
 ) -> Option<WorkspaceEdit> {
@@ -127,13 +106,7 @@ pub async fn rename_symbol(
     let symbol = find_symbol_at_position(
         path,
         &position,
-        events,
-        scripted_triggers,
-        scripted_effects,
-        ideas,
-        characters,
-        variables,
-        abilities,
+        data,
     )
     .await?;
 
@@ -221,20 +194,10 @@ pub async fn rename_symbol(
 async fn find_symbol_at_position(
     path: &str,
     position: &LspPosition,
-    events: &Arc<arc_swap::ArcSwap<HashMap<String, crate::event_scanner::Event>>>,
-    scripted_triggers: &Arc<
-        arc_swap::ArcSwap<HashMap<String, crate::scripted_scanner::ScriptedEntity>>,
-    >,
-    scripted_effects: &Arc<
-        arc_swap::ArcSwap<HashMap<String, crate::scripted_scanner::ScriptedEntity>>,
-    >,
-    ideas: &Arc<arc_swap::ArcSwap<HashMap<String, crate::idea_scanner::Idea>>>,
-    characters: &Arc<arc_swap::ArcSwap<HashMap<String, crate::character_scanner::Character>>>,
-    variables: &Arc<arc_swap::ArcSwap<HashMap<String, Vec<crate::variable_scanner::Variable>>>>,
-    abilities: &Arc<arc_swap::ArcSwap<HashMap<String, crate::ability_scanner::Ability>>>,
+    data: &crate::ScannerData,
 ) -> Option<RenameableSymbol> {
     // Check events
-    let events_lock = events.load();
+    let events_lock = data.events();
     for (id, event) in events_lock.iter() {
         if event.path == path && position_in_range(position, &event.range) {
             return Some(RenameableSymbol::Event(id.clone()));
@@ -243,7 +206,7 @@ async fn find_symbol_at_position(
     drop(events_lock);
 
     // Check scripted triggers
-    let triggers_lock = scripted_triggers.load();
+    let triggers_lock = data.scripted_triggers();
     for (name, trigger) in triggers_lock.iter() {
         if trigger.path == path && position_in_range(position, &trigger.range) {
             return Some(RenameableSymbol::ScriptedTrigger(name.clone()));
@@ -252,7 +215,7 @@ async fn find_symbol_at_position(
     drop(triggers_lock);
 
     // Check scripted effects
-    let effects_lock = scripted_effects.load();
+    let effects_lock = data.scripted_effects();
     for (name, effect) in effects_lock.iter() {
         if effect.path == path && position_in_range(position, &effect.range) {
             return Some(RenameableSymbol::ScriptedEffect(name.clone()));
@@ -261,7 +224,7 @@ async fn find_symbol_at_position(
     drop(effects_lock);
 
     // Check ideas
-    let ideas_lock = ideas.load();
+    let ideas_lock = data.ideas();
     for (name, idea) in ideas_lock.iter() {
         if idea.path == path && position_in_range(position, &idea.range) {
             return Some(RenameableSymbol::Idea(name.clone()));
@@ -270,7 +233,7 @@ async fn find_symbol_at_position(
     drop(ideas_lock);
 
     // Check characters
-    let characters_lock = characters.load();
+    let characters_lock = data.characters();
     for (name, character) in characters_lock.iter() {
         if character.path == path && position_in_range(position, &character.range) {
             return Some(RenameableSymbol::Character(name.clone()));
@@ -279,7 +242,7 @@ async fn find_symbol_at_position(
     drop(characters_lock);
 
     // Check abilities
-    let abilities_lock = abilities.load();
+    let abilities_lock = data.abilities();
     for (id, ability) in abilities_lock.iter() {
         if ability.path == path && position_in_range(position, &ability.range) {
             return Some(RenameableSymbol::Ability(id.clone()));
@@ -288,7 +251,7 @@ async fn find_symbol_at_position(
     drop(abilities_lock);
 
     // Check variables
-    let variables_lock = variables.load();
+    let variables_lock = data.variables();
     for (name, var_list) in variables_lock.iter() {
         for var in var_list {
             if var.path == path && position_in_range(position, &var.range) {

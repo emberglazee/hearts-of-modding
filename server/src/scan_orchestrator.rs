@@ -36,8 +36,8 @@ impl Backend {
         })
         .await
         .unwrap();
-        self.provinces.store(std::sync::Arc::new(result));
-        let provinces = self.provinces.load();
+        self.scanner_data.set_provinces(result);
+        let provinces = self.scanner_data.provinces();
         self.client
             .log_message(
                 MessageType::INFO,
@@ -54,8 +54,8 @@ impl Backend {
                 .await
                 .unwrap();
 
-        self.states.store(std::sync::Arc::new(result));
-        let map = self.states.load();
+        self.scanner_data.set_states(result);
+        let map = self.scanner_data.states();
         self.client
             .log_message(MessageType::INFO, format!("Loaded {} states", map.len()))
             .await;
@@ -70,12 +70,11 @@ impl Backend {
         .await
         .unwrap();
 
-        self.supply_nodes
-            .store(std::sync::Arc::new(result.supply_nodes));
-        let sn = self.supply_nodes.load();
+        self.scanner_data.set_supply_nodes(result.supply_nodes);
+        let sn = self.scanner_data.supply_nodes();
 
-        self.railways.store(std::sync::Arc::new(result.railways));
-        let rw = self.railways.load();
+        self.scanner_data.set_railways(result.railways);
+        let rw = self.scanner_data.railways();
 
         self.client
             .log_message(
@@ -94,17 +93,14 @@ impl Backend {
         .await
         .unwrap();
 
-        self.map_buildings
-            .store(std::sync::Arc::new(result.buildings));
-        let mb = self.map_buildings.load();
+        self.scanner_data.set_map_buildings(result.buildings);
+        let mb = self.scanner_data.map_buildings();
 
-        self.unitstacks
-            .store(std::sync::Arc::new(result.unitstacks));
-        let us = self.unitstacks.load();
+        self.scanner_data.set_unitstacks(result.unitstacks);
+        let us = self.scanner_data.unitstacks();
 
-        self.weather_positions
-            .store(std::sync::Arc::new(result.weather_positions));
-        let wp = self.weather_positions.load();
+        self.scanner_data.set_weather_positions(result.weather_positions);
+        let wp = self.scanner_data.weather_positions();
 
         self.client
             .log_message(
@@ -128,13 +124,11 @@ impl Backend {
         .await
         .unwrap();
 
-        self.adjacencies
-            .store(std::sync::Arc::new(result.adjacencies));
-        let adj = self.adjacencies.load();
+        self.scanner_data.set_adjacencies(result.adjacencies);
+        let adj = self.scanner_data.adjacencies();
 
-        self.adjacency_rules
-            .store(std::sync::Arc::new(result.rules));
-        let rules = self.adjacency_rules.load();
+        self.scanner_data.set_adjacency_rules(result.rules);
+        let rules = self.scanner_data.adjacency_rules();
 
         self.client
             .log_message(
@@ -157,8 +151,8 @@ impl Backend {
         .await
         .unwrap();
 
-        self.strategic_regions.store(std::sync::Arc::new(result));
-        let regions = self.strategic_regions.load();
+        self.scanner_data.set_strategic_regions(result);
+        let regions = self.scanner_data.strategic_regions();
 
         self.client
             .log_message(
@@ -175,8 +169,8 @@ impl Backend {
             tokio::task::spawn_blocking(move || event_scanner::scan_events(&roots_owned, &filter))
                 .await
                 .unwrap();
-        self.events.store(std::sync::Arc::new(result));
-        let events = self.events.load();
+        self.scanner_data.set_events(result);
+        let events = self.scanner_data.events();
         self.client
             .log_message(
                 MessageType::INFO,
@@ -193,8 +187,8 @@ impl Backend {
         })
         .await
         .unwrap();
-        self.abilities.store(std::sync::Arc::new(result));
-        let map = self.abilities.load();
+        self.scanner_data.set_abilities(result);
+        let map = self.scanner_data.abilities();
         self.client
             .log_message(
                 MessageType::INFO,
@@ -212,9 +206,8 @@ impl Backend {
         .await
         .unwrap();
 
-        self.ai_strategy_plans
-            .store(std::sync::Arc::new(plans));
-        let p = self.ai_strategy_plans.load();
+        self.scanner_data.set_ai_strategy_plans(plans);
+        let p = self.scanner_data.ai_strategy_plans();
 
         self.client
             .log_message(
@@ -233,8 +226,8 @@ impl Backend {
         .await
         .unwrap();
 
-        self.portraits.store(std::sync::Arc::new(portraits));
-        let p = self.portraits.load();
+        self.scanner_data.set_portraits(portraits);
+        let p = self.scanner_data.portraits();
 
         self.client
             .log_message(
@@ -252,15 +245,14 @@ impl Backend {
                 .await
                 .unwrap();
 
-        self.music_assets.store(std::sync::Arc::new(result.assets));
-        let assets = self.music_assets.load();
+        self.scanner_data.set_music_assets(result.assets);
+        let assets = self.scanner_data.music_assets();
 
-        self.music_stations
-            .store(std::sync::Arc::new(result.stations));
-        let stations = self.music_stations.load();
+        self.scanner_data.set_music_stations(result.stations);
+        let stations = self.scanner_data.music_stations();
 
-        self.songs.store(std::sync::Arc::new(result.songs));
-        let songs = self.songs.load();
+        self.scanner_data.set_songs(result.songs);
+        let songs = self.scanner_data.songs();
 
         self.client
             .log_message(
@@ -283,19 +275,17 @@ impl Backend {
                 .await
                 .unwrap();
 
-        self.sounds.store(std::sync::Arc::new(result.sounds));
-        let sounds = self.sounds.load();
+        self.scanner_data.set_sounds(result.sounds);
+        let sounds = self.scanner_data.sounds();
 
-        self.sound_effects
-            .store(std::sync::Arc::new(result.sound_effects));
-        let effects = self.sound_effects.load();
+        self.scanner_data.set_sound_effects(result.sound_effects);
+        let effects = self.scanner_data.sound_effects();
 
-        self.falloffs.store(std::sync::Arc::new(result.falloffs));
-        let falloffs = self.falloffs.load();
+        self.scanner_data.set_falloffs(result.falloffs);
+        let falloffs = self.scanner_data.falloffs();
 
-        self.sound_categories
-            .store(std::sync::Arc::new(result.categories));
-        let categories = self.sound_categories.load();
+        self.scanner_data.set_sound_categories(result.categories);
+        let categories = self.scanner_data.sound_categories();
 
         self.client
             .log_message(
@@ -320,13 +310,11 @@ impl Backend {
         .await
         .unwrap();
 
-        self.custom_modifiers
-            .store(std::sync::Arc::new(result.custom_modifiers));
-        let custom = self.custom_modifiers.load();
+        self.scanner_data.set_custom_modifiers(result.custom_modifiers);
+        let custom = self.scanner_data.custom_modifiers();
 
-        self.modifier_mappings
-            .store(std::sync::Arc::new(result.builtin_mappings));
-        let mappings = self.modifier_mappings.load();
+        self.scanner_data.set_modifier_mappings(result.builtin_mappings);
+        let mappings = self.scanner_data.modifier_mappings();
 
         self.client
             .log_message(
@@ -349,8 +337,8 @@ impl Backend {
         .await
         .unwrap();
 
-        self.buildings.store(std::sync::Arc::new(buildings));
-        let b = self.buildings.load();
+        self.scanner_data.set_buildings(buildings);
+        let b = self.scanner_data.buildings();
 
         self.client
             .log_message(
@@ -369,8 +357,8 @@ impl Backend {
         .await
         .unwrap();
 
-        self.achievements.store(std::sync::Arc::new(achievements));
-        let a = self.achievements.load();
+        self.scanner_data.set_achievements(achievements);
+        let a = self.scanner_data.achievements();
 
         self.client
             .log_message(
@@ -389,8 +377,8 @@ impl Backend {
         .await
         .unwrap();
 
-        self.defines.store(std::sync::Arc::new(defines));
-        let _d = self.defines.load();
+        self.scanner_data.set_defines(defines);
+        let _d = self.scanner_data.defines();
 
         self.client
             .log_message(MessageType::INFO, "Loaded game defines")
@@ -406,12 +394,11 @@ impl Backend {
         .await
         .unwrap();
 
-        self.variables.store(std::sync::Arc::new(result.variables));
-        let vars = self.variables.load();
+        self.scanner_data.set_variables(result.variables);
+        let vars = self.scanner_data.variables();
 
-        self.event_targets
-            .store(std::sync::Arc::new(result.event_targets));
-        let targets = self.event_targets.load();
+        self.scanner_data.set_event_targets(result.event_targets);
+        let targets = self.scanner_data.event_targets();
 
         self.client
             .log_message(
@@ -534,11 +521,11 @@ impl Backend {
             self.client.log_message(level, msg).await;
         }
 
-        self.duplicated_loc_keys.store(std::sync::Arc::new(dups));
-        let _d_map = self.duplicated_loc_keys.load();
+        self.scanner_data.set_duplicated_loc_keys(dups);
+        let _d_map = self.scanner_data.duplicated_loc_keys();
 
-        self.localization.store(std::sync::Arc::new(all_locs));
-        let loc = self.localization.load();
+        self.scanner_data.set_localization(all_locs);
+        let loc = self.scanner_data.localization();
         self.client
             .log_message(
                 MessageType::INFO,
@@ -579,16 +566,14 @@ impl Backend {
         .await
         .unwrap();
 
-        self.scripted_triggers
-            .store(std::sync::Arc::new(all_triggers));
-        let t_map = self.scripted_triggers.load();
+        self.scanner_data.set_scripted_triggers(all_triggers);
+        let t_map = self.scanner_data.scripted_triggers();
 
-        self.scripted_effects
-            .store(std::sync::Arc::new(all_effects));
-        let e_map = self.scripted_effects.load();
+        self.scanner_data.set_scripted_effects(all_effects);
+        let e_map = self.scanner_data.scripted_effects();
 
-        self.scripted_locs.store(std::sync::Arc::new(all_locs));
-        let l_map = self.scripted_locs.load();
+        self.scanner_data.set_scripted_locs(all_locs);
+        let l_map = self.scanner_data.scripted_locs();
 
         self.client
             .log_message(
@@ -631,11 +616,11 @@ impl Backend {
         .await
         .unwrap();
 
-        self.ideologies.store(std::sync::Arc::new(all_results));
-        let i_map = self.ideologies.load();
+        self.scanner_data.set_ideologies(all_results);
+        let i_map = self.scanner_data.ideologies();
 
-        self.sub_ideologies.store(std::sync::Arc::new(sub_map));
-        let s_map = self.sub_ideologies.load();
+        self.scanner_data.set_sub_ideologies(sub_map);
+        let s_map = self.scanner_data.sub_ideologies();
 
         self.client
             .log_message(
@@ -684,8 +669,8 @@ impl Backend {
         .await
         .unwrap();
 
-        self.traits.store(std::sync::Arc::new(all_traits));
-        let t_map = self.traits.load();
+        self.scanner_data.set_traits(all_traits);
+        let t_map = self.scanner_data.traits();
 
         self.client
             .log_message(
@@ -713,8 +698,8 @@ impl Backend {
         .await
         .unwrap();
 
-        self.sprites.store(std::sync::Arc::new(all_sprites));
-        let s_map = self.sprites.load();
+        self.scanner_data.set_sprites(all_sprites);
+        let s_map = self.scanner_data.sprites();
 
         self.client
             .log_message(
@@ -733,8 +718,8 @@ impl Backend {
         .await
         .unwrap();
 
-        self.characters.store(std::sync::Arc::new(found));
-        let c_map = self.characters.load();
+        self.scanner_data.set_characters(found);
+        let c_map = self.scanner_data.characters();
 
         self.client
             .log_message(
@@ -762,8 +747,8 @@ impl Backend {
         .await
         .unwrap();
 
-        self.ideas.store(std::sync::Arc::new(all_ideas));
-        let i_map = self.ideas.load();
+        self.scanner_data.set_ideas(all_ideas);
+        let i_map = self.scanner_data.ideas();
 
         self.client
             .log_message(
@@ -800,12 +785,12 @@ impl Backend {
         if let Some(path) = mapping_path {
             if let Ok(content) = std::fs::read_to_string(&path) {
                 if let Ok(mappings) = serde_json::from_str::<HashMap<String, String>>(&content) {
-                    let mut m = (**self.modifier_mappings.load()).clone();
+                    let mut m = (*self.scanner_data.modifier_mappings()).clone();
                     for (k, v) in mappings {
                         m.insert(k, v);
                     }
-                    self.modifier_mappings.store(std::sync::Arc::new(m));
-                    let m = self.modifier_mappings.load();
+                    self.scanner_data.set_modifier_mappings(m);
+                    let m = self.scanner_data.modifier_mappings();
                     self.client
                         .log_message(
                             MessageType::INFO,
@@ -819,12 +804,12 @@ impl Backend {
         if let Some(path) = formats_path {
             if let Ok(content) = std::fs::read_to_string(&path) {
                 if let Ok(formats) = serde_json::from_str::<HashMap<String, String>>(&content) {
-                    let mut f = (**self.modifier_formats.load()).clone();
+                    let mut f = (*self.scanner_data.modifier_formats()).clone();
                     for (k, v) in formats {
                         f.insert(k, v);
                     }
-                    self.modifier_formats.store(std::sync::Arc::new(f));
-                    let f = self.modifier_formats.load();
+                    self.scanner_data.set_modifier_formats(f);
+                    let f = self.scanner_data.modifier_formats();
                     self.client
                         .log_message(
                             MessageType::INFO,

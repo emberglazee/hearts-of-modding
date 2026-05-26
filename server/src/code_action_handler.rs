@@ -641,8 +641,8 @@ impl Backend {
                     .to_string_lossy()
                     .to_string();
                 let (parsed, _, _) = loc_parser::parse_loc_file(&content, &path_str);
-                let event_targets = self.event_targets.load();
-                let scripted_locs = self.scripted_locs.load();
+                let event_targets = self.scanner_data.event_targets();
+                let scripted_locs = self.scanner_data.scripted_locs();
                 let mut edits = Vec::new();
 
                 for entry in parsed.values() {
@@ -805,8 +805,8 @@ impl Backend {
                     });
                 }
 
-                let event_targets = self.event_targets.load();
-                let scripted_locs = self.scripted_locs.load();
+                let event_targets = self.scanner_data.event_targets();
+                let scripted_locs = self.scanner_data.scripted_locs();
                 for entry in parsed.values() {
                     let bracket_diagnostics =
                         loc_parser::validate_loc_string(entry, &event_targets, &scripted_locs);

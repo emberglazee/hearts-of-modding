@@ -43,7 +43,7 @@ impl Backend {
                                     ..Default::default()
                                 });
                             }
-                            let target_map = self.event_targets.load();
+                            let target_map = self.scanner_data.event_targets();
                             for target_name in target_map.keys() {
                                 items.push(CompletionItem {
                                     label: target_name.clone(),
@@ -81,7 +81,7 @@ impl Backend {
 
                         if let Some(8) = hovered_index {
                             let mut items = Vec::new();
-                            let rules = self.adjacency_rules.load();
+                            let rules = self.scanner_data.adjacency_rules();
                             for rule_name in rules.keys() {
                                 items.push(CompletionItem {
                                     label: rule_name.clone(),
@@ -360,7 +360,7 @@ impl Backend {
         if let Some(content) = self.documents.get(&uri) {
             {
                 let (script, _) = parser::parse_script(&content);
-                let achievements = self.achievements.load();
+                let achievements = self.scanner_data.achievements();
                 let (ctx, scopes) = find_scope_context_at(&script, position, &achievements);
                 current_scopes = scopes;
                 if let Some(context_key) = ctx {
@@ -427,7 +427,7 @@ impl Backend {
             });
         }
 
-        let st = self.scripted_triggers.load();
+        let st = self.scanner_data.scripted_triggers();
         for trigger in st.values() {
             items.push(CompletionItem {
                 label: trigger.name.clone(),
@@ -441,7 +441,7 @@ impl Backend {
             });
         }
 
-        let se = self.scripted_effects.load();
+        let se = self.scanner_data.scripted_effects();
         for effect in se.values() {
             items.push(CompletionItem {
                 label: effect.name.clone(),
@@ -455,7 +455,7 @@ impl Backend {
             });
         }
 
-        let ids = self.ideologies.load();
+        let ids = self.scanner_data.ideologies();
         for ideology in ids.values() {
             items.push(CompletionItem {
                 label: ideology.name.clone(),
@@ -469,7 +469,7 @@ impl Backend {
             });
         }
 
-        let sids = self.sub_ideologies.load();
+        let sids = self.scanner_data.sub_ideologies();
         for (sid, (parent, _, _)) in sids.iter() {
             items.push(CompletionItem {
                 label: sid.clone(),
@@ -479,7 +479,7 @@ impl Backend {
             });
         }
 
-        let traits = self.traits.load();
+        let traits = self.scanner_data.traits();
         for trait_info in traits.values() {
             items.push(CompletionItem {
                 label: trait_info.name.clone(),
@@ -493,7 +493,7 @@ impl Backend {
             });
         }
 
-        let s_map = self.sprites.load();
+        let s_map = self.scanner_data.sprites();
         for sprite in s_map.values() {
             items.push(CompletionItem {
                 label: sprite.name.clone(),
@@ -507,7 +507,7 @@ impl Backend {
             });
         }
 
-        let id_map = self.ideas.load();
+        let id_map = self.scanner_data.ideas();
         for idea in id_map.values() {
             items.push(CompletionItem {
                 label: idea.name.clone(),
@@ -521,7 +521,7 @@ impl Backend {
             });
         }
 
-        let ability_map = self.abilities.load();
+        let ability_map = self.scanner_data.abilities();
         for ability in ability_map.values() {
             items.push(CompletionItem {
                 label: ability.key.clone(),
@@ -531,7 +531,7 @@ impl Backend {
             });
         }
 
-        let a_map = self.achievements.load();
+        let a_map = self.scanner_data.achievements();
         for achievement in a_map.values() {
             items.push(CompletionItem {
                 label: achievement.name.clone(),
@@ -546,7 +546,7 @@ impl Backend {
         }
 
         // Portrait definitions
-        let p_map = self.portraits.load();
+        let p_map = self.scanner_data.portraits();
         for portrait in p_map.values() {
             items.push(CompletionItem {
                 label: portrait.name.clone(),
@@ -561,7 +561,7 @@ impl Backend {
         }
 
         // Character definitions
-        let char_map = self.characters.load();
+        let char_map = self.scanner_data.characters();
         for character in char_map.values() {
             items.push(CompletionItem {
                 label: character.id.clone(),
@@ -575,7 +575,7 @@ impl Backend {
             });
         }
 
-        let ap_map = self.ai_strategy_plans.load();
+        let ap_map = self.scanner_data.ai_strategy_plans();
         for plan in ap_map.values() {
             items.push(CompletionItem {
                 label: plan.name.clone(),
@@ -589,7 +589,7 @@ impl Backend {
             });
         }
 
-        let var_map = self.variables.load();
+        let var_map = self.scanner_data.variables();
         for var_name in var_map.keys() {
             items.push(CompletionItem {
                 label: var_name.clone(),
@@ -599,7 +599,7 @@ impl Backend {
             });
         }
 
-        let target_map = self.event_targets.load();
+        let target_map = self.scanner_data.event_targets();
         for target_name in target_map.keys() {
             items.push(CompletionItem {
                 label: target_name.clone(),
@@ -609,7 +609,7 @@ impl Backend {
             });
         }
 
-        let m_assets = self.music_assets.load();
+        let m_assets = self.scanner_data.music_assets();
         for asset in m_assets.values() {
             items.push(CompletionItem {
                 label: asset.name.clone(),
@@ -620,7 +620,7 @@ impl Backend {
             });
         }
 
-        let m_stations = self.music_stations.load();
+        let m_stations = self.scanner_data.music_stations();
         for station in m_stations.values() {
             items.push(CompletionItem {
                 label: station.name.clone(),
@@ -630,7 +630,7 @@ impl Backend {
             });
         }
 
-        let m_songs = self.songs.load();
+        let m_songs = self.scanner_data.songs();
         for song in m_songs.values() {
             items.push(CompletionItem {
                 label: song.name.clone(),
@@ -640,7 +640,7 @@ impl Backend {
             });
         }
 
-        let s_sounds = self.sounds.load();
+        let s_sounds = self.scanner_data.sounds();
         for sound in s_sounds.values() {
             items.push(CompletionItem {
                 label: sound.name.clone(),
@@ -651,7 +651,7 @@ impl Backend {
             });
         }
 
-        let s_effects = self.sound_effects.load();
+        let s_effects = self.scanner_data.sound_effects();
         for effect in s_effects.values() {
             items.push(CompletionItem {
                 label: effect.name.clone(),
@@ -661,7 +661,7 @@ impl Backend {
             });
         }
 
-        let s_falloffs = self.falloffs.load();
+        let s_falloffs = self.scanner_data.falloffs();
         for falloff in s_falloffs.values() {
             items.push(CompletionItem {
                 label: falloff.name.clone(),
@@ -671,7 +671,7 @@ impl Backend {
             });
         }
 
-        let s_categories = self.sound_categories.load();
+        let s_categories = self.scanner_data.sound_categories();
         for category in s_categories.values() {
             items.push(CompletionItem {
                 label: category.name.clone(),

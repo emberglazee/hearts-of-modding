@@ -1,6 +1,5 @@
 use crate::ast::{Entry, Range, Value};
 use std::collections::HashMap;
-use std::sync::Arc;
 use tower_lsp::lsp_types::{
     CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall,
     Position as LspPosition, Range as LspRange, SymbolKind, Url,
@@ -41,18 +40,12 @@ pub enum CallKind {
 pub async fn prepare_call_hierarchy(
     uri: &str,
     position: LspPosition,
-    events: &Arc<arc_swap::ArcSwap<HashMap<String, crate::event_scanner::Event>>>,
-    scripted_triggers: &Arc<
-        arc_swap::ArcSwap<HashMap<String, crate::scripted_scanner::ScriptedEntity>>,
-    >,
-    scripted_effects: &Arc<
-        arc_swap::ArcSwap<HashMap<String, crate::scripted_scanner::ScriptedEntity>>,
-    >,
+    data: &crate::ScannerData,
 ) -> Option<CallHierarchyItem> {
     let path = uri.trim_start_matches("file://");
 
     // Check if position is on an event
-    let events_lock = events.load();
+    let events_lock = data.events();
     for (id, event) in events_lock.iter() {
         if event.path == path && position_in_range(&position, &event.range) {
             return Some(CallHierarchyItem {
@@ -70,7 +63,7 @@ pub async fn prepare_call_hierarchy(
     drop(events_lock);
 
     // Check if position is on a scripted trigger
-    let triggers_lock = scripted_triggers.load();
+    let triggers_lock = data.scripted_triggers();
     for (name, trigger) in triggers_lock.iter() {
         if trigger.path == path && position_in_range(&position, &trigger.range) {
             return Some(CallHierarchyItem {
@@ -88,7 +81,7 @@ pub async fn prepare_call_hierarchy(
     drop(triggers_lock);
 
     // Check if position is on a scripted effect
-    let effects_lock = scripted_effects.load();
+    let effects_lock = data.scripted_effects();
     for (name, effect) in effects_lock.iter() {
         if effect.path == path && position_in_range(&position, &effect.range) {
             return Some(CallHierarchyItem {
@@ -110,13 +103,7 @@ pub async fn prepare_call_hierarchy(
 /// Get incoming calls (who calls this symbol)
 pub async fn get_incoming_calls(
     item: &CallHierarchyItem,
-    events: &Arc<arc_swap::ArcSwap<HashMap<String, crate::event_scanner::Event>>>,
-    scripted_triggers: &Arc<
-        arc_swap::ArcSwap<HashMap<String, crate::scripted_scanner::ScriptedEntity>>,
-    >,
-    scripted_effects: &Arc<
-        arc_swap::ArcSwap<HashMap<String, crate::scripted_scanner::ScriptedEntity>>,
-    >,
+    data: &crate::ScannerData,
     documents: &dashmap::DashMap<String, String>,
 ) -> Vec<CallHierarchyIncomingCall> {
     let mut incoming = Vec::new();
@@ -134,14 +121,8 @@ pub async fn get_incoming_calls(
 
             if !references.is_empty() {
                 // Try to find the containing symbol
-                if let Some(container) = find_container_symbol(
-                    uri,
-                    &references[0],
-                    events,
-                    scripted_triggers,
-                    scripted_effects,
-                )
-                .await
+                if let Some(container) =
+                    find_container_symbol(uri, &references[0], data).await
                 {
                     incoming.push(CallHierarchyIncomingCall {
                         from: container,
@@ -158,13 +139,7 @@ pub async fn get_incoming_calls(
 /// Get outgoing calls (what this symbol calls)
 pub async fn get_outgoing_calls(
     item: &CallHierarchyItem,
-    events: &Arc<arc_swap::ArcSwap<HashMap<String, crate::event_scanner::Event>>>,
-    scripted_triggers: &Arc<
-        arc_swap::ArcSwap<HashMap<String, crate::scripted_scanner::ScriptedEntity>>,
-    >,
-    scripted_effects: &Arc<
-        arc_swap::ArcSwap<HashMap<String, crate::scripted_scanner::ScriptedEntity>>,
-    >,
+    data: &crate::ScannerData,
     documents: &dashmap::DashMap<String, String>,
 ) -> Vec<CallHierarchyOutgoingCall> {
     let mut outgoing = Vec::new();
@@ -182,8 +157,7 @@ pub async fn get_outgoing_calls(
             for (call_name, call_ranges) in calls {
                 // Try to find the target symbol
                 if let Some(target) =
-                    find_symbol_by_name(&call_name, events, scripted_triggers, scripted_effects)
-                        .await
+                    find_symbol_by_name(&call_name, data).await
                 {
                     outgoing.push(CallHierarchyOutgoingCall {
                         to: target,
@@ -322,18 +296,12 @@ fn find_calls_recursive(
 async fn find_container_symbol(
     uri: &str,
     range: &Range,
-    events: &Arc<arc_swap::ArcSwap<HashMap<String, crate::event_scanner::Event>>>,
-    scripted_triggers: &Arc<
-        arc_swap::ArcSwap<HashMap<String, crate::scripted_scanner::ScriptedEntity>>,
-    >,
-    scripted_effects: &Arc<
-        arc_swap::ArcSwap<HashMap<String, crate::scripted_scanner::ScriptedEntity>>,
-    >,
+    data: &crate::ScannerData,
 ) -> Option<CallHierarchyItem> {
     let path = uri.trim_start_matches("file://");
 
     // Check events
-    let events_lock = events.load();
+    let events_lock = data.events();
     for (id, event) in events_lock.iter() {
         if event.path == path && range_contains(&event.range, range) {
             return Some(CallHierarchyItem {
@@ -351,7 +319,7 @@ async fn find_container_symbol(
     drop(events_lock);
 
     // Check scripted triggers
-    let triggers_lock = scripted_triggers.load();
+    let triggers_lock = data.scripted_triggers();
     for (name, trigger) in triggers_lock.iter() {
         if trigger.path == path && range_contains(&trigger.range, range) {
             return Some(CallHierarchyItem {
@@ -369,7 +337,7 @@ async fn find_container_symbol(
     drop(triggers_lock);
 
     // Check scripted effects
-    let effects_lock = scripted_effects.load();
+    let effects_lock = data.scripted_effects();
     for (name, effect) in effects_lock.iter() {
         if effect.path == path && range_contains(&effect.range, range) {
             return Some(CallHierarchyItem {
@@ -391,16 +359,10 @@ async fn find_container_symbol(
 /// Find a symbol by name
 async fn find_symbol_by_name(
     name: &str,
-    events: &Arc<arc_swap::ArcSwap<HashMap<String, crate::event_scanner::Event>>>,
-    scripted_triggers: &Arc<
-        arc_swap::ArcSwap<HashMap<String, crate::scripted_scanner::ScriptedEntity>>,
-    >,
-    scripted_effects: &Arc<
-        arc_swap::ArcSwap<HashMap<String, crate::scripted_scanner::ScriptedEntity>>,
-    >,
+    data: &crate::ScannerData,
 ) -> Option<CallHierarchyItem> {
     // Check events
-    let events_lock = events.load();
+    let events_lock = data.events();
     if let Some(event) = events_lock.get(name) {
         return Some(CallHierarchyItem {
             name: name.to_string(),
@@ -416,7 +378,7 @@ async fn find_symbol_by_name(
     drop(events_lock);
 
     // Check scripted triggers
-    let triggers_lock = scripted_triggers.load();
+    let triggers_lock = data.scripted_triggers();
     if let Some(trigger) = triggers_lock.get(name) {
         return Some(CallHierarchyItem {
             name: name.to_string(),
@@ -432,7 +394,7 @@ async fn find_symbol_by_name(
     drop(triggers_lock);
 
     // Check scripted effects
-    let effects_lock = scripted_effects.load();
+    let effects_lock = data.scripted_effects();
     if let Some(effect) = effects_lock.get(name) {
         return Some(CallHierarchyItem {
             name: name.to_string(),

@@ -43,12 +43,14 @@ mod trait_scanner;
 mod variable_scanner;
 mod workspace_symbols;
 mod color_utils;
+mod config;
 mod loc_preview;
 mod lsp_convert;
 mod modifier_format;
 mod scope_context;
 mod symbol_search;
 mod scan_orchestrator;
+mod scanner_data;
 mod formatting;
 mod hover_handler;
 mod completion_handler;
@@ -61,13 +63,15 @@ use tower_lsp::{Client, LanguageServer, LspService, Server};
 use dashmap::DashMap;
 use once_cell::sync::Lazy;
 use std::collections::{HashMap, HashSet};
-use std::sync::Arc;
+
 
 use crate::color_utils::find_colors;
+use crate::config::Config;
 use crate::loc_preview::find_identifier_in_loc;
 use crate::lsp_convert::{
     ast_range_to_lsp, ast_range_to_lsp_location, ast_related_info_to_lsp, ast_tag_to_lsp,
 };
+use crate::scanner_data::ScannerData;
 use crate::symbol_search::find_identifier_at;
 
 pub(crate) static TRIGGERS: Lazy<HashMap<&'static str, hoi4_data::HOI4Entity>> =
@@ -94,59 +98,11 @@ pub(crate) fn utf16_len(s: &str) -> u32 {
     s.chars().map(|c| c.len_utf16()).sum::<usize>() as u32
 }
 
-#[derive(Debug)]
 struct Backend {
     client: Client,
     documents: DashMap<String, String>,
-    localization: Arc<arc_swap::ArcSwap<HashMap<String, loc_parser::LocEntry>>>,
-    scripted_triggers: Arc<arc_swap::ArcSwap<HashMap<String, scripted_scanner::ScriptedEntity>>>,
-    scripted_effects: Arc<arc_swap::ArcSwap<HashMap<String, scripted_scanner::ScriptedEntity>>>,
-    ideologies: Arc<arc_swap::ArcSwap<HashMap<String, ideology_scanner::Ideology>>>,
-    sub_ideologies: Arc<arc_swap::ArcSwap<HashMap<String, (String, ast::Range, String)>>>, // Sub-ideology -> (Parent Ideology, Range, Path)
-    traits: Arc<arc_swap::ArcSwap<HashMap<String, trait_scanner::Trait>>>,
-    sprites: Arc<arc_swap::ArcSwap<HashMap<String, sprite_scanner::Sprite>>>,
-    ideas: Arc<arc_swap::ArcSwap<HashMap<String, idea_scanner::Idea>>>,
-    characters: Arc<arc_swap::ArcSwap<HashMap<String, character_scanner::Character>>>,
-    variables: Arc<arc_swap::ArcSwap<HashMap<String, Vec<variable_scanner::Variable>>>>,
-    event_targets: Arc<arc_swap::ArcSwap<HashMap<String, Vec<variable_scanner::EventTarget>>>>,
-    provinces: Arc<arc_swap::ArcSwap<HashMap<u32, province_scanner::Province>>>,
-    custom_modifiers: Arc<arc_swap::ArcSwap<HashMap<String, modifier_scanner::Modifier>>>,
-    modifier_mappings: Arc<arc_swap::ArcSwap<HashMap<String, String>>>,
-    modifier_formats: Arc<arc_swap::ArcSwap<HashMap<String, String>>>,
-    events: Arc<arc_swap::ArcSwap<HashMap<String, event_scanner::Event>>>,
-    music_assets: Arc<arc_swap::ArcSwap<HashMap<String, music_scanner::MusicAsset>>>,
-    music_stations: Arc<arc_swap::ArcSwap<HashMap<String, music_scanner::MusicStation>>>,
-    songs: Arc<arc_swap::ArcSwap<HashMap<String, music_scanner::Song>>>,
-    sounds: Arc<arc_swap::ArcSwap<HashMap<String, sound_scanner::Sound>>>,
-    sound_effects: Arc<arc_swap::ArcSwap<HashMap<String, sound_scanner::SoundEffect>>>,
-    falloffs: Arc<arc_swap::ArcSwap<HashMap<String, sound_scanner::Falloff>>>,
-    sound_categories: Arc<arc_swap::ArcSwap<HashMap<String, sound_scanner::SoundCategory>>>,
-    buildings: Arc<arc_swap::ArcSwap<HashMap<String, building_scanner::Building>>>,
-    achievements: Arc<arc_swap::ArcSwap<HashMap<String, achievement_scanner::Achievement>>>,
-    defines: Arc<arc_swap::ArcSwap<defines_parser::GameDefines>>,
-    ignored_loc_regex: Arc<arc_swap::ArcSwap<Vec<regex::Regex>>>,
-    ignored_files_regex: Arc<arc_swap::ArcSwap<Vec<regex::Regex>>>,
-    workspace_scan_enabled: Arc<arc_swap::ArcSwap<bool>>,
-    styling_enabled: Arc<arc_swap::ArcSwap<bool>>,
-    cosmetic_loc_indent: Arc<arc_swap::ArcSwap<bool>>,
-    game_path: Arc<arc_swap::ArcSwap<Option<String>>>,
-    abilities: Arc<arc_swap::ArcSwap<HashMap<String, ability_scanner::Ability>>>,
-    ai_strategy_plans:
-        Arc<arc_swap::ArcSwap<HashMap<String, ai_strategy_plan_scanner::AiStrategyPlan>>>,
-    portraits: Arc<arc_swap::ArcSwap<HashMap<String, portrait_scanner::Portrait>>>,
-    scripted_locs: Arc<arc_swap::ArcSwap<HashMap<String, scripted_loc_scanner::ScriptedLoc>>>,
-    duplicated_loc_keys: Arc<arc_swap::ArcSwap<HashSet<(String, String)>>>,
-    states: Arc<arc_swap::ArcSwap<HashMap<u32, state_scanner::State>>>,
-    supply_nodes: Arc<arc_swap::ArcSwap<Vec<logistics_scanner::SupplyNode>>>,
-    railways: Arc<arc_swap::ArcSwap<Vec<logistics_scanner::Railway>>>,
-    map_buildings: Arc<arc_swap::ArcSwap<Vec<map_object_scanner::MapBuilding>>>,
-    unitstacks: Arc<arc_swap::ArcSwap<Vec<map_object_scanner::UnitStack>>>,
-    weather_positions: Arc<arc_swap::ArcSwap<Vec<map_object_scanner::WeatherPosition>>>,
-    adjacencies: Arc<arc_swap::ArcSwap<Vec<adjacency_scanner::Adjacency>>>,
-    adjacency_rules: Arc<arc_swap::ArcSwap<HashMap<String, adjacency_scanner::AdjacencyRule>>>,
-    strategic_regions:
-        Arc<arc_swap::ArcSwap<HashMap<u32, strategic_region_scanner::StrategicRegion>>>,
-    workspace_files: Arc<arc_swap::ArcSwap<HashSet<String>>>,
+    scanner_data: ScannerData,
+    config: Config,
 }
 
 #[tower_lsp::async_trait]
@@ -155,9 +111,8 @@ impl LanguageServer for Backend {
         if let Some(options) = params.initialization_options {
             if let Some(path) = options.get("gamePath").and_then(|v| v.as_str()) {
                 if !path.is_empty() {
-                    self.game_path
-                        .store(std::sync::Arc::new(Some(path.to_string())));
-                    let _gp = self.game_path.load();
+                    self.config.set_game_path(Some(path.to_string()));
+                    let _gp = self.config.game_path();
                 }
             }
             if let Some(ignore_list) = options.get("ignoreLocalization").and_then(|v| v.as_array())
@@ -170,8 +125,8 @@ impl LanguageServer for Backend {
                         }
                     }
                 }
-                self.ignored_loc_regex.store(std::sync::Arc::new(patterns));
-                let _ig = self.ignored_loc_regex.load();
+                self.config.set_ignored_loc_regex(patterns);
+                let _ig = self.config.ignored_loc_regex();
             }
             if let Some(ignore_list) = options.get("ignoreFiles").and_then(|v| v.as_array()) {
                 let mut patterns = Vec::new();
@@ -182,25 +137,23 @@ impl LanguageServer for Backend {
                         }
                     }
                 }
-                self.ignored_files_regex
-                    .store(std::sync::Arc::new(patterns));
-                let _ig = self.ignored_files_regex.load();
+                self.config.set_ignored_files_regex(patterns);
+                let _ig = self.config.ignored_files_regex();
             }
             if let Some(enabled) = options
                 .get("workspaceScanEnabled")
                 .and_then(|v| v.as_bool())
             {
-                self.workspace_scan_enabled
-                    .store(std::sync::Arc::new(enabled));
-                let _ws = self.workspace_scan_enabled.load();
+                self.config.set_workspace_scan_enabled(enabled);
+                let _ws = self.config.workspace_scan_enabled();
             }
             if let Some(enabled) = options.get("stylingEnabled").and_then(|v| v.as_bool()) {
-                self.styling_enabled.store(std::sync::Arc::new(enabled));
-                let _st = self.styling_enabled.load();
+                self.config.set_styling_enabled(enabled);
+                let _st = self.config.styling_enabled();
             }
             if let Some(enabled) = options.get("cosmeticLocIndent").and_then(|v| v.as_bool()) {
-                self.cosmetic_loc_indent.store(std::sync::Arc::new(enabled));
-                let _ci = self.cosmetic_loc_indent.load();
+                self.config.set_cosmetic_loc_indent(enabled);
+                let _ci = self.config.cosmetic_loc_indent();
             }
         }
         Ok(InitializeResult {
@@ -271,8 +224,8 @@ impl LanguageServer for Backend {
             .await;
 
         let mut roots = vec![std::path::PathBuf::from(".")];
-        let gp = self.game_path.load();
-        if let Some(ref path) = **gp {
+        let gp = self.config.game_path();
+        if let Some(ref path) = gp {
             roots.insert(0, std::path::PathBuf::from(path));
             self.client
                 .log_message(MessageType::INFO, format!("Using HOI4 game path: {}", path))
@@ -319,7 +272,7 @@ impl LanguageServer for Backend {
         }
 
         // Workspace-wide scan
-        if **self.workspace_scan_enabled.load() {
+        if self.config.workspace_scan_enabled() {
             self.validate_workspace(std::path::Path::new(".")).await;
         }
     }
@@ -340,8 +293,8 @@ impl LanguageServer for Backend {
                                 }
                             }
                         }
-                        self.ignored_loc_regex.store(std::sync::Arc::new(patterns));
-                        let _ig = self.ignored_loc_regex.load();
+                        self.config.set_ignored_loc_regex(patterns);
+                        let _ig = self.config.ignored_loc_regex();
                     }
                     if let Some(ignore_list) =
                         validator.get("ignoreFiles").and_then(|v| v.as_array())
@@ -354,9 +307,8 @@ impl LanguageServer for Backend {
                                 }
                             }
                         }
-                        self.ignored_files_regex
-                            .store(std::sync::Arc::new(patterns));
-                        let _ig = self.ignored_files_regex.load();
+                        self.config.set_ignored_files_regex(patterns);
+                        let _ig = self.config.ignored_files_regex();
                     }
                     if let Some(enabled) = validator
                         .get("workspaceScan")
@@ -364,22 +316,21 @@ impl LanguageServer for Backend {
                         .and_then(|v| v.get("enabled"))
                         .and_then(|v| v.as_bool())
                     {
-                        self.workspace_scan_enabled
-                            .store(std::sync::Arc::new(enabled));
-                        let _ws = self.workspace_scan_enabled.load();
+                        self.config.set_workspace_scan_enabled(enabled);
+                        let _ws = self.config.workspace_scan_enabled();
                     }
                 }
                 if let Some(styling) = hoi4.get("styling").and_then(|v| v.as_object()) {
                     if let Some(enabled) = styling.get("enabled").and_then(|v| v.as_bool()) {
-                        self.styling_enabled.store(std::sync::Arc::new(enabled));
-                        let _st = self.styling_enabled.load();
+                        self.config.set_styling_enabled(enabled);
+                        let _st = self.config.styling_enabled();
                     }
                     if let Some(enabled) = styling
                         .get("cosmeticLocalizationIndentation")
                         .and_then(|v| v.as_bool())
                     {
-                        self.cosmetic_loc_indent.store(std::sync::Arc::new(enabled));
-                        let _ci = self.cosmetic_loc_indent.load();
+                        self.config.set_cosmetic_loc_indent(enabled);
+                        let _ci = self.config.cosmetic_loc_indent();
                     }
                 }
                 // Re-validate all documents
@@ -501,43 +452,43 @@ impl LanguageServer for Backend {
                 keywords.insert("technologies".to_string());
 
                 let ability_names: HashSet<String> = self
-                    .abilities
-                    .load()
+                    .scanner_data
+                    .abilities()
                     .keys()
                     .map(|k| k.to_string())
                     .collect();
 
                 let strategy_plan_names: HashSet<String> = self
-                    .ai_strategy_plans
-                    .load()
+                    .scanner_data
+                    .ai_strategy_plans()
                     .keys()
                     .map(|k| k.to_string())
                     .collect();
 
                 let portrait_names: HashSet<String> = self
-                    .portraits
-                    .load()
+                    .scanner_data
+                    .portraits()
                     .keys()
                     .map(|k| k.to_string())
                     .collect();
 
                 let character_names: HashSet<String> = self
-                    .characters
-                    .load()
+                    .scanner_data
+                    .characters()
                     .keys()
                     .map(|k| k.to_string())
                     .collect();
 
                 let ideology_types: HashSet<String> = self
-                    .sub_ideologies
-                    .load()
+                    .scanner_data
+                    .sub_ideologies()
                     .keys()
                     .map(|k| k.to_string())
                     .collect();
 
                 let achievement_names: HashSet<String> = self
-                    .achievements
-                    .load()
+                    .scanner_data
+                    .achievements()
                     .keys()
                     .map(|k| k.to_string())
                     .collect();
@@ -577,7 +528,7 @@ impl LanguageServer for Backend {
         };
 
         // Get color modifiers from defines
-        let defines = self.defines.load();
+        let defines = self.scanner_data.defines();
         let modifiers = enhanced_color::ColorModifiers::from_defines(&defines);
 
         // Generate presentations for both RGB and HSV formats
@@ -593,7 +544,7 @@ impl LanguageServer for Backend {
         let uri = params.text_document.uri.to_string();
         if let Some(content) = self.documents.get(&uri) {
             if uri.ends_with(".yml") {
-                let cosmetic_indent = **self.cosmetic_loc_indent.load();
+                let cosmetic_indent = self.config.cosmetic_loc_indent();
                 let formatted = loc_parser::format_loc_file(&content, cosmetic_indent);
                 let full_range = Range {
                     start: Position {
@@ -659,7 +610,7 @@ impl LanguageServer for Backend {
             } else {
                 let (script, _) = parser::parse_script(&content);
                 let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
-                let achievements = self.achievements.load();
+                let achievements = self.scanner_data.achievements();
                 find_identifier_at(&script, position, &mut scope_stack, &achievements)
                     .map(|(id, _, _, _)| id)
             };
@@ -669,34 +620,34 @@ impl LanguageServer for Backend {
                 let mut localizations = Vec::new();
 
                 // Check scripted elements
-                let st = self.scripted_triggers.load();
+                let st = self.scanner_data.scripted_triggers();
                 if let Some(entity) = st.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(&entity.range, &entity.path));
                 }
 
-                let se = self.scripted_effects.load();
+                let se = self.scanner_data.scripted_effects();
                 if let Some(entity) = se.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(&entity.range, &entity.path));
                 }
 
-                let sl = self.scripted_locs.load();
+                let sl = self.scanner_data.scripted_locs();
                 if let Some(loc) = sl.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(&loc.range, &loc.path));
                 }
 
                 // Check ideologies
-                let id_map = self.ideologies.load();
+                let id_map = self.scanner_data.ideologies();
                 if let Some(ideology) = id_map.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(&ideology.range, &ideology.path));
                 }
 
-                let sid_map = self.sub_ideologies.load();
+                let sid_map = self.scanner_data.sub_ideologies();
                 if let Some((_, range, path)) = sid_map.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(range, path));
                 }
 
                 // Check traits
-                let t_map = self.traits.load();
+                let t_map = self.scanner_data.traits();
                 if let Some(trait_info) = t_map.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(
                         &trait_info.range,
@@ -705,31 +656,31 @@ impl LanguageServer for Backend {
                 }
 
                 // Check sprites
-                let s_map = self.sprites.load();
+                let s_map = self.scanner_data.sprites();
                 if let Some(sprite) = s_map.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(&sprite.range, &sprite.path));
                 }
 
                 // Check events
-                let e_map = self.events.load();
+                let e_map = self.scanner_data.events();
                 if let Some(event) = e_map.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(&event.range, &event.path));
                 }
 
                 // Check abilities
-                let ability_map = self.abilities.load();
+                let ability_map = self.scanner_data.abilities();
                 if let Some(ability) = ability_map.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(&ability.range, &ability.path));
                 }
 
                 // Check ideas
-                let idea_map = self.ideas.load();
+                let idea_map = self.scanner_data.ideas();
                 if let Some(idea) = idea_map.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(&idea.range, &idea.path));
                 }
 
                 // Check achievements
-                let a_map = self.achievements.load();
+                let a_map = self.scanner_data.achievements();
                 if let Some(achievement) = a_map.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(
                         &achievement.range,
@@ -738,7 +689,7 @@ impl LanguageServer for Backend {
                 }
 
                 // Check variables
-                let var_map = self.variables.load();
+                let var_map = self.scanner_data.variables();
                 if let Some(vars) = var_map.get(&identifier) {
                     for var in vars {
                         sources.push(ast_range_to_lsp_location(&var.range, &var.path));
@@ -746,7 +697,7 @@ impl LanguageServer for Backend {
                 }
 
                 // Check event targets
-                let target_map = self.event_targets.load();
+                let target_map = self.scanner_data.event_targets();
                 if let Some(targets) = target_map.get(&identifier) {
                     for target in targets {
                         sources.push(ast_range_to_lsp_location(&target.range, &target.path));
@@ -754,56 +705,56 @@ impl LanguageServer for Backend {
                 }
 
                 // Check modifiers
-                let custom_mods = self.custom_modifiers.load();
+                let custom_mods = self.scanner_data.custom_modifiers();
                 if let Some(modifier) = custom_mods.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(&modifier.range, &modifier.path));
                 }
 
                 // Check music
-                let m_assets = self.music_assets.load();
+                let m_assets = self.scanner_data.music_assets();
                 if let Some(asset) = m_assets.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(&asset.range, &asset.path));
                 }
 
-                let m_stations = self.music_stations.load();
+                let m_stations = self.scanner_data.music_stations();
                 if let Some(station) = m_stations.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(&station.range, &station.path));
                 }
 
-                let m_songs = self.songs.load();
+                let m_songs = self.scanner_data.songs();
                 if let Some(song) = m_songs.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(&song.range, &song.path));
                 }
 
                 // Check sounds
-                let s_sounds = self.sounds.load();
+                let s_sounds = self.scanner_data.sounds();
                 if let Some(sound) = s_sounds.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(&sound.range, &sound.path));
                 }
 
-                let s_effects = self.sound_effects.load();
+                let s_effects = self.scanner_data.sound_effects();
                 if let Some(effect) = s_effects.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(&effect.range, &effect.path));
                 }
 
-                let s_falloffs = self.falloffs.load();
+                let s_falloffs = self.scanner_data.falloffs();
                 if let Some(falloff) = s_falloffs.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(&falloff.range, &falloff.path));
                 }
 
-                let s_categories = self.sound_categories.load();
+                let s_categories = self.scanner_data.sound_categories();
                 if let Some(category) = s_categories.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(&category.range, &category.path));
                 }
 
                 // Check adjacency rules
-                let rule_lock = self.adjacency_rules.load();
+                let rule_lock = self.scanner_data.adjacency_rules();
                 if let Some(rule) = rule_lock.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(&rule.range, &rule.path));
                 }
 
                 // Check strategic regions
-                let regions = self.strategic_regions.load();
+                let regions = self.scanner_data.strategic_regions();
                 if let Ok(id) = identifier.parse::<u32>() {
                     if let Some(region) = regions.get(&id) {
                         sources.push(ast_range_to_lsp_location(&region.range, &region.path));
@@ -811,13 +762,13 @@ impl LanguageServer for Backend {
                 }
 
                 // Check portraits
-                let portrait_map = self.portraits.load();
+                let portrait_map = self.scanner_data.portraits();
                 if let Some(portrait) = portrait_map.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(&portrait.range, &portrait.path));
                 }
 
                 // Check characters
-                let char_map = self.characters.load();
+                let char_map = self.scanner_data.characters();
                 if let Some(character) = char_map.get(&identifier) {
                     sources.push(ast_range_to_lsp_location(
                         &character.range,
@@ -825,16 +776,16 @@ impl LanguageServer for Backend {
                     ));
                 }
 
-                let mappings = self.modifier_mappings.load();
+                let mappings = self.scanner_data.modifier_mappings();
                 if let Some(loc_key) = mappings.get(&identifier) {
-                    let loc = self.localization.load();
+                    let loc = self.scanner_data.localization();
                     if let Some(e) = loc.get(loc_key) {
                         localizations.push(ast_range_to_lsp_location(&e.range, &e.path));
                     }
                 }
 
                 // Check localization
-                let loc = self.localization.load();
+                let loc = self.scanner_data.localization();
                 // Try exact match
                 if let Some(e) = loc.get(&identifier) {
                     localizations.push(ast_range_to_lsp_location(&e.range, &e.path));
@@ -867,7 +818,7 @@ impl LanguageServer for Backend {
             {
                 let (script, _) = parser::parse_script(&content);
                 let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
-                let achievements = self.achievements.load();
+                let achievements = self.scanner_data.achievements();
                 if let Some((identifier, _, _, _)) =
                     find_identifier_at(&script, position, &mut scope_stack, &achievements)
                 {
@@ -875,8 +826,8 @@ impl LanguageServer for Backend {
 
                     // Search in all roots
                     let mut roots = vec![std::path::PathBuf::from(".")];
-                    let gp = self.game_path.load();
-                    if let Some(ref path) = **gp {
+                    let gp = self.config.game_path();
+                    if let Some(ref path) = gp {
                         roots.push(std::path::PathBuf::from(path));
                     }
 
@@ -903,8 +854,8 @@ impl LanguageServer for Backend {
         params: ExecuteCommandParams,
     ) -> Result<Option<serde_json::Value>> {
         if params.command == "hoi4.getEventGraph" {
-            let events = self.events.load();
-            let json = serde_json::to_value(&**events).unwrap();
+            let events = self.scanner_data.events();
+            let json = serde_json::to_value(&*events).unwrap();
             return Ok(Some(json));
         } else if params.command == "hoi4/getMemoryUsage" {
             let mut sys = sysinfo::System::new();
@@ -948,35 +899,7 @@ impl LanguageServer for Backend {
     ) -> Result<Option<Vec<SymbolInformation>>> {
         let symbols = workspace_symbols::generate_workspace_symbols(
             &params.query,
-            &self.events,
-            &self.ideas,
-            &self.traits,
-            &self.scripted_triggers,
-            &self.scripted_effects,
-            &self.ideologies,
-            &self.sub_ideologies,
-            &self.sprites,
-            &self.characters,
-            &self.variables,
-            &self.achievements,
-            &self.abilities,
-            &self.scripted_locs,
-            &self.portraits,
-            &self.localization,
-            &self.states,
-            &self.supply_nodes,
-            &self.railways,
-            &self.map_buildings,
-            &self.unitstacks,
-            &self.weather_positions,
-            &self.adjacencies,
-            &self.adjacency_rules,
-            &self.strategic_regions,
-            &self.custom_modifiers,
-            &self.sounds,
-            &self.sound_effects,
-            &self.falloffs,
-            &self.sound_categories,
+            &self.scanner_data,
         )
         .await;
 
@@ -997,9 +920,7 @@ impl LanguageServer for Backend {
         let item = call_hierarchy::prepare_call_hierarchy(
             uri,
             position,
-            &self.events,
-            &self.scripted_triggers,
-            &self.scripted_effects,
+            &self.scanner_data,
         )
         .await;
 
@@ -1012,9 +933,7 @@ impl LanguageServer for Backend {
     ) -> Result<Option<Vec<CallHierarchyIncomingCall>>> {
         let calls = call_hierarchy::get_incoming_calls(
             &params.item,
-            &self.events,
-            &self.scripted_triggers,
-            &self.scripted_effects,
+            &self.scanner_data,
             &self.documents,
         )
         .await;
@@ -1028,9 +947,7 @@ impl LanguageServer for Backend {
     ) -> Result<Option<Vec<CallHierarchyOutgoingCall>>> {
         let calls = call_hierarchy::get_outgoing_calls(
             &params.item,
-            &self.events,
-            &self.scripted_triggers,
-            &self.scripted_effects,
+            &self.scanner_data,
             &self.documents,
         )
         .await;
@@ -1048,13 +965,7 @@ impl LanguageServer for Backend {
         let result = rename::prepare_rename(
             uri,
             position,
-            &self.events,
-            &self.scripted_triggers,
-            &self.scripted_effects,
-            &self.ideas,
-            &self.characters,
-            &self.variables,
-            &self.abilities,
+            &self.scanner_data,
         )
         .await;
 
@@ -1066,18 +977,12 @@ impl LanguageServer for Backend {
         let position = params.text_document_position.position;
         let new_name = &params.new_name;
 
-        let files = self.workspace_files.load();
+        let files = self.scanner_data.workspace_files();
         let result = rename::rename_symbol(
             uri,
             position,
             new_name,
-            &self.events,
-            &self.scripted_triggers,
-            &self.scripted_effects,
-            &self.ideas,
-            &self.characters,
-            &self.variables,
-            &self.abilities,
+            &self.scanner_data,
             &self.documents,
             &files,
         )
@@ -1220,7 +1125,7 @@ impl Backend {
 
     pub(crate) async fn should_ignore_file(&self, path: &std::path::Path) -> bool {
         let path_str = path.to_string_lossy();
-        let ignored = self.ignored_files_regex.load();
+        let ignored = self.config.ignored_files_regex();
         for re in ignored.iter() {
             if re.is_match(&path_str) {
                 return true;
@@ -1230,15 +1135,12 @@ impl Backend {
     }
 
     pub(crate) fn get_sync_filter(&self) -> impl Fn(&std::path::Path) -> bool + Send + Sync + 'static {
-        let regexes = self.ignored_files_regex.clone();
+        let ignored = self.config.ignored_files_regex();
         move |path: &std::path::Path| {
             let path_str = path.to_string_lossy();
-            let ignored = regexes.load();
-            {
-                for re in ignored.iter() {
-                    if re.is_match(&path_str) {
-                        return true;
-                    }
+            for re in ignored.iter() {
+                if re.is_match(&path_str) {
+                    return true;
                 }
             }
             false
@@ -1307,7 +1209,7 @@ impl Backend {
     async fn collect_workspace_files(&self, roots: &[std::path::PathBuf]) {
         let mut all_files = HashSet::new();
         let extensions = ["txt", "yml"];
-        let ignored = self.ignored_files_regex.load();
+        let ignored = self.config.ignored_files_regex();
 
         for root in roots {
             let mut dirs_to_check = vec![root.to_path_buf()];
@@ -1338,7 +1240,7 @@ impl Backend {
             }
         }
 
-        self.workspace_files.store(std::sync::Arc::new(all_files));
+        self.scanner_data.set_workspace_files(all_files);
     }
 
     async fn validate_document(&self, uri: Url) {
@@ -1358,7 +1260,7 @@ impl Backend {
     async fn validate_content(&self, uri: &Url, content: &str) -> Vec<Diagnostic> {
         let mut diagnostics = Vec::new();
 
-        let styling_enabled = **self.styling_enabled.load();
+        let styling_enabled = self.config.styling_enabled();
         let mut script_opt = None;
         let map_config = crate::map_config::get_map_config(std::path::Path::new("."));
 
@@ -1459,7 +1361,7 @@ impl Backend {
         content: &str,
         diagnostics: &mut Vec<Diagnostic>,
     ) {
-        let provs = self.provinces.load();
+        let provs = self.scanner_data.provinces();
         for (i, line) in content.lines().enumerate() {
             let parts: Vec<&str> = line.split_whitespace().collect();
             if parts.len() >= 2 {
@@ -1487,7 +1389,7 @@ impl Backend {
     }
 
     async fn validate_railways_content(&self, content: &str, diagnostics: &mut Vec<Diagnostic>) {
-        let provs = self.provinces.load();
+        let provs = self.scanner_data.provinces();
         for (i, line) in content.lines().enumerate() {
             let parts: Vec<&str> = line.split_whitespace().collect();
             if parts.len() >= 2 {
@@ -1525,7 +1427,7 @@ impl Backend {
         content: &str,
         diagnostics: &mut Vec<Diagnostic>,
     ) {
-        let states = self.states.load();
+        let states = self.scanner_data.states();
         for (i, line) in content.lines().enumerate() {
             if line.trim().is_empty() {
                 diagnostics.push(Diagnostic {
@@ -1577,7 +1479,7 @@ impl Backend {
         content: &str,
         diagnostics: &mut Vec<Diagnostic>,
     ) {
-        let regions = self.strategic_regions.load();
+        let regions = self.scanner_data.strategic_regions();
         for (i, line) in content.lines().enumerate() {
             let parts: Vec<&str> = line.split(';').collect();
             if parts.len() >= 5 {
@@ -1605,7 +1507,7 @@ impl Backend {
     }
 
     async fn validate_unitstacks_content(&self, content: &str, diagnostics: &mut Vec<Diagnostic>) {
-        let provs = self.provinces.load();
+        let provs = self.scanner_data.provinces();
         for (i, line) in content.lines().enumerate() {
             let parts: Vec<&str> = line.split(';').collect();
             if parts.len() >= 7 {
@@ -1771,8 +1673,8 @@ impl Backend {
     }
 
     async fn validate_adjacencies_content(&self, content: &str, diagnostics: &mut Vec<Diagnostic>) {
-        let provs = self.provinces.load();
-        let rules = self.adjacency_rules.load();
+        let provs = self.scanner_data.provinces();
+        let rules = self.scanner_data.adjacency_rules();
         for (i, line) in content.lines().enumerate() {
             let trimmed = line.trim();
             if trimmed.is_empty() || trimmed.starts_with('#') || trimmed.starts_with("From;To;") {
@@ -1989,7 +1891,7 @@ impl Backend {
         content: &str,
         diagnostics: &mut Vec<Diagnostic>,
     ) {
-        let provs = self.provinces.load();
+        let provs = self.scanner_data.provinces();
         let (script, errors) = parser::parse_script(content);
         for (msg, range) in errors {
             diagnostics.push(Diagnostic {
@@ -2045,7 +1947,7 @@ impl Backend {
         script: &ast::Script,
         diagnostics: &mut Vec<Diagnostic>,
     ) {
-        let provs = self.provinces.load();
+        let provs = self.scanner_data.provinces();
 
         for entry in &script.entries {
             if let ast::Entry::Assignment(ass) = entry {
@@ -2126,9 +2028,9 @@ impl Backend {
         let (parsed, loc_diagnostics_structural, doc_lang) =
             loc_parser::parse_loc_file(content, &path_str);
         let doc_lang_str = doc_lang.unwrap_or_else(|| "unknown".to_string());
-        let event_targets = self.event_targets.load();
-        let scripted_locs = self.scripted_locs.load();
-        let dups = self.duplicated_loc_keys.load();
+        let event_targets = self.scanner_data.event_targets();
+        let scripted_locs = self.scanner_data.scripted_locs();
+        let dups = self.scanner_data.duplicated_loc_keys();
 
         // Add structural diagnostics
         for d in loc_diagnostics_structural {
@@ -2232,7 +2134,7 @@ impl Backend {
             let is_duplicated = dups.contains(&(doc_lang_str.clone(), entry.key.clone()));
 
             if is_duplicated {
-                let loc_map = self.localization.load();
+                let loc_map = self.scanner_data.localization();
                 let mut is_intentional_override = false;
                 if entry.path.contains("replace") {
                     is_intentional_override = true;
@@ -2604,20 +2506,20 @@ impl Backend {
         styling_enabled: bool,
         uri: &str,
     ) {
-        let loc = self.localization.load();
-        let st = self.scripted_triggers.load();
-        let se = self.scripted_effects.load();
-        let id = self.ideologies.load();
-        let sid = self.sub_ideologies.load();
-        let tr = self.traits.load();
-        let sp = self.sprites.load();
-        let ids = self.ideas.load();
-        let provs = self.provinces.load();
-        let mod_maps = self.modifier_mappings.load();
-        let ig_loc = self.ignored_loc_regex.load();
-        let buildings = self.buildings.load();
-        let defines = self.defines.load();
-        let s_effects = self.sound_effects.load();
+        let loc = self.scanner_data.localization();
+        let st = self.scanner_data.scripted_triggers();
+        let se = self.scanner_data.scripted_effects();
+        let id = self.scanner_data.ideologies();
+        let sid = self.scanner_data.sub_ideologies();
+        let tr = self.scanner_data.traits();
+        let sp = self.scanner_data.sprites();
+        let ids = self.scanner_data.ideas();
+        let provs = self.scanner_data.provinces();
+        let mod_maps = self.scanner_data.modifier_mappings();
+        let ig_loc = self.config.ignored_loc_regex();
+        let buildings = self.scanner_data.buildings();
+        let defines = self.scanner_data.defines();
+        let s_effects = self.scanner_data.sound_effects();
 
         let mut comments = Vec::new();
         for entry in &script.entries {
@@ -3067,7 +2969,7 @@ impl Backend {
                     || key_lower == "remove_ability"
                 {
                     if let ast::Value::String(val) = &ass.value.value {
-                        let abilities = self.abilities.load();
+                        let abilities = self.scanner_data.abilities();
                         if !abilities.contains_key(val) {
                             diagnostics.push(Diagnostic {
                                 range: ast_range_to_lsp(&ass.value.range),
@@ -3407,55 +3309,8 @@ async fn main() {
     let (service, socket) = LspService::new(|client| Backend {
         client,
         documents: DashMap::new(),
-        localization: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
-        scripted_triggers: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
-        scripted_effects: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
-        ideologies: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
-        sub_ideologies: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
-        traits: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
-        sprites: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
-        ideas: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
-        characters: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
-        variables: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
-        event_targets: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
-        provinces: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
-        custom_modifiers: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
-        modifier_mappings: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
-        modifier_formats: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
-        events: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
-        music_assets: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
-        music_stations: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
-        songs: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
-        sounds: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
-        sound_effects: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
-        falloffs: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
-        sound_categories: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
-        buildings: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
-        achievements: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
-        defines: Arc::new(arc_swap::ArcSwap::from_pointee(
-            defines_parser::GameDefines::new(),
-        )),
-        ignored_loc_regex: Arc::new(arc_swap::ArcSwap::from_pointee(Vec::new())),
-        ignored_files_regex: Arc::new(arc_swap::ArcSwap::from_pointee(Vec::new())),
-        workspace_scan_enabled: Arc::new(arc_swap::ArcSwap::from_pointee(false)),
-        styling_enabled: Arc::new(arc_swap::ArcSwap::from_pointee(true)),
-        cosmetic_loc_indent: Arc::new(arc_swap::ArcSwap::from_pointee(false)),
-        game_path: Arc::new(arc_swap::ArcSwap::from_pointee(None)),
-        abilities: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
-        ai_strategy_plans: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
-        portraits: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
-        scripted_locs: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
-        duplicated_loc_keys: Arc::new(arc_swap::ArcSwap::from_pointee(HashSet::new())),
-        states: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
-        supply_nodes: Arc::new(arc_swap::ArcSwap::from_pointee(Vec::new())),
-        railways: Arc::new(arc_swap::ArcSwap::from_pointee(Vec::new())),
-        map_buildings: Arc::new(arc_swap::ArcSwap::from_pointee(Vec::new())),
-        unitstacks: Arc::new(arc_swap::ArcSwap::from_pointee(Vec::new())),
-        weather_positions: Arc::new(arc_swap::ArcSwap::from_pointee(Vec::new())),
-        adjacencies: Arc::new(arc_swap::ArcSwap::from_pointee(Vec::new())),
-        adjacency_rules: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
-        strategic_regions: Arc::new(arc_swap::ArcSwap::from_pointee(HashMap::new())),
-        workspace_files: Arc::new(arc_swap::ArcSwap::from_pointee(HashSet::new())),
+        scanner_data: ScannerData::new(),
+        config: Config::new(),
     });
     Server::new(stdin, stdout, socket).serve(service).await;
 }

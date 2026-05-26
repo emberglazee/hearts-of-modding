@@ -55,3 +55,15 @@ Client helpers in `package.json`: `npm run cargo:test`, `cargo:check`, `cargo:fm
 
 - **Activation:** Opening `.txt` files in `common/events/map/history/script/`, `descriptor.mod`, `.gui`, `.gfx`, `.asset` (lang `hoi4`); `.yml` in `localisation/` (lang `hoi4-localisation`); or workspace contains `descriptor.mod`.
 - **Key settings:** `hoi4.gamePath` (required for VFS), `hoi4.validator.workspaceScan.enabled` (off by default), `hoi4.styling.enabled`, `hoi4.validator.ignoreFiles`, `hoi4.validator.ignoreLocalization`.
+
+## Architecture Decisions (unstable — may need reconsideration)
+
+These were made during the 2026-05-26 architecture review. They are not carved in stone — if new evidence or friction emerges they should be revisited.
+
+### ScannerData + Config context objects
+
+**Scope:** Scanner data (32 ArcSwap fields from 22 scanners) lives in a separate `ScannerData` struct. Config fields (ignored_loc_regex, styling_enabled, cosmetic_loc_indent, workspace_scan_enabled, game_path, ignored_files_regex) live in a separate `Config` struct. `Backend` holds both as `scanner_data: ScannerData` and `config: Config`.
+
+**Mutation:** `ScannerData` exposes individual `set_*` methods per field (e.g. `set_events(HashMap<String, Event>)`). The underlying `ArcSwap` fields are not `pub` — callers go through the methods.
+
+**Depth of grouping:** Flat struct, no sub-grouping. Both `ScannerData` and `Config` are single flat structs. Sub-grouping (e.g. `EntityData`, `MapData`) was deferred — revisit if a handler emerges that only ever touches a subset.
