@@ -14,6 +14,12 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Improved Scripted Trigger and Effect Semantic Highlighting**: Now correctly highlights scripted triggers and effects, the same as custom advancemenets, characters, etc.
 
+### Fixed
+
+- **Wrongful idea GFX lookup logic:** Now replicates the correct in-game behavior of looking up the idea GFX.
+
+  - > thank you hoi4 wiki, very cool
+
 ## [v0.8.1] - 2026-05-26
 
 ### Added

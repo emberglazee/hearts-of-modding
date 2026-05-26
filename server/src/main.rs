@@ -2835,7 +2835,10 @@ impl Backend {
                     if let ast::Value::String(val) = &ass.value.value {
                         let mut lookup_key = val.clone();
                         // Country idea "picture" field resolution: picture = [name] resolves to GFX_idea_[name]
-                        if key_lower == "picture" && scope_stack.current() == scope::Scope::Idea {
+                        // Only prepend if the value doesn't already carry the GFX_idea_ namespace;
+                        // the engine checks for the full prefix, not just GFX_ — so GFX_skulk_economy
+                        // would still get prepended to GFX_idea_GFX_skulk_economy and fail.
+                        if key_lower == "picture" && scope_stack.current() == scope::Scope::Idea && !val.starts_with("GFX_idea_") {
                             lookup_key = format!("GFX_idea_{}", val);
                         }
 
