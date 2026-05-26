@@ -20,7 +20,6 @@ fn is_valid_tag(s: &str) -> bool {
         && bytes[1].is_ascii_alphanumeric()
         && bytes[2].is_ascii_alphanumeric()
         && !RESERVED_TAGS.contains(&s)
-        && !(bytes[1].is_ascii_digit() && bytes[2].is_ascii_digit()) // not entirely numeric (already covered by first char check but explicit)
 }
 
 #[derive(Debug, Clone)]
