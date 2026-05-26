@@ -47,6 +47,7 @@ Client helpers in `package.json`: `npm run cargo:test`, `cargo:check`, `cargo:fm
 - `hover_handler.rs` — Hover logic (achievement/event/variable/scope context)
 - `completion_handler.rs` — Completion logic for script and localization
 - `code_action_handler.rs` — Code action logic (formatting, validation fixes)
+- `entity_lookup.rs` — Adapter over `&ScannerData` with 4 query methods; eliminates entity-type cascades in goto-def, rename, semantic tokens
 - `color_utils.rs`, `lsp_convert.rs`, `modifier_format.rs`, `loc_preview.rs`, `symbol_search.rs`, `scope_context.rs` — Utility modules extracted from main.rs
 
 **Scanner modules** (parallelized, recursive): `event_scanner`, `ideology_scanner`, `trait_scanner`, `idea_scanner`, `sprite_scanner`, `variable_scanner`, `modifier_scanner`, `province_scanner`, `music_scanner`, `sound_scanner`, `scripted_loc_scanner`, `scripted_scanner`, `achievement_scanner`, `character_scanner`, `building_scanner`, `state_scanner`, `strategic_region_scanner`, `map_object_scanner`, `logistics_scanner`, `ability_scanner`, `adjacency_scanner`, `ai_strategy_plan_scanner`.
@@ -67,3 +68,11 @@ These were made during the 2026-05-26 architecture review. They are not carved i
 **Mutation:** `ScannerData` exposes individual `set_*` methods per field (e.g. `set_events(HashMap<String, Event>)`). The underlying `ArcSwap` fields are not `pub` — callers go through the methods.
 
 **Depth of grouping:** Flat struct, no sub-grouping. Both `ScannerData` and `Config` are single flat structs. Sub-grouping (e.g. `EntityData`, `MapData`) was deferred — revisit if a handler emerges that only ever touches a subset.
+
+### EntityLookup adapter
+
+**Scope:** `EntityLookup` (`entity_lookup.rs`) wraps `&ScannerData` as an adapter with 4 query methods: `find_definition`, `entity_at`, `entity_names`, `find_symbols`. Handlers (`goto_definition`, `prepare_rename`, `find_symbol_at_position`, `semantic_tokens_full`) no longer iterate scanner data directly. `EntityKind` is a closed enum mapping all 22+ scanner entity types — adding scanner #23 means one file change.
+
+**Not on the interface:** `hover_handler` composes with `find_definition` but keeps display logic (achievement/event/variable scope context) local. `workspace_symbols` not yet refactored — its per-entity display logic (containers, nested icons) is deeper than the symbol-search concern.
+
+**Mutation:** None. `EntityLookup` is read-only; it borrows `ScannerData` which is mutated only during scan orchestration.

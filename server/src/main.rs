@@ -51,6 +51,7 @@ mod scope_context;
 mod symbol_search;
 mod scan_orchestrator;
 mod scanner_data;
+mod entity_lookup;
 mod formatting;
 mod hover_handler;
 mod completion_handler;
@@ -451,47 +452,27 @@ impl LanguageServer for Backend {
                 keywords.insert("planned_production".to_string());
                 keywords.insert("technologies".to_string());
 
-                let ability_names: HashSet<String> = self
-                    .scanner_data
-                    .abilities()
-                    .keys()
-                    .map(|k| k.to_string())
-                    .collect();
+                let lookup = entity_lookup::EntityLookup::new(&self.scanner_data);
+                let all_names = lookup.entity_names();
 
-                let strategy_plan_names: HashSet<String> = self
-                    .scanner_data
-                    .ai_strategy_plans()
-                    .keys()
-                    .map(|k| k.to_string())
-                    .collect();
+                let mut ability_names = HashSet::new();
+                let mut strategy_plan_names = HashSet::new();
+                let mut portrait_names = HashSet::new();
+                let mut character_names = HashSet::new();
+                let mut ideology_types = HashSet::new();
+                let mut achievement_names = HashSet::new();
 
-                let portrait_names: HashSet<String> = self
-                    .scanner_data
-                    .portraits()
-                    .keys()
-                    .map(|k| k.to_string())
-                    .collect();
-
-                let character_names: HashSet<String> = self
-                    .scanner_data
-                    .characters()
-                    .keys()
-                    .map(|k| k.to_string())
-                    .collect();
-
-                let ideology_types: HashSet<String> = self
-                    .scanner_data
-                    .sub_ideologies()
-                    .keys()
-                    .map(|k| k.to_string())
-                    .collect();
-
-                let achievement_names: HashSet<String> = self
-                    .scanner_data
-                    .achievements()
-                    .keys()
-                    .map(|k| k.to_string())
-                    .collect();
+                for (name, kind) in all_names {
+                    match kind {
+                        entity_lookup::EntityKind::Ability => { ability_names.insert(name); }
+                        entity_lookup::EntityKind::AiStrategyPlan => { strategy_plan_names.insert(name); }
+                        entity_lookup::EntityKind::Portrait => { portrait_names.insert(name); }
+                        entity_lookup::EntityKind::Character => { character_names.insert(name); }
+                        entity_lookup::EntityKind::SubIdeology => { ideology_types.insert(name); }
+                        entity_lookup::EntityKind::Achievement => { achievement_names.insert(name); }
+                        _ => {}
+                    }
+                }
 
                 Ok(Some(semantic_tokens::get_semantic_tokens(
                     &script, &keywords, &ability_names, &strategy_plan_names, &portrait_names, &character_names, &ideology_types, &achievement_names,
@@ -616,194 +597,14 @@ impl LanguageServer for Backend {
             };
 
             if let Some(identifier) = identifier {
-                let mut sources = Vec::new();
-                let mut localizations = Vec::new();
-
-                // Check scripted elements
-                let st = self.scanner_data.scripted_triggers();
-                if let Some(entity) = st.get(&identifier) {
-                    sources.push(ast_range_to_lsp_location(&entity.range, &entity.path));
-                }
-
-                let se = self.scanner_data.scripted_effects();
-                if let Some(entity) = se.get(&identifier) {
-                    sources.push(ast_range_to_lsp_location(&entity.range, &entity.path));
-                }
-
-                let sl = self.scanner_data.scripted_locs();
-                if let Some(loc) = sl.get(&identifier) {
-                    sources.push(ast_range_to_lsp_location(&loc.range, &loc.path));
-                }
-
-                // Check ideologies
-                let id_map = self.scanner_data.ideologies();
-                if let Some(ideology) = id_map.get(&identifier) {
-                    sources.push(ast_range_to_lsp_location(&ideology.range, &ideology.path));
-                }
-
-                let sid_map = self.scanner_data.sub_ideologies();
-                if let Some((_, range, path)) = sid_map.get(&identifier) {
-                    sources.push(ast_range_to_lsp_location(range, path));
-                }
-
-                // Check traits
-                let t_map = self.scanner_data.traits();
-                if let Some(trait_info) = t_map.get(&identifier) {
-                    sources.push(ast_range_to_lsp_location(
-                        &trait_info.range,
-                        &trait_info.path,
-                    ));
-                }
-
-                // Check sprites
-                let s_map = self.scanner_data.sprites();
-                if let Some(sprite) = s_map.get(&identifier) {
-                    sources.push(ast_range_to_lsp_location(&sprite.range, &sprite.path));
-                }
-
-                // Check events
-                let e_map = self.scanner_data.events();
-                if let Some(event) = e_map.get(&identifier) {
-                    sources.push(ast_range_to_lsp_location(&event.range, &event.path));
-                }
-
-                // Check abilities
-                let ability_map = self.scanner_data.abilities();
-                if let Some(ability) = ability_map.get(&identifier) {
-                    sources.push(ast_range_to_lsp_location(&ability.range, &ability.path));
-                }
-
-                // Check ideas
-                let idea_map = self.scanner_data.ideas();
-                if let Some(idea) = idea_map.get(&identifier) {
-                    sources.push(ast_range_to_lsp_location(&idea.range, &idea.path));
-                }
-
-                // Check achievements
-                let a_map = self.scanner_data.achievements();
-                if let Some(achievement) = a_map.get(&identifier) {
-                    sources.push(ast_range_to_lsp_location(
-                        &achievement.range,
-                        &achievement.path,
-                    ));
-                }
-
-                // Check variables
-                let var_map = self.scanner_data.variables();
-                if let Some(vars) = var_map.get(&identifier) {
-                    for var in vars {
-                        sources.push(ast_range_to_lsp_location(&var.range, &var.path));
-                    }
-                }
-
-                // Check event targets
-                let target_map = self.scanner_data.event_targets();
-                if let Some(targets) = target_map.get(&identifier) {
-                    for target in targets {
-                        sources.push(ast_range_to_lsp_location(&target.range, &target.path));
-                    }
-                }
-
-                // Check modifiers
-                let custom_mods = self.scanner_data.custom_modifiers();
-                if let Some(modifier) = custom_mods.get(&identifier) {
-                    sources.push(ast_range_to_lsp_location(&modifier.range, &modifier.path));
-                }
-
-                // Check music
-                let m_assets = self.scanner_data.music_assets();
-                if let Some(asset) = m_assets.get(&identifier) {
-                    sources.push(ast_range_to_lsp_location(&asset.range, &asset.path));
-                }
-
-                let m_stations = self.scanner_data.music_stations();
-                if let Some(station) = m_stations.get(&identifier) {
-                    sources.push(ast_range_to_lsp_location(&station.range, &station.path));
-                }
-
-                let m_songs = self.scanner_data.songs();
-                if let Some(song) = m_songs.get(&identifier) {
-                    sources.push(ast_range_to_lsp_location(&song.range, &song.path));
-                }
-
-                // Check sounds
-                let s_sounds = self.scanner_data.sounds();
-                if let Some(sound) = s_sounds.get(&identifier) {
-                    sources.push(ast_range_to_lsp_location(&sound.range, &sound.path));
-                }
-
-                let s_effects = self.scanner_data.sound_effects();
-                if let Some(effect) = s_effects.get(&identifier) {
-                    sources.push(ast_range_to_lsp_location(&effect.range, &effect.path));
-                }
-
-                let s_falloffs = self.scanner_data.falloffs();
-                if let Some(falloff) = s_falloffs.get(&identifier) {
-                    sources.push(ast_range_to_lsp_location(&falloff.range, &falloff.path));
-                }
-
-                let s_categories = self.scanner_data.sound_categories();
-                if let Some(category) = s_categories.get(&identifier) {
-                    sources.push(ast_range_to_lsp_location(&category.range, &category.path));
-                }
-
-                // Check adjacency rules
-                let rule_lock = self.scanner_data.adjacency_rules();
-                if let Some(rule) = rule_lock.get(&identifier) {
-                    sources.push(ast_range_to_lsp_location(&rule.range, &rule.path));
-                }
-
-                // Check strategic regions
-                let regions = self.scanner_data.strategic_regions();
-                if let Ok(id) = identifier.parse::<u32>() {
-                    if let Some(region) = regions.get(&id) {
-                        sources.push(ast_range_to_lsp_location(&region.range, &region.path));
-                    }
-                }
-
-                // Check portraits
-                let portrait_map = self.scanner_data.portraits();
-                if let Some(portrait) = portrait_map.get(&identifier) {
-                    sources.push(ast_range_to_lsp_location(&portrait.range, &portrait.path));
-                }
-
-                // Check characters
-                let char_map = self.scanner_data.characters();
-                if let Some(character) = char_map.get(&identifier) {
-                    sources.push(ast_range_to_lsp_location(
-                        &character.range,
-                        &character.path,
-                    ));
-                }
-
-                let mappings = self.scanner_data.modifier_mappings();
-                if let Some(loc_key) = mappings.get(&identifier) {
-                    let loc = self.scanner_data.localization();
-                    if let Some(e) = loc.get(loc_key) {
-                        localizations.push(ast_range_to_lsp_location(&e.range, &e.path));
-                    }
-                }
-
-                // Check localization
-                let loc = self.scanner_data.localization();
-                // Try exact match
-                if let Some(e) = loc.get(&identifier) {
-                    localizations.push(ast_range_to_lsp_location(&e.range, &e.path));
-                }
-                // Try key:0 etc
-                let target = format!("{}:", identifier);
-                for (k, e) in loc.iter() {
-                    if k.starts_with(&target) {
-                        localizations.push(ast_range_to_lsp_location(&e.range, &e.path));
-                    }
-                }
-
-                // Prefer sources over localizations
-                let mut all_locations = sources;
-                all_locations.extend(localizations);
-
-                if !all_locations.is_empty() {
-                    return Ok(Some(GotoDefinitionResponse::Array(all_locations)));
+                let lookup = entity_lookup::EntityLookup::new(&self.scanner_data);
+                let locations = lookup.find_definition(&identifier);
+                if !locations.is_empty() {
+                    let lsp_locations: Vec<Location> = locations
+                        .iter()
+                        .map(|loc| ast_range_to_lsp_location(&loc.range, &loc.path))
+                        .collect();
+                    return Ok(Some(GotoDefinitionResponse::Array(lsp_locations)));
                 }
             }
         }

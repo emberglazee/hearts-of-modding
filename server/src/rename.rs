@@ -23,71 +23,10 @@ pub async fn prepare_rename(
     data: &crate::ScannerData,
 ) -> Option<PrepareRenameResponse> {
     let path = uri.trim_start_matches("file://");
-
-    // Check if position is on an event
-    let events_lock = data.events();
-    for (_id, event) in events_lock.iter() {
-        if event.path == path && position_in_range(&position, &event.range) {
-            return Some(PrepareRenameResponse::Range(range_to_lsp(&event.range)));
-        }
+    let lookup = crate::entity_lookup::EntityLookup::new(data);
+    if let Some((_, range, _)) = lookup.entity_at(path, position) {
+        return Some(PrepareRenameResponse::Range(range_to_lsp(&range)));
     }
-    drop(events_lock);
-
-    // Check if position is on a scripted trigger
-    let triggers_lock = data.scripted_triggers();
-    for (_name, trigger) in triggers_lock.iter() {
-        if trigger.path == path && position_in_range(&position, &trigger.range) {
-            return Some(PrepareRenameResponse::Range(range_to_lsp(&trigger.range)));
-        }
-    }
-    drop(triggers_lock);
-
-    // Check if position is on a scripted effect
-    let effects_lock = data.scripted_effects();
-    for (_name, effect) in effects_lock.iter() {
-        if effect.path == path && position_in_range(&position, &effect.range) {
-            return Some(PrepareRenameResponse::Range(range_to_lsp(&effect.range)));
-        }
-    }
-    drop(effects_lock);
-
-    // Check if position is on an idea
-    let ideas_lock = data.ideas();
-    for (_name, idea) in ideas_lock.iter() {
-        if idea.path == path && position_in_range(&position, &idea.range) {
-            return Some(PrepareRenameResponse::Range(range_to_lsp(&idea.range)));
-        }
-    }
-    drop(ideas_lock);
-
-    // Check if position is on a character
-    let characters_lock = data.characters();
-    for (_name, character) in characters_lock.iter() {
-        if character.path == path && position_in_range(&position, &character.range) {
-            return Some(PrepareRenameResponse::Range(range_to_lsp(&character.range)));
-        }
-    }
-    drop(characters_lock);
-
-    // Check if position is on an ability
-    let abilities_lock = data.abilities();
-    for (_name, ability) in abilities_lock.iter() {
-        if ability.path == path && position_in_range(&position, &ability.range) {
-            return Some(PrepareRenameResponse::Range(range_to_lsp(&ability.range)));
-        }
-    }
-    drop(abilities_lock);
-
-    // Check if position is on a variable
-    let variables_lock = data.variables();
-    for (_name, var_list) in variables_lock.iter() {
-        for var in var_list {
-            if var.path == path && position_in_range(&position, &var.range) {
-                return Some(PrepareRenameResponse::Range(range_to_lsp(&var.range)));
-            }
-        }
-    }
-
     None
 }
 
@@ -196,68 +135,18 @@ async fn find_symbol_at_position(
     position: &LspPosition,
     data: &crate::ScannerData,
 ) -> Option<RenameableSymbol> {
-    // Check events
-    let events_lock = data.events();
-    for (id, event) in events_lock.iter() {
-        if event.path == path && position_in_range(position, &event.range) {
-            return Some(RenameableSymbol::Event(id.clone()));
-        }
-    }
-    drop(events_lock);
-
-    // Check scripted triggers
-    let triggers_lock = data.scripted_triggers();
-    for (name, trigger) in triggers_lock.iter() {
-        if trigger.path == path && position_in_range(position, &trigger.range) {
-            return Some(RenameableSymbol::ScriptedTrigger(name.clone()));
-        }
-    }
-    drop(triggers_lock);
-
-    // Check scripted effects
-    let effects_lock = data.scripted_effects();
-    for (name, effect) in effects_lock.iter() {
-        if effect.path == path && position_in_range(position, &effect.range) {
-            return Some(RenameableSymbol::ScriptedEffect(name.clone()));
-        }
-    }
-    drop(effects_lock);
-
-    // Check ideas
-    let ideas_lock = data.ideas();
-    for (name, idea) in ideas_lock.iter() {
-        if idea.path == path && position_in_range(position, &idea.range) {
-            return Some(RenameableSymbol::Idea(name.clone()));
-        }
-    }
-    drop(ideas_lock);
-
-    // Check characters
-    let characters_lock = data.characters();
-    for (name, character) in characters_lock.iter() {
-        if character.path == path && position_in_range(position, &character.range) {
-            return Some(RenameableSymbol::Character(name.clone()));
-        }
-    }
-    drop(characters_lock);
-
-    // Check abilities
-    let abilities_lock = data.abilities();
-    for (id, ability) in abilities_lock.iter() {
-        if ability.path == path && position_in_range(position, &ability.range) {
-            return Some(RenameableSymbol::Ability(id.clone()));
-        }
-    }
-    drop(abilities_lock);
-
-    // Check variables
-    let variables_lock = data.variables();
-    for (name, var_list) in variables_lock.iter() {
-        for var in var_list {
-            if var.path == path && position_in_range(position, &var.range) {
-                return Some(RenameableSymbol::Variable(name.clone()));
-            }
-        }
+    let lookup = crate::entity_lookup::EntityLookup::new(data);
+    if let Some((kind, _, name)) = lookup.entity_at(path, *position) {
+        return Some(match kind {
+            crate::entity_lookup::EntityKind::Event => RenameableSymbol::Event(name),
+            crate::entity_lookup::EntityKind::ScriptedTrigger => RenameableSymbol::ScriptedTrigger(name),
+            crate::entity_lookup::EntityKind::ScriptedEffect => RenameableSymbol::ScriptedEffect(name),
+            crate::entity_lookup::EntityKind::Idea => RenameableSymbol::Idea(name),
+            crate::entity_lookup::EntityKind::Character => RenameableSymbol::Character(name),
+            crate::entity_lookup::EntityKind::Variable => RenameableSymbol::Variable(name),
+            crate::entity_lookup::EntityKind::Ability => RenameableSymbol::Ability(name),
+            _ => return None,
+        });
     }
     None
 }
@@ -850,14 +739,6 @@ fn find_ability_references_in_entries(
 }
 
 /// Helper functions
-fn position_in_range(position: &LspPosition, range: &Range) -> bool {
-    let line = position.line;
-    let character = position.character;
-
-    (line > range.start_line || (line == range.start_line && character >= range.start_col))
-        && (line < range.end_line || (line == range.end_line && character <= range.end_col))
-}
-
 fn range_to_lsp(range: &Range) -> LspRange {
     LspRange {
         start: LspPosition {

@@ -6,7 +6,7 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### Changed
 
-- **Major LSP refactor:** Reorganized how the LSP stores data to allow better modularity and easier maintainability.
+- **Major LSP refactor:** Continued LSP refactors to increase modularity and improve maintainability.
 
 ## [v0.8.1] - 2026-05-26
 
