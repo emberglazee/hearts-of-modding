@@ -34,11 +34,15 @@ where
 
     for root in roots {
         let supply_nodes_path = root.join("map/supply_nodes.txt");
-        if supply_nodes_path.exists() && !filter(&supply_nodes_path) && let Ok(content) = fs::read_to_string(&supply_nodes_path) {
+        if supply_nodes_path.exists()
+            && !filter(&supply_nodes_path)
+            && let Ok(content) = fs::read_to_string(&supply_nodes_path)
+        {
             for (line_idx, line) in content.lines().enumerate() {
                 let parts: Vec<&str> = line.split_whitespace().collect();
-                if parts.len() >= 2 && let (Ok(level), Ok(province_id)) =
-                    (parts[0].parse::<u32>(), parts[1].parse::<u32>())
+                if parts.len() >= 2
+                    && let (Ok(level), Ok(province_id)) =
+                        (parts[0].parse::<u32>(), parts[1].parse::<u32>())
                 {
                     supply_nodes.push(SupplyNode {
                         level,
@@ -51,11 +55,15 @@ where
         }
 
         let railways_path = root.join("map/railways.txt");
-        if railways_path.exists() && !filter(&railways_path) && let Ok(content) = fs::read_to_string(&railways_path) {
+        if railways_path.exists()
+            && !filter(&railways_path)
+            && let Ok(content) = fs::read_to_string(&railways_path)
+        {
             for (line_idx, line) in content.lines().enumerate() {
                 let parts: Vec<&str> = line.split_whitespace().collect();
-                if parts.len() >= 2 && let (Ok(level), Ok(num_provs)) =
-                    (parts[0].parse::<u32>(), parts[1].parse::<usize>())
+                if parts.len() >= 2
+                    && let (Ok(level), Ok(num_provs)) =
+                        (parts[0].parse::<u32>(), parts[1].parse::<usize>())
                     && parts.len() >= 2 + num_provs
                 {
                     let mut provs = Vec::new();

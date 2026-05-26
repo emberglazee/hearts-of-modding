@@ -75,7 +75,11 @@ pub fn paradox_to_markdown(
         let m = cap.get(0).unwrap();
         let is_escaped = if m.start() > 0 {
             let preceding_bs = &resolved.as_bytes()[..m.start()];
-            let bs_count = preceding_bs.iter().rev().take_while(|&&b| b == b'\\').count();
+            let bs_count = preceding_bs
+                .iter()
+                .rev()
+                .take_while(|&&b| b == b'\\')
+                .count();
             bs_count % 2 == 1
         } else {
             false
@@ -282,7 +286,11 @@ pub fn find_identifier_in_loc(content: &str, pos: Position) -> Option<String> {
         // Skip escaped brackets \[...\]
         if m.start() > 0 {
             let preceding_bs = &line.as_bytes()[..m.start()];
-            let bs_count = preceding_bs.iter().rev().take_while(|&&b| b == b'\\').count();
+            let bs_count = preceding_bs
+                .iter()
+                .rev()
+                .take_while(|&&b| b == b'\\')
+                .count();
             if bs_count % 2 == 1 {
                 continue;
             }

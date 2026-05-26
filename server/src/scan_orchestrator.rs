@@ -1,9 +1,8 @@
+use crate::Backend;
 use crate::ability_scanner;
 use crate::achievement_scanner;
 use crate::adjacency_scanner;
 use crate::ai_strategy_plan_scanner;
-use crate::portrait_scanner;
-use crate::Backend;
 use crate::building_scanner;
 use crate::character_scanner;
 use crate::country_scanner;
@@ -16,6 +15,7 @@ use crate::logistics_scanner;
 use crate::map_object_scanner;
 use crate::modifier_scanner;
 use crate::music_scanner;
+use crate::portrait_scanner;
 use crate::province_scanner;
 use crate::scripted_loc_scanner;
 use crate::scripted_scanner;
@@ -100,7 +100,8 @@ impl Backend {
         self.scanner_data.set_unitstacks(result.unitstacks);
         let us = self.scanner_data.unitstacks();
 
-        self.scanner_data.set_weather_positions(result.weather_positions);
+        self.scanner_data
+            .set_weather_positions(result.weather_positions);
         let wp = self.scanner_data.weather_positions();
 
         self.client
@@ -311,10 +312,12 @@ impl Backend {
         .await
         .unwrap();
 
-        self.scanner_data.set_custom_modifiers(result.custom_modifiers);
+        self.scanner_data
+            .set_custom_modifiers(result.custom_modifiers);
         let custom = self.scanner_data.custom_modifiers();
 
-        self.scanner_data.set_modifier_mappings(result.builtin_mappings);
+        self.scanner_data
+            .set_modifier_mappings(result.builtin_mappings);
         let mappings = self.scanner_data.modifier_mappings();
 
         self.client

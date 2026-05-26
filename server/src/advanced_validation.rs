@@ -104,9 +104,7 @@ pub fn validate_abilities(
                                         match p_ass.key.to_lowercase().as_str() {
                                             "name" => {
                                                 has_name = true;
-                                                if let ast::Value::String(s) =
-                                                    &p_ass.value.value
-                                                {
+                                                if let ast::Value::String(s) = &p_ass.value.value {
                                                     if !localization.contains_key(s) {
                                                         diagnostics.push(ValidationDiagnostic {
                                                             range: p_ass.value.range.clone(),
@@ -125,9 +123,7 @@ pub fn validate_abilities(
                                             }
                                             "desc" => {
                                                 has_desc = true;
-                                                if let ast::Value::String(s) =
-                                                    &p_ass.value.value
-                                                {
+                                                if let ast::Value::String(s) = &p_ass.value.value {
                                                     if !localization.contains_key(s) {
                                                         diagnostics.push(ValidationDiagnostic {
                                                             range: p_ass.value.range.clone(),

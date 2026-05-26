@@ -68,7 +68,9 @@ where
                                 continue;
                             }
                             let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
-                            if ext == "asset" && let Ok(content) = fs::read_to_string(&path) {
+                            if ext == "asset"
+                                && let Ok(content) = fs::read_to_string(&path)
+                            {
                                 {
                                     let (script, _) = parser::parse_script(&content);
                                     find_sound_definitions(

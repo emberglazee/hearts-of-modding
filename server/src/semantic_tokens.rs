@@ -21,7 +21,21 @@ pub fn get_semantic_tokens(
 ) -> SemanticTokensResult {
     let mut tokens = Vec::new();
     for entry in &script.entries {
-        push_entry_tokens(entry, &mut tokens, keywords, abilities, strategy_plans, portrait_names, character_names, ideology_types, achievement_names, scripted_triggers, scripted_effects, country_tags, None);
+        push_entry_tokens(
+            entry,
+            &mut tokens,
+            keywords,
+            abilities,
+            strategy_plans,
+            portrait_names,
+            character_names,
+            ideology_types,
+            achievement_names,
+            scripted_triggers,
+            scripted_effects,
+            country_tags,
+            None,
+        );
     }
 
     // Sort tokens by line and column
@@ -94,9 +108,14 @@ fn push_entry_tokens(
                     length: ass.key_range.end_col - ass.key_range.start_col,
                     token_type: 0,
                 });
-            } else if is_ability || is_strategy_plan || is_portrait || is_character || is_achievement
+            } else if is_ability
+                || is_strategy_plan
+                || is_portrait
+                || is_character
+                || is_achievement
                 || country_tags.contains(&ass.key)
-                || scripted_triggers.contains(&ass.key) || scripted_effects.contains(&ass.key)
+                || scripted_triggers.contains(&ass.key)
+                || scripted_effects.contains(&ass.key)
             {
                 tokens.push(RawToken {
                     line: ass.key_range.start_line,
@@ -112,10 +131,38 @@ fn push_entry_tokens(
                 length: ass.operator_range.end_col - ass.operator_range.start_col,
                 token_type: 4,
             });
-            push_value_tokens(&ass.value, tokens, keywords, abilities, strategy_plans, portrait_names, character_names, ideology_types, achievement_names, scripted_triggers, scripted_effects, country_tags, Some(&ass.key));
+            push_value_tokens(
+                &ass.value,
+                tokens,
+                keywords,
+                abilities,
+                strategy_plans,
+                portrait_names,
+                character_names,
+                ideology_types,
+                achievement_names,
+                scripted_triggers,
+                scripted_effects,
+                country_tags,
+                Some(&ass.key),
+            );
         }
         Entry::Value(val) => {
-            push_value_tokens(val, tokens, keywords, abilities, strategy_plans, portrait_names, character_names, ideology_types, achievement_names, scripted_triggers, scripted_effects, country_tags, parent_key);
+            push_value_tokens(
+                val,
+                tokens,
+                keywords,
+                abilities,
+                strategy_plans,
+                portrait_names,
+                character_names,
+                ideology_types,
+                achievement_names,
+                scripted_triggers,
+                scripted_effects,
+                country_tags,
+                parent_key,
+            );
         }
         Entry::Comment(_, range) => {
             tokens.push(RawToken {
@@ -145,7 +192,8 @@ fn push_value_tokens(
 ) {
     match &val.value {
         Value::String(s) => {
-            let is_localization_value = parent_key.is_some_and(|k| LOCALIZATION_VALUE_FIELDS.contains(&k));
+            let is_localization_value =
+                parent_key.is_some_and(|k| LOCALIZATION_VALUE_FIELDS.contains(&k));
 
             if keywords.contains(s) {
                 tokens.push(RawToken {
@@ -155,11 +203,15 @@ fn push_value_tokens(
                     token_type: 0,
                 });
             } else if !is_localization_value
-                && (abilities.contains(s) || strategy_plans.contains(s) || portrait_names.contains(s)
-                    || character_names.contains(s) || ideology_types.contains(s)
+                && (abilities.contains(s)
+                    || strategy_plans.contains(s)
+                    || portrait_names.contains(s)
+                    || character_names.contains(s)
+                    || ideology_types.contains(s)
                     || achievement_names.contains(s)
                     || country_tags.contains(s)
-                    || scripted_triggers.contains(s) || scripted_effects.contains(s))
+                    || scripted_triggers.contains(s)
+                    || scripted_effects.contains(s))
             {
                 tokens.push(RawToken {
                     line: val.range.start_line,
@@ -194,7 +246,21 @@ fn push_value_tokens(
         }
         Value::Block(entries) => {
             for entry in entries {
-                push_entry_tokens(entry, tokens, keywords, abilities, strategy_plans, portrait_names, character_names, ideology_types, achievement_names, scripted_triggers, scripted_effects, country_tags, parent_key);
+                push_entry_tokens(
+                    entry,
+                    tokens,
+                    keywords,
+                    abilities,
+                    strategy_plans,
+                    portrait_names,
+                    character_names,
+                    ideology_types,
+                    achievement_names,
+                    scripted_triggers,
+                    scripted_effects,
+                    country_tags,
+                    parent_key,
+                );
             }
         }
         Value::TaggedBlock(tag, entries, _) => {
@@ -205,7 +271,21 @@ fn push_value_tokens(
                 token_type: 0,
             });
             for entry in entries {
-                push_entry_tokens(entry, tokens, keywords, abilities, strategy_plans, portrait_names, character_names, ideology_types, achievement_names, scripted_triggers, scripted_effects, country_tags, parent_key);
+                push_entry_tokens(
+                    entry,
+                    tokens,
+                    keywords,
+                    abilities,
+                    strategy_plans,
+                    portrait_names,
+                    character_names,
+                    ideology_types,
+                    achievement_names,
+                    scripted_triggers,
+                    scripted_effects,
+                    country_tags,
+                    parent_key,
+                );
             }
         }
     }

@@ -91,7 +91,10 @@ fn parse_ideas_block(ass: &ast::Assignment, file_path: &str, map: &mut HashMap<S
                             let mut picture = None;
                             if let ast::Value::Block(details) = &idea_ass.value.value {
                                 for detail in details {
-                                    if let ast::Entry::Assignment(d_ass) = detail && d_ass.key.to_lowercase() == "picture" && let ast::Value::String(s) = &d_ass.value.value {
+                                    if let ast::Entry::Assignment(d_ass) = detail
+                                        && d_ass.key.to_lowercase() == "picture"
+                                        && let ast::Value::String(s) = &d_ass.value.value
+                                    {
                                         picture = Some(s.clone());
                                     }
                                 }

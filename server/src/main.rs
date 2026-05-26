@@ -3,34 +3,47 @@
 #![allow(clippy::too_many_arguments)]
 mod ability_scanner;
 mod achievement_scanner;
-mod ai_strategy_plan_scanner;
 mod adjacency_scanner;
 mod advanced_validation;
+mod ai_strategy_plan_scanner;
 mod ast;
 mod building_scanner;
 mod call_hierarchy;
 mod character_scanner;
+mod code_action_handler;
+mod color_utils;
+mod completion_handler;
+mod config;
 mod country_scanner;
 mod csv_parser;
 mod defines_parser;
 mod document_symbols;
 mod enhanced_color;
+mod entity_lookup;
 mod event_scanner;
+mod formatting;
 mod hoi4_data;
+mod hover_handler;
 mod idea_scanner;
 mod ideology_scanner;
 mod loc_parser;
+mod loc_preview;
 mod logistics_scanner;
+mod lsp_convert;
 mod map_config;
 mod map_object_scanner;
-mod portrait_scanner;
 mod modifier_display;
+mod modifier_format;
 mod modifier_scanner;
 mod music_scanner;
 mod parser;
+mod portrait_scanner;
 mod province_scanner;
 mod rename;
+mod scan_orchestrator;
+mod scanner_data;
 mod scope;
+mod scope_context;
 mod scripted_loc_scanner;
 mod scripted_scanner;
 mod semantic_tokens;
@@ -38,25 +51,12 @@ mod sound_scanner;
 mod sprite_scanner;
 mod state_scanner;
 mod strategic_region_scanner;
+mod symbol_search;
 #[cfg(test)]
 mod test_loc_version;
 mod trait_scanner;
 mod variable_scanner;
 mod workspace_symbols;
-mod color_utils;
-mod config;
-mod loc_preview;
-mod lsp_convert;
-mod modifier_format;
-mod scope_context;
-mod symbol_search;
-mod scan_orchestrator;
-mod scanner_data;
-mod entity_lookup;
-mod formatting;
-mod hover_handler;
-mod completion_handler;
-mod code_action_handler;
 
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
@@ -65,7 +65,7 @@ use tower_lsp::{Client, LanguageServer, LspService, Server};
 use dashmap::DashMap;
 use once_cell::sync::Lazy;
 use std::collections::{HashMap, HashSet};
-
+use std::sync::Arc;
 
 use crate::color_utils::find_colors;
 use crate::config::Config;
@@ -103,6 +103,7 @@ pub(crate) fn utf16_len(s: &str) -> u32 {
 struct Backend {
     client: Client,
     documents: DashMap<String, String>,
+    document_asts: DashMap<String, (Arc<ast::Script>, Vec<(String, ast::Range)>)>,
     scanner_data: ScannerData,
     config: Config,
 }
@@ -347,18 +348,18 @@ impl LanguageServer for Backend {
     }
 
     async fn did_open(&self, params: DidOpenTextDocumentParams) {
-        self.documents.insert(
-            params.text_document.uri.to_string(),
-            params.text_document.text,
-        );
+        let uri = params.text_document.uri.as_str().to_string();
+        let text = params.text_document.text;
+        self.documents.insert(uri.clone(), text.clone());
+        self.cache_ast(&uri, &text);
         self.validate_document(params.text_document.uri).await;
     }
 
     async fn did_change(&self, params: DidChangeTextDocumentParams) {
-        self.documents.insert(
-            params.text_document.uri.to_string(),
-            params.content_changes[0].text.clone(),
-        );
+        let uri = params.text_document.uri.as_str().to_string();
+        let text = params.content_changes[0].text.clone();
+        self.documents.insert(uri.clone(), text.clone());
+        self.cache_ast(&uri, &text);
         self.validate_document(params.text_document.uri).await;
     }
 
@@ -373,9 +374,8 @@ impl LanguageServer for Backend {
             return Ok(None);
         }
 
-        match self.documents.get(&uri) {
-            Some(content) => {
-                let (script, _) = parser::parse_script(&content);
+        match self.ensure_ast_cached(&uri) {
+            Some((script, _)) => {
                 let mut keywords = HashSet::new();
 
                 for k in TRIGGERS.keys() {
@@ -469,21 +469,49 @@ impl LanguageServer for Backend {
 
                 for (name, kind) in all_names {
                     match kind {
-                        entity_lookup::EntityKind::Ability => { ability_names.insert(name); }
-                        entity_lookup::EntityKind::AiStrategyPlan => { strategy_plan_names.insert(name); }
-                        entity_lookup::EntityKind::Portrait => { portrait_names.insert(name); }
-                        entity_lookup::EntityKind::Character => { character_names.insert(name); }
-                        entity_lookup::EntityKind::SubIdeology => { ideology_types.insert(name); }
-                        entity_lookup::EntityKind::Achievement => { achievement_names.insert(name); }
-                        entity_lookup::EntityKind::ScriptedTrigger => { scripted_trigger_names.insert(name); }
-                        entity_lookup::EntityKind::ScriptedEffect => { scripted_effect_names.insert(name); }
-                        entity_lookup::EntityKind::CountryTag => { country_tag_names.insert(name); }
+                        entity_lookup::EntityKind::Ability => {
+                            ability_names.insert(name);
+                        }
+                        entity_lookup::EntityKind::AiStrategyPlan => {
+                            strategy_plan_names.insert(name);
+                        }
+                        entity_lookup::EntityKind::Portrait => {
+                            portrait_names.insert(name);
+                        }
+                        entity_lookup::EntityKind::Character => {
+                            character_names.insert(name);
+                        }
+                        entity_lookup::EntityKind::SubIdeology => {
+                            ideology_types.insert(name);
+                        }
+                        entity_lookup::EntityKind::Achievement => {
+                            achievement_names.insert(name);
+                        }
+                        entity_lookup::EntityKind::ScriptedTrigger => {
+                            scripted_trigger_names.insert(name);
+                        }
+                        entity_lookup::EntityKind::ScriptedEffect => {
+                            scripted_effect_names.insert(name);
+                        }
+                        entity_lookup::EntityKind::CountryTag => {
+                            country_tag_names.insert(name);
+                        }
                         _ => {}
                     }
                 }
 
                 Ok(Some(semantic_tokens::get_semantic_tokens(
-                    &script, &keywords, &ability_names, &strategy_plan_names, &portrait_names, &character_names, &ideology_types, &achievement_names, &scripted_trigger_names, &scripted_effect_names, &country_tag_names,
+                    &script,
+                    &keywords,
+                    &ability_names,
+                    &strategy_plan_names,
+                    &portrait_names,
+                    &character_names,
+                    &ideology_types,
+                    &achievement_names,
+                    &scripted_trigger_names,
+                    &scripted_effect_names,
+                    &country_tag_names,
                 )))
             }
             _ => Ok(None),
@@ -492,11 +520,8 @@ impl LanguageServer for Backend {
 
     async fn document_color(&self, params: DocumentColorParams) -> Result<Vec<ColorInformation>> {
         let uri = params.text_document.uri.to_string();
-        if let Some(content) = self.documents.get(&uri) {
-            {
-                let (script, _) = parser::parse_script(&content);
-                return Ok(find_colors(&script));
-            }
+        if let Some((script, _)) = self.ensure_ast_cached(&uri) {
+            return Ok(find_colors(&script));
         }
         Ok(vec![])
     }
@@ -597,7 +622,10 @@ impl LanguageServer for Backend {
             let identifier = if uri.ends_with(".yml") {
                 find_identifier_in_loc(&content, position)
             } else {
-                let (script, _) = parser::parse_script(&content);
+                let (script, _) = self.ensure_ast_cached(&uri).unwrap_or_else(|| {
+                    let (s, e) = parser::parse_script(&content);
+                    (Arc::new(s), e)
+                });
                 let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
                 let achievements = self.scanner_data.achievements();
                 find_identifier_at(&script, position, &mut scope_stack, &achievements)
@@ -623,31 +651,28 @@ impl LanguageServer for Backend {
         let uri = params.text_document_position.text_document.uri.to_string();
         let position = params.text_document_position.position;
 
-        if let Some(content) = self.documents.get(&uri) {
+        if let Some((script, _)) = self.ensure_ast_cached(&uri) {
+            let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
+            let achievements = self.scanner_data.achievements();
+            if let Some((identifier, _, _, _)) =
+                find_identifier_at(&script, position, &mut scope_stack, &achievements)
             {
-                let (script, _) = parser::parse_script(&content);
-                let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
-                let achievements = self.scanner_data.achievements();
-                if let Some((identifier, _, _, _)) =
-                    find_identifier_at(&script, position, &mut scope_stack, &achievements)
-                {
-                    let mut locations = Vec::new();
+                let mut locations = Vec::new();
 
-                    // Search in all roots
-                    let mut roots = vec![std::path::PathBuf::from(".")];
-                    let gp = self.config.game_path();
-                    if let Some(ref path) = gp {
-                        roots.push(std::path::PathBuf::from(path));
-                    }
+                // Search in all roots
+                let mut roots = vec![std::path::PathBuf::from(".")];
+                let gp = self.config.game_path();
+                if let Some(ref path) = gp {
+                    roots.push(std::path::PathBuf::from(path));
+                }
 
-                    for root in roots {
-                        self.find_references_in_root(&root, &identifier, &mut locations)
-                            .await;
-                    }
+                for root in roots {
+                    self.find_references_in_root(&root, &identifier, &mut locations)
+                        .await;
+                }
 
-                    if !locations.is_empty() {
-                        return Ok(Some(locations));
-                    }
+                if !locations.is_empty() {
+                    return Ok(Some(locations));
                 }
             }
         }
@@ -689,28 +714,19 @@ impl LanguageServer for Backend {
     ) -> Result<Option<DocumentSymbolResponse>> {
         let uri = params.text_document.uri.as_str();
 
-        match self.documents.get(uri) {
-            Some(entry) => {
-                let content = entry.value();
-
-                // Parse the document
-                let (script, _) = parser::parse_script(content);
-                let symbols = document_symbols::generate_document_symbols(&script.entries);
-                Ok(Some(DocumentSymbolResponse::Nested(symbols)))
-            }
-            _ => Ok(None),
+        if let Some((script, _)) = self.ensure_ast_cached(uri) {
+            let symbols = document_symbols::generate_document_symbols(&script.entries);
+            return Ok(Some(DocumentSymbolResponse::Nested(symbols)));
         }
+        Ok(None)
     }
 
     async fn symbol(
         &self,
         params: WorkspaceSymbolParams,
     ) -> Result<Option<Vec<SymbolInformation>>> {
-        let symbols = workspace_symbols::generate_workspace_symbols(
-            &params.query,
-            &self.scanner_data,
-        )
-        .await;
+        let symbols =
+            workspace_symbols::generate_workspace_symbols(&params.query, &self.scanner_data).await;
 
         Ok(Some(symbols))
     }
@@ -726,12 +742,7 @@ impl LanguageServer for Backend {
             .as_str();
         let position = params.text_document_position_params.position;
 
-        let item = call_hierarchy::prepare_call_hierarchy(
-            uri,
-            position,
-            &self.scanner_data,
-        )
-        .await;
+        let item = call_hierarchy::prepare_call_hierarchy(uri, position, &self.scanner_data).await;
 
         Ok(item.map(|i| vec![i]))
     }
@@ -740,12 +751,9 @@ impl LanguageServer for Backend {
         &self,
         params: CallHierarchyIncomingCallsParams,
     ) -> Result<Option<Vec<CallHierarchyIncomingCall>>> {
-        let calls = call_hierarchy::get_incoming_calls(
-            &params.item,
-            &self.scanner_data,
-            &self.documents,
-        )
-        .await;
+        let calls =
+            call_hierarchy::get_incoming_calls(&params.item, &self.scanner_data, &self.documents)
+                .await;
 
         Ok(Some(calls))
     }
@@ -754,12 +762,9 @@ impl LanguageServer for Backend {
         &self,
         params: CallHierarchyOutgoingCallsParams,
     ) -> Result<Option<Vec<CallHierarchyOutgoingCall>>> {
-        let calls = call_hierarchy::get_outgoing_calls(
-            &params.item,
-            &self.scanner_data,
-            &self.documents,
-        )
-        .await;
+        let calls =
+            call_hierarchy::get_outgoing_calls(&params.item, &self.scanner_data, &self.documents)
+                .await;
 
         Ok(Some(calls))
     }
@@ -771,12 +776,7 @@ impl LanguageServer for Backend {
         let uri = params.text_document.uri.as_str();
         let position = params.position;
 
-        let result = rename::prepare_rename(
-            uri,
-            position,
-            &self.scanner_data,
-        )
-        .await;
+        let result = rename::prepare_rename(uri, position, &self.scanner_data).await;
 
         Ok(result)
     }
@@ -819,6 +819,28 @@ impl Backend {
         )
     }
 
+    /// Parse and cache the AST for a URI. Returns (Arc<Script>, parse_errors).
+    fn cache_ast(&self, uri: &str, content: &str) -> (Arc<ast::Script>, Vec<(String, ast::Range)>) {
+        let (script, errors) = parser::parse_script(content);
+        let script = Arc::new(script);
+        self.document_asts
+            .insert(uri.to_string(), (script.clone(), errors.clone()));
+        (script, errors)
+    }
+
+    /// Get cached AST for a URI, or parse+cache from document text if missing.
+    fn ensure_ast_cached(
+        &self,
+        uri: &str,
+    ) -> Option<(Arc<ast::Script>, Vec<(String, ast::Range)>)> {
+        if let Some(cached) = self.document_asts.get(uri) {
+            return Some((cached.0.clone(), cached.1.clone()));
+        }
+        self.documents
+            .get(uri)
+            .map(|content| self.cache_ast(uri, &content))
+    }
+
     pub(crate) fn check_is_province(
         &self,
         val: &ast::NodeedValue,
@@ -847,15 +869,6 @@ impl Backend {
         }
     }
 
-
-
-
-
-
-
-
-
-
     async fn find_references_in_root(
         &self,
         root: &std::path::Path,
@@ -874,9 +887,10 @@ impl Backend {
                     let path = entry.path();
                     if path.is_dir() {
                         dirs_to_check.push(path);
-                    } else if path.extension().is_some_and(|ext| {
-                        extensions.contains(&ext.to_string_lossy().as_ref())
-                    }) {
+                    } else if path
+                        .extension()
+                        .is_some_and(|ext| extensions.contains(&ext.to_string_lossy().as_ref()))
+                    {
                         if self.should_ignore_file(&path).await {
                             continue;
                         }
@@ -943,7 +957,9 @@ impl Backend {
         false
     }
 
-    pub(crate) fn get_sync_filter(&self) -> impl Fn(&std::path::Path) -> bool + Send + Sync + 'static {
+    pub(crate) fn get_sync_filter(
+        &self,
+    ) -> impl Fn(&std::path::Path) -> bool + Send + Sync + 'static {
         let ignored = self.config.ignored_files_regex();
         move |path: &std::path::Path| {
             let path_str = path.to_string_lossy();
@@ -981,9 +997,10 @@ impl Backend {
                         if path.file_name().is_none_or(|n| n != ".git") {
                             dirs_to_check.push(path);
                         }
-                    } else if path.extension().is_some_and(|ext| {
-                        extensions.contains(&ext.to_string_lossy().as_ref())
-                    }) {
+                    } else if path
+                        .extension()
+                        .is_some_and(|ext| extensions.contains(&ext.to_string_lossy().as_ref()))
+                    {
                         if self.should_ignore_file(&path).await {
                             continue;
                         }
@@ -1037,9 +1054,10 @@ impl Backend {
                                     dirs_to_check.push(path);
                                 }
                             }
-                        } else if path.extension().is_some_and(|ext| {
-                            extensions.contains(&ext.to_string_lossy().as_ref())
-                        }) {
+                        } else if path
+                            .extension()
+                            .is_some_and(|ext| extensions.contains(&ext.to_string_lossy().as_ref()))
+                        {
                             if let Ok(abs_path) = path.canonicalize() {
                                 all_files.insert(abs_path.to_string_lossy().to_string());
                             }
@@ -1070,7 +1088,7 @@ impl Backend {
         let mut diagnostics = Vec::new();
 
         let styling_enabled = self.config.styling_enabled();
-        let mut script_opt = None;
+        let mut script_opt: Option<Arc<ast::Script>> = None;
         let map_config = crate::map_config::get_map_config(std::path::Path::new("."));
 
         if uri.as_str().ends_with(".yml") {
@@ -1111,51 +1129,53 @@ impl Backend {
             self.validate_definition_content(content, &mut diagnostics)
                 .await;
         } else if uri.as_str().contains("strategicregions") && uri.as_str().ends_with(".txt") {
-            let (script, parse_errors) = parser::parse_script(content);
-            for (msg, range) in parse_errors {
-                diagnostics.push(Diagnostic {
-                    range: ast_range_to_lsp(&range),
-                    severity: Some(DiagnosticSeverity::ERROR),
-                    message: msg,
-                    code: Some(NumberOrString::String(
-                        advanced_validation::PARSE_ERROR.to_string(),
-                    )),
-                    source: Some("Hearts of Modding".to_string()),
-                    ..Default::default()
-                });
+            if let Some((script, parse_errors)) = self.ensure_ast_cached(uri.as_str()) {
+                for (msg, range) in &parse_errors {
+                    diagnostics.push(Diagnostic {
+                        range: ast_range_to_lsp(range),
+                        severity: Some(DiagnosticSeverity::ERROR),
+                        message: msg.clone(),
+                        code: Some(NumberOrString::String(
+                            advanced_validation::PARSE_ERROR.to_string(),
+                        )),
+                        source: Some("Hearts of Modding".to_string()),
+                        ..Default::default()
+                    });
+                }
+                self.validate_strategic_region_content(&script, &mut diagnostics)
+                    .await;
+                self.check_semantic(&script, &mut diagnostics, styling_enabled, uri.as_str())
+                    .await;
+                script_opt = Some(script);
             }
-            self.validate_strategic_region_content(&script, &mut diagnostics)
-                .await;
-            self.check_semantic(&script, &mut diagnostics, styling_enabled, uri.as_str())
-                .await;
-            script_opt = Some(script);
         } else if uri.as_str().ends_with(".csv") {
             // Do not parse other CSV files as clausewitz scripts
         } else {
-            let (script, parse_errors) = parser::parse_script(content);
-            for (msg, range) in parse_errors {
-                diagnostics.push(Diagnostic {
-                    range: ast_range_to_lsp(&range),
-                    severity: Some(DiagnosticSeverity::ERROR),
-                    message: msg,
-                    code: Some(NumberOrString::String(
-                        advanced_validation::PARSE_ERROR.to_string(),
-                    )),
-                    source: Some("Hearts of Modding".to_string()),
-                    ..Default::default()
-                });
+            if let Some((script, parse_errors)) = self.ensure_ast_cached(uri.as_str()) {
+                for (msg, range) in &parse_errors {
+                    diagnostics.push(Diagnostic {
+                        range: ast_range_to_lsp(range),
+                        severity: Some(DiagnosticSeverity::ERROR),
+                        message: msg.clone(),
+                        code: Some(NumberOrString::String(
+                            advanced_validation::PARSE_ERROR.to_string(),
+                        )),
+                        source: Some("Hearts of Modding".to_string()),
+                        ..Default::default()
+                    });
+                }
+                // Semantic validation
+                self.check_semantic(&script, &mut diagnostics, styling_enabled, uri.as_str())
+                    .await;
+                script_opt = Some(script);
             }
-            // Semantic validation
-            self.check_semantic(&script, &mut diagnostics, styling_enabled, uri.as_str())
-                .await;
-            script_opt = Some(script);
         }
 
         if styling_enabled {
             let is_yaml = uri.as_str().ends_with(".yml");
             self.check_styling(
                 content,
-                script_opt.as_ref(),
+                script_opt.as_deref(),
                 &mut diagnostics,
                 is_yaml,
                 uri.as_str(),
@@ -2074,7 +2094,9 @@ impl Backend {
         diagnostics: &mut Vec<Diagnostic>,
     ) {
         match value {
-            ast::Value::Block(_) | ast::Value::TaggedBlock(_, _, _) if range.start_line == range.end_line => {
+            ast::Value::Block(_) | ast::Value::TaggedBlock(_, _, _)
+                if range.start_line == range.end_line =>
+            {
                 let line_idx = range.start_line as usize;
                 if let Some(line) = content.lines().nth(line_idx) {
                     let start = range.start_col as usize;
@@ -2563,7 +2585,9 @@ impl Backend {
 
                     // Brace newline check
                     match &ass.value.value {
-                        ast::Value::Block(_) if ass.value.range.start_line > ass.operator_range.end_line => {
+                        ast::Value::Block(_)
+                            if ass.value.range.start_line > ass.operator_range.end_line =>
+                        {
                             diagnostics.push(Diagnostic {
                                 range: Range {
                                     start: Position {
@@ -2838,7 +2862,10 @@ impl Backend {
                         // Only prepend if the value doesn't already carry the GFX_idea_ namespace;
                         // the engine checks for the full prefix, not just GFX_ — so GFX_skulk_economy
                         // would still get prepended to GFX_idea_GFX_skulk_economy and fail.
-                        if key_lower == "picture" && scope_stack.current() == scope::Scope::Idea && !val.starts_with("GFX_idea_") {
+                        if key_lower == "picture"
+                            && scope_stack.current() == scope::Scope::Idea
+                            && !val.starts_with("GFX_idea_")
+                        {
                             lookup_key = format!("GFX_idea_{}", val);
                         }
 
@@ -2935,9 +2962,16 @@ impl Backend {
                         // Allow scope references (ROOT, FROM, PREV, etc.)
                         let is_scope_ref = matches!(
                             val.to_uppercase().as_str(),
-                            "ROOT" | "FROM" | "PREV" | "THIS" | "PREVPREV"
-                                | "PREVPREVPREV" | "PREVPREVPREVPREV"
-                                | "OWNER" | "CONTROLLER" | "CAPITAL"
+                            "ROOT"
+                                | "FROM"
+                                | "PREV"
+                                | "THIS"
+                                | "PREVPREV"
+                                | "PREVPREVPREV"
+                                | "PREVPREVPREVPREV"
+                                | "OWNER"
+                                | "CONTROLLER"
+                                | "CAPITAL"
                         );
                         let is_var_ref = val.starts_with("var:");
                         let b = val.as_bytes();
@@ -2951,9 +2985,7 @@ impl Backend {
                                 "NOT" | "AND" | "TAG" | "OOB" | "LOG" | "NUM" | "RED"
                             );
 
-                        if !is_scope_ref && !is_var_ref && looks_like_tag
-                            && !ct.contains_key(val)
-                        {
+                        if !is_scope_ref && !is_var_ref && looks_like_tag && !ct.contains_key(val) {
                             diagnostics.push(Diagnostic {
                                 range: ast_range_to_lsp(&ass.value.range),
                                 severity: Some(DiagnosticSeverity::WARNING),
@@ -3200,6 +3232,7 @@ async fn main() {
     let (service, socket) = LspService::new(|client| Backend {
         client,
         documents: DashMap::new(),
+        document_asts: DashMap::new(),
         scanner_data: ScannerData::new(),
         config: Config::new(),
     });

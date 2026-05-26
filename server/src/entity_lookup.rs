@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
-use crate::ast;
 use crate::ScannerData;
+use crate::ast;
 use std::collections::HashMap;
 use tower_lsp::lsp_types::Position;
 
@@ -51,7 +51,9 @@ impl EntityKind {
     pub fn symbol_kind(&self) -> tower_lsp::lsp_types::SymbolKind {
         use tower_lsp::lsp_types::SymbolKind;
         match self {
-            EntityKind::ScriptedTrigger | EntityKind::ScriptedEffect | EntityKind::ScriptedLoc => SymbolKind::FUNCTION,
+            EntityKind::ScriptedTrigger | EntityKind::ScriptedEffect | EntityKind::ScriptedLoc => {
+                SymbolKind::FUNCTION
+            }
             EntityKind::Ideology | EntityKind::SubIdeology => SymbolKind::ENUM,
             EntityKind::Trait => SymbolKind::STRUCT,
             EntityKind::Sprite => SymbolKind::FILE,
@@ -63,8 +65,13 @@ impl EntityKind {
             EntityKind::Variable => SymbolKind::VARIABLE,
             EntityKind::EventTarget => SymbolKind::VARIABLE,
             EntityKind::CustomModifier => SymbolKind::PROPERTY,
-            EntityKind::MusicAsset | EntityKind::MusicStation | EntityKind::Song => SymbolKind::FILE,
-            EntityKind::Sound | EntityKind::SoundEffect | EntityKind::Falloff | EntityKind::SoundCategory => SymbolKind::FILE,
+            EntityKind::MusicAsset | EntityKind::MusicStation | EntityKind::Song => {
+                SymbolKind::FILE
+            }
+            EntityKind::Sound
+            | EntityKind::SoundEffect
+            | EntityKind::Falloff
+            | EntityKind::SoundCategory => SymbolKind::FILE,
             EntityKind::AdjacencyRule => SymbolKind::FUNCTION,
             EntityKind::StrategicRegion => SymbolKind::OBJECT,
             EntityKind::Portrait => SymbolKind::FILE,
@@ -73,7 +80,9 @@ impl EntityKind {
             EntityKind::Province => SymbolKind::NUMBER,
             EntityKind::State => SymbolKind::OBJECT,
             EntityKind::SupplyNode | EntityKind::Railway => SymbolKind::OBJECT,
-            EntityKind::MapBuilding | EntityKind::UnitStack | EntityKind::WeatherPosition => SymbolKind::OBJECT,
+            EntityKind::MapBuilding | EntityKind::UnitStack | EntityKind::WeatherPosition => {
+                SymbolKind::OBJECT
+            }
             EntityKind::Adjacency => SymbolKind::OBJECT,
             EntityKind::Localization => SymbolKind::STRING,
             EntityKind::ModifierMapping => SymbolKind::PROPERTY,
@@ -411,7 +420,9 @@ impl<'a> EntityLookup<'a> {
             let map = self.data.states();
             for (id, state) in map.iter() {
                 let display = format!("State {}: {}", id, state.name);
-                if fuzzy_match(&query_lower, &id.to_string()) || fuzzy_match(&query_lower, &state.name.to_lowercase()) {
+                if fuzzy_match(&query_lower, &id.to_string())
+                    || fuzzy_match(&query_lower, &state.name.to_lowercase())
+                {
                     results.push(EntityHit {
                         name: display,
                         kind: EntityKind::State,
@@ -437,7 +448,12 @@ impl<'a> EntityLookup<'a> {
                         container: Some("Supply Node".to_string()),
                         location: EntityLocation {
                             kind: EntityKind::SupplyNode,
-                            range: ast::Range { start_line: node.start_line, start_col: 0, end_line: node.start_line, end_col: 100 },
+                            range: ast::Range {
+                                start_line: node.start_line,
+                                start_col: 0,
+                                end_line: node.start_line,
+                                end_col: 100,
+                            },
                             path: node.path.clone(),
                         },
                     });
@@ -455,7 +471,12 @@ impl<'a> EntityLookup<'a> {
                         container: Some("Railway".to_string()),
                         location: EntityLocation {
                             kind: EntityKind::Railway,
-                            range: ast::Range { start_line: rw.start_line, start_col: 0, end_line: rw.start_line, end_col: 100 },
+                            range: ast::Range {
+                                start_line: rw.start_line,
+                                start_col: 0,
+                                end_line: rw.start_line,
+                                end_col: 100,
+                            },
                             path: rw.path.clone(),
                         },
                     });
@@ -467,14 +488,21 @@ impl<'a> EntityLookup<'a> {
             let map = self.data.map_buildings();
             for mb in map.iter() {
                 let display = format!("Building '{}' in State {}", mb.building_id, mb.state_id);
-                if fuzzy_match(&query_lower, &mb.building_id.to_lowercase()) || fuzzy_match(&query_lower, &mb.state_id.to_string()) {
+                if fuzzy_match(&query_lower, &mb.building_id.to_lowercase())
+                    || fuzzy_match(&query_lower, &mb.state_id.to_string())
+                {
                     results.push(EntityHit {
                         name: display,
                         kind: EntityKind::MapBuilding,
                         container: Some("Map Building".to_string()),
                         location: EntityLocation {
                             kind: EntityKind::MapBuilding,
-                            range: ast::Range { start_line: mb.start_line, start_col: 0, end_line: mb.start_line, end_col: 100 },
+                            range: ast::Range {
+                                start_line: mb.start_line,
+                                start_col: 0,
+                                end_line: mb.start_line,
+                                end_col: 100,
+                            },
                             path: mb.path.clone(),
                         },
                     });
@@ -493,7 +521,12 @@ impl<'a> EntityLookup<'a> {
                         container: Some("Unitstack".to_string()),
                         location: EntityLocation {
                             kind: EntityKind::UnitStack,
-                            range: ast::Range { start_line: us.start_line, start_col: 0, end_line: us.start_line, end_col: 100 },
+                            range: ast::Range {
+                                start_line: us.start_line,
+                                start_col: 0,
+                                end_line: us.start_line,
+                                end_col: 100,
+                            },
                             path: us.path.clone(),
                         },
                     });
@@ -512,7 +545,12 @@ impl<'a> EntityLookup<'a> {
                         container: Some("Weather Position".to_string()),
                         location: EntityLocation {
                             kind: EntityKind::WeatherPosition,
-                            range: ast::Range { start_line: wp.start_line, start_col: 0, end_line: wp.start_line, end_col: 100 },
+                            range: ast::Range {
+                                start_line: wp.start_line,
+                                start_col: 0,
+                                end_line: wp.start_line,
+                                end_col: 100,
+                            },
                             path: wp.path.clone(),
                         },
                     });
@@ -523,15 +561,25 @@ impl<'a> EntityLookup<'a> {
         {
             let map = self.data.adjacencies();
             for adj in map.iter() {
-                let display = format!("Adjacency ({}) {} <-> {}", adj.adj_type, adj.start_prov, adj.end_prov);
-                if fuzzy_match(&query_lower, &adj.start_prov.to_string()) || fuzzy_match(&query_lower, &adj.end_prov.to_string()) {
+                let display = format!(
+                    "Adjacency ({}) {} <-> {}",
+                    adj.adj_type, adj.start_prov, adj.end_prov
+                );
+                if fuzzy_match(&query_lower, &adj.start_prov.to_string())
+                    || fuzzy_match(&query_lower, &adj.end_prov.to_string())
+                {
                     results.push(EntityHit {
                         name: display,
                         kind: EntityKind::Adjacency,
                         container: Some("Adjacency".to_string()),
                         location: EntityLocation {
                             kind: EntityKind::Adjacency,
-                            range: ast::Range { start_line: adj.start_line, start_col: 0, end_line: adj.start_line, end_col: 100 },
+                            range: ast::Range {
+                                start_line: adj.start_line,
+                                start_col: 0,
+                                end_line: adj.start_line,
+                                end_col: 100,
+                            },
                             path: adj.path.clone(),
                         },
                     });
@@ -545,7 +593,9 @@ impl<'a> EntityLookup<'a> {
             let map = self.data.strategic_regions();
             for (id, region) in map.iter() {
                 let display = format!("Strategic Region {}: {}", id, region.name);
-                if fuzzy_match(&query_lower, &id.to_string()) || fuzzy_match(&query_lower, &region.name.to_lowercase()) {
+                if fuzzy_match(&query_lower, &id.to_string())
+                    || fuzzy_match(&query_lower, &region.name.to_lowercase())
+                {
                     results.push(EntityHit {
                         name: display,
                         kind: EntityKind::StrategicRegion,

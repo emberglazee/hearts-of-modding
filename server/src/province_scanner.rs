@@ -22,11 +22,16 @@ where
     for root in roots {
         let map_config = crate::map_config::get_map_config(root);
         let definition_path = root.join(format!("map/{}", map_config.definitions));
-        if definition_path.exists() && !filter(&definition_path) && let Ok(content) = fs::read_to_string(&definition_path) {
+        if definition_path.exists()
+            && !filter(&definition_path)
+            && let Ok(content) = fs::read_to_string(&definition_path)
+        {
             for line in content.lines() {
                 // HOI4 definition.csv format: ID;R;G;B;Terrain;IsCoastal;ProvinceType;Continent
                 let parts: Vec<&str> = line.split(';').collect();
-                if parts.len() >= 8 && let Ok(id) = parts[0].parse::<u32>() {
+                if parts.len() >= 8
+                    && let Ok(id) = parts[0].parse::<u32>()
+                {
                     let r = parts[1].parse::<u8>().unwrap_or(0);
                     let g = parts[2].parse::<u8>().unwrap_or(0);
                     let b = parts[3].parse::<u8>().unwrap_or(0);

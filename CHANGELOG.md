@@ -2,6 +2,12 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
+## [v0.10.0] - 2026-05-27
+
+### Added
+
+- **AST cache**: Eliminated the bottleneck of having one document be parsed multiple times every single change in the document. Now it is parsed only once per change into the in-memory AST cache.
+
 ## [v0.9.0] - 2026-05-26
 
 ### Added

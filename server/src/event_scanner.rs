@@ -83,7 +83,10 @@ fn find_event_definitions(entries: &[ast::Entry], path: &str, events: &mut HashM
             {
                 let mut id = None;
                 for inner_entry in inner {
-                    if let ast::Entry::Assignment(inner_ass) = inner_entry && inner_ass.key == "id" && let ast::Value::String(s) = &inner_ass.value.value {
+                    if let ast::Entry::Assignment(inner_ass) = inner_entry
+                        && inner_ass.key == "id"
+                        && let ast::Value::String(s) = &inner_ass.value.value
+                    {
                         id = Some(s.clone());
                         break;
                     }
@@ -172,7 +175,10 @@ fn find_triggers_recursive(
                     // Extract ID
                     if let ast::Value::Block(inner) = &ass.value.value {
                         inner.iter().find_map(|e| {
-                            if let ast::Entry::Assignment(ia) = e && ia.key == "id" && let ast::Value::String(s) = &ia.value.value {
+                            if let ast::Entry::Assignment(ia) = e
+                                && ia.key == "id"
+                                && let ast::Value::String(s) = &ia.value.value
+                            {
                                 return Some(s.as_str());
                             }
                             None
@@ -194,7 +200,10 @@ fn find_triggers_recursive(
                     let called_id = match &ass.value.value {
                         ast::Value::String(s) => Some(s.as_str()),
                         ast::Value::Block(inner) => inner.iter().find_map(|e| {
-                            if let ast::Entry::Assignment(ia) = e && ia.key == "id" && let ast::Value::String(s) = &ia.value.value {
+                            if let ast::Entry::Assignment(ia) = e
+                                && ia.key == "id"
+                                && let ast::Value::String(s) = &ia.value.value
+                            {
                                 return Some(s.as_str());
                             }
                             None
@@ -202,7 +211,10 @@ fn find_triggers_recursive(
                         _ => None,
                     };
 
-                    if let (Some(source), Some(target)) = (current_event_id, called_id) && source != target && let Some(event) = events.get_mut(source) {
+                    if let (Some(source), Some(target)) = (current_event_id, called_id)
+                        && source != target
+                        && let Some(event) = events.get_mut(source)
+                    {
                         if !event.triggered_events.contains(&target.to_string()) {
                             event.triggered_events.push(target.to_string());
                         }

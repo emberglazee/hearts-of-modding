@@ -57,10 +57,15 @@ where
 
     for root in roots {
         let buildings_path = root.join("map/buildings.txt");
-        if buildings_path.exists() && !filter(&buildings_path) && let Ok(content) = fs::read_to_string(&buildings_path) {
+        if buildings_path.exists()
+            && !filter(&buildings_path)
+            && let Ok(content) = fs::read_to_string(&buildings_path)
+        {
             for (line_idx, line) in content.lines().enumerate() {
                 let parts: Vec<&str> = line.split(';').collect();
-                if parts.len() >= 7 && let Ok(state_id) = parts[0].parse::<u32>() {
+                if parts.len() >= 7
+                    && let Ok(state_id) = parts[0].parse::<u32>()
+                {
                     let building_id = parts[1].to_string();
                     let x = parts[2].parse::<f64>().unwrap_or(0.0);
                     let y = parts[3].parse::<f64>().unwrap_or(0.0);
@@ -84,10 +89,15 @@ where
         }
 
         let unitstacks_path = root.join("map/unitstacks.txt");
-        if unitstacks_path.exists() && !filter(&unitstacks_path) && let Ok(content) = fs::read_to_string(&unitstacks_path) {
+        if unitstacks_path.exists()
+            && !filter(&unitstacks_path)
+            && let Ok(content) = fs::read_to_string(&unitstacks_path)
+        {
             for (line_idx, line) in content.lines().enumerate() {
                 let parts: Vec<&str> = line.split(';').collect();
-                if parts.len() >= 7 && let Ok(province_id) = parts[0].parse::<u32>() {
+                if parts.len() >= 7
+                    && let Ok(province_id) = parts[0].parse::<u32>()
+                {
                     let stack_type = parts[1].parse::<u32>().unwrap_or(0);
                     let x = parts[2].parse::<f64>().unwrap_or(0.0);
                     let y = parts[3].parse::<f64>().unwrap_or(0.0);
@@ -111,10 +121,15 @@ where
         }
 
         let weather_path = root.join("map/weatherpositions.txt");
-        if weather_path.exists() && !filter(&weather_path) && let Ok(content) = fs::read_to_string(&weather_path) {
+        if weather_path.exists()
+            && !filter(&weather_path)
+            && let Ok(content) = fs::read_to_string(&weather_path)
+        {
             for (line_idx, line) in content.lines().enumerate() {
                 let parts: Vec<&str> = line.split(';').collect();
-                if parts.len() >= 5 && let Ok(region_id) = parts[0].parse::<u32>() {
+                if parts.len() >= 5
+                    && let Ok(region_id) = parts[0].parse::<u32>()
+                {
                     let x = parts[1].parse::<f64>().unwrap_or(0.0);
                     let y = parts[2].parse::<f64>().unwrap_or(0.0);
                     let z = parts[3].parse::<f64>().unwrap_or(0.0);

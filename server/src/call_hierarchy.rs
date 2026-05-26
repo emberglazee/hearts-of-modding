@@ -121,9 +121,7 @@ pub async fn get_incoming_calls(
 
             if !references.is_empty() {
                 // Try to find the containing symbol
-                if let Some(container) =
-                    find_container_symbol(uri, &references[0], data).await
-                {
+                if let Some(container) = find_container_symbol(uri, &references[0], data).await {
                     incoming.push(CallHierarchyIncomingCall {
                         from: container,
                         from_ranges: references.iter().map(range_to_lsp).collect(),
@@ -156,9 +154,7 @@ pub async fn get_outgoing_calls(
 
             for (call_name, call_ranges) in calls {
                 // Try to find the target symbol
-                if let Some(target) =
-                    find_symbol_by_name(&call_name, data).await
-                {
+                if let Some(target) = find_symbol_by_name(&call_name, data).await {
                     outgoing.push(CallHierarchyOutgoingCall {
                         to: target,
                         from_ranges: call_ranges.iter().map(range_to_lsp).collect(),
@@ -264,10 +260,7 @@ fn find_calls_recursive(
                     if let Entry::Assignment(child_ass) = child {
                         if child_ass.key == "id" {
                             if let Value::String(id) = &child_ass.value.value {
-                                calls
-                                    .entry(id.clone())
-                                    .or_default()
-                                    .push(range.clone());
+                                calls.entry(id.clone()).or_default().push(range.clone());
                             }
                         }
                     }
@@ -277,10 +270,7 @@ fn find_calls_recursive(
 
         // Check for scripted trigger/effect calls
         if let Value::String(s) = &ass.value.value {
-            calls
-                .entry(s.clone())
-                .or_default()
-                .push(range.clone());
+            calls.entry(s.clone()).or_default().push(range.clone());
         }
 
         // Recurse into blocks
@@ -357,10 +347,7 @@ async fn find_container_symbol(
 }
 
 /// Find a symbol by name
-async fn find_symbol_by_name(
-    name: &str,
-    data: &crate::ScannerData,
-) -> Option<CallHierarchyItem> {
+async fn find_symbol_by_name(name: &str, data: &crate::ScannerData) -> Option<CallHierarchyItem> {
     // Check events
     let events_lock = data.events();
     if let Some(event) = events_lock.get(name) {

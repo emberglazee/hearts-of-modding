@@ -1,9 +1,8 @@
-use tower_lsp::jsonrpc::Result;
-use tower_lsp::lsp_types::*;
-use crate::parser;
+use crate::Backend;
 use crate::scope;
 use crate::scope_context::{find_context_at, find_scope_context_at};
-use crate::Backend;
+use tower_lsp::jsonrpc::Result;
+use tower_lsp::lsp_types::*;
 
 impl Backend {
     pub(crate) async fn handle_completion(
@@ -99,8 +98,7 @@ impl Backend {
         }
         // Handle adjacency rules file
         if uri.ends_with("adjacency_rules.txt") {
-            if let Some(content) = self.documents.get(&uri) {
-                let (script, _) = parser::parse_script(&content);
+            if let Some((script, _)) = self.ensure_ast_cached(&uri) {
                 if let Some(context_key) = find_context_at(&script, position) {
                     let key_lower = context_key.to_lowercase();
                     let mut items = Vec::new();
@@ -151,205 +149,202 @@ impl Backend {
         let is_sound_file = is_asset_file || uri.contains("/sound/");
 
         if is_music_file || is_sound_file {
-            if let Some(content) = self.documents.get(&uri) {
-                {
-                    let (script, _) = parser::parse_script(&content);
-                    if let Some(context_key) = find_context_at(&script, position) {
-                        let mut completion_items = Vec::new();
-                        let key_lower = context_key.to_lowercase();
+            if let Some((script, _)) = self.ensure_ast_cached(&uri) {
+                if let Some(context_key) = find_context_at(&script, position) {
+                    let mut completion_items = Vec::new();
+                    let key_lower = context_key.to_lowercase();
 
-                        if key_lower == "music" {
-                            if uri.ends_with(".asset") {
-                                completion_items.push(CompletionItem {
-                                    label: "name".to_string(),
-                                    kind: Some(CompletionItemKind::PROPERTY),
-                                    detail: Some("Track ID".to_string()),
-                                    ..Default::default()
-                                });
-                                completion_items.push(CompletionItem {
-                                    label: "file".to_string(),
-                                    kind: Some(CompletionItemKind::PROPERTY),
-                                    detail: Some("OGG Filename".to_string()),
-                                    ..Default::default()
-                                });
-                                completion_items.push(CompletionItem {
-                                    label: "volume".to_string(),
-                                    kind: Some(CompletionItemKind::PROPERTY),
-                                    detail: Some("Volume Multiplier".to_string()),
-                                    ..Default::default()
-                                });
-                            } else {
-                                completion_items.push(CompletionItem {
-                                    label: "song".to_string(),
-                                    kind: Some(CompletionItemKind::PROPERTY),
-                                    detail: Some("Song ID".to_string()),
-                                    ..Default::default()
-                                });
-                                completion_items.push(CompletionItem {
-                                    label: "chance".to_string(),
-                                    kind: Some(CompletionItemKind::PROPERTY),
-                                    detail: Some("Weighting logic".to_string()),
-                                    ..Default::default()
-                                });
-                            }
-                        } else if key_lower == "sound" {
+                    if key_lower == "music" {
+                        if uri.ends_with(".asset") {
                             completion_items.push(CompletionItem {
                                 label: "name".to_string(),
                                 kind: Some(CompletionItemKind::PROPERTY),
+                                detail: Some("Track ID".to_string()),
                                 ..Default::default()
                             });
                             completion_items.push(CompletionItem {
                                 label: "file".to_string(),
                                 kind: Some(CompletionItemKind::PROPERTY),
-                                ..Default::default()
-                            });
-                            completion_items.push(CompletionItem {
-                                label: "always_load".to_string(),
-                                kind: Some(CompletionItemKind::PROPERTY),
+                                detail: Some("OGG Filename".to_string()),
                                 ..Default::default()
                             });
                             completion_items.push(CompletionItem {
                                 label: "volume".to_string(),
                                 kind: Some(CompletionItemKind::PROPERTY),
+                                detail: Some("Volume Multiplier".to_string()),
                                 ..Default::default()
                             });
-                        } else if key_lower == "soundeffect" {
+                        } else {
                             completion_items.push(CompletionItem {
-                                label: "name".to_string(),
+                                label: "song".to_string(),
                                 kind: Some(CompletionItemKind::PROPERTY),
-                                ..Default::default()
-                            });
-                            completion_items.push(CompletionItem {
-                                label: "falloff".to_string(),
-                                kind: Some(CompletionItemKind::PROPERTY),
+                                detail: Some("Song ID".to_string()),
                                 ..Default::default()
                             });
                             completion_items.push(CompletionItem {
-                                label: "sounds".to_string(),
+                                label: "chance".to_string(),
                                 kind: Some(CompletionItemKind::PROPERTY),
+                                detail: Some("Weighting logic".to_string()),
                                 ..Default::default()
                             });
-                            completion_items.push(CompletionItem {
-                                label: "loop".to_string(),
-                                kind: Some(CompletionItemKind::PROPERTY),
-                                ..Default::default()
-                            });
-                            completion_items.push(CompletionItem {
-                                label: "is3d".to_string(),
-                                kind: Some(CompletionItemKind::PROPERTY),
-                                ..Default::default()
-                            });
-                            completion_items.push(CompletionItem {
-                                label: "volume".to_string(),
-                                kind: Some(CompletionItemKind::PROPERTY),
-                                ..Default::default()
-                            });
-                        } else if key_lower == "falloff" {
-                            completion_items.push(CompletionItem {
-                                label: "name".to_string(),
-                                kind: Some(CompletionItemKind::PROPERTY),
-                                ..Default::default()
-                            });
-                            completion_items.push(CompletionItem {
-                                label: "min_distance".to_string(),
-                                kind: Some(CompletionItemKind::PROPERTY),
-                                ..Default::default()
-                            });
-                            completion_items.push(CompletionItem {
-                                label: "max_distance".to_string(),
-                                kind: Some(CompletionItemKind::PROPERTY),
-                                ..Default::default()
-                            });
-                            completion_items.push(CompletionItem {
-                                label: "height_scale".to_string(),
-                                kind: Some(CompletionItemKind::PROPERTY),
-                                ..Default::default()
-                            });
-                        } else if key_lower == "category" {
-                            completion_items.push(CompletionItem {
-                                label: "name".to_string(),
-                                kind: Some(CompletionItemKind::PROPERTY),
-                                ..Default::default()
-                            });
-                            completion_items.push(CompletionItem {
-                                label: "soundeffects".to_string(),
-                                kind: Some(CompletionItemKind::PROPERTY),
-                                ..Default::default()
-                            });
-                            completion_items.push(CompletionItem {
-                                label: "compressor".to_string(),
-                                kind: Some(CompletionItemKind::PROPERTY),
-                                ..Default::default()
-                            });
-                        } else if key_lower == "chance" || key_lower == "modifier" {
-                            completion_items.push(CompletionItem {
-                                label: "factor".to_string(),
-                                kind: Some(CompletionItemKind::PROPERTY),
-                                ..Default::default()
-                            });
-                            completion_items.push(CompletionItem {
-                                label: "add".to_string(),
-                                kind: Some(CompletionItemKind::PROPERTY),
-                                ..Default::default()
-                            });
-                            completion_items.push(CompletionItem {
-                                label: "base".to_string(),
-                                kind: Some(CompletionItemKind::PROPERTY),
-                                ..Default::default()
-                            });
-                            if key_lower == "chance" {
-                                completion_items.push(CompletionItem {
-                                    label: "modifier".to_string(),
-                                    kind: Some(CompletionItemKind::CLASS),
-                                    ..Default::default()
-                                });
-                            }
                         }
-
-                        if !completion_items.is_empty() {
-                            return Ok(Some(CompletionResponse::Array(completion_items)));
-                        }
-                    } else {
-                        // Top level
-                        let mut top_items = Vec::new();
-                        if is_music_file {
-                            top_items.push(CompletionItem {
-                                label: "music".to_string(),
-                                kind: Some(CompletionItemKind::CLASS),
-                                ..Default::default()
-                            });
-                            if !uri.ends_with(".asset") {
-                                top_items.push(CompletionItem {
-                                    label: "music_station".to_string(),
-                                    kind: Some(CompletionItemKind::PROPERTY),
-                                    ..Default::default()
-                                });
-                            }
-                        }
-                        if is_sound_file {
-                            top_items.push(CompletionItem {
-                                label: "sound".to_string(),
-                                kind: Some(CompletionItemKind::CLASS),
-                                ..Default::default()
-                            });
-                            top_items.push(CompletionItem {
-                                label: "soundeffect".to_string(),
-                                kind: Some(CompletionItemKind::CLASS),
-                                ..Default::default()
-                            });
-                            top_items.push(CompletionItem {
-                                label: "falloff".to_string(),
-                                kind: Some(CompletionItemKind::CLASS),
-                                ..Default::default()
-                            });
-                            top_items.push(CompletionItem {
-                                label: "category".to_string(),
+                    } else if key_lower == "sound" {
+                        completion_items.push(CompletionItem {
+                            label: "name".to_string(),
+                            kind: Some(CompletionItemKind::PROPERTY),
+                            ..Default::default()
+                        });
+                        completion_items.push(CompletionItem {
+                            label: "file".to_string(),
+                            kind: Some(CompletionItemKind::PROPERTY),
+                            ..Default::default()
+                        });
+                        completion_items.push(CompletionItem {
+                            label: "always_load".to_string(),
+                            kind: Some(CompletionItemKind::PROPERTY),
+                            ..Default::default()
+                        });
+                        completion_items.push(CompletionItem {
+                            label: "volume".to_string(),
+                            kind: Some(CompletionItemKind::PROPERTY),
+                            ..Default::default()
+                        });
+                    } else if key_lower == "soundeffect" {
+                        completion_items.push(CompletionItem {
+                            label: "name".to_string(),
+                            kind: Some(CompletionItemKind::PROPERTY),
+                            ..Default::default()
+                        });
+                        completion_items.push(CompletionItem {
+                            label: "falloff".to_string(),
+                            kind: Some(CompletionItemKind::PROPERTY),
+                            ..Default::default()
+                        });
+                        completion_items.push(CompletionItem {
+                            label: "sounds".to_string(),
+                            kind: Some(CompletionItemKind::PROPERTY),
+                            ..Default::default()
+                        });
+                        completion_items.push(CompletionItem {
+                            label: "loop".to_string(),
+                            kind: Some(CompletionItemKind::PROPERTY),
+                            ..Default::default()
+                        });
+                        completion_items.push(CompletionItem {
+                            label: "is3d".to_string(),
+                            kind: Some(CompletionItemKind::PROPERTY),
+                            ..Default::default()
+                        });
+                        completion_items.push(CompletionItem {
+                            label: "volume".to_string(),
+                            kind: Some(CompletionItemKind::PROPERTY),
+                            ..Default::default()
+                        });
+                    } else if key_lower == "falloff" {
+                        completion_items.push(CompletionItem {
+                            label: "name".to_string(),
+                            kind: Some(CompletionItemKind::PROPERTY),
+                            ..Default::default()
+                        });
+                        completion_items.push(CompletionItem {
+                            label: "min_distance".to_string(),
+                            kind: Some(CompletionItemKind::PROPERTY),
+                            ..Default::default()
+                        });
+                        completion_items.push(CompletionItem {
+                            label: "max_distance".to_string(),
+                            kind: Some(CompletionItemKind::PROPERTY),
+                            ..Default::default()
+                        });
+                        completion_items.push(CompletionItem {
+                            label: "height_scale".to_string(),
+                            kind: Some(CompletionItemKind::PROPERTY),
+                            ..Default::default()
+                        });
+                    } else if key_lower == "category" {
+                        completion_items.push(CompletionItem {
+                            label: "name".to_string(),
+                            kind: Some(CompletionItemKind::PROPERTY),
+                            ..Default::default()
+                        });
+                        completion_items.push(CompletionItem {
+                            label: "soundeffects".to_string(),
+                            kind: Some(CompletionItemKind::PROPERTY),
+                            ..Default::default()
+                        });
+                        completion_items.push(CompletionItem {
+                            label: "compressor".to_string(),
+                            kind: Some(CompletionItemKind::PROPERTY),
+                            ..Default::default()
+                        });
+                    } else if key_lower == "chance" || key_lower == "modifier" {
+                        completion_items.push(CompletionItem {
+                            label: "factor".to_string(),
+                            kind: Some(CompletionItemKind::PROPERTY),
+                            ..Default::default()
+                        });
+                        completion_items.push(CompletionItem {
+                            label: "add".to_string(),
+                            kind: Some(CompletionItemKind::PROPERTY),
+                            ..Default::default()
+                        });
+                        completion_items.push(CompletionItem {
+                            label: "base".to_string(),
+                            kind: Some(CompletionItemKind::PROPERTY),
+                            ..Default::default()
+                        });
+                        if key_lower == "chance" {
+                            completion_items.push(CompletionItem {
+                                label: "modifier".to_string(),
                                 kind: Some(CompletionItemKind::CLASS),
                                 ..Default::default()
                             });
                         }
-                        return Ok(Some(CompletionResponse::Array(top_items)));
                     }
+
+                    if !completion_items.is_empty() {
+                        return Ok(Some(CompletionResponse::Array(completion_items)));
+                    }
+                } else {
+                    // Top level
+                    let mut top_items = Vec::new();
+                    if is_music_file {
+                        top_items.push(CompletionItem {
+                            label: "music".to_string(),
+                            kind: Some(CompletionItemKind::CLASS),
+                            ..Default::default()
+                        });
+                        if !uri.ends_with(".asset") {
+                            top_items.push(CompletionItem {
+                                label: "music_station".to_string(),
+                                kind: Some(CompletionItemKind::PROPERTY),
+                                ..Default::default()
+                            });
+                        }
+                    }
+                    if is_sound_file {
+                        top_items.push(CompletionItem {
+                            label: "sound".to_string(),
+                            kind: Some(CompletionItemKind::CLASS),
+                            ..Default::default()
+                        });
+                        top_items.push(CompletionItem {
+                            label: "soundeffect".to_string(),
+                            kind: Some(CompletionItemKind::CLASS),
+                            ..Default::default()
+                        });
+                        top_items.push(CompletionItem {
+                            label: "falloff".to_string(),
+                            kind: Some(CompletionItemKind::CLASS),
+                            ..Default::default()
+                        });
+                        top_items.push(CompletionItem {
+                            label: "category".to_string(),
+                            kind: Some(CompletionItemKind::CLASS),
+                            ..Default::default()
+                        });
+                    }
+                    return Ok(Some(CompletionResponse::Array(top_items)));
                 }
             }
         }
@@ -357,30 +352,27 @@ impl Backend {
         let mut current_scopes = vec![scope::Scope::Global];
 
         // Try to find context for HOI4 scripts
-        if let Some(content) = self.documents.get(&uri) {
-            {
-                let (script, _) = parser::parse_script(&content);
-                let achievements = self.scanner_data.achievements();
-                let (ctx, scopes) = find_scope_context_at(&script, position, &achievements);
-                current_scopes = scopes;
-                if let Some(context_key) = ctx {
-                    if context_key.to_lowercase().contains("color") {
-                        let color_items = vec![
-                            CompletionItem {
-                                label: "rgb".to_string(),
-                                kind: Some(CompletionItemKind::KEYWORD),
-                                detail: Some("RGB Color Format".to_string()),
-                                ..Default::default()
-                            },
-                            CompletionItem {
-                                label: "hsv".to_string(),
-                                kind: Some(CompletionItemKind::KEYWORD),
-                                detail: Some("HSV Color Format".to_string()),
-                                ..Default::default()
-                            },
-                        ];
-                        return Ok(Some(CompletionResponse::Array(color_items)));
-                    }
+        if let Some((script, _)) = self.ensure_ast_cached(&uri) {
+            let achievements = self.scanner_data.achievements();
+            let (ctx, scopes) = find_scope_context_at(&script, position, &achievements);
+            current_scopes = scopes;
+            if let Some(context_key) = ctx {
+                if context_key.to_lowercase().contains("color") {
+                    let color_items = vec![
+                        CompletionItem {
+                            label: "rgb".to_string(),
+                            kind: Some(CompletionItemKind::KEYWORD),
+                            detail: Some("RGB Color Format".to_string()),
+                            ..Default::default()
+                        },
+                        CompletionItem {
+                            label: "hsv".to_string(),
+                            kind: Some(CompletionItemKind::KEYWORD),
+                            detail: Some("HSV Color Format".to_string()),
+                            ..Default::default()
+                        },
+                    ];
+                    return Ok(Some(CompletionResponse::Array(color_items)));
                 }
             }
         }
@@ -581,10 +573,7 @@ impl Backend {
                 label: plan.name.clone(),
                 kind: Some(CompletionItemKind::FOLDER),
                 detail: Some("AI Strategy Plan".to_string()),
-                documentation: Some(Documentation::String(format!(
-                    "Defined in: {}",
-                    plan.path
-                ))),
+                documentation: Some(Documentation::String(format!("Defined in: {}", plan.path))),
                 ..Default::default()
             });
         }

@@ -1,5 +1,5 @@
-use crate::ast;
 use crate::Backend;
+use crate::ast;
 use std::collections::HashMap;
 use tower_lsp::lsp_types::{Position, Range};
 
@@ -108,8 +108,7 @@ impl Backend {
                         if ass.operator_range.start_col > ass.key_range.end_col
                             && ass.value.range.start_col > ass.operator_range.end_col
                         {
-                            let space_before =
-                                ass.operator_range.start_col - ass.key_range.end_col;
+                            let space_before = ass.operator_range.start_col - ass.key_range.end_col;
                             let space_after =
                                 ass.value.range.start_col - ass.operator_range.end_col;
                             if space_before != 1 || space_after != 1 {
@@ -301,7 +300,9 @@ impl Backend {
         fixes: &mut Vec<(ast::Range, String)>,
     ) {
         match value {
-            ast::Value::Block(_) | ast::Value::TaggedBlock(_, _, _) if range.start_line == range.end_line => {
+            ast::Value::Block(_) | ast::Value::TaggedBlock(_, _, _)
+                if range.start_line == range.end_line =>
+            {
                 let line_idx = range.start_line as usize;
                 if let Some(line) = content.lines().nth(line_idx) {
                     let start = range.start_col as usize;
@@ -365,7 +366,11 @@ impl Backend {
         }
     }
 
-    pub(crate) fn collect_casing_fixes(&self, entries: &[ast::Entry], fixes: &mut Vec<(ast::Range, String)>) {
+    pub(crate) fn collect_casing_fixes(
+        &self,
+        entries: &[ast::Entry],
+        fixes: &mut Vec<(ast::Range, String)>,
+    ) {
         let keywords = [
             "spriteTypes",
             "spriteType",

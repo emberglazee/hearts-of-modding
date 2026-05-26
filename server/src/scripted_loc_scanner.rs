@@ -57,9 +57,15 @@ fn find_scripted_locs_in_entries(
     map: &mut HashMap<String, ScriptedLoc>,
 ) {
     for entry in entries {
-        if let Entry::Assignment(ass) = entry && ass.key == "defined_text" && let Value::Block(children) = &ass.value.value {
+        if let Entry::Assignment(ass) = entry
+            && ass.key == "defined_text"
+            && let Value::Block(children) = &ass.value.value
+        {
             for child in children {
-                if let Entry::Assignment(child_ass) = child && child_ass.key == "name" && let Value::String(name) = &child_ass.value.value {
+                if let Entry::Assignment(child_ass) = child
+                    && child_ass.key == "name"
+                    && let Value::String(name) = &child_ass.value.value
+                {
                     map.insert(
                         name.clone(),
                         ScriptedLoc {

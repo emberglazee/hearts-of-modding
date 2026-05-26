@@ -195,9 +195,7 @@ fn find_abilities_in_entries(
                                                 },
                                                 "cancelable" => {
                                                     cancelable = match &p_ass.value.value {
-                                                        ast::Value::String(s) => {
-                                                            Some(s == "yes")
-                                                        }
+                                                        ast::Value::String(s) => Some(s == "yes"),
                                                         _ => None,
                                                     };
                                                 }
@@ -220,12 +218,8 @@ fn find_abilities_in_entries(
                                                     }
                                                 }
                                                 "allowed" => has_allowed = true,
-                                                "one_time_effect" => {
-                                                    has_one_time_effect = true
-                                                }
-                                                "unit_modifiers" => {
-                                                    has_unit_modifiers = true
-                                                }
+                                                "one_time_effect" => has_one_time_effect = true,
+                                                "unit_modifiers" => has_unit_modifiers = true,
                                                 "ai_will_do" => has_ai_will_do = true,
                                                 _ => {}
                                             }

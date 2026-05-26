@@ -70,7 +70,8 @@ pub(crate) struct ScannerData {
     achievements_field: Arc<ArcSwap<HashMap<String, achievement_scanner::Achievement>>>,
     defines_field: Arc<ArcSwap<defines_parser::GameDefines>>,
     abilities_field: Arc<ArcSwap<HashMap<String, ability_scanner::Ability>>>,
-    ai_strategy_plans_field: Arc<ArcSwap<HashMap<String, ai_strategy_plan_scanner::AiStrategyPlan>>>,
+    ai_strategy_plans_field:
+        Arc<ArcSwap<HashMap<String, ai_strategy_plan_scanner::AiStrategyPlan>>>,
     portraits_field: Arc<ArcSwap<HashMap<String, portrait_scanner::Portrait>>>,
     scripted_locs_field: Arc<ArcSwap<HashMap<String, scripted_loc_scanner::ScriptedLoc>>>,
     duplicated_loc_keys_field: Arc<ArcSwap<HashSet<(String, String)>>>,

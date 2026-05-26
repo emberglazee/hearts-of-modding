@@ -124,13 +124,14 @@ fn classify_assignment(key: &str) -> SymbolKind {
         "title" | "desc" | "text" | "type" | "sound_effect" => SymbolKind::STRING,
 
         // Numeric values
-        "cost" | "duration" | "cooldown" | "skill" | "attack_skill" | "defense_skill" | "planning_skill"
-        | "logistics_skill" | "maneuvering_skill" | "coordination_skill" | "value" => {
-            SymbolKind::NUMBER
-        }
+        "cost" | "duration" | "cooldown" | "skill" | "attack_skill" | "defense_skill"
+        | "planning_skill" | "logistics_skill" | "maneuvering_skill" | "coordination_skill"
+        | "value" => SymbolKind::NUMBER,
 
         // Boolean flags
-        "fire_only_once" | "is_triggered_only" | "major" | "hidden" | "cancelable" => SymbolKind::BOOLEAN,
+        "fire_only_once" | "is_triggered_only" | "major" | "hidden" | "cancelable" => {
+            SymbolKind::BOOLEAN
+        }
 
         // Default
         _ => SymbolKind::FIELD,

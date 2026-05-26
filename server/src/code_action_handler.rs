@@ -1,10 +1,9 @@
-use tower_lsp::jsonrpc::Result;
-use tower_lsp::lsp_types::*;
-use crate::parser;
+use crate::Backend;
 use crate::loc_parser;
 use crate::lsp_convert::ast_range_to_lsp;
-use crate::Backend;
 use std::collections::HashMap;
+use tower_lsp::jsonrpc::Result;
+use tower_lsp::lsp_types::*;
 
 impl Backend {
     pub(crate) async fn handle_code_action(
@@ -306,7 +305,8 @@ impl Backend {
                                     );
 
                                     actions.push(CodeActionOrCommand::CodeAction(CodeAction {
-                                        title: "Escape square brackets with backslashes".to_string(),
+                                        title: "Escape square brackets with backslashes"
+                                            .to_string(),
                                         kind: Some(CodeActionKind::QUICKFIX),
                                         edit: Some(WorkspaceEdit {
                                             changes: Some(changes),
@@ -381,35 +381,33 @@ impl Backend {
 
         // Add "Fix all" if any casing diagnostic is present
         if has_casing_diagnostic {
-            if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
-                {
-                    let (script, _) = parser::parse_script(&content);
-                    let mut all_fixes = Vec::new();
-                    self.collect_casing_fixes(&script.entries, &mut all_fixes);
+            let uri_str = params.text_document.uri.as_str();
+            if let Some((script, _)) = self.ensure_ast_cached(uri_str) {
+                let mut all_fixes = Vec::new();
+                self.collect_casing_fixes(&script.entries, &mut all_fixes);
 
-                    if !all_fixes.is_empty() {
-                        let mut changes = HashMap::new();
-                        let edits: Vec<TextEdit> = all_fixes
-                            .into_iter()
-                            .map(|(range, text)| TextEdit {
-                                range: ast_range_to_lsp(&range),
-                                new_text: text,
-                            })
-                            .collect();
+                if !all_fixes.is_empty() {
+                    let mut changes = HashMap::new();
+                    let edits: Vec<TextEdit> = all_fixes
+                        .into_iter()
+                        .map(|(range, text)| TextEdit {
+                            range: ast_range_to_lsp(&range),
+                            new_text: text,
+                        })
+                        .collect();
 
-                        changes.insert(params.text_document.uri.clone(), edits);
+                    changes.insert(params.text_document.uri.clone(), edits);
 
-                        actions.push(CodeActionOrCommand::CodeAction(CodeAction {
-                            title: "Fix all casing convention issues in this file".to_string(),
-                            kind: Some(CodeActionKind::QUICKFIX),
-                            edit: Some(WorkspaceEdit {
-                                changes: Some(changes),
-                                ..Default::default()
-                            }),
-                            is_preferred: Some(false),
+                    actions.push(CodeActionOrCommand::CodeAction(CodeAction {
+                        title: "Fix all casing convention issues in this file".to_string(),
+                        kind: Some(CodeActionKind::QUICKFIX),
+                        edit: Some(WorkspaceEdit {
+                            changes: Some(changes),
                             ..Default::default()
-                        }));
-                    }
+                        }),
+                        is_preferred: Some(false),
+                        ..Default::default()
+                    }));
                 }
             }
         }
@@ -450,11 +448,15 @@ impl Backend {
         if has_mixed_indentation_diagnostic {
             if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
                 let is_yaml = params.text_document.uri.as_str().ends_with(".yml");
-                let parsed = parser::parse_script(&content);
-                let script_opt = if is_yaml { None } else { Some(&parsed.0) };
+                let script_opt = if is_yaml {
+                    None
+                } else {
+                    let uri_str = params.text_document.uri.as_str();
+                    self.ensure_ast_cached(uri_str).map(|(s, _)| s)
+                };
 
                 let mut all_fixes = Vec::new();
-                self.collect_indentation_fixes(&content, script_opt, &mut all_fixes);
+                self.collect_indentation_fixes(&content, script_opt.as_deref(), &mut all_fixes);
 
                 if !all_fixes.is_empty() {
                     let mut changes = HashMap::new();
@@ -485,8 +487,8 @@ impl Backend {
         // Add "Surround all assignment operators with spaces" if any such diagnostic is present
         if has_assignment_space_diagnostic {
             if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
-                {
-                    let (script, _) = parser::parse_script(&content);
+                let uri_str = params.text_document.uri.as_str();
+                if let Some((script, _)) = self.ensure_ast_cached(uri_str) {
                     let mut all_fixes = Vec::new();
                     self.collect_assignment_space_fixes(&script.entries, &mut all_fixes, &content);
 
@@ -521,8 +523,8 @@ impl Backend {
         // Add "Fix curly brace spacing" if any such diagnostic is present
         if has_brace_space_diagnostic {
             if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
-                {
-                    let (script, _) = parser::parse_script(&content);
+                let uri_str = params.text_document.uri.as_str();
+                if let Some((script, _)) = self.ensure_ast_cached(uri_str) {
                     let mut all_fixes = Vec::new();
                     self.collect_brace_space_fixes(&script.entries, &mut all_fixes, &content);
                     self.collect_brace_newline_fixes(&script.entries, &mut all_fixes);
@@ -700,153 +702,158 @@ impl Backend {
 
         if has_any_styling_diagnostic {
             if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
-                let mut all_changes = Vec::new();
                 let uri_str = params.text_document.uri.as_str();
-                let is_yaml = uri_str.ends_with(".yml");
-                let (script, _) = parser::parse_script(&content);
+                if let Some((script, _)) = self.ensure_ast_cached(uri_str) {
+                    let mut all_changes = Vec::new();
+                    let is_yaml = uri_str.ends_with(".yml");
 
-                // Add EOF newline fix if needed
-                if !content.is_empty()
-                    && !content.ends_with('\n')
-                    && !content.ends_with("\r\n")
-                    && !uri_str.ends_with("map/buildings.txt")
-                {
-                    let line_count = content.lines().count();
-                    let last_line = content.lines().last().unwrap_or("");
-                    let line_idx = if line_count > 0 {
-                        line_count as u32 - 1
-                    } else {
-                        0
-                    };
-                    all_changes.push(TextEdit {
-                        range: Range {
-                            start: Position {
-                                line: line_idx,
-                                character: last_line.len() as u32,
-                            },
-                            end: Position {
-                                line: line_idx,
-                                character: last_line.len() as u32,
-                            },
-                        },
-                        new_text: "\n".to_string(),
-                    });
-                }
-
-                let mut casing_fixes = Vec::new();
-                self.collect_casing_fixes(&script.entries, &mut casing_fixes);
-                for (range, text) in casing_fixes {
-                    all_changes.push(TextEdit {
-                        range: ast_range_to_lsp(&range),
-                        new_text: text,
-                    });
-                }
-
-                let mut tw_fixes = Vec::new();
-                self.collect_styling_fixes(&content, &mut tw_fixes);
-                for (range, text) in tw_fixes {
-                    all_changes.push(TextEdit {
-                        range,
-                        new_text: text,
-                    });
-                }
-
-                let mut indent_fixes = Vec::new();
-                let script_opt = if is_yaml { None } else { Some(&script) };
-                self.collect_indentation_fixes(&content, script_opt, &mut indent_fixes);
-                for (range, text) in indent_fixes {
-                    all_changes.push(TextEdit {
-                        range,
-                        new_text: text,
-                    });
-                }
-
-                let mut assign_fixes = Vec::new();
-                self.collect_assignment_space_fixes(&script.entries, &mut assign_fixes, &content);
-                for (range, text) in assign_fixes {
-                    all_changes.push(TextEdit {
-                        range: ast_range_to_lsp(&range),
-                        new_text: text,
-                    });
-                }
-
-                let mut brace_fixes = Vec::new();
-                self.collect_brace_space_fixes(&script.entries, &mut brace_fixes, &content);
-                self.collect_brace_newline_fixes(&script.entries, &mut brace_fixes);
-                for (range, text) in brace_fixes {
-                    all_changes.push(TextEdit {
-                        range: ast_range_to_lsp(&range),
-                        new_text: text,
-                    });
-                }
-
-                let path_str = params
-                    .text_document
-                    .uri
-                    .to_file_path()
-                    .unwrap_or_default()
-                    .to_string_lossy()
-                    .to_string();
-                let (parsed, _, _) = loc_parser::parse_loc_file(&content, &path_str);
-                for entry in parsed.values() {
-                    if let Some(d) = loc_parser::check_unnecessary_version(entry) {
+                    // Add EOF newline fix if needed
+                    if !content.is_empty()
+                        && !content.ends_with('\n')
+                        && !content.ends_with("\r\n")
+                        && !uri_str.ends_with("map/buildings.txt")
+                    {
+                        let line_count = content.lines().count();
+                        let last_line = content.lines().last().unwrap_or("");
+                        let line_idx = if line_count > 0 {
+                            line_count as u32 - 1
+                        } else {
+                            0
+                        };
                         all_changes.push(TextEdit {
-                            range: ast_range_to_lsp(&d.range),
-                            new_text: "".to_string(),
+                            range: Range {
+                                start: Position {
+                                    line: line_idx,
+                                    character: last_line.len() as u32,
+                                },
+                                end: Position {
+                                    line: line_idx,
+                                    character: last_line.len() as u32,
+                                },
+                            },
+                            new_text: "\n".to_string(),
                         });
                     }
-                }
 
-                let quote_diagnostics = loc_parser::validate_unescaped_quotes_in_file(&content);
-                for d in quote_diagnostics {
-                    all_changes.push(TextEdit {
-                        range: ast_range_to_lsp(&d.range),
-                        new_text: "\\\"".to_string(),
-                    });
-                }
+                    let mut casing_fixes = Vec::new();
+                    self.collect_casing_fixes(&script.entries, &mut casing_fixes);
+                    for (range, text) in casing_fixes {
+                        all_changes.push(TextEdit {
+                            range: ast_range_to_lsp(&range),
+                            new_text: text,
+                        });
+                    }
 
-                let event_targets = self.scanner_data.event_targets();
-                let scripted_locs = self.scanner_data.scripted_locs();
-                for entry in parsed.values() {
-                    let bracket_diagnostics =
-                        loc_parser::validate_loc_string(entry, &event_targets, &scripted_locs);
-                    for d in bracket_diagnostics {
-                        if d.code.as_deref() == Some("unescaped_bracket") {
-                            let lsp_range = ast_range_to_lsp(&d.range);
-                            let line_idx = lsp_range.start.line as usize;
-                            if let Some(line) = content.lines().nth(line_idx) {
-                                let chars: Vec<char> = line.chars().collect();
-                                let start_char = lsp_range.start.character as usize;
-                                let end_char = lsp_range.end.character as usize;
-                                if start_char < chars.len() && end_char <= chars.len() {
-                                    let bracket_text: String =
-                                        chars[start_char..end_char].iter().collect();
-                                    let escaped =
-                                        bracket_text.replace('[', r"\[").replace(']', r"\]");
-                                    all_changes.push(TextEdit {
-                                        range: lsp_range,
-                                        new_text: escaped,
-                                    });
+                    let mut tw_fixes = Vec::new();
+                    self.collect_styling_fixes(&content, &mut tw_fixes);
+                    for (range, text) in tw_fixes {
+                        all_changes.push(TextEdit {
+                            range,
+                            new_text: text,
+                        });
+                    }
+
+                    let mut indent_fixes = Vec::new();
+                    let script_opt = if is_yaml { None } else { Some(&*script) };
+                    self.collect_indentation_fixes(&content, script_opt, &mut indent_fixes);
+                    for (range, text) in indent_fixes {
+                        all_changes.push(TextEdit {
+                            range,
+                            new_text: text,
+                        });
+                    }
+
+                    let mut assign_fixes = Vec::new();
+                    self.collect_assignment_space_fixes(
+                        &script.entries,
+                        &mut assign_fixes,
+                        &content,
+                    );
+                    for (range, text) in assign_fixes {
+                        all_changes.push(TextEdit {
+                            range: ast_range_to_lsp(&range),
+                            new_text: text,
+                        });
+                    }
+
+                    let mut brace_fixes = Vec::new();
+                    self.collect_brace_space_fixes(&script.entries, &mut brace_fixes, &content);
+                    self.collect_brace_newline_fixes(&script.entries, &mut brace_fixes);
+                    for (range, text) in brace_fixes {
+                        all_changes.push(TextEdit {
+                            range: ast_range_to_lsp(&range),
+                            new_text: text,
+                        });
+                    }
+
+                    let path_str = params
+                        .text_document
+                        .uri
+                        .to_file_path()
+                        .unwrap_or_default()
+                        .to_string_lossy()
+                        .to_string();
+                    let (parsed, _, _) = loc_parser::parse_loc_file(&content, &path_str);
+                    for entry in parsed.values() {
+                        if let Some(d) = loc_parser::check_unnecessary_version(entry) {
+                            all_changes.push(TextEdit {
+                                range: ast_range_to_lsp(&d.range),
+                                new_text: "".to_string(),
+                            });
+                        }
+                    }
+
+                    let quote_diagnostics = loc_parser::validate_unescaped_quotes_in_file(&content);
+                    for d in quote_diagnostics {
+                        all_changes.push(TextEdit {
+                            range: ast_range_to_lsp(&d.range),
+                            new_text: "\\\"".to_string(),
+                        });
+                    }
+
+                    let event_targets = self.scanner_data.event_targets();
+                    let scripted_locs = self.scanner_data.scripted_locs();
+                    for entry in parsed.values() {
+                        let bracket_diagnostics =
+                            loc_parser::validate_loc_string(entry, &event_targets, &scripted_locs);
+                        for d in bracket_diagnostics {
+                            if d.code.as_deref() == Some("unescaped_bracket") {
+                                let lsp_range = ast_range_to_lsp(&d.range);
+                                let line_idx = lsp_range.start.line as usize;
+                                if let Some(line) = content.lines().nth(line_idx) {
+                                    let chars: Vec<char> = line.chars().collect();
+                                    let start_char = lsp_range.start.character as usize;
+                                    let end_char = lsp_range.end.character as usize;
+                                    if start_char < chars.len() && end_char <= chars.len() {
+                                        let bracket_text: String =
+                                            chars[start_char..end_char].iter().collect();
+                                        let escaped =
+                                            bracket_text.replace('[', r"\[").replace(']', r"\]");
+                                        all_changes.push(TextEdit {
+                                            range: lsp_range,
+                                            new_text: escaped,
+                                        });
+                                    }
                                 }
                             }
                         }
                     }
-                }
 
-                if !all_changes.is_empty() {
-                    let mut changes = HashMap::new();
-                    changes.insert(params.text_document.uri.clone(), all_changes);
+                    if !all_changes.is_empty() {
+                        let mut changes = HashMap::new();
+                        changes.insert(params.text_document.uri.clone(), all_changes);
 
-                    actions.push(CodeActionOrCommand::CodeAction(CodeAction {
-                        title: "Fix all styling issues in this file".to_string(),
-                        kind: Some(CodeActionKind::QUICKFIX),
-                        edit: Some(WorkspaceEdit {
-                            changes: Some(changes),
+                        actions.push(CodeActionOrCommand::CodeAction(CodeAction {
+                            title: "Fix all styling issues in this file".to_string(),
+                            kind: Some(CodeActionKind::QUICKFIX),
+                            edit: Some(WorkspaceEdit {
+                                changes: Some(changes),
+                                ..Default::default()
+                            }),
+                            is_preferred: Some(true),
                             ..Default::default()
-                        }),
-                        is_preferred: Some(true),
-                        ..Default::default()
-                    }));
+                        }));
+                    }
                 }
             }
         }

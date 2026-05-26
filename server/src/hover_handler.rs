@@ -1,15 +1,16 @@
-use tower_lsp::jsonrpc::Result;
-use tower_lsp::lsp_types::*;
+use crate::Backend;
 use crate::ast;
 use crate::loc_parser;
-use crate::parser;
-use crate::scope;
-use crate::modifier_display;
-use crate::Backend;
 use crate::loc_preview::paradox_to_markdown;
 use crate::lsp_convert::ast_range_to_lsp;
-use crate::symbol_search::find_identifier_at;
+use crate::modifier_display;
 use crate::modifier_format::format_modifier_value;
+use crate::parser;
+use crate::scope;
+use crate::symbol_search::find_identifier_at;
+use std::sync::Arc;
+use tower_lsp::jsonrpc::Result;
+use tower_lsp::lsp_types::*;
 
 impl Backend {
     pub(crate) async fn handle_hover(&self, params: HoverParams) -> Result<Option<Hover>> {
@@ -549,7 +550,10 @@ impl Backend {
             }
 
             {
-                let (script, _) = parser::parse_script(&content);
+                let (script, _) = self.ensure_ast_cached(&uri).unwrap_or_else(|| {
+                    let (s, e) = parser::parse_script(&content);
+                    (Arc::new(s), e)
+                });
                 let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
                 let achievements = self.scanner_data.achievements();
                 if let Some((identifier, final_scopes, assigned_value, context_key)) =
@@ -1116,7 +1120,10 @@ impl Backend {
                             text.push_str(&format!("\n**Type:** `{}`\n", type_name));
                         }
                         if let Some(cancelable) = ability.cancelable {
-                            text.push_str(&format!("\n**Cancelable:** {}\n", if cancelable { "Yes" } else { "No" }));
+                            text.push_str(&format!(
+                                "\n**Cancelable:** {}\n",
+                                if cancelable { "Yes" } else { "No" }
+                            ));
                         }
                         if let Some(sound) = &ability.sound_effect {
                             text.push_str(&format!("\n**Sound Effect:** `{}`\n", sound));
@@ -1127,10 +1134,18 @@ impl Backend {
 
                         // Block presence indicators
                         let mut blocks = Vec::new();
-                        if ability.has_allowed { blocks.push("allowed"); }
-                        if ability.has_unit_modifiers { blocks.push("unit_modifiers"); }
-                        if ability.has_one_time_effect { blocks.push("one_time_effect"); }
-                        if ability.has_ai_will_do { blocks.push("ai_will_do"); }
+                        if ability.has_allowed {
+                            blocks.push("allowed");
+                        }
+                        if ability.has_unit_modifiers {
+                            blocks.push("unit_modifiers");
+                        }
+                        if ability.has_one_time_effect {
+                            blocks.push("one_time_effect");
+                        }
+                        if ability.has_ai_will_do {
+                            blocks.push("ai_will_do");
+                        }
                         if !blocks.is_empty() {
                             text.push_str(&format!("\n**Blocks:** {}\n", blocks.join(", ")));
                         }
@@ -1158,12 +1173,24 @@ impl Backend {
                         }
 
                         let mut blocks: Vec<String> = Vec::new();
-                        if portrait.has_male { blocks.push("male".to_string()); }
-                        if portrait.has_female { blocks.push("female".to_string()); }
-                        if portrait.has_army { blocks.push("army".to_string()); }
-                        if portrait.has_navy { blocks.push("navy".to_string()); }
-                        if portrait.has_operative { blocks.push("operative".to_string()); }
-                        if portrait.has_scientist { blocks.push("scientist".to_string()); }
+                        if portrait.has_male {
+                            blocks.push("male".to_string());
+                        }
+                        if portrait.has_female {
+                            blocks.push("female".to_string());
+                        }
+                        if portrait.has_army {
+                            blocks.push("army".to_string());
+                        }
+                        if portrait.has_navy {
+                            blocks.push("navy".to_string());
+                        }
+                        if portrait.has_operative {
+                            blocks.push("operative".to_string());
+                        }
+                        if portrait.has_scientist {
+                            blocks.push("scientist".to_string());
+                        }
                         if portrait.has_political {
                             blocks.push(format!("political [{}]", portrait.ideologies.join(", ")));
                         }
@@ -1173,11 +1200,17 @@ impl Backend {
 
                         if !portrait.gfx_entries.is_empty() {
                             let gfx_count = portrait.gfx_entries.len();
-                            text.push_str(&format!("\n**GFX References:** {} sprite(s)\n", gfx_count));
+                            text.push_str(&format!(
+                                "\n**GFX References:** {} sprite(s)\n",
+                                gfx_count
+                            ));
                             let s_map = self.scanner_data.sprites();
                             for gfx in portrait.gfx_entries.iter().take(10) {
                                 if let Some(sprite) = s_map.get(gfx) {
-                                    text.push_str(&format!("\n- `{}` → `{}`", gfx, sprite.texture_file));
+                                    text.push_str(&format!(
+                                        "\n- `{}` → `{}`",
+                                        gfx, sprite.texture_file
+                                    ));
                                 } else {
                                     text.push_str(&format!("\n- `{}`", gfx));
                                 }
@@ -1187,7 +1220,10 @@ impl Backend {
                             }
                         }
 
-                        text.push_str(&format!("\n\n---\nDefined in: {}", self.make_file_link(&portrait.path)));
+                        text.push_str(&format!(
+                            "\n\n---\nDefined in: {}",
+                            self.make_file_link(&portrait.path)
+                        ));
                         push_section(&mut hover_text, &text);
                     }
 
@@ -1231,7 +1267,8 @@ impl Backend {
 
                     // Check for modifier blocks (modifier = { ... } or modifiers = { ... })
                     let identifier_lower = identifier.to_lowercase();
-                    if (identifier_lower == "modifier" || identifier_lower == "modifiers"
+                    if (identifier_lower == "modifier"
+                        || identifier_lower == "modifiers"
                         || identifier_lower == "unit_modifiers")
                         && matches!(assigned_value, Some(ast::Value::Block(_)))
                     {
