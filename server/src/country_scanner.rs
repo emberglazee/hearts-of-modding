@@ -34,7 +34,7 @@ where
                         continue;
                     }
                     if let Ok(content) = fs::read_to_string(&file_path) {
-                        for line in content.lines() {
+                        for (line_idx, line) in content.lines().enumerate() {
                             let line = line.trim();
                             if line.is_empty() || line.starts_with('#') {
                                 continue;
@@ -46,14 +46,15 @@ where
                                     let rest = line[eq_pos + 1..].trim().trim_matches('"');
                                     let name = extract_country_name(rest);
                                     let source_path = file_path.to_string_lossy().to_string();
+                                    let line_no = line_idx as u32;
                                     tags.entry(tag.clone()).or_insert_with(|| CountryTag {
                                         tag,
                                         name,
                                         path: source_path.clone(),
                                         range: ast::Range {
-                                            start_line: 0,
+                                            start_line: line_no,
                                             start_col: 0,
-                                            end_line: 0,
+                                            end_line: line_no,
                                             end_col: 0,
                                         },
                                     });
