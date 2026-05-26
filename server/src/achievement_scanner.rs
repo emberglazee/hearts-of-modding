@@ -78,8 +78,6 @@ fn find_achievements_in_entries(
 
             if let ast::Value::Block(inner_entries) = &ass.value.value {
                 // Determine if it's an achievement or ribbon
-                // In HOI4, achievements are top-level blocks that aren't unique_id.
-                // A ribbon usually contains a 'ribbon = { ... }' block inside.
                 let mut is_ribbon = false;
                 let mut is_achievement = false;
 
@@ -96,6 +94,7 @@ fn find_achievements_in_entries(
                 }
 
                 if is_achievement || is_ribbon {
+                    // Always store the block key as the achievement name
                     map.insert(
                         ass.key.clone(),
                         Achievement {
@@ -105,6 +104,39 @@ fn find_achievements_in_entries(
                             range: ass.key_range.clone(),
                         },
                     );
+
+                    // For custom_achievement/custom_ribbon blocks, also extract inner
+                    // identifiers when present. Some mods use a fixed key like
+                    //   custom_achievement = { achievement = my_token ... }
+                    // while others use the block key itself as the unique name.
+                    if key_lower == "custom_achievement" || key_lower == "custom_ribbon" {
+                        let is_ribbon_block = key_lower == "custom_ribbon";
+                        for inner in inner_entries {
+                            if let ast::Entry::Assignment(inner_ass) = inner {
+                                let inner_field = inner_ass.key.to_lowercase();
+                                let should_extract = if is_ribbon_block {
+                                    inner_field == "key"
+                                } else {
+                                    inner_field == "achievement"
+                                };
+                                if should_extract {
+                                    if let ast::Value::String(s) = &inner_ass.value.value {
+                                        if !map.contains_key(s) {
+                                            map.insert(
+                                                s.clone(),
+                                                Achievement {
+                                                    name: s.clone(),
+                                                    is_ribbon,
+                                                    path: file_path.to_string(),
+                                                    range: ass.key_range.clone(),
+                                                },
+                                            );
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

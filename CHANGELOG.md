@@ -2,6 +2,20 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
+## [v0.8.1] - 2026-05-26
+
+### Added
+
+- **Custom Advancements Semantic Highlighting:**
+
+  - Achievement names (from both regular and custom achievements) now receive TYPE (entity) highlighting in semantic tokens, making them visually distinct from keywords and plain strings.
+
+  - `custom_achievement`, `custom_ribbon`, `key`, and `achievement` are now recognized as hardcoded keywords in semantic tokens.
+
+### Fixed
+
+- Fixed achievement scanner to properly handle `custom_achievement` and `custom_ribbon` blocks. The scanner now extracts identifiers from inner `achievement` and `key` fields in addition to the block key itself, supporting both naming conventions used by mods.
+
 ## [v0.8.0] - 2026-05-24
 
 ### Added

@@ -445,6 +445,9 @@ impl LanguageServer for Backend {
                 keywords.insert("ribbon".to_string());
                 keywords.insert("frames".to_string());
                 keywords.insert("colors".to_string());
+                keywords.insert("custom_achievement".to_string());
+                keywords.insert("custom_ribbon".to_string());
+                keywords.insert("key".to_string());
 
                 // Character keywords
                 keywords.insert("characters".to_string());
@@ -464,6 +467,9 @@ impl LanguageServer for Backend {
                 keywords.insert("expire".to_string());
                 keywords.insert("recruit_character".to_string());
                 keywords.insert("ideology".to_string());
+
+                // Custom advancement field keywords
+                keywords.insert("achievement".to_string());
 
                 // Ability keywords
                 keywords.insert("ability".to_string());
@@ -529,8 +535,15 @@ impl LanguageServer for Backend {
                     .map(|k| k.to_string())
                     .collect();
 
+                let achievement_names: HashSet<String> = self
+                    .achievements
+                    .load()
+                    .keys()
+                    .map(|k| k.to_string())
+                    .collect();
+
                 Ok(Some(semantic_tokens::get_semantic_tokens(
-                    &script, &keywords, &ability_names, &strategy_plan_names, &portrait_names, &character_names, &ideology_types,
+                    &script, &keywords, &ability_names, &strategy_plan_names, &portrait_names, &character_names, &ideology_types, &achievement_names,
                 )))
             }
             _ => Ok(None),
