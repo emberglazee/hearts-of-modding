@@ -16,6 +16,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Undo escaped square brackets (v0.8.0):** Anything other than newlines (`\n`) and escaped double quotes (`\"`) is considered invalid escape sequences by the HOI4 parser, this includes square brackets. The code action to escape square brackets was removed, and the diagnostic message was changed to reflect this.
 
+- **Test modules in release build:** Fixed accidentally including development test modules in release LSP builds for the extension.
+
 ## [v0.9.0] - 2026-05-26
 
 ### Added

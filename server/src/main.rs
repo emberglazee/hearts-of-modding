@@ -91,8 +91,8 @@ pub(crate) static LOC_COMMANDS: Lazy<Vec<&'static str>> = Lazy::new(hoi4_data::g
 /// This is required because LSP uses UTF-16 positions, but Rust strings are UTF-8
 #[allow(dead_code)]
 fn byte_offset_to_utf16(s: &str, byte_offset: usize) -> u32 {
-    s.chars()
-        .take(byte_offset)
+    s[..byte_offset]
+        .chars()
         .map(|c| c.len_utf16())
         .sum::<usize>() as u32
 }
@@ -3450,6 +3450,9 @@ async fn main() {
     Server::new(stdin, stdout, socket).serve(service).await;
 }
 
+#[cfg(test)]
 pub mod test_loc_dups;
+#[cfg(test)]
 pub mod test_loc_empty;
+#[cfg(test)]
 pub mod test_parser_skip;
