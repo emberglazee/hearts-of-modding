@@ -14,6 +14,7 @@ pub enum RenameableSymbol {
     Character(String),
     Variable(String),
     Ability(String),
+    ColorCode(String),
 }
 
 /// Prepare rename - check if the symbol at the position can be renamed
@@ -111,6 +112,15 @@ pub async fn rename_symbol(
                 &mut changes,
             );
         }
+        RenameableSymbol::ColorCode(old_name) => {
+            find_color_code_references(
+                &old_name,
+                new_name,
+                documents,
+                workspace_files,
+                &mut changes,
+            );
+        }
     }
 
     if changes.is_empty() {
@@ -144,6 +154,7 @@ async fn find_symbol_at_position(
             crate::entity_lookup::EntityKind::Character => RenameableSymbol::Character(name),
             crate::entity_lookup::EntityKind::Variable => RenameableSymbol::Variable(name),
             crate::entity_lookup::EntityKind::Ability => RenameableSymbol::Ability(name),
+            crate::entity_lookup::EntityKind::ColorCode => RenameableSymbol::ColorCode(name),
             _ => return None,
         });
     }
@@ -710,6 +721,98 @@ fn find_ability_references_in_entries(
                         new_text: new_name.to_string(),
                     });
                 }
+            }
+        }
+    }
+}
+
+/// Find all references to a color code in loc files and gfx files
+fn find_color_code_references(
+    old_name: &str,
+    new_name: &str,
+    documents: &dashmap::DashMap<String, String>,
+    workspace_files: &HashSet<String>,
+    changes: &mut HashMap<Uri, Vec<TextEdit>>,
+) {
+    // Only allow single-character color codes
+    if old_name.len() != 1 || new_name.len() != 1 {
+        return;
+    }
+
+    // Search in open documents
+    for entry in documents.iter() {
+        let uri_str = entry.key();
+        let content = entry.value();
+        let mut edits = Vec::new();
+
+        if uri_str.ends_with(".yml") {
+            // In loc files, replace §old with §new
+            for (line_idx, line) in content.lines().enumerate() {
+                let old_pattern = format!("§{}", old_name);
+                let new_pattern = format!("§{}", new_name);
+                let mut search_start = 0;
+                while let Some(pos) = line[search_start..].find(&old_pattern) {
+                    let abs_pos = search_start + pos;
+                    edits.push(TextEdit {
+                        range: LspRange {
+                            start: LspPosition {
+                                line: line_idx as u32,
+                                character: abs_pos as u32,
+                            },
+                            end: LspPosition {
+                                line: line_idx as u32,
+                                character: (abs_pos + old_pattern.len()) as u32,
+                            },
+                        },
+                        new_text: new_pattern.clone(),
+                    });
+                    search_start = abs_pos + 1;
+                }
+            }
+        }
+
+        if !edits.is_empty() {
+            if let Ok(url) = uri_str.parse::<Uri>() {
+                changes.insert(url, edits);
+            }
+        }
+    }
+
+    // Process unopened workspace files
+    for file_path in workspace_files.iter() {
+        let Some(url) = Uri::from_file_path(std::path::Path::new(file_path)) else {
+            continue;
+        };
+        let uri_str = url.as_str().to_string();
+        if documents.contains_key(&uri_str) {
+            continue;
+        }
+        if let Ok(content) = std::fs::read_to_string(file_path) {
+            let mut edits = Vec::new();
+            for (line_idx, line) in content.lines().enumerate() {
+                let old_pattern = format!("§{}", old_name);
+                let new_pattern = format!("§{}", new_name);
+                let mut search_start = 0;
+                while let Some(pos) = line[search_start..].find(&old_pattern) {
+                    let abs_pos = search_start + pos;
+                    edits.push(TextEdit {
+                        range: LspRange {
+                            start: LspPosition {
+                                line: line_idx as u32,
+                                character: abs_pos as u32,
+                            },
+                            end: LspPosition {
+                                line: line_idx as u32,
+                                character: (abs_pos + old_pattern.len()) as u32,
+                            },
+                        },
+                        new_text: new_pattern.clone(),
+                    });
+                    search_start = abs_pos + 1;
+                }
+            }
+            if !edits.is_empty() {
+                changes.insert(url, edits);
             }
         }
     }

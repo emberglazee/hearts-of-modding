@@ -5,20 +5,24 @@ use tower_lsp_server::ls_types::{Color, ColorInformation};
 pub fn find_colors(script: &ast::Script) -> Vec<ColorInformation> {
     let mut colors = Vec::new();
     for entry in &script.entries {
-        find_colors_in_entry(entry, &mut colors);
+        find_colors_in_entry(entry, &mut colors, &[]);
     }
     colors
 }
 
-fn find_colors_in_entry(entry: &ast::Entry, colors: &mut Vec<ColorInformation>) {
+fn find_colors_in_entry(
+    entry: &ast::Entry,
+    colors: &mut Vec<ColorInformation>,
+    parent_keys: &[&str],
+) {
     if let ast::Entry::Assignment(ass) = entry {
-        if ass.key.to_ascii_lowercase().contains("color") {
-            find_colors_in_value(&ass.value, colors, true);
-        } else {
-            find_colors_in_value(&ass.value, colors, false);
-        }
+        let is_color_context =
+            ass.key.to_ascii_lowercase().contains("color") || parent_keys.contains(&"textcolors");
+        let mut keys = parent_keys.to_vec();
+        keys.push(&ass.key);
+        find_colors_in_value(&ass.value, colors, is_color_context, &keys);
     } else if let ast::Entry::Value(val) = entry {
-        find_colors_in_value(val, colors, false);
+        find_colors_in_value(val, colors, false, parent_keys);
     }
 }
 
@@ -26,6 +30,7 @@ fn find_colors_in_value(
     val: &ast::NodeedValue,
     colors: &mut Vec<ColorInformation>,
     is_color_context: bool,
+    parent_keys: &[&str],
 ) {
     match &val.value {
         ast::Value::Block(entries) => {
@@ -66,7 +71,7 @@ fn find_colors_in_value(
                 });
             } else {
                 for e in entries {
-                    find_colors_in_entry(e, colors);
+                    find_colors_in_entry(e, colors, parent_keys);
                 }
             }
         }
@@ -115,7 +120,7 @@ fn find_colors_in_value(
                 }
             } else {
                 for e in entries {
-                    find_colors_in_entry(e, colors);
+                    find_colors_in_entry(e, colors, parent_keys);
                 }
             }
         }

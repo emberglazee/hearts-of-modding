@@ -2,6 +2,12 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
+## [v0.11.0] - 2026-05-28
+
+### Added
+
+- **Custom color code validation:** Scanning .gfx files for custom defined color codes in `bitmapfonts = { textcolors = { ... } }` blocks to validate against. No more just hardcoded vanilla ones.
+
 ## [v0.10.0] - 2026-05-27
 
 ### Added

@@ -25,6 +25,7 @@ mod entity_lookup;
 mod event_scanner;
 mod formatting;
 mod fs_util;
+mod gfx_scanner;
 mod hoi4_data;
 mod hover_handler;
 mod idea_scanner;
@@ -266,6 +267,7 @@ impl LanguageServer for Backend {
             self.scan_continents(&roots),
             self.scan_portraits(&roots),
             self.scan_countries(&roots),
+            self.scan_gfx(&roots),
         );
 
         // Collect workspace file paths for rename operations
@@ -475,6 +477,7 @@ impl LanguageServer for Backend {
                 let mut scripted_trigger_names = HashSet::new();
                 let mut scripted_effect_names = HashSet::new();
                 let mut country_tag_names = HashSet::new();
+                let mut color_code_names = HashSet::new();
 
                 for (name, kind) in all_names {
                     match kind {
@@ -508,6 +511,9 @@ impl LanguageServer for Backend {
                         entity_lookup::EntityKind::CountryTag => {
                             country_tag_names.insert(name);
                         }
+                        entity_lookup::EntityKind::ColorCode => {
+                            color_code_names.insert(name);
+                        }
                         _ => {}
                     }
                 }
@@ -525,6 +531,7 @@ impl LanguageServer for Backend {
                     &scripted_trigger_names,
                     &scripted_effect_names,
                     &country_tag_names,
+                    &color_code_names,
                 )))
             }
             _ => Ok(None),
@@ -1781,6 +1788,7 @@ impl Backend {
         let doc_lang_str = doc_lang.unwrap_or_else(|| "unknown".to_string());
         let event_targets = self.scanner_data.event_targets();
         let scripted_locs = self.scanner_data.scripted_locs();
+        let color_codes = self.scanner_data.color_codes();
         let dups = self.scanner_data.duplicated_loc_keys();
 
         // Add structural diagnostics
@@ -1848,8 +1856,14 @@ impl Backend {
                 });
             }
 
-            let loc_diagnostics =
-                loc_parser::validate_loc_string(entry, &event_targets, &scripted_locs);
+            let color_code_set: std::collections::HashSet<String> =
+                color_codes.keys().cloned().collect();
+            let loc_diagnostics = loc_parser::validate_loc_string(
+                entry,
+                &event_targets,
+                &scripted_locs,
+                &color_code_set,
+            );
             for d in loc_diagnostics {
                 diagnostics.push(Diagnostic {
                     range: ast_range_to_lsp(&d.range),

@@ -3,6 +3,33 @@ use base64::{Engine as _, engine::general_purpose};
 use std::collections::HashMap;
 use tower_lsp_server::ls_types::Position;
 
+fn vanilla_color_hex(code: &str) -> &str {
+    match code {
+        "C" => "#23CEFF",
+        "L" => "#C3B091",
+        "W" | "T" => "#FFFFFF",
+        "B" => "#0000FF",
+        "G" => "#009F03",
+        "R" => "#FF3232",
+        "b" => "#000000",
+        "g" => "#B0B0B0",
+        "Y" | "H" => "#FFBD00",
+        "O" => "#FF7019",
+        "0" => "#CB00CB",
+        "1" => "#8078D3",
+        "2" => "#5170F3",
+        "3" => "#518FDC",
+        "4" => "#5ABEE7",
+        "5" => "#3FB5C2",
+        "6" => "#77CCBA",
+        "7" => "#99D199",
+        "8" => "#CCA333",
+        "9" => "#FCA97D",
+        "t" => "#FF4C4D",
+        _ => "#FFFFFF",
+    }
+}
+
 pub fn resolve_loc(
     input: &str,
     localization: &HashMap<String, loc_parser::LocEntry>,
@@ -31,9 +58,23 @@ pub fn resolve_loc(
     result
 }
 
+/// Build a hex color map: symbol "Y" → "#FFBD00" from ColorCode data
+pub fn build_color_map(data: &crate::ScannerData) -> HashMap<String, String> {
+    let codes = data.color_codes();
+    let mut map = HashMap::new();
+    for (sym, cc) in codes.iter() {
+        map.insert(
+            sym.clone(),
+            format!("#{:02X}{:02X}{:02X}", cc.rgb.0, cc.rgb.1, cc.rgb.2),
+        );
+    }
+    map
+}
+
 pub fn paradox_to_markdown(
     input: &str,
     localization: Option<&HashMap<String, loc_parser::LocEntry>>,
+    color_map: Option<&HashMap<String, String>>,
 ) -> String {
     fn split_leading_punctuation(s: &str) -> (&str, &str) {
         let punct_end = s
@@ -120,33 +161,15 @@ pub fn paradox_to_markdown(
             segments.push((rest.to_string(), current_color));
         }
 
-        current_color = match code {
-            "!" => "#FFFFFF",
-            "C" => "#23CEFF",
-            "L" => "#C3B091",
-            "W" => "#FFFFFF",
-            "B" => "#0000FF",
-            "G" => "#009F03",
-            "R" => "#FF3232",
-            "b" => "#000000",
-            "g" => "#B0B0B0",
-            "Y" | "H" => "#FFBD00",
-            "T" => "#FFFFFF",
-            "O" => "#FF7019",
-            "0" => "#CB00CB",
-            "1" => "#8078D3",
-            "2" => "#5170F3",
-            "3" => "#518FDC",
-            "4" => "#5ABEE7",
-            "5" => "#3FB5C2",
-            "6" => "#77CCBA",
-            "7" => "#99D199",
-            "8" => "#CCA333",
-            "9" => "#FCA97D",
-            "t" => "#FF4C4D",
-            "M" => "#FF60FF",
-            "p" => "#FF80FF",
-            _ => "#FFFFFF",
+        current_color = if code == "!" {
+            "#FFFFFF"
+        } else if let Some(map) = color_map {
+            map.get(code).map(|s| s.as_str()).unwrap_or_else(|| {
+                // Fallback to hardcoded known colors
+                vanilla_color_hex(code)
+            })
+        } else {
+            vanilla_color_hex(code)
         };
         last_end = m.end();
     }
@@ -344,7 +367,7 @@ mod tests {
         use base64::Engine as _;
         let loc = HashMap::new();
         let input = "Line 1\\nLine 2";
-        let output = paradox_to_markdown(input, Some(&loc));
+        let output = paradox_to_markdown(input, Some(&loc), None);
         let decoded = String::from_utf8(
             base64::engine::general_purpose::STANDARD
                 .decode(
@@ -370,7 +393,7 @@ mod tests {
     fn test_paradox_to_markdown_real_newlines() {
         use base64::Engine as _;
         let input = "Line 1\nLine 2";
-        let output = paradox_to_markdown(input, None);
+        let output = paradox_to_markdown(input, None, None);
         let decoded = String::from_utf8(
             base64::engine::general_purpose::STANDARD
                 .decode(
@@ -396,7 +419,7 @@ mod tests {
     fn test_paradox_to_markdown_escaped_quotes() {
         use base64::Engine as _;
         let input = "Hello \\\"World\\\"";
-        let output = paradox_to_markdown(input, None);
+        let output = paradox_to_markdown(input, None, None);
         let decoded = String::from_utf8(
             base64::engine::general_purpose::STANDARD
                 .decode(
@@ -418,7 +441,7 @@ mod tests {
     fn test_paradox_to_markdown_no_extra_space() {
         use base64::Engine as _;
         let input = "§Rfoo§Gbar";
-        let output = paradox_to_markdown(input, None);
+        let output = paradox_to_markdown(input, None, None);
         let decoded = String::from_utf8(
             base64::engine::general_purpose::STANDARD
                 .decode(

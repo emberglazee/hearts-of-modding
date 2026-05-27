@@ -10,6 +10,7 @@ use crate::continent_scanner;
 use crate::country_scanner;
 use crate::defines_parser;
 use crate::event_scanner;
+use crate::gfx_scanner;
 use crate::idea_scanner;
 use crate::ideology_scanner;
 use crate::loc_parser;
@@ -784,6 +785,25 @@ impl Backend {
             .log_message(
                 MessageType::INFO,
                 format!("Total: Loaded {} ideas", i_map.len()),
+            )
+            .await;
+    }
+
+    pub(crate) async fn scan_gfx(&self, roots: &[std::path::PathBuf]) {
+        let filter = self.get_sync_filter();
+        let roots_owned = roots.to_vec();
+        let codes = tokio::task::spawn_blocking(move || {
+            gfx_scanner::scan_color_codes(&roots_owned, &filter)
+        })
+        .await
+        .unwrap();
+
+        self.scanner_data.set_color_codes(codes);
+        let c = self.scanner_data.color_codes();
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!("Total: Loaded {} color codes from interface/*.gfx", c.len()),
             )
             .await;
     }

@@ -31,6 +31,7 @@ pub fn get_semantic_tokens(
     scripted_triggers: &HashSet<String>,
     scripted_effects: &HashSet<String>,
     country_tags: &HashSet<String>,
+    color_codes: &HashSet<String>,
 ) -> SemanticTokensResult {
     let mut tokens = Vec::new();
     for entry in &script.entries {
@@ -48,6 +49,7 @@ pub fn get_semantic_tokens(
             scripted_triggers,
             scripted_effects,
             country_tags,
+            color_codes,
             None,
         );
     }
@@ -105,6 +107,7 @@ fn push_entry_tokens(
     scripted_triggers: &HashSet<String>,
     scripted_effects: &HashSet<String>,
     country_tags: &HashSet<String>,
+    color_codes: &HashSet<String>,
     parent_key: Option<&str>,
 ) {
     match entry {
@@ -116,6 +119,7 @@ fn push_entry_tokens(
             let is_portrait = portrait_names.contains(&ass.key);
             let is_character = character_names.contains(&ass.key);
             let is_achievement = achievement_names.contains(&ass.key);
+            let is_color_code = color_codes.contains(&ass.key);
 
             if is_keyword {
                 tokens.push(RawToken {
@@ -130,6 +134,7 @@ fn push_entry_tokens(
                 || is_portrait
                 || is_character
                 || is_achievement
+                || is_color_code
                 || country_tags.contains(&ass.key)
                 || scripted_triggers.contains(&ass.key)
                 || scripted_effects.contains(&ass.key)
@@ -162,6 +167,7 @@ fn push_entry_tokens(
                 scripted_triggers,
                 scripted_effects,
                 country_tags,
+                color_codes,
                 Some(&ass.key),
             );
         }
@@ -180,6 +186,7 @@ fn push_entry_tokens(
                 scripted_triggers,
                 scripted_effects,
                 country_tags,
+                color_codes,
                 parent_key,
             );
         }
@@ -208,6 +215,7 @@ fn push_value_tokens(
     scripted_triggers: &HashSet<String>,
     scripted_effects: &HashSet<String>,
     country_tags: &HashSet<String>,
+    color_codes: &HashSet<String>,
     parent_key: Option<&str>,
 ) {
     match &val.value {
@@ -230,6 +238,7 @@ fn push_value_tokens(
                     || character_names.contains(s)
                     || ideology_types.contains(s)
                     || achievement_names.contains(s)
+                    || color_codes.contains(s)
                     || country_tags.contains(s)
                     || scripted_triggers.contains(s)
                     || scripted_effects.contains(s))
@@ -281,6 +290,7 @@ fn push_value_tokens(
                     scripted_triggers,
                     scripted_effects,
                     country_tags,
+                    color_codes,
                     parent_key,
                 );
             }
@@ -307,6 +317,7 @@ fn push_value_tokens(
                     scripted_triggers,
                     scripted_effects,
                     country_tags,
+                    color_codes,
                     parent_key,
                 );
             }

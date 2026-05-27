@@ -561,6 +561,29 @@ pub async fn generate_workspace_symbols(
         }
     }
 
+    // Search color codes
+    let color_codes_lock = data.color_codes();
+    for (symbol, code) in color_codes_lock.iter() {
+        let display = format!(
+            "§{} — RGB({}, {}, {})",
+            symbol, code.rgb.0, code.rgb.1, code.rgb.2
+        );
+        if fuzzy_match(&query_lower, symbol) {
+            #[allow(deprecated)]
+            symbols.push(SymbolInformation {
+                name: display,
+                kind: SymbolKind::CONSTANT,
+                tags: None,
+                deprecated: None,
+                location: Location {
+                    uri: path_to_url(&code.path),
+                    range: range_to_lsp(&code.range),
+                },
+                container_name: Some("Color Code".to_string()),
+            });
+        }
+    }
+
     // Search variables
     let variables_lock = data.variables();
     for (name, var_list) in variables_lock.iter() {

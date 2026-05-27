@@ -22,6 +22,7 @@ impl Backend {
         let position = params.text_document_position_params.position;
         let map_config = crate::map_config::get_map_config(std::path::Path::new("."));
 
+        let color_map = crate::loc_preview::build_color_map(&self.scanner_data);
         if let Some(content) = self.documents.get(&uri) {
             if uri.ends_with(".yml") {
                 let (locs, _, _) = loc_parser::parse_loc_file(&content, &uri);
@@ -74,7 +75,11 @@ impl Backend {
 
                         hover_text.push_str(&format!("**Raw:** `{}`\n\n", entry.value));
                         hover_text.push_str("**Preview:**\n\n");
-                        hover_text.push_str(&paradox_to_markdown(&entry.value, Some(&global_loc)));
+                        hover_text.push_str(&paradox_to_markdown(
+                            &entry.value,
+                            Some(&global_loc),
+                            Some(&color_map),
+                        ));
 
                         return Ok(Some(Hover {
                             contents: HoverContents::Markup(MarkupContent {
@@ -90,23 +95,18 @@ impl Backend {
                         && position.character <= entry.value_start_col + entry.value.len() as u32
                     {
                         let mut hover_text = "### 👁️ Localization Preview\n\n".to_string();
-                        hover_text.push_str(&paradox_to_markdown(&entry.value, Some(&global_loc)));
+                        hover_text.push_str(&paradox_to_markdown(
+                            &entry.value,
+                            Some(&global_loc),
+                            Some(&color_map),
+                        ));
 
                         return Ok(Some(Hover {
                             contents: HoverContents::Markup(MarkupContent {
                                 kind: MarkupKind::Markdown,
                                 value: hover_text,
                             }),
-                            range: Some(Range {
-                                start: Position {
-                                    line: entry.range.start_line,
-                                    character: entry.value_start_col,
-                                },
-                                end: Position {
-                                    line: entry.range.start_line,
-                                    character: entry.value_start_col + entry.value.len() as u32,
-                                },
-                            }),
+                            range: Some(ast_range_to_lsp(&entry.range)),
                         }));
                     }
                 }
@@ -608,7 +608,7 @@ impl Backend {
                             ach_text.push_str(&format!(
                                 "\n**Name (`{}`):** {}\n",
                                 name_key,
-                                paradox_to_markdown(&name_loc.value, Some(&loc))
+                                paradox_to_markdown(&name_loc.value, Some(&loc), Some(&color_map))
                             ));
                         } else {
                             ach_text.push_str(&format!("\n**Name:** *Missing `{}`*\n", name_key));
@@ -619,7 +619,7 @@ impl Backend {
                             ach_text.push_str(&format!(
                                 "\n**Description (`{}`):** {}\n",
                                 desc_key,
-                                paradox_to_markdown(&desc_loc.value, Some(&loc))
+                                paradox_to_markdown(&desc_loc.value, Some(&loc), Some(&color_map))
                             ));
                         } else {
                             ach_text.push_str(&format!(
@@ -663,7 +663,11 @@ impl Backend {
                             if is_state_key {
                                 let loc = self.scanner_data.localization();
                                 let state_name = if let Some(loc_entry) = loc.get(&state.name) {
-                                    paradox_to_markdown(&loc_entry.value, Some(&loc))
+                                    paradox_to_markdown(
+                                        &loc_entry.value,
+                                        Some(&loc),
+                                        Some(&color_map),
+                                    )
                                 } else {
                                     state.name.clone()
                                 };
@@ -796,7 +800,7 @@ impl Backend {
                         let mut text = format!("### 🌐 Localization: {}\n\n", e.key);
                         text.push_str(&format!("**Raw:** `{}`\n\n", e.value));
                         text.push_str("**Preview:**\n\n");
-                        text.push_str(&paradox_to_markdown(&e.value, Some(&loc)));
+                        text.push_str(&paradox_to_markdown(&e.value, Some(&loc), Some(&color_map)));
                         push_section(&mut hover_text, &text);
                     } else {
                         // Check scripted triggers
@@ -954,7 +958,11 @@ impl Backend {
                             if let Some(name_loc) = loc.get(name_key) {
                                 char_text.push_str(&format!(
                                     "\n**Name:** {}\n",
-                                    paradox_to_markdown(&name_loc.value, Some(&loc))
+                                    paradox_to_markdown(
+                                        &name_loc.value,
+                                        Some(&loc),
+                                        Some(&color_map)
+                                    )
                                 ));
                             } else {
                                 char_text
@@ -970,7 +978,11 @@ impl Backend {
                             if let Some(desc_loc) = loc.get(desc_key) {
                                 char_text.push_str(&format!(
                                     "**Description:** {}\n",
-                                    paradox_to_markdown(&desc_loc.value, Some(&loc))
+                                    paradox_to_markdown(
+                                        &desc_loc.value,
+                                        Some(&loc),
+                                        Some(&color_map)
+                                    )
                                 ));
                             } else {
                                 char_text.push_str(&format!(
@@ -1091,7 +1103,11 @@ impl Backend {
                             if let Some(name_loc) = loc.get(name_key) {
                                 text.push_str(&format!(
                                     "\n**Name:** {}\n",
-                                    paradox_to_markdown(&name_loc.value, Some(&loc))
+                                    paradox_to_markdown(
+                                        &name_loc.value,
+                                        Some(&loc),
+                                        Some(&color_map)
+                                    )
                                 ));
                             } else {
                                 text.push_str(&format!("\n**Name:** *Missing `{}`*\n", name_key));
@@ -1102,7 +1118,11 @@ impl Backend {
                             if let Some(desc_loc) = loc.get(desc_key) {
                                 text.push_str(&format!(
                                     "\n**Description:** {}\n",
-                                    paradox_to_markdown(&desc_loc.value, Some(&loc))
+                                    paradox_to_markdown(
+                                        &desc_loc.value,
+                                        Some(&loc),
+                                        Some(&color_map)
+                                    )
                                 ));
                             }
                         }
@@ -1343,7 +1363,7 @@ impl Backend {
                     if let Some(loc_key) = mappings.get(&identifier) {
                         let loc = self.scanner_data.localization();
                         let loc_text = if let Some(e) = loc.get(loc_key) {
-                            paradox_to_markdown(&e.value, Some(&loc))
+                            paradox_to_markdown(&e.value, Some(&loc), Some(&color_map))
                         } else {
                             loc_key.clone()
                         };

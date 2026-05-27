@@ -6,7 +6,7 @@ use nom::{
     combinator::opt,
 };
 use nom_locate::LocatedSpan;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 type Span<'a> = LocatedSpan<&'a str>;
 
@@ -98,6 +98,7 @@ pub fn validate_loc_string(
     entry: &LocEntry,
     event_targets: &HashMap<String, Vec<crate::variable_scanner::EventTarget>>,
     scripted_locs: &HashMap<String, crate::scripted_loc_scanner::ScriptedLoc>,
+    color_codes: &HashSet<String>,
 ) -> Vec<LocDiagnostic> {
     let mut diagnostics = Vec::new();
 
@@ -493,6 +494,25 @@ pub fn validate_loc_string(
                 open_colors.pop();
             }
         } else {
+            if !color_codes.contains(code) {
+                let range = Range {
+                    start_line: entry.range.start_line,
+                    start_col: entry.value_start_col + pos as u32,
+                    end_line: entry.range.start_line,
+                    end_col: entry.value_start_col + pos as u32 + 2,
+                };
+                diagnostics.push(LocDiagnostic {
+                    range,
+                    message: format!(
+                        "Unknown color code '§{}'. This will cause a 'Could not find coloring for character' error in-game.",
+                        code
+                    ),
+                    severity: DiagnosticSeverity::Warning,
+                    code: Some("unknown_color_code".to_string()),
+                    related_information: Vec::new(),
+                    tags: Vec::new(),
+                });
+            }
             open_colors.push((code.to_string(), pos));
         }
     }
@@ -706,7 +726,7 @@ pub fn parse_loc_file(
 fn parse_loc_entry<'a>(input: Span<'a>, path: &'a str) -> IResult<Span<'a>, LocEntry> {
     let (input, _) = multispace0(input)?;
     let (input, key_span) =
-        take_while1(|c: char| c.is_alphanumeric() || c == '_' || c == '.' || c == '-')
+        take_while1(|c: char| c.is_ascii_alphanumeric() || c == '_' || c == '.' || c == '-')
             .parse(input)?;
     let (input, _) = char(':').parse(input)?;
     let (input, version_span) = opt(digit1).parse(input)?;
