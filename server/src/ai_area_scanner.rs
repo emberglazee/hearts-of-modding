@@ -1,7 +1,6 @@
 use crate::ast;
 use crate::parser;
 use std::collections::HashMap;
-use std::fs;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone)]
@@ -25,48 +24,18 @@ where
     let mut areas = HashMap::new();
 
     for root in roots {
-        let dir = root.join("common/ai_areas");
-        if dir.exists() {
-            let found = scan_directory(&dir, filter);
-            areas.extend(found);
-        }
+        crate::fs_util::walk_and_parse_files(
+            &root.join("common/ai_areas"),
+            &["txt"],
+            filter,
+            |path, content| {
+                let (script, _) = parser::parse_script(&content);
+                extract_areas(&script.entries, path, &mut areas);
+            },
+        );
     }
 
     areas
-}
-
-fn scan_directory<F>(dir_path: &Path, filter: &F) -> HashMap<String, AiArea>
-where
-    F: Fn(&std::path::Path) -> bool,
-{
-    let mut map = HashMap::new();
-    let mut dirs_to_check = vec![dir_path.to_path_buf()];
-
-    while let Some(current_dir) = dirs_to_check.pop() {
-        if filter(&current_dir) {
-            continue;
-        }
-        if let Ok(entries) = fs::read_dir(current_dir) {
-            for entry in entries.flatten() {
-                let path = entry.path();
-                if path.is_dir() {
-                    if !filter(&path) {
-                        dirs_to_check.push(path);
-                    }
-                } else if path.extension().is_some_and(|ext| ext == "txt") {
-                    if filter(&path) {
-                        continue;
-                    }
-                    if let Ok(content) = fs::read_to_string(&path) {
-                        let (script, _) = parser::parse_script(&content);
-                        extract_areas(&script.entries, &path, &mut map);
-                    }
-                }
-            }
-        }
-    }
-
-    map
 }
 
 fn extract_areas(entries: &[ast::Entry], path: &Path, map: &mut HashMap<String, AiArea>) {

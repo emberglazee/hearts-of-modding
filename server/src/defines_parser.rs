@@ -1,6 +1,5 @@
 use std::collections::HashMap;
-use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 /// Represents game defines loaded from common/defines/*.lua
 #[derive(Debug, Clone)]
@@ -54,37 +53,17 @@ where
     defines.max_skill_levels.insert("operative".to_string(), 3);
 
     for root in roots {
-        let dir = root.join("common/defines");
-        if dir.exists() {
-            scan_defines_directory(&dir, &mut defines, filter);
-        }
+        crate::fs_util::walk_and_parse_files(
+            &root.join("common/defines"),
+            &["lua"],
+            filter,
+            |_path, content| {
+                parse_defines_lua(&content, &mut defines);
+            },
+        );
     }
 
     defines
-}
-
-fn scan_defines_directory<F>(dir_path: &Path, defines: &mut GameDefines, filter: &F)
-where
-    F: Fn(&std::path::Path) -> bool,
-{
-    if filter(dir_path) {
-        return;
-    }
-    if let Ok(entries) = fs::read_dir(dir_path) {
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if path.is_dir() {
-                scan_defines_directory(&path, defines, filter);
-            } else if path.extension().is_some_and(|ext| ext == "lua") {
-                if filter(&path) {
-                    continue;
-                }
-                if let Ok(content) = fs::read_to_string(&path) {
-                    parse_defines_lua(&content, defines);
-                }
-            }
-        }
-    }
 }
 
 /// Simple Lua parser for defines files

@@ -1,8 +1,7 @@
 use crate::ast;
 use crate::parser;
 use std::collections::HashMap;
-use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 #[derive(Debug, Clone)]
 pub struct Achievement {
@@ -18,48 +17,17 @@ where
 {
     let mut map = HashMap::new();
     for root in roots {
-        let achievements_dir = root.join("common").join("achievements");
-        if achievements_dir.exists() {
-            scan_dir(&achievements_dir, &mut map, filter);
-        }
+        crate::fs_util::walk_and_parse_files(
+            &root.join("common/achievements"),
+            &["txt"],
+            filter,
+            |path, content| {
+                let (script, _) = parser::parse_script(&content);
+                find_achievements_in_entries(&script.entries, &path.to_string_lossy(), &mut map);
+            },
+        );
     }
     map
-}
-
-fn scan_dir<F>(dir_path: &Path, map: &mut HashMap<String, Achievement>, filter: &F)
-where
-    F: Fn(&std::path::Path) -> bool,
-{
-    let mut dirs_to_check = vec![dir_path.to_path_buf()];
-    while let Some(current_dir) = dirs_to_check.pop() {
-        if filter(&current_dir) {
-            continue;
-        }
-        if let Ok(entries) = fs::read_dir(current_dir) {
-            for entry in entries.flatten() {
-                let path = entry.path();
-                if path.is_dir() {
-                    if !filter(&path) {
-                        dirs_to_check.push(path);
-                    }
-                } else if path.extension().is_some_and(|ext| ext == "txt") {
-                    if filter(&path) {
-                        continue;
-                    }
-                    if let Ok(content) = fs::read_to_string(&path) {
-                        {
-                            let (script, _) = parser::parse_script(&content);
-                            find_achievements_in_entries(
-                                &script.entries,
-                                &path.to_string_lossy(),
-                                map,
-                            );
-                        }
-                    }
-                }
-            }
-        }
-    }
 }
 
 fn find_achievements_in_entries(

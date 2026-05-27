@@ -40,6 +40,48 @@ where
     matching_files
 }
 
+/// Recursively walk a directory, calling `processor` for each file whose extension
+/// matches one in `extensions` and for which `ignore_filter` returns `false`.
+/// Directories for which `ignore_filter` returns `true` are also skipped entirely.
+/// This is the consolidated traversal helper that scanners should use instead of
+/// duplicating the `fs::read_dir` + stack pattern.
+pub fn walk_and_parse_files<F, P>(
+    dir_path: &Path,
+    extensions: &[&str],
+    ignore_filter: &F,
+    mut processor: P,
+) where
+    F: Fn(&Path) -> bool,
+    P: FnMut(&Path, String),
+{
+    if !dir_path.exists() || ignore_filter(dir_path) {
+        return;
+    }
+
+    let mut dirs_to_check = vec![dir_path.to_path_buf()];
+    while let Some(current_dir) = dirs_to_check.pop() {
+        if let Ok(entries) = std::fs::read_dir(&current_dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    if !ignore_filter(&path) {
+                        dirs_to_check.push(path);
+                    }
+                } else if let Some(ext) = path.extension() {
+                    if extensions.contains(&ext.to_string_lossy().as_ref()) {
+                        if ignore_filter(&path) {
+                            continue;
+                        }
+                        if let Ok(content) = std::fs::read_to_string(&path) {
+                            processor(&path, content);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 /// Check whether a path matches any of the provided ignore regex patterns.
 pub fn is_path_ignored(path: &Path, ignored: &[regex::Regex]) -> bool {
     let path_str = path.to_string_lossy();

@@ -12,6 +12,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Texture path validation:** Added validation for texture paths in `.gfx` and `.gui` files.
 
+- **Abstract Directory Traversal:** Reduced LSP boilerplate by introducing a new `walk_and_parse_files` function, which abstracts away the common pattern of traversing directories and parsing files, improving code maintainability.
+
 ### Changed
 
 - **Migration to `tower-lsp-server`:** Migrated from `tower-lsp` v0.20.0 to `tower-lsp-server` v0.23.0 (a community fork with continued support), including a slight LSP refactor for the breaking changes.

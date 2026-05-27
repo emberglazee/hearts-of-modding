@@ -1,7 +1,6 @@
 use crate::ast;
 use crate::parser;
 use std::collections::HashMap;
-use std::fs;
 use std::path::PathBuf;
 
 #[derive(Debug, Clone)]
@@ -42,6 +41,40 @@ pub struct SoundScanResult {
     pub categories: HashMap<String, SoundCategory>,
 }
 
+fn process_sound_file(
+    path: &std::path::Path,
+    content: String,
+    sounds: &mut HashMap<String, Sound>,
+    sound_effects: &mut HashMap<String, SoundEffect>,
+    falloffs: &mut HashMap<String, Falloff>,
+    categories: &mut HashMap<String, SoundCategory>,
+) {
+    let (script, _) = parser::parse_script(&content);
+    find_sound_definitions(
+        &script.entries,
+        &path.to_string_lossy(),
+        sounds,
+        sound_effects,
+        falloffs,
+        categories,
+    );
+}
+
+fn scan_sound_dir<F>(
+    dir_path: &std::path::Path,
+    filter: &F,
+    sounds: &mut HashMap<String, Sound>,
+    sound_effects: &mut HashMap<String, SoundEffect>,
+    falloffs: &mut HashMap<String, Falloff>,
+    categories: &mut HashMap<String, SoundCategory>,
+) where
+    F: Fn(&std::path::Path) -> bool,
+{
+    crate::fs_util::walk_and_parse_files(dir_path, &["asset"], filter, |path, content| {
+        process_sound_file(path, content, sounds, sound_effects, falloffs, categories);
+    });
+}
+
 pub fn scan_sounds<F>(roots: &[PathBuf], filter: &F) -> SoundScanResult
 where
     F: Fn(&std::path::Path) -> bool,
@@ -54,88 +87,34 @@ where
     for root in roots {
         let sound_dir = root.join("sound");
         if sound_dir.exists() && !filter(&sound_dir) {
-            let mut dirs_to_check = vec![sound_dir.clone()];
-            while let Some(current_dir) = dirs_to_check.pop() {
-                if let Ok(entries) = fs::read_dir(current_dir) {
-                    for entry in entries.flatten() {
-                        let path = entry.path();
-                        if path.is_dir() {
-                            if !filter(&path) {
-                                dirs_to_check.push(path);
-                            }
-                        } else {
-                            if filter(&path) {
-                                continue;
-                            }
-                            let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
-                            if ext == "asset"
-                                && let Ok(content) = fs::read_to_string(&path)
-                            {
-                                {
-                                    let (script, _) = parser::parse_script(&content);
-                                    find_sound_definitions(
-                                        &script.entries,
-                                        &path.to_string_lossy(),
-                                        &mut sounds,
-                                        &mut sound_effects,
-                                        &mut falloffs,
-                                        &mut categories,
-                                    );
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            scan_sound_dir(
+                &sound_dir,
+                filter,
+                &mut sounds,
+                &mut sound_effects,
+                &mut falloffs,
+                &mut categories,
+            );
         }
 
         // Also scan integrated_dlc/*/sound/ and dlc/*/sound/ directories for vanilla sound effects
         for dlc_root_name in ["integrated_dlc", "dlc"] {
             let dlc_dir = root.join(dlc_root_name);
             if dlc_dir.exists() && !filter(&dlc_dir) {
-                if let Ok(dlc_entries) = fs::read_dir(&dlc_dir) {
+                if let Ok(dlc_entries) = std::fs::read_dir(&dlc_dir) {
                     for dlc_entry in dlc_entries.flatten() {
                         let dlc_path = dlc_entry.path();
                         if dlc_path.is_dir() {
                             let dlc_sound_dir = dlc_path.join("sound");
                             if dlc_sound_dir.exists() && !filter(&dlc_sound_dir) {
-                                let mut dirs_to_check = vec![dlc_sound_dir];
-                                while let Some(current_dir) = dirs_to_check.pop() {
-                                    if let Ok(entries) = fs::read_dir(current_dir) {
-                                        for entry in entries.flatten() {
-                                            let path = entry.path();
-                                            if path.is_dir() {
-                                                if !filter(&path) {
-                                                    dirs_to_check.push(path);
-                                                }
-                                            } else {
-                                                if filter(&path) {
-                                                    continue;
-                                                }
-                                                let ext = path
-                                                    .extension()
-                                                    .and_then(|e| e.to_str())
-                                                    .unwrap_or("");
-                                                if ext == "asset" {
-                                                    if let Ok(content) = fs::read_to_string(&path) {
-                                                        {
-                                                            let (script, _) =
-                                                                parser::parse_script(&content);
-                                                            find_sound_definitions(
-                                                                &script.entries,
-                                                                &path.to_string_lossy(),
-                                                                &mut sounds,
-                                                                &mut sound_effects,
-                                                                &mut falloffs,
-                                                                &mut categories,
-                                                            );
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
+                                scan_sound_dir(
+                                    &dlc_sound_dir,
+                                    filter,
+                                    &mut sounds,
+                                    &mut sound_effects,
+                                    &mut falloffs,
+                                    &mut categories,
+                                );
                             }
                         }
                     }

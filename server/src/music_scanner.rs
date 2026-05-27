@@ -1,7 +1,6 @@
 use crate::ast;
 use crate::parser;
 use std::collections::HashMap;
-use std::fs;
 
 #[derive(Debug, Clone)]
 pub struct MusicAsset {
@@ -40,53 +39,26 @@ where
     let mut songs = HashMap::new();
 
     for root in roots {
-        let music_dir = root.join("music");
-        if !music_dir.exists() || filter(&music_dir) {
-            continue;
-        }
-
-        let mut dirs_to_check = vec![music_dir];
-        while let Some(current_dir) = dirs_to_check.pop() {
-            if let Ok(entries) = fs::read_dir(current_dir) {
-                for entry in entries.flatten() {
-                    let path = entry.path();
-                    if path.is_dir() {
-                        if !filter(&path) {
-                            dirs_to_check.push(path);
-                        }
-                    } else {
-                        if filter(&path) {
-                            continue;
-                        }
-                        let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
-                        if ext == "asset" {
-                            if let Ok(content) = fs::read_to_string(&path) {
-                                {
-                                    let (script, _) = parser::parse_script(&content);
-                                    find_assets_in_entries(
-                                        &script.entries,
-                                        &path.to_string_lossy(),
-                                        &mut assets,
-                                    );
-                                }
-                            }
-                        } else if ext == "txt" {
-                            if let Ok(content) = fs::read_to_string(&path) {
-                                {
-                                    let (script, _) = parser::parse_script(&content);
-                                    find_stations_and_songs_in_entries(
-                                        &script.entries,
-                                        &path.to_string_lossy(),
-                                        &mut stations,
-                                        &mut songs,
-                                    );
-                                }
-                            }
-                        }
-                    }
+        crate::fs_util::walk_and_parse_files(
+            &root.join("music"),
+            &["asset", "txt"],
+            filter,
+            |path, content| {
+                let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
+                if ext == "asset" {
+                    let (script, _) = parser::parse_script(&content);
+                    find_assets_in_entries(&script.entries, &path.to_string_lossy(), &mut assets);
+                } else if ext == "txt" {
+                    let (script, _) = parser::parse_script(&content);
+                    find_stations_and_songs_in_entries(
+                        &script.entries,
+                        &path.to_string_lossy(),
+                        &mut stations,
+                        &mut songs,
+                    );
                 }
-            }
-        }
+            },
+        );
     }
 
     MusicScanResult {

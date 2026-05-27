@@ -1,7 +1,6 @@
 use crate::ast;
 use crate::parser;
 use std::collections::HashMap;
-use std::fs;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -20,10 +19,15 @@ where
     let mut events = HashMap::new();
 
     for root in roots {
-        let events_dir = root.join("events");
-        if events_dir.exists() {
-            scan_directory(&events_dir, &mut events, filter);
-        }
+        crate::fs_util::walk_and_parse_files(
+            &root.join("events"),
+            &["txt"],
+            filter,
+            |path, content| {
+                let (script, _) = parser::parse_script(&content);
+                find_event_definitions(&script.entries, &path.to_string_lossy(), &mut events);
+            },
+        );
     }
 
     // Second pass: Find where events are triggered
@@ -32,43 +36,6 @@ where
     }
 
     events
-}
-
-fn scan_directory<F>(dir_path: &Path, events: &mut HashMap<String, Event>, filter: &F)
-where
-    F: Fn(&Path) -> bool,
-{
-    let mut dirs_to_check = vec![dir_path.to_path_buf()];
-
-    while let Some(current_dir) = dirs_to_check.pop() {
-        if filter(&current_dir) {
-            continue;
-        }
-        if let Ok(entries) = fs::read_dir(current_dir) {
-            for entry in entries.flatten() {
-                let path = entry.path();
-                if path.is_dir() {
-                    if !filter(&path) {
-                        dirs_to_check.push(path);
-                    }
-                } else if path.extension().is_some_and(|ext| ext == "txt") {
-                    if filter(&path) {
-                        continue;
-                    }
-                    if let Ok(content) = fs::read_to_string(&path) {
-                        {
-                            let (script, _) = parser::parse_script(&content);
-                            find_event_definitions(
-                                &script.entries,
-                                &path.to_string_lossy(),
-                                events,
-                            );
-                        }
-                    }
-                }
-            }
-        }
-    }
 }
 
 fn find_event_definitions(entries: &[ast::Entry], path: &str, events: &mut HashMap<String, Event>) {
@@ -113,40 +80,16 @@ fn scan_for_triggers<F>(root: &Path, events: &mut HashMap<String, Event>, filter
 where
     F: Fn(&Path) -> bool,
 {
-    // We need to look through common/, events/, and potentially others
-    let subdirs = ["common", "events"];
-    for subdir in subdirs {
-        let dir_path = root.join(subdir);
-        if !dir_path.exists() {
-            continue;
-        }
-
-        let mut dirs_to_check = vec![dir_path];
-        while let Some(current_dir) = dirs_to_check.pop() {
-            if filter(&current_dir) {
-                continue;
-            }
-            if let Ok(entries) = fs::read_dir(current_dir) {
-                for entry in entries.flatten() {
-                    let path = entry.path();
-                    if path.is_dir() {
-                        if !filter(&path) {
-                            dirs_to_check.push(path);
-                        }
-                    } else if path.extension().is_some_and(|ext| ext == "txt") {
-                        if filter(&path) {
-                            continue;
-                        }
-                        if let Ok(content) = fs::read_to_string(&path) {
-                            {
-                                let (script, _) = parser::parse_script(&content);
-                                find_triggers_in_script(&script.entries, events);
-                            }
-                        }
-                    }
-                }
-            }
-        }
+    for subdir in ["common", "events"] {
+        crate::fs_util::walk_and_parse_files(
+            &root.join(subdir),
+            &["txt"],
+            filter,
+            |_path, content| {
+                let (script, _) = parser::parse_script(&content);
+                find_triggers_in_script(&script.entries, events);
+            },
+        );
     }
 }
 

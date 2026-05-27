@@ -1,8 +1,7 @@
 use crate::ast;
 use crate::parser;
 use std::collections::HashMap;
-use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 #[derive(Debug, Clone)]
 pub struct CharacterRole {
@@ -32,54 +31,23 @@ pub struct Character {
 
 pub fn scan_characters<F>(roots: &[PathBuf], filter: &F) -> HashMap<String, Character>
 where
-    F: Fn(&Path) -> bool,
+    F: Fn(&std::path::Path) -> bool,
 {
     let mut map = HashMap::new();
 
     for root in roots {
-        let char_dir = root.join("common/characters");
-        if char_dir.exists() {
-            scan_directory(&char_dir, &mut map, filter);
-        }
+        crate::fs_util::walk_and_parse_files(
+            &root.join("common/characters"),
+            &["txt"],
+            filter,
+            |path, content| {
+                let (script, _) = parser::parse_script(&content);
+                find_characters_in_entries(&script.entries, &path.to_string_lossy(), &mut map);
+            },
+        );
     }
 
     map
-}
-
-fn scan_directory<F>(dir_path: &Path, map: &mut HashMap<String, Character>, filter: &F)
-where
-    F: Fn(&Path) -> bool,
-{
-    let mut dirs_to_check = vec![dir_path.to_path_buf()];
-    while let Some(current_dir) = dirs_to_check.pop() {
-        if filter(&current_dir) {
-            continue;
-        }
-        if let Ok(entries) = fs::read_dir(current_dir) {
-            for entry in entries.flatten() {
-                let path = entry.path();
-                if path.is_dir() {
-                    if !filter(&path) {
-                        dirs_to_check.push(path);
-                    }
-                } else if path.extension().is_some_and(|ext| ext == "txt") {
-                    if filter(&path) {
-                        continue;
-                    }
-                    if let Ok(content) = fs::read_to_string(&path) {
-                        {
-                            let (script, _) = parser::parse_script(&content);
-                            find_characters_in_entries(
-                                &script.entries,
-                                &path.to_string_lossy(),
-                                map,
-                            );
-                        }
-                    }
-                }
-            }
-        }
-    }
 }
 
 fn find_characters_in_entries(
