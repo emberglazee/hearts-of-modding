@@ -322,6 +322,13 @@ fn validate_building_block(
                     }
                 }
             }
+
+            // Recurse into province-specific building blocks (keyed by numeric province ID)
+            if let ast::Value::Block(nested) = &ass.value.value {
+                if ass.key.parse::<i32>().is_ok() {
+                    validate_building_block(nested, buildings, diagnostics);
+                }
+            }
         }
     }
 }
@@ -347,11 +354,11 @@ fn validate_character_skills_recursive(
 
             // Detect character type
             let mut char_type = current_character_type;
-            if key_lower == "create_field_marshal" {
+            if key_lower == "create_field_marshal" || key_lower == "field_marshal" {
                 char_type = Some("field_marshal");
-            } else if key_lower == "create_corps_commander" {
+            } else if key_lower == "create_corps_commander" || key_lower == "corps_commander" {
                 char_type = Some("corps_commander");
-            } else if key_lower == "create_navy_leader" {
+            } else if key_lower == "create_navy_leader" || key_lower == "navy_leader" {
                 char_type = Some("navy_leader");
             } else if key_lower == "create_operative_leader" {
                 char_type = Some("operative");
@@ -478,7 +485,31 @@ pub fn validate_victory_points(
     entries: &[ast::Entry],
     diagnostics: &mut Vec<ValidationDiagnostic>,
 ) {
-    validate_victory_points_recursive(entries, diagnostics, &mut None, &mut None);
+    let mut state_provinces = None;
+    let mut victory_points = None;
+    validate_victory_points_recursive(entries, diagnostics, &mut state_provinces, &mut victory_points);
+
+    // Validate once after full traversal to avoid duplicate diagnostics
+    if let (Some(provs), Some(vps)) = (state_provinces, victory_points) {
+        for (vp_province, range) in &vps {
+            if !provs.contains(vp_province) {
+                diagnostics.push(ValidationDiagnostic {
+                    range: range.clone(),
+                    severity: ast::DiagnosticSeverity::Hint,
+                    message: format!(
+                        "Victory point province {} is not in the state's province list",
+                        vp_province
+                    ),
+                    code: VICTORY_POINT_PROVINCE_NOT_IN_STATE.to_string(),
+                    fix_suggestion: Some(
+                        "Remove this victory point or add the province to the state".to_string(),
+                    ),
+                    related_information: Vec::new(),
+                    tags: Vec::new(),
+                });
+            }
+        }
+    }
 }
 
 fn validate_victory_points_recursive(
@@ -567,25 +598,4 @@ fn validate_victory_points_recursive(
         }
     }
 
-    // After processing all entries, validate victory points against provinces
-    if let (Some(provs), Some(vps)) = (state_provinces, victory_points) {
-        for (vp_province, range) in vps {
-            if !provs.contains(vp_province) {
-                diagnostics.push(ValidationDiagnostic {
-                    range: range.clone(),
-                    severity: ast::DiagnosticSeverity::Hint,
-                    message: format!(
-                        "Victory point province {} is not in the state's province list",
-                        vp_province
-                    ),
-                    code: VICTORY_POINT_PROVINCE_NOT_IN_STATE.to_string(),
-                    fix_suggestion: Some(
-                        "Remove this victory point or add the province to the state".to_string(),
-                    ),
-                    related_information: Vec::new(),
-                    tags: Vec::new(),
-                });
-            }
-        }
-    }
 }

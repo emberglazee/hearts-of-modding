@@ -14,6 +14,12 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Duplicate configuration event listeners:** Fixed a potential client-side leak where if `startServer` was to be called multiple times it would register duplicate configuration event listeners.
 
+- **Duplicate victory point diagnostics:** Fixed the victory point validation to prevent any duplicate diagnostics.
+
+- **Ignored province-level building count validation:** Now correctly validates province-level building counts.
+
+- **Modern character definitions ignored:** Now detects the character type using the bare role names as well (`create_field_marshal` -> `field_marshal`).
+
 ## [v0.10.0] - 2026-05-27
 
 ### Added
