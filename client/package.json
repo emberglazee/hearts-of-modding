@@ -184,8 +184,12 @@
         "package-ext": "node esbuild.js --production",
         "compile-ext": "node esbuild.js",
         "watch-ext": "node esbuild.js --watch",
-        "lint": "eslint src --ext ts",
+
+        "lint": "eslint .",
+        "lint:fix": "eslint . --fix",
+
         "package": "cd ../server && cargo build --release && mkdir -p ../client/server-bin && (cp target/release/server ../client/server-bin/server-linux 2>/dev/null || cp target/release/server.exe ../client/server-bin/server-win.exe 2>/dev/null || true) && cp -r assets ../client/server-bin/ && cd ../client && npm install && npm run compile && npm run package-ext && vsce package",
+
         "cargo:test": "cd ../server && cargo test",
         "cargo:check": "cd ../server && cargo check",
         "cargo:fmt": "cd ../server && cargo fmt",
@@ -195,6 +199,8 @@
         "vscode-languageclient": "^9.0.1"
     },
     "devDependencies": {
+        "@eslint/js": "^10.0.1",
+        "@stylistic/eslint-plugin": "^5.10.0",
         "@types/node": "16.x",
         "@types/vscode": "^1.75.0",
         "@typescript-eslint/eslint-plugin": "^8.60.0",
@@ -202,6 +208,9 @@
         "@vscode/vsce": "^3.9.1",
         "esbuild": "^0.28.0",
         "eslint": "^10.4.0",
-        "typescript": "^6.0.3"
+        "globals": "^17.6.0",
+        "jiti": "^2.7.0",
+        "typescript": "^6.0.3",
+        "typescript-eslint": "^8.60.0"
     }
 }
