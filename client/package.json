@@ -2,7 +2,7 @@
     "name": "hearts-of-modding",
     "displayName": "Hearts of Modding",
     "description": "VS Code extension for Hearts of Iron IV modding",
-    "version": "0.10.0",
+    "version": "0.11.0",
     "publisher": "emberglaze",
     "repository": {
         "type": "git",
@@ -184,12 +184,9 @@
         "package-ext": "node esbuild.js --production",
         "compile-ext": "node esbuild.js",
         "watch-ext": "node esbuild.js --watch",
-
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
-
         "package": "cd ../server && cargo build --release && mkdir -p ../client/server-bin && (cp target/release/server ../client/server-bin/server-linux 2>/dev/null || cp target/release/server.exe ../client/server-bin/server-win.exe 2>/dev/null || true) && cp -r assets ../client/server-bin/ && cd ../client && npm install && npm run compile && npm run package-ext && vsce package",
-
         "cargo:test": "cd ../server && cargo test",
         "cargo:check": "cd ../server && cargo check",
         "cargo:fmt": "cd ../server && cargo fmt",
