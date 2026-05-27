@@ -8,6 +8,12 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Custom color code validation:** Scanning .gfx files for custom defined color codes in `bitmapfonts = { textcolors = { ... } }` blocks to validate against. No more just hardcoded vanilla ones.
 
+### Fixed
+
+- **LSP memory leak:** Fixed not clearing memory (raw text and parsed AST) when closing documents (files).
+
+- **Duplicate configuration event listeners:** Fixed a potential client-side leak where if `startServer` was to be called multiple times it would register duplicate configuration event listeners.
+
 ## [v0.10.0] - 2026-05-27
 
 ### Added

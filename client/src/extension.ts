@@ -113,6 +113,81 @@ export async function activate(context: ExtensionContext) {
     if (enabled === true) {
         await startServer(context, statusBarItem);
     }
+
+    context.subscriptions.push(workspace.onDidChangeConfiguration(e => {
+        if (!client || !client.isRunning()) {
+            return;
+        }
+        if (e.affectsConfiguration('hoi4.gamePath')) {
+            window.showInformationMessage('HOI4 Game Path changed. Reload window to re-index vanilla files.', 'Reload').then(selection => {
+                if (selection === 'Reload') {
+                    commands.executeCommand('workbench.action.reloadWindow');
+                }
+            });
+        }
+        if (e.affectsConfiguration('hoi4.validator.ignoreLocalization')) {
+            const newValue = workspace.getConfiguration('hoi4.validator').get('ignoreLocalization');
+            client.sendNotification('workspace/didChangeConfiguration', {
+                settings: {
+                    hoi4: {
+                        validator: {
+                            ignoreLocalization: newValue
+                        }
+                    }
+                }
+            });
+        }
+        if (e.affectsConfiguration('hoi4.validator.ignoreFiles')) {
+            const newValue = workspace.getConfiguration('hoi4.validator').get('ignoreFiles');
+            client.sendNotification('workspace/didChangeConfiguration', {
+                settings: {
+                    hoi4: {
+                        validator: {
+                            ignoreFiles: newValue
+                        }
+                    }
+                }
+            });
+        }
+        if (e.affectsConfiguration('hoi4.validator.workspaceScan.enabled')) {
+            const newValue = workspace.getConfiguration('hoi4.validator.workspaceScan').get('enabled');
+            client.sendNotification('workspace/didChangeConfiguration', {
+                settings: {
+                    hoi4: {
+                        validator: {
+                            workspaceScan: {
+                                enabled: newValue
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        if (e.affectsConfiguration('hoi4.styling.enabled')) {
+            const newValue = workspace.getConfiguration('hoi4.styling').get('enabled');
+            client.sendNotification('workspace/didChangeConfiguration', {
+                settings: {
+                    hoi4: {
+                        styling: {
+                            enabled: newValue
+                        }
+                    }
+                }
+            });
+        }
+        if (e.affectsConfiguration('hoi4.styling.cosmeticLocalizationIndentation')) {
+            const newValue = workspace.getConfiguration('hoi4.styling').get('cosmeticLocalizationIndentation');
+            client.sendNotification('workspace/didChangeConfiguration', {
+                settings: {
+                    hoi4: {
+                        styling: {
+                            cosmeticLocalizationIndentation: newValue
+                        }
+                    }
+                }
+            });
+        }
+    }));
 }
 
 async function startServer(context: ExtensionContext, statusBarItem: any) {
@@ -232,78 +307,6 @@ async function startServer(context: ExtensionContext, statusBarItem: any) {
     }
     memoryInterval = setInterval(updateMemoryUsage, 2000);
 
-    // Listen for configuration changes
-    context.subscriptions.push(workspace.onDidChangeConfiguration(e => {
-        if (e.affectsConfiguration('hoi4.gamePath')) {
-            window.showInformationMessage('HOI4 Game Path changed. Reload window to re-index vanilla files.', 'Reload').then(selection => {
-                if (selection === 'Reload') {
-                    commands.executeCommand('workbench.action.reloadWindow');
-                }
-            });
-        }
-        if (e.affectsConfiguration('hoi4.validator.ignoreLocalization')) {
-            const newValue = workspace.getConfiguration('hoi4.validator').get('ignoreLocalization');
-            client.sendNotification('workspace/didChangeConfiguration', {
-                settings: {
-                    hoi4: {
-                        validator: {
-                            ignoreLocalization: newValue
-                        }
-                    }
-                }
-            });
-        }
-        if (e.affectsConfiguration('hoi4.validator.ignoreFiles')) {
-            const newValue = workspace.getConfiguration('hoi4.validator').get('ignoreFiles');
-            client.sendNotification('workspace/didChangeConfiguration', {
-                settings: {
-                    hoi4: {
-                        validator: {
-                            ignoreFiles: newValue
-                        }
-                    }
-                }
-            });
-        }
-        if (e.affectsConfiguration('hoi4.validator.workspaceScan.enabled')) {
-            const newValue = workspace.getConfiguration('hoi4.validator.workspaceScan').get('enabled');
-            client.sendNotification('workspace/didChangeConfiguration', {
-                settings: {
-                    hoi4: {
-                        validator: {
-                            workspaceScan: {
-                                enabled: newValue
-                            }
-                        }
-                    }
-                }
-            });
-        }
-        if (e.affectsConfiguration('hoi4.styling.enabled')) {
-            const newValue = workspace.getConfiguration('hoi4.styling').get('enabled');
-            client.sendNotification('workspace/didChangeConfiguration', {
-                settings: {
-                    hoi4: {
-                        styling: {
-                            enabled: newValue
-                        }
-                    }
-                }
-            });
-        }
-        if (e.affectsConfiguration('hoi4.styling.cosmeticLocalizationIndentation')) {
-            const newValue = workspace.getConfiguration('hoi4.styling').get('cosmeticLocalizationIndentation');
-            client.sendNotification('workspace/didChangeConfiguration', {
-                settings: {
-                    hoi4: {
-                        styling: {
-                            cosmeticLocalizationIndentation: newValue
-                        }
-                    }
-                }
-            });
-        }
-    }));
 }
 
 export function deactivate(): Thenable<void> | undefined {

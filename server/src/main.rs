@@ -369,6 +369,12 @@ impl LanguageServer for Backend {
         self.validate_document(params.text_document.uri).await;
     }
 
+    async fn did_close(&self, params: DidCloseTextDocumentParams) {
+        let uri = params.text_document.uri.as_str().to_string();
+        self.documents.remove(&uri);
+        self.document_asts.remove(&uri);
+    }
+
     async fn semantic_tokens_full(
         &self,
         params: SemanticTokensParams,
