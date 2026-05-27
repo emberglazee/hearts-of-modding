@@ -20,6 +20,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Modern character definitions ignored:** Now detects the character type using the bare role names as well (`create_field_marshal` -> `field_marshal`).
 
+- **High memory usage tracker CPU overhead:** Now only refreshes the LSP process to get the memory usage information, not all processes running on the system.
+
 ## [v0.10.0] - 2026-05-27
 
 ### Added

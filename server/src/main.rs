@@ -69,7 +69,7 @@ use tower_lsp_server::{Client, LanguageServer, LspService, Server};
 use dashmap::DashMap;
 use once_cell::sync::Lazy;
 use std::collections::{HashMap, HashSet};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use crate::color_utils::find_colors;
 use crate::config::Config;
@@ -110,6 +110,7 @@ struct Backend {
     document_asts: DashMap<String, (Arc<ast::Script>, Vec<(String, ast::Range)>)>,
     scanner_data: ScannerData,
     config: Config,
+    system_info: Mutex<sysinfo::System>,
 }
 
 impl LanguageServer for Backend {
@@ -711,9 +712,9 @@ impl LanguageServer for Backend {
             let json = serde_json::to_value(&*events).unwrap();
             return Ok(Some(json));
         } else if params.command == "hoi4/getMemoryUsage" {
-            let mut sys = sysinfo::System::new();
-            sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
+            let mut sys = self.system_info.lock().unwrap();
             if let Ok(pid) = sysinfo::get_current_pid() {
+                sys.refresh_processes(sysinfo::ProcessesToUpdate::Some(&[pid]), true);
                 if let Some(process) = sys.process(pid) {
                     let memory = process.memory();
                     let json = serde_json::json!({
@@ -3384,6 +3385,7 @@ async fn main() {
         document_asts: DashMap::new(),
         scanner_data: ScannerData::new(),
         config: Config::new(),
+        system_info: Mutex::new(sysinfo::System::new()),
     });
     Server::new(stdin, stdout, socket).serve(service).await;
 }
