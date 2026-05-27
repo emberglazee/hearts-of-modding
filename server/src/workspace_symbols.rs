@@ -1,19 +1,18 @@
 use crate::ast::Range;
+use crate::fs_util::fuzzy_match;
 
-use tower_lsp::lsp_types::{
-    Location, Position as LspPosition, Range as LspRange, SymbolInformation, SymbolKind, Url,
+use tower_lsp_server::ls_types::{
+    Location, Position as LspPosition, Range as LspRange, SymbolInformation, SymbolKind, Uri,
 };
 
-fn path_to_url(path: &str) -> Url {
+fn path_to_url(path: &str) -> Uri {
     let abs_path = std::path::Path::new(path)
         .canonicalize()
         .unwrap_or_else(|_| std::env::current_dir().unwrap_or_default().join(path));
-    Url::from_file_path(&abs_path).unwrap_or_else(|_| {
-        Url::parse(&format!(
-            "file://{}",
-            abs_path.to_string_lossy().replace("\\", "/")
-        ))
-        .unwrap()
+    Uri::from_file_path(&abs_path).unwrap_or_else(|| {
+        format!("file://{}", abs_path.to_string_lossy().replace("\\", "/"))
+            .parse::<Uri>()
+            .unwrap()
     })
 }
 
@@ -667,31 +666,6 @@ pub async fn generate_workspace_symbols(
     symbols
 }
 
-/// Fuzzy match for symbol search
-fn fuzzy_match(query: &str, target: &str) -> bool {
-    if query.is_empty() {
-        return true;
-    }
-
-    let query_lower = query.to_lowercase();
-    let target_lower = target.to_lowercase();
-
-    // Exact substring match
-    if target_lower.contains(&query_lower) {
-        return true;
-    }
-
-    // Fuzzy match: all characters in query appear in order in target
-    let mut target_chars = target_lower.chars();
-    for query_char in query_lower.chars() {
-        if !target_chars.any(|c| c == query_char) {
-            return false;
-        }
-    }
-
-    true
-}
-
 /// Convert AST Range to LSP Range
 fn range_to_lsp(range: &Range) -> LspRange {
     LspRange {
@@ -703,25 +677,5 @@ fn range_to_lsp(range: &Range) -> LspRange {
             line: range.end_line,
             character: range.end_col,
         },
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_fuzzy_match() {
-        assert!(fuzzy_match("", "anything"));
-        assert!(fuzzy_match("test", "test"));
-        assert!(fuzzy_match("test", "my_test_event"));
-        assert!(fuzzy_match("mte", "my_test_event"));
-        assert!(!fuzzy_match("xyz", "my_test_event"));
-    }
-
-    #[test]
-    fn test_fuzzy_match_case_insensitive() {
-        assert!(fuzzy_match("test", "TEST"));
-        assert!(fuzzy_match("test", "MyTestEvent"));
     }
 }

@@ -30,7 +30,7 @@ fn to_range(span: Span) -> crate::ast::Range {
     }
 
     let end_col = if end_line == start_line {
-        start_col + fragment.len() as u32
+        start_col + fragment.chars().count() as u32
     } else {
         last_line_len
     };
@@ -320,12 +320,12 @@ pub fn parse_script(input: &str) -> (Script, Vec<(String, crate::ast::Range)>) {
 
                 errors.push((format!("Parsing error near: '{}'", snippet), range));
 
-                // Recovery: skip one character and try again
-                let (next, _) = nom::bytes::complete::take::<usize, Span, nom::error::Error<Span>>(
-                    1usize,
-                )(span)
-                .unwrap_or((span, span));
-                span = next;
+                // Recovery: skip to the next line and try again
+                if let Some(pos) = span.fragment().find('\n') {
+                    span = Span::new(&span.fragment()[pos + 1..]);
+                } else {
+                    break;
+                }
             }
         }
     }

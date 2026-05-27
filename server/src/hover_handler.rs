@@ -9,8 +9,8 @@ use crate::parser;
 use crate::scope;
 use crate::symbol_search::find_identifier_at;
 use std::sync::Arc;
-use tower_lsp::jsonrpc::Result;
-use tower_lsp::lsp_types::*;
+use tower_lsp_server::jsonrpc::Result;
+use tower_lsp_server::ls_types::*;
 
 impl Backend {
     pub(crate) async fn handle_hover(&self, params: HoverParams) -> Result<Option<Hover>> {

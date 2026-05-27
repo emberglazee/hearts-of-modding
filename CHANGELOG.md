@@ -12,6 +12,10 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Texture path validation:** Added validation for texture paths in `.gfx` and `.gui` files.
 
+### Changed
+
+- **Migration to `tower-lsp-server`:** Migrated from `tower-lsp` v0.20.0 to `tower-lsp-server` v0.23.0 (a community fork with continued support), including a slight LSP refactor for the breaking changes.
+
 ### Fixed
 
 - **Undo escaped square brackets (v0.8.0):** Anything other than newlines (`\n`) and escaped double quotes (`\"`) is considered invalid escape sequences by the HOI4 parser, this includes square brackets. The code action to escape square brackets was removed, and the diagnostic message was changed to reflect this.

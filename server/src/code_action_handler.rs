@@ -2,8 +2,8 @@ use crate::Backend;
 use crate::loc_parser;
 use crate::lsp_convert::ast_range_to_lsp;
 use std::collections::HashMap;
-use tower_lsp::jsonrpc::Result;
-use tower_lsp::lsp_types::*;
+use tower_lsp_server::jsonrpc::Result;
+use tower_lsp_server::ls_types::*;
 
 impl Backend {
     pub(crate) async fn handle_code_action(

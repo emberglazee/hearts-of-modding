@@ -1,8 +1,8 @@
 use crate::Backend;
 use crate::scope;
 use crate::scope_context::{find_context_at, find_scope_context_at};
-use tower_lsp::jsonrpc::Result;
-use tower_lsp::lsp_types::*;
+use tower_lsp_server::jsonrpc::Result;
+use tower_lsp_server::ls_types::*;
 
 impl Backend {
     pub(crate) async fn handle_completion(

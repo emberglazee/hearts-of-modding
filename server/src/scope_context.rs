@@ -3,7 +3,7 @@ use crate::ast;
 use crate::scope;
 use crate::symbol_search::is_pos_in_range;
 use std::collections::HashMap;
-use tower_lsp::lsp_types::Position;
+use tower_lsp_server::ls_types::Position;
 
 pub fn find_scope_context_at(
     script: &ast::Script,

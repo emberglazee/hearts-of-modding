@@ -2,7 +2,7 @@ use crate::achievement_scanner;
 use crate::ast;
 use crate::scope;
 use std::collections::HashMap;
-use tower_lsp::lsp_types::Position;
+use tower_lsp_server::ls_types::Position;
 
 pub fn find_identifier_at(
     script: &ast::Script,

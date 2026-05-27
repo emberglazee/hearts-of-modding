@@ -28,7 +28,7 @@ use crate::strategic_region_scanner;
 use crate::trait_scanner;
 use crate::variable_scanner;
 use std::collections::{HashMap, HashSet};
-use tower_lsp::lsp_types::MessageType;
+use tower_lsp_server::ls_types::MessageType;
 
 impl Backend {
     pub(crate) async fn scan_provinces(&self, roots: &[std::path::PathBuf]) {
@@ -484,30 +484,11 @@ impl Backend {
                     continue;
                 }
 
-                let mut files_to_scan = Vec::new();
-                let mut dirs_to_check = vec![loc_dir.clone()];
-
-                while let Some(current_dir) = dirs_to_check.pop() {
-                    if filter(&current_dir) {
-                        continue;
-                    }
-                    if let Ok(entries) = std::fs::read_dir(current_dir) {
-                        for entry in entries.flatten() {
-                            let path = entry.path();
-                            if path.is_dir() {
-                                dirs_to_check.push(path);
-                            } else if path.extension().is_some_and(|ext| ext == "yml") {
-                                if filter(&path) {
-                                    continue;
-                                }
-                                let path_str = path.to_string_lossy().to_lowercase();
-                                if path_str.contains("english") {
-                                    files_to_scan.push(path);
-                                }
-                            }
-                        }
-                    }
-                }
+                let mut files_to_scan: Vec<_> =
+                    crate::fs_util::collect_files(&loc_dir, &["yml"], &filter, false)
+                        .into_iter()
+                        .filter(|p| p.to_string_lossy().to_lowercase().contains("english"))
+                        .collect();
 
                 files_to_scan.sort_by(|a, b| {
                     let a_is_replace = a.to_string_lossy().contains("replace");

@@ -1,7 +1,7 @@
 use crate::ast::{Entry, Range, Value};
 use std::collections::{HashMap, HashSet};
-use tower_lsp::lsp_types::{
-    Position as LspPosition, PrepareRenameResponse, Range as LspRange, TextEdit, Url, WorkspaceEdit,
+use tower_lsp_server::ls_types::{
+    Position as LspPosition, PrepareRenameResponse, Range as LspRange, TextEdit, Uri, WorkspaceEdit,
 };
 
 /// Symbol type that can be renamed
@@ -45,7 +45,7 @@ pub async fn rename_symbol(
     let symbol = find_symbol_at_position(path, &position, data).await?;
 
     // Find all references to this symbol
-    let mut changes: HashMap<Url, Vec<TextEdit>> = HashMap::new();
+    let mut changes: HashMap<Uri, Vec<TextEdit>> = HashMap::new();
 
     match symbol {
         RenameableSymbol::Event(old_name) => {
@@ -156,7 +156,7 @@ fn find_event_references(
     new_name: &str,
     documents: &dashmap::DashMap<String, String>,
     workspace_files: &HashSet<String>,
-    changes: &mut HashMap<Url, Vec<TextEdit>>,
+    changes: &mut HashMap<Uri, Vec<TextEdit>>,
 ) {
     for entry in documents.iter() {
         let uri_str = entry.key();
@@ -169,7 +169,7 @@ fn find_event_references(
             find_event_references_in_entries(&script.entries, old_name, new_name, &mut edits);
 
             if !edits.is_empty() {
-                if let Ok(url) = Url::parse(uri_str) {
+                if let Ok(url) = uri_str.parse::<Uri>() {
                     changes.insert(url, edits);
                 }
             }
@@ -178,7 +178,7 @@ fn find_event_references(
 
     // Process unopened workspace files
     for file_path in workspace_files.iter() {
-        let Ok(url) = Url::from_file_path(std::path::Path::new(file_path)) else {
+        let Some(url) = Uri::from_file_path(std::path::Path::new(file_path)) else {
             continue;
         };
         let uri_str = url.as_str().to_string();
@@ -243,7 +243,7 @@ fn find_scripted_trigger_references(
     new_name: &str,
     documents: &dashmap::DashMap<String, String>,
     workspace_files: &HashSet<String>,
-    changes: &mut HashMap<Url, Vec<TextEdit>>,
+    changes: &mut HashMap<Uri, Vec<TextEdit>>,
 ) {
     for entry in documents.iter() {
         let uri_str = entry.key();
@@ -255,7 +255,7 @@ fn find_scripted_trigger_references(
             find_scripted_references_in_entries(&script.entries, old_name, new_name, &mut edits);
 
             if !edits.is_empty() {
-                if let Ok(url) = Url::parse(uri_str) {
+                if let Ok(url) = uri_str.parse::<Uri>() {
                     changes.insert(url, edits);
                 }
             }
@@ -264,7 +264,7 @@ fn find_scripted_trigger_references(
 
     // Process unopened workspace files
     for file_path in workspace_files.iter() {
-        let Ok(url) = Url::from_file_path(std::path::Path::new(file_path)) else {
+        let Some(url) = Uri::from_file_path(std::path::Path::new(file_path)) else {
             continue;
         };
         let uri_str = url.as_str().to_string();
@@ -288,7 +288,7 @@ fn find_scripted_effect_references(
     new_name: &str,
     documents: &dashmap::DashMap<String, String>,
     workspace_files: &HashSet<String>,
-    changes: &mut HashMap<Url, Vec<TextEdit>>,
+    changes: &mut HashMap<Uri, Vec<TextEdit>>,
 ) {
     for entry in documents.iter() {
         let uri_str = entry.key();
@@ -300,7 +300,7 @@ fn find_scripted_effect_references(
             find_scripted_references_in_entries(&script.entries, old_name, new_name, &mut edits);
 
             if !edits.is_empty() {
-                if let Ok(url) = Url::parse(uri_str) {
+                if let Ok(url) = uri_str.parse::<Uri>() {
                     changes.insert(url, edits);
                 }
             }
@@ -309,7 +309,7 @@ fn find_scripted_effect_references(
 
     // Process unopened workspace files
     for file_path in workspace_files.iter() {
-        let Ok(url) = Url::from_file_path(std::path::Path::new(file_path)) else {
+        let Some(url) = Uri::from_file_path(std::path::Path::new(file_path)) else {
             continue;
         };
         let uri_str = url.as_str().to_string();
@@ -321,7 +321,7 @@ fn find_scripted_effect_references(
             let mut edits = Vec::new();
             find_scripted_references_in_entries(&script.entries, old_name, new_name, &mut edits);
             if !edits.is_empty() {
-                if let Ok(url) = Url::parse(&uri_str) {
+                if let Ok(url) = uri_str.parse::<Uri>() {
                     changes.insert(url, edits);
                 }
             }
@@ -368,7 +368,7 @@ fn find_idea_references(
     new_name: &str,
     documents: &dashmap::DashMap<String, String>,
     workspace_files: &HashSet<String>,
-    changes: &mut HashMap<Url, Vec<TextEdit>>,
+    changes: &mut HashMap<Uri, Vec<TextEdit>>,
 ) {
     for entry in documents.iter() {
         let uri_str = entry.key();
@@ -380,7 +380,7 @@ fn find_idea_references(
             find_idea_references_in_entries(&script.entries, old_name, new_name, &mut edits);
 
             if !edits.is_empty() {
-                if let Ok(url) = Url::parse(uri_str) {
+                if let Ok(url) = uri_str.parse::<Uri>() {
                     changes.insert(url, edits);
                 }
             }
@@ -389,7 +389,7 @@ fn find_idea_references(
 
     // Process unopened workspace files
     for file_path in workspace_files.iter() {
-        let Ok(url) = Url::from_file_path(std::path::Path::new(file_path)) else {
+        let Some(url) = Uri::from_file_path(std::path::Path::new(file_path)) else {
             continue;
         };
         let uri_str = url.as_str().to_string();
@@ -454,7 +454,7 @@ fn find_character_references(
     new_name: &str,
     documents: &dashmap::DashMap<String, String>,
     workspace_files: &HashSet<String>,
-    changes: &mut HashMap<Url, Vec<TextEdit>>,
+    changes: &mut HashMap<Uri, Vec<TextEdit>>,
 ) {
     for entry in documents.iter() {
         let uri_str = entry.key();
@@ -466,7 +466,7 @@ fn find_character_references(
             find_character_references_in_entries(&script.entries, old_name, new_name, &mut edits);
 
             if !edits.is_empty() {
-                if let Ok(url) = Url::parse(uri_str) {
+                if let Ok(url) = uri_str.parse::<Uri>() {
                     changes.insert(url, edits);
                 }
             }
@@ -475,7 +475,7 @@ fn find_character_references(
 
     // Process unopened workspace files
     for file_path in workspace_files.iter() {
-        let Ok(url) = Url::from_file_path(std::path::Path::new(file_path)) else {
+        let Some(url) = Uri::from_file_path(std::path::Path::new(file_path)) else {
             continue;
         };
         let uri_str = url.as_str().to_string();
@@ -552,7 +552,7 @@ fn find_variable_references(
     new_name: &str,
     documents: &dashmap::DashMap<String, String>,
     workspace_files: &HashSet<String>,
-    changes: &mut HashMap<Url, Vec<TextEdit>>,
+    changes: &mut HashMap<Uri, Vec<TextEdit>>,
 ) {
     for entry in documents.iter() {
         let uri_str = entry.key();
@@ -564,7 +564,7 @@ fn find_variable_references(
             find_variable_references_in_entries(&script.entries, old_name, new_name, &mut edits);
 
             if !edits.is_empty() {
-                if let Ok(url) = Url::parse(uri_str) {
+                if let Ok(url) = uri_str.parse::<Uri>() {
                     changes.insert(url, edits);
                 }
             }
@@ -573,7 +573,7 @@ fn find_variable_references(
 
     // Process unopened workspace files
     for file_path in workspace_files.iter() {
-        let Ok(url) = Url::from_file_path(std::path::Path::new(file_path)) else {
+        let Some(url) = Uri::from_file_path(std::path::Path::new(file_path)) else {
             continue;
         };
         let uri_str = url.as_str().to_string();
@@ -642,7 +642,7 @@ fn find_ability_references(
     new_name: &str,
     documents: &dashmap::DashMap<String, String>,
     workspace_files: &HashSet<String>,
-    changes: &mut HashMap<Url, Vec<TextEdit>>,
+    changes: &mut HashMap<Uri, Vec<TextEdit>>,
 ) {
     for entry in documents.iter() {
         let uri_str = entry.key();
@@ -654,7 +654,7 @@ fn find_ability_references(
             find_ability_references_in_entries(&script.entries, old_name, new_name, &mut edits);
 
             if !edits.is_empty() {
-                if let Ok(url) = Url::parse(uri_str) {
+                if let Ok(url) = uri_str.parse::<Uri>() {
                     changes.insert(url, edits);
                 }
             }
@@ -663,7 +663,7 @@ fn find_ability_references(
 
     // Process unopened workspace files
     for file_path in workspace_files.iter() {
-        let Ok(url) = Url::from_file_path(std::path::Path::new(file_path)) else {
+        let Some(url) = Uri::from_file_path(std::path::Path::new(file_path)) else {
             continue;
         };
         let uri_str = url.as_str().to_string();

@@ -1,5 +1,5 @@
 use crate::ast::{Entry, NodeedValue, Range, Value};
-use tower_lsp::lsp_types::{
+use tower_lsp_server::ls_types::{
     DocumentSymbol, Position as LspPosition, Range as LspRange, SymbolKind,
 };
 
@@ -58,7 +58,56 @@ fn entry_to_symbol(entry: &Entry) -> Option<DocumentSymbol> {
             })
         }
         Entry::Comment(_, _) => None,
-        Entry::Value(_) => None,
+        Entry::Value(nodeed_value) => match &nodeed_value.value {
+            Value::Block(entries) => {
+                let children: Vec<DocumentSymbol> =
+                    entries.iter().filter_map(entry_to_symbol).collect();
+                let children = if children.is_empty() {
+                    None
+                } else {
+                    Some(children)
+                };
+
+                let range = range_to_lsp(&nodeed_value.range);
+
+                #[allow(deprecated)]
+                Some(DocumentSymbol {
+                    name: "{ ... }".to_string(),
+                    detail: None,
+                    kind: SymbolKind::CONSTRUCTOR,
+                    tags: None,
+                    deprecated: None,
+                    range,
+                    selection_range: range,
+                    children,
+                })
+            }
+            Value::TaggedBlock(tag, entries, _) => {
+                let children: Vec<DocumentSymbol> =
+                    entries.iter().filter_map(entry_to_symbol).collect();
+                let children = if children.is_empty() {
+                    None
+                } else {
+                    Some(children)
+                };
+
+                let range = range_to_lsp(&nodeed_value.range);
+
+                #[allow(deprecated)]
+                Some(DocumentSymbol {
+                    name: format!("{tag} {{ ... }}"),
+                    detail: None,
+                    kind: SymbolKind::CONSTRUCTOR,
+                    tags: None,
+                    deprecated: None,
+                    range,
+                    selection_range: range,
+                    children,
+                })
+            }
+            // Leaf values (String, Number, Boolean) are too noisy for document outline
+            _ => None,
+        },
     }
 }
 

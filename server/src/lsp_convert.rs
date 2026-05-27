@@ -1,7 +1,7 @@
 use crate::ast;
 use std::path::{Path, PathBuf};
-use tower_lsp::lsp_types::{
-    DiagnosticRelatedInformation, DiagnosticTag, Location, Position, Range, Url,
+use tower_lsp_server::ls_types::{
+    DiagnosticRelatedInformation, DiagnosticTag, Location, Position, Range, Uri,
 };
 
 pub fn ast_range_to_lsp(range: &ast::Range) -> Range {
@@ -29,8 +29,11 @@ pub fn ast_related_info_to_lsp(
 ) -> DiagnosticRelatedInformation {
     DiagnosticRelatedInformation {
         location: Location {
-            uri: Url::parse(&info.location.uri)
-                .unwrap_or_else(|_| Url::from_file_path(&info.location.uri).unwrap()),
+            uri: info
+                .location
+                .uri
+                .parse::<Uri>()
+                .unwrap_or_else(|_| Uri::from_file_path(&info.location.uri).unwrap()),
             range: ast_range_to_lsp(&info.location.range),
         },
         message: info.message.clone(),
@@ -39,7 +42,7 @@ pub fn ast_related_info_to_lsp(
 
 pub fn ast_range_to_lsp_location(range: &ast::Range, path: &str) -> Location {
     Location {
-        uri: Url::from_file_path(
+        uri: Uri::from_file_path(
             Path::new(path)
                 .canonicalize()
                 .unwrap_or_else(|_| PathBuf::from(path)),

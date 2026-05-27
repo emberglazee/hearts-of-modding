@@ -125,12 +125,10 @@ impl ScopeStack {
         self.stack.pop()
     }
 
-    #[allow(dead_code)]
     pub fn current(&self) -> Scope {
         *self.stack.last().unwrap_or(&Scope::Global)
     }
 
-    #[allow(dead_code)]
     pub fn stack(&self) -> &[Scope] {
         &self.stack
     }

@@ -38,7 +38,7 @@ fn to_range(span: Span) -> Range {
         start_line,
         start_col,
         end_line: start_line,
-        end_col: start_col + span.fragment().len() as u32,
+        end_col: start_col + span.fragment().chars().count() as u32,
     }
 }
 

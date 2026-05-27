@@ -1,6 +1,18 @@
 use crate::ast::*;
 use std::collections::HashSet;
-use tower_lsp::lsp_types::{SemanticToken, SemanticTokens, SemanticTokensResult};
+use tower_lsp_server::ls_types::{SemanticToken, SemanticTokens, SemanticTokensResult};
+
+#[allow(dead_code)]
+#[repr(u32)]
+enum TokenType {
+    Keyword = 0,
+    Variable = 1,
+    String = 2,
+    Number = 3,
+    Operator = 4,
+    Comment = 5,
+    Type = 6,
+}
 
 /// Fields whose values are always localization keys, not entity references.
 /// Values under these keys skip entity-type semantic highlighting.
@@ -110,7 +122,7 @@ fn push_entry_tokens(
                     line: ass.key_range.start_line,
                     start: ass.key_range.start_col,
                     length: ass.key_range.end_col - ass.key_range.start_col,
-                    token_type: 0,
+                    token_type: TokenType::Keyword as u32,
                 });
             } else if is_ability
                 || is_strategy_plan
@@ -126,7 +138,7 @@ fn push_entry_tokens(
                     line: ass.key_range.start_line,
                     start: ass.key_range.start_col,
                     length: ass.key_range.end_col - ass.key_range.start_col,
-                    token_type: 6,
+                    token_type: TokenType::Type as u32,
                 });
             }
 
@@ -134,7 +146,7 @@ fn push_entry_tokens(
                 line: ass.operator_range.start_line,
                 start: ass.operator_range.start_col,
                 length: ass.operator_range.end_col - ass.operator_range.start_col,
-                token_type: 4,
+                token_type: TokenType::Operator as u32,
             });
             push_value_tokens(
                 &ass.value,
@@ -176,7 +188,7 @@ fn push_entry_tokens(
                 line: range.start_line,
                 start: range.start_col,
                 length: range.end_col - range.start_col,
-                token_type: 5,
+                token_type: TokenType::Comment as u32,
             });
         }
     }
@@ -208,7 +220,7 @@ fn push_value_tokens(
                     line: val.range.start_line,
                     start: val.range.start_col,
                     length: val.range.end_col - val.range.start_col,
-                    token_type: 0,
+                    token_type: TokenType::Keyword as u32,
                 });
             } else if !is_localization_value
                 && (abilities.contains(s)
@@ -226,14 +238,14 @@ fn push_value_tokens(
                     line: val.range.start_line,
                     start: val.range.start_col,
                     length: val.range.end_col - val.range.start_col,
-                    token_type: 6,
+                    token_type: TokenType::Type as u32,
                 });
             } else if s.starts_with("var:") || s.starts_with("temp_var:") {
                 tokens.push(RawToken {
                     line: val.range.start_line,
                     start: val.range.start_col,
                     length: val.range.end_col - val.range.start_col,
-                    token_type: 1,
+                    token_type: TokenType::Variable as u32,
                 });
             }
         }
@@ -242,7 +254,7 @@ fn push_value_tokens(
                 line: val.range.start_line,
                 start: val.range.start_col,
                 length: val.range.end_col - val.range.start_col,
-                token_type: 3,
+                token_type: TokenType::Number as u32,
             });
         }
         Value::Boolean(_) => {
@@ -250,7 +262,7 @@ fn push_value_tokens(
                 line: val.range.start_line,
                 start: val.range.start_col,
                 length: val.range.end_col - val.range.start_col,
-                token_type: 0,
+                token_type: TokenType::Keyword as u32,
             });
         }
         Value::Block(entries) => {
@@ -278,7 +290,7 @@ fn push_value_tokens(
                 line: val.range.start_line,
                 start: val.range.start_col,
                 length: tag.len() as u32,
-                token_type: 0,
+                token_type: TokenType::Keyword as u32,
             });
             for entry in entries {
                 push_entry_tokens(

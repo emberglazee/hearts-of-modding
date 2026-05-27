@@ -1,6 +1,6 @@
 use crate::ast;
 use crate::lsp_convert::ast_range_to_lsp;
-use tower_lsp::lsp_types::{Color, ColorInformation};
+use tower_lsp_server::ls_types::{Color, ColorInformation};
 
 pub fn find_colors(script: &ast::Script) -> Vec<ColorInformation> {
     let mut colors = Vec::new();

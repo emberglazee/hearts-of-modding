@@ -1,20 +1,18 @@
 use crate::ast::{Entry, Range, Value};
 use std::collections::HashMap;
-use tower_lsp::lsp_types::{
+use tower_lsp_server::ls_types::{
     CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall,
-    Position as LspPosition, Range as LspRange, SymbolKind, Url,
+    Position as LspPosition, Range as LspRange, SymbolKind, Uri,
 };
 
-fn path_to_url(path: &str) -> Url {
+fn path_to_url(path: &str) -> Uri {
     let abs_path = std::path::Path::new(path)
         .canonicalize()
         .unwrap_or_else(|_| std::env::current_dir().unwrap_or_default().join(path));
-    Url::from_file_path(&abs_path).unwrap_or_else(|_| {
-        Url::parse(&format!(
-            "file://{}",
-            abs_path.to_string_lossy().replace("\\", "/")
-        ))
-        .unwrap()
+    Uri::from_file_path(&abs_path).unwrap_or_else(|| {
+        format!("file://{}", abs_path.to_string_lossy().replace("\\", "/"))
+            .parse::<Uri>()
+            .unwrap()
     })
 }
 

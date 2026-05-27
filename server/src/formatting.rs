@@ -1,7 +1,7 @@
 use crate::Backend;
 use crate::ast;
 use std::collections::HashMap;
-use tower_lsp::lsp_types::{Position, Range};
+use tower_lsp_server::ls_types::{Position, Range};
 
 impl Backend {
     pub(crate) fn collect_styling_fixes(&self, content: &str, fixes: &mut Vec<(Range, String)>) {

@@ -1,6 +1,6 @@
 use crate::ast;
 use crate::defines_parser::GameDefines;
-use tower_lsp::lsp_types::{Color, ColorPresentation, Range as LspRange, TextEdit};
+use tower_lsp_server::ls_types::{Color, ColorPresentation, Range as LspRange, TextEdit};
 
 /// Color modifiers from game defines
 #[derive(Debug, Clone)]

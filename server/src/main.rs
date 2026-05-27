@@ -24,6 +24,7 @@ mod enhanced_color;
 mod entity_lookup;
 mod event_scanner;
 mod formatting;
+mod fs_util;
 mod hoi4_data;
 mod hover_handler;
 mod idea_scanner;
@@ -60,9 +61,9 @@ mod trait_scanner;
 mod variable_scanner;
 mod workspace_symbols;
 
-use tower_lsp::jsonrpc::Result;
-use tower_lsp::lsp_types::*;
-use tower_lsp::{Client, LanguageServer, LspService, Server};
+use tower_lsp_server::jsonrpc::Result;
+use tower_lsp_server::ls_types::*;
+use tower_lsp_server::{Client, LanguageServer, LspService, Server};
 
 use dashmap::DashMap;
 use once_cell::sync::Lazy;
@@ -110,7 +111,6 @@ struct Backend {
     config: Config,
 }
 
-#[tower_lsp::async_trait]
 impl LanguageServer for Backend {
     async fn initialize(&self, params: InitializeParams) -> Result<InitializeResult> {
         if let Some(options) = params.initialization_options {
@@ -193,7 +193,7 @@ impl LanguageServer for Backend {
                 ),
                 color_provider: Some(ColorProviderCapability::Simple(true)),
                 completion_provider: Some(CompletionOptions {
-                    resolve_provider: Some(true),
+                    resolve_provider: None,
                     trigger_characters: Some(vec![
                         "=".to_string(),
                         "{".to_string(),
@@ -205,7 +205,7 @@ impl LanguageServer for Backend {
                 document_formatting_provider: Some(OneOf::Left(true)),
                 execute_command_provider: Some(ExecuteCommandOptions {
                     commands: vec![
-                        "hoi4.getEventGraph".to_string(),
+                        "hoi4/getEventGraph".to_string(),
                         "hoi4/getMemoryUsage".to_string(),
                     ],
                     ..Default::default()
@@ -274,7 +274,7 @@ impl LanguageServer for Backend {
 
         // Re-validate all open documents now that we have all data
         for entry in self.documents.iter() {
-            if let Ok(uri) = Url::parse(entry.key()) {
+            if let Ok(uri) = entry.key().parse::<Uri>() {
                 self.validate_document(uri).await;
             }
         }
@@ -343,7 +343,7 @@ impl LanguageServer for Backend {
                 }
                 // Re-validate all documents
                 for entry in self.documents.iter() {
-                    if let Ok(uri) = Url::parse(entry.key()) {
+                    if let Ok(uri) = entry.key().parse::<Uri>() {
                         self.validate_document(uri).await;
                     }
                 }
@@ -616,10 +616,6 @@ impl LanguageServer for Backend {
         self.handle_completion(params).await
     }
 
-    async fn completion_resolve(&self, params: CompletionItem) -> Result<CompletionItem> {
-        Ok(params)
-    }
-
     async fn goto_definition(
         &self,
         params: GotoDefinitionParams,
@@ -696,11 +692,8 @@ impl LanguageServer for Backend {
         self.handle_code_action(params).await
     }
 
-    async fn execute_command(
-        &self,
-        params: ExecuteCommandParams,
-    ) -> Result<Option<serde_json::Value>> {
-        if params.command == "hoi4.getEventGraph" {
+    async fn execute_command(&self, params: ExecuteCommandParams) -> Result<Option<LSPAny>> {
+        if params.command == "hoi4/getEventGraph" {
             let events = self.scanner_data.events();
             let json = serde_json::to_value(&*events).unwrap();
             return Ok(Some(json));
@@ -737,11 +730,11 @@ impl LanguageServer for Backend {
     async fn symbol(
         &self,
         params: WorkspaceSymbolParams,
-    ) -> Result<Option<Vec<SymbolInformation>>> {
+    ) -> Result<Option<WorkspaceSymbolResponse>> {
         let symbols =
             workspace_symbols::generate_workspace_symbols(&params.query, &self.scanner_data).await;
 
-        Ok(Some(symbols))
+        Ok(Some(WorkspaceSymbolResponse::Flat(symbols)))
     }
 
     async fn prepare_call_hierarchy(
@@ -888,70 +881,48 @@ impl Backend {
         identifier: &str,
         locations: &mut Vec<Location>,
     ) {
-        let mut dirs_to_check = vec![root.to_path_buf()];
         let extensions = ["txt", "yml", "gfx", "gui", "asset"];
+        let filter = self.get_sync_filter();
+        let files = crate::fs_util::collect_files(root, &extensions, filter, false);
 
-        while let Some(current_dir) = dirs_to_check.pop() {
-            if self.should_ignore_file(&current_dir).await {
-                continue;
-            }
-            if let Ok(entries) = std::fs::read_dir(current_dir) {
-                for entry in entries.flatten() {
-                    let path = entry.path();
-                    if path.is_dir() {
-                        dirs_to_check.push(path);
-                    } else if path
-                        .extension()
-                        .is_some_and(|ext| extensions.contains(&ext.to_string_lossy().as_ref()))
-                    {
-                        if self.should_ignore_file(&path).await {
-                            continue;
-                        }
-                        if let Ok(content) = std::fs::read_to_string(&path) {
-                            if content.contains(identifier) {
-                                // Find all occurrences with word boundaries
-                                for (line_idx, line) in content.lines().enumerate() {
-                                    let mut start_search = 0;
-                                    while let Some(pos) = line[start_search..].find(identifier) {
-                                        let actual_pos = start_search + pos;
+        for path in &files {
+            if let Ok(content) = std::fs::read_to_string(path) {
+                if content.contains(identifier) {
+                    for (line_idx, line) in content.lines().enumerate() {
+                        let mut start_search = 0;
+                        while let Some(pos) = line[start_search..].find(identifier) {
+                            let actual_pos = start_search + pos;
 
-                                        // Check word boundaries
-                                        let before = if actual_pos > 0 {
-                                            line.chars().nth(actual_pos - 1)
-                                        } else {
-                                            None
-                                        };
-                                        let after = line.chars().nth(actual_pos + identifier.len());
+                            let before = if actual_pos > 0 {
+                                line.chars().nth(actual_pos - 1)
+                            } else {
+                                None
+                            };
+                            let after = line.chars().nth(actual_pos + identifier.len());
 
-                                        let is_word_start =
-                                            before.is_none_or(|c| !parser::is_identifier_char(c));
-                                        let is_word_end =
-                                            after.is_none_or(|c| !parser::is_identifier_char(c));
+                            let is_word_start =
+                                before.is_none_or(|c| !parser::is_identifier_char(c));
+                            let is_word_end = after.is_none_or(|c| !parser::is_identifier_char(c));
 
-                                        if is_word_start && is_word_end {
-                                            locations.push(Location {
-                                                uri: Url::from_file_path(
-                                                    path.canonicalize()
-                                                        .unwrap_or_else(|_| path.clone()),
-                                                )
-                                                .unwrap(),
-                                                range: Range {
-                                                    start: Position {
-                                                        line: line_idx as u32,
-                                                        character: actual_pos as u32,
-                                                    },
-                                                    end: Position {
-                                                        line: line_idx as u32,
-                                                        character: (actual_pos + identifier.len())
-                                                            as u32,
-                                                    },
-                                                },
-                                            });
-                                        }
-                                        start_search = actual_pos + identifier.len();
-                                    }
-                                }
+                            if is_word_start && is_word_end {
+                                locations.push(Location {
+                                    uri: Uri::from_file_path(
+                                        path.canonicalize().unwrap_or_else(|_| path.clone()),
+                                    )
+                                    .unwrap(),
+                                    range: Range {
+                                        start: Position {
+                                            line: line_idx as u32,
+                                            character: actual_pos as u32,
+                                        },
+                                        end: Position {
+                                            line: line_idx as u32,
+                                            character: (actual_pos + identifier.len()) as u32,
+                                        },
+                                    },
+                                });
                             }
+                            start_search = actual_pos + identifier.len();
                         }
                     }
                 }
@@ -959,30 +930,11 @@ impl Backend {
         }
     }
 
-    pub(crate) async fn should_ignore_file(&self, path: &std::path::Path) -> bool {
-        let path_str = path.to_string_lossy();
-        let ignored = self.config.ignored_files_regex();
-        for re in ignored.iter() {
-            if re.is_match(&path_str) {
-                return true;
-            }
-        }
-        false
-    }
-
     pub(crate) fn get_sync_filter(
         &self,
     ) -> impl Fn(&std::path::Path) -> bool + Send + Sync + 'static {
         let ignored = self.config.ignored_files_regex();
-        move |path: &std::path::Path| {
-            let path_str = path.to_string_lossy();
-            for re in ignored.iter() {
-                if re.is_match(&path_str) {
-                    return true;
-                }
-            }
-            false
-        }
+        move |path| crate::fs_util::is_path_ignored(path, &ignored)
     }
 
     async fn validate_workspace(&self, root: &std::path::Path) {
@@ -993,45 +945,22 @@ impl Backend {
             )
             .await;
 
-        let mut dirs_to_check = vec![root.to_path_buf()];
         let extensions = ["txt", "yml", "csv"];
+        let filter = self.get_sync_filter();
+        let files = crate::fs_util::collect_files(root, &extensions, filter, true);
         let mut file_count = 0;
 
-        while let Some(current_dir) = dirs_to_check.pop() {
-            if self.should_ignore_file(&current_dir).await {
-                continue;
-            }
-            if let Ok(entries) = std::fs::read_dir(current_dir) {
-                for entry in entries.flatten() {
-                    let path = entry.path();
-                    if path.is_dir() {
-                        // Skip .git and potentially other internal dirs if needed,
-                        // but for HOI4 mods usually everything in subdirs is relevant
-                        if path.file_name().is_none_or(|n| n != ".git") {
-                            dirs_to_check.push(path);
+        for path in &files {
+            if let Ok(content) = std::fs::read_to_string(path) {
+                if let Ok(abs_path) = path.canonicalize() {
+                    if let Some(uri) = Uri::from_file_path(abs_path) {
+                        let diagnostics = self.validate_content(&uri, &content).await;
+                        if !diagnostics.is_empty() {
+                            self.client
+                                .publish_diagnostics(uri, diagnostics, None)
+                                .await;
                         }
-                    } else if path
-                        .extension()
-                        .is_some_and(|ext| extensions.contains(&ext.to_string_lossy().as_ref()))
-                    {
-                        if self.should_ignore_file(&path).await {
-                            continue;
-                        }
-                        if let Ok(content) = std::fs::read_to_string(&path) {
-                            if let Ok(abs_path) = path.canonicalize() {
-                                if let Ok(uri) = Url::from_file_path(abs_path) {
-                                    // Only validate if not already open in editor (which would have its own sync)
-                                    // actually validate_content is idempotent for our needs here
-                                    let diagnostics = self.validate_content(&uri, &content).await;
-                                    if !diagnostics.is_empty() {
-                                        self.client
-                                            .publish_diagnostics(uri, diagnostics, None)
-                                            .await;
-                                    }
-                                    file_count += 1;
-                                }
-                            }
-                        }
+                        file_count += 1;
                     }
                 }
             }
@@ -1044,38 +973,16 @@ impl Backend {
             .await;
     }
 
-    /// Collect all workspace file paths for rename operations
     async fn collect_workspace_files(&self, roots: &[std::path::PathBuf]) {
         let mut all_files = HashSet::new();
         let extensions = ["txt", "yml"];
-        let ignored = self.config.ignored_files_regex();
 
         for root in roots {
-            let mut dirs_to_check = vec![root.to_path_buf()];
-            while let Some(current_dir) = dirs_to_check.pop() {
-                let path_str = current_dir.to_string_lossy();
-                if ignored.iter().any(|re| re.is_match(&path_str)) {
-                    continue;
-                }
-                if let Ok(entries) = std::fs::read_dir(&current_dir) {
-                    for entry in entries.flatten() {
-                        let path = entry.path();
-                        if path.is_dir() {
-                            if path.file_name().is_none_or(|n| n != ".git") {
-                                let path_str = path.to_string_lossy();
-                                if !ignored.iter().any(|re| re.is_match(&path_str)) {
-                                    dirs_to_check.push(path);
-                                }
-                            }
-                        } else if path
-                            .extension()
-                            .is_some_and(|ext| extensions.contains(&ext.to_string_lossy().as_ref()))
-                        {
-                            if let Ok(abs_path) = path.canonicalize() {
-                                all_files.insert(abs_path.to_string_lossy().to_string());
-                            }
-                        }
-                    }
+            let files =
+                crate::fs_util::collect_files(root, &extensions, self.get_sync_filter(), true);
+            for path in &files {
+                if let Ok(abs_path) = path.canonicalize() {
+                    all_files.insert(abs_path.to_string_lossy().to_string());
                 }
             }
         }
@@ -1083,7 +990,7 @@ impl Backend {
         self.scanner_data.set_workspace_files(all_files);
     }
 
-    async fn validate_document(&self, uri: Url) {
+    async fn validate_document(&self, uri: Uri) {
         let content = match self.documents.get(uri.as_str()) {
             Some(c) => c.clone(),
             _ => {
@@ -1097,7 +1004,7 @@ impl Backend {
             .await;
     }
 
-    async fn validate_content(&self, uri: &Url, content: &str) -> Vec<Diagnostic> {
+    async fn validate_content(&self, uri: &Uri, content: &str) -> Vec<Diagnostic> {
         let mut diagnostics = Vec::new();
 
         let styling_enabled = self.config.styling_enabled();
@@ -1141,7 +1048,9 @@ impl Backend {
         } else if uri.as_str().ends_with(&map_config.definitions) {
             self.validate_definition_content(content, &mut diagnostics)
                 .await;
-        } else if uri.as_str().contains("strategicregions") && uri.as_str().ends_with(".txt") {
+        } else if uri.as_str().contains("/common/strategic_regions/")
+            && uri.as_str().ends_with(".txt")
+        {
             if let Some((script, parse_errors)) = self.ensure_ast_cached(uri.as_str()) {
                 for (msg, range) in &parse_errors {
                     diagnostics.push(Diagnostic {
@@ -1858,7 +1767,7 @@ impl Backend {
 
     async fn validate_localization_content(
         &self,
-        uri: &Url,
+        uri: &Uri,
         content: &str,
         diagnostics: &mut Vec<Diagnostic>,
     ) {
@@ -2569,8 +2478,8 @@ impl Backend {
 
         // Texture file path validation for .gfx and .gui files
         if uri.ends_with(".gfx") || uri.ends_with(".gui") {
-            if let Ok(url) = Url::parse(uri) {
-                if let Ok(gfx_path) = url.to_file_path() {
+            if let Ok(url) = uri.parse::<Uri>() {
+                if let Some(gfx_path) = url.to_file_path() {
                     self.validate_gfx_texture_paths(
                         &script.entries,
                         diagnostics,
@@ -2595,7 +2504,8 @@ impl Backend {
         for entry in entries {
             match entry {
                 ast::Entry::Assignment(ass) => {
-                    if ass.key.to_lowercase() == "texturefile" {
+                    let key_lower = ass.key.to_lowercase();
+                    if key_lower == "texturefile" {
                         if let ast::Value::String(val) = &ass.value.value {
                             let has_double_slash = val.contains("//");
                             let has_backslash = val.contains('\\');
@@ -3391,6 +3301,13 @@ impl Backend {
         diagnostics: &mut Vec<Diagnostic>,
         mod_maps: &HashMap<String, String>,
     ) {
+        // Currently only checks keys that are in `mod_maps` (modifier names) plus a small
+        // hardcoded set of common structural keys (`name`, `id`, `icon`). All other keys
+        // (e.g. arbitrary custom keys from mods) are silently allowed. To extend coverage,
+        // add more entries to `COMMON_KEYS` or replace the hardcoded list with a configurable
+        // set of key patterns.
+        const COMMON_KEYS: [&str; 3] = ["name", "id", "icon"];
+
         let mut seen_keys: HashMap<String, ast::Range> = HashMap::new();
 
         for entry in entries {
@@ -3399,7 +3316,8 @@ impl Backend {
                 // Some Paradox keys (like 'modifier = { ... }' or 'option = { ... }') are intended to be duplicates.
                 // But specific engine modifiers (like 'stability_factor') should NEVER be duplicated.
 
-                let is_modifier = mod_maps.contains_key(&ass.key);
+                let is_modifier =
+                    mod_maps.contains_key(&ass.key) || COMMON_KEYS.contains(&ass.key.as_str());
 
                 // Exceptions: Some effects/triggers are specifically designed to be used multiple times
                 let is_exception = ass.key == "modifier"

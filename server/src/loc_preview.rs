@@ -1,7 +1,7 @@
 use crate::loc_parser;
 use base64::{Engine as _, engine::general_purpose};
 use std::collections::HashMap;
-use tower_lsp::lsp_types::Position;
+use tower_lsp_server::ls_types::Position;
 
 pub fn resolve_loc(
     input: &str,

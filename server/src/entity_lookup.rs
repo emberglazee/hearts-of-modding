@@ -3,7 +3,7 @@
 use crate::ScannerData;
 use crate::ast;
 use std::collections::HashMap;
-use tower_lsp::lsp_types::Position;
+use tower_lsp_server::ls_types::Position;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum EntityKind {
@@ -49,15 +49,15 @@ pub enum EntityKind {
 }
 
 impl EntityKind {
-    pub fn symbol_kind(&self) -> tower_lsp::lsp_types::SymbolKind {
-        use tower_lsp::lsp_types::SymbolKind;
+    pub fn symbol_kind(&self) -> tower_lsp_server::ls_types::SymbolKind {
+        use tower_lsp_server::ls_types::SymbolKind;
         match self {
             EntityKind::ScriptedTrigger | EntityKind::ScriptedEffect | EntityKind::ScriptedLoc => {
                 SymbolKind::FUNCTION
             }
             EntityKind::Ideology | EntityKind::SubIdeology => SymbolKind::ENUM,
             EntityKind::Trait => SymbolKind::STRUCT,
-            EntityKind::Sprite => SymbolKind::FILE,
+            EntityKind::Sprite => SymbolKind::OBJECT,
             EntityKind::Idea => SymbolKind::CLASS,
             EntityKind::Character => SymbolKind::STRUCT,
             EntityKind::Event => SymbolKind::EVENT,
@@ -67,15 +67,15 @@ impl EntityKind {
             EntityKind::EventTarget => SymbolKind::VARIABLE,
             EntityKind::CustomModifier => SymbolKind::PROPERTY,
             EntityKind::MusicAsset | EntityKind::MusicStation | EntityKind::Song => {
-                SymbolKind::FILE
+                SymbolKind::PROPERTY
             }
             EntityKind::Sound
             | EntityKind::SoundEffect
             | EntityKind::Falloff
-            | EntityKind::SoundCategory => SymbolKind::FILE,
+            | EntityKind::SoundCategory => SymbolKind::PROPERTY,
             EntityKind::AdjacencyRule => SymbolKind::FUNCTION,
             EntityKind::StrategicRegion => SymbolKind::OBJECT,
-            EntityKind::Portrait => SymbolKind::FILE,
+            EntityKind::Portrait => SymbolKind::OBJECT,
             EntityKind::Building => SymbolKind::OBJECT,
             EntityKind::AiArea => SymbolKind::CLASS,
             EntityKind::AiStrategyPlan => SymbolKind::CLASS,
@@ -335,9 +335,7 @@ impl<'a> EntityLookup<'a> {
         let query_lower = query.to_lowercase();
         let mut results = Vec::new();
 
-        fn fuzzy_match(query: &str, target: &str) -> bool {
-            target.contains(query)
-        }
+        let fuzzy_match = |query: &str, target: &str| crate::fs_util::fuzzy_match(query, target);
 
         macro_rules! push_symbols {
             ($kind:ident, $method:ident, $container:expr) => {
