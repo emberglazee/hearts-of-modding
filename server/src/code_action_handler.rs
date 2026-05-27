@@ -20,6 +20,7 @@ impl Backend {
         let mut has_unescaped_quote_diagnostic = false;
 
         let mut has_eof_newline_diagnostic = false;
+        let mut has_path_separator_diagnostic = false;
 
         for diagnostic in &params.context.diagnostics {
             if let Some(target_casing) = diagnostic.data.as_ref().and_then(|v| v.as_str()) {
@@ -53,6 +54,30 @@ impl Backend {
                         is_preferred: Some(true),
                         ..Default::default()
                     }));
+                } else if let Some(NumberOrString::String(code)) = &diagnostic.code {
+                    if code == "styling_path_separator" {
+                        has_path_separator_diagnostic = true;
+                        let mut changes = HashMap::new();
+                        changes.insert(
+                            params.text_document.uri.clone(),
+                            vec![TextEdit {
+                                range: diagnostic.range,
+                                new_text: format!("\"{}\"", target_casing),
+                            }],
+                        );
+
+                        actions.push(CodeActionOrCommand::CodeAction(CodeAction {
+                            title: format!("Use single forward slashes: '{}'", target_casing),
+                            kind: Some(CodeActionKind::QUICKFIX),
+                            edit: Some(WorkspaceEdit {
+                                changes: Some(changes),
+                                ..Default::default()
+                            }),
+                            diagnostics: Some(vec![diagnostic.clone()]),
+                            is_preferred: Some(true),
+                            ..Default::default()
+                        }));
+                    }
                 }
             } else {
                 // Check other styling codes
@@ -371,6 +396,39 @@ impl Backend {
             }
         }
 
+        // Add "Fix all path separators" if any such diagnostic is present
+        if has_path_separator_diagnostic {
+            let uri_str = params.text_document.uri.as_str();
+            if let Some((script, _)) = self.ensure_ast_cached(uri_str) {
+                let mut all_fixes = Vec::new();
+                self.collect_path_separator_fixes(&script.entries, &mut all_fixes);
+
+                if !all_fixes.is_empty() {
+                    let mut changes = HashMap::new();
+                    let edits: Vec<TextEdit> = all_fixes
+                        .into_iter()
+                        .map(|(range, text)| TextEdit {
+                            range: ast_range_to_lsp(&range),
+                            new_text: text,
+                        })
+                        .collect();
+
+                    changes.insert(params.text_document.uri.clone(), edits);
+
+                    actions.push(CodeActionOrCommand::CodeAction(CodeAction {
+                        title: "Fix all path separators in this file".to_string(),
+                        kind: Some(CodeActionKind::QUICKFIX),
+                        edit: Some(WorkspaceEdit {
+                            changes: Some(changes),
+                            ..Default::default()
+                        }),
+                        is_preferred: Some(false),
+                        ..Default::default()
+                    }));
+                }
+            }
+        }
+
         // Add "Remove all trailing whitespace" if any such diagnostic is present
         if has_trailing_whitespace_diagnostic {
             if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
@@ -598,7 +656,8 @@ impl Backend {
             || has_brace_space_diagnostic
             || has_unnecessary_version_diagnostic
             || has_unescaped_quote_diagnostic
-            || has_eof_newline_diagnostic;
+            || has_eof_newline_diagnostic
+            || has_path_separator_diagnostic;
 
         if has_any_styling_diagnostic {
             if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
@@ -701,6 +760,15 @@ impl Backend {
                                 new_text: "".to_string(),
                             });
                         }
+                    }
+
+                    let mut path_sep_fixes = Vec::new();
+                    self.collect_path_separator_fixes(&script.entries, &mut path_sep_fixes);
+                    for (range, text) in path_sep_fixes {
+                        all_changes.push(TextEdit {
+                            range: ast_range_to_lsp(&range),
+                            new_text: text,
+                        });
                     }
 
                     let quote_diagnostics = loc_parser::validate_unescaped_quotes_in_file(&content);

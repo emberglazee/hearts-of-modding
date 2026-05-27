@@ -10,6 +10,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **AI area and Continent scanner:** Handle `common/ai_areas` and `map/continent.txt`.
 
+- **Texture path validation:** Added validation for texture paths in `.gfx` and `.gui` files.
+
 ### Fixed
 
 - **Undo escaped square brackets (v0.8.0):** Anything other than newlines (`\n`) and escaped double quotes (`\"`) is considered invalid escape sequences by the HOI4 parser, this includes square brackets. The code action to escape square brackets was removed, and the diagnostic message was changed to reflect this.

@@ -366,6 +366,43 @@ impl Backend {
         }
     }
 
+    pub(crate) fn collect_path_separator_fixes(
+        &self,
+        entries: &[ast::Entry],
+        fixes: &mut Vec<(ast::Range, String)>,
+    ) {
+        for entry in entries {
+            match entry {
+                ast::Entry::Assignment(ass) => {
+                    if ass.key.to_lowercase() == "texturefile" {
+                        if let ast::Value::String(val) = &ass.value.value {
+                            if val.contains("//") || val.contains('\\') {
+                                let normalized = val.replace("//", "/").replace('\\', "/");
+                                fixes
+                                    .push((ass.value.range.clone(), format!("\"{}\"", normalized)));
+                            }
+                        }
+                    }
+                    match &ass.value.value {
+                        ast::Value::Block(inner) => self.collect_path_separator_fixes(inner, fixes),
+                        ast::Value::TaggedBlock(_, inner, _) => {
+                            self.collect_path_separator_fixes(inner, fixes)
+                        }
+                        _ => {}
+                    }
+                }
+                ast::Entry::Value(val) => match &val.value {
+                    ast::Value::Block(inner) => self.collect_path_separator_fixes(inner, fixes),
+                    ast::Value::TaggedBlock(_, inner, _) => {
+                        self.collect_path_separator_fixes(inner, fixes)
+                    }
+                    _ => {}
+                },
+                _ => {}
+            }
+        }
+    }
+
     pub(crate) fn collect_casing_fixes(
         &self,
         entries: &[ast::Entry],

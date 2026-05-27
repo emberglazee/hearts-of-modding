@@ -2566,6 +2566,120 @@ impl Backend {
                 &ct,
             );
         }
+
+        // Texture file path validation for .gfx and .gui files
+        if uri.ends_with(".gfx") || uri.ends_with(".gui") {
+            if let Ok(url) = Url::parse(uri) {
+                if let Ok(gfx_path) = url.to_file_path() {
+                    self.validate_gfx_texture_paths(
+                        &script.entries,
+                        diagnostics,
+                        styling_enabled,
+                        &gfx_path,
+                    );
+                }
+            }
+        }
+    }
+
+    fn validate_gfx_texture_paths(
+        &self,
+        entries: &[ast::Entry],
+        diagnostics: &mut Vec<Diagnostic>,
+        styling_enabled: bool,
+        gfx_file_path: &std::path::Path,
+    ) {
+        let game_path = self.config.game_path();
+        let gfx_dir = gfx_file_path.parent();
+
+        for entry in entries {
+            match entry {
+                ast::Entry::Assignment(ass) => {
+                    if ass.key.to_lowercase() == "texturefile" {
+                        if let ast::Value::String(val) = &ass.value.value {
+                            let has_double_slash = val.contains("//");
+                            let has_backslash = val.contains('\\');
+
+                            // Styling: non-standard path separators
+                            if styling_enabled && (has_double_slash || has_backslash) {
+                                let suggestion = val.replace("//", "/").replace('\\', "/");
+                                diagnostics.push(Diagnostic {
+                                    range: ast_range_to_lsp(&ass.value.range),
+                                    severity: Some(DiagnosticSeverity::INFORMATION),
+                                    code: Some(NumberOrString::String(
+                                        "styling_path_separator".to_string(),
+                                    )),
+                                    message: format!(
+                                        "Use single forward slashes in texture paths. Suggestion: '{}'.",
+                                        suggestion
+                                    ),
+                                    source: Some("Hearts of Modding".to_string()),
+                                    data: Some(serde_json::to_value(suggestion).unwrap()),
+                                    ..Default::default()
+                                });
+                            }
+
+                            // Existence check: try resolving the texture file
+                            let normalized = val.replace('\\', "/");
+                            let mut found = false;
+
+                            // Try relative to game path
+                            if let Some(ref gp) = game_path {
+                                let full = std::path::Path::new(gp).join(&normalized);
+                                if full.exists() {
+                                    found = true;
+                                }
+                            }
+
+                            // Try relative to .gfx file directory
+                            if !found {
+                                if let Some(dir) = gfx_dir {
+                                    let full = dir.join(&normalized);
+                                    if full.exists() {
+                                        found = true;
+                                    }
+                                }
+                            }
+
+                            if !found {
+                                diagnostics.push(Diagnostic {
+                                    range: ast_range_to_lsp(&ass.value.range),
+                                    severity: Some(DiagnosticSeverity::WARNING),
+                                    message: format!("Texture file not found: '{}'", val),
+                                    source: Some("Hearts of Modding".to_string()),
+                                    ..Default::default()
+                                });
+                            }
+                        }
+                    }
+
+                    // Recurse into blocks
+                    match &ass.value.value {
+                        ast::Value::Block(entries) | ast::Value::TaggedBlock(_, entries, _) => {
+                            self.validate_gfx_texture_paths(
+                                entries,
+                                diagnostics,
+                                styling_enabled,
+                                gfx_file_path,
+                            );
+                        }
+                        _ => {}
+                    }
+                }
+                ast::Entry::Value(val) => match &val.value {
+                    ast::Value::Block(entries) | ast::Value::TaggedBlock(_, entries, _) => {
+                        self.validate_gfx_texture_paths(
+                            entries,
+                            diagnostics,
+                            styling_enabled,
+                            gfx_file_path,
+                        );
+                    }
+                    _ => {}
+                },
+                _ => {}
+            }
+        }
     }
 
     fn check_entry_semantic(
