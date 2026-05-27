@@ -52,7 +52,7 @@ where
     portraits
 }
 
-fn extract_portraits(entries: &[ast::Entry], path: &Path, map: &mut HashMap<String, Portrait>) {
+pub(crate) fn extract_portraits(entries: &[ast::Entry], path: &Path, map: &mut HashMap<String, Portrait>) {
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
             if let ast::Value::Block(inner_entries) = &ass.value.value {

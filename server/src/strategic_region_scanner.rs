@@ -36,7 +36,7 @@ where
     regions
 }
 
-fn extract_strategic_region(
+pub(crate) fn extract_strategic_region(
     entries: &[ast::Entry],
     path: &Path,
     map: &mut HashMap<u32, StrategicRegion>,

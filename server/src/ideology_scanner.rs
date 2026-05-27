@@ -24,7 +24,7 @@ where
     map
 }
 
-fn find_ideologies_in_entries(
+pub(crate) fn find_ideologies_in_entries(
     entries: &[ast::Entry],
     file_path: &str,
     map: &mut HashMap<String, Ideology>,

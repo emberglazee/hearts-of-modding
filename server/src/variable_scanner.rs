@@ -82,7 +82,7 @@ where
     }
 }
 
-fn scan_entries(
+pub(crate) fn scan_entries(
     entries: &[ast::Entry],
     path: &str,
     variables: &mut HashMap<String, Vec<Variable>>,

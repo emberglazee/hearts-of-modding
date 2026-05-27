@@ -30,7 +30,7 @@ where
     map
 }
 
-fn find_achievements_in_entries(
+pub(crate) fn find_achievements_in_entries(
     entries: &[ast::Entry],
     file_path: &str,
     map: &mut HashMap<String, Achievement>,

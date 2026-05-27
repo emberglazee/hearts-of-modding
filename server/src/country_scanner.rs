@@ -10,7 +10,7 @@ use crate::ast;
 /// Examples: GER, D01, SOV, B42, USA
 const RESERVED_TAGS: [&str; 7] = ["NOT", "AND", "TAG", "OOB", "LOG", "NUM", "RED"];
 
-fn is_valid_tag(s: &str) -> bool {
+pub(crate) fn is_valid_tag(s: &str) -> bool {
     if s.len() != 3 {
         return false;
     }
@@ -174,7 +174,7 @@ where
     tags
 }
 
-fn extract_country_name(s: &str) -> String {
+pub(crate) fn extract_country_name(s: &str) -> String {
     // Try to extract name from paths like "countries/GER - Germany.txt" or "countries/GER-Germany.txt"
     if let Some(slash_pos) = s.rfind('/') {
         let file = &s[slash_pos + 1..];

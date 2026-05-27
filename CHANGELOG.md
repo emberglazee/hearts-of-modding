@@ -8,6 +8,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Custom color code validation:** Scanning .gfx files for custom defined color codes in `bitmapfonts = { textcolors = { ... } }` blocks to validate against. No more just hardcoded vanilla ones.
 
+- **Incremental scanner:** Re-run the corresponding single-file parser on file save.
+
 ### Fixed
 
 - **LSP memory leak:** Fixed not clearing memory (raw text and parsed AST) when closing documents (files).
@@ -21,6 +23,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 - **Modern character definitions ignored:** Now detects the character type using the bare role names as well (`create_field_marshal` -> `field_marshal`).
 
 - **High memory usage tracker CPU overhead:** Now only refreshes the LSP process to get the memory usage information, not all processes running on the system.
+
+- **Static indices after startup:** The LSP now does incremental parsing of files that have been edited and saved after the LSP startup. (**Incremental scanner**)
 
 ## [v0.10.0] - 2026-05-27
 

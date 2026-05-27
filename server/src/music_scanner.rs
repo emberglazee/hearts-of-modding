@@ -68,7 +68,7 @@ where
     }
 }
 
-fn find_assets_in_entries(
+pub(crate) fn find_assets_in_entries(
     entries: &[ast::Entry],
     file_path: &str,
     map: &mut HashMap<String, MusicAsset>,
@@ -112,7 +112,7 @@ fn find_assets_in_entries(
     }
 }
 
-fn find_stations_and_songs_in_entries(
+pub(crate) fn find_stations_and_songs_in_entries(
     entries: &[ast::Entry],
     file_path: &str,
     stations: &mut HashMap<String, MusicStation>,

@@ -23,7 +23,7 @@ where
     map
 }
 
-fn find_scripted_locs_in_entries(
+pub(crate) fn find_scripted_locs_in_entries(
     entries: &[Entry],
     file_path: &str,
     map: &mut HashMap<String, ScriptedLoc>,

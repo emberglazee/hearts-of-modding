@@ -28,7 +28,7 @@ where
     map
 }
 
-fn find_traits_in_entries(
+pub(crate) fn find_traits_in_entries(
     entries: &[ast::Entry],
     file_path: &str,
     trait_type: &str,

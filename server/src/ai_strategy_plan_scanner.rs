@@ -41,7 +41,7 @@ where
     plans
 }
 
-fn extract_plans(entries: &[ast::Entry], path: &Path, map: &mut HashMap<String, AiStrategyPlan>) {
+pub(crate) fn extract_plans(entries: &[ast::Entry], path: &Path, map: &mut HashMap<String, AiStrategyPlan>) {
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
             if let ast::Value::Block(inner_entries) = &ass.value.value {

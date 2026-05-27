@@ -131,7 +131,7 @@ where
     }
 }
 
-fn find_sound_definitions(
+pub(crate) fn find_sound_definitions(
     entries: &[ast::Entry],
     file_path: &str,
     sounds: &mut HashMap<String, Sound>,

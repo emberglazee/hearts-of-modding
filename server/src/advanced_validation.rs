@@ -487,7 +487,7 @@ pub fn validate_victory_points(
 ) {
     let mut state_provinces = None;
     let mut victory_points = None;
-    validate_victory_points_recursive(entries, diagnostics, &mut state_provinces, &mut victory_points);
+    validate_victory_points_recursive(entries, &mut state_provinces, &mut victory_points);
 
     // Validate once after full traversal to avoid duplicate diagnostics
     if let (Some(provs), Some(vps)) = (state_provinces, victory_points) {
@@ -514,7 +514,6 @@ pub fn validate_victory_points(
 
 fn validate_victory_points_recursive(
     entries: &[ast::Entry],
-    diagnostics: &mut Vec<ValidationDiagnostic>,
     state_provinces: &mut Option<HashSet<u32>>,
     victory_points: &mut Option<Vec<(u32, ast::Range)>>,
 ) {
@@ -580,7 +579,6 @@ fn validate_victory_points_recursive(
                 ast::Value::Block(inner) => {
                     validate_victory_points_recursive(
                         inner,
-                        diagnostics,
                         state_provinces,
                         victory_points,
                     );
@@ -588,7 +586,6 @@ fn validate_victory_points_recursive(
                 ast::Value::TaggedBlock(_, inner, _) => {
                     validate_victory_points_recursive(
                         inner,
-                        diagnostics,
                         state_provinces,
                         victory_points,
                     );

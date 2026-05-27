@@ -68,7 +68,7 @@ where
 
 /// Simple Lua parser for defines files
 /// This is a basic implementation that handles common patterns in HOI4 defines
-fn parse_defines_lua(content: &str, defines: &mut GameDefines) {
+pub(crate) fn parse_defines_lua(content: &str, defines: &mut GameDefines) {
     let lines: Vec<&str> = content.lines().collect();
     let mut i = 0;
 

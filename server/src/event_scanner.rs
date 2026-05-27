@@ -38,7 +38,7 @@ where
     events
 }
 
-fn find_event_definitions(entries: &[ast::Entry], path: &str, events: &mut HashMap<String, Event>) {
+pub(crate) fn find_event_definitions(entries: &[ast::Entry], path: &str, events: &mut HashMap<String, Event>) {
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
             let key = ass.key.as_str();

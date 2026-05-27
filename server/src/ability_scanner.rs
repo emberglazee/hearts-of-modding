@@ -90,7 +90,7 @@ where
     map
 }
 
-fn find_abilities_in_entries(
+pub(crate) fn find_abilities_in_entries(
     entries: &[ast::Entry],
     file_path: &str,
     map: &mut HashMap<String, Ability>,

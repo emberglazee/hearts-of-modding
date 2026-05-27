@@ -29,6 +29,7 @@ mod gfx_scanner;
 mod hoi4_data;
 mod hover_handler;
 mod idea_scanner;
+mod incremental_scanner;
 mod ideology_scanner;
 mod loc_parser;
 mod loc_preview;
@@ -368,6 +369,33 @@ impl LanguageServer for Backend {
         self.documents.insert(uri.clone(), text.clone());
         self.cache_ast(&uri, &text);
         self.validate_document(params.text_document.uri).await;
+    }
+
+    async fn did_save(&self, params: DidSaveTextDocumentParams) {
+        let uri = params.text_document.uri;
+        let uri_str = uri.as_str().to_string();
+
+        // Use the text from the save notification if available, otherwise from documents cache
+        let content = if let Some(ref text) = params.text {
+            text.clone()
+        } else if let Some(cached) = self.documents.get(&uri_str) {
+            cached.clone()
+        } else {
+            return;
+        };
+
+        // Convert URI to a file path string for the incremental scanner
+        if let Some(file_path) = uri.to_file_path() {
+            let path_str = file_path.to_string_lossy().to_string();
+            crate::incremental_scanner::update_scanner_data_for_file(
+                &self.scanner_data,
+                &path_str,
+                &content,
+            );
+        }
+
+        self.cache_ast(&uri_str, &content);
+        self.validate_document(uri).await;
     }
 
     async fn did_close(&self, params: DidCloseTextDocumentParams) {
