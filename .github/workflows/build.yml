@@ -7,51 +7,17 @@ on:
       - 'client/**'
       - 'server/**'
       - '.github/workflows/build.yml'
+      - '.github/workflows/server-build.yml'
   pull_request:
     branches: [ main ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-server:
-    name: Build Server (${{ matrix.os }} - ${{ matrix.target }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            suffix: linux
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            suffix: win.exe
-          - os: macos-latest
-            target: aarch64-apple-darwin
-            suffix: macos-arm64
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
-
-      - name: Rust Cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: server -> target
-
-      - name: Build Server
-        run: |
-          cd server
-          cargo build --release --target ${{ matrix.target }}
-
-      - name: Upload Binary
-        uses: actions/upload-artifact@v7
-        with:
-          name: server-${{ matrix.suffix }}
-          path: |
-            server/target/${{ matrix.target }}/release/server
-            server/target/${{ matrix.target }}/release/server.exe
-          if-no-files-found: ignore
+    uses: ./.github/workflows/server-build.yml
 
   package-extension:
     name: Package Extension
@@ -71,30 +37,6 @@ jobs:
         run: |
           cd client
           npm install
-
-      - name: Download Binaries
-        uses: actions/download-artifact@v8
-        with:
-          pattern: server-*
-          path: client/server-bin/
-          merge-multiple: true
-
-      - name: Rename Binaries
-        run: |
-          mkdir -p client/server-bin
-          # Artifact download might keep original names if they were uploaded from different OSes
-          # We use a more robust way to find and rename
-          find client/server-bin -type f -name "server" -not -name "server-*" | while read f; do
-            # This is tricky because multiple 'server' files might exist if not for merge-multiple: true
-            # But with merge-multiple: true, we need them to have different names in artifacts
-            # Let's adjust the Build job to produce uniquely named binaries if possible, 
-            # or rely on the fact that we download them into subdirectories if we don't use merge-multiple.
-            echo "Processing $f"
-          done
-          
-          # Since we used merge-multiple: true, and the 'path' in upload-artifact 
-          # points to 'server' or 'server.exe', they might overwrite each other.
-          # BETTER APPROACH: Download each individually to a specific name.
 
       - name: Download Linux Binary
         uses: actions/download-artifact@v8
@@ -119,12 +61,17 @@ jobs:
           mv client/server-bin/win/server.exe client/server-bin/server-win.exe
           mv client/server-bin/macos-arm64/server client/server-bin/server-macos-arm64
           chmod +x client/server-bin/server-linux client/server-bin/server-macos-arm64
-          
+
       - name: Copy Resources
         run: |
           cp -r server/assets client/server-bin/
           mv README.md client/README.md
           mv CHANGELOG.md client/CHANGELOG.md
+
+      - name: Lint
+        run: |
+          cd client
+          npm run lint
 
       - name: Package VSIX
         run: |

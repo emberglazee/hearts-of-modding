@@ -1,0 +1,58 @@
+name: Build Server (Reusable)
+
+on:
+  workflow_call:
+
+jobs:
+  build-server:
+    name: Build Server (${{ matrix.os }} - ${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            suffix: linux
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            suffix: win.exe
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            suffix: macos-arm64
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+          components: clippy
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: server -> target
+
+      - name: Build Server
+        run: |
+          cd server
+          cargo build --release --target ${{ matrix.target }}
+
+      - name: Clippy
+        run: |
+          cd server
+          cargo clippy -- --deny warnings
+
+      - name: Test
+        run: |
+          cd server
+          cargo test
+
+      - name: Upload Binary
+        uses: actions/upload-artifact@v7
+        with:
+          name: server-${{ matrix.suffix }}
+          path: |
+            server/target/${{ matrix.target }}/release/server
+            server/target/${{ matrix.target }}/release/server.exe
+          if-no-files-found: ignore
