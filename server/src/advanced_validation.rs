@@ -41,7 +41,7 @@ pub fn validate_achievements(
 ) {
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
-            let key_lower = ass.key.to_lowercase();
+            let key_lower = ass.key.to_ascii_lowercase();
             if key_lower == "custom_achievement" || key_lower == "custom_ribbon" {
                 let name_key = format!("{}_NAME", ass.key);
                 let desc_key = format!("{}_DESC", ass.key);
@@ -87,7 +87,7 @@ pub fn validate_abilities(
 ) {
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
-            if ass.key.to_lowercase() == "ability" {
+            if ass.key.eq_ignore_ascii_case("ability") {
                 if let ast::Value::Block(ability_entries) = &ass.value.value {
                     for ability_entry in ability_entries {
                         if let ast::Entry::Assignment(a_ass) = ability_entry {
@@ -101,50 +101,51 @@ pub fn validate_abilities(
 
                                 for prop in props {
                                     if let ast::Entry::Assignment(p_ass) = prop {
-                                        match p_ass.key.to_lowercase().as_str() {
-                                            "name" => {
-                                                has_name = true;
-                                                if let ast::Value::String(s) = &p_ass.value.value {
-                                                    if !localization.contains_key(s) {
-                                                        diagnostics.push(ValidationDiagnostic {
-                                                            range: p_ass.value.range.clone(),
-                                                            severity: ast::DiagnosticSeverity::Warning,
-                                                            message: format!(
-                                                                "Ability '{}' is missing localization key: '{}'",
-                                                                a_ass.key, s
-                                                            ),
-                                                            code: ABILITY_MISSING_LOCALIZATION.to_string(),
-                                                            fix_suggestion: None,
-                                                            related_information: Vec::new(),
-                                                            tags: Vec::new(),
-                                                        });
-                                                    }
+                                        let p_key = p_ass.key.as_str();
+                                        if p_key.eq_ignore_ascii_case("name") {
+                                            has_name = true;
+                                            if let ast::Value::String(s) = &p_ass.value.value {
+                                                if !localization.contains_key(s) {
+                                                    diagnostics.push(ValidationDiagnostic {
+                                                        range: p_ass.value.range.clone(),
+                                                        severity: ast::DiagnosticSeverity::Warning,
+                                                        message: format!(
+                                                            "Ability '{}' is missing localization key: '{}'",
+                                                            a_ass.key, s
+                                                        ),
+                                                        code: ABILITY_MISSING_LOCALIZATION.to_string(),
+                                                        fix_suggestion: None,
+                                                        related_information: Vec::new(),
+                                                        tags: Vec::new(),
+                                                    });
                                                 }
                                             }
-                                            "desc" => {
-                                                has_desc = true;
-                                                if let ast::Value::String(s) = &p_ass.value.value {
-                                                    if !localization.contains_key(s) {
-                                                        diagnostics.push(ValidationDiagnostic {
-                                                            range: p_ass.value.range.clone(),
-                                                            severity: ast::DiagnosticSeverity::Warning,
-                                                            message: format!(
-                                                                "Ability '{}' is missing localization key: '{}'",
-                                                                a_ass.key, s
-                                                            ),
-                                                            code: ABILITY_MISSING_LOCALIZATION.to_string(),
-                                                            fix_suggestion: None,
-                                                            related_information: Vec::new(),
-                                                            tags: Vec::new(),
-                                                        });
-                                                    }
+                                        } else if p_key.eq_ignore_ascii_case("desc") {
+                                            has_desc = true;
+                                            if let ast::Value::String(s) = &p_ass.value.value {
+                                                if !localization.contains_key(s) {
+                                                    diagnostics.push(ValidationDiagnostic {
+                                                        range: p_ass.value.range.clone(),
+                                                        severity: ast::DiagnosticSeverity::Warning,
+                                                        message: format!(
+                                                            "Ability '{}' is missing localization key: '{}'",
+                                                            a_ass.key, s
+                                                        ),
+                                                        code: ABILITY_MISSING_LOCALIZATION.to_string(),
+                                                        fix_suggestion: None,
+                                                        related_information: Vec::new(),
+                                                        tags: Vec::new(),
+                                                    });
                                                 }
                                             }
-                                            "cost" => has_cost = true,
-                                            "duration" => has_duration = true,
-                                            "type" => has_type = true,
-                                            "ai_will_do" => has_ai_will_do = true,
-                                            _ => {}
+                                        } else if p_key.eq_ignore_ascii_case("cost") {
+                                            has_cost = true;
+                                        } else if p_key.eq_ignore_ascii_case("duration") {
+                                            has_duration = true;
+                                        } else if p_key.eq_ignore_ascii_case("type") {
+                                            has_type = true;
+                                        } else if p_key.eq_ignore_ascii_case("ai_will_do") {
+                                            has_ai_will_do = true;
                                         }
                                     }
                                 }
@@ -258,7 +259,7 @@ fn validate_buildings_recursive(
 ) {
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
-            let key_lower = ass.key.to_lowercase();
+            let key_lower = ass.key.to_ascii_lowercase();
 
             // Check if we're in a buildings block
             if key_lower == "buildings" {
@@ -342,7 +343,7 @@ fn validate_character_skills_recursive(
 ) {
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
-            let key_lower = ass.key.to_lowercase();
+            let key_lower = ass.key.to_ascii_lowercase();
 
             // Detect character type
             let mut char_type = current_character_type;
@@ -418,7 +419,7 @@ fn validate_portrait_gfx_recursive(
 ) {
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
-            let key_lower = ass.key.to_lowercase();
+            let key_lower = ass.key.to_ascii_lowercase();
 
             if key_lower == "portraits" {
                 if let ast::Value::Block(portrait_entries) = &ass.value.value {
@@ -488,7 +489,7 @@ fn validate_victory_points_recursive(
 ) {
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
-            let key_lower = ass.key.to_lowercase();
+            let key_lower = ass.key.to_ascii_lowercase();
 
             // Collect provinces in state
             if key_lower == "provinces" {

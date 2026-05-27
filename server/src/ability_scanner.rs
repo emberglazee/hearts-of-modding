@@ -122,8 +122,7 @@ fn find_abilities_in_entries(
     for entry in entries {
         match entry {
             ast::Entry::Assignment(ass) => {
-                let key_lower = ass.key.to_lowercase();
-                if key_lower == "ability" {
+                if ass.key.eq_ignore_ascii_case("ability") {
                     if let ast::Value::Block(ability_entries) = &ass.value.value {
                         for ability_entry in ability_entries {
                             if let ast::Entry::Assignment(a_ass) = ability_entry {
@@ -144,36 +143,25 @@ fn find_abilities_in_entries(
                                 if let ast::Value::Block(props) = &a_ass.value.value {
                                     for prop in props {
                                         if let ast::Entry::Assignment(p_ass) = prop {
-                                            match p_ass.key.to_lowercase().as_str() {
-                                                "name" => {
-                                                    if let ast::Value::String(s) =
-                                                        &p_ass.value.value
-                                                    {
-                                                        name_loc = Some(s.clone());
-                                                    }
+                                            let p_key = p_ass.key.as_str();
+                                            if p_key.eq_ignore_ascii_case("name") {
+                                                if let ast::Value::String(s) = &p_ass.value.value {
+                                                    name_loc = Some(s.clone());
                                                 }
-                                                "desc" => {
-                                                    if let ast::Value::String(s) =
-                                                        &p_ass.value.value
-                                                    {
-                                                        desc_loc = Some(s.clone());
-                                                    }
+                                            } else if p_key.eq_ignore_ascii_case("desc") {
+                                                if let ast::Value::String(s) = &p_ass.value.value {
+                                                    desc_loc = Some(s.clone());
                                                 }
-                                                "sound_effect" => {
-                                                    if let ast::Value::String(s) =
-                                                        &p_ass.value.value
-                                                    {
-                                                        sound_effect = Some(s.clone());
-                                                    }
+                                            } else if p_key.eq_ignore_ascii_case("sound_effect") {
+                                                if let ast::Value::String(s) = &p_ass.value.value {
+                                                    sound_effect = Some(s.clone());
                                                 }
-                                                "type" => {
-                                                    if let ast::Value::String(s) =
-                                                        &p_ass.value.value
-                                                    {
-                                                        type_name = Some(s.clone());
-                                                    }
+                                            } else if p_key.eq_ignore_ascii_case("type") {
+                                                if let ast::Value::String(s) = &p_ass.value.value {
+                                                    type_name = Some(s.clone());
                                                 }
-                                                "cost" => match &p_ass.value.value {
+                                            } else if p_key.eq_ignore_ascii_case("cost") {
+                                                match &p_ass.value.value {
                                                     ast::Value::Number(n) => cost = Some(*n),
                                                     ast::Value::String(s) => {
                                                         if let Ok(n) = s.parse() {
@@ -181,8 +169,9 @@ fn find_abilities_in_entries(
                                                         }
                                                     }
                                                     _ => {}
-                                                },
-                                                "duration" => match &p_ass.value.value {
+                                                }
+                                            } else if p_key.eq_ignore_ascii_case("duration") {
+                                                match &p_ass.value.value {
                                                     ast::Value::Number(n) => {
                                                         duration = Some(*n as i32)
                                                     }
@@ -192,14 +181,14 @@ fn find_abilities_in_entries(
                                                         }
                                                     }
                                                     _ => {}
-                                                },
-                                                "cancelable" => {
-                                                    cancelable = match &p_ass.value.value {
-                                                        ast::Value::String(s) => Some(s == "yes"),
-                                                        _ => None,
-                                                    };
                                                 }
-                                                "cooldown" => match &p_ass.value.value {
+                                            } else if p_key.eq_ignore_ascii_case("cancelable") {
+                                                cancelable = match &p_ass.value.value {
+                                                    ast::Value::String(s) => Some(s == "yes"),
+                                                    _ => None,
+                                                };
+                                            } else if p_key.eq_ignore_ascii_case("cooldown") {
+                                                match &p_ass.value.value {
                                                     ast::Value::Number(n) => {
                                                         cooldown = Some(*n as i32)
                                                     }
@@ -209,19 +198,20 @@ fn find_abilities_in_entries(
                                                         }
                                                     }
                                                     _ => {}
-                                                },
-                                                "icon" => {
-                                                    if let ast::Value::String(s) =
-                                                        &p_ass.value.value
-                                                    {
-                                                        icon = Some(s.clone());
-                                                    }
                                                 }
-                                                "allowed" => has_allowed = true,
-                                                "one_time_effect" => has_one_time_effect = true,
-                                                "unit_modifiers" => has_unit_modifiers = true,
-                                                "ai_will_do" => has_ai_will_do = true,
-                                                _ => {}
+                                            } else if p_key.eq_ignore_ascii_case("icon") {
+                                                if let ast::Value::String(s) = &p_ass.value.value {
+                                                    icon = Some(s.clone());
+                                                }
+                                            } else if p_key.eq_ignore_ascii_case("allowed") {
+                                                has_allowed = true;
+                                            } else if p_key.eq_ignore_ascii_case("one_time_effect")
+                                            {
+                                                has_one_time_effect = true;
+                                            } else if p_key.eq_ignore_ascii_case("unit_modifiers") {
+                                                has_unit_modifiers = true;
+                                            } else if p_key.eq_ignore_ascii_case("ai_will_do") {
+                                                has_ai_will_do = true;
                                             }
                                         }
                                     }

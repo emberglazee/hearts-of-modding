@@ -103,14 +103,14 @@ fn find_assets_in_entries(
 ) {
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
-            if ass.key.to_lowercase() == "music" {
+            if ass.key.eq_ignore_ascii_case("music") {
                 if let ast::Value::Block(details) = &ass.value.value {
                     let mut name = None;
                     let mut file = None;
 
                     for detail in details {
                         if let ast::Entry::Assignment(d_ass) = detail {
-                            let d_key = d_ass.key.to_lowercase();
+                            let d_key = d_ass.key.to_ascii_lowercase();
                             if d_key == "name" {
                                 if let ast::Value::String(s) = &d_ass.value.value {
                                     name = Some(s.clone());
@@ -148,7 +148,7 @@ fn find_stations_and_songs_in_entries(
 ) {
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
-            let key_lower = ass.key.to_lowercase();
+            let key_lower = ass.key.to_ascii_lowercase();
             if key_lower == "music_station" {
                 if let ast::Value::String(name) = &ass.value.value {
                     stations.insert(
@@ -164,7 +164,7 @@ fn find_stations_and_songs_in_entries(
                 if let ast::Value::Block(details) = &ass.value.value {
                     for detail in details {
                         if let ast::Entry::Assignment(d_ass) = detail {
-                            if d_ass.key.to_lowercase() == "song" {
+                            if d_ass.key.eq_ignore_ascii_case("song") {
                                 if let ast::Value::String(name) = &d_ass.value.value {
                                     songs.insert(
                                         name.clone(),

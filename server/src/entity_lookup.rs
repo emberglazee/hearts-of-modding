@@ -332,7 +332,7 @@ impl<'a> EntityLookup<'a> {
     }
 
     pub fn find_symbols(&self, query: &str) -> Vec<EntityHit> {
-        let query_lower = query.to_lowercase();
+        let query_lower = query.to_ascii_lowercase();
         let mut results = Vec::new();
 
         let fuzzy_match = |query: &str, target: &str| crate::fs_util::fuzzy_match(query, target);
@@ -341,7 +341,7 @@ impl<'a> EntityLookup<'a> {
             ($kind:ident, $method:ident, $container:expr) => {
                 let map = self.data.$method();
                 for (name, entity) in map.iter() {
-                    if fuzzy_match(&query_lower, &name.to_lowercase()) {
+                    if fuzzy_match(&query_lower, name) {
                         results.push(EntityHit {
                             name: name.clone(),
                             kind: EntityKind::$kind,
@@ -363,7 +363,7 @@ impl<'a> EntityLookup<'a> {
         {
             let map = self.data.events();
             for (id, event) in map.iter() {
-                if fuzzy_match(&query_lower, &id.to_lowercase()) {
+                if fuzzy_match(&query_lower, id) {
                     results.push(EntityHit {
                         name: id.clone(),
                         kind: EntityKind::Event,
@@ -381,7 +381,7 @@ impl<'a> EntityLookup<'a> {
         {
             let map = self.data.ideas();
             for (name, idea) in map.iter() {
-                if fuzzy_match(&query_lower, &name.to_lowercase()) {
+                if fuzzy_match(&query_lower, name) {
                     results.push(EntityHit {
                         name: name.clone(),
                         kind: EntityKind::Idea,
@@ -399,7 +399,7 @@ impl<'a> EntityLookup<'a> {
         {
             let map = self.data.traits();
             for (name, entity) in map.iter() {
-                if fuzzy_match(&query_lower, &name.to_lowercase()) {
+                if fuzzy_match(&query_lower, name) {
                     results.push(EntityHit {
                         name: name.clone(),
                         kind: EntityKind::Trait,
@@ -423,7 +423,7 @@ impl<'a> EntityLookup<'a> {
             for (id, state) in map.iter() {
                 let display = format!("State {}: {}", id, state.name);
                 if fuzzy_match(&query_lower, &id.to_string())
-                    || fuzzy_match(&query_lower, &state.name.to_lowercase())
+                    || fuzzy_match(&query_lower, &state.name)
                 {
                     results.push(EntityHit {
                         name: display,
@@ -490,7 +490,7 @@ impl<'a> EntityLookup<'a> {
             let map = self.data.map_buildings();
             for mb in map.iter() {
                 let display = format!("Building '{}' in State {}", mb.building_id, mb.state_id);
-                if fuzzy_match(&query_lower, &mb.building_id.to_lowercase())
+                if fuzzy_match(&query_lower, &mb.building_id)
                     || fuzzy_match(&query_lower, &mb.state_id.to_string())
                 {
                     results.push(EntityHit {
@@ -596,7 +596,7 @@ impl<'a> EntityLookup<'a> {
             for (id, region) in map.iter() {
                 let display = format!("Strategic Region {}: {}", id, region.name);
                 if fuzzy_match(&query_lower, &id.to_string())
-                    || fuzzy_match(&query_lower, &region.name.to_lowercase())
+                    || fuzzy_match(&query_lower, &region.name)
                 {
                     results.push(EntityHit {
                         name: display,
@@ -616,7 +616,7 @@ impl<'a> EntityLookup<'a> {
             let map = self.data.localization();
             let mut count = 0;
             for (name, loc) in map.iter() {
-                if fuzzy_match(&query_lower, &name.to_lowercase()) {
+                if fuzzy_match(&query_lower, name) {
                     results.push(EntityHit {
                         name: name.clone(),
                         kind: EntityKind::Localization,
@@ -640,7 +640,7 @@ impl<'a> EntityLookup<'a> {
         {
             let map = self.data.sub_ideologies();
             for (name, (parent, range, path)) in map.iter() {
-                if fuzzy_match(&query_lower, &name.to_lowercase()) {
+                if fuzzy_match(&query_lower, name) {
                     results.push(EntityHit {
                         name: name.clone(),
                         kind: EntityKind::SubIdeology,

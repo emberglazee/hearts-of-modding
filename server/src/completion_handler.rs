@@ -100,7 +100,7 @@ impl Backend {
         if uri.ends_with("adjacency_rules.txt") {
             if let Some((script, _)) = self.ensure_ast_cached(&uri) {
                 if let Some(context_key) = find_context_at(&script, position) {
-                    let key_lower = context_key.to_lowercase();
+                    let key_lower = context_key.to_ascii_lowercase();
                     let mut items = Vec::new();
                     if key_lower == "adjacency_rule" {
                         for f in [
@@ -152,7 +152,7 @@ impl Backend {
             if let Some((script, _)) = self.ensure_ast_cached(&uri) {
                 if let Some(context_key) = find_context_at(&script, position) {
                     let mut completion_items = Vec::new();
-                    let key_lower = context_key.to_lowercase();
+                    let key_lower = context_key.to_ascii_lowercase();
 
                     if key_lower == "music" {
                         if uri.ends_with(".asset") {
@@ -357,7 +357,7 @@ impl Backend {
             let (ctx, scopes) = find_scope_context_at(&script, position, &achievements);
             current_scopes = scopes;
             if let Some(context_key) = ctx {
-                if context_key.to_lowercase().contains("color") {
+                if context_key.to_ascii_lowercase().contains("color") {
                     let color_items = vec![
                         CompletionItem {
                             label: "rgb".to_string(),

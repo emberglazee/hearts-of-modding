@@ -60,7 +60,7 @@ fn find_ideologies_in_entries(
     for entry in entries {
         match entry {
             ast::Entry::Assignment(ass) => {
-                let key_lower = ass.key.to_lowercase();
+                let key_lower = ass.key.to_ascii_lowercase();
                 if key_lower == "ideologies" {
                     if let ast::Value::Block(ideology_entries) = &ass.value.value {
                         for ideology_entry in ideology_entries {
@@ -72,7 +72,7 @@ fn find_ideologies_in_entries(
                                 {
                                     for detail in ideology_details {
                                         if let ast::Entry::Assignment(detail_ass) = detail
-                                            && detail_ass.key.to_lowercase() == "types"
+                                            && detail_ass.key.eq_ignore_ascii_case("types")
                                             && let ast::Value::Block(type_entries) =
                                                 &detail_ass.value.value
                                         {

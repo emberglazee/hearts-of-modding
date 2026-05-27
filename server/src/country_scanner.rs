@@ -60,8 +60,8 @@ where
                                 continue;
                             }
                             // Check for dynamic_tags = yes
-                            if line.to_lowercase().starts_with("dynamic_tags") {
-                                dynamic_mode = line.to_lowercase().contains("= yes");
+                            if line.to_ascii_lowercase().starts_with("dynamic_tags") {
+                                dynamic_mode = line.to_ascii_lowercase().contains("= yes");
                                 continue;
                             }
                             // Format: TAG = "countries/TAG - Name.txt"

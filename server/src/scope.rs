@@ -33,7 +33,7 @@ impl Scope {
     }
 
     pub fn from_str(s: &str) -> Self {
-        let s_lower = s.to_lowercase();
+        let s_lower = s.to_ascii_lowercase();
         match s_lower.as_str() {
             "music_station" => Scope::MusicStation,
             "music" => Scope::MusicTrack,

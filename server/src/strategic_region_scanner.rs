@@ -75,7 +75,7 @@ fn extract_strategic_region(
 ) {
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
-            if ass.key.to_lowercase() == "strategic_region" {
+            if ass.key.eq_ignore_ascii_case("strategic_region") {
                 let mut region_id = None;
                 let mut region_name = String::new();
                 let mut provinces = Vec::new();
@@ -85,47 +85,41 @@ fn extract_strategic_region(
                 if let ast::Value::Block(region_entries) = &ass.value.value {
                     for region_entry in region_entries {
                         if let ast::Entry::Assignment(r_ass) = region_entry {
-                            match r_ass.key.to_lowercase().as_str() {
-                                "id" => {
-                                    if let ast::Value::Number(id) = &r_ass.value.value {
-                                        region_id = Some(*id as u32);
-                                    }
+                            let r_key = r_ass.key.as_str();
+                            if r_key.eq_ignore_ascii_case("id") {
+                                if let ast::Value::Number(id) = &r_ass.value.value {
+                                    region_id = Some(*id as u32);
                                 }
-                                "name" => {
-                                    if let ast::Value::String(name) = &r_ass.value.value {
-                                        region_name = name.clone();
-                                    }
+                            } else if r_key.eq_ignore_ascii_case("name") {
+                                if let ast::Value::String(name) = &r_ass.value.value {
+                                    region_name = name.clone();
                                 }
-                                "provinces" => {
-                                    if let ast::Value::Block(prov_entries) = &r_ass.value.value {
-                                        for prov_entry in prov_entries {
-                                            if let ast::Entry::Value(val) = prov_entry {
-                                                if let ast::Value::Number(p_id) = &val.value {
-                                                    provinces.push(*p_id as u32);
-                                                }
+                            } else if r_key.eq_ignore_ascii_case("provinces") {
+                                if let ast::Value::Block(prov_entries) = &r_ass.value.value {
+                                    for prov_entry in prov_entries {
+                                        if let ast::Entry::Value(val) = prov_entry {
+                                            if let ast::Value::Number(p_id) = &val.value {
+                                                provinces.push(*p_id as u32);
                                             }
                                         }
-                                    } else if let ast::Value::TaggedBlock(_, prov_entries, _) =
-                                        &r_ass.value.value
-                                    {
-                                        for prov_entry in prov_entries {
-                                            if let ast::Entry::Value(val) = prov_entry {
-                                                if let ast::Value::Number(p_id) = &val.value {
-                                                    provinces.push(*p_id as u32);
-                                                }
+                                    }
+                                } else if let ast::Value::TaggedBlock(_, prov_entries, _) =
+                                    &r_ass.value.value
+                                {
+                                    for prov_entry in prov_entries {
+                                        if let ast::Entry::Value(val) = prov_entry {
+                                            if let ast::Value::Number(p_id) = &val.value {
+                                                provinces.push(*p_id as u32);
                                             }
                                         }
                                     }
                                 }
-                                "weather" => {
-                                    weather = Some("Defined".to_string());
+                            } else if r_key.eq_ignore_ascii_case("weather") {
+                                weather = Some("Defined".to_string());
+                            } else if r_key.eq_ignore_ascii_case("naval_terrain") {
+                                if let ast::Value::String(s) = &r_ass.value.value {
+                                    naval_terrain = Some(s.clone());
                                 }
-                                "naval_terrain" => {
-                                    if let ast::Value::String(s) = &r_ass.value.value {
-                                        naval_terrain = Some(s.clone());
-                                    }
-                                }
-                                _ => {}
                             }
                         }
                     }

@@ -68,7 +68,7 @@ where
 fn extract_state(entries: &[ast::Entry], path: &Path, map: &mut HashMap<u32, State>) {
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry
-            && ass.key.to_lowercase() == "state"
+            && ass.key.eq_ignore_ascii_case("state")
         {
             let mut state_id = None;
             let mut state_name = String::new();
@@ -76,11 +76,11 @@ fn extract_state(entries: &[ast::Entry], path: &Path, map: &mut HashMap<u32, Sta
             if let ast::Value::Block(state_entries) = &ass.value.value {
                 for state_entry in state_entries {
                     if let ast::Entry::Assignment(state_ass) = state_entry {
-                        if state_ass.key.to_lowercase() == "id"
+                        if state_ass.key.eq_ignore_ascii_case("id")
                             && let ast::Value::Number(id) = &state_ass.value.value
                         {
                             state_id = Some(*id as u32);
-                        } else if state_ass.key.to_lowercase() == "name"
+                        } else if state_ass.key.eq_ignore_ascii_case("name")
                             && let ast::Value::String(name) = &state_ass.value.value
                         {
                             state_name = name.clone();

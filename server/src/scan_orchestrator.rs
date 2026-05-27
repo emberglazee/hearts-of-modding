@@ -487,7 +487,7 @@ impl Backend {
                 let mut files_to_scan: Vec<_> =
                     crate::fs_util::collect_files(&loc_dir, &["yml"], &filter, false)
                         .into_iter()
-                        .filter(|p| p.to_string_lossy().to_lowercase().contains("english"))
+                        .filter(|p| p.to_string_lossy().to_ascii_lowercase().contains("english"))
                         .collect();
 
                 files_to_scan.sort_by(|a, b| {

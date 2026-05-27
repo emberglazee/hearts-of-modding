@@ -81,7 +81,7 @@ where
             let (script, _) = parser::parse_script(&content);
             for entry in script.entries {
                 if let ast::Entry::Assignment(ass) = entry
-                    && ass.key.to_lowercase() == "adjacency_rule"
+                    && ass.key.eq_ignore_ascii_case("adjacency_rule")
                     && let ast::Value::Block(rule_entries) = &ass.value.value
                 {
                     let mut name = None;
@@ -90,29 +90,25 @@ where
 
                     for rule_entry in rule_entries {
                         if let ast::Entry::Assignment(r_ass) = rule_entry {
-                            match r_ass.key.to_lowercase().as_str() {
-                                "name" => {
-                                    if let ast::Value::String(s) = &r_ass.value.value {
-                                        name = Some(s.clone());
-                                    }
+                            let r_key = r_ass.key.as_str();
+                            if r_key.eq_ignore_ascii_case("name") {
+                                if let ast::Value::String(s) = &r_ass.value.value {
+                                    name = Some(s.clone());
                                 }
-                                "required_provinces" => {
-                                    if let ast::Value::Block(prov_entries) = &r_ass.value.value {
-                                        for p_entry in prov_entries {
-                                            if let ast::Entry::Value(p_val) = p_entry
-                                                && let ast::Value::Number(n) = &p_val.value
-                                            {
-                                                required_provinces.push(*n as u32);
-                                            }
+                            } else if r_key.eq_ignore_ascii_case("required_provinces") {
+                                if let ast::Value::Block(prov_entries) = &r_ass.value.value {
+                                    for p_entry in prov_entries {
+                                        if let ast::Entry::Value(p_val) = p_entry
+                                            && let ast::Value::Number(n) = &p_val.value
+                                        {
+                                            required_provinces.push(*n as u32);
                                         }
                                     }
                                 }
-                                "icon" => {
-                                    if let ast::Value::Number(n) = &r_ass.value.value {
-                                        icon = Some(*n as u32);
-                                    }
+                            } else if r_key.eq_ignore_ascii_case("icon") {
+                                if let ast::Value::Number(n) = &r_ass.value.value {
+                                    icon = Some(*n as u32);
                                 }
-                                _ => {}
                             }
                         }
                     }

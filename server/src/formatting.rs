@@ -374,7 +374,7 @@ impl Backend {
         for entry in entries {
             match entry {
                 ast::Entry::Assignment(ass) => {
-                    if ass.key.to_lowercase() == "texturefile" {
+                    if ass.key.eq_ignore_ascii_case("texturefile") {
                         if let ast::Value::String(val) = &ass.value.value {
                             if val.contains("//") || val.contains('\\') {
                                 let normalized = val.replace("//", "/").replace('\\', "/");
@@ -431,9 +431,8 @@ impl Backend {
         for entry in entries {
             match entry {
                 ast::Entry::Assignment(ass) => {
-                    let key_lower = ass.key.to_lowercase();
                     for kw in keywords {
-                        if key_lower == kw.to_lowercase() && ass.key != kw {
+                        if ass.key.eq_ignore_ascii_case(kw) && ass.key != kw {
                             fixes.push((ass.key_range.clone(), kw.to_string()));
                             break;
                         }

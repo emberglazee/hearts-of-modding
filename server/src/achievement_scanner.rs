@@ -69,7 +69,7 @@ fn find_achievements_in_entries(
 ) {
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
-            let key_lower = ass.key.to_lowercase();
+            let key_lower = ass.key.to_ascii_lowercase();
 
             // Skip unique_id assignment
             if key_lower == "unique_id" {
@@ -83,7 +83,7 @@ fn find_achievements_in_entries(
 
                 for inner in inner_entries {
                     if let ast::Entry::Assignment(inner_ass) = inner {
-                        let inner_key = inner_ass.key.to_lowercase();
+                        let inner_key = inner_ass.key.to_ascii_lowercase();
                         if inner_key == "ribbon" {
                             is_ribbon = true;
                         }
@@ -113,7 +113,7 @@ fn find_achievements_in_entries(
                         let is_ribbon_block = key_lower == "custom_ribbon";
                         for inner in inner_entries {
                             if let ast::Entry::Assignment(inner_ass) = inner {
-                                let inner_field = inner_ass.key.to_lowercase();
+                                let inner_field = inner_ass.key.to_ascii_lowercase();
                                 let should_extract = if is_ribbon_block {
                                     inner_field == "key"
                                 } else {

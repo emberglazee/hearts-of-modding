@@ -57,7 +57,7 @@ fn find_ideas_in_entries(entries: &[ast::Entry], file_path: &str, map: &mut Hash
     for entry in entries {
         match entry {
             ast::Entry::Assignment(ass) => {
-                if ass.key.to_lowercase() == "ideas" {
+                if ass.key.eq_ignore_ascii_case("ideas") {
                     parse_ideas_block(ass, file_path, map);
                 } else {
                     // Recurse into other blocks
@@ -92,7 +92,7 @@ fn parse_ideas_block(ass: &ast::Assignment, file_path: &str, map: &mut HashMap<S
                             if let ast::Value::Block(details) = &idea_ass.value.value {
                                 for detail in details {
                                     if let ast::Entry::Assignment(d_ass) = detail
-                                        && d_ass.key.to_lowercase() == "picture"
+                                        && d_ass.key.eq_ignore_ascii_case("picture")
                                         && let ast::Value::String(s) = &d_ass.value.value
                                     {
                                         picture = Some(s.clone());

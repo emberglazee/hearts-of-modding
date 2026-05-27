@@ -87,8 +87,7 @@ fn extract_portraits(entries: &[ast::Entry], path: &Path, map: &mut HashMap<Stri
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
             if let ast::Value::Block(inner_entries) = &ass.value.value {
-                let key_lower = ass.key.to_lowercase();
-                let is_continent = key_lower == "continent";
+                let is_continent = ass.key.eq_ignore_ascii_case("continent");
 
                 let mut continent_name = None;
                 let mut has_male = false;
@@ -103,32 +102,35 @@ fn extract_portraits(entries: &[ast::Entry], path: &Path, map: &mut HashMap<Stri
 
                 for inner in inner_entries {
                     if let ast::Entry::Assignment(inner_ass) = inner {
-                        match inner_ass.key.to_lowercase().as_str() {
-                            "name" if is_continent => {
-                                if let ast::Value::String(s) = &inner_ass.value.value {
-                                    continent_name = Some(s.clone());
-                                }
+                        let inner_key = inner_ass.key.as_str();
+                        if inner_key.eq_ignore_ascii_case("name") && is_continent {
+                            if let ast::Value::String(s) = &inner_ass.value.value {
+                                continent_name = Some(s.clone());
                             }
-                            "male" => has_male = true,
-                            "female" => has_female = true,
-                            "army" => has_army = true,
-                            "navy" => has_navy = true,
-                            "operative" => has_operative = true,
-                            "scientist" => has_scientist = true,
-                            "political" => {
-                                has_political = true;
-                                if let ast::Value::Block(pol_entries) = &inner_ass.value.value {
-                                    for pol_entry in pol_entries {
-                                        if let ast::Entry::Assignment(pol_ass) = pol_entry {
-                                            let ideo = pol_ass.key.clone();
-                                            if !ideologies.contains(&ideo) {
-                                                ideologies.push(ideo);
-                                            }
+                        } else if inner_key.eq_ignore_ascii_case("male") {
+                            has_male = true;
+                        } else if inner_key.eq_ignore_ascii_case("female") {
+                            has_female = true;
+                        } else if inner_key.eq_ignore_ascii_case("army") {
+                            has_army = true;
+                        } else if inner_key.eq_ignore_ascii_case("navy") {
+                            has_navy = true;
+                        } else if inner_key.eq_ignore_ascii_case("operative") {
+                            has_operative = true;
+                        } else if inner_key.eq_ignore_ascii_case("scientist") {
+                            has_scientist = true;
+                        } else if inner_key.eq_ignore_ascii_case("political") {
+                            has_political = true;
+                            if let ast::Value::Block(pol_entries) = &inner_ass.value.value {
+                                for pol_entry in pol_entries {
+                                    if let ast::Entry::Assignment(pol_ass) = pol_entry {
+                                        let ideo = pol_ass.key.clone();
+                                        if !ideologies.contains(&ideo) {
+                                            ideologies.push(ideo);
                                         }
                                     }
                                 }
                             }
-                            _ => {}
                         }
                     }
                 }
@@ -144,7 +146,7 @@ fn extract_portraits(entries: &[ast::Entry], path: &Path, map: &mut HashMap<Stri
 
                 let block_type = if is_continent {
                     PortraitBlockType::Continent
-                } else if key_lower == "default" {
+                } else if ass.key.eq_ignore_ascii_case("default") {
                     PortraitBlockType::Default
                 } else {
                     PortraitBlockType::Tag

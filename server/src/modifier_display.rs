@@ -61,7 +61,7 @@ impl ModifierDisplayService {
         if let ast::Value::Block(entries) = value {
             for entry in entries {
                 if let ast::Entry::Assignment(ass) = entry {
-                    let key_lower = ass.key.to_lowercase();
+                    let key_lower = ass.key.to_ascii_lowercase();
 
                     // Check for special modifier types
                     if key_lower == "targeted_modifier" {
@@ -107,7 +107,7 @@ impl ModifierDisplayService {
 
             for entry in entries {
                 if let ast::Entry::Assignment(ass) = entry {
-                    let key_lower = ass.key.to_lowercase();
+                    let key_lower = ass.key.to_ascii_lowercase();
                     if key_lower == "tag" {
                         if let ast::Value::String(tag) = &ass.value.value {
                             target = tag.clone();
@@ -194,7 +194,7 @@ impl ModifierDisplayService {
 
     /// Determine if a modifier is positive (beneficial)
     fn is_positive_modifier(&self, key: &str, value: f64) -> bool {
-        let key_lower = key.to_lowercase();
+        let key_lower = key.to_ascii_lowercase();
 
         // Negative modifiers (bad things)
         let negative_keywords = [

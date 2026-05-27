@@ -86,15 +86,21 @@ fn extract_plans(entries: &[ast::Entry], path: &Path, map: &mut HashMap<String, 
 
                 for inner in inner_entries {
                     if let ast::Entry::Assignment(inner_ass) = inner {
-                        match inner_ass.key.to_lowercase().as_str() {
-                            "ai_national_focuses" => has_ai_national_focuses = true,
-                            "research" => has_research = true,
-                            "ideas" => has_ideas = true,
-                            "traits" => has_traits = true,
-                            "ai_strategy" => has_ai_strategy = true,
-                            "focus_factors" => has_focus_factors = true,
-                            "weight" => has_weight = true,
-                            _ => {}
+                        let inner_key = inner_ass.key.as_str();
+                        if inner_key.eq_ignore_ascii_case("ai_national_focuses") {
+                            has_ai_national_focuses = true;
+                        } else if inner_key.eq_ignore_ascii_case("research") {
+                            has_research = true;
+                        } else if inner_key.eq_ignore_ascii_case("ideas") {
+                            has_ideas = true;
+                        } else if inner_key.eq_ignore_ascii_case("traits") {
+                            has_traits = true;
+                        } else if inner_key.eq_ignore_ascii_case("ai_strategy") {
+                            has_ai_strategy = true;
+                        } else if inner_key.eq_ignore_ascii_case("focus_factors") {
+                            has_focus_factors = true;
+                        } else if inner_key.eq_ignore_ascii_case("weight") {
+                            has_weight = true;
                         }
                     }
                 }

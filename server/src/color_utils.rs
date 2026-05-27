@@ -12,8 +12,7 @@ pub fn find_colors(script: &ast::Script) -> Vec<ColorInformation> {
 
 fn find_colors_in_entry(entry: &ast::Entry, colors: &mut Vec<ColorInformation>) {
     if let ast::Entry::Assignment(ass) = entry {
-        let key_lower = ass.key.to_lowercase();
-        if key_lower.contains("color") {
+        if ass.key.to_ascii_lowercase().contains("color") {
             find_colors_in_value(&ass.value, colors, true);
         } else {
             find_colors_in_value(&ass.value, colors, false);
@@ -88,7 +87,7 @@ fn find_colors_in_value(
                 .collect();
 
             if nums.len() == 3 {
-                let tag_lower = tag.to_lowercase();
+                let tag_lower = tag.to_ascii_lowercase();
                 if tag_lower == "rgb" {
                     let r = (nums[0] / 255.0) as f32;
                     let g = (nums[1] / 255.0) as f32;

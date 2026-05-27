@@ -353,9 +353,7 @@ pub fn validate_loc_string(
             let part_upper = part.to_uppercase();
 
             if is_last {
-                if loc_commands
-                    .iter()
-                    .any(|&c| c.to_lowercase() == part.to_lowercase())
+                if loc_commands.iter().any(|&c| c.eq_ignore_ascii_case(part))
                     || scopes.contains(&part_upper.as_str())
                     || event_targets.contains_key(*part)
                     || scripted_locs.contains_key(*part)

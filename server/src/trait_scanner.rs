@@ -61,7 +61,7 @@ fn find_traits_in_entries(
     for entry in entries {
         match entry {
             ast::Entry::Assignment(ass) => {
-                let key_lower = ass.key.to_lowercase();
+                let key_lower = ass.key.to_ascii_lowercase();
                 if key_lower == "leader_traits"
                     || key_lower == "country_leader_traits"
                     || key_lower == "traits"

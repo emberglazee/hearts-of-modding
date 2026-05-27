@@ -22,12 +22,12 @@ pub async fn generate_workspace_symbols(
     data: &crate::ScannerData,
 ) -> Vec<SymbolInformation> {
     let mut symbols = Vec::new();
-    let query_lower = query.to_lowercase();
+    let query_lower = query.to_ascii_lowercase();
 
     // Search custom modifiers
     let modifiers_lock = data.custom_modifiers();
     for (name, modifier) in modifiers_lock.iter() {
-        if fuzzy_match(&query_lower, &name.to_lowercase()) {
+        if fuzzy_match(&query_lower, name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
                 name: name.clone(),
@@ -46,7 +46,7 @@ pub async fn generate_workspace_symbols(
     // Search achievements
     let achievements_lock = data.achievements();
     for (name, achievement) in achievements_lock.iter() {
-        if fuzzy_match(&query_lower, &name.to_lowercase()) {
+        if fuzzy_match(&query_lower, name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
                 name: name.clone(),
@@ -65,7 +65,7 @@ pub async fn generate_workspace_symbols(
     // Search events
     let events_lock = data.events();
     for (id, event) in events_lock.iter() {
-        if fuzzy_match(&query_lower, &id.to_lowercase()) {
+        if fuzzy_match(&query_lower, id) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
                 name: id.clone(),
@@ -84,7 +84,7 @@ pub async fn generate_workspace_symbols(
     // Search ideas
     let ideas_lock = data.ideas();
     for (name, idea) in ideas_lock.iter() {
-        if fuzzy_match(&query_lower, &name.to_lowercase()) {
+        if fuzzy_match(&query_lower, name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
                 name: name.clone(),
@@ -103,7 +103,7 @@ pub async fn generate_workspace_symbols(
     // Search traits
     let traits_lock = data.traits();
     for (name, trait_data) in traits_lock.iter() {
-        if fuzzy_match(&query_lower, &name.to_lowercase()) {
+        if fuzzy_match(&query_lower, name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
                 name: name.clone(),
@@ -122,7 +122,7 @@ pub async fn generate_workspace_symbols(
     // Search scripted triggers
     let triggers_lock = data.scripted_triggers();
     for (name, trigger) in triggers_lock.iter() {
-        if fuzzy_match(&query_lower, &name.to_lowercase()) {
+        if fuzzy_match(&query_lower, name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
                 name: name.clone(),
@@ -141,7 +141,7 @@ pub async fn generate_workspace_symbols(
     // Search scripted effects
     let effects_lock = data.scripted_effects();
     for (name, effect) in effects_lock.iter() {
-        if fuzzy_match(&query_lower, &name.to_lowercase()) {
+        if fuzzy_match(&query_lower, name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
                 name: name.clone(),
@@ -160,7 +160,7 @@ pub async fn generate_workspace_symbols(
     // Search scripted locs
     let locs_lock = data.scripted_locs();
     for (name, loc) in locs_lock.iter() {
-        if fuzzy_match(&query_lower, &name.to_lowercase()) {
+        if fuzzy_match(&query_lower, name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
                 name: name.clone(),
@@ -179,9 +179,7 @@ pub async fn generate_workspace_symbols(
     // Search states
     let states_lock = data.states();
     for (id, state) in states_lock.iter() {
-        if fuzzy_match(&query_lower, &id.to_string())
-            || fuzzy_match(&query_lower, &state.name.to_lowercase())
-        {
+        if fuzzy_match(&query_lower, &id.to_string()) || fuzzy_match(&query_lower, &state.name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
                 name: format!("State {}: {}", id, state.name),
@@ -201,7 +199,7 @@ pub async fn generate_workspace_symbols(
     let sn_lock = data.supply_nodes();
     for node in sn_lock.iter() {
         let name = format!("Supply Node in Province {}", node.province_id);
-        if fuzzy_match(&query_lower, &name.to_lowercase())
+        if fuzzy_match(&query_lower, &name)
             || fuzzy_match(&query_lower, &node.province_id.to_string())
         {
             #[allow(deprecated)]
@@ -260,7 +258,7 @@ pub async fn generate_workspace_symbols(
     let mb_lock = data.map_buildings();
     for mb in mb_lock.iter() {
         let name = format!("Building '{}' in State {}", mb.building_id, mb.state_id);
-        if fuzzy_match(&query_lower, &mb.building_id.to_lowercase())
+        if fuzzy_match(&query_lower, &mb.building_id)
             || fuzzy_match(&query_lower, &mb.state_id.to_string())
         {
             #[allow(deprecated)]
@@ -387,7 +385,7 @@ pub async fn generate_workspace_symbols(
     // Search Adjacency Rules
     let rule_lock = data.adjacency_rules();
     for (name, rule) in rule_lock.iter() {
-        if fuzzy_match(&query_lower, &name.to_lowercase()) {
+        if fuzzy_match(&query_lower, name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
                 name: name.clone(),
@@ -406,9 +404,7 @@ pub async fn generate_workspace_symbols(
     // Search Strategic Regions
     let regions_lock = data.strategic_regions();
     for (id, region) in regions_lock.iter() {
-        if fuzzy_match(&query_lower, &id.to_string())
-            || fuzzy_match(&query_lower, &region.name.to_lowercase())
-        {
+        if fuzzy_match(&query_lower, &id.to_string()) || fuzzy_match(&query_lower, &region.name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
                 name: format!("Strategic Region {}: {}", id, region.name),
@@ -430,7 +426,7 @@ pub async fn generate_workspace_symbols(
     // Limit to prevent overwhelming the client
     let mut loc_count = 0;
     for (name, loc) in loc_lock.iter() {
-        if fuzzy_match(&query_lower, &name.to_lowercase()) {
+        if fuzzy_match(&query_lower, name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
                 name: name.clone(),
@@ -454,7 +450,7 @@ pub async fn generate_workspace_symbols(
     // Search ideologies
     let ideologies_lock = data.ideologies();
     for (name, ideology) in ideologies_lock.iter() {
-        if fuzzy_match(&query_lower, &name.to_lowercase()) {
+        if fuzzy_match(&query_lower, name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
                 name: name.clone(),
@@ -473,7 +469,7 @@ pub async fn generate_workspace_symbols(
     // Search sub-ideologies
     let sub_ideologies_lock = data.sub_ideologies();
     for (name, (parent, range, path)) in sub_ideologies_lock.iter() {
-        if fuzzy_match(&query_lower, &name.to_lowercase()) {
+        if fuzzy_match(&query_lower, name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
                 name: name.clone(),
@@ -492,7 +488,7 @@ pub async fn generate_workspace_symbols(
     // Search sprites
     let sprites_lock = data.sprites();
     for (name, sprite) in sprites_lock.iter() {
-        if fuzzy_match(&query_lower, &name.to_lowercase()) {
+        if fuzzy_match(&query_lower, name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
                 name: name.clone(),
@@ -511,7 +507,7 @@ pub async fn generate_workspace_symbols(
     // Search characters
     let characters_lock = data.characters();
     for (name, character) in characters_lock.iter() {
-        if fuzzy_match(&query_lower, &name.to_lowercase()) {
+        if fuzzy_match(&query_lower, name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
                 name: name.clone(),
@@ -530,7 +526,7 @@ pub async fn generate_workspace_symbols(
     // Search abilities
     let abilities_lock = data.abilities();
     for (name, ability) in abilities_lock.iter() {
-        if fuzzy_match(&query_lower, &name.to_lowercase()) {
+        if fuzzy_match(&query_lower, name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
                 name: name.clone(),
@@ -549,7 +545,7 @@ pub async fn generate_workspace_symbols(
     // Search portraits
     let portraits_lock = data.portraits();
     for (name, portrait) in portraits_lock.iter() {
-        if fuzzy_match(&query_lower, &name.to_lowercase()) {
+        if fuzzy_match(&query_lower, name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
                 name: name.clone(),
@@ -568,7 +564,7 @@ pub async fn generate_workspace_symbols(
     // Search variables
     let variables_lock = data.variables();
     for (name, var_list) in variables_lock.iter() {
-        if fuzzy_match(&query_lower, &name.to_lowercase()) {
+        if fuzzy_match(&query_lower, name) {
             // Add the first occurrence
             if let Some(var) = var_list.first() {
                 #[allow(deprecated)]
@@ -590,7 +586,7 @@ pub async fn generate_workspace_symbols(
     // Search sounds
     let sounds_lock = data.sounds();
     for (name, sound) in sounds_lock.iter() {
-        if fuzzy_match(&query_lower, &name.to_lowercase()) {
+        if fuzzy_match(&query_lower, name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
                 name: name.clone(),
@@ -609,7 +605,7 @@ pub async fn generate_workspace_symbols(
     // Search sound effects
     let effects_lock = data.sound_effects();
     for (name, effect) in effects_lock.iter() {
-        if fuzzy_match(&query_lower, &name.to_lowercase()) {
+        if fuzzy_match(&query_lower, name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
                 name: name.clone(),
@@ -628,7 +624,7 @@ pub async fn generate_workspace_symbols(
     // Search falloffs
     let falloffs_lock = data.falloffs();
     for (name, falloff) in falloffs_lock.iter() {
-        if fuzzy_match(&query_lower, &name.to_lowercase()) {
+        if fuzzy_match(&query_lower, name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
                 name: name.clone(),
@@ -647,7 +643,7 @@ pub async fn generate_workspace_symbols(
     // Search sound categories
     let categories_lock = data.sound_categories();
     for (name, category) in categories_lock.iter() {
-        if fuzzy_match(&query_lower, &name.to_lowercase()) {
+        if fuzzy_match(&query_lower, name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
                 name: name.clone(),

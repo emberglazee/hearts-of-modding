@@ -77,7 +77,7 @@ fn extract_buildings(entries: &[ast::Entry], path: &Path, map: &mut HashMap<Stri
             if let ast::Value::Block(building_entries) = &ass.value.value {
                 for building_entry in building_entries {
                     if let ast::Entry::Assignment(building_ass) = building_entry {
-                        if building_ass.key.to_lowercase() == "max_level"
+                        if building_ass.key.eq_ignore_ascii_case("max_level")
                             && let ast::Value::Number(level) = &building_ass.value.value
                         {
                             max_level = Some(*level as i32);

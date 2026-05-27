@@ -61,7 +61,7 @@ fn find_sprites_in_entries(
     for entry in entries {
         match entry {
             ast::Entry::Assignment(ass) => {
-                let key_lower = ass.key.to_lowercase();
+                let key_lower = ass.key.to_ascii_lowercase();
                 if key_lower == "spritetypes" {
                     if let ast::Value::Block(inner_entries) = &ass.value.value {
                         find_sprites_in_entries(inner_entries, file_path, map);
@@ -96,11 +96,11 @@ fn parse_sprite_node(ass: &ast::Assignment, file_path: &str, map: &mut HashMap<S
 
         for detail in details {
             if let ast::Entry::Assignment(d_ass) = detail {
-                if d_ass.key.to_lowercase() == "name" {
+                if d_ass.key.eq_ignore_ascii_case("name") {
                     if let ast::Value::String(s) = &d_ass.value.value {
                         name = Some(s.clone());
                     }
-                } else if d_ass.key.to_lowercase() == "texturefile" {
+                } else if d_ass.key.eq_ignore_ascii_case("texturefile") {
                     if let ast::Value::String(s) = &d_ass.value.value {
                         texture_file = Some(s.clone());
                     }

@@ -16,9 +16,11 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Migration to `tower-lsp-server`:** Migrated from `tower-lsp` v0.20.0 to `tower-lsp-server` v0.23.0 (a community fork with continued support), including a slight LSP refactor for the breaking changes.
 
+- **Optimize case-insensitive key checks:** Optimized the way the LSP performs case-insensitive checks for keys to lessen the parsing processing overhead.
+
 ### Fixed
 
-- **Undo escaped square brackets (v0.8.0):** Anything other than newlines (`\n`) and escaped double quotes (`\"`) is considered invalid escape sequences by the HOI4 parser, this includes square brackets. The code action to escape square brackets was removed, and the diagnostic message was changed to reflect this.
+- **Undo escaped square brackets (v0.8.0):** Anything other than newlines (`\n`) and escaped double quotes (`\"`) is considered invalid escape sequences by the HOI4 parser, this includes square brackets. The code action to escape square brackets has been removed, and the diagnostic message has been changed to reflect this.
 
 - **Test modules in release build:** Fixed accidentally including development test modules in release LSP builds for the extension.
 

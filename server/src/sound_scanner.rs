@@ -162,86 +162,76 @@ fn find_sound_definitions(
 ) {
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
-            let key_lower = ass.key.to_lowercase();
-            match key_lower.as_str() {
-                "sound" => {
-                    if let ast::Value::Block(details) = &ass.value.value {
-                        let mut name = None;
-                        let mut file = None;
-                        for detail in details {
-                            if let ast::Entry::Assignment(d_ass) = detail {
-                                match d_ass.key.to_lowercase().as_str() {
-                                    "name" => {
-                                        if let ast::Value::String(s) = &d_ass.value.value {
-                                            name = Some(s.clone());
-                                        }
-                                    }
-                                    "file" => {
-                                        if let ast::Value::String(s) = &d_ass.value.value {
-                                            file = Some(s.clone());
-                                        }
-                                    }
-                                    _ => {}
+            let key = ass.key.as_str();
+            if key.eq_ignore_ascii_case("sound") {
+                if let ast::Value::Block(details) = &ass.value.value {
+                    let mut name = None;
+                    let mut file = None;
+                    for detail in details {
+                        if let ast::Entry::Assignment(d_ass) = detail {
+                            let d_key = d_ass.key.as_str();
+                            if d_key.eq_ignore_ascii_case("name") {
+                                if let ast::Value::String(s) = &d_ass.value.value {
+                                    name = Some(s.clone());
+                                }
+                            } else if d_key.eq_ignore_ascii_case("file") {
+                                if let ast::Value::String(s) = &d_ass.value.value {
+                                    file = Some(s.clone());
                                 }
                             }
                         }
-                        if let (Some(n), Some(f)) = (name, file) {
-                            sounds.insert(
-                                n.clone(),
-                                Sound {
-                                    name: n,
-                                    file: f,
-                                    path: file_path.to_string(),
-                                    range: ass.key_range.clone(),
-                                },
-                            );
-                        }
+                    }
+                    if let (Some(n), Some(f)) = (name, file) {
+                        sounds.insert(
+                            n.clone(),
+                            Sound {
+                                name: n,
+                                file: f,
+                                path: file_path.to_string(),
+                                range: ass.key_range.clone(),
+                            },
+                        );
                     }
                 }
-                "soundeffect" => {
-                    if let ast::Value::Block(details) = &ass.value.value {
-                        let mut name = None;
-                        let mut sounds_list = Vec::new();
-                        for detail in details {
-                            if let ast::Entry::Assignment(d_ass) = detail {
-                                match d_ass.key.to_lowercase().as_str() {
-                                    "name" => {
-                                        if let ast::Value::String(s) = &d_ass.value.value {
-                                            name = Some(s.clone());
-                                        }
-                                    }
-                                    "sounds" => {
-                                        if let ast::Value::Block(s_details) = &d_ass.value.value {
-                                            for s_detail in s_details {
-                                                if let ast::Entry::Assignment(s_ass) = s_detail {
-                                                    let s_key = s_ass.key.to_lowercase();
-                                                    if s_key == "sound" {
-                                                        if let ast::Value::String(s_name) =
-                                                            &s_ass.value.value
+            } else if key.eq_ignore_ascii_case("soundeffect") {
+                if let ast::Value::Block(details) = &ass.value.value {
+                    let mut name = None;
+                    let mut sounds_list = Vec::new();
+                    for detail in details {
+                        if let ast::Entry::Assignment(d_ass) = detail {
+                            let d_key = d_ass.key.as_str();
+                            if d_key.eq_ignore_ascii_case("name") {
+                                if let ast::Value::String(s) = &d_ass.value.value {
+                                    name = Some(s.clone());
+                                }
+                            } else if d_key.eq_ignore_ascii_case("sounds") {
+                                if let ast::Value::Block(s_details) = &d_ass.value.value {
+                                    for s_detail in s_details {
+                                        if let ast::Entry::Assignment(s_ass) = s_detail {
+                                            let s_key = s_ass.key.as_str();
+                                            if s_key.eq_ignore_ascii_case("sound") {
+                                                if let ast::Value::String(s_name) =
+                                                    &s_ass.value.value
+                                                {
+                                                    sounds_list.push(s_name.clone());
+                                                }
+                                            } else if s_key.eq_ignore_ascii_case("weighted_sound") {
+                                                if let ast::Value::Block(w_details) =
+                                                    &s_ass.value.value
+                                                {
+                                                    for w_detail in w_details {
+                                                        if let ast::Entry::Assignment(w_ass) =
+                                                            w_detail
                                                         {
-                                                            sounds_list.push(s_name.clone());
-                                                        }
-                                                    } else if s_key == "weighted_sound" {
-                                                        if let ast::Value::Block(w_details) =
-                                                            &s_ass.value.value
-                                                        {
-                                                            for w_detail in w_details {
-                                                                if let ast::Entry::Assignment(
-                                                                    w_ass,
-                                                                ) = w_detail
+                                                            if w_ass
+                                                                .key
+                                                                .eq_ignore_ascii_case("sound")
+                                                            {
+                                                                if let ast::Value::String(s_name) =
+                                                                    &w_ass.value.value
                                                                 {
-                                                                    if w_ass.key.to_lowercase()
-                                                                        == "sound"
-                                                                    {
-                                                                        if let ast::Value::String(
-                                                                            s_name,
-                                                                        ) = &w_ass.value.value
-                                                                        {
-                                                                            sounds_list.push(
-                                                                                s_name.clone(),
-                                                                            );
-                                                                        }
-                                                                    }
+                                                                    sounds_list
+                                                                        .push(s_name.clone());
                                                                 }
                                                             }
                                                         }
@@ -250,88 +240,81 @@ fn find_sound_definitions(
                                             }
                                         }
                                     }
-                                    _ => {}
                                 }
                             }
                         }
-                        if let Some(n) = name {
-                            sound_effects.insert(
-                                n.clone(),
-                                SoundEffect {
-                                    name: n,
-                                    sounds: sounds_list,
-                                    path: file_path.to_string(),
-                                    range: ass.key_range.clone(),
-                                },
-                            );
-                        }
+                    }
+                    if let Some(n) = name {
+                        sound_effects.insert(
+                            n.clone(),
+                            SoundEffect {
+                                name: n,
+                                sounds: sounds_list,
+                                path: file_path.to_string(),
+                                range: ass.key_range.clone(),
+                            },
+                        );
                     }
                 }
-                "falloff" => {
-                    if let ast::Value::Block(details) = &ass.value.value {
-                        let mut name = None;
-                        for detail in details {
-                            if let ast::Entry::Assignment(d_ass) = detail {
-                                if d_ass.key.to_lowercase() == "name" {
-                                    if let ast::Value::String(s) = &d_ass.value.value {
-                                        name = Some(s.clone());
-                                    }
+            } else if key.eq_ignore_ascii_case("falloff") {
+                if let ast::Value::Block(details) = &ass.value.value {
+                    let mut name = None;
+                    for detail in details {
+                        if let ast::Entry::Assignment(d_ass) = detail {
+                            if d_ass.key.eq_ignore_ascii_case("name") {
+                                if let ast::Value::String(s) = &d_ass.value.value {
+                                    name = Some(s.clone());
                                 }
                             }
                         }
-                        if let Some(n) = name {
-                            falloffs.insert(
-                                n.clone(),
-                                Falloff {
-                                    name: n,
-                                    path: file_path.to_string(),
-                                    range: ass.key_range.clone(),
-                                },
-                            );
-                        }
+                    }
+                    if let Some(n) = name {
+                        falloffs.insert(
+                            n.clone(),
+                            Falloff {
+                                name: n,
+                                path: file_path.to_string(),
+                                range: ass.key_range.clone(),
+                            },
+                        );
                     }
                 }
-                "category" => {
-                    if let ast::Value::Block(details) = &ass.value.value {
-                        let mut name = None;
-                        let mut effects = Vec::new();
-                        for detail in details {
-                            if let ast::Entry::Assignment(d_ass) = detail {
-                                match d_ass.key.to_lowercase().as_str() {
-                                    "name" => {
-                                        if let ast::Value::String(s) = &d_ass.value.value {
-                                            name = Some(s.clone());
-                                        }
-                                    }
-                                    "soundeffects" => {
-                                        if let ast::Value::Block(e_details) = &d_ass.value.value {
-                                            for e_detail in e_details {
-                                                if let ast::Entry::Value(v) = e_detail {
-                                                    if let ast::Value::String(s) = &v.value {
-                                                        effects.push(s.clone());
-                                                    }
-                                                }
+            } else if key.eq_ignore_ascii_case("category") {
+                if let ast::Value::Block(details) = &ass.value.value {
+                    let mut name = None;
+                    let mut effects = Vec::new();
+                    for detail in details {
+                        if let ast::Entry::Assignment(d_ass) = detail {
+                            let d_key = d_ass.key.as_str();
+                            if d_key.eq_ignore_ascii_case("name") {
+                                if let ast::Value::String(s) = &d_ass.value.value {
+                                    name = Some(s.clone());
+                                }
+                            } else if d_key.eq_ignore_ascii_case("soundeffects") {
+                                if let ast::Value::Block(e_details) = &d_ass.value.value {
+                                    for e_detail in e_details {
+                                        if let ast::Entry::Value(v) = e_detail {
+                                            if let ast::Value::String(s) = &v.value {
+                                                effects.push(s.clone());
                                             }
                                         }
                                     }
-                                    _ => {}
                                 }
                             }
                         }
-                        if let Some(n) = name {
-                            categories.insert(
-                                n.clone(),
-                                SoundCategory {
-                                    name: n,
-                                    soundeffects: effects,
-                                    path: file_path.to_string(),
-                                    range: ass.key_range.clone(),
-                                },
-                            );
-                        }
+                    }
+                    if let Some(n) = name {
+                        categories.insert(
+                            n.clone(),
+                            SoundCategory {
+                                name: n,
+                                soundeffects: effects,
+                                path: file_path.to_string(),
+                                range: ass.key_range.clone(),
+                            },
+                        );
                     }
                 }
-                _ => {}
             }
         }
     }

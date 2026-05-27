@@ -560,7 +560,7 @@ impl Backend {
                     find_identifier_at(&script, position, &mut scope_stack, &achievements)
                 {
                     let mut hover_text = String::new();
-                    let context_key_lower = context_key.as_ref().map(|s| s.to_lowercase());
+                    let context_key_lower = context_key.as_ref().map(|s| s.to_ascii_lowercase());
 
                     fn push_section(full_text: &mut String, section: &str) {
                         if !full_text.is_empty() && !full_text.ends_with("---\n\n") {
@@ -648,7 +648,7 @@ impl Backend {
                         if let Some(state) = states.get(&id) {
                             // To prevent false positives, we only show this if the identifier is explicitly related to states
                             // Or if the identifier *is* the number (meaning it's an element in an array, like in any_state_of)
-                            let ident_lower = identifier.to_lowercase();
+                            let ident_lower = identifier.to_ascii_lowercase();
                             let is_state_key = ident_lower.contains("state")
                                 || ident_lower.contains("capital")
                                 || (ident_lower == "id"
@@ -682,7 +682,7 @@ impl Backend {
 
                         let provinces = self.scanner_data.provinces();
                         if let Some(province) = provinces.get(&id) {
-                            let ident_lower = identifier.to_lowercase();
+                            let ident_lower = identifier.to_ascii_lowercase();
                             let is_province_key = ident_lower.contains("province")
                                 || ident_lower == "victory_points"
                                 || (identifier.parse::<u32>().is_ok()
@@ -712,7 +712,7 @@ impl Backend {
 
                         let regions = self.scanner_data.strategic_regions();
                         if let Some(region) = regions.get(&id) {
-                            let ident_lower = identifier.to_lowercase();
+                            let ident_lower = identifier.to_ascii_lowercase();
                             let is_region_key = ident_lower.contains("strategic_region")
                                 || (ident_lower == "id"
                                     && context_key_lower.as_deref() == Some("strategic_region"))
@@ -1266,7 +1266,7 @@ impl Backend {
                     }
 
                     // Check for modifier blocks (modifier = { ... } or modifiers = { ... })
-                    let identifier_lower = identifier.to_lowercase();
+                    let identifier_lower = identifier.to_ascii_lowercase();
                     if (identifier_lower == "modifier"
                         || identifier_lower == "modifiers"
                         || identifier_lower == "unit_modifiers")

@@ -90,7 +90,7 @@ fn find_characters_in_entries(
     for entry in entries {
         match entry {
             ast::Entry::Assignment(ass) => {
-                if ass.key.to_lowercase() == "characters" {
+                if ass.key.eq_ignore_ascii_case("characters") {
                     if let ast::Value::Block(characters) = &ass.value.value {
                         for char_entry in characters {
                             if let ast::Entry::Assignment(char_ass) = char_entry {
@@ -131,7 +131,7 @@ fn find_characters_in_entries(
 fn parse_character_details(entries: &[ast::Entry], character: &mut Character) {
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
-            let key = ass.key.to_lowercase();
+            let key = ass.key.to_ascii_lowercase();
             match key.as_str() {
                 "name" => {
                     if let ast::Value::String(s) = &ass.value.value {
@@ -152,11 +152,11 @@ fn parse_character_details(entries: &[ast::Entry], character: &mut Character) {
                     if let ast::Value::Block(categories) = &ass.value.value {
                         for cat_entry in categories {
                             if let ast::Entry::Assignment(cat_ass) = cat_entry {
-                                let category = cat_ass.key.to_lowercase();
+                                let category = cat_ass.key.to_ascii_lowercase();
                                 if let ast::Value::Block(sizes) = &cat_ass.value.value {
                                     for size_entry in sizes {
                                         if let ast::Entry::Assignment(size_ass) = size_entry {
-                                            let size = size_ass.key.to_lowercase();
+                                            let size = size_ass.key.to_ascii_lowercase();
                                             if let ast::Value::String(sprite) =
                                                 &size_ass.value.value
                                             {
@@ -206,7 +206,7 @@ fn parse_character_details(entries: &[ast::Entry], character: &mut Character) {
 fn parse_role_details(entries: &[ast::Entry], role: &mut CharacterRole) {
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
-            let key = ass.key.to_lowercase();
+            let key = ass.key.to_ascii_lowercase();
             match key.as_str() {
                 "ideology" => {
                     if let ast::Value::String(s) = &ass.value.value {

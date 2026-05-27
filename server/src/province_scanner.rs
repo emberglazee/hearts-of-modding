@@ -36,7 +36,7 @@ where
                     let g = parts[2].parse::<u8>().unwrap_or(0);
                     let b = parts[3].parse::<u8>().unwrap_or(0);
                     let terrain = parts[4].to_string();
-                    let is_coastal = parts[5].to_lowercase() == "true";
+                    let is_coastal = parts[5].eq_ignore_ascii_case("true");
                     let prov_type = parts[6].to_string();
                     let continent = parts[7].parse::<u32>().unwrap_or(0);
 

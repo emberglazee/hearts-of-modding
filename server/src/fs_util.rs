@@ -49,26 +49,37 @@ pub fn is_path_ignored(path: &Path, ignored: &[regex::Regex]) -> bool {
 /// Fuzzy match for symbol search.
 /// Returns true if `query` is empty, is a substring of `target`,
 /// or all characters in `query` appear in order in `target` (case-insensitive).
-pub fn fuzzy_match(query: &str, target: &str) -> bool {
-    if query.is_empty() {
+pub fn fuzzy_match(query_lowercase: &str, target: &str) -> bool {
+    if query_lowercase.is_empty() {
         return true;
     }
 
-    let query_lower = query.to_lowercase();
-    let target_lower = target.to_lowercase();
-
-    if target_lower.contains(&query_lower) {
-        return true;
-    }
-
-    let mut target_chars = target_lower.chars();
-    for query_char in query_lower.chars() {
-        if !target_chars.any(|c| c == query_char) {
-            return false;
+    // 1. Case-insensitive substring check without allocating target_lower
+    if target.len() >= query_lowercase.len() {
+        let found = target
+            .as_bytes()
+            .windows(query_lowercase.len())
+            .any(|window| window.eq_ignore_ascii_case(query_lowercase.as_bytes()));
+        if found {
+            return true;
         }
     }
 
-    true
+    // 2. Case-insensitive char-by-char subsequence check without allocating
+    let mut query_chars = query_lowercase.chars();
+    let mut current_query_char = query_chars.next();
+
+    for target_char in target.chars() {
+        if let Some(qc) = current_query_char {
+            if target_char.to_ascii_lowercase() == qc {
+                current_query_char = query_chars.next();
+            }
+        } else {
+            return true;
+        }
+    }
+
+    current_query_char.is_none()
 }
 
 #[cfg(test)]

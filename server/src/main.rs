@@ -393,7 +393,7 @@ impl LanguageServer for Backend {
                 }
                 for k in SCOPES.iter() {
                     keywords.insert(k.to_string());
-                    keywords.insert(k.to_lowercase());
+                    keywords.insert(k.to_ascii_lowercase());
                 }
 
                 // Add hardcoded achievement keywords
@@ -1548,7 +1548,7 @@ impl Backend {
                         });
                     }
 
-                    if parts[2].to_lowercase() == "sea" && id <= 0 {
+                    if parts[2].eq_ignore_ascii_case("sea") && id <= 0 {
                         diagnostics.push(Diagnostic {
                             range: Range {
                                 start: Position {
@@ -1655,11 +1655,11 @@ impl Backend {
 
         for entry in script.entries {
             if let ast::Entry::Assignment(ass) = entry {
-                if ass.key.to_lowercase() == "adjacency_rule" {
+                if ass.key.eq_ignore_ascii_case("adjacency_rule") {
                     if let ast::Value::Block(rule_entries) = &ass.value.value {
                         for rule_entry in rule_entries {
                             if let ast::Entry::Assignment(r_ass) = rule_entry {
-                                if r_ass.key.to_lowercase() == "required_provinces" {
+                                if r_ass.key.eq_ignore_ascii_case("required_provinces") {
                                     if let ast::Value::Block(prov_entries) = &r_ass.value.value {
                                         for p_entry in prov_entries {
                                             if let ast::Entry::Value(p_val) = p_entry {
@@ -1702,11 +1702,11 @@ impl Backend {
 
         for entry in &script.entries {
             if let ast::Entry::Assignment(ass) = entry {
-                if ass.key.to_lowercase() == "strategic_region" {
+                if ass.key.eq_ignore_ascii_case("strategic_region") {
                     if let ast::Value::Block(region_entries) = &ass.value.value {
                         for region_entry in region_entries {
                             if let ast::Entry::Assignment(r_ass) = region_entry {
-                                if r_ass.key.to_lowercase() == "provinces" {
+                                if r_ass.key.eq_ignore_ascii_case("provinces") {
                                     if let ast::Value::Block(prov_entries) = &r_ass.value.value {
                                         for prov_entry in prov_entries {
                                             if let ast::Entry::Value(val) = prov_entry {
@@ -2504,7 +2504,7 @@ impl Backend {
         for entry in entries {
             match entry {
                 ast::Entry::Assignment(ass) => {
-                    let key_lower = ass.key.to_lowercase();
+                    let key_lower = ass.key.to_ascii_lowercase();
                     if key_lower == "texturefile" {
                         if let ast::Value::String(val) = &ass.value.value {
                             let has_double_slash = val.contains("//");
@@ -2615,7 +2615,7 @@ impl Backend {
     ) {
         match entry {
             ast::Entry::Assignment(ass) => {
-                let key_lower = ass.key.to_lowercase();
+                let key_lower = ass.key.to_ascii_lowercase();
                 let mut pushed_scope = false;
 
                 // Structural blocks that push scope
@@ -2640,7 +2640,7 @@ impl Backend {
                             if s == scope::Scope::Idea && scope_stack.stack().len() == 3 {
                                 let has_picture = entries.iter().any(|e| {
                                     if let ast::Entry::Assignment(a) = e {
-                                        a.key.to_lowercase() == "picture"
+                                        a.key.eq_ignore_ascii_case("picture")
                                     } else {
                                         false
                                     }
@@ -2792,12 +2792,12 @@ impl Backend {
                     ];
 
                     for kw in keywords {
-                        if key_lower == kw.to_lowercase() && ass.key != kw {
+                        if key_lower == kw && ass.key != kw {
                             let mut message = format!(
                                 "Standard Paradox Script convention uses '{}' instead of '{}'.",
                                 kw, ass.key
                             );
-                            if kw.to_lowercase().contains("sprite") || kw == "texturefile" {
+                            if kw.contains("sprite") || kw == "texturefile" {
                                 message.push_str(
                                     "\nReference: https://hoi4.paradoxwikis.com/Modding#GFX",
                                 );
@@ -2850,7 +2850,7 @@ impl Backend {
                         if should_flag {
                             for (comment_text, range) in comments {
                                 if range.start_line == ass.key_range.start_line {
-                                    if comment_text.to_lowercase().contains("ignore") {
+                                    if comment_text.to_ascii_lowercase().contains("ignore") {
                                         should_flag = false;
                                         break;
                                     }
