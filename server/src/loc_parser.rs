@@ -467,14 +467,18 @@ pub fn validate_loc_string(
     // (We could validate icon existence if we had sprite data here, but for now just ensure syntax is OK)
 
     // 3. Validate Color Codes §Y...§!
-    let mut open_colors = Vec::new();
+    // NOTE: HOI4 color codes are flat/replacement-based, not nested.
+    // Each new color code replaces the previous one, and §! resets to default.
+    // A color code is only "unclosed" if it's the last one before end-of-string
+    // with no §! after it.
+    let mut open_color: Option<(String, usize)> = None;
     for cap in re_color.captures_iter(&entry.value) {
         let m = cap.get(0).unwrap();
         let code = cap.get(1).unwrap().as_str();
         let pos = m.start();
 
         if code == "!" {
-            if open_colors.is_empty() {
+            if open_color.is_none() {
                 let range = Range {
                     start_line: entry.range.start_line,
                     start_col: entry.value_start_col + pos as u32,
@@ -491,7 +495,7 @@ pub fn validate_loc_string(
                     tags: Vec::new(),
                 });
             } else {
-                open_colors.pop();
+                open_color = None;
             }
         } else {
             if !color_codes.contains(code) {
@@ -513,11 +517,12 @@ pub fn validate_loc_string(
                     tags: Vec::new(),
                 });
             }
-            open_colors.push((code.to_string(), pos));
+            // Any new color code replaces the previous one — they don't nest
+            open_color = Some((code.to_string(), pos));
         }
     }
 
-    for (code, pos) in open_colors {
+    if let Some((code, pos)) = open_color {
         let range = Range {
             start_line: entry.range.start_line,
             start_col: entry.value_start_col + pos as u32,

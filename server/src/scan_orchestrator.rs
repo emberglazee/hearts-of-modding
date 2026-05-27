@@ -473,13 +473,16 @@ impl Backend {
         let filter = self.get_sync_filter();
         let roots_owned = roots.to_vec();
 
-        let (all_locs, dups, logs) = tokio::task::spawn_blocking(move || {
+        let (all_locs, dups, game_keys, logs) = tokio::task::spawn_blocking(move || {
             let mut all_locs = HashMap::new();
             let mut dups = HashSet::new();
+            let mut game_keys = HashSet::new();
             let mut seen_locs_by_lang: HashSet<(String, String)> = HashSet::new();
             let mut logs = Vec::new();
+            let has_game_root = roots_owned.len() > 1;
 
-            for root in roots_owned {
+            for (root_idx, root) in roots_owned.iter().enumerate() {
+                let is_game_root = has_game_root && root_idx == 0;
                 let loc_dir = root.join("localisation");
                 if !loc_dir.exists() {
                     continue;
@@ -526,6 +529,9 @@ impl Backend {
 
                             for (key, entry) in parsed {
                                 let lang_key_pair = (lang_str.clone(), key.clone());
+                                if is_game_root {
+                                    game_keys.insert(lang_key_pair.clone());
+                                }
                                 if seen_locs_by_lang.contains(&lang_key_pair) {
                                     dups.insert(lang_key_pair.clone());
                                 } else {
@@ -543,7 +549,7 @@ impl Backend {
                     }
                 }
             }
-            (all_locs, dups, logs)
+            (all_locs, dups, game_keys, logs)
         })
         .await
         .unwrap();
@@ -555,12 +561,19 @@ impl Backend {
         self.scanner_data.set_duplicated_loc_keys(dups);
         let _d_map = self.scanner_data.duplicated_loc_keys();
 
+        self.scanner_data.set_game_loc_keys(game_keys);
+        let game_loc_count = self.scanner_data.game_loc_keys().len();
+
         self.scanner_data.set_localization(all_locs);
         let loc = self.scanner_data.localization();
         self.client
             .log_message(
                 MessageType::INFO,
-                format!("Total: Loaded {} localization keys", loc.len()),
+                format!(
+                    "Total: Loaded {} localization keys ({} from game path)",
+                    loc.len(),
+                    game_loc_count
+                ),
             )
             .await;
     }

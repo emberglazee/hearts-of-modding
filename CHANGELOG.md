@@ -2,6 +2,18 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
+## [v0.11.1] - 2026-05-28
+
+### Changed
+
+- **Localization key overrides:** Now there's a warning for duplicate localization keys only if they are defined twice in the mod, as vanilla game overrides are intentional (in most cases).
+
+### Fixed
+
+- **Flat color code stacking:** The localization parser no longer stacks the color codes, which led to wrongful `unclosed_color_code` warnings.
+
+  - e.g., `§4To fight for liberty and new §2freedoms!§!` is now silent.
+
 ## [v0.11.0] - 2026-05-28
 
 ### Added

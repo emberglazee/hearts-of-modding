@@ -1825,6 +1825,7 @@ impl Backend {
         let scripted_locs = self.scanner_data.scripted_locs();
         let color_codes = self.scanner_data.color_codes();
         let dups = self.scanner_data.duplicated_loc_keys();
+        let game_loc_keys = self.scanner_data.game_loc_keys();
 
         // Add structural diagnostics
         for d in loc_diagnostics_structural {
@@ -1934,25 +1935,31 @@ impl Backend {
             let is_duplicated = dups.contains(&(doc_lang_str.clone(), entry.key.clone()));
 
             if is_duplicated {
-                let loc_map = self.scanner_data.localization();
-                let mut is_intentional_override = false;
-                if entry.path.contains("replace") {
-                    is_intentional_override = true;
-                } else if let Some(existing) = loc_map.get(&entry.key) {
-                    if existing.path.contains("replace") {
-                        is_intentional_override = true;
-                    }
-                }
+                // If the key exists in the vanilla game's localization files,
+                // it's an intentional override — no warning needed.
+                let is_game_override = game_loc_keys.contains(&(doc_lang_str.clone(), entry.key.clone()));
 
-                if !is_intentional_override {
-                    diagnostics.push(Diagnostic {
-                        range: ast_range_to_lsp(&entry.range),
-                        severity: Some(DiagnosticSeverity::WARNING),
-                        message: format!("Duplicate localization key found: '{}'. The game will only use one of them unless one is in a 'replace' folder.", entry.key),
-                        source: Some("Hearts of Modding".to_string()),
-                        code: Some(NumberOrString::String("duplicate_loc_key".to_string())),
-                        ..Default::default()
-                    });
+                if !is_game_override {
+                    let loc_map = self.scanner_data.localization();
+                    let mut is_intentional_override = false;
+                    if entry.path.contains("replace") {
+                        is_intentional_override = true;
+                    } else if let Some(existing) = loc_map.get(&entry.key) {
+                        if existing.path.contains("replace") {
+                            is_intentional_override = true;
+                        }
+                    }
+
+                    if !is_intentional_override {
+                        diagnostics.push(Diagnostic {
+                            range: ast_range_to_lsp(&entry.range),
+                            severity: Some(DiagnosticSeverity::WARNING),
+                            message: format!("Duplicate localization key found: '{}'. The game will only use one of them unless one is in a 'replace' folder.", entry.key),
+                            source: Some("Hearts of Modding".to_string()),
+                            code: Some(NumberOrString::String("duplicate_loc_key".to_string())),
+                            ..Default::default()
+                        });
+                    }
                 }
             }
         }

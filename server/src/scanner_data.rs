@@ -80,6 +80,7 @@ pub(crate) struct ScannerData {
     portraits_field: Arc<ArcSwap<HashMap<String, portrait_scanner::Portrait>>>,
     scripted_locs_field: Arc<ArcSwap<HashMap<String, scripted_loc_scanner::ScriptedLoc>>>,
     duplicated_loc_keys_field: Arc<ArcSwap<HashSet<(String, String)>>>,
+    game_loc_keys_field: Arc<ArcSwap<HashSet<(String, String)>>>,
     states_field: Arc<ArcSwap<HashMap<u32, state_scanner::State>>>,
     supply_nodes_field: Arc<ArcSwap<Vec<logistics_scanner::SupplyNode>>>,
     railways_field: Arc<ArcSwap<Vec<logistics_scanner::Railway>>>,
@@ -130,6 +131,7 @@ impl ScannerData {
             portraits_field: Arc::new(ArcSwap::from_pointee(HashMap::new())),
             scripted_locs_field: Arc::new(ArcSwap::from_pointee(HashMap::new())),
             duplicated_loc_keys_field: Arc::new(ArcSwap::from_pointee(HashSet::new())),
+            game_loc_keys_field: Arc::new(ArcSwap::from_pointee(HashSet::new())),
             states_field: Arc::new(ArcSwap::from_pointee(HashMap::new())),
             supply_nodes_field: Arc::new(ArcSwap::from_pointee(Vec::new())),
             railways_field: Arc::new(ArcSwap::from_pointee(Vec::new())),
@@ -178,6 +180,7 @@ impl ScannerData {
     scanner_field!(portraits, HashMap<String, portrait_scanner::Portrait>);
     scanner_field!(scripted_locs, HashMap<String, scripted_loc_scanner::ScriptedLoc>);
     scanner_field!(duplicated_loc_keys, HashSet<(String, String)>);
+    scanner_field!(game_loc_keys, HashSet<(String, String)>);
     scanner_field!(states, HashMap<u32, state_scanner::State>);
     scanner_field!(supply_nodes, Vec<logistics_scanner::SupplyNode>);
     scanner_field!(railways, Vec<logistics_scanner::Railway>);
