@@ -17,7 +17,9 @@ impl Backend {
             if let Some(content) = self.documents.get(&uri) {
                 let lines: Vec<&str> = content.lines().collect();
                 if let Some(line) = lines.get(position.line as usize) {
-                    let prefix = &line[..position.character as usize];
+                    let byte_offset =
+                        crate::utf16_to_byte_offset(line, position.character as usize);
+                    let prefix = &line[..byte_offset];
 
                     // Check if we are inside a bracketed scope [Root.GetTag]
                     if let Some(bracket_start) = prefix.rfind('[') {

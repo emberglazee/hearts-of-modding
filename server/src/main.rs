@@ -105,6 +105,22 @@ pub(crate) fn utf16_len(s: &str) -> u32 {
     s.chars().map(|c| c.len_utf16()).sum::<usize>() as u32
 }
 
+/// Convert a UTF-16 code unit offset to a UTF-8 byte offset
+/// This is required because LSP uses UTF-16 positions, but Rust strings are UTF-8
+pub(crate) fn utf16_to_byte_offset(s: &str, utf16_offset: usize) -> usize {
+    let mut byte_offset = 0;
+    let mut utf16_so_far = 0;
+    for c in s.chars() {
+        let cu = c.len_utf16();
+        if utf16_so_far + cu > utf16_offset {
+            break;
+        }
+        utf16_so_far += cu;
+        byte_offset += c.len_utf8();
+    }
+    byte_offset
+}
+
 struct Backend {
     client: Client,
     documents: DashMap<String, String>,
@@ -3450,3 +3466,5 @@ pub mod test_loc_dups;
 pub mod test_loc_empty;
 #[cfg(test)]
 pub mod test_parser_skip;
+#[cfg(test)]
+pub mod test_utf16_conversion;

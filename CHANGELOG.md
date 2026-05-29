@@ -8,6 +8,10 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - Several more optimizations for the LSP to ensure a smoother experience.
 
+### Fixed
+
+- **Critical localization-related LSP crash:** Fixed an LSP crash when trying to autocomplete after the paragraph sign (for color codes) in localization, caused by incorrect handling of 1 UTF-16 code unit vs 2 UTF-8 bytes.
+
 ## [v0.11.1] - 2026-05-29
 
 ### Changed
