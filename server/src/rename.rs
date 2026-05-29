@@ -1,5 +1,6 @@
 use crate::ast::{Entry, Range, Value};
 use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 use tower_lsp_server::ls_types::{
     Position as LspPosition, PrepareRenameResponse, Range as LspRange, TextEdit, Uri, WorkspaceEdit,
 };
@@ -38,6 +39,10 @@ pub async fn rename_symbol(
     new_name: &str,
     data: &crate::ScannerData,
     documents: &dashmap::DashMap<String, String>,
+    document_asts: &dashmap::DashMap<
+        String,
+        (Arc<crate::ast::Script>, Vec<(String, crate::ast::Range)>),
+    >,
     workspace_files: &HashSet<String>,
 ) -> Option<WorkspaceEdit> {
     let path = uri.trim_start_matches("file://");
@@ -53,7 +58,7 @@ pub async fn rename_symbol(
             find_event_references(
                 &old_name,
                 new_name,
-                documents,
+                document_asts,
                 workspace_files,
                 &mut changes,
             );
@@ -62,7 +67,7 @@ pub async fn rename_symbol(
             find_scripted_trigger_references(
                 &old_name,
                 new_name,
-                documents,
+                document_asts,
                 workspace_files,
                 &mut changes,
             );
@@ -71,7 +76,7 @@ pub async fn rename_symbol(
             find_scripted_effect_references(
                 &old_name,
                 new_name,
-                documents,
+                document_asts,
                 workspace_files,
                 &mut changes,
             );
@@ -80,7 +85,7 @@ pub async fn rename_symbol(
             find_idea_references(
                 &old_name,
                 new_name,
-                documents,
+                document_asts,
                 workspace_files,
                 &mut changes,
             );
@@ -89,7 +94,7 @@ pub async fn rename_symbol(
             find_character_references(
                 &old_name,
                 new_name,
-                documents,
+                document_asts,
                 workspace_files,
                 &mut changes,
             );
@@ -98,7 +103,7 @@ pub async fn rename_symbol(
             find_ability_references(
                 &old_name,
                 new_name,
-                documents,
+                document_asts,
                 workspace_files,
                 &mut changes,
             );
@@ -107,7 +112,7 @@ pub async fn rename_symbol(
             find_variable_references(
                 &old_name,
                 new_name,
-                documents,
+                document_asts,
                 workspace_files,
                 &mut changes,
             );
@@ -165,24 +170,23 @@ async fn find_symbol_at_position(
 fn find_event_references(
     old_name: &str,
     new_name: &str,
-    documents: &dashmap::DashMap<String, String>,
+    document_asts: &dashmap::DashMap<
+        String,
+        (Arc<crate::ast::Script>, Vec<(String, crate::ast::Range)>),
+    >,
     workspace_files: &HashSet<String>,
     changes: &mut HashMap<Uri, Vec<TextEdit>>,
 ) {
-    for entry in documents.iter() {
+    for entry in document_asts.iter() {
         let uri_str = entry.key();
-        let content = entry.value();
+        let (script, _) = entry.value();
 
-        // Parse the document
-        {
-            let (script, _) = crate::parser::parse_script(content);
-            let mut edits = Vec::new();
-            find_event_references_in_entries(&script.entries, old_name, new_name, &mut edits);
+        let mut edits = Vec::new();
+        find_event_references_in_entries(&script.entries, old_name, new_name, &mut edits);
 
-            if !edits.is_empty() {
-                if let Ok(url) = uri_str.parse::<Uri>() {
-                    changes.insert(url, edits);
-                }
+        if !edits.is_empty() {
+            if let Ok(url) = uri_str.parse::<Uri>() {
+                changes.insert(url, edits);
             }
         }
     }
@@ -193,7 +197,7 @@ fn find_event_references(
             continue;
         };
         let uri_str = url.as_str().to_string();
-        if documents.contains_key(&uri_str) {
+        if document_asts.contains_key(&uri_str) {
             continue;
         }
         if let Ok(content) = std::fs::read_to_string(file_path) {
@@ -252,23 +256,23 @@ fn find_event_references_in_entries(
 fn find_scripted_trigger_references(
     old_name: &str,
     new_name: &str,
-    documents: &dashmap::DashMap<String, String>,
+    document_asts: &dashmap::DashMap<
+        String,
+        (Arc<crate::ast::Script>, Vec<(String, crate::ast::Range)>),
+    >,
     workspace_files: &HashSet<String>,
     changes: &mut HashMap<Uri, Vec<TextEdit>>,
 ) {
-    for entry in documents.iter() {
+    for entry in document_asts.iter() {
         let uri_str = entry.key();
-        let content = entry.value();
+        let (script, _) = entry.value();
 
-        {
-            let (script, _) = crate::parser::parse_script(content);
-            let mut edits = Vec::new();
-            find_scripted_references_in_entries(&script.entries, old_name, new_name, &mut edits);
+        let mut edits = Vec::new();
+        find_scripted_references_in_entries(&script.entries, old_name, new_name, &mut edits);
 
-            if !edits.is_empty() {
-                if let Ok(url) = uri_str.parse::<Uri>() {
-                    changes.insert(url, edits);
-                }
+        if !edits.is_empty() {
+            if let Ok(url) = uri_str.parse::<Uri>() {
+                changes.insert(url, edits);
             }
         }
     }
@@ -279,7 +283,7 @@ fn find_scripted_trigger_references(
             continue;
         };
         let uri_str = url.as_str().to_string();
-        if documents.contains_key(&uri_str) {
+        if document_asts.contains_key(&uri_str) {
             continue;
         }
         if let Ok(content) = std::fs::read_to_string(file_path) {
@@ -297,23 +301,23 @@ fn find_scripted_trigger_references(
 fn find_scripted_effect_references(
     old_name: &str,
     new_name: &str,
-    documents: &dashmap::DashMap<String, String>,
+    document_asts: &dashmap::DashMap<
+        String,
+        (Arc<crate::ast::Script>, Vec<(String, crate::ast::Range)>),
+    >,
     workspace_files: &HashSet<String>,
     changes: &mut HashMap<Uri, Vec<TextEdit>>,
 ) {
-    for entry in documents.iter() {
+    for entry in document_asts.iter() {
         let uri_str = entry.key();
-        let content = entry.value();
+        let (script, _) = entry.value();
 
-        {
-            let (script, _) = crate::parser::parse_script(content);
-            let mut edits = Vec::new();
-            find_scripted_references_in_entries(&script.entries, old_name, new_name, &mut edits);
+        let mut edits = Vec::new();
+        find_scripted_references_in_entries(&script.entries, old_name, new_name, &mut edits);
 
-            if !edits.is_empty() {
-                if let Ok(url) = uri_str.parse::<Uri>() {
-                    changes.insert(url, edits);
-                }
+        if !edits.is_empty() {
+            if let Ok(url) = uri_str.parse::<Uri>() {
+                changes.insert(url, edits);
             }
         }
     }
@@ -324,7 +328,7 @@ fn find_scripted_effect_references(
             continue;
         };
         let uri_str = url.as_str().to_string();
-        if documents.contains_key(&uri_str) {
+        if document_asts.contains_key(&uri_str) {
             continue;
         }
         if let Ok(content) = std::fs::read_to_string(file_path) {
@@ -332,9 +336,7 @@ fn find_scripted_effect_references(
             let mut edits = Vec::new();
             find_scripted_references_in_entries(&script.entries, old_name, new_name, &mut edits);
             if !edits.is_empty() {
-                if let Ok(url) = uri_str.parse::<Uri>() {
-                    changes.insert(url, edits);
-                }
+                changes.insert(url, edits);
             }
         }
     }
@@ -377,23 +379,23 @@ fn find_scripted_references_in_entries(
 fn find_idea_references(
     old_name: &str,
     new_name: &str,
-    documents: &dashmap::DashMap<String, String>,
+    document_asts: &dashmap::DashMap<
+        String,
+        (Arc<crate::ast::Script>, Vec<(String, crate::ast::Range)>),
+    >,
     workspace_files: &HashSet<String>,
     changes: &mut HashMap<Uri, Vec<TextEdit>>,
 ) {
-    for entry in documents.iter() {
+    for entry in document_asts.iter() {
         let uri_str = entry.key();
-        let content = entry.value();
+        let (script, _) = entry.value();
 
-        {
-            let (script, _) = crate::parser::parse_script(content);
-            let mut edits = Vec::new();
-            find_idea_references_in_entries(&script.entries, old_name, new_name, &mut edits);
+        let mut edits = Vec::new();
+        find_idea_references_in_entries(&script.entries, old_name, new_name, &mut edits);
 
-            if !edits.is_empty() {
-                if let Ok(url) = uri_str.parse::<Uri>() {
-                    changes.insert(url, edits);
-                }
+        if !edits.is_empty() {
+            if let Ok(url) = uri_str.parse::<Uri>() {
+                changes.insert(url, edits);
             }
         }
     }
@@ -404,7 +406,7 @@ fn find_idea_references(
             continue;
         };
         let uri_str = url.as_str().to_string();
-        if documents.contains_key(&uri_str) {
+        if document_asts.contains_key(&uri_str) {
             continue;
         }
         if let Ok(content) = std::fs::read_to_string(file_path) {
@@ -463,23 +465,23 @@ fn find_idea_references_in_entries(
 fn find_character_references(
     old_name: &str,
     new_name: &str,
-    documents: &dashmap::DashMap<String, String>,
+    document_asts: &dashmap::DashMap<
+        String,
+        (Arc<crate::ast::Script>, Vec<(String, crate::ast::Range)>),
+    >,
     workspace_files: &HashSet<String>,
     changes: &mut HashMap<Uri, Vec<TextEdit>>,
 ) {
-    for entry in documents.iter() {
+    for entry in document_asts.iter() {
         let uri_str = entry.key();
-        let content = entry.value();
+        let (script, _) = entry.value();
 
-        {
-            let (script, _) = crate::parser::parse_script(content);
-            let mut edits = Vec::new();
-            find_character_references_in_entries(&script.entries, old_name, new_name, &mut edits);
+        let mut edits = Vec::new();
+        find_character_references_in_entries(&script.entries, old_name, new_name, &mut edits);
 
-            if !edits.is_empty() {
-                if let Ok(url) = uri_str.parse::<Uri>() {
-                    changes.insert(url, edits);
-                }
+        if !edits.is_empty() {
+            if let Ok(url) = uri_str.parse::<Uri>() {
+                changes.insert(url, edits);
             }
         }
     }
@@ -490,7 +492,7 @@ fn find_character_references(
             continue;
         };
         let uri_str = url.as_str().to_string();
-        if documents.contains_key(&uri_str) {
+        if document_asts.contains_key(&uri_str) {
             continue;
         }
         if let Ok(content) = std::fs::read_to_string(file_path) {
@@ -561,23 +563,23 @@ fn find_character_references_in_entries(
 fn find_variable_references(
     old_name: &str,
     new_name: &str,
-    documents: &dashmap::DashMap<String, String>,
+    document_asts: &dashmap::DashMap<
+        String,
+        (Arc<crate::ast::Script>, Vec<(String, crate::ast::Range)>),
+    >,
     workspace_files: &HashSet<String>,
     changes: &mut HashMap<Uri, Vec<TextEdit>>,
 ) {
-    for entry in documents.iter() {
+    for entry in document_asts.iter() {
         let uri_str = entry.key();
-        let content = entry.value();
+        let (script, _) = entry.value();
 
-        {
-            let (script, _) = crate::parser::parse_script(content);
-            let mut edits = Vec::new();
-            find_variable_references_in_entries(&script.entries, old_name, new_name, &mut edits);
+        let mut edits = Vec::new();
+        find_variable_references_in_entries(&script.entries, old_name, new_name, &mut edits);
 
-            if !edits.is_empty() {
-                if let Ok(url) = uri_str.parse::<Uri>() {
-                    changes.insert(url, edits);
-                }
+        if !edits.is_empty() {
+            if let Ok(url) = uri_str.parse::<Uri>() {
+                changes.insert(url, edits);
             }
         }
     }
@@ -588,7 +590,7 @@ fn find_variable_references(
             continue;
         };
         let uri_str = url.as_str().to_string();
-        if documents.contains_key(&uri_str) {
+        if document_asts.contains_key(&uri_str) {
             continue;
         }
         if let Ok(content) = std::fs::read_to_string(file_path) {
@@ -651,23 +653,23 @@ fn find_variable_references_in_entries(
 fn find_ability_references(
     old_name: &str,
     new_name: &str,
-    documents: &dashmap::DashMap<String, String>,
+    document_asts: &dashmap::DashMap<
+        String,
+        (Arc<crate::ast::Script>, Vec<(String, crate::ast::Range)>),
+    >,
     workspace_files: &HashSet<String>,
     changes: &mut HashMap<Uri, Vec<TextEdit>>,
 ) {
-    for entry in documents.iter() {
+    for entry in document_asts.iter() {
         let uri_str = entry.key();
-        let content = entry.value();
+        let (script, _) = entry.value();
 
-        {
-            let (script, _) = crate::parser::parse_script(content);
-            let mut edits = Vec::new();
-            find_ability_references_in_entries(&script.entries, old_name, new_name, &mut edits);
+        let mut edits = Vec::new();
+        find_ability_references_in_entries(&script.entries, old_name, new_name, &mut edits);
 
-            if !edits.is_empty() {
-                if let Ok(url) = uri_str.parse::<Uri>() {
-                    changes.insert(url, edits);
-                }
+        if !edits.is_empty() {
+            if let Ok(url) = uri_str.parse::<Uri>() {
+                changes.insert(url, edits);
             }
         }
     }
@@ -678,7 +680,7 @@ fn find_ability_references(
             continue;
         };
         let uri_str = url.as_str().to_string();
-        if documents.contains_key(&uri_str) {
+        if document_asts.contains_key(&uri_str) {
             continue;
         }
         if let Ok(content) = std::fs::read_to_string(file_path) {

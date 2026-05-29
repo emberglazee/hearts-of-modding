@@ -2,7 +2,13 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
-## [v0.11.1] - 2026-05-28
+## [v0.11.2] - 2026-05-29
+
+### Changed
+
+- Several more optimizations for the LSP to ensure a smoother experience.
+
+## [v0.11.1] - 2026-05-29
 
 ### Changed
 

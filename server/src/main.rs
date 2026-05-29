@@ -367,7 +367,18 @@ impl LanguageServer for Backend {
         let uri = params.text_document.uri.as_str().to_string();
         let text = params.content_changes[0].text.clone();
         self.documents.insert(uri.clone(), text.clone());
-        self.cache_ast(&uri, &text);
+        let (script, _) = self.cache_ast(&uri, &text);
+
+        // Live-update scanner data from cached AST (no re-parse needed)
+        if let Some(file_path) = params.text_document.uri.to_file_path() {
+            let path_str = file_path.to_string_lossy().to_string();
+            crate::incremental_scanner::update_scanner_data_from_ast(
+                &self.scanner_data,
+                &path_str,
+                &script,
+            );
+        }
+
         self.validate_document(params.text_document.uri).await;
     }
 
@@ -799,9 +810,12 @@ impl LanguageServer for Backend {
         &self,
         params: CallHierarchyIncomingCallsParams,
     ) -> Result<Option<Vec<CallHierarchyIncomingCall>>> {
-        let calls =
-            call_hierarchy::get_incoming_calls(&params.item, &self.scanner_data, &self.documents)
-                .await;
+        let calls = call_hierarchy::get_incoming_calls(
+            &params.item,
+            &self.scanner_data,
+            &self.document_asts,
+        )
+        .await;
 
         Ok(Some(calls))
     }
@@ -810,9 +824,12 @@ impl LanguageServer for Backend {
         &self,
         params: CallHierarchyOutgoingCallsParams,
     ) -> Result<Option<Vec<CallHierarchyOutgoingCall>>> {
-        let calls =
-            call_hierarchy::get_outgoing_calls(&params.item, &self.scanner_data, &self.documents)
-                .await;
+        let calls = call_hierarchy::get_outgoing_calls(
+            &params.item,
+            &self.scanner_data,
+            &self.document_asts,
+        )
+        .await;
 
         Ok(Some(calls))
     }
@@ -841,6 +858,7 @@ impl LanguageServer for Backend {
             new_name,
             &self.scanner_data,
             &self.documents,
+            &self.document_asts,
             &files,
         )
         .await;

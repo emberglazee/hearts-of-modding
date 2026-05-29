@@ -1,5 +1,6 @@
 use crate::ast::{Entry, Range, Value};
 use std::collections::HashMap;
+use std::sync::Arc;
 use tower_lsp_server::ls_types::{
     CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall,
     Position as LspPosition, Range as LspRange, SymbolKind, Uri,
@@ -102,29 +103,28 @@ pub async fn prepare_call_hierarchy(
 pub async fn get_incoming_calls(
     item: &CallHierarchyItem,
     data: &crate::ScannerData,
-    documents: &dashmap::DashMap<String, String>,
+    document_asts: &dashmap::DashMap<
+        String,
+        (Arc<crate::ast::Script>, Vec<(String, crate::ast::Range)>),
+    >,
 ) -> Vec<CallHierarchyIncomingCall> {
     let mut incoming = Vec::new();
     let target_name = &item.name;
 
     // Search for references in all documents
-    for entry in documents.iter() {
+    for entry in document_asts.iter() {
         let uri = entry.key();
-        let content = entry.value();
+        let (script, _) = entry.value();
 
-        // Parse the document
-        {
-            let (script, _) = crate::parser::parse_script(content);
-            let references = find_references_in_entries(&script.entries, target_name);
+        let references = find_references_in_entries(&script.entries, target_name);
 
-            if !references.is_empty() {
-                // Try to find the containing symbol
-                if let Some(container) = find_container_symbol(uri, &references[0], data).await {
-                    incoming.push(CallHierarchyIncomingCall {
-                        from: container,
-                        from_ranges: references.iter().map(range_to_lsp).collect(),
-                    });
-                }
+        if !references.is_empty() {
+            // Try to find the containing symbol
+            if let Some(container) = find_container_symbol(uri, &references[0], data).await {
+                incoming.push(CallHierarchyIncomingCall {
+                    from: container,
+                    from_ranges: references.iter().map(range_to_lsp).collect(),
+                });
             }
         }
     }
@@ -136,28 +136,27 @@ pub async fn get_incoming_calls(
 pub async fn get_outgoing_calls(
     item: &CallHierarchyItem,
     data: &crate::ScannerData,
-    documents: &dashmap::DashMap<String, String>,
+    document_asts: &dashmap::DashMap<
+        String,
+        (Arc<crate::ast::Script>, Vec<(String, crate::ast::Range)>),
+    >,
 ) -> Vec<CallHierarchyOutgoingCall> {
     let mut outgoing = Vec::new();
 
     // Get the document content
-    if let Some(entry) = documents.get(item.uri.as_str()) {
-        let content = entry.value();
+    if let Some(entry) = document_asts.get(item.uri.as_str()) {
+        let (script, _) = &*entry;
 
-        // Parse the document
-        {
-            let (script, _) = crate::parser::parse_script(content);
-            // Find all calls within this symbol's range
-            let calls = find_calls_in_range(&script.entries, &lsp_to_range(&item.range));
+        // Find all calls within this symbol's range
+        let calls = find_calls_in_range(&script.entries, &lsp_to_range(&item.range));
 
-            for (call_name, call_ranges) in calls {
-                // Try to find the target symbol
-                if let Some(target) = find_symbol_by_name(&call_name, data).await {
-                    outgoing.push(CallHierarchyOutgoingCall {
-                        to: target,
-                        from_ranges: call_ranges.iter().map(range_to_lsp).collect(),
-                    });
-                }
+        for (call_name, call_ranges) in calls {
+            // Try to find the target symbol
+            if let Some(target) = find_symbol_by_name(&call_name, data).await {
+                outgoing.push(CallHierarchyOutgoingCall {
+                    to: target,
+                    from_ranges: call_ranges.iter().map(range_to_lsp).collect(),
+                });
             }
         }
     }

@@ -214,6 +214,7 @@ fn classify_file(path: &str) -> Vec<FileCategory> {
     cats
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
 enum FileCategory {
     Localization,
     Events,
@@ -243,50 +244,80 @@ enum FileCategory {
 }
 
 /// Update `ScannerData` with fresh entities extracted from a single saved file.
+/// Parses raw content, then delegates to AST-based update helpers.
 pub fn update_scanner_data_for_file(scanner_data: &ScannerData, path_str: &str, content: &str) {
     let categories = classify_file(path_str);
 
     for category in categories {
         match category {
             FileCategory::Localization => update_localization(scanner_data, path_str, content),
-            FileCategory::Events => update_events(scanner_data, path_str, content),
-            FileCategory::ScriptedTriggers => {
-                update_scripted(scanner_data, "triggers", path_str, content)
-            }
-            FileCategory::ScriptedEffects => {
-                update_scripted(scanner_data, "effects", path_str, content)
-            }
-            FileCategory::ScriptedLocalisation => {
-                update_scripted_locs(scanner_data, path_str, content)
-            }
-            FileCategory::Achievements => update_achievements(scanner_data, path_str, content),
-            FileCategory::Modifiers => update_modifiers(scanner_data, path_str, content),
-            FileCategory::Ideologies => update_ideologies(scanner_data, path_str, content),
-            FileCategory::UnitLeaderTraits => {
-                update_traits(scanner_data, "Unit Leader Trait", path_str, content)
-            }
-            FileCategory::CountryLeaderTraits => {
-                update_traits(scanner_data, "Country Leader Trait", path_str, content)
-            }
-            FileCategory::Traits => update_traits(scanner_data, "Trait", path_str, content),
-            FileCategory::Ideas => update_ideas(scanner_data, path_str, content),
-            FileCategory::Characters => update_characters(scanner_data, path_str, content),
-            FileCategory::Buildings => update_buildings(scanner_data, path_str, content),
-            FileCategory::Abilities => update_abilities(scanner_data, path_str, content),
-            FileCategory::AiStrategyPlans => {
-                update_ai_strategy_plans(scanner_data, path_str, content)
-            }
-            FileCategory::AiAreas => update_ai_areas(scanner_data, path_str, content),
             FileCategory::Defines => update_defines(scanner_data, content),
             FileCategory::Countries => update_country_tags(scanner_data, path_str, content),
-            FileCategory::Variables => update_variables(scanner_data, path_str, content),
-            FileCategory::MusicAssets => update_music_asset(scanner_data, path_str, content),
-            FileCategory::Sounds => update_sounds(scanner_data, path_str, content),
-            FileCategory::Portraits => update_portraits(scanner_data, path_str, content),
-            FileCategory::Sprites => update_sprites(scanner_data, path_str, content),
-            FileCategory::StrategicRegions => {
-                update_strategic_regions(scanner_data, path_str, content)
+            _ => {
+                let (script, _parse_errors) = parser::parse_script(content);
+                update_from_ast(scanner_data, path_str, &script, category);
             }
+        }
+    }
+}
+
+/// Update `ScannerData` from an already-parsed AST (used by `did_change` live updates).
+/// Skips categories that need raw text (localization, defines, country tags).
+pub fn update_scanner_data_from_ast(
+    scanner_data: &ScannerData,
+    path_str: &str,
+    script: &ast::Script,
+) {
+    let categories = classify_file(path_str);
+
+    for category in categories {
+        match category {
+            FileCategory::Localization | FileCategory::Defines | FileCategory::Countries => {
+                // These need raw text parsing — skip in live AST-based update
+            }
+            _ => update_from_ast(scanner_data, path_str, script, category),
+        }
+    }
+}
+
+/// Dispatch a single category to the appropriate AST-based helper.
+fn update_from_ast(
+    scanner_data: &ScannerData,
+    path_str: &str,
+    script: &ast::Script,
+    category: FileCategory,
+) {
+    match category {
+        FileCategory::Events => update_events(scanner_data, path_str, script),
+        FileCategory::ScriptedTriggers => {
+            update_scripted(scanner_data, "triggers", path_str, script)
+        }
+        FileCategory::ScriptedEffects => update_scripted(scanner_data, "effects", path_str, script),
+        FileCategory::ScriptedLocalisation => update_scripted_locs(scanner_data, path_str, script),
+        FileCategory::Achievements => update_achievements(scanner_data, path_str, script),
+        FileCategory::Modifiers => update_modifiers(scanner_data, path_str, script),
+        FileCategory::Ideologies => update_ideologies(scanner_data, path_str, script),
+        FileCategory::UnitLeaderTraits => {
+            update_traits(scanner_data, "Unit Leader Trait", path_str, script)
+        }
+        FileCategory::CountryLeaderTraits => {
+            update_traits(scanner_data, "Country Leader Trait", path_str, script)
+        }
+        FileCategory::Traits => update_traits(scanner_data, "Trait", path_str, script),
+        FileCategory::Ideas => update_ideas(scanner_data, path_str, script),
+        FileCategory::Characters => update_characters(scanner_data, path_str, script),
+        FileCategory::Buildings => update_buildings(scanner_data, path_str, script),
+        FileCategory::Abilities => update_abilities(scanner_data, path_str, script),
+        FileCategory::AiStrategyPlans => update_ai_strategy_plans(scanner_data, path_str, script),
+        FileCategory::AiAreas => update_ai_areas(scanner_data, path_str, script),
+        FileCategory::Variables => update_variables(scanner_data, path_str, script),
+        FileCategory::MusicAssets => update_music_asset(scanner_data, path_str, script),
+        FileCategory::Sounds => update_sounds(scanner_data, path_str, script),
+        FileCategory::Portraits => update_portraits(scanner_data, path_str, script),
+        FileCategory::Sprites => update_sprites(scanner_data, path_str, script),
+        FileCategory::StrategicRegions => update_strategic_regions(scanner_data, path_str, script),
+        FileCategory::Localization | FileCategory::Defines | FileCategory::Countries => {
+            // Handled directly in update_scanner_data_for_file, unreachable here
         }
     }
 }
@@ -318,8 +349,7 @@ fn update_localization(scanner_data: &ScannerData, path_str: &str, content: &str
     scanner_data.set_duplicated_loc_keys(dups);
 }
 
-fn update_events(scanner_data: &ScannerData, path_str: &str, content: &str) {
-    let (script, _) = parser::parse_script(content);
+fn update_events(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_events = HashMap::new();
     event_scanner::find_event_definitions(&script.entries, path_str, &mut new_events);
 
@@ -331,17 +361,16 @@ fn update_events(scanner_data: &ScannerData, path_str: &str, content: &str) {
     scanner_data.set_events(events);
 }
 
-fn update_scripted(scanner_data: &ScannerData, kind: &str, path_str: &str, content: &str) {
-    let (script, _) = parser::parse_script(content);
+fn update_scripted(scanner_data: &ScannerData, kind: &str, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
-    for entry_ast in script.entries {
+    for entry_ast in script.entries.iter() {
         if let ast::Entry::Assignment(ass) = entry_ast {
             new_entries.insert(
                 ass.key.clone(),
                 scripted_scanner::ScriptedEntity {
                     name: ass.key.clone(),
                     path: path_str.to_string(),
-                    range: ass.key_range,
+                    range: ass.key_range.clone(),
                 },
             );
         }
@@ -368,8 +397,7 @@ fn update_scripted(scanner_data: &ScannerData, kind: &str, path_str: &str, conte
     }
 }
 
-fn update_scripted_locs(scanner_data: &ScannerData, path_str: &str, content: &str) {
-    let (script, _) = parser::parse_script(content);
+fn update_scripted_locs(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
     scripted_loc_scanner::find_scripted_locs_in_entries(
         &script.entries,
@@ -385,8 +413,7 @@ fn update_scripted_locs(scanner_data: &ScannerData, path_str: &str, content: &st
     scanner_data.set_scripted_locs(map);
 }
 
-fn update_achievements(scanner_data: &ScannerData, path_str: &str, content: &str) {
-    let (script, _) = parser::parse_script(content);
+fn update_achievements(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
     achievement_scanner::find_achievements_in_entries(&script.entries, path_str, &mut new_entries);
 
@@ -398,17 +425,16 @@ fn update_achievements(scanner_data: &ScannerData, path_str: &str, content: &str
     scanner_data.set_achievements(map);
 }
 
-fn update_modifiers(scanner_data: &ScannerData, path_str: &str, content: &str) {
-    let (script, _) = parser::parse_script(content);
+fn update_modifiers(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
-    for entry_ast in script.entries {
+    for entry_ast in script.entries.iter() {
         if let ast::Entry::Assignment(ass) = entry_ast {
             new_entries.insert(
                 ass.key.clone(),
                 modifier_scanner::Modifier {
                     name: ass.key.clone(),
                     path: path_str.to_string(),
-                    range: ass.key_range,
+                    range: ass.key_range.clone(),
                 },
             );
         }
@@ -422,8 +448,7 @@ fn update_modifiers(scanner_data: &ScannerData, path_str: &str, content: &str) {
     scanner_data.set_custom_modifiers(map);
 }
 
-fn update_ideologies(scanner_data: &ScannerData, path_str: &str, content: &str) {
-    let (script, _) = parser::parse_script(content);
+fn update_ideologies(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
     ideology_scanner::find_ideologies_in_entries(&script.entries, path_str, &mut new_entries);
 
@@ -452,8 +477,12 @@ fn update_ideologies(scanner_data: &ScannerData, path_str: &str, content: &str) 
     scanner_data.set_sub_ideologies(s_map);
 }
 
-fn update_traits(scanner_data: &ScannerData, trait_type: &str, path_str: &str, content: &str) {
-    let (script, _) = parser::parse_script(content);
+fn update_traits(
+    scanner_data: &ScannerData,
+    trait_type: &str,
+    path_str: &str,
+    script: &ast::Script,
+) {
     let mut new_entries = HashMap::new();
     trait_scanner::find_traits_in_entries(&script.entries, path_str, trait_type, &mut new_entries);
 
@@ -465,8 +494,7 @@ fn update_traits(scanner_data: &ScannerData, trait_type: &str, path_str: &str, c
     scanner_data.set_traits(map);
 }
 
-fn update_ideas(scanner_data: &ScannerData, path_str: &str, content: &str) {
-    let (script, _) = parser::parse_script(content);
+fn update_ideas(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
     idea_scanner::find_ideas_in_entries(&script.entries, path_str, &mut new_entries);
 
@@ -478,8 +506,7 @@ fn update_ideas(scanner_data: &ScannerData, path_str: &str, content: &str) {
     scanner_data.set_ideas(map);
 }
 
-fn update_characters(scanner_data: &ScannerData, path_str: &str, content: &str) {
-    let (script, _) = parser::parse_script(content);
+fn update_characters(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
     character_scanner::find_characters_in_entries(&script.entries, path_str, &mut new_entries);
 
@@ -491,8 +518,7 @@ fn update_characters(scanner_data: &ScannerData, path_str: &str, content: &str) 
     scanner_data.set_characters(map);
 }
 
-fn update_buildings(scanner_data: &ScannerData, path_str: &str, content: &str) {
-    let (script, _) = parser::parse_script(content);
+fn update_buildings(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
     let path = Path::new(path_str);
     building_scanner::extract_buildings(&script.entries, path, &mut new_entries);
@@ -505,8 +531,7 @@ fn update_buildings(scanner_data: &ScannerData, path_str: &str, content: &str) {
     scanner_data.set_buildings(map);
 }
 
-fn update_abilities(scanner_data: &ScannerData, path_str: &str, content: &str) {
-    let (script, _) = parser::parse_script(content);
+fn update_abilities(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
     ability_scanner::find_abilities_in_entries(&script.entries, path_str, &mut new_entries);
 
@@ -518,8 +543,7 @@ fn update_abilities(scanner_data: &ScannerData, path_str: &str, content: &str) {
     scanner_data.set_abilities(map);
 }
 
-fn update_ai_strategy_plans(scanner_data: &ScannerData, path_str: &str, content: &str) {
-    let (script, _) = parser::parse_script(content);
+fn update_ai_strategy_plans(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
     let path = Path::new(path_str);
     ai_strategy_plan_scanner::extract_plans(&script.entries, path, &mut new_entries);
@@ -532,8 +556,7 @@ fn update_ai_strategy_plans(scanner_data: &ScannerData, path_str: &str, content:
     scanner_data.set_ai_strategy_plans(map);
 }
 
-fn update_ai_areas(scanner_data: &ScannerData, path_str: &str, content: &str) {
-    let (script, _) = parser::parse_script(content);
+fn update_ai_areas(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
     let path = Path::new(path_str);
     ai_area_scanner::extract_areas(&script.entries, path, &mut new_entries);
@@ -633,8 +656,7 @@ fn update_country_tags(scanner_data: &ScannerData, path_str: &str, content: &str
     scanner_data.set_country_tags(map);
 }
 
-fn update_variables(scanner_data: &ScannerData, path_str: &str, content: &str) {
-    let (script, _) = parser::parse_script(content);
+fn update_variables(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_vars: HashMap<String, Vec<variable_scanner::Variable>> = HashMap::new();
     let mut new_targets: HashMap<String, Vec<variable_scanner::EventTarget>> = HashMap::new();
     variable_scanner::scan_entries(&script.entries, path_str, &mut new_vars, &mut new_targets);
@@ -664,14 +686,13 @@ where
     });
 }
 
-fn update_music_asset(scanner_data: &ScannerData, path_str: &str, content: &str) {
+fn update_music_asset(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let ext = Path::new(path_str)
         .extension()
         .and_then(|e| e.to_str())
         .unwrap_or("");
 
     if ext == "asset" {
-        let (script, _) = parser::parse_script(content);
         let mut assets = HashMap::new();
         music_scanner::find_assets_in_entries(&script.entries, path_str, &mut assets);
 
@@ -682,7 +703,6 @@ fn update_music_asset(scanner_data: &ScannerData, path_str: &str, content: &str)
         }
         scanner_data.set_music_assets(map);
     } else if ext == "txt" {
-        let (script, _) = parser::parse_script(content);
         let mut stations = HashMap::new();
         let mut songs = HashMap::new();
         music_scanner::find_stations_and_songs_in_entries(
@@ -708,8 +728,7 @@ fn update_music_asset(scanner_data: &ScannerData, path_str: &str, content: &str)
     }
 }
 
-fn update_sounds(scanner_data: &ScannerData, path_str: &str, content: &str) {
-    let (script, _) = parser::parse_script(content);
+fn update_sounds(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut sounds = HashMap::new();
     let mut effects = HashMap::new();
     let mut falloffs = HashMap::new();
@@ -752,8 +771,7 @@ fn update_sounds(scanner_data: &ScannerData, path_str: &str, content: &str) {
     scanner_data.set_sound_categories(c_map);
 }
 
-fn update_portraits(scanner_data: &ScannerData, path_str: &str, content: &str) {
-    let (script, _) = parser::parse_script(content);
+fn update_portraits(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
     let path = Path::new(path_str);
     portrait_scanner::extract_portraits(&script.entries, path, &mut new_entries);
@@ -766,11 +784,7 @@ fn update_portraits(scanner_data: &ScannerData, path_str: &str, content: &str) {
     scanner_data.set_portraits(map);
 }
 
-fn update_sprites(scanner_data: &ScannerData, path_str: &str, content: &str) {
-    let (script, parse_errors) = parser::parse_script(content);
-    if !parse_errors.is_empty() {
-        return;
-    }
+fn update_sprites(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
     sprite_scanner::find_sprites_in_entries(&script.entries, path_str, &mut new_entries);
 
@@ -782,8 +796,7 @@ fn update_sprites(scanner_data: &ScannerData, path_str: &str, content: &str) {
     scanner_data.set_sprites(map);
 }
 
-fn update_strategic_regions(scanner_data: &ScannerData, path_str: &str, content: &str) {
-    let (script, _) = parser::parse_script(content);
+fn update_strategic_regions(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries: HashMap<u32, strategic_region_scanner::StrategicRegion> = HashMap::new();
     strategic_region_scanner::extract_strategic_region(
         &script.entries,
