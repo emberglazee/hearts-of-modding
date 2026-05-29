@@ -1,7 +1,10 @@
 use crate::ast;
 use crate::building_scanner;
 use crate::defines_parser;
-use std::collections::{HashMap, HashSet};
+use crate::loc_parser::LocEntry;
+use crate::sprite_scanner::Sprite;
+use dashmap::DashMap;
+use std::collections::HashSet;
 
 /// Diagnostic codes for advanced validation
 pub const PARSE_ERROR: &str = "HOM001";
@@ -36,7 +39,7 @@ pub struct ValidationDiagnostic {
 /// Validate achievements
 pub fn validate_achievements(
     entries: &[ast::Entry],
-    localization: &HashMap<String, crate::loc_parser::LocEntry>,
+    localization: &DashMap<String, LocEntry>,
     diagnostics: &mut Vec<ValidationDiagnostic>,
 ) {
     for entry in entries {
@@ -82,7 +85,7 @@ pub fn validate_achievements(
 /// Validate ability definitions
 pub fn validate_abilities(
     entries: &[ast::Entry],
-    localization: &HashMap<String, crate::loc_parser::LocEntry>,
+    localization: &DashMap<String, LocEntry>,
     diagnostics: &mut Vec<ValidationDiagnostic>,
 ) {
     for entry in entries {
@@ -246,7 +249,7 @@ pub fn validate_abilities(
 /// Validate building levels in state history files
 pub fn validate_building_levels(
     entries: &[ast::Entry],
-    buildings: &HashMap<String, building_scanner::Building>,
+    buildings: &DashMap<String, building_scanner::Building>,
     diagnostics: &mut Vec<ValidationDiagnostic>,
 ) {
     validate_buildings_recursive(entries, buildings, diagnostics);
@@ -254,7 +257,7 @@ pub fn validate_building_levels(
 
 fn validate_buildings_recursive(
     entries: &[ast::Entry],
-    buildings: &HashMap<String, building_scanner::Building>,
+    buildings: &DashMap<String, building_scanner::Building>,
     diagnostics: &mut Vec<ValidationDiagnostic>,
 ) {
     for entry in entries {
@@ -284,7 +287,7 @@ fn validate_buildings_recursive(
 
 fn validate_building_block(
     entries: &[ast::Entry],
-    buildings: &HashMap<String, building_scanner::Building>,
+    buildings: &DashMap<String, building_scanner::Building>,
     diagnostics: &mut Vec<ValidationDiagnostic>,
 ) {
     for entry in entries {
@@ -413,7 +416,7 @@ fn validate_character_skills_recursive(
 /// Validate portrait GFX references in character `portraits = { ... }` blocks
 pub fn validate_portrait_gfx(
     entries: &[ast::Entry],
-    sprites: &HashMap<String, crate::sprite_scanner::Sprite>,
+    sprites: &DashMap<String, Sprite>,
     diagnostics: &mut Vec<ValidationDiagnostic>,
 ) {
     validate_portrait_gfx_recursive(entries, sprites, diagnostics);
@@ -421,7 +424,7 @@ pub fn validate_portrait_gfx(
 
 fn validate_portrait_gfx_recursive(
     entries: &[ast::Entry],
-    sprites: &HashMap<String, crate::sprite_scanner::Sprite>,
+    sprites: &DashMap<String, Sprite>,
     diagnostics: &mut Vec<ValidationDiagnostic>,
 ) {
     for entry in entries {
@@ -450,7 +453,7 @@ fn validate_portrait_gfx_recursive(
 
 fn validate_portrait_values(
     entries: &[ast::Entry],
-    sprites: &HashMap<String, crate::sprite_scanner::Sprite>,
+    sprites: &DashMap<String, Sprite>,
     diagnostics: &mut Vec<ValidationDiagnostic>,
 ) {
     for entry in entries {
@@ -514,23 +517,24 @@ pub fn validate_victory_points(
 
 fn validate_victory_points_recursive(
     entries: &[ast::Entry],
-    state_provinces: &mut Option<HashSet<u32>>,
-    victory_points: &mut Option<Vec<(u32, ast::Range)>>,
+    state_provinces: &mut Option<HashSet<i32>>,
+    victory_points: &mut Option<Vec<(i32, ast::Range)>>,
 ) {
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
             let key_lower = ass.key.to_ascii_lowercase();
 
             // Collect provinces in state
+            // Standard HOI4 format: provinces = { 1 2 3 4 5 }
             if key_lower == "provinces" {
-                if let ast::Value::Block(province_entries) = &ass.value.value {
+                if let ast::Value::Block(inner) = &ass.value.value {
                     let mut provs = HashSet::new();
-                    for prov_entry in province_entries {
+                    for prov_entry in inner {
                         if let ast::Entry::Value(val) = prov_entry {
                             if let ast::Value::Number(n) = &val.value {
-                                provs.insert(*n as u32);
+                                provs.insert(*n as i32);
                             } else if let ast::Value::String(s) = &val.value {
-                                if let Ok(n) = s.parse::<u32>() {
+                                if let Ok(n) = s.parse::<i32>() {
                                     provs.insert(n);
                                 }
                             }
@@ -538,38 +542,31 @@ fn validate_victory_points_recursive(
                     }
                     *state_provinces = Some(provs);
                 }
-            }
+            } else if key_lower == "victory_points" {
+                // Standard HOI4 format: victory_points = { province_id vp_value province_id vp_value ... }
+                if let ast::Value::Block(inner) = &ass.value.value {
+                    let mut values: Vec<(i32, ast::Range)> = Vec::new();
 
-            // Collect victory points
-            // Format: victory_points = { province_id vp_value province_id vp_value ... }
-            if key_lower == "victory_points" {
-                if let ast::Value::Block(vp_entries) = &ass.value.value {
-                    let mut vps = Vec::new();
-                    let mut values: Vec<(u32, ast::Range)> = Vec::new();
-
-                    // First, collect all numeric values
-                    for vp_entry in vp_entries {
+                    for vp_entry in inner {
                         if let ast::Entry::Value(val) = vp_entry {
                             let num = match &val.value {
-                                ast::Value::Number(n) => Some(*n as u32),
-                                ast::Value::String(s) => s.parse::<u32>().ok(),
+                                ast::Value::Number(n) => Some(*n as i32),
+                                ast::Value::String(s) => s.parse::<i32>().ok(),
                                 _ => None,
                             };
-
                             if let Some(n) = num {
                                 values.push((n, val.range.clone()));
                             }
                         }
                     }
 
-                    // Now parse pairs: (province_id, vp_value)
-                    // We only care about the province_id (first of each pair)
+                    // Parse pairs: (province_id, vp_value) — take first of each pair
+                    let mut vps = Vec::new();
                     for i in (0..values.len()).step_by(2) {
                         if i < values.len() {
                             vps.push(values[i].clone());
                         }
                     }
-
                     *victory_points = Some(vps);
                 }
             }

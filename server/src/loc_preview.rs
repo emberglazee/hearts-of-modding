@@ -1,7 +1,7 @@
 use crate::loc_parser;
 use base64::{Engine as _, engine::general_purpose};
+use dashmap::DashMap;
 use once_cell::sync::Lazy;
-use std::collections::HashMap;
 use tower_lsp_server::ls_types::Position;
 
 fn vanilla_color_hex(code: &str) -> &str {
@@ -40,7 +40,7 @@ static RE_COLOR: Lazy<regex::Regex> = Lazy::new(|| regex::Regex::new(r"§([a-zA-
 
 pub fn resolve_loc(
     input: &str,
-    localization: &HashMap<String, loc_parser::LocEntry>,
+    localization: &DashMap<String, loc_parser::LocEntry>,
     depth: u32,
 ) -> String {
     if depth > 10 {
@@ -66,10 +66,12 @@ pub fn resolve_loc(
 }
 
 /// Build a hex color map: symbol "Y" → "#FFBD00" from ColorCode data
-pub fn build_color_map(data: &crate::ScannerData) -> HashMap<String, String> {
-    let codes = data.color_codes();
-    let mut map = HashMap::new();
-    for (sym, cc) in codes.iter() {
+pub fn build_color_map(data: &crate::ScannerData) -> DashMap<String, String> {
+    let codes = &data.color_codes;
+    let map = DashMap::new();
+    for entry in codes.iter() {
+        let sym = entry.key();
+        let cc = entry.value();
         map.insert(
             sym.clone(),
             format!("#{:02X}{:02X}{:02X}", cc.rgb.0, cc.rgb.1, cc.rgb.2),
@@ -80,8 +82,8 @@ pub fn build_color_map(data: &crate::ScannerData) -> HashMap<String, String> {
 
 pub fn paradox_to_markdown(
     input: &str,
-    localization: Option<&HashMap<String, loc_parser::LocEntry>>,
-    color_map: Option<&HashMap<String, String>>,
+    localization: Option<&DashMap<String, loc_parser::LocEntry>>,
+    color_map: Option<&DashMap<String, String>>,
 ) -> String {
     fn split_leading_punctuation(s: &str) -> (&str, &str) {
         let punct_end = s
@@ -145,8 +147,8 @@ pub fn paradox_to_markdown(
 
     let mut last_end = 0;
 
-    let mut segments = Vec::new();
-    let mut current_color = "#FFFFFF";
+    let mut segments: Vec<(String, String)> = Vec::new();
+    let mut current_color = "#FFFFFF".to_string();
 
     for cap in RE_COLOR.captures_iter(&resolved) {
         let m = cap.get(0).unwrap();
@@ -157,29 +159,29 @@ pub fn paradox_to_markdown(
         let (leading_punct, rest) = split_leading_punctuation(text_segment);
 
         if !leading_punct.is_empty() {
-            segments.push((leading_punct.to_string(), current_color));
+            segments.push((leading_punct.to_string(), current_color.clone()));
         }
 
         if !rest.is_empty() {
-            segments.push((rest.to_string(), current_color));
+            segments.push((rest.to_string(), current_color.clone()));
         }
 
         current_color = if code == "!" {
-            "#FFFFFF"
+            "#FFFFFF".to_string()
         } else if let Some(map) = color_map {
-            map.get(code).map(|s| s.as_str()).unwrap_or_else(|| {
+            map.get(code).map(|s| s.value().clone()).unwrap_or_else(|| {
                 // Fallback to hardcoded known colors
-                vanilla_color_hex(code)
+                vanilla_color_hex(code).to_string()
             })
         } else {
-            vanilla_color_hex(code)
+            vanilla_color_hex(code).to_string()
         };
         last_end = m.end();
     }
 
     let last_segment = &resolved[last_end..];
     if !last_segment.is_empty() {
-        segments.push((last_segment.to_string(), current_color));
+        segments.push((last_segment.to_string(), current_color.clone()));
     }
 
     if !segments.is_empty() {
@@ -189,8 +191,8 @@ pub fn paradox_to_markdown(
         let line_height = 16;
         let chars_per_line = (max_width as f64 / char_width).floor() as usize;
 
-        let mut lines: Vec<Vec<(String, &str)>> = Vec::new();
-        let mut current_line: Vec<(String, &str)> = Vec::new();
+        let mut lines: Vec<Vec<(String, String)>> = Vec::new();
+        let mut current_line: Vec<(String, String)> = Vec::new();
         let mut current_line_chars = 0;
 
         for (text, color) in segments {
@@ -213,14 +215,14 @@ pub fn paradox_to_markdown(
                         {
                             lines.push(current_line);
                             current_line = Vec::new();
-                            current_line.push((word.to_string(), color));
+                            current_line.push((word.to_string(), color.clone()));
                             current_line_chars = word_len;
                         } else {
                             if !current_line.is_empty() {
-                                current_line.push((" ".to_string(), color));
+                                current_line.push((" ".to_string(), color.clone()));
                                 current_line_chars += 1;
                             }
-                            current_line.push((word.to_string(), color));
+                            current_line.push((word.to_string(), color.clone()));
                             current_line_chars += word_len;
                         }
                     } else {
@@ -229,10 +231,10 @@ pub fn paradox_to_markdown(
                         {
                             lines.push(current_line);
                             current_line = Vec::new();
-                            current_line.push((word.to_string(), color));
+                            current_line.push((word.to_string(), color.clone()));
                             current_line_chars = word_len;
                         } else {
-                            current_line.push((word.to_string(), color));
+                            current_line.push((word.to_string(), color.clone()));
                             current_line_chars += word_len;
                         }
                     }
@@ -319,7 +321,7 @@ mod tests {
 
     #[test]
     fn test_resolve_loc() {
-        let mut loc = HashMap::new();
+        let loc = DashMap::new();
         loc.insert(
             "KEY1".to_string(),
             LocEntry {
@@ -366,7 +368,7 @@ mod tests {
     #[test]
     fn test_paradox_to_markdown_newlines() {
         use base64::Engine as _;
-        let loc = HashMap::new();
+        let loc = DashMap::new();
         let input = "Line 1\\nLine 2";
         let output = paradox_to_markdown(input, Some(&loc), None);
         let decoded = String::from_utf8(

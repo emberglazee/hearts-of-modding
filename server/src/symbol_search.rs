@@ -1,14 +1,14 @@
 use crate::achievement_scanner;
 use crate::ast;
 use crate::scope;
-use std::collections::HashMap;
+use dashmap::DashMap;
 use tower_lsp_server::ls_types::Position;
 
 pub fn find_identifier_at(
     script: &ast::Script,
     pos: Position,
     scope_stack: &mut scope::ScopeStack,
-    achievements: &HashMap<String, achievement_scanner::Achievement>,
+    achievements: &DashMap<String, achievement_scanner::Achievement>,
 ) -> Option<(
     String,
     Vec<scope::Scope>,
@@ -27,7 +27,7 @@ pub fn find_in_entry(
     entry: &ast::Entry,
     pos: Position,
     scope_stack: &mut scope::ScopeStack,
-    achievements: &HashMap<String, achievement_scanner::Achievement>,
+    achievements: &DashMap<String, achievement_scanner::Achievement>,
     context_key: Option<String>,
 ) -> Option<(
     String,
@@ -93,7 +93,7 @@ pub fn find_in_value(
     val: &ast::NodeedValue,
     pos: Position,
     scope_stack: &mut scope::ScopeStack,
-    achievements: &HashMap<String, achievement_scanner::Achievement>,
+    achievements: &DashMap<String, achievement_scanner::Achievement>,
     context_key: Option<String>,
 ) -> Option<(
     String,

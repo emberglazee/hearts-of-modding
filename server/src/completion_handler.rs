@@ -44,10 +44,10 @@ impl Backend {
                                     ..Default::default()
                                 });
                             }
-                            let target_map = self.scanner_data.event_targets();
-                            for target_name in target_map.keys() {
+                            let target_map = &self.scanner_data.event_targets;
+                            for entry in target_map.iter() {
                                 items.push(CompletionItem {
-                                    label: target_name.clone(),
+                                    label: entry.key().clone(),
                                     kind: Some(CompletionItemKind::VARIABLE),
                                     detail: Some("Event Target".to_string()),
                                     ..Default::default()
@@ -82,10 +82,10 @@ impl Backend {
 
                         if let Some(8) = hovered_index {
                             let mut items = Vec::new();
-                            let rules = self.scanner_data.adjacency_rules();
-                            for rule_name in rules.keys() {
+                            let rules = &self.scanner_data.adjacency_rules;
+                            for entry in rules.iter() {
                                 items.push(CompletionItem {
-                                    label: rule_name.clone(),
+                                    label: entry.key().clone(),
                                     kind: Some(CompletionItemKind::ENUM),
                                     detail: Some("Adjacency Rule".to_string()),
                                     ..Default::default()
@@ -355,8 +355,8 @@ impl Backend {
 
         // Try to find context for HOI4 scripts
         if let Some((script, _)) = self.ensure_ast_cached(&uri) {
-            let achievements = self.scanner_data.achievements();
-            let (ctx, scopes) = find_scope_context_at(&script, position, &achievements);
+            let achievements = &self.scanner_data.achievements;
+            let (ctx, scopes) = find_scope_context_at(&script, position, achievements);
             current_scopes = scopes;
             if let Some(context_key) = ctx {
                 if context_key.to_ascii_lowercase().contains("color") {
@@ -421,8 +421,9 @@ impl Backend {
             });
         }
 
-        let st = self.scanner_data.scripted_triggers();
-        for trigger in st.values() {
+        let st = &self.scanner_data.scripted_triggers;
+        for entry in st.iter() {
+            let trigger = entry.value();
             items.push(CompletionItem {
                 label: trigger.name.clone(),
                 kind: Some(CompletionItemKind::EVENT),
@@ -435,8 +436,9 @@ impl Backend {
             });
         }
 
-        let se = self.scanner_data.scripted_effects();
-        for effect in se.values() {
+        let se = &self.scanner_data.scripted_effects;
+        for entry in se.iter() {
+            let effect = entry.value();
             items.push(CompletionItem {
                 label: effect.name.clone(),
                 kind: Some(CompletionItemKind::EVENT),
@@ -449,8 +451,9 @@ impl Backend {
             });
         }
 
-        let ids = self.scanner_data.ideologies();
-        for ideology in ids.values() {
+        let ids = &self.scanner_data.ideologies;
+        for entry in ids.iter() {
+            let ideology = entry.value();
             items.push(CompletionItem {
                 label: ideology.name.clone(),
                 kind: Some(CompletionItemKind::ENUM),
@@ -463,8 +466,10 @@ impl Backend {
             });
         }
 
-        let sids = self.scanner_data.sub_ideologies();
-        for (sid, (parent, _, _)) in sids.iter() {
+        let sids = &self.scanner_data.sub_ideologies;
+        for entry in sids.iter() {
+            let sid = entry.key();
+            let (parent, _, _) = entry.value();
             items.push(CompletionItem {
                 label: sid.clone(),
                 kind: Some(CompletionItemKind::ENUM_MEMBER),
@@ -473,8 +478,9 @@ impl Backend {
             });
         }
 
-        let traits = self.scanner_data.traits();
-        for trait_info in traits.values() {
+        let traits = &self.scanner_data.traits;
+        for entry in traits.iter() {
+            let trait_info = entry.value();
             items.push(CompletionItem {
                 label: trait_info.name.clone(),
                 kind: Some(CompletionItemKind::INTERFACE),
@@ -487,8 +493,9 @@ impl Backend {
             });
         }
 
-        let s_map = self.scanner_data.sprites();
-        for sprite in s_map.values() {
+        let s_map = &self.scanner_data.sprites;
+        for entry in s_map.iter() {
+            let sprite = entry.value();
             items.push(CompletionItem {
                 label: sprite.name.clone(),
                 kind: Some(CompletionItemKind::FILE),
@@ -501,8 +508,9 @@ impl Backend {
             });
         }
 
-        let id_map = self.scanner_data.ideas();
-        for idea in id_map.values() {
+        let id_map = &self.scanner_data.ideas;
+        for entry in id_map.iter() {
+            let idea = entry.value();
             items.push(CompletionItem {
                 label: idea.name.clone(),
                 kind: Some(CompletionItemKind::CONSTANT),
@@ -515,8 +523,9 @@ impl Backend {
             });
         }
 
-        let ability_map = self.scanner_data.abilities();
-        for ability in ability_map.values() {
+        let ability_map = &self.scanner_data.abilities;
+        for entry in ability_map.iter() {
+            let ability = entry.value();
             items.push(CompletionItem {
                 label: ability.key.clone(),
                 kind: Some(CompletionItemKind::FUNCTION),
@@ -525,8 +534,9 @@ impl Backend {
             });
         }
 
-        let a_map = self.scanner_data.achievements();
-        for achievement in a_map.values() {
+        let a_map = &self.scanner_data.achievements;
+        for entry in a_map.iter() {
+            let achievement = entry.value();
             items.push(CompletionItem {
                 label: achievement.name.clone(),
                 kind: Some(CompletionItemKind::EVENT),
@@ -540,8 +550,9 @@ impl Backend {
         }
 
         // Portrait definitions
-        let p_map = self.scanner_data.portraits();
-        for portrait in p_map.values() {
+        let p_map = &self.scanner_data.portraits;
+        for entry in p_map.iter() {
+            let portrait = entry.value();
             items.push(CompletionItem {
                 label: portrait.name.clone(),
                 kind: Some(CompletionItemKind::ENUM),
@@ -555,8 +566,9 @@ impl Backend {
         }
 
         // Character definitions
-        let char_map = self.scanner_data.characters();
-        for character in char_map.values() {
+        let char_map = &self.scanner_data.characters;
+        for entry in char_map.iter() {
+            let character = entry.value();
             items.push(CompletionItem {
                 label: character.id.clone(),
                 kind: Some(CompletionItemKind::STRUCT),
@@ -569,8 +581,9 @@ impl Backend {
             });
         }
 
-        let ap_map = self.scanner_data.ai_strategy_plans();
-        for plan in ap_map.values() {
+        let ap_map = &self.scanner_data.ai_strategy_plans;
+        for entry in ap_map.iter() {
+            let plan = entry.value();
             items.push(CompletionItem {
                 label: plan.name.clone(),
                 kind: Some(CompletionItemKind::FOLDER),
@@ -580,8 +593,9 @@ impl Backend {
             });
         }
 
-        let var_map = self.scanner_data.variables();
-        for var_name in var_map.keys() {
+        let var_map = &self.scanner_data.variables;
+        for entry in var_map.iter() {
+            let var_name = entry.key();
             items.push(CompletionItem {
                 label: var_name.clone(),
                 kind: Some(CompletionItemKind::VARIABLE),
@@ -590,8 +604,9 @@ impl Backend {
             });
         }
 
-        let target_map = self.scanner_data.event_targets();
-        for target_name in target_map.keys() {
+        let target_map = &self.scanner_data.event_targets;
+        for entry in target_map.iter() {
+            let target_name = entry.key();
             items.push(CompletionItem {
                 label: target_name.clone(),
                 kind: Some(CompletionItemKind::STRUCT),
@@ -600,8 +615,9 @@ impl Backend {
             });
         }
 
-        let m_assets = self.scanner_data.music_assets();
-        for asset in m_assets.values() {
+        let m_assets = &self.scanner_data.music_assets;
+        for entry in m_assets.iter() {
+            let asset = entry.value();
             items.push(CompletionItem {
                 label: asset.name.clone(),
                 kind: Some(CompletionItemKind::FILE),
@@ -611,8 +627,9 @@ impl Backend {
             });
         }
 
-        let m_stations = self.scanner_data.music_stations();
-        for station in m_stations.values() {
+        let m_stations = &self.scanner_data.music_stations;
+        for entry in m_stations.iter() {
+            let station = entry.value();
             items.push(CompletionItem {
                 label: station.name.clone(),
                 kind: Some(CompletionItemKind::FOLDER),
@@ -621,8 +638,9 @@ impl Backend {
             });
         }
 
-        let m_songs = self.scanner_data.songs();
-        for song in m_songs.values() {
+        let m_songs = &self.scanner_data.songs;
+        for entry in m_songs.iter() {
+            let song = entry.value();
             items.push(CompletionItem {
                 label: song.name.clone(),
                 kind: Some(CompletionItemKind::FILE),
@@ -631,8 +649,9 @@ impl Backend {
             });
         }
 
-        let s_sounds = self.scanner_data.sounds();
-        for sound in s_sounds.values() {
+        let s_sounds = &self.scanner_data.sounds;
+        for entry in s_sounds.iter() {
+            let sound = entry.value();
             items.push(CompletionItem {
                 label: sound.name.clone(),
                 kind: Some(CompletionItemKind::FILE),
@@ -642,8 +661,9 @@ impl Backend {
             });
         }
 
-        let s_effects = self.scanner_data.sound_effects();
-        for effect in s_effects.values() {
+        let s_effects = &self.scanner_data.sound_effects;
+        for entry in s_effects.iter() {
+            let effect = entry.value();
             items.push(CompletionItem {
                 label: effect.name.clone(),
                 kind: Some(CompletionItemKind::EVENT),
@@ -652,8 +672,9 @@ impl Backend {
             });
         }
 
-        let s_falloffs = self.scanner_data.falloffs();
-        for falloff in s_falloffs.values() {
+        let s_falloffs = &self.scanner_data.falloffs;
+        for entry in s_falloffs.iter() {
+            let falloff = entry.value();
             items.push(CompletionItem {
                 label: falloff.name.clone(),
                 kind: Some(CompletionItemKind::UNIT),
@@ -662,8 +683,9 @@ impl Backend {
             });
         }
 
-        let s_categories = self.scanner_data.sound_categories();
-        for category in s_categories.values() {
+        let s_categories = &self.scanner_data.sound_categories;
+        for entry in s_categories.iter() {
+            let category = entry.value();
             items.push(CompletionItem {
                 label: category.name.clone(),
                 kind: Some(CompletionItemKind::FOLDER),

@@ -1,4 +1,5 @@
 use crate::ast::{DiagnosticSeverity, Range};
+use dashmap::DashMap;
 use nom::{
     IResult, Parser,
     bytes::complete::{tag, take_until, take_while1},
@@ -101,8 +102,8 @@ static RE_NESTED: Lazy<regex::Regex> = Lazy::new(|| regex::Regex::new(r"\$([^\$]
 
 pub fn validate_loc_string(
     entry: &LocEntry,
-    event_targets: &HashMap<String, Vec<crate::variable_scanner::EventTarget>>,
-    scripted_locs: &HashMap<String, crate::scripted_loc_scanner::ScriptedLoc>,
+    event_targets: &DashMap<String, Vec<crate::variable_scanner::EventTarget>>,
+    scripted_locs: &DashMap<String, crate::scripted_loc_scanner::ScriptedLoc>,
     color_codes: &HashSet<String>,
 ) -> Vec<LocDiagnostic> {
     let mut diagnostics = Vec::new();

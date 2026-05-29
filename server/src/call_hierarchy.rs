@@ -44,8 +44,10 @@ pub async fn prepare_call_hierarchy(
     let path = uri.trim_start_matches("file://");
 
     // Check if position is on an event
-    let events_lock = data.events();
-    for (id, event) in events_lock.iter() {
+    let events = &data.events;
+    for entry in events.iter() {
+        let id = entry.key();
+        let event = entry.value();
         if event.path == path && position_in_range(&position, &event.range) {
             return Some(CallHierarchyItem {
                 name: id.clone(),
@@ -59,11 +61,12 @@ pub async fn prepare_call_hierarchy(
             });
         }
     }
-    drop(events_lock);
 
     // Check if position is on a scripted trigger
-    let triggers_lock = data.scripted_triggers();
-    for (name, trigger) in triggers_lock.iter() {
+    let triggers = &data.scripted_triggers;
+    for entry in triggers.iter() {
+        let name = entry.key();
+        let trigger = entry.value();
         if trigger.path == path && position_in_range(&position, &trigger.range) {
             return Some(CallHierarchyItem {
                 name: name.clone(),
@@ -77,11 +80,12 @@ pub async fn prepare_call_hierarchy(
             });
         }
     }
-    drop(triggers_lock);
 
     // Check if position is on a scripted effect
-    let effects_lock = data.scripted_effects();
-    for (name, effect) in effects_lock.iter() {
+    let effects = &data.scripted_effects;
+    for entry in effects.iter() {
+        let name = entry.key();
+        let effect = entry.value();
         if effect.path == path && position_in_range(&position, &effect.range) {
             return Some(CallHierarchyItem {
                 name: name.clone(),
@@ -288,8 +292,10 @@ async fn find_container_symbol(
     let path = uri.trim_start_matches("file://");
 
     // Check events
-    let events_lock = data.events();
-    for (id, event) in events_lock.iter() {
+    let events = &data.events;
+    for entry in events.iter() {
+        let id = entry.key();
+        let event = entry.value();
         if event.path == path && range_contains(&event.range, range) {
             return Some(CallHierarchyItem {
                 name: id.clone(),
@@ -303,11 +309,12 @@ async fn find_container_symbol(
             });
         }
     }
-    drop(events_lock);
 
     // Check scripted triggers
-    let triggers_lock = data.scripted_triggers();
-    for (name, trigger) in triggers_lock.iter() {
+    let triggers = &data.scripted_triggers;
+    for entry in triggers.iter() {
+        let name = entry.key();
+        let trigger = entry.value();
         if trigger.path == path && range_contains(&trigger.range, range) {
             return Some(CallHierarchyItem {
                 name: name.clone(),
@@ -321,11 +328,12 @@ async fn find_container_symbol(
             });
         }
     }
-    drop(triggers_lock);
 
     // Check scripted effects
-    let effects_lock = data.scripted_effects();
-    for (name, effect) in effects_lock.iter() {
+    let effects = &data.scripted_effects;
+    for entry in effects.iter() {
+        let name = entry.key();
+        let effect = entry.value();
         if effect.path == path && range_contains(&effect.range, range) {
             return Some(CallHierarchyItem {
                 name: name.clone(),
@@ -346,8 +354,8 @@ async fn find_container_symbol(
 /// Find a symbol by name
 async fn find_symbol_by_name(name: &str, data: &crate::ScannerData) -> Option<CallHierarchyItem> {
     // Check events
-    let events_lock = data.events();
-    if let Some(event) = events_lock.get(name) {
+    let events = &data.events;
+    if let Some(event) = events.get(name) {
         return Some(CallHierarchyItem {
             name: name.to_string(),
             kind: SymbolKind::EVENT,
@@ -359,11 +367,10 @@ async fn find_symbol_by_name(name: &str, data: &crate::ScannerData) -> Option<Ca
             data: None,
         });
     }
-    drop(events_lock);
 
     // Check scripted triggers
-    let triggers_lock = data.scripted_triggers();
-    if let Some(trigger) = triggers_lock.get(name) {
+    let triggers = &data.scripted_triggers;
+    if let Some(trigger) = triggers.get(name) {
         return Some(CallHierarchyItem {
             name: name.to_string(),
             kind: SymbolKind::FUNCTION,
@@ -375,11 +382,10 @@ async fn find_symbol_by_name(name: &str, data: &crate::ScannerData) -> Option<Ca
             data: None,
         });
     }
-    drop(triggers_lock);
 
     // Check scripted effects
-    let effects_lock = data.scripted_effects();
-    if let Some(effect) = effects_lock.get(name) {
+    let effects = &data.scripted_effects;
+    if let Some(effect) = effects.get(name) {
         return Some(CallHierarchyItem {
             name: name.to_string(),
             kind: SymbolKind::FUNCTION,

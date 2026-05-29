@@ -2,13 +2,13 @@ use crate::achievement_scanner;
 use crate::ast;
 use crate::scope;
 use crate::symbol_search::is_pos_in_range;
-use std::collections::HashMap;
+use dashmap::DashMap;
 use tower_lsp_server::ls_types::Position;
 
 pub fn find_scope_context_at(
     script: &ast::Script,
     pos: Position,
-    achievements: &HashMap<String, achievement_scanner::Achievement>,
+    achievements: &DashMap<String, achievement_scanner::Achievement>,
 ) -> (Option<String>, Vec<scope::Scope>) {
     let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
     let mut context = None;
@@ -25,7 +25,7 @@ fn find_scope_context_in_entry(
     entry: &ast::Entry,
     pos: Position,
     scope_stack: &mut scope::ScopeStack,
-    achievements: &HashMap<String, achievement_scanner::Achievement>,
+    achievements: &DashMap<String, achievement_scanner::Achievement>,
 ) -> Option<String> {
     match entry {
         ast::Entry::Assignment(ass) => {
@@ -62,7 +62,7 @@ fn find_scope_context_in_value(
     val: &ast::NodeedValue,
     pos: Position,
     scope_stack: &mut scope::ScopeStack,
-    achievements: &HashMap<String, achievement_scanner::Achievement>,
+    achievements: &DashMap<String, achievement_scanner::Achievement>,
 ) -> Option<String> {
     match &val.value {
         ast::Value::Block(entries) => {

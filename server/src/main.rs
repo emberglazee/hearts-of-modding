@@ -705,8 +705,8 @@ impl LanguageServer for Backend {
                     (Arc::new(s), e)
                 });
                 let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
-                let achievements = self.scanner_data.achievements();
-                find_identifier_at(&script, position, &mut scope_stack, &achievements)
+                let achievements = &self.scanner_data.achievements;
+                find_identifier_at(&script, position, &mut scope_stack, achievements)
                     .map(|(id, _, _, _)| id)
             };
 
@@ -731,9 +731,9 @@ impl LanguageServer for Backend {
 
         if let Some((script, _)) = self.ensure_ast_cached(&uri) {
             let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
-            let achievements = self.scanner_data.achievements();
+            let achievements = &self.scanner_data.achievements;
             if let Some((identifier, _, _, _)) =
-                find_identifier_at(&script, position, &mut scope_stack, &achievements)
+                find_identifier_at(&script, position, &mut scope_stack, achievements)
             {
                 let mut locations = Vec::new();
 
@@ -763,8 +763,7 @@ impl LanguageServer for Backend {
 
     async fn execute_command(&self, params: ExecuteCommandParams) -> Result<Option<LSPAny>> {
         if params.command == "hoi4/getEventGraph" {
-            let events = self.scanner_data.events();
-            let json = serde_json::to_value(&*events).unwrap();
+            let json = serde_json::to_value(&self.scanner_data.events).unwrap();
             return Ok(Some(json));
         } else if params.command == "hoi4/getMemoryUsage" {
             let mut sys = self.system_info.lock().unwrap();
@@ -867,7 +866,7 @@ impl LanguageServer for Backend {
         let position = params.text_document_position.position;
         let new_name = &params.new_name;
 
-        let files = self.scanner_data.workspace_files();
+        let files = &self.scanner_data.workspace_files;
         let result = rename::rename_symbol(
             uri,
             position,
@@ -875,7 +874,7 @@ impl LanguageServer for Backend {
             &self.scanner_data,
             &self.documents,
             &self.document_asts,
-            &files,
+            files,
         )
         .await;
 
@@ -927,7 +926,7 @@ impl Backend {
         &self,
         val: &ast::NodeedValue,
         diagnostics: &mut Vec<Diagnostic>,
-        provs: &HashMap<u32, province_scanner::Province>,
+        provs: &DashMap<u32, province_scanner::Province>,
     ) {
         let id_opt = match &val.value {
             ast::Value::Number(n) => Some(*n as u32),
@@ -1063,7 +1062,10 @@ impl Backend {
             }
         }
 
-        self.scanner_data.set_workspace_files(all_files);
+        self.scanner_data.workspace_files.clear();
+        for f in all_files {
+            self.scanner_data.workspace_files.insert(f);
+        }
     }
 
     async fn validate_document(&self, uri: Uri) {
@@ -1188,7 +1190,7 @@ impl Backend {
         content: &str,
         diagnostics: &mut Vec<Diagnostic>,
     ) {
-        let provs = self.scanner_data.provinces();
+        let provs = &self.scanner_data.provinces;
         for (i, line) in content.lines().enumerate() {
             let parts: Vec<&str> = line.split_whitespace().collect();
             if parts.len() >= 2 {
@@ -1216,7 +1218,7 @@ impl Backend {
     }
 
     async fn validate_railways_content(&self, content: &str, diagnostics: &mut Vec<Diagnostic>) {
-        let provs = self.scanner_data.provinces();
+        let provs = &self.scanner_data.provinces;
         for (i, line) in content.lines().enumerate() {
             let parts: Vec<&str> = line.split_whitespace().collect();
             if parts.len() >= 2 {
@@ -1254,7 +1256,7 @@ impl Backend {
         content: &str,
         diagnostics: &mut Vec<Diagnostic>,
     ) {
-        let states = self.scanner_data.states();
+        let states = &self.scanner_data.states;
         for (i, line) in content.lines().enumerate() {
             if line.trim().is_empty() {
                 diagnostics.push(Diagnostic {
@@ -1306,7 +1308,7 @@ impl Backend {
         content: &str,
         diagnostics: &mut Vec<Diagnostic>,
     ) {
-        let regions = self.scanner_data.strategic_regions();
+        let regions = &self.scanner_data.strategic_regions;
         for (i, line) in content.lines().enumerate() {
             let parts: Vec<&str> = line.split(';').collect();
             if parts.len() >= 5 {
@@ -1334,7 +1336,7 @@ impl Backend {
     }
 
     async fn validate_unitstacks_content(&self, content: &str, diagnostics: &mut Vec<Diagnostic>) {
-        let provs = self.scanner_data.provinces();
+        let provs = &self.scanner_data.provinces;
         for (i, line) in content.lines().enumerate() {
             let parts: Vec<&str> = line.split(';').collect();
             if parts.len() >= 7 {
@@ -1500,8 +1502,8 @@ impl Backend {
     }
 
     async fn validate_adjacencies_content(&self, content: &str, diagnostics: &mut Vec<Diagnostic>) {
-        let provs = self.scanner_data.provinces();
-        let rules = self.scanner_data.adjacency_rules();
+        let provs = &self.scanner_data.provinces;
+        let rules = &self.scanner_data.adjacency_rules;
         for (i, line) in content.lines().enumerate() {
             let trimmed = line.trim();
             if trimmed.is_empty() || trimmed.starts_with('#') || trimmed.starts_with("From;To;") {
@@ -1718,7 +1720,7 @@ impl Backend {
         content: &str,
         diagnostics: &mut Vec<Diagnostic>,
     ) {
-        let provs = self.scanner_data.provinces();
+        let provs = &self.scanner_data.provinces;
         let (script, errors) = parser::parse_script(content);
         for (msg, range) in errors {
             diagnostics.push(Diagnostic {
@@ -1774,7 +1776,7 @@ impl Backend {
         script: &ast::Script,
         diagnostics: &mut Vec<Diagnostic>,
     ) {
-        let provs = self.scanner_data.provinces();
+        let provs = &self.scanner_data.provinces;
 
         for entry in &script.entries {
             if let ast::Entry::Assignment(ass) = entry {
@@ -1855,11 +1857,11 @@ impl Backend {
         let (parsed, loc_diagnostics_structural, doc_lang) =
             loc_parser::parse_loc_file(content, &path_str);
         let doc_lang_str = doc_lang.unwrap_or_else(|| "unknown".to_string());
-        let event_targets = self.scanner_data.event_targets();
-        let scripted_locs = self.scanner_data.scripted_locs();
-        let color_codes = self.scanner_data.color_codes();
-        let dups = self.scanner_data.duplicated_loc_keys();
-        let game_loc_keys = self.scanner_data.game_loc_keys();
+        let event_targets = &self.scanner_data.event_targets;
+        let scripted_locs = &self.scanner_data.scripted_locs;
+        let color_codes = &self.scanner_data.color_codes;
+        let dups = &self.scanner_data.duplicated_loc_keys;
+        let game_loc_keys = &self.scanner_data.game_loc_keys;
 
         // Add structural diagnostics
         for d in loc_diagnostics_structural {
@@ -1927,11 +1929,11 @@ impl Backend {
             }
 
             let color_code_set: std::collections::HashSet<String> =
-                color_codes.keys().cloned().collect();
+                color_codes.iter().map(|e| e.key().clone()).collect();
             let loc_diagnostics = loc_parser::validate_loc_string(
                 entry,
-                &event_targets,
-                &scripted_locs,
+                event_targets,
+                scripted_locs,
                 &color_code_set,
             );
             for d in loc_diagnostics {
@@ -1975,7 +1977,7 @@ impl Backend {
                     game_loc_keys.contains(&(doc_lang_str.clone(), entry.key.clone()));
 
                 if !is_game_override {
-                    let loc_map = self.scanner_data.localization();
+                    let loc_map = &self.scanner_data.localization;
                     let mut is_intentional_override = false;
                     if entry.path.contains("replace") {
                         is_intentional_override = true;
@@ -2350,21 +2352,21 @@ impl Backend {
         styling_enabled: bool,
         uri: &str,
     ) {
-        let loc = self.scanner_data.localization();
-        let st = self.scanner_data.scripted_triggers();
-        let se = self.scanner_data.scripted_effects();
-        let id = self.scanner_data.ideologies();
-        let sid = self.scanner_data.sub_ideologies();
-        let tr = self.scanner_data.traits();
-        let sp = self.scanner_data.sprites();
-        let ids = self.scanner_data.ideas();
-        let provs = self.scanner_data.provinces();
-        let mod_maps = self.scanner_data.modifier_mappings();
+        let loc = &self.scanner_data.localization;
+        let st = &self.scanner_data.scripted_triggers;
+        let se = &self.scanner_data.scripted_effects;
+        let id = &self.scanner_data.ideologies;
+        let sid = &self.scanner_data.sub_ideologies;
+        let tr = &self.scanner_data.traits;
+        let sp = &self.scanner_data.sprites;
+        let ids = &self.scanner_data.ideas;
+        let provs = &self.scanner_data.provinces;
+        let mod_maps = &self.scanner_data.modifier_mappings;
         let ig_loc = self.config.ignored_loc_regex();
-        let buildings = self.scanner_data.buildings();
+        let buildings = &self.scanner_data.buildings;
         let defines = self.scanner_data.defines();
-        let s_effects = self.scanner_data.sound_effects();
-        let ct = self.scanner_data.country_tags();
+        let s_effects = &self.scanner_data.sound_effects;
+        let ct = &self.scanner_data.country_tags;
 
         let mut comments = Vec::new();
         for entry in &script.entries {
@@ -2382,8 +2384,8 @@ impl Backend {
         let mut scope_stack = scope::ScopeStack::new(initial_scope);
 
         // Load AI area validation data
-        let continents = self.scanner_data.continents();
-        let strategic_regions = self.scanner_data.strategic_regions();
+        let continents = &self.scanner_data.continents;
+        let strategic_regions = &self.scanner_data.strategic_regions;
 
         // Run advanced validations
         let mut advanced_diags = Vec::new();
@@ -2392,7 +2394,7 @@ impl Backend {
         // the dynamic-to-static ratio suggests insufficient dynamic tags for civil wars.
         if uri.contains("/common/country_tags/") || uri.contains("\\common\\country_tags\\") {
             let total = ct.len();
-            let dynamic_count = ct.values().filter(|t| t.dynamic).count();
+            let dynamic_count = ct.iter().filter(|t| t.value().dynamic).count();
             let static_count = total - dynamic_count;
             if total > 0 && dynamic_count == 0 {
                 advanced_diags.push(advanced_validation::ValidationDiagnostic {
@@ -2418,7 +2420,7 @@ impl Backend {
         }
         advanced_validation::validate_building_levels(
             &script.entries,
-            &buildings,
+            buildings,
             &mut advanced_diags,
         );
         advanced_validation::validate_character_skills(
@@ -2427,9 +2429,9 @@ impl Backend {
             &mut advanced_diags,
         );
         advanced_validation::validate_victory_points(&script.entries, &mut advanced_diags);
-        advanced_validation::validate_achievements(&script.entries, &loc, &mut advanced_diags);
-        advanced_validation::validate_abilities(&script.entries, &loc, &mut advanced_diags);
-        advanced_validation::validate_portrait_gfx(&script.entries, &sp, &mut advanced_diags);
+        advanced_validation::validate_achievements(&script.entries, loc, &mut advanced_diags);
+        advanced_validation::validate_abilities(&script.entries, loc, &mut advanced_diags);
+        advanced_validation::validate_portrait_gfx(&script.entries, sp, &mut advanced_diags);
 
         // Convert advanced diagnostics to LSP diagnostics
         for diag in advanced_diags {
@@ -2548,22 +2550,22 @@ impl Backend {
             self.check_entry_semantic(
                 entry,
                 diagnostics,
-                &loc,
-                &st,
-                &se,
-                &id,
-                &sid,
-                &tr,
-                &sp,
-                &ids,
-                &provs,
-                &mod_maps,
+                loc,
+                st,
+                se,
+                id,
+                sid,
+                tr,
+                sp,
+                ids,
+                provs,
+                mod_maps,
                 &ig_loc,
                 &comments,
                 styling_enabled,
                 &mut scope_stack,
-                &s_effects,
-                &ct,
+                s_effects,
+                ct,
             );
         }
 
@@ -2687,22 +2689,22 @@ impl Backend {
         &self,
         entry: &ast::Entry,
         diagnostics: &mut Vec<Diagnostic>,
-        loc: &HashMap<String, loc_parser::LocEntry>,
-        st: &HashMap<String, scripted_scanner::ScriptedEntity>,
-        se: &HashMap<String, scripted_scanner::ScriptedEntity>,
-        id: &HashMap<String, ideology_scanner::Ideology>,
-        sid: &HashMap<String, (String, ast::Range, String)>,
-        tr: &HashMap<String, trait_scanner::Trait>,
-        sp: &HashMap<String, sprite_scanner::Sprite>,
-        ids: &HashMap<String, idea_scanner::Idea>,
-        provs: &HashMap<u32, province_scanner::Province>,
-        mod_maps: &HashMap<String, String>,
+        loc: &DashMap<String, loc_parser::LocEntry>,
+        st: &DashMap<String, scripted_scanner::ScriptedEntity>,
+        se: &DashMap<String, scripted_scanner::ScriptedEntity>,
+        id: &DashMap<String, ideology_scanner::Ideology>,
+        sid: &DashMap<String, (String, ast::Range, String)>,
+        tr: &DashMap<String, trait_scanner::Trait>,
+        sp: &DashMap<String, sprite_scanner::Sprite>,
+        ids: &DashMap<String, idea_scanner::Idea>,
+        provs: &DashMap<u32, province_scanner::Province>,
+        mod_maps: &DashMap<String, String>,
         ig_loc: &[regex::Regex],
         comments: &[(String, ast::Range)],
         styling_enabled: bool,
         scope_stack: &mut scope::ScopeStack,
-        s_effects: &HashMap<String, sound_scanner::SoundEffect>,
-        ct: &HashMap<String, country_scanner::CountryTag>,
+        s_effects: &DashMap<String, sound_scanner::SoundEffect>,
+        ct: &DashMap<String, country_scanner::CountryTag>,
     ) {
         match entry {
             ast::Entry::Assignment(ass) => {
@@ -2739,9 +2741,9 @@ impl Backend {
                                 if !has_picture {
                                     let default_gfx = format!("GFX_idea_{}", ass.key);
                                     let exists = sp.contains_key(&default_gfx)
-                                        || sp
-                                            .keys()
-                                            .any(|k| k.starts_with(&format!("{}_", default_gfx)));
+                                        || sp.iter().any(|e| {
+                                            e.key().starts_with(&format!("{}_", default_gfx))
+                                        });
                                     if !exists {
                                         diagnostics.push(Diagnostic {
                                             range: ast_range_to_lsp(&ass.key_range),
@@ -2952,7 +2954,7 @@ impl Backend {
                         if should_flag {
                             if !loc.contains_key(val) {
                                 let target = format!("{}:", val);
-                                if !loc.iter().any(|(k, _)| k.starts_with(&target)) {
+                                if !loc.iter().any(|e| e.key().starts_with(&target)) {
                                     // Final check against regex
                                     let is_regex_ignored = ig_loc.iter().any(|re| re.is_match(val));
 
@@ -3046,7 +3048,7 @@ impl Backend {
                     || key_lower == "remove_ability"
                 {
                     if let ast::Value::String(val) = &ass.value.value {
-                        let abilities = self.scanner_data.abilities();
+                        let abilities = &self.scanner_data.abilities;
                         if !abilities.contains_key(val) {
                             diagnostics.push(Diagnostic {
                                 range: ast_range_to_lsp(&ass.value.range),
@@ -3085,8 +3087,8 @@ impl Backend {
                             || (key_lower == "picture"
                                 && scope_stack.current() == scope::Scope::Idea
                                 && sp
-                                    .keys()
-                                    .any(|k| k.starts_with(&format!("{}_", lookup_key))));
+                                    .iter()
+                                    .any(|e| e.key().starts_with(&format!("{}_", lookup_key))));
 
                         if !exists
                             && (lookup_key.starts_with("GFX_")
@@ -3268,22 +3270,22 @@ impl Backend {
         &self,
         val: &ast::NodeedValue,
         diagnostics: &mut Vec<Diagnostic>,
-        loc: &HashMap<String, loc_parser::LocEntry>,
-        st: &HashMap<String, scripted_scanner::ScriptedEntity>,
-        se: &HashMap<String, scripted_scanner::ScriptedEntity>,
-        id: &HashMap<String, ideology_scanner::Ideology>,
-        sid: &HashMap<String, (String, ast::Range, String)>,
-        tr: &HashMap<String, trait_scanner::Trait>,
-        sp: &HashMap<String, sprite_scanner::Sprite>,
-        ids: &HashMap<String, idea_scanner::Idea>,
-        provs: &HashMap<u32, province_scanner::Province>,
-        mod_maps: &HashMap<String, String>,
+        loc: &DashMap<String, loc_parser::LocEntry>,
+        st: &DashMap<String, scripted_scanner::ScriptedEntity>,
+        se: &DashMap<String, scripted_scanner::ScriptedEntity>,
+        id: &DashMap<String, ideology_scanner::Ideology>,
+        sid: &DashMap<String, (String, ast::Range, String)>,
+        tr: &DashMap<String, trait_scanner::Trait>,
+        sp: &DashMap<String, sprite_scanner::Sprite>,
+        ids: &DashMap<String, idea_scanner::Idea>,
+        provs: &DashMap<u32, province_scanner::Province>,
+        mod_maps: &DashMap<String, String>,
         ig_loc: &[regex::Regex],
         comments: &[(String, ast::Range)],
         styling_enabled: bool,
         scope_stack: &mut scope::ScopeStack,
-        s_effects: &HashMap<String, sound_scanner::SoundEffect>,
-        ct: &HashMap<String, country_scanner::CountryTag>,
+        s_effects: &DashMap<String, sound_scanner::SoundEffect>,
+        ct: &DashMap<String, country_scanner::CountryTag>,
     ) {
         match &val.value {
             ast::Value::Block(entries) => {
@@ -3390,7 +3392,7 @@ impl Backend {
         &self,
         entries: &[ast::Entry],
         diagnostics: &mut Vec<Diagnostic>,
-        mod_maps: &HashMap<String, String>,
+        mod_maps: &DashMap<String, String>,
     ) {
         // Currently only checks keys that are in `mod_maps` (modifier names) plus a small
         // hardcoded set of common structural keys (`name`, `id`, `icon`). All other keys

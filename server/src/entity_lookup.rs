@@ -123,9 +123,8 @@ impl<'a> EntityLookup<'a> {
         let mut results = Vec::new();
 
         macro_rules! try_lookup {
-            ($kind:ident, $method:ident) => {
-                let map = self.data.$method();
-                if let Some(entity) = map.get(key) {
+            ($kind:ident, $name:ident) => {
+                if let Some(entity) = self.data.$name.get(key) {
                     results.push(EntityLocation {
                         kind: EntityKind::$kind,
                         range: entity.range.clone(),
@@ -142,12 +141,12 @@ impl<'a> EntityLookup<'a> {
         try_lookup!(Ideology, ideologies);
 
         {
-            let map = self.data.sub_ideologies();
-            if let Some((_, range, path)) = map.get(key) {
+            let map = &self.data.sub_ideologies;
+            if let Some(entry) = map.get(key) {
                 results.push(EntityLocation {
                     kind: EntityKind::SubIdeology,
-                    range: range.clone(),
-                    path: path.clone(),
+                    range: entry.1.clone(),
+                    path: entry.2.clone(),
                 });
             }
         }
@@ -162,9 +161,9 @@ impl<'a> EntityLookup<'a> {
         try_lookup!(AiArea, ai_areas);
 
         {
-            let map = self.data.variables();
+            let map = &self.data.variables;
             if let Some(vars) = map.get(key) {
-                for var in vars {
+                for var in vars.iter() {
                     results.push(EntityLocation {
                         kind: EntityKind::Variable,
                         range: var.range.clone(),
@@ -175,9 +174,9 @@ impl<'a> EntityLookup<'a> {
         }
 
         {
-            let map = self.data.event_targets();
+            let map = &self.data.event_targets;
             if let Some(targets) = map.get(key) {
-                for target in targets {
+                for target in targets.iter() {
                     results.push(EntityLocation {
                         kind: EntityKind::EventTarget,
                         range: target.range.clone(),
@@ -198,7 +197,7 @@ impl<'a> EntityLookup<'a> {
         try_lookup!(AdjacencyRule, adjacency_rules);
 
         if let Ok(id) = key.parse::<u32>() {
-            let map = self.data.strategic_regions();
+            let map = &self.data.strategic_regions;
             if let Some(region) = map.get(&id) {
                 results.push(EntityLocation {
                     kind: EntityKind::StrategicRegion,
@@ -215,10 +214,10 @@ impl<'a> EntityLookup<'a> {
         try_lookup!(AiStrategyPlan, ai_strategy_plans);
 
         {
-            let map = self.data.modifier_mappings();
+            let map = &self.data.modifier_mappings;
             if let Some(loc_key) = map.get(key) {
-                let loc = self.data.localization();
-                if let Some(entry) = loc.get(loc_key) {
+                let loc = &self.data.localization;
+                if let Some(entry) = loc.get(loc_key.as_str()) {
                     results.push(EntityLocation {
                         kind: EntityKind::ModifierMapping,
                         range: entry.range.clone(),
@@ -229,7 +228,7 @@ impl<'a> EntityLookup<'a> {
         }
 
         {
-            let loc = self.data.localization();
+            let loc = &self.data.localization;
             if let Some(entry) = loc.get(key) {
                 results.push(EntityLocation {
                     kind: EntityKind::Localization,
@@ -238,12 +237,13 @@ impl<'a> EntityLookup<'a> {
                 });
             }
             let prefix = format!("{}:", key);
-            for (k, entry) in loc.iter() {
+            for entry in loc.iter() {
+                let k = entry.key();
                 if k.starts_with(&prefix) {
                     results.push(EntityLocation {
                         kind: EntityKind::Localization,
-                        range: entry.range.clone(),
-                        path: entry.path.clone(),
+                        range: entry.value().range.clone(),
+                        path: entry.value().path.clone(),
                     });
                 }
             }
@@ -254,9 +254,10 @@ impl<'a> EntityLookup<'a> {
 
     pub fn entity_at(&self, path: &str, pos: Position) -> Option<(EntityKind, ast::Range, String)> {
         macro_rules! check_entity {
-            ($kind:ident, $method:ident) => {
-                let map = self.data.$method();
-                for (name, entity) in map.iter() {
+            ($kind:ident, $name:ident) => {
+                for entry in self.data.$name.iter() {
+                    let entity = entry.value();
+                    let name = entry.key();
                     if entity.path == path && is_pos_in_range(pos, &entity.range) {
                         return Some((EntityKind::$kind, entity.range.clone(), name.clone()));
                     }
@@ -272,9 +273,10 @@ impl<'a> EntityLookup<'a> {
         check_entity!(Ability, abilities);
 
         {
-            let map = self.data.variables();
-            for (name, vars) in map.iter() {
-                for var in vars {
+            let map = &self.data.variables;
+            for entry in map.iter() {
+                let name = entry.key();
+                for var in entry.value().iter() {
                     if var.path == path && is_pos_in_range(pos, &var.range) {
                         return Some((EntityKind::Variable, var.range.clone(), name.clone()));
                     }
@@ -289,10 +291,9 @@ impl<'a> EntityLookup<'a> {
         let mut names = HashMap::new();
 
         macro_rules! collect_names {
-            ($kind:ident, $method:ident) => {
-                let map = self.data.$method();
-                for key in map.keys() {
-                    names.insert(key.clone(), EntityKind::$kind);
+            ($kind:ident, $name:ident) => {
+                for entry in self.data.$name.iter() {
+                    names.insert(entry.key().clone(), EntityKind::$kind);
                 }
             };
         }
@@ -303,9 +304,9 @@ impl<'a> EntityLookup<'a> {
         collect_names!(Character, characters);
 
         {
-            let map = self.data.sub_ideologies();
-            for key in map.keys() {
-                names.insert(key.clone(), EntityKind::SubIdeology);
+            let map = &self.data.sub_ideologies;
+            for entry in map.iter() {
+                names.insert(entry.key().clone(), EntityKind::SubIdeology);
             }
         }
 
@@ -342,9 +343,10 @@ impl<'a> EntityLookup<'a> {
         let fuzzy_match = |query: &str, target: &str| crate::fs_util::fuzzy_match(query, target);
 
         macro_rules! push_symbols {
-            ($kind:ident, $method:ident, $container:expr) => {
-                let map = self.data.$method();
-                for (name, entity) in map.iter() {
+            ($kind:ident, $name:ident, $container:expr) => {
+                for entry in self.data.$name.iter() {
+                    let name = entry.key();
+                    let entity = entry.value();
                     if fuzzy_match(&query_lower, name) {
                         results.push(EntityHit {
                             name: name.clone(),
@@ -365,8 +367,10 @@ impl<'a> EntityLookup<'a> {
         push_symbols!(Achievement, achievements, "Achievement");
 
         {
-            let map = self.data.events();
-            for (id, event) in map.iter() {
+            let map = &self.data.events;
+            for entry in map.iter() {
+                let id = entry.key();
+                let event = entry.value();
                 if fuzzy_match(&query_lower, id) {
                     results.push(EntityHit {
                         name: id.clone(),
@@ -383,8 +387,10 @@ impl<'a> EntityLookup<'a> {
         }
 
         {
-            let map = self.data.ideas();
-            for (name, idea) in map.iter() {
+            let map = &self.data.ideas;
+            for entry in map.iter() {
+                let name = entry.key();
+                let idea = entry.value();
                 if fuzzy_match(&query_lower, name) {
                     results.push(EntityHit {
                         name: name.clone(),
@@ -401,8 +407,10 @@ impl<'a> EntityLookup<'a> {
         }
 
         {
-            let map = self.data.traits();
-            for (name, entity) in map.iter() {
+            let map = &self.data.traits;
+            for entry in map.iter() {
+                let name = entry.key();
+                let entity = entry.value();
                 if fuzzy_match(&query_lower, name) {
                     results.push(EntityHit {
                         name: name.clone(),
@@ -423,8 +431,10 @@ impl<'a> EntityLookup<'a> {
         push_symbols!(ScriptedLoc, scripted_locs, "Scripted Localisation");
 
         {
-            let map = self.data.states();
-            for (id, state) in map.iter() {
+            let map = &self.data.states;
+            for entry in map.iter() {
+                let id = entry.key();
+                let state = entry.value();
                 let display = format!("State {}: {}", id, state.name);
                 if fuzzy_match(&query_lower, &id.to_string())
                     || fuzzy_match(&query_lower, &state.name)
@@ -596,8 +606,10 @@ impl<'a> EntityLookup<'a> {
         push_symbols!(AdjacencyRule, adjacency_rules, "Adjacency Rule");
 
         {
-            let map = self.data.strategic_regions();
-            for (id, region) in map.iter() {
+            let map = &self.data.strategic_regions;
+            for entry in map.iter() {
+                let id = entry.key();
+                let region = entry.value();
                 let display = format!("Strategic Region {}: {}", id, region.name);
                 if fuzzy_match(&query_lower, &id.to_string())
                     || fuzzy_match(&query_lower, &region.name)
@@ -617,9 +629,11 @@ impl<'a> EntityLookup<'a> {
         }
 
         {
-            let map = self.data.localization();
+            let map = &self.data.localization;
             let mut count = 0;
-            for (name, loc) in map.iter() {
+            for entry in map.iter() {
+                let name = entry.key();
+                let loc = entry.value();
                 if fuzzy_match(&query_lower, name) {
                     results.push(EntityHit {
                         name: name.clone(),
@@ -642,8 +656,10 @@ impl<'a> EntityLookup<'a> {
         push_symbols!(Ideology, ideologies, "Ideology");
 
         {
-            let map = self.data.sub_ideologies();
-            for (name, (parent, range, path)) in map.iter() {
+            let map = &self.data.sub_ideologies;
+            for entry in map.iter() {
+                let name = entry.key();
+                let (parent, range, path) = entry.value();
                 if fuzzy_match(&query_lower, name) {
                     results.push(EntityHit {
                         name: name.clone(),
@@ -669,26 +685,22 @@ impl<'a> EntityLookup<'a> {
         push_symbols!(SoundCategory, sound_categories, "Sound Category");
         push_symbols!(Character, characters, "Character");
         push_symbols!(Ability, abilities, "Ability");
-        push_symbols!(AiArea, ai_areas, "AI Area");
-        push_symbols!(AiStrategyPlan, ai_strategy_plans, "AI Strategy Plan");
-        push_symbols!(CountryTag, country_tags, "Country Tag");
-        push_symbols!(ColorCode, color_codes, "Color Code");
         push_symbols!(Portrait, portraits, "Portrait");
+        push_symbols!(ColorCode, color_codes, "Color Code");
+        push_symbols!(CountryTag, country_tags, "Country Tag");
         push_symbols!(Building, buildings, "Building");
+        push_symbols!(AiStrategyPlan, ai_strategy_plans, "AI Strategy Plan");
+        push_symbols!(AiArea, ai_areas, "AI Area");
 
         results
     }
 }
 
 fn is_pos_in_range(pos: Position, range: &ast::Range) -> bool {
-    if pos.line < range.start_line || pos.line > range.end_line {
-        return false;
-    }
-    if pos.line == range.start_line && pos.character < range.start_col {
-        return false;
-    }
-    if pos.line == range.end_line && pos.character > range.end_col {
-        return false;
-    }
-    true
+    let line = pos.line;
+    let character = pos.character;
+    line >= range.start_line
+        && line <= range.end_line
+        && (line != range.start_line || character >= range.start_col)
+        && (line != range.end_line || character <= range.end_col)
 }

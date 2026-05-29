@@ -40,8 +40,11 @@ impl Backend {
         })
         .await
         .unwrap();
-        self.scanner_data.set_provinces(result);
-        let provinces = self.scanner_data.provinces();
+        self.scanner_data.provinces.clear();
+        for (k, v) in result {
+            self.scanner_data.provinces.insert(k, v);
+        }
+        let provinces = &self.scanner_data.provinces;
         self.client
             .log_message(
                 MessageType::INFO,
@@ -58,8 +61,11 @@ impl Backend {
                 .await
                 .unwrap();
 
-        self.scanner_data.set_states(result);
-        let map = self.scanner_data.states();
+        self.scanner_data.states.clear();
+        for (k, v) in result {
+            self.scanner_data.states.insert(k, v);
+        }
+        let map = &self.scanner_data.states;
         self.client
             .log_message(MessageType::INFO, format!("Loaded {} states", map.len()))
             .await;
@@ -132,8 +138,11 @@ impl Backend {
         self.scanner_data.set_adjacencies(result.adjacencies);
         let adj = self.scanner_data.adjacencies();
 
-        self.scanner_data.set_adjacency_rules(result.rules);
-        let rules = self.scanner_data.adjacency_rules();
+        self.scanner_data.adjacency_rules.clear();
+        for (k, v) in result.rules {
+            self.scanner_data.adjacency_rules.insert(k, v);
+        }
+        let rules = &self.scanner_data.adjacency_rules;
 
         self.client
             .log_message(
@@ -156,8 +165,11 @@ impl Backend {
         .await
         .unwrap();
 
-        self.scanner_data.set_strategic_regions(result);
-        let regions = self.scanner_data.strategic_regions();
+        self.scanner_data.strategic_regions.clear();
+        for (k, v) in result {
+            self.scanner_data.strategic_regions.insert(k, v);
+        }
+        let regions = &self.scanner_data.strategic_regions;
 
         self.client
             .log_message(
@@ -174,8 +186,11 @@ impl Backend {
             tokio::task::spawn_blocking(move || event_scanner::scan_events(&roots_owned, &filter))
                 .await
                 .unwrap();
-        self.scanner_data.set_events(result);
-        let events = self.scanner_data.events();
+        self.scanner_data.events.clear();
+        for (k, v) in result {
+            self.scanner_data.events.insert(k, v);
+        }
+        let events = &self.scanner_data.events;
         self.client
             .log_message(
                 MessageType::INFO,
@@ -192,8 +207,11 @@ impl Backend {
         })
         .await
         .unwrap();
-        self.scanner_data.set_abilities(result);
-        let map = self.scanner_data.abilities();
+        self.scanner_data.abilities.clear();
+        for (k, v) in result {
+            self.scanner_data.abilities.insert(k, v);
+        }
+        let map = &self.scanner_data.abilities;
         self.client
             .log_message(
                 MessageType::INFO,
@@ -211,8 +229,11 @@ impl Backend {
         .await
         .unwrap();
 
-        self.scanner_data.set_ai_strategy_plans(plans);
-        let p = self.scanner_data.ai_strategy_plans();
+        self.scanner_data.ai_strategy_plans.clear();
+        for (k, v) in plans {
+            self.scanner_data.ai_strategy_plans.insert(k, v);
+        }
+        let p = &self.scanner_data.ai_strategy_plans;
 
         self.client
             .log_message(
@@ -231,8 +252,11 @@ impl Backend {
         .await
         .unwrap();
 
-        self.scanner_data.set_ai_areas(areas);
-        let a = self.scanner_data.ai_areas();
+        self.scanner_data.ai_areas.clear();
+        for (k, v) in areas {
+            self.scanner_data.ai_areas.insert(k, v);
+        }
+        let a = &self.scanner_data.ai_areas;
 
         self.client
             .log_message(
@@ -254,8 +278,11 @@ impl Backend {
         .await
         .unwrap();
 
-        self.scanner_data.set_continents(result);
-        let c = self.scanner_data.continents();
+        self.scanner_data.continents.clear();
+        for (k, v) in result {
+            self.scanner_data.continents.insert(k, v);
+        }
+        let c = &self.scanner_data.continents;
 
         self.client
             .log_message(
@@ -274,8 +301,11 @@ impl Backend {
         .await
         .unwrap();
 
-        self.scanner_data.set_portraits(portraits);
-        let p = self.scanner_data.portraits();
+        self.scanner_data.portraits.clear();
+        for (k, v) in portraits {
+            self.scanner_data.portraits.insert(k, v);
+        }
+        let p = &self.scanner_data.portraits;
 
         self.client
             .log_message(
@@ -293,14 +323,23 @@ impl Backend {
                 .await
                 .unwrap();
 
-        self.scanner_data.set_music_assets(result.assets);
-        let assets = self.scanner_data.music_assets();
+        self.scanner_data.music_assets.clear();
+        for (k, v) in result.assets {
+            self.scanner_data.music_assets.insert(k, v);
+        }
+        let assets = &self.scanner_data.music_assets;
 
-        self.scanner_data.set_music_stations(result.stations);
-        let stations = self.scanner_data.music_stations();
+        self.scanner_data.music_stations.clear();
+        for (k, v) in result.stations {
+            self.scanner_data.music_stations.insert(k, v);
+        }
+        let stations = &self.scanner_data.music_stations;
 
-        self.scanner_data.set_songs(result.songs);
-        let songs = self.scanner_data.songs();
+        self.scanner_data.songs.clear();
+        for (k, v) in result.songs {
+            self.scanner_data.songs.insert(k, v);
+        }
+        let songs = &self.scanner_data.songs;
 
         self.client
             .log_message(
@@ -323,17 +362,29 @@ impl Backend {
                 .await
                 .unwrap();
 
-        self.scanner_data.set_sounds(result.sounds);
-        let sounds = self.scanner_data.sounds();
+        self.scanner_data.sounds.clear();
+        for (k, v) in result.sounds {
+            self.scanner_data.sounds.insert(k, v);
+        }
+        let sounds = &self.scanner_data.sounds;
 
-        self.scanner_data.set_sound_effects(result.sound_effects);
-        let effects = self.scanner_data.sound_effects();
+        self.scanner_data.sound_effects.clear();
+        for (k, v) in result.sound_effects {
+            self.scanner_data.sound_effects.insert(k, v);
+        }
+        let effects = &self.scanner_data.sound_effects;
 
-        self.scanner_data.set_falloffs(result.falloffs);
-        let falloffs = self.scanner_data.falloffs();
+        self.scanner_data.falloffs.clear();
+        for (k, v) in result.falloffs {
+            self.scanner_data.falloffs.insert(k, v);
+        }
+        let falloffs = &self.scanner_data.falloffs;
 
-        self.scanner_data.set_sound_categories(result.categories);
-        let categories = self.scanner_data.sound_categories();
+        self.scanner_data.sound_categories.clear();
+        for (k, v) in result.categories {
+            self.scanner_data.sound_categories.insert(k, v);
+        }
+        let categories = &self.scanner_data.sound_categories;
 
         self.client
             .log_message(
@@ -358,13 +409,17 @@ impl Backend {
         .await
         .unwrap();
 
-        self.scanner_data
-            .set_custom_modifiers(result.custom_modifiers);
-        let custom = self.scanner_data.custom_modifiers();
+        self.scanner_data.custom_modifiers.clear();
+        for (k, v) in result.custom_modifiers {
+            self.scanner_data.custom_modifiers.insert(k, v);
+        }
+        let custom = &self.scanner_data.custom_modifiers;
 
-        self.scanner_data
-            .set_modifier_mappings(result.builtin_mappings);
-        let mappings = self.scanner_data.modifier_mappings();
+        self.scanner_data.modifier_mappings.clear();
+        for (k, v) in result.builtin_mappings {
+            self.scanner_data.modifier_mappings.insert(k, v);
+        }
+        let mappings = &self.scanner_data.modifier_mappings;
 
         self.client
             .log_message(
@@ -387,8 +442,11 @@ impl Backend {
         .await
         .unwrap();
 
-        self.scanner_data.set_buildings(buildings);
-        let b = self.scanner_data.buildings();
+        self.scanner_data.buildings.clear();
+        for (k, v) in buildings {
+            self.scanner_data.buildings.insert(k, v);
+        }
+        let b = &self.scanner_data.buildings;
 
         self.client
             .log_message(
@@ -407,8 +465,11 @@ impl Backend {
         .await
         .unwrap();
 
-        self.scanner_data.set_achievements(achievements);
-        let a = self.scanner_data.achievements();
+        self.scanner_data.achievements.clear();
+        for (k, v) in achievements {
+            self.scanner_data.achievements.insert(k, v);
+        }
+        let a = &self.scanner_data.achievements;
 
         self.client
             .log_message(
@@ -444,11 +505,17 @@ impl Backend {
         .await
         .unwrap();
 
-        self.scanner_data.set_variables(result.variables);
-        let vars = self.scanner_data.variables();
+        self.scanner_data.variables.clear();
+        for (k, v) in result.variables {
+            self.scanner_data.variables.insert(k, v);
+        }
+        let vars = &self.scanner_data.variables;
 
-        self.scanner_data.set_event_targets(result.event_targets);
-        let targets = self.scanner_data.event_targets();
+        self.scanner_data.event_targets.clear();
+        for (k, v) in result.event_targets {
+            self.scanner_data.event_targets.insert(k, v);
+        }
+        let targets = &self.scanner_data.event_targets;
 
         self.client
             .log_message(
@@ -558,14 +625,23 @@ impl Backend {
             self.client.log_message(level, msg).await;
         }
 
-        self.scanner_data.set_duplicated_loc_keys(dups);
-        let _d_map = self.scanner_data.duplicated_loc_keys();
+        self.scanner_data.duplicated_loc_keys.clear();
+        for x in dups {
+            self.scanner_data.duplicated_loc_keys.insert(x);
+        }
+        let _d_map = &self.scanner_data.duplicated_loc_keys;
 
-        self.scanner_data.set_game_loc_keys(game_keys);
-        let game_loc_count = self.scanner_data.game_loc_keys().len();
+        self.scanner_data.game_loc_keys.clear();
+        for x in game_keys {
+            self.scanner_data.game_loc_keys.insert(x);
+        }
+        let game_loc_count = self.scanner_data.game_loc_keys.len();
 
-        self.scanner_data.set_localization(all_locs);
-        let loc = self.scanner_data.localization();
+        self.scanner_data.localization.clear();
+        for (k, v) in all_locs {
+            self.scanner_data.localization.insert(k, v);
+        }
+        let loc = &self.scanner_data.localization;
         self.client
             .log_message(
                 MessageType::INFO,
@@ -610,14 +686,23 @@ impl Backend {
         .await
         .unwrap();
 
-        self.scanner_data.set_scripted_triggers(all_triggers);
-        let t_map = self.scanner_data.scripted_triggers();
+        self.scanner_data.scripted_triggers.clear();
+        for (k, v) in all_triggers {
+            self.scanner_data.scripted_triggers.insert(k, v);
+        }
+        let t_map = &self.scanner_data.scripted_triggers;
 
-        self.scanner_data.set_scripted_effects(all_effects);
-        let e_map = self.scanner_data.scripted_effects();
+        self.scanner_data.scripted_effects.clear();
+        for (k, v) in all_effects {
+            self.scanner_data.scripted_effects.insert(k, v);
+        }
+        let e_map = &self.scanner_data.scripted_effects;
 
-        self.scanner_data.set_scripted_locs(all_locs);
-        let l_map = self.scanner_data.scripted_locs();
+        self.scanner_data.scripted_locs.clear();
+        for (k, v) in all_locs {
+            self.scanner_data.scripted_locs.insert(k, v);
+        }
+        let l_map = &self.scanner_data.scripted_locs;
 
         self.client
             .log_message(
@@ -660,11 +745,17 @@ impl Backend {
         .await
         .unwrap();
 
-        self.scanner_data.set_ideologies(all_results);
-        let i_map = self.scanner_data.ideologies();
+        self.scanner_data.ideologies.clear();
+        for (k, v) in all_results {
+            self.scanner_data.ideologies.insert(k, v);
+        }
+        let i_map = &self.scanner_data.ideologies;
 
-        self.scanner_data.set_sub_ideologies(sub_map);
-        let s_map = self.scanner_data.sub_ideologies();
+        self.scanner_data.sub_ideologies.clear();
+        for (k, v) in sub_map {
+            self.scanner_data.sub_ideologies.insert(k, v);
+        }
+        let s_map = &self.scanner_data.sub_ideologies;
 
         self.client
             .log_message(
@@ -713,8 +804,11 @@ impl Backend {
         .await
         .unwrap();
 
-        self.scanner_data.set_traits(all_traits);
-        let t_map = self.scanner_data.traits();
+        self.scanner_data.traits.clear();
+        for (k, v) in all_traits {
+            self.scanner_data.traits.insert(k, v);
+        }
+        let t_map = &self.scanner_data.traits;
 
         self.client
             .log_message(
@@ -742,8 +836,11 @@ impl Backend {
         .await
         .unwrap();
 
-        self.scanner_data.set_sprites(all_sprites);
-        let s_map = self.scanner_data.sprites();
+        self.scanner_data.sprites.clear();
+        for (k, v) in all_sprites {
+            self.scanner_data.sprites.insert(k, v);
+        }
+        let s_map = &self.scanner_data.sprites;
 
         self.client
             .log_message(
@@ -762,8 +859,11 @@ impl Backend {
         .await
         .unwrap();
 
-        self.scanner_data.set_characters(found);
-        let c_map = self.scanner_data.characters();
+        self.scanner_data.characters.clear();
+        for (k, v) in found {
+            self.scanner_data.characters.insert(k, v);
+        }
+        let c_map = &self.scanner_data.characters;
 
         self.client
             .log_message(
@@ -791,8 +891,11 @@ impl Backend {
         .await
         .unwrap();
 
-        self.scanner_data.set_ideas(all_ideas);
-        let i_map = self.scanner_data.ideas();
+        self.scanner_data.ideas.clear();
+        for (k, v) in all_ideas {
+            self.scanner_data.ideas.insert(k, v);
+        }
+        let i_map = &self.scanner_data.ideas;
 
         self.client
             .log_message(
@@ -811,8 +914,11 @@ impl Backend {
         .await
         .unwrap();
 
-        self.scanner_data.set_color_codes(codes);
-        let c = self.scanner_data.color_codes();
+        self.scanner_data.color_codes.clear();
+        for (k, v) in codes {
+            self.scanner_data.color_codes.insert(k, v);
+        }
+        let c = &self.scanner_data.color_codes;
         self.client
             .log_message(
                 MessageType::INFO,
@@ -829,8 +935,11 @@ impl Backend {
         })
         .await
         .unwrap();
-        self.scanner_data.set_country_tags(result);
-        let tags = self.scanner_data.country_tags();
+        self.scanner_data.country_tags.clear();
+        for (k, v) in result {
+            self.scanner_data.country_tags.insert(k, v);
+        }
+        let tags = &self.scanner_data.country_tags;
         self.client
             .log_message(
                 MessageType::INFO,
@@ -866,12 +975,10 @@ impl Backend {
         if let Some(path) = mapping_path {
             if let Ok(content) = std::fs::read_to_string(&path) {
                 if let Ok(mappings) = serde_json::from_str::<HashMap<String, String>>(&content) {
-                    let mut m = (*self.scanner_data.modifier_mappings()).clone();
                     for (k, v) in mappings {
-                        m.insert(k, v);
+                        self.scanner_data.modifier_mappings.insert(k, v);
                     }
-                    self.scanner_data.set_modifier_mappings(m);
-                    let m = self.scanner_data.modifier_mappings();
+                    let m = &self.scanner_data.modifier_mappings;
                     self.client
                         .log_message(
                             MessageType::INFO,
@@ -885,12 +992,10 @@ impl Backend {
         if let Some(path) = formats_path {
             if let Ok(content) = std::fs::read_to_string(&path) {
                 if let Ok(formats) = serde_json::from_str::<HashMap<String, String>>(&content) {
-                    let mut f = (*self.scanner_data.modifier_formats()).clone();
                     for (k, v) in formats {
-                        f.insert(k, v);
+                        self.scanner_data.modifier_formats.insert(k, v);
                     }
-                    self.scanner_data.set_modifier_formats(f);
-                    let f = self.scanner_data.modifier_formats();
+                    let f = &self.scanner_data.modifier_formats;
                     self.client
                         .log_message(
                             MessageType::INFO,

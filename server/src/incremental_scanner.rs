@@ -36,14 +36,6 @@ fn path_matches(stored: &str, target: &str) -> bool {
     normalized == target || target.ends_with(normalized)
 }
 
-/// Remove entries from a `HashMap<String, T>` where the entry's path matches.
-fn remove_by_path<T>(map: &mut HashMap<String, T>, file_path: &str)
-where
-    T: HasPath,
-{
-    map.retain(|_, v| !path_matches(v.path(), file_path));
-}
-
 trait HasPath {
     fn path(&self) -> &str;
 }
@@ -323,42 +315,48 @@ fn update_from_ast(
 }
 
 // ── Per-category update helpers ──
+//
+// Each helper now operates directly on DashMap fields — no cloning of the
+// entire registry. retain() removes old entries, insert() adds new ones,
+// all without allocating a full snapshot.
 
 fn update_localization(scanner_data: &ScannerData, path_str: &str, content: &str) {
     let (parsed, _, _) = loc_parser::parse_loc_file(content, path_str);
 
-    let mut loc = (*scanner_data.localization()).clone();
-    loc.retain(|_, v| !path_matches(&v.path, path_str));
+    scanner_data
+        .localization
+        .retain(|_, v| !path_matches(&v.path, path_str));
     for (key, entry) in parsed {
-        loc.insert(key, entry);
+        scanner_data.localization.insert(key, entry);
     }
-    scanner_data.set_localization(loc);
 
     // Rebuild duplicated_loc_keys from scratch (cheapest after a loc change)
-    let all_loc = scanner_data.localization();
     let mut seen: HashSet<(String, String)> = HashSet::new();
     let mut dups = HashSet::new();
-    for (_key, entry) in all_loc.iter() {
-        let pair = (entry.path.clone(), entry.key.clone());
+    for entry in scanner_data.localization.iter() {
+        let pair = (entry.value().path.clone(), entry.value().key.clone());
         if seen.contains(&pair) {
-            dups.insert((entry.path.clone(), entry.key.clone()));
+            dups.insert(pair);
         } else {
             seen.insert(pair);
         }
     }
-    scanner_data.set_duplicated_loc_keys(dups);
+    scanner_data.duplicated_loc_keys.clear();
+    for dup in dups {
+        scanner_data.duplicated_loc_keys.insert(dup);
+    }
 }
 
 fn update_events(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_events = HashMap::new();
     event_scanner::find_event_definitions(&script.entries, path_str, &mut new_events);
 
-    let mut events = (*scanner_data.events()).clone();
-    remove_by_path(&mut events, path_str);
+    scanner_data
+        .events
+        .retain(|_, v| !path_matches(v.path(), path_str));
     for (key, event) in new_events {
-        events.insert(key, event);
+        scanner_data.events.insert(key, event);
     }
-    scanner_data.set_events(events);
 }
 
 fn update_scripted(scanner_data: &ScannerData, kind: &str, path_str: &str, script: &ast::Script) {
@@ -378,20 +376,20 @@ fn update_scripted(scanner_data: &ScannerData, kind: &str, path_str: &str, scrip
 
     match kind {
         "triggers" => {
-            let mut map = (*scanner_data.scripted_triggers()).clone();
-            remove_by_path(&mut map, path_str);
+            scanner_data
+                .scripted_triggers
+                .retain(|_, v| !path_matches(v.path(), path_str));
             for (k, v) in new_entries {
-                map.insert(k, v);
+                scanner_data.scripted_triggers.insert(k, v);
             }
-            scanner_data.set_scripted_triggers(map);
         }
         "effects" => {
-            let mut map = (*scanner_data.scripted_effects()).clone();
-            remove_by_path(&mut map, path_str);
+            scanner_data
+                .scripted_effects
+                .retain(|_, v| !path_matches(v.path(), path_str));
             for (k, v) in new_entries {
-                map.insert(k, v);
+                scanner_data.scripted_effects.insert(k, v);
             }
-            scanner_data.set_scripted_effects(map);
         }
         _ => {}
     }
@@ -405,24 +403,24 @@ fn update_scripted_locs(scanner_data: &ScannerData, path_str: &str, script: &ast
         &mut new_entries,
     );
 
-    let mut map = (*scanner_data.scripted_locs()).clone();
-    remove_by_path(&mut map, path_str);
+    scanner_data
+        .scripted_locs
+        .retain(|_, v| !path_matches(v.path(), path_str));
     for (k, v) in new_entries {
-        map.insert(k, v);
+        scanner_data.scripted_locs.insert(k, v);
     }
-    scanner_data.set_scripted_locs(map);
 }
 
 fn update_achievements(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
     achievement_scanner::find_achievements_in_entries(&script.entries, path_str, &mut new_entries);
 
-    let mut map = (*scanner_data.achievements()).clone();
-    remove_by_path(&mut map, path_str);
+    scanner_data
+        .achievements
+        .retain(|_, v| !path_matches(v.path(), path_str));
     for (k, v) in new_entries {
-        map.insert(k, v);
+        scanner_data.achievements.insert(k, v);
     }
-    scanner_data.set_achievements(map);
 }
 
 fn update_modifiers(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
@@ -440,12 +438,12 @@ fn update_modifiers(scanner_data: &ScannerData, path_str: &str, script: &ast::Sc
         }
     }
 
-    let mut map = (*scanner_data.custom_modifiers()).clone();
-    remove_by_path(&mut map, path_str);
+    scanner_data
+        .custom_modifiers
+        .retain(|_, v| !path_matches(v.path(), path_str));
     for (k, v) in new_entries {
-        map.insert(k, v);
+        scanner_data.custom_modifiers.insert(k, v);
     }
-    scanner_data.set_custom_modifiers(map);
 }
 
 fn update_ideologies(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
@@ -462,19 +460,19 @@ fn update_ideologies(scanner_data: &ScannerData, path_str: &str, script: &ast::S
         }
     }
 
-    let mut map = (*scanner_data.ideologies()).clone();
-    remove_by_path(&mut map, path_str);
+    scanner_data
+        .ideologies
+        .retain(|_, v| !path_matches(v.path(), path_str));
     for (k, v) in new_entries {
-        map.insert(k, v);
+        scanner_data.ideologies.insert(k, v);
     }
-    scanner_data.set_ideologies(map);
 
-    let mut s_map = (*scanner_data.sub_ideologies()).clone();
-    s_map.retain(|_, v| !path_matches(&v.2, path_str));
+    scanner_data
+        .sub_ideologies
+        .retain(|_, v| !path_matches(&v.2, path_str));
     for (k, v) in sub_map {
-        s_map.insert(k, v);
+        scanner_data.sub_ideologies.insert(k, v);
     }
-    scanner_data.set_sub_ideologies(s_map);
 }
 
 fn update_traits(
@@ -486,36 +484,36 @@ fn update_traits(
     let mut new_entries = HashMap::new();
     trait_scanner::find_traits_in_entries(&script.entries, path_str, trait_type, &mut new_entries);
 
-    let mut map = (*scanner_data.traits()).clone();
-    remove_by_path(&mut map, path_str);
+    scanner_data
+        .traits
+        .retain(|_, v| !path_matches(v.path(), path_str));
     for (k, v) in new_entries {
-        map.insert(k, v);
+        scanner_data.traits.insert(k, v);
     }
-    scanner_data.set_traits(map);
 }
 
 fn update_ideas(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
     idea_scanner::find_ideas_in_entries(&script.entries, path_str, &mut new_entries);
 
-    let mut map = (*scanner_data.ideas()).clone();
-    remove_by_path(&mut map, path_str);
+    scanner_data
+        .ideas
+        .retain(|_, v| !path_matches(v.path(), path_str));
     for (k, v) in new_entries {
-        map.insert(k, v);
+        scanner_data.ideas.insert(k, v);
     }
-    scanner_data.set_ideas(map);
 }
 
 fn update_characters(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
     character_scanner::find_characters_in_entries(&script.entries, path_str, &mut new_entries);
 
-    let mut map = (*scanner_data.characters()).clone();
-    remove_by_path(&mut map, path_str);
+    scanner_data
+        .characters
+        .retain(|_, v| !path_matches(v.path(), path_str));
     for (k, v) in new_entries {
-        map.insert(k, v);
+        scanner_data.characters.insert(k, v);
     }
-    scanner_data.set_characters(map);
 }
 
 fn update_buildings(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
@@ -523,24 +521,24 @@ fn update_buildings(scanner_data: &ScannerData, path_str: &str, script: &ast::Sc
     let path = Path::new(path_str);
     building_scanner::extract_buildings(&script.entries, path, &mut new_entries);
 
-    let mut map = (*scanner_data.buildings()).clone();
-    remove_by_path(&mut map, path_str);
+    scanner_data
+        .buildings
+        .retain(|_, v| !path_matches(v.path(), path_str));
     for (k, v) in new_entries {
-        map.insert(k, v);
+        scanner_data.buildings.insert(k, v);
     }
-    scanner_data.set_buildings(map);
 }
 
 fn update_abilities(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
     ability_scanner::find_abilities_in_entries(&script.entries, path_str, &mut new_entries);
 
-    let mut map = (*scanner_data.abilities()).clone();
-    remove_by_path(&mut map, path_str);
+    scanner_data
+        .abilities
+        .retain(|_, v| !path_matches(v.path(), path_str));
     for (k, v) in new_entries {
-        map.insert(k, v);
+        scanner_data.abilities.insert(k, v);
     }
-    scanner_data.set_abilities(map);
 }
 
 fn update_ai_strategy_plans(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
@@ -548,12 +546,12 @@ fn update_ai_strategy_plans(scanner_data: &ScannerData, path_str: &str, script: 
     let path = Path::new(path_str);
     ai_strategy_plan_scanner::extract_plans(&script.entries, path, &mut new_entries);
 
-    let mut map = (*scanner_data.ai_strategy_plans()).clone();
-    remove_by_path(&mut map, path_str);
+    scanner_data
+        .ai_strategy_plans
+        .retain(|_, v| !path_matches(v.path(), path_str));
     for (k, v) in new_entries {
-        map.insert(k, v);
+        scanner_data.ai_strategy_plans.insert(k, v);
     }
-    scanner_data.set_ai_strategy_plans(map);
 }
 
 fn update_ai_areas(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
@@ -561,12 +559,12 @@ fn update_ai_areas(scanner_data: &ScannerData, path_str: &str, script: &ast::Scr
     let path = Path::new(path_str);
     ai_area_scanner::extract_areas(&script.entries, path, &mut new_entries);
 
-    let mut map = (*scanner_data.ai_areas()).clone();
-    remove_by_path(&mut map, path_str);
+    scanner_data
+        .ai_areas
+        .retain(|_, v| !path_matches(v.path(), path_str));
     for (k, v) in new_entries {
-        map.insert(k, v);
+        scanner_data.ai_areas.insert(k, v);
     }
-    scanner_data.set_ai_areas(map);
 }
 
 fn update_defines(scanner_data: &ScannerData, content: &str) {
@@ -648,12 +646,12 @@ fn update_country_tags(scanner_data: &ScannerData, path_str: &str, content: &str
         }
     }
 
-    let mut map = (*scanner_data.country_tags()).clone();
-    remove_by_path(&mut map, path_str);
+    scanner_data
+        .country_tags
+        .retain(|_, v| !path_matches(v.path(), path_str));
     for (k, v) in new_entries {
-        map.insert(k, v);
+        scanner_data.country_tags.insert(k, v);
     }
-    scanner_data.set_country_tags(map);
 }
 
 fn update_variables(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
@@ -661,29 +659,27 @@ fn update_variables(scanner_data: &ScannerData, path_str: &str, script: &ast::Sc
     let mut new_targets: HashMap<String, Vec<variable_scanner::EventTarget>> = HashMap::new();
     variable_scanner::scan_entries(&script.entries, path_str, &mut new_vars, &mut new_targets);
 
-    let mut vars = (*scanner_data.variables()).clone();
-    remove_by_path_for_vec(&mut vars, path_str);
-    for (k, mut v) in new_vars {
-        vars.entry(k).or_default().append(&mut v);
-    }
-    scanner_data.set_variables(vars);
-
-    let mut targets = (*scanner_data.event_targets()).clone();
-    remove_by_path_for_vec(&mut targets, path_str);
-    for (k, mut v) in new_targets {
-        targets.entry(k).or_default().append(&mut v);
-    }
-    scanner_data.set_event_targets(targets);
-}
-
-fn remove_by_path_for_vec<T>(map: &mut HashMap<String, Vec<T>>, file_path: &str)
-where
-    T: HasPath,
-{
-    map.retain(|_, vec| {
-        vec.retain(|v| !path_matches(v.path(), file_path));
+    // Remove old variable entries from this path, keeping others untouched.
+    // Then insert new ones — DashMap entry API lets us append to a Vec value.
+    scanner_data.variables.retain(|_, vec| {
+        vec.retain(|v| !path_matches(v.path(), path_str));
         !vec.is_empty()
     });
+    for (k, mut v) in new_vars {
+        scanner_data.variables.entry(k).or_default().append(&mut v);
+    }
+
+    scanner_data.event_targets.retain(|_, vec| {
+        vec.retain(|t| !path_matches(t.path(), path_str));
+        !vec.is_empty()
+    });
+    for (k, mut v) in new_targets {
+        scanner_data
+            .event_targets
+            .entry(k)
+            .or_default()
+            .append(&mut v);
+    }
 }
 
 fn update_music_asset(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
@@ -696,12 +692,12 @@ fn update_music_asset(scanner_data: &ScannerData, path_str: &str, script: &ast::
         let mut assets = HashMap::new();
         music_scanner::find_assets_in_entries(&script.entries, path_str, &mut assets);
 
-        let mut map = (*scanner_data.music_assets()).clone();
-        remove_by_path(&mut map, path_str);
+        scanner_data
+            .music_assets
+            .retain(|_, v| !path_matches(v.path(), path_str));
         for (k, v) in assets {
-            map.insert(k, v);
+            scanner_data.music_assets.insert(k, v);
         }
-        scanner_data.set_music_assets(map);
     } else if ext == "txt" {
         let mut stations = HashMap::new();
         let mut songs = HashMap::new();
@@ -712,19 +708,19 @@ fn update_music_asset(scanner_data: &ScannerData, path_str: &str, script: &ast::
             &mut songs,
         );
 
-        let mut s_map = (*scanner_data.music_stations()).clone();
-        remove_by_path(&mut s_map, path_str);
+        scanner_data
+            .music_stations
+            .retain(|_, v| !path_matches(v.path(), path_str));
         for (k, v) in stations {
-            s_map.insert(k, v);
+            scanner_data.music_stations.insert(k, v);
         }
-        scanner_data.set_music_stations(s_map);
 
-        let mut song_map = (*scanner_data.songs()).clone();
-        remove_by_path(&mut song_map, path_str);
+        scanner_data
+            .songs
+            .retain(|_, v| !path_matches(v.path(), path_str));
         for (k, v) in songs {
-            song_map.insert(k, v);
+            scanner_data.songs.insert(k, v);
         }
-        scanner_data.set_songs(song_map);
     }
 }
 
@@ -742,33 +738,33 @@ fn update_sounds(scanner_data: &ScannerData, path_str: &str, script: &ast::Scrip
         &mut categories,
     );
 
-    let mut s_map = (*scanner_data.sounds()).clone();
-    remove_by_path(&mut s_map, path_str);
+    scanner_data
+        .sounds
+        .retain(|_, v| !path_matches(v.path(), path_str));
     for (k, v) in sounds {
-        s_map.insert(k, v);
+        scanner_data.sounds.insert(k, v);
     }
-    scanner_data.set_sounds(s_map);
 
-    let mut e_map = (*scanner_data.sound_effects()).clone();
-    remove_by_path(&mut e_map, path_str);
+    scanner_data
+        .sound_effects
+        .retain(|_, v| !path_matches(v.path(), path_str));
     for (k, v) in effects {
-        e_map.insert(k, v);
+        scanner_data.sound_effects.insert(k, v);
     }
-    scanner_data.set_sound_effects(e_map);
 
-    let mut f_map = (*scanner_data.falloffs()).clone();
-    remove_by_path(&mut f_map, path_str);
+    scanner_data
+        .falloffs
+        .retain(|_, v| !path_matches(v.path(), path_str));
     for (k, v) in falloffs {
-        f_map.insert(k, v);
+        scanner_data.falloffs.insert(k, v);
     }
-    scanner_data.set_falloffs(f_map);
 
-    let mut c_map = (*scanner_data.sound_categories()).clone();
-    remove_by_path(&mut c_map, path_str);
+    scanner_data
+        .sound_categories
+        .retain(|_, v| !path_matches(v.path(), path_str));
     for (k, v) in categories {
-        c_map.insert(k, v);
+        scanner_data.sound_categories.insert(k, v);
     }
-    scanner_data.set_sound_categories(c_map);
 }
 
 fn update_portraits(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
@@ -776,24 +772,24 @@ fn update_portraits(scanner_data: &ScannerData, path_str: &str, script: &ast::Sc
     let path = Path::new(path_str);
     portrait_scanner::extract_portraits(&script.entries, path, &mut new_entries);
 
-    let mut map = (*scanner_data.portraits()).clone();
-    remove_by_path(&mut map, path_str);
+    scanner_data
+        .portraits
+        .retain(|_, v| !path_matches(v.path(), path_str));
     for (k, v) in new_entries {
-        map.insert(k, v);
+        scanner_data.portraits.insert(k, v);
     }
-    scanner_data.set_portraits(map);
 }
 
 fn update_sprites(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
     sprite_scanner::find_sprites_in_entries(&script.entries, path_str, &mut new_entries);
 
-    let mut map = (*scanner_data.sprites()).clone();
-    remove_by_path(&mut map, path_str);
+    scanner_data
+        .sprites
+        .retain(|_, v| !path_matches(v.path(), path_str));
     for (k, v) in new_entries {
-        map.insert(k, v);
+        scanner_data.sprites.insert(k, v);
     }
-    scanner_data.set_sprites(map);
 }
 
 fn update_strategic_regions(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
@@ -804,11 +800,10 @@ fn update_strategic_regions(scanner_data: &ScannerData, path_str: &str, script: 
         &mut new_entries,
     );
 
-    let mut map = (*scanner_data.strategic_regions()).clone();
-    // StrategicRegion is keyed by u32 id, not String — iterate and retain
-    map.retain(|_, v| !path_matches(&v.path, path_str));
+    scanner_data
+        .strategic_regions
+        .retain(|_, v| !path_matches(&v.path, path_str));
     for (k, v) in new_entries {
-        map.insert(k, v);
+        scanner_data.strategic_regions.insert(k, v);
     }
-    scanner_data.set_strategic_regions(map);
 }
