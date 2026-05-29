@@ -6,7 +6,13 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### Changed
 
-- Several more optimizations for the LSP to ensure a smoother experience.
+- Several more miscellaneous LSP optimizations to ensure a smoother experience.
+
+### Fixed
+
+- **Wrongful diagnostics column calculation for localization:** A sequel to the **Critical localization-related LSP crash** in v0.11.2. Fixed wrongful diagnostic offsets when the line had UTF-16 characters like the paragraph sign.
+
+  - > my brain hurts
 
 ## [v0.11.2] - 2026-05-29
 

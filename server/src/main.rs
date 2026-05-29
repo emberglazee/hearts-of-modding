@@ -92,8 +92,7 @@ pub(crate) static LOC_COMMANDS: Lazy<Vec<&'static str>> = Lazy::new(hoi4_data::g
 
 /// Convert a byte offset in a UTF-8 string to a UTF-16 code unit offset
 /// This is required because LSP uses UTF-16 positions, but Rust strings are UTF-8
-#[allow(dead_code)]
-fn byte_offset_to_utf16(s: &str, byte_offset: usize) -> u32 {
+pub(crate) fn byte_offset_to_utf16(s: &str, byte_offset: usize) -> u32 {
     s[..byte_offset]
         .chars()
         .map(|c| c.len_utf16())
@@ -3470,3 +3469,5 @@ pub mod test_loc_empty;
 pub mod test_parser_skip;
 #[cfg(test)]
 pub mod test_utf16_conversion;
+#[cfg(test)]
+pub mod test_loc_columns;
