@@ -1,6 +1,6 @@
 # Hearts of Modding
 
-[![made-for-VSCode](https://img.shields.io/badge/Made%20for-VSCode-1f425f.svg)](https://code.visualstudio.com/) [![GitHub license](https://badgen.net/github/license/Naereen/Strapdown.js)](https://github.com/Naereen/StrapDown.js/blob/master/LICENSE) ![GitHub top language](https://img.shields.io/github/languages/top/emberglazee/hearts-of-modding?style=flat-square&logo=rust&logoColor=ff8c00&label=Rust)
+[![made-for-VSCode](https://img.shields.io/badge/Made%20for-VSCode-1f425f.svg)](https://code.visualstudio.com/) [![GitHub license](https://badgen.net/github/license/Naereen/Strapdown.js)](https://github.com/Naereen/StrapDown.js/blob/master/LICENSE) ![GitHub top language](https://img.shields.io/github/languages/top/emberglazee/hearts-of-modding?logo=rust&logoColor=ff8c00&label=Rust)
 
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/emberglazee/hearts-of-modding/.github%2Fworkflows%2Fbuild.yml?style=flat-square&link=https%3A%2F%2Fgithub.com%2Femberglazee%2Fhearts-of-modding%2Factions%2Fworkflows%2Fbuild.yml) ![GitHub Release](https://img.shields.io/github/v/release/emberglazee/hearts-of-modding?style=flat-square&label=release&link=https%3A%2F%2Fgithub.com%2Femberglazee%2Fhearts-of-modding%2Freleases)
 
