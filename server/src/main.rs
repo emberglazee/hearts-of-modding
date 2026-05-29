@@ -29,8 +29,8 @@ mod gfx_scanner;
 mod hoi4_data;
 mod hover_handler;
 mod idea_scanner;
-mod incremental_scanner;
 mod ideology_scanner;
+mod incremental_scanner;
 mod loc_parser;
 mod loc_preview;
 mod logistics_scanner;
@@ -1937,7 +1937,8 @@ impl Backend {
             if is_duplicated {
                 // If the key exists in the vanilla game's localization files,
                 // it's an intentional override — no warning needed.
-                let is_game_override = game_loc_keys.contains(&(doc_lang_str.clone(), entry.key.clone()));
+                let is_game_override =
+                    game_loc_keys.contains(&(doc_lang_str.clone(), entry.key.clone()));
 
                 if !is_game_override {
                     let loc_map = self.scanner_data.localization();

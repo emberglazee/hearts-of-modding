@@ -6,6 +6,7 @@ use nom::{
     combinator::opt,
 };
 use nom_locate::LocatedSpan;
+use once_cell::sync::Lazy;
 use std::collections::{HashMap, HashSet};
 
 type Span<'a> = LocatedSpan<&'a str>;
@@ -94,6 +95,10 @@ pub fn validate_unescaped_quotes_in_file(input: &str) -> Vec<LocDiagnostic> {
     diagnostics
 }
 
+static RE_SCOPE: Lazy<regex::Regex> = Lazy::new(|| regex::Regex::new(r"\[([^\]]+)\]").unwrap());
+static RE_COLOR: Lazy<regex::Regex> = Lazy::new(|| regex::Regex::new(r"§([a-zA-Z0-9!])").unwrap());
+static RE_NESTED: Lazy<regex::Regex> = Lazy::new(|| regex::Regex::new(r"\$([^\$]+)\$").unwrap());
+
 pub fn validate_loc_string(
     entry: &LocEntry,
     event_targets: &HashMap<String, Vec<crate::variable_scanner::EventTarget>>,
@@ -101,10 +106,6 @@ pub fn validate_loc_string(
     color_codes: &HashSet<String>,
 ) -> Vec<LocDiagnostic> {
     let mut diagnostics = Vec::new();
-
-    let re_scope = regex::Regex::new(r"\[([^\]]+)\]").unwrap();
-    let re_color = regex::Regex::new(r"§([a-zA-Z0-9!])").unwrap();
-    let re_nested = regex::Regex::new(r"\$([^\$]+)\$").unwrap();
 
     let loc_commands = [
         "GetName",
@@ -233,7 +234,7 @@ pub fn validate_loc_string(
     ];
 
     // 1. Validate Scopes [Root.GetTag], Variables [?var], Formatters [idea_name|idea_id], etc.
-    for cap in re_scope.captures_iter(&entry.value) {
+    for cap in RE_SCOPE.captures_iter(&entry.value) {
         let full_match = cap.get(0).unwrap();
         let mut inner = cap.get(1).unwrap().as_str();
         let start_pos = full_match.start();
@@ -415,7 +416,7 @@ pub fn validate_loc_string(
     }
 
     // 2. Validate Nested Keys $key$
-    for cap in re_nested.captures_iter(&entry.value) {
+    for cap in RE_NESTED.captures_iter(&entry.value) {
         let inner = cap.get(1).unwrap().as_str();
 
         if inner.is_empty() {
@@ -462,17 +463,13 @@ pub fn validate_loc_string(
         }
     }
 
-    // 3. Validate Text Icons £icon_name|frame
-    let _re_icon = regex::Regex::new(r"£([a-zA-Z0-9_]+)(?:\|[0-9]+)?").unwrap();
-    // (We could validate icon existence if we had sprite data here, but for now just ensure syntax is OK)
-
     // 3. Validate Color Codes §Y...§!
     // NOTE: HOI4 color codes are flat/replacement-based, not nested.
     // Each new color code replaces the previous one, and §! resets to default.
     // A color code is only "unclosed" if it's the last one before end-of-string
     // with no §! after it.
     let mut open_color: Option<(String, usize)> = None;
-    for cap in re_color.captures_iter(&entry.value) {
+    for cap in RE_COLOR.captures_iter(&entry.value) {
         let m = cap.get(0).unwrap();
         let code = cap.get(1).unwrap().as_str();
         let pos = m.start();

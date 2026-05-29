@@ -100,20 +100,28 @@ fn classify_file(path: &str) -> Vec<FileCategory> {
         if lower.contains("/events/") || lower.contains("\\events\\") {
             cats.push(FileCategory::Events);
         }
-        if lower.contains("/common/scripted_triggers/") || lower.contains("\\common\\scripted_triggers\\") {
+        if lower.contains("/common/scripted_triggers/")
+            || lower.contains("\\common\\scripted_triggers\\")
+        {
             cats.push(FileCategory::ScriptedTriggers);
         }
-        if lower.contains("/common/scripted_effects/") || lower.contains("\\common\\scripted_effects\\") {
+        if lower.contains("/common/scripted_effects/")
+            || lower.contains("\\common\\scripted_effects\\")
+        {
             cats.push(FileCategory::ScriptedEffects);
         }
-        if lower.contains("/common/scripted_localisation/") || lower.contains("\\common\\scripted_localisation\\") {
+        if lower.contains("/common/scripted_localisation/")
+            || lower.contains("\\common\\scripted_localisation\\")
+        {
             cats.push(FileCategory::ScriptedLocalisation);
         }
         if lower.contains("/common/achievements/") || lower.contains("\\common\\achievements\\") {
             cats.push(FileCategory::Achievements);
         }
-        if lower.contains("/common/modifiers/") || lower.contains("\\common\\modifiers\\")
-            || lower.contains("/common/dynamic_modifiers/") || lower.contains("\\common\\dynamic_modifiers\\")
+        if lower.contains("/common/modifiers/")
+            || lower.contains("\\common\\modifiers\\")
+            || lower.contains("/common/dynamic_modifiers/")
+            || lower.contains("\\common\\dynamic_modifiers\\")
         {
             cats.push(FileCategory::Modifiers);
         }
@@ -123,7 +131,8 @@ fn classify_file(path: &str) -> Vec<FileCategory> {
         if lower.contains("/common/unit_leader/") || lower.contains("\\common\\unit_leader\\") {
             cats.push(FileCategory::UnitLeaderTraits);
         }
-        if lower.contains("/common/country_leader/") || lower.contains("\\common\\country_leader\\") {
+        if lower.contains("/common/country_leader/") || lower.contains("\\common\\country_leader\\")
+        {
             cats.push(FileCategory::CountryLeaderTraits);
         }
         if lower.contains("/common/traits/") || lower.contains("\\common\\traits\\") {
@@ -141,7 +150,9 @@ fn classify_file(path: &str) -> Vec<FileCategory> {
         if lower.contains("/common/abilities/") || lower.contains("\\common\\abilities\\") {
             cats.push(FileCategory::Abilities);
         }
-        if lower.contains("/common/ai_strategy_plans/") || lower.contains("\\common\\ai_strategy_plans\\") {
+        if lower.contains("/common/ai_strategy_plans/")
+            || lower.contains("\\common\\ai_strategy_plans\\")
+        {
             cats.push(FileCategory::AiStrategyPlans);
         }
         if lower.contains("/common/ai_areas/") || lower.contains("\\common\\ai_areas\\") {
@@ -150,9 +161,12 @@ fn classify_file(path: &str) -> Vec<FileCategory> {
         if lower.contains("/common/defines/") || lower.contains("\\common\\defines\\") {
             cats.push(FileCategory::Defines);
         }
-        if lower.contains("/common/country_tags/") || lower.contains("\\common\\country_tags\\")
-            || lower.contains("/common/countries/") || lower.contains("\\common\\countries\\")
-            || lower.contains("/history/countries/") || lower.contains("\\history\\countries\\")
+        if lower.contains("/common/country_tags/")
+            || lower.contains("\\common\\country_tags\\")
+            || lower.contains("/common/countries/")
+            || lower.contains("\\common\\countries\\")
+            || lower.contains("/history/countries/")
+            || lower.contains("\\history\\countries\\")
         {
             cats.push(FileCategory::Countries);
         }
@@ -168,7 +182,9 @@ fn classify_file(path: &str) -> Vec<FileCategory> {
         }
 
         // Strategic regions
-        if lower.contains("/common/strategic_regions/") || lower.contains("\\common\\strategic_regions\\") {
+        if lower.contains("/common/strategic_regions/")
+            || lower.contains("\\common\\strategic_regions\\")
+        {
             cats.push(FileCategory::StrategicRegions);
         }
 
@@ -184,11 +200,14 @@ fn classify_file(path: &str) -> Vec<FileCategory> {
         }
     }
 
-    if lower.ends_with(".lua") && (lower.contains("/common/defines/") || lower.contains("\\common\\defines\\")) {
+    if lower.ends_with(".lua")
+        && (lower.contains("/common/defines/") || lower.contains("\\common\\defines\\"))
+    {
         cats.push(FileCategory::Defines);
     }
 
-    if lower.ends_with(".gfx") && (lower.contains("/interface/") || lower.contains("\\interface\\")) {
+    if lower.ends_with(".gfx") && (lower.contains("/interface/") || lower.contains("\\interface\\"))
+    {
         cats.push(FileCategory::Sprites);
     }
 
@@ -231,20 +250,32 @@ pub fn update_scanner_data_for_file(scanner_data: &ScannerData, path_str: &str, 
         match category {
             FileCategory::Localization => update_localization(scanner_data, path_str, content),
             FileCategory::Events => update_events(scanner_data, path_str, content),
-            FileCategory::ScriptedTriggers => update_scripted(scanner_data, "triggers", path_str, content),
-            FileCategory::ScriptedEffects => update_scripted(scanner_data, "effects", path_str, content),
-            FileCategory::ScriptedLocalisation => update_scripted_locs(scanner_data, path_str, content),
+            FileCategory::ScriptedTriggers => {
+                update_scripted(scanner_data, "triggers", path_str, content)
+            }
+            FileCategory::ScriptedEffects => {
+                update_scripted(scanner_data, "effects", path_str, content)
+            }
+            FileCategory::ScriptedLocalisation => {
+                update_scripted_locs(scanner_data, path_str, content)
+            }
             FileCategory::Achievements => update_achievements(scanner_data, path_str, content),
             FileCategory::Modifiers => update_modifiers(scanner_data, path_str, content),
             FileCategory::Ideologies => update_ideologies(scanner_data, path_str, content),
-            FileCategory::UnitLeaderTraits => update_traits(scanner_data, "Unit Leader Trait", path_str, content),
-            FileCategory::CountryLeaderTraits => update_traits(scanner_data, "Country Leader Trait", path_str, content),
+            FileCategory::UnitLeaderTraits => {
+                update_traits(scanner_data, "Unit Leader Trait", path_str, content)
+            }
+            FileCategory::CountryLeaderTraits => {
+                update_traits(scanner_data, "Country Leader Trait", path_str, content)
+            }
             FileCategory::Traits => update_traits(scanner_data, "Trait", path_str, content),
             FileCategory::Ideas => update_ideas(scanner_data, path_str, content),
             FileCategory::Characters => update_characters(scanner_data, path_str, content),
             FileCategory::Buildings => update_buildings(scanner_data, path_str, content),
             FileCategory::Abilities => update_abilities(scanner_data, path_str, content),
-            FileCategory::AiStrategyPlans => update_ai_strategy_plans(scanner_data, path_str, content),
+            FileCategory::AiStrategyPlans => {
+                update_ai_strategy_plans(scanner_data, path_str, content)
+            }
             FileCategory::AiAreas => update_ai_areas(scanner_data, path_str, content),
             FileCategory::Defines => update_defines(scanner_data, content),
             FileCategory::Countries => update_country_tags(scanner_data, path_str, content),
@@ -253,7 +284,9 @@ pub fn update_scanner_data_for_file(scanner_data: &ScannerData, path_str: &str, 
             FileCategory::Sounds => update_sounds(scanner_data, path_str, content),
             FileCategory::Portraits => update_portraits(scanner_data, path_str, content),
             FileCategory::Sprites => update_sprites(scanner_data, path_str, content),
-            FileCategory::StrategicRegions => update_strategic_regions(scanner_data, path_str, content),
+            FileCategory::StrategicRegions => {
+                update_strategic_regions(scanner_data, path_str, content)
+            }
         }
     }
 }
@@ -288,11 +321,7 @@ fn update_localization(scanner_data: &ScannerData, path_str: &str, content: &str
 fn update_events(scanner_data: &ScannerData, path_str: &str, content: &str) {
     let (script, _) = parser::parse_script(content);
     let mut new_events = HashMap::new();
-    event_scanner::find_event_definitions(
-        &script.entries,
-        path_str,
-        &mut new_events,
-    );
+    event_scanner::find_event_definitions(&script.entries, path_str, &mut new_events);
 
     let mut events = (*scanner_data.events()).clone();
     remove_by_path(&mut events, path_str);
@@ -359,11 +388,7 @@ fn update_scripted_locs(scanner_data: &ScannerData, path_str: &str, content: &st
 fn update_achievements(scanner_data: &ScannerData, path_str: &str, content: &str) {
     let (script, _) = parser::parse_script(content);
     let mut new_entries = HashMap::new();
-    achievement_scanner::find_achievements_in_entries(
-        &script.entries,
-        path_str,
-        &mut new_entries,
-    );
+    achievement_scanner::find_achievements_in_entries(&script.entries, path_str, &mut new_entries);
 
     let mut map = (*scanner_data.achievements()).clone();
     remove_by_path(&mut map, path_str);
@@ -430,12 +455,7 @@ fn update_ideologies(scanner_data: &ScannerData, path_str: &str, content: &str) 
 fn update_traits(scanner_data: &ScannerData, trait_type: &str, path_str: &str, content: &str) {
     let (script, _) = parser::parse_script(content);
     let mut new_entries = HashMap::new();
-    trait_scanner::find_traits_in_entries(
-        &script.entries,
-        path_str,
-        trait_type,
-        &mut new_entries,
-    );
+    trait_scanner::find_traits_in_entries(&script.entries, path_str, trait_type, &mut new_entries);
 
     let mut map = (*scanner_data.traits()).clone();
     remove_by_path(&mut map, path_str);
@@ -461,11 +481,7 @@ fn update_ideas(scanner_data: &ScannerData, path_str: &str, content: &str) {
 fn update_characters(scanner_data: &ScannerData, path_str: &str, content: &str) {
     let (script, _) = parser::parse_script(content);
     let mut new_entries = HashMap::new();
-    character_scanner::find_characters_in_entries(
-        &script.entries,
-        path_str,
-        &mut new_entries,
-    );
+    character_scanner::find_characters_in_entries(&script.entries, path_str, &mut new_entries);
 
     let mut map = (*scanner_data.characters()).clone();
     remove_by_path(&mut map, path_str);
@@ -492,11 +508,7 @@ fn update_buildings(scanner_data: &ScannerData, path_str: &str, content: &str) {
 fn update_abilities(scanner_data: &ScannerData, path_str: &str, content: &str) {
     let (script, _) = parser::parse_script(content);
     let mut new_entries = HashMap::new();
-    ability_scanner::find_abilities_in_entries(
-        &script.entries,
-        path_str,
-        &mut new_entries,
-    );
+    ability_scanner::find_abilities_in_entries(&script.entries, path_str, &mut new_entries);
 
     let mut map = (*scanner_data.abilities()).clone();
     remove_by_path(&mut map, path_str);
@@ -539,7 +551,9 @@ fn update_defines(scanner_data: &ScannerData, content: &str) {
     defines_parser::parse_defines_lua(content, &mut new_defines);
 
     let mut defines = (*scanner_data.defines()).clone();
-    defines.max_skill_levels.extend(new_defines.max_skill_levels);
+    defines
+        .max_skill_levels
+        .extend(new_defines.max_skill_levels);
     defines.defines.extend(new_defines.defines);
     scanner_data.set_defines(defines);
 }
@@ -569,14 +583,21 @@ fn update_country_tags(scanner_data: &ScannerData, path_str: &str, content: &str
                         tag: tag.to_string(),
                         name,
                         path: path_str.to_string(),
-                        range: ast::Range { start_line: 0, start_col: 0, end_line: 0, end_col: 0 },
+                        range: ast::Range {
+                            start_line: 0,
+                            start_col: 0,
+                            end_line: 0,
+                            end_col: 0,
+                        },
                         dynamic: false,
                     },
                 );
             }
         }
-    } else if lower.contains("/common/countries/") || lower.contains("\\common\\countries\\")
-        || lower.contains("/history/countries/") || lower.contains("\\history\\countries\\")
+    } else if lower.contains("/common/countries/")
+        || lower.contains("\\common\\countries\\")
+        || lower.contains("/history/countries/")
+        || lower.contains("\\history\\countries\\")
     {
         // Filename-based: TAG - Name.txt
         let path = Path::new(path_str);
@@ -590,7 +611,12 @@ fn update_country_tags(scanner_data: &ScannerData, path_str: &str, content: &str
                             tag: tag.to_string(),
                             name,
                             path: path_str.to_string(),
-                        range: ast::Range { start_line: 0, start_col: 0, end_line: 0, end_col: 0 },
+                            range: ast::Range {
+                                start_line: 0,
+                                start_col: 0,
+                                end_line: 0,
+                                end_col: 0,
+                            },
                             dynamic: false,
                         },
                     );

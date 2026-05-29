@@ -577,22 +577,13 @@ fn validate_victory_points_recursive(
             // Recurse into nested blocks
             match &ass.value.value {
                 ast::Value::Block(inner) => {
-                    validate_victory_points_recursive(
-                        inner,
-                        state_provinces,
-                        victory_points,
-                    );
+                    validate_victory_points_recursive(inner, state_provinces, victory_points);
                 }
                 ast::Value::TaggedBlock(_, inner, _) => {
-                    validate_victory_points_recursive(
-                        inner,
-                        state_provinces,
-                        victory_points,
-                    );
+                    validate_victory_points_recursive(inner, state_provinces, victory_points);
                 }
                 _ => {}
             }
         }
     }
-
 }

@@ -35,7 +35,11 @@ where
     buildings
 }
 
-pub(crate) fn extract_buildings(entries: &[ast::Entry], path: &Path, map: &mut HashMap<String, Building>) {
+pub(crate) fn extract_buildings(
+    entries: &[ast::Entry],
+    path: &Path,
+    map: &mut HashMap<String, Building>,
+) {
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
             let building_name = ass.key.clone();

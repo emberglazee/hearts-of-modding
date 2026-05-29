@@ -25,7 +25,11 @@ where
     map
 }
 
-pub(crate) fn find_ideas_in_entries(entries: &[ast::Entry], file_path: &str, map: &mut HashMap<String, Idea>) {
+pub(crate) fn find_ideas_in_entries(
+    entries: &[ast::Entry],
+    file_path: &str,
+    map: &mut HashMap<String, Idea>,
+) {
     for entry in entries {
         match entry {
             ast::Entry::Assignment(ass) => {

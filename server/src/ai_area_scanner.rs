@@ -38,7 +38,11 @@ where
     areas
 }
 
-pub(crate) fn extract_areas(entries: &[ast::Entry], path: &Path, map: &mut HashMap<String, AiArea>) {
+pub(crate) fn extract_areas(
+    entries: &[ast::Entry],
+    path: &Path,
+    map: &mut HashMap<String, AiArea>,
+) {
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
             if let ast::Value::Block(inner_entries) = &ass.value.value {

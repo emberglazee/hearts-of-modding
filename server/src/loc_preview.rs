@@ -1,5 +1,6 @@
 use crate::loc_parser;
 use base64::{Engine as _, engine::general_purpose};
+use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use tower_lsp_server::ls_types::Position;
 
@@ -30,6 +31,13 @@ fn vanilla_color_hex(code: &str) -> &str {
     }
 }
 
+static RE_KEY: Lazy<regex::Regex> = Lazy::new(|| regex::Regex::new(r"\$([^\$]+)\$").unwrap());
+static RE_FLAG: Lazy<regex::Regex> = Lazy::new(|| regex::Regex::new(r"@([a-zA-Z0-9]{3})").unwrap());
+static RE_ICON: Lazy<regex::Regex> =
+    Lazy::new(|| regex::Regex::new(r"£([a-zA-Z0-9_]+)(?:\|[0-9]+)?").unwrap());
+static RE_SCOPE: Lazy<regex::Regex> = Lazy::new(|| regex::Regex::new(r"\[([^\]]+)\]").unwrap());
+static RE_COLOR: Lazy<regex::Regex> = Lazy::new(|| regex::Regex::new(r"§([a-zA-Z0-9!])").unwrap());
+
 pub fn resolve_loc(
     input: &str,
     localization: &HashMap<String, loc_parser::LocEntry>,
@@ -38,11 +46,10 @@ pub fn resolve_loc(
     if depth > 10 {
         return input.to_string();
     }
-    let re_key = regex::Regex::new(r"\$([^\$]+)\$").unwrap();
     let mut last_end = 0;
     let mut result = String::new();
 
-    for cap in re_key.captures_iter(input) {
+    for cap in RE_KEY.captures_iter(input) {
         let m = cap.get(0).unwrap();
         let key = cap.get(1).unwrap().as_str();
 
@@ -102,17 +109,14 @@ pub fn paradox_to_markdown(
         .replace("\\\"", "\"")
         .replace("$$", "$");
 
-    let re_flag = regex::Regex::new(r"@([a-zA-Z0-9]{3})").unwrap();
-    resolved = re_flag.replace_all(&resolved, "**[Flag: $1]**").to_string();
+    resolved = RE_FLAG.replace_all(&resolved, "**[Flag: $1]**").to_string();
 
-    let re_icon = regex::Regex::new(r"£([a-zA-Z0-9_]+)(?:\|[0-9]+)?").unwrap();
-    resolved = re_icon.replace_all(&resolved, "**[Icon: $1]**").to_string();
+    resolved = RE_ICON.replace_all(&resolved, "**[Icon: $1]**").to_string();
 
-    let re_scope = regex::Regex::new(r"\[([^\]]+)\]").unwrap();
     let mut scope_result = String::new();
     let mut last_scope_end = 0;
 
-    for cap in re_scope.captures_iter(&resolved) {
+    for cap in RE_SCOPE.captures_iter(&resolved) {
         let m = cap.get(0).unwrap();
         scope_result.push_str(&resolved[last_scope_end..m.start()]);
         let inner = cap.get(1).unwrap().as_str();
@@ -139,13 +143,12 @@ pub fn paradox_to_markdown(
     scope_result.push_str(&resolved[last_scope_end..]);
     resolved = scope_result;
 
-    let re_color = regex::Regex::new(r"§([a-zA-Z0-9!])").unwrap();
     let mut last_end = 0;
 
     let mut segments = Vec::new();
     let mut current_color = "#FFFFFF";
 
-    for cap in re_color.captures_iter(&resolved) {
+    for cap in RE_COLOR.captures_iter(&resolved) {
         let m = cap.get(0).unwrap();
         let code = cap.get(1).unwrap().as_str();
 
@@ -281,8 +284,7 @@ pub fn find_identifier_in_loc(content: &str, pos: Position) -> Option<String> {
     let line = lines.get(pos.line as usize)?;
     let char_offset = pos.character as usize;
 
-    let re_scope = regex::Regex::new(r"\[([^\]]+)\]").unwrap();
-    for cap in re_scope.captures_iter(line) {
+    for cap in RE_SCOPE.captures_iter(line) {
         let m = cap.get(0).unwrap();
 
         if char_offset >= m.start() && char_offset < m.end() {
@@ -299,8 +301,7 @@ pub fn find_identifier_in_loc(content: &str, pos: Position) -> Option<String> {
         }
     }
 
-    let re_var = regex::Regex::new(r"\$([^\$]+)\$").unwrap();
-    for cap in re_var.captures_iter(line) {
+    for cap in RE_KEY.captures_iter(line) {
         let m = cap.get(0).unwrap();
         if char_offset >= m.start() && char_offset < m.end() {
             return Some(cap.get(1).unwrap().as_str().to_string());
