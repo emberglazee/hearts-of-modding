@@ -10,6 +10,7 @@ use crate::continent_scanner;
 use crate::country_scanner;
 use crate::defines_parser;
 use crate::event_scanner;
+use crate::focus_scanner;
 use crate::gfx_scanner;
 use crate::idea_scanner;
 use crate::ideology_scanner;
@@ -71,6 +72,7 @@ pub(crate) struct ScannerData {
     pub modifier_mappings: DashMap<String, String>,
     pub modifier_formats: DashMap<String, String>,
     pub events: DashMap<String, event_scanner::Event>,
+    pub focuses: DashMap<String, focus_scanner::Focus>,
     pub music_assets: DashMap<String, music_scanner::MusicAsset>,
     pub music_stations: DashMap<String, music_scanner::MusicStation>,
     pub songs: DashMap<String, music_scanner::Song>,
@@ -126,6 +128,7 @@ impl ScannerData {
             modifier_mappings: DashMap::new(),
             modifier_formats: DashMap::new(),
             events: DashMap::new(),
+            focuses: DashMap::new(),
             music_assets: DashMap::new(),
             music_stations: DashMap::new(),
             songs: DashMap::new(),

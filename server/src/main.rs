@@ -23,6 +23,7 @@ mod document_symbols;
 mod enhanced_color;
 mod entity_lookup;
 mod event_scanner;
+mod focus_scanner;
 mod formatting;
 mod fs_util;
 mod gfx_scanner;

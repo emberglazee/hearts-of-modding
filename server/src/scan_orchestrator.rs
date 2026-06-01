@@ -10,6 +10,7 @@ use crate::continent_scanner;
 use crate::country_scanner;
 use crate::defines_parser;
 use crate::event_scanner;
+use crate::focus_scanner;
 use crate::gfx_scanner;
 use crate::idea_scanner;
 use crate::ideology_scanner;
@@ -177,6 +178,16 @@ impl Backend {
             event_scanner::scan_events,
             events,
             "Total: Loaded {} event definitions"
+        );
+    }
+
+    pub(crate) async fn scan_focuses(&self, roots: &[std::path::PathBuf]) {
+        scan_dashmap!(
+            self,
+            roots,
+            focus_scanner::scan_focuses,
+            focuses,
+            "Total: Loaded {} national focus definitions"
         );
     }
 

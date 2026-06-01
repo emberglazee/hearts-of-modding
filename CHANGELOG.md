@@ -6,7 +6,7 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### Changed
 
-- **Improved semantic token highlighting for ideology, idea, and music definitions.**
+- **Improved semantic token highlighting for ideology, idea, national focus, and music definitions.**
 
 ## [v0.12.1] - 2026-06-01
 

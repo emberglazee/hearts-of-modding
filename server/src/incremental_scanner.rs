@@ -8,6 +8,7 @@ use crate::character_scanner;
 use crate::country_scanner;
 use crate::defines_parser;
 use crate::event_scanner;
+use crate::focus_scanner;
 use crate::idea_scanner;
 use crate::ideology_scanner;
 use crate::loc_parser;
@@ -52,6 +53,7 @@ macro_rules! impl_has_path {
 
 impl_has_path!(loc_parser::LocEntry);
 impl_has_path!(event_scanner::Event);
+impl_has_path!(focus_scanner::Focus);
 impl_has_path!(scripted_scanner::ScriptedEntity);
 impl_has_path!(scripted_loc_scanner::ScriptedLoc);
 impl_has_path!(achievement_scanner::Achievement);

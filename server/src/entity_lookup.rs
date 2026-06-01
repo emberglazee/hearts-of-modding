@@ -17,6 +17,7 @@ pub enum EntityKind {
     Idea,
     Character,
     Event,
+    Focus,
     Ability,
     Achievement,
     AiArea,
@@ -62,6 +63,7 @@ impl EntityKind {
             EntityKind::Idea => SymbolKind::CLASS,
             EntityKind::Character => SymbolKind::STRUCT,
             EntityKind::Event => SymbolKind::EVENT,
+            EntityKind::Focus => SymbolKind::EVENT,
             EntityKind::Ability => SymbolKind::METHOD,
             EntityKind::Achievement => SymbolKind::EVENT,
             EntityKind::Variable => SymbolKind::VARIABLE,
@@ -156,6 +158,7 @@ impl<'a> EntityLookup<'a> {
         try_lookup!(Idea, ideas);
         try_lookup!(Character, characters);
         try_lookup!(Event, events);
+        try_lookup!(Focus, focuses);
         try_lookup!(Ability, abilities);
         try_lookup!(Achievement, achievements);
         try_lookup!(AiArea, ai_areas);
@@ -266,6 +269,7 @@ impl<'a> EntityLookup<'a> {
         }
 
         check_entity!(Event, events);
+        check_entity!(Focus, focuses);
         check_entity!(ScriptedTrigger, scripted_triggers);
         check_entity!(ScriptedEffect, scripted_effects);
         check_entity!(Idea, ideas);
@@ -311,6 +315,7 @@ impl<'a> EntityLookup<'a> {
         }
 
         collect_names!(Achievement, achievements);
+        collect_names!(Focus, focuses);
         collect_names!(AiArea, ai_areas);
         collect_names!(Event, events);
         collect_names!(ScriptedTrigger, scripted_triggers);
@@ -365,6 +370,7 @@ impl<'a> EntityLookup<'a> {
 
         push_symbols!(CustomModifier, custom_modifiers, "Modifier");
         push_symbols!(Achievement, achievements, "Achievement");
+        push_symbols!(Focus, focuses, "National Focus");
 
         {
             let map = &self.data.events;

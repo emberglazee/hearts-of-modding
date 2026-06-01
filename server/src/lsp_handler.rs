@@ -171,6 +171,7 @@ impl LanguageServer for Backend {
             self.scan_achievements(&roots),
             self.scan_defines(&roots),
             self.scan_events(&roots),
+            self.scan_focuses(&roots),
             self.scan_music(&roots),
             self.scan_sounds(&roots),
             self.scan_abilities(&roots),
@@ -456,6 +457,8 @@ impl LanguageServer for Backend {
                 // Idea definition keywords (common/ideas/*.txt)
                 keywords.insert("ideas".to_string());
                 keywords.insert("idea_categories".to_string());
+                // Known idea category names (game-defined, not user types)
+                keywords.insert("country".to_string());
                 keywords.insert("slot_ledgers".to_string());
                 keywords.insert("slot".to_string());
                 keywords.insert("character_slot".to_string());
@@ -481,6 +484,72 @@ impl LanguageServer for Backend {
                 keywords.insert("hidden".to_string());
                 keywords.insert("politics_tab".to_string());
 
+                // National focus tree structure keywords
+                keywords.insert("focus_tree".to_string());
+                keywords.insert("focus".to_string());
+                keywords.insert("shared_focus".to_string());
+                keywords.insert("joint_focus".to_string());
+                keywords.insert("continuous_focus_palette".to_string());
+                keywords.insert("continuous_focus_position".to_string());
+                keywords.insert("initial_show_position".to_string());
+                keywords.insert("shortcut".to_string());
+                keywords.insert("inlay_window".to_string());
+                keywords.insert("style".to_string());
+                keywords.insert("search_filter_prios".to_string());
+
+                // National focus property keywords
+                keywords.insert("prerequisite".to_string());
+                keywords.insert("mutually_exclusive".to_string());
+                keywords.insert("bypass".to_string());
+                keywords.insert("bypass_if_unavailable".to_string());
+                keywords.insert("enable_automatic_bypass".to_string());
+                keywords.insert("allow_branch".to_string());
+                keywords.insert("available_if_capitulated".to_string());
+                keywords.insert("cancel_if_invalid".to_string());
+                keywords.insert("continue_if_invalid".to_string());
+                keywords.insert("historical_ai".to_string());
+                keywords.insert("completion_reward".to_string());
+                keywords.insert("complete_tooltip".to_string());
+                keywords.insert("select_effect".to_string());
+                keywords.insert("bypass_effect".to_string());
+                keywords.insert("search_filters".to_string());
+                keywords.insert("text_icon".to_string());
+                keywords.insert("will_lead_to_war_with".to_string());
+                keywords.insert("dynamic".to_string());
+                keywords.insert("offset".to_string());
+                keywords.insert("relative_position_id".to_string());
+                keywords.insert("id".to_string());
+                keywords.insert("cost".to_string());
+                keywords.insert("icon".to_string());
+                keywords.insert("default".to_string());
+                keywords.insert("reset_on_civilwar".to_string());
+                keywords.insert("target".to_string());
+                keywords.insert("scroll_wheel_factor".to_string());
+
+                // Continuous focus keywords
+                keywords.insert("daily_cost".to_string());
+                keywords.insert("supports_ai_strategy".to_string());
+                keywords.insert("cancel_effect".to_string());
+
+                // Joint focus keywords
+                keywords.insert("joint_trigger".to_string());
+                keywords.insert("completion_reward_joint_originator".to_string());
+                keywords.insert("completion_reward_joint_member".to_string());
+
+                // Focus inlay window keywords
+                keywords.insert("window_name".to_string());
+                keywords.insert("internal".to_string());
+                keywords.insert("scripted_buttons".to_string());
+                keywords.insert("scripted_images".to_string());
+                keywords.insert("click_effect".to_string());
+
+                // Style definition keywords
+                keywords.insert("unavailable".to_string());
+                keywords.insert("current".to_string());
+
+                // AI strategy plan keywords
+                keywords.insert("ai_strategy".to_string());
+
                 let lookup = entity_lookup::EntityLookup::new(&self.scanner_data);
                 let all_names = lookup.entity_names();
 
@@ -500,6 +569,7 @@ impl LanguageServer for Backend {
                 let mut music_station_names = HashSet::new();
                 let mut song_names = HashSet::new();
                 let mut idea_names = HashSet::new();
+                let mut focus_names = HashSet::new();
 
                 for (name, kind) in all_names {
                     match kind {
@@ -551,6 +621,9 @@ impl LanguageServer for Backend {
                         entity_lookup::EntityKind::Idea => {
                             idea_names.insert(name);
                         }
+                        entity_lookup::EntityKind::Focus => {
+                            focus_names.insert(name);
+                        }
                         _ => {}
                     }
                 }
@@ -574,6 +647,7 @@ impl LanguageServer for Backend {
                     &music_station_names,
                     &song_names,
                     &idea_names,
+                    &focus_names,
                 )))
             }
             _ => Ok(None),
