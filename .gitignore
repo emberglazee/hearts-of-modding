@@ -28,5 +28,8 @@ references/
 .DS_Store
 Thumbs.db
 
+# HOI4 wiki docs (local reference)
+hoi4-wiki/
+
 # misc
 .playwright-mcp/*

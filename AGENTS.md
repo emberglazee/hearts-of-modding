@@ -2,6 +2,23 @@
 
 VS Code extension for HOI4 modding. Two-part architecture: `client/` (TypeScript VS Code extension) + `server/` (Rust LSP server, `tower-lsp` + `tokio`).
 
+## Reference Docs (`hoi4-wiki/`)
+
+When editing the extension's code (parser, scopes, triggers, effects, semantic tokens, validation, etc.), consult the `hoi4-wiki/` directory first. It contains **Paradox Wiki-format** HOI4 modding reference pages scraped from the official wiki, organized by category:
+
+| Category | Contents |
+|----------|----------|
+| `scripting/` | Event modding, national focus modding, decision modding, idea/ideology, unit, equipment, technology, doctrine, division, character, building, MIO, country creation, cosmetic tags, balance of power, autonomy/state, achievements, AI modding, AI focuses, faction, bookmark, resources, scripted GUI |
+| `documentation/` | Reference: triggers, effects, scopes, modifiers, defines, localisation, on-actions, data structures, ideology modding |
+| `graphical/` | Interface modding, graphical assets, entity modding, particle/posteffect/font modding |
+| `cosmetic/` | Portrait modding, namelist modding, music/sound modding |
+| `map/` | Map modding, strategic region modding, state modding |
+| `other/` | Mod structure, mods, nudger, troubleshooting, console commands |
+
+These pages use Paradox Wiki markup (`{{version|1.12}}`, `{{path|events/}}`, `{{Main|Scopes}}`, `<pre>` blocks, `{|` wiki tables) but are otherwise plain markdown. They are the canonical reference for how HOI4 mod files are structured — the parser, scope inference, trigger/effect databases, and validator logic in `server/src/` all relate directly to what's documented here. Read these files whenever you need to understand the underlying game mechanics that the extension operates on.
+
+Categories roughly map to extension concerns: `documentation/triggers.md`, `documentation/effects.md`, `documentation/scopes.md` wire directly to `hoi4_data.rs` and `scope.rs`; `documentation/localisation.md` to `loc_parser.rs`; `scripting/event-modding.md`, `decision-modding.md`, `national-focus-modding.md` etc. inform scanner logic and semantic token behaviour.
+
 ## Build & Dev
 
 | Scope | Commands |
