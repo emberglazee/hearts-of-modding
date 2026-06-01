@@ -12,6 +12,7 @@ on:
           - patch
           - minor
           - major
+          - none
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -46,17 +47,22 @@ jobs:
         id: bump
         run: |
           cd client
-          npm version ${{ inputs.bump }} --no-git-tag-version
+
+          if [ "${{ inputs.bump }}" != "none" ]; then
+            npm version ${{ inputs.bump }} --no-git-tag-version
+          fi
+
           VERSION=$(node -p "require('./package.json').version")
 
-          # Sync version to server/Cargo.toml (first occurrence only, avoids dependencies)
-          sed -i "0,/^version = .*/s//version = \"$VERSION\"/" ../server/Cargo.toml
+          if [ "${{ inputs.bump }}" != "none" ]; then
+            sed -i "0,/^version = .*/s//version = \"$VERSION\"/" ../server/Cargo.toml
 
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add package.json package-lock.json ../server/Cargo.toml
-          git commit -m "chore: bump version to $VERSION"
-          git push
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add package.json package-lock.json ../server/Cargo.toml
+            git commit -m "chore: bump version to $VERSION"
+            git push
+          fi
 
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
