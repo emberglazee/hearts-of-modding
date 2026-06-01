@@ -76,11 +76,11 @@ use tower_lsp_server::{LspService, Server};
 use crate::config::Config;
 use crate::scanner_data::ScannerData;
 
-pub(crate) static TRIGGERS: Lazy<HashMap<&'static str, hoi4_data::HOI4Entity>> =
+pub(crate) static TRIGGERS: Lazy<HashMap<String, hoi4_data::HOI4Entity>> =
     Lazy::new(hoi4_data::get_triggers);
-pub(crate) static EFFECTS: Lazy<HashMap<&'static str, hoi4_data::HOI4Entity>> =
+pub(crate) static EFFECTS: Lazy<HashMap<String, hoi4_data::HOI4Entity>> =
     Lazy::new(hoi4_data::get_effects);
-pub(crate) static MODIFIERS: Lazy<HashMap<&'static str, hoi4_data::HOI4Entity>> =
+pub(crate) static MODIFIERS: Lazy<HashMap<String, hoi4_data::HOI4Entity>> =
     Lazy::new(hoi4_data::get_modifiers);
 pub(crate) static SCOPES: Lazy<Vec<&'static str>> = Lazy::new(hoi4_data::get_scopes);
 pub(crate) static LOC_COMMANDS: Lazy<Vec<&'static str>> = Lazy::new(hoi4_data::get_loc_commands);
