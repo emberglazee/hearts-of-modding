@@ -33,7 +33,9 @@ Client helpers in `package.json`: `npm run cargo:test`, `cargo:check`, `cargo:fm
 ## Architecture
 
 **Key server modules** (`server/src/`):
-- `main.rs` (~3400 loc) — LSP core logic
+- `main.rs` — LSP entrypoint (module decls, statics, UTF-16 conversion, `main()`)
+- `backend.rs` — `Backend` struct + internal validation/document helpers (~2600 loc)
+- `lsp_handler.rs` — `impl LanguageServer for Backend` (all LSP protocol handlers)
 - `parser.rs` — `nom`-based HOI4 script parser (handles complex identifiers: `daw.2.t`, `[?var]`, `array^0`)
 - `ast.rs` — AST definitions
 - `loc_parser.rs` — Localization `.yml` parser

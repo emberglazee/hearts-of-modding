@@ -6,7 +6,7 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### Changed
 
-- **Refactored 14 scan methods** to increase maintainability.
+- **Continued general LSP refactors** to increase maintainability and improve the code architecture. I do not wanna end up like [PirateSoftware](https://youtu.be/HHwhiz0s2x8?t=250).
 
 ## [v0.11.3] - 2026-05-29
 
