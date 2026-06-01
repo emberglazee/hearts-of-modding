@@ -432,6 +432,27 @@ impl LanguageServer for Backend {
                 keywords.insert("volume".to_string());
                 keywords.insert("file".to_string());
 
+                // Ideology definition keywords
+                keywords.insert("types".to_string());
+                keywords.insert("dynamic_faction_names".to_string());
+                keywords.insert("rules".to_string());
+                keywords.insert("can_host_government_in_exile".to_string());
+                keywords.insert("war_impact_on_world_tension".to_string());
+                keywords.insert("faction_impact_on_world_tension".to_string());
+                keywords.insert("can_be_boosted".to_string());
+                keywords.insert("can_collaborate".to_string());
+                keywords.insert("modifiers".to_string());
+                keywords.insert("faction_modifiers".to_string());
+                keywords.insert("can_create_collaboration_government".to_string());
+                keywords.insert("can_declare_war_on_same_ideology".to_string());
+                keywords.insert("can_force_government".to_string());
+                keywords.insert("can_send_volunteers".to_string());
+                keywords.insert("can_puppet".to_string());
+                keywords.insert("can_lower_tension".to_string());
+                keywords.insert("can_only_justify_war_on_threat_country".to_string());
+                keywords.insert("can_guarantee_other_ideologies".to_string());
+                keywords.insert("take_states_cost_factor".to_string());
+
                 let lookup = entity_lookup::EntityLookup::new(&self.scanner_data);
                 let all_names = lookup.entity_names();
 
@@ -441,6 +462,7 @@ impl LanguageServer for Backend {
                 let mut portrait_names = HashSet::new();
                 let mut character_names = HashSet::new();
                 let mut ideology_types = HashSet::new();
+                let mut ideology_names = HashSet::new();
                 let mut achievement_names = HashSet::new();
                 let mut scripted_trigger_names = HashSet::new();
                 let mut scripted_effect_names = HashSet::new();
@@ -469,6 +491,9 @@ impl LanguageServer for Backend {
                         }
                         entity_lookup::EntityKind::SubIdeology => {
                             ideology_types.insert(name);
+                        }
+                        entity_lookup::EntityKind::Ideology => {
+                            ideology_names.insert(name);
                         }
                         entity_lookup::EntityKind::Achievement => {
                             achievement_names.insert(name);
@@ -507,6 +532,7 @@ impl LanguageServer for Backend {
                     &portrait_names,
                     &character_names,
                     &ideology_types,
+                    &ideology_names,
                     &achievement_names,
                     &scripted_trigger_names,
                     &scripted_effect_names,

@@ -27,6 +27,7 @@ pub fn get_semantic_tokens(
     portrait_names: &HashSet<String>,
     character_names: &HashSet<String>,
     ideology_types: &HashSet<String>,
+    ideology_names: &HashSet<String>,
     achievement_names: &HashSet<String>,
     scripted_triggers: &HashSet<String>,
     scripted_effects: &HashSet<String>,
@@ -48,6 +49,7 @@ pub fn get_semantic_tokens(
             portrait_names,
             character_names,
             ideology_types,
+            ideology_names,
             achievement_names,
             scripted_triggers,
             scripted_effects,
@@ -109,6 +111,7 @@ fn push_entry_tokens(
     portrait_names: &HashSet<String>,
     character_names: &HashSet<String>,
     ideology_types: &HashSet<String>,
+    ideology_names: &HashSet<String>,
     achievement_names: &HashSet<String>,
     scripted_triggers: &HashSet<String>,
     scripted_effects: &HashSet<String>,
@@ -132,6 +135,8 @@ fn push_entry_tokens(
             let is_music_asset = music_assets.contains(&ass.key);
             let is_music_station = music_stations.contains(&ass.key);
             let is_song = songs.contains(&ass.key);
+            let is_ideology = ideology_names.contains(&ass.key);
+            let is_ideology_type = ideology_types.contains(&ass.key);
 
             if is_keyword {
                 tokens.push(RawToken {
@@ -150,6 +155,8 @@ fn push_entry_tokens(
                 || is_music_asset
                 || is_music_station
                 || is_song
+                || is_ideology
+                || is_ideology_type
                 || country_tags.contains(&ass.key)
                 || scripted_triggers.contains(&ass.key)
                 || scripted_effects.contains(&ass.key)
@@ -178,6 +185,7 @@ fn push_entry_tokens(
                 portrait_names,
                 character_names,
                 ideology_types,
+                ideology_names,
                 achievement_names,
                 scripted_triggers,
                 scripted_effects,
@@ -200,6 +208,7 @@ fn push_entry_tokens(
                 portrait_names,
                 character_names,
                 ideology_types,
+                ideology_names,
                 achievement_names,
                 scripted_triggers,
                 scripted_effects,
@@ -232,6 +241,7 @@ fn push_value_tokens(
     portrait_names: &HashSet<String>,
     character_names: &HashSet<String>,
     ideology_types: &HashSet<String>,
+    ideology_names: &HashSet<String>,
     achievement_names: &HashSet<String>,
     scripted_triggers: &HashSet<String>,
     scripted_effects: &HashSet<String>,
@@ -264,6 +274,7 @@ fn push_value_tokens(
                         || portrait_names.contains(s)
                         || character_names.contains(s)
                         || ideology_types.contains(s)
+                        || ideology_names.contains(s)
                         || achievement_names.contains(s)
                         || color_codes.contains(s)
                         || country_tags.contains(s)
@@ -313,6 +324,7 @@ fn push_value_tokens(
                     portrait_names,
                     character_names,
                     ideology_types,
+                    ideology_names,
                     achievement_names,
                     scripted_triggers,
                     scripted_effects,
@@ -343,6 +355,7 @@ fn push_value_tokens(
                     portrait_names,
                     character_names,
                     ideology_types,
+                    ideology_names,
                     achievement_names,
                     scripted_triggers,
                     scripted_effects,
