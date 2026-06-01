@@ -4,13 +4,9 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ## [v0.13.0] - 2026-06-01
 
-### Added
-
-- **Proper semantic token highlighting for music definitions.**
-
 ### Changed
 
-- **Improved semantic token highlighting for ideology definitions.**
+- **Improved semantic token highlighting for ideology, idea, and music definitions.**
 
 ## [v0.12.1] - 2026-06-01
 

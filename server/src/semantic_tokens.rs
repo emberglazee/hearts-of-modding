@@ -36,6 +36,7 @@ pub fn get_semantic_tokens(
     music_assets: &HashSet<String>,
     music_stations: &HashSet<String>,
     songs: &HashSet<String>,
+    idea_names: &HashSet<String>,
 ) -> SemanticTokensResult {
     let mut tokens = Vec::new();
     for entry in &script.entries {
@@ -58,6 +59,7 @@ pub fn get_semantic_tokens(
             music_assets,
             music_stations,
             songs,
+            idea_names,
             None,
         );
     }
@@ -120,6 +122,7 @@ fn push_entry_tokens(
     music_assets: &HashSet<String>,
     music_stations: &HashSet<String>,
     songs: &HashSet<String>,
+    idea_names: &HashSet<String>,
     parent_key: Option<&str>,
 ) {
     match entry {
@@ -137,6 +140,11 @@ fn push_entry_tokens(
             let is_song = songs.contains(&ass.key);
             let is_ideology = ideology_names.contains(&ass.key);
             let is_ideology_type = ideology_types.contains(&ass.key);
+            let is_idea = idea_names.contains(&ass.key);
+
+            // Inside ideas = { ... } or idea_categories = { ... }, non-keyword
+            // assignment keys are idea/category definition names.
+            let is_idea_category = parent_key.is_some_and(|p| p == "ideas" || p == "idea_categories");
 
             if is_keyword {
                 tokens.push(RawToken {
@@ -157,6 +165,8 @@ fn push_entry_tokens(
                 || is_song
                 || is_ideology
                 || is_ideology_type
+                || is_idea
+                || is_idea_category
                 || country_tags.contains(&ass.key)
                 || scripted_triggers.contains(&ass.key)
                 || scripted_effects.contains(&ass.key)
@@ -194,6 +204,7 @@ fn push_entry_tokens(
                 music_assets,
                 music_stations,
                 songs,
+                idea_names,
                 Some(&ass.key),
             );
         }
@@ -217,6 +228,7 @@ fn push_entry_tokens(
                 music_assets,
                 music_stations,
                 songs,
+                idea_names,
                 parent_key,
             );
         }
@@ -250,6 +262,7 @@ fn push_value_tokens(
     music_assets: &HashSet<String>,
     music_stations: &HashSet<String>,
     songs: &HashSet<String>,
+    idea_names: &HashSet<String>,
     parent_key: Option<&str>,
 ) {
     match &val.value {
@@ -279,7 +292,8 @@ fn push_value_tokens(
                         || color_codes.contains(s)
                         || country_tags.contains(s)
                         || scripted_triggers.contains(s)
-                        || scripted_effects.contains(s)))
+                        || scripted_effects.contains(s)
+                        || idea_names.contains(s)))
             {
                 tokens.push(RawToken {
                     line: val.range.start_line,
@@ -333,6 +347,7 @@ fn push_value_tokens(
                     music_assets,
                     music_stations,
                     songs,
+                    idea_names,
                     parent_key,
                 );
             }
@@ -364,6 +379,7 @@ fn push_value_tokens(
                     music_assets,
                     music_stations,
                     songs,
+                    idea_names,
                     parent_key,
                 );
             }

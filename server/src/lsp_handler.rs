@@ -453,6 +453,34 @@ impl LanguageServer for Backend {
                 keywords.insert("can_guarantee_other_ideologies".to_string());
                 keywords.insert("take_states_cost_factor".to_string());
 
+                // Idea definition keywords (common/ideas/*.txt)
+                keywords.insert("ideas".to_string());
+                keywords.insert("idea_categories".to_string());
+                keywords.insert("slot_ledgers".to_string());
+                keywords.insert("slot".to_string());
+                keywords.insert("character_slot".to_string());
+                keywords.insert("designer".to_string());
+                keywords.insert("use_list_view".to_string());
+                keywords.insert("law".to_string());
+                keywords.insert("picture".to_string());
+                keywords.insert("targeted_modifier".to_string());
+                keywords.insert("research_bonus".to_string());
+                keywords.insert("equipment_bonus".to_string());
+                keywords.insert("rule".to_string());
+                keywords.insert("on_add".to_string());
+                keywords.insert("on_remove".to_string());
+                keywords.insert("cancel".to_string());
+                keywords.insert("allowed_civil_war".to_string());
+                keywords.insert("do_effect".to_string());
+                keywords.insert("allowed_to_remove".to_string());
+                keywords.insert("visible".to_string());
+                keywords.insert("available".to_string());
+                keywords.insert("removal_cost".to_string());
+                keywords.insert("level".to_string());
+                keywords.insert("ledger".to_string());
+                keywords.insert("hidden".to_string());
+                keywords.insert("politics_tab".to_string());
+
                 let lookup = entity_lookup::EntityLookup::new(&self.scanner_data);
                 let all_names = lookup.entity_names();
 
@@ -471,6 +499,7 @@ impl LanguageServer for Backend {
                 let mut music_asset_names = HashSet::new();
                 let mut music_station_names = HashSet::new();
                 let mut song_names = HashSet::new();
+                let mut idea_names = HashSet::new();
 
                 for (name, kind) in all_names {
                     match kind {
@@ -519,6 +548,9 @@ impl LanguageServer for Backend {
                         entity_lookup::EntityKind::Song => {
                             song_names.insert(name);
                         }
+                        entity_lookup::EntityKind::Idea => {
+                            idea_names.insert(name);
+                        }
                         _ => {}
                     }
                 }
@@ -541,6 +573,7 @@ impl LanguageServer for Backend {
                     &music_asset_names,
                     &music_station_names,
                     &song_names,
+                    &idea_names,
                 )))
             }
             _ => Ok(None),
