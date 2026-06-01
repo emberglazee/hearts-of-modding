@@ -110,3 +110,7 @@ jobs:
           prerelease: ${{ contains(steps.bump.outputs.VERSION, '-') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to Open VSX Registry
+        run: |
+          npx @vscode/ovsx publish hearts-of-modding-${{ steps.bump.outputs.VERSION }}.vsix -p ${{ secrets.OPEN_VSX_TOKEN }}
