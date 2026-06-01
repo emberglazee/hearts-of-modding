@@ -1,0 +1,88 @@
+use crate::ast;
+use crate::lsp_convert::ast_range_to_lsp;
+use crate::rules::{ValidationContext, ValidationRule};
+use crate::scope::ScopeStack;
+use tower_lsp_server::ls_types::{
+    Diagnostic, DiagnosticSeverity, NumberOrString,
+};
+
+/// Checks that string values assigned to `name`, `desc`, `text`,
+/// and `title` keys have corresponding localization entries.
+///
+/// Uses heuristics to avoid flagging literals (space-containing strings,
+/// capitalized non-all-caps strings, pure numbers) and respects the
+/// `# ignore` comment suppression and `ignored_loc_regex` config.
+pub(crate) struct LocalizationRule;
+
+impl ValidationRule for LocalizationRule {
+    fn check_assignment(
+        &self,
+        ass: &ast::Assignment,
+        ctx: &ValidationContext,
+        _scope: &ScopeStack,
+        diags: &mut Vec<Diagnostic>,
+    ) {
+        let key_lower = ass.key.to_ascii_lowercase();
+        if key_lower != "name" && key_lower != "desc" && key_lower != "text" && key_lower != "title"
+        {
+            return;
+        }
+
+        let ast::Value::String(val) = &ass.value.value else {
+            return;
+        };
+
+        let mut should_flag = true;
+
+        // 1. Basic heuristics: space, empty, all-numeric → literal
+        if val.contains(' ') || val.is_empty() || val.chars().all(|c| c.is_numeric()) {
+            should_flag = false;
+        }
+
+        // 2. Casing heuristic: starts with uppercase but isn't all-caps → likely literal
+        if should_flag && val.chars().next().is_some_and(|c| c.is_uppercase()) {
+            let all_caps = val.chars().all(|c| !c.is_lowercase());
+            if !all_caps {
+                should_flag = false;
+            }
+        }
+
+        // 3. Comment suppression (# ignore on same line)
+        if should_flag {
+            for (comment_text, range) in ctx.comments {
+                if range.start_line == ass.key_range.start_line {
+                    if comment_text.to_ascii_lowercase().contains("ignore") {
+                        should_flag = false;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if should_flag {
+            if !ctx.loc.contains_key(val) {
+                let target = format!("{}:", val);
+                if !ctx.loc.iter().any(|e| e.key().starts_with(&target)) {
+                    // Final check against regex
+                    let is_regex_ignored = ctx.ignored_loc_regex.iter().any(|re| re.is_match(val));
+
+                    if !is_regex_ignored {
+                        diags.push(Diagnostic {
+                            range: ast_range_to_lsp(&ass.value.range),
+                            severity: Some(DiagnosticSeverity::HINT),
+                            message: format!(
+                                "Missing localization key: '{}' (or literal name)",
+                                val
+                            ),
+                            code: Some(NumberOrString::String(
+                                crate::advanced_validation::MISSING_LOCALIZATION.to_string(),
+                            )),
+                            source: Some("Hearts of Modding".to_string()),
+                            ..Default::default()
+                        });
+                    }
+                }
+            }
+        }
+    }
+}

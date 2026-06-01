@@ -48,6 +48,7 @@ mod parser;
 mod portrait_scanner;
 mod province_scanner;
 mod rename;
+mod rules;
 mod scan_orchestrator;
 mod scanner_data;
 mod scope;

@@ -8,19 +8,13 @@ use tower_lsp_server::ls_types::*;
 use crate::advanced_validation;
 use crate::ast;
 use crate::config::Config;
-use crate::country_scanner;
-use crate::idea_scanner;
-use crate::ideology_scanner;
 use crate::loc_parser;
 use crate::lsp_convert::{ast_range_to_lsp, ast_related_info_to_lsp, ast_tag_to_lsp};
 use crate::parser;
-use crate::province_scanner;
+use crate::rules;
+use crate::rules::{ValidationContext, ValidationRule};
 use crate::scanner_data::ScannerData;
 use crate::scope;
-use crate::scripted_scanner;
-use crate::sound_scanner;
-use crate::sprite_scanner;
-use crate::trait_scanner;
 use crate::utf16_len;
 
 pub(crate) struct Backend {
@@ -70,34 +64,6 @@ impl Backend {
         self.documents
             .get(uri)
             .map(|content| self.cache_ast(uri, &content))
-    }
-
-    pub(crate) fn check_is_province(
-        &self,
-        val: &ast::NodeedValue,
-        diagnostics: &mut Vec<Diagnostic>,
-        provs: &DashMap<u32, province_scanner::Province>,
-    ) {
-        let id_opt = match &val.value {
-            ast::Value::Number(n) => Some(*n as u32),
-            ast::Value::String(s) => s.parse::<u32>().ok(),
-            _ => None,
-        };
-
-        if let Some(id) = id_opt {
-            if !provs.is_empty() && !provs.contains_key(&id) {
-                diagnostics.push(Diagnostic {
-                    range: ast_range_to_lsp(&val.range),
-                    severity: Some(DiagnosticSeverity::WARNING),
-                    message: format!("Unknown province ID: {}", id),
-                    code: Some(NumberOrString::String(
-                        advanced_validation::UNKNOWN_TRIGGER.to_string(),
-                    )),
-                    source: Some("Hearts of Modding".to_string()),
-                    ..Default::default()
-                });
-            }
-        }
     }
 
     pub(crate) async fn find_references_in_root(
@@ -1531,306 +1497,71 @@ impl Backend {
         } else {
             scope::Scope::Global
         };
-        let mut scope_stack = scope::ScopeStack::new(initial_scope);
 
-        // Load AI area validation data
-        let continents = &self.scanner_data.continents;
-        let strategic_regions = &self.scanner_data.strategic_regions;
+        let game_path = self.config.game_path();
 
-        // Run advanced validations
-        let mut advanced_diags = Vec::new();
-
-        // Dynamic country tag check: warn if the file is in common/country_tags/ and
-        // the dynamic-to-static ratio suggests insufficient dynamic tags for civil wars.
-        if uri.contains("/common/country_tags/") || uri.contains("\\common\\country_tags\\") {
-            let total = ct.len();
-            let dynamic_count = ct.iter().filter(|t| t.value().dynamic).count();
-            let static_count = total - dynamic_count;
-            if total > 0 && dynamic_count == 0 {
-                advanced_diags.push(advanced_validation::ValidationDiagnostic {
-                    range: ast::Range { start_line: 0, start_col: 0, end_line: 0, end_col: 0 },
-                    severity: ast::DiagnosticSeverity::Warning,
-                    message: "No dynamic country tags defined. Civil wars will fail for lack of dynamic tags, potentially causing a crash.".to_string(),
-                    code: "HOM5001".to_string(),
-                    fix_suggestion: None,
-                    related_information: vec![],
-                    tags: vec![],
-                });
-            } else if static_count > 10 && dynamic_count < (static_count / 10).max(3) {
-                advanced_diags.push(advanced_validation::ValidationDiagnostic {
-                    range: ast::Range { start_line: 0, start_col: 0, end_line: 0, end_col: 0 },
-                    severity: ast::DiagnosticSeverity::Information,
-                    message: format!("Only {} dynamic tags for {} static tags. Consider adding more dynamic tags for civil wars.", dynamic_count, static_count),
-                    code: "HOM5002".to_string(),
-                    fix_suggestion: None,
-                    related_information: vec![],
-                    tags: vec![],
-                });
-            }
-        }
-        advanced_validation::validate_building_levels(
-            &script.entries,
+        // Build validation context
+        let ctx = ValidationContext {
+            uri,
+            loc,
+            scripted_triggers: st,
+            scripted_effects: se,
+            ideologies: id,
+            sub_ideologies: sid,
+            traits: tr,
+            sprites: sp,
+            ideas: ids,
+            provinces: provs,
+            modifier_mappings: mod_maps,
+            ignored_loc_regex: &ig_loc,
+            comments: &comments,
+            sound_effects: s_effects,
+            country_tags: ct,
             buildings,
-            &mut advanced_diags,
-        );
-        advanced_validation::validate_character_skills(
-            &script.entries,
-            &defines,
-            &mut advanced_diags,
-        );
-        advanced_validation::validate_victory_points(&script.entries, &mut advanced_diags);
-        advanced_validation::validate_achievements(&script.entries, loc, &mut advanced_diags);
-        advanced_validation::validate_abilities(&script.entries, loc, &mut advanced_diags);
-        advanced_validation::validate_portrait_gfx(&script.entries, sp, &mut advanced_diags);
+            defines: &*defines,
+            continents: &self.scanner_data.continents,
+            strategic_regions: &self.scanner_data.strategic_regions,
+            abilities: &self.scanner_data.abilities,
+            game_path,
+            styling_enabled,
+        };
 
-        // Convert advanced diagnostics to LSP diagnostics
-        for diag in advanced_diags {
-            diagnostics.push(Diagnostic {
-                range: ast_range_to_lsp(&diag.range),
-                severity: Some(match diag.severity {
-                    ast::DiagnosticSeverity::Error => DiagnosticSeverity::ERROR,
-                    ast::DiagnosticSeverity::Warning => DiagnosticSeverity::WARNING,
-                    ast::DiagnosticSeverity::Information => DiagnosticSeverity::INFORMATION,
-                    ast::DiagnosticSeverity::Hint => DiagnosticSeverity::HINT,
-                }),
-                message: diag.message,
-                code: Some(NumberOrString::String(diag.code)),
-                source: Some("Hearts of Modding".to_string()),
-                tags: if diag.tags.is_empty() {
-                    None
-                } else {
-                    Some(diag.tags.iter().map(ast_tag_to_lsp).collect())
-                },
-                related_information: if diag.related_information.is_empty() {
-                    None
-                } else {
-                    Some(
-                        diag.related_information
-                            .iter()
-                            .map(ast_related_info_to_lsp)
-                            .collect(),
-                    )
-                },
-                data: diag.fix_suggestion.map(|s| serde_json::json!({ "fix": s })),
-                ..Default::default()
-            });
+        // Collect all rules
+        let rules: Vec<Box<dyn ValidationRule>> = vec![
+            Box::new(rules::achievements::AchievementRule),
+            Box::new(rules::abilities::AbilityRule),
+            Box::new(rules::ai_areas::AiAreaRule),
+            Box::new(rules::buildings::BuildingRule),
+            Box::new(rules::characters::CharacterRule),
+            Box::new(rules::country_tags::CountryTagRule),
+            Box::new(rules::ideologies::IdeologyRule),
+            Box::new(rules::ideas::IdeaRule),
+            Box::new(rules::localization::LocalizationRule),
+            Box::new(rules::portraits::PortraitRule),
+            Box::new(rules::provinces::ProvinceRule),
+            Box::new(rules::sounds::SoundRule),
+            Box::new(rules::sprites::SpriteRule),
+            Box::new(rules::traits::TraitRule),
+        ];
+
+        // Run block-level rules (check_block is called for each)
+        for rule in &rules {
+            rule.check_block(&script.entries, &ctx, diagnostics);
         }
 
-        // AI area validation: verify continents and strategic regions exist when editing AI area files
-        if uri.contains("/common/ai_areas/") || uri.contains("\\common\\ai_areas\\") {
-            for entry in &script.entries {
-                if let ast::Entry::Assignment(ass) = entry {
-                    if let ast::Value::Block(inner_entries) = &ass.value.value {
-                        for inner in inner_entries {
-                            if let ast::Entry::Assignment(inner_ass) = inner {
-                                match inner_ass.key.as_str() {
-                                    "continents" => {
-                                        if let ast::Value::Block(cont_entries) =
-                                            &inner_ass.value.value
-                                        {
-                                            for ce in cont_entries {
-                                                if let ast::Entry::Value(val) = ce {
-                                                    if let ast::Value::String(name) = &val.value {
-                                                        if !continents.contains_key(name) {
-                                                            diagnostics.push(Diagnostic {
-                                                                range: ast_range_to_lsp(&val.range),
-                                                                severity: Some(
-                                                                    DiagnosticSeverity::WARNING,
-                                                                ),
-                                                                message: format!(
-                                                                    "Unknown continent: '{}'",
-                                                                    name
-                                                                ),
-                                                                code: Some(NumberOrString::String(
-                                                                    "HOM6001".to_string(),
-                                                                )),
-                                                                source: Some(
-                                                                    "Hearts of Modding".to_string(),
-                                                                ),
-                                                                ..Default::default()
-                                                            });
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                    "strategic_regions" => {
-                                        if let ast::Value::Block(sr_entries) =
-                                            &inner_ass.value.value
-                                        {
-                                            for se in sr_entries {
-                                                if let ast::Entry::Value(val) = se {
-                                                    if let ast::Value::Number(n) = &val.value {
-                                                        let id = *n as u32;
-                                                        if !strategic_regions.contains_key(&id) {
-                                                            diagnostics.push(Diagnostic {
-                                                                range: ast_range_to_lsp(&val.range),
-                                                                severity: Some(
-                                                                    DiagnosticSeverity::WARNING,
-                                                                ),
-                                                                message: format!(
-                                                                    "Unknown strategic region: {}",
-                                                                    id
-                                                                ),
-                                                                code: Some(NumberOrString::String(
-                                                                    "HOM6002".to_string(),
-                                                                )),
-                                                                source: Some(
-                                                                    "Hearts of Modding".to_string(),
-                                                                ),
-                                                                ..Default::default()
-                                                            });
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                    _ => {}
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
+        // Traverse entries with assignment rules
+        let mut scope_stack = scope::ScopeStack::new(initial_scope);
         for entry in &script.entries {
-            self.check_entry_semantic(
-                entry,
-                diagnostics,
-                loc,
-                st,
-                se,
-                id,
-                sid,
-                tr,
-                sp,
-                ids,
-                provs,
-                mod_maps,
-                &ig_loc,
-                &comments,
-                styling_enabled,
-                &mut scope_stack,
-                s_effects,
-                ct,
-            );
+            self.check_entry_semantic(entry, diagnostics, &ctx, &rules, &mut scope_stack);
         }
 
         // Texture file path validation for .gfx and .gui files
         if uri.ends_with(".gfx") || uri.ends_with(".gui") {
             if let Ok(url) = uri.parse::<Uri>() {
                 if let Some(gfx_path) = url.to_file_path() {
-                    self.validate_gfx_texture_paths(
-                        &script.entries,
-                        diagnostics,
-                        styling_enabled,
-                        &gfx_path,
-                    );
+                    let gfx_rule = rules::gfx_textures::GfxTextureRule::new(&gfx_path);
+                    gfx_rule.validate(&script.entries, &ctx, diagnostics);
                 }
-            }
-        }
-    }
-
-    fn validate_gfx_texture_paths(
-        &self,
-        entries: &[ast::Entry],
-        diagnostics: &mut Vec<Diagnostic>,
-        styling_enabled: bool,
-        gfx_file_path: &std::path::Path,
-    ) {
-        let game_path = self.config.game_path();
-        let gfx_dir = gfx_file_path.parent();
-
-        for entry in entries {
-            match entry {
-                ast::Entry::Assignment(ass) => {
-                    let key_lower = ass.key.to_ascii_lowercase();
-                    if key_lower == "texturefile" {
-                        if let ast::Value::String(val) = &ass.value.value {
-                            let has_double_slash = val.contains("//");
-                            let has_backslash = val.contains('\\');
-
-                            // Styling: non-standard path separators
-                            if styling_enabled && (has_double_slash || has_backslash) {
-                                let suggestion = val.replace("//", "/").replace('\\', "/");
-                                diagnostics.push(Diagnostic {
-                                    range: ast_range_to_lsp(&ass.value.range),
-                                    severity: Some(DiagnosticSeverity::INFORMATION),
-                                    code: Some(NumberOrString::String(
-                                        "styling_path_separator".to_string(),
-                                    )),
-                                    message: format!(
-                                        "Use single forward slashes in texture paths. Suggestion: '{}'.",
-                                        suggestion
-                                    ),
-                                    source: Some("Hearts of Modding".to_string()),
-                                    data: Some(serde_json::to_value(suggestion).unwrap()),
-                                    ..Default::default()
-                                });
-                            }
-
-                            // Existence check: try resolving the texture file
-                            let normalized = val.replace('\\', "/");
-                            let mut found = false;
-
-                            // Try relative to game path
-                            if let Some(ref gp) = game_path {
-                                let full = std::path::Path::new(gp).join(&normalized);
-                                if full.exists() {
-                                    found = true;
-                                }
-                            }
-
-                            // Try relative to .gfx file directory
-                            if !found {
-                                if let Some(dir) = gfx_dir {
-                                    let full = dir.join(&normalized);
-                                    if full.exists() {
-                                        found = true;
-                                    }
-                                }
-                            }
-
-                            if !found {
-                                diagnostics.push(Diagnostic {
-                                    range: ast_range_to_lsp(&ass.value.range),
-                                    severity: Some(DiagnosticSeverity::WARNING),
-                                    message: format!("Texture file not found: '{}'", val),
-                                    source: Some("Hearts of Modding".to_string()),
-                                    ..Default::default()
-                                });
-                            }
-                        }
-                    }
-
-                    // Recurse into blocks
-                    match &ass.value.value {
-                        ast::Value::Block(entries) | ast::Value::TaggedBlock(_, entries, _) => {
-                            self.validate_gfx_texture_paths(
-                                entries,
-                                diagnostics,
-                                styling_enabled,
-                                gfx_file_path,
-                            );
-                        }
-                        _ => {}
-                    }
-                }
-                ast::Entry::Value(val) => match &val.value {
-                    ast::Value::Block(entries) | ast::Value::TaggedBlock(_, entries, _) => {
-                        self.validate_gfx_texture_paths(
-                            entries,
-                            diagnostics,
-                            styling_enabled,
-                            gfx_file_path,
-                        );
-                    }
-                    _ => {}
-                },
-                _ => {}
             }
         }
     }
@@ -1839,22 +1570,9 @@ impl Backend {
         &self,
         entry: &ast::Entry,
         diagnostics: &mut Vec<Diagnostic>,
-        loc: &DashMap<String, loc_parser::LocEntry>,
-        st: &DashMap<String, scripted_scanner::ScriptedEntity>,
-        se: &DashMap<String, scripted_scanner::ScriptedEntity>,
-        id: &DashMap<String, ideology_scanner::Ideology>,
-        sid: &DashMap<String, (String, ast::Range, String)>,
-        tr: &DashMap<String, trait_scanner::Trait>,
-        sp: &DashMap<String, sprite_scanner::Sprite>,
-        ids: &DashMap<String, idea_scanner::Idea>,
-        provs: &DashMap<u32, province_scanner::Province>,
-        mod_maps: &DashMap<String, String>,
-        ig_loc: &[regex::Regex],
-        comments: &[(String, ast::Range)],
-        styling_enabled: bool,
+        ctx: &ValidationContext,
+        rules: &[Box<dyn ValidationRule>],
         scope_stack: &mut scope::ScopeStack,
-        s_effects: &DashMap<String, sound_scanner::SoundEffect>,
-        ct: &DashMap<String, country_scanner::CountryTag>,
     ) {
         match entry {
             ast::Entry::Assignment(ass) => {
@@ -1878,34 +1596,7 @@ impl Backend {
 
                 if s != scope::Scope::Unknown || ass.key.contains(':') || ass.key.contains('.') {
                     match &ass.value.value {
-                        ast::Value::Block(entries) | ast::Value::TaggedBlock(_, entries, _) => {
-                            // Default picture check for ideas: If omitted, defaults to GFX_idea_[idea_name]
-                            if s == scope::Scope::Idea && scope_stack.stack().len() == 3 {
-                                let has_picture = entries.iter().any(|e| {
-                                    if let ast::Entry::Assignment(a) = e {
-                                        a.key.eq_ignore_ascii_case("picture")
-                                    } else {
-                                        false
-                                    }
-                                });
-                                if !has_picture {
-                                    let default_gfx = format!("GFX_idea_{}", ass.key);
-                                    let exists = sp.contains_key(&default_gfx)
-                                        || sp.iter().any(|e| {
-                                            e.key().starts_with(&format!("{}_", default_gfx))
-                                        });
-                                    if !exists {
-                                        diagnostics.push(Diagnostic {
-                                            range: ast_range_to_lsp(&ass.key_range),
-                                            severity: Some(DiagnosticSeverity::WARNING),
-                                            message: format!("Idea '{}' is missing a 'picture' field and the default GFX '{}' was not found.", ass.key, default_gfx),
-                                            source: Some("Hearts of Modding".to_string()),
-                                            ..Default::default()
-                                        });
-                                    }
-                                }
-                            }
-
+                        ast::Value::Block(_entries) | ast::Value::TaggedBlock(_, _entries, _) => {
                             scope_stack.push(s);
                             pushed_scope = true;
                         }
@@ -1913,8 +1604,15 @@ impl Backend {
                     }
                 }
 
+                // Run all assignment-level rules (scope is pushed so rules see it)
+                for rule in rules {
+                    rule.check_assignment(ass, ctx, scope_stack, diagnostics);
+                }
+
+                // ── Styling checks (remain in backend.rs — not rule-extracted) ──
+
                 // Casing checks for keywords
-                if styling_enabled {
+                if ctx.styling_enabled {
                     let mut needs_fix = false;
                     if ass.key_range.end_line == ass.operator_range.start_line
                         && ass.key_range.end_line == ass.value.range.start_line
@@ -1973,9 +1671,6 @@ impl Backend {
                             });
                         }
                         ast::Value::TaggedBlock(tag, _, block_range) => {
-                            // Check if the brace part of the tagged block is on a new line
-                            // Usually TaggedBlock range starts at the tag.
-                            // We check if the block_range starts on a new line compared to where the tag/operator is.
                             if block_range.start_line > ass.operator_range.end_line {
                                 diagnostics.push(Diagnostic {
                                     range: Range {
@@ -1997,7 +1692,6 @@ impl Backend {
                                     ..Default::default()
                                 });
                             } else {
-                                // Same line, check space between tag and brace
                                 let tag_end_col = ass.value.range.start_col + tag.len() as u32;
                                 if block_range.start_col != tag_end_col + 1 {
                                     diagnostics.push(Diagnostic {
@@ -2006,7 +1700,7 @@ impl Backend {
                                             end: Position { line: block_range.start_line, character: block_range.start_col },
                                         },
                                         severity: Some(DiagnosticSeverity::INFORMATION),
-                                        code: Some(NumberOrString::String("styling_brace_newline".to_string())), // Also use this code for easy fix
+                                        code: Some(NumberOrString::String("styling_brace_newline".to_string())),
                                         message: "Exactly one space should separate the tag and the curly brace.".to_string(),
                                         source: Some("Hearts of Modding".to_string()),
                                         ..Default::default()
@@ -2064,353 +1758,15 @@ impl Backend {
                     }
                 }
 
-                // Localization checks
-                if key_lower == "name"
-                    || key_lower == "desc"
-                    || key_lower == "text"
-                    || key_lower == "title"
-                {
-                    if let ast::Value::String(val) = &ass.value.value {
-                        let mut should_flag = true;
-
-                        // 1. Basic heuristics (Space, numbers)
-                        if val.contains(' ')
-                            || val.is_empty()
-                            || val.chars().all(|c| c.is_numeric())
-                        {
-                            should_flag = false;
-                        }
-
-                        // 2. Casing heuristic: If it starts with a capital and isn't all caps, it's likely a literal
-                        if should_flag && val.chars().next().is_some_and(|c| c.is_uppercase()) {
-                            let all_caps = val.chars().all(|c| !c.is_lowercase());
-                            if !all_caps {
-                                should_flag = false;
-                            }
-                        }
-
-                        // 3. Comment suppression (# ignore)
-                        if should_flag {
-                            for (comment_text, range) in comments {
-                                if range.start_line == ass.key_range.start_line {
-                                    if comment_text.to_ascii_lowercase().contains("ignore") {
-                                        should_flag = false;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-
-                        if should_flag {
-                            if !loc.contains_key(val) {
-                                let target = format!("{}:", val);
-                                if !loc.iter().any(|e| e.key().starts_with(&target)) {
-                                    // Final check against regex
-                                    let is_regex_ignored = ig_loc.iter().any(|re| re.is_match(val));
-
-                                    if !is_regex_ignored {
-                                        diagnostics.push(Diagnostic {
-                                            range: ast_range_to_lsp(&ass.value.range),
-                                            severity: Some(DiagnosticSeverity::HINT), // Use HINT for lenient keys
-                                            message: format!(
-                                                "Missing localization key: '{}' (or literal name)",
-                                                val
-                                            ),
-                                            code: Some(NumberOrString::String(
-                                                advanced_validation::MISSING_LOCALIZATION
-                                                    .to_string(),
-                                            )),
-                                            source: Some("Hearts of Modding".to_string()),
-                                            ..Default::default()
-                                        });
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Strict ID checks (Warning level)
-                // Ideology checks
-                if key_lower == "ideology" || key_lower == "has_ideology" {
-                    if let ast::Value::String(val) = &ass.value.value {
-                        // Allow scoped references (ROOT, FROM, PREV, THIS, etc.) which resolve at runtime
-                        let is_scope_ref = matches!(
-                            val.to_uppercase().as_str(),
-                            "ROOT"
-                                | "FROM"
-                                | "PREV"
-                                | "THIS"
-                                | "PREVPREV"
-                                | "PREVPREVPREV"
-                                | "PREVPREVPREVPREV"
-                                | "OWNER"
-                                | "CONTROLLER"
-                                | "CAPITAL"
-                                | "FROM.FROM"
-                                | "FROM.FROM.FROM"
-                        );
-                        // Allow variable references (var:SCOPE@name or var:name) which resolve at runtime
-                        let is_var_ref = val.starts_with("var:");
-                        if !id.contains_key(val)
-                            && !sid.contains_key(val)
-                            && !is_scope_ref
-                            && !is_var_ref
-                        {
-                            diagnostics.push(Diagnostic {
-                                range: ast_range_to_lsp(&ass.value.range),
-                                severity: Some(DiagnosticSeverity::WARNING),
-                                message: format!("Unknown ideology: '{}'", val),
-                                code: Some(NumberOrString::String(
-                                    advanced_validation::UNKNOWN_TRIGGER.to_string(),
-                                )),
-                                source: Some("Hearts of Modding".to_string()),
-                                ..Default::default()
-                            });
-                        }
-                    }
-                }
-
-                // Trait checks
-                if key_lower == "add_trait"
-                    || key_lower == "has_trait"
-                    || key_lower == "remove_trait"
-                {
-                    if let ast::Value::String(val) = &ass.value.value {
-                        if !tr.contains_key(val) {
-                            diagnostics.push(Diagnostic {
-                                range: ast_range_to_lsp(&ass.value.range),
-                                severity: Some(DiagnosticSeverity::WARNING),
-                                message: format!("Unknown trait: '{}'", val),
-                                code: Some(NumberOrString::String(
-                                    advanced_validation::UNKNOWN_TRIGGER.to_string(),
-                                )),
-                                source: Some("Hearts of Modding".to_string()),
-                                ..Default::default()
-                            });
-                        }
-                    }
-                }
-
-                // Ability checks
-                if key_lower == "has_ability"
-                    || key_lower == "add_ability"
-                    || key_lower == "remove_ability"
-                {
-                    if let ast::Value::String(val) = &ass.value.value {
-                        let abilities = &self.scanner_data.abilities;
-                        if !abilities.contains_key(val) {
-                            diagnostics.push(Diagnostic {
-                                range: ast_range_to_lsp(&ass.value.range),
-                                severity: Some(DiagnosticSeverity::WARNING),
-                                message: format!("Unknown ability: '{}'", val),
-                                code: Some(NumberOrString::String(
-                                    advanced_validation::UNKNOWN_TRIGGER.to_string(),
-                                )),
-                                source: Some("Hearts of Modding".to_string()),
-                                ..Default::default()
-                            });
-                        }
-                    }
-                }
-
-                // Sprite/Gfx checks
-                if key_lower == "sprite"
-                    || key_lower == "icon"
-                    || key_lower == "sprite_name"
-                    || key_lower == "picture"
-                {
-                    if let ast::Value::String(val) = &ass.value.value {
-                        let mut lookup_key = val.clone();
-                        // Country idea "picture" field resolution: picture = [name] resolves to GFX_idea_[name]
-                        // Only prepend if the value doesn't already carry the GFX_idea_ namespace;
-                        // the engine checks for the full prefix, not just GFX_ — so GFX_skulk_economy
-                        // would still get prepended to GFX_idea_GFX_skulk_economy and fail.
-                        if key_lower == "picture"
-                            && scope_stack.current() == scope::Scope::Idea
-                            && !val.starts_with("GFX_idea_")
-                        {
-                            lookup_key = format!("GFX_idea_{}", val);
-                        }
-
-                        let exists = sp.contains_key(&lookup_key)
-                            || (key_lower == "picture"
-                                && scope_stack.current() == scope::Scope::Idea
-                                && sp
-                                    .iter()
-                                    .any(|e| e.key().starts_with(&format!("{}_", lookup_key))));
-
-                        if !exists
-                            && (lookup_key.starts_with("GFX_")
-                                || (key_lower == "picture"
-                                    && scope_stack.current() == scope::Scope::Idea))
-                        {
-                            diagnostics.push(Diagnostic {
-                                range: ast_range_to_lsp(&ass.value.range),
-                                severity: Some(DiagnosticSeverity::WARNING),
-                                message: format!(
-                                    "Unknown sprite/GFX: '{}' (resolved from '{}')",
-                                    lookup_key, val
-                                ),
-                                code: Some(NumberOrString::String(
-                                    advanced_validation::UNKNOWN_TRIGGER.to_string(),
-                                )),
-                                source: Some("Hearts of Modding".to_string()),
-                                ..Default::default()
-                            });
-                        }
-                    }
-                }
-
-                // Sound effect checks
-                if key_lower == "sound_effect" {
-                    if let ast::Value::String(val) = &ass.value.value {
-                        if !s_effects.contains_key(val) {
-                            diagnostics.push(Diagnostic {
-                                range: ast_range_to_lsp(&ass.value.range),
-                                severity: Some(DiagnosticSeverity::WARNING),
-                                message: format!("Unknown sound effect: '{}'", val),
-                                code: Some(NumberOrString::String(
-                                    advanced_validation::UNKNOWN_TRIGGER.to_string(),
-                                )),
-                                source: Some("Hearts of Modding".to_string()),
-                                ..Default::default()
-                            });
-                        }
-                    }
-                }
-
-                // Idea checks
-                if key_lower == "add_ideas"
-                    || key_lower == "has_idea"
-                    || key_lower == "remove_ideas"
-                {
-                    if let ast::Value::String(val) = &ass.value.value {
-                        if val != "all" && !ids.contains_key(val) {
-                            diagnostics.push(Diagnostic {
-                                range: ast_range_to_lsp(&ass.value.range),
-                                severity: Some(DiagnosticSeverity::WARNING),
-                                message: format!("Unknown idea: '{}'", val),
-                                ..Default::default()
-                            });
-                        }
-                    }
-                }
-
-                // Province checks
-                if key_lower == "province"
-                    || key_lower == "on_province"
-                    || key_lower == "is_province_id"
-                {
-                    self.check_is_province(&ass.value, diagnostics, provs);
-                }
-
-                if key_lower == "victory_points" {
-                    if let ast::Value::Block(entries) = &ass.value.value {
-                        // Find the first value entry
-                        for entry in entries {
-                            if let ast::Entry::Value(val) = entry {
-                                self.check_is_province(val, diagnostics, provs);
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                // Country tag checks
-                if (key_lower == "tag" && scope_stack.current() != scope::Scope::Idea)
-                    || key_lower == "original_tag"
-                    || key_lower == "original_tag_to_check"
-                {
-                    if let ast::Value::String(val) = &ass.value.value {
-                        // Allow scope references (ROOT, FROM, PREV, etc.)
-                        let is_scope_ref = matches!(
-                            val.to_uppercase().as_str(),
-                            "ROOT"
-                                | "FROM"
-                                | "PREV"
-                                | "THIS"
-                                | "PREVPREV"
-                                | "PREVPREVPREV"
-                                | "PREVPREVPREVPREV"
-                                | "OWNER"
-                                | "CONTROLLER"
-                                | "CAPITAL"
-                        );
-                        let is_var_ref = val.starts_with("var:");
-                        let b = val.as_bytes();
-                        let looks_like_tag = val.len() == 3
-                            && b[0].is_ascii_alphabetic()
-                            && b[0].is_ascii_uppercase()
-                            && b[1].is_ascii_alphanumeric()
-                            && b[2].is_ascii_alphanumeric()
-                            && !matches!(
-                                val.as_str(),
-                                "NOT" | "AND" | "TAG" | "OOB" | "LOG" | "NUM" | "RED"
-                            );
-
-                        if !is_scope_ref && !is_var_ref && looks_like_tag && !ct.contains_key(val) {
-                            diagnostics.push(Diagnostic {
-                                range: ast_range_to_lsp(&ass.value.range),
-                                severity: Some(DiagnosticSeverity::WARNING),
-                                message: format!("Unknown country tag: '{}'", val),
-                                code: Some(NumberOrString::String(
-                                    advanced_validation::UNKNOWN_TRIGGER.to_string(),
-                                )),
-                                source: Some("Hearts of Modding".to_string()),
-                                ..Default::default()
-                            });
-                        }
-                    }
-                }
-
                 // Check value recursively
-                self.check_value_semantic(
-                    &ass.value,
-                    diagnostics,
-                    loc,
-                    st,
-                    se,
-                    id,
-                    sid,
-                    tr,
-                    sp,
-                    ids,
-                    provs,
-                    mod_maps,
-                    ig_loc,
-                    comments,
-                    styling_enabled,
-                    scope_stack,
-                    s_effects,
-                    ct,
-                );
+                self.check_value_semantic(&ass.value, diagnostics, ctx, rules, scope_stack);
 
                 if pushed_scope {
                     scope_stack.pop();
                 }
             }
             ast::Entry::Value(val) => {
-                self.check_value_semantic(
-                    val,
-                    diagnostics,
-                    loc,
-                    st,
-                    se,
-                    id,
-                    sid,
-                    tr,
-                    sp,
-                    ids,
-                    provs,
-                    mod_maps,
-                    ig_loc,
-                    comments,
-                    styling_enabled,
-                    scope_stack,
-                    s_effects,
-                    ct,
-                );
+                self.check_value_semantic(val, diagnostics, ctx, rules, scope_stack);
             }
             _ => {}
         }
@@ -2420,51 +1776,19 @@ impl Backend {
         &self,
         val: &ast::NodeedValue,
         diagnostics: &mut Vec<Diagnostic>,
-        loc: &DashMap<String, loc_parser::LocEntry>,
-        st: &DashMap<String, scripted_scanner::ScriptedEntity>,
-        se: &DashMap<String, scripted_scanner::ScriptedEntity>,
-        id: &DashMap<String, ideology_scanner::Ideology>,
-        sid: &DashMap<String, (String, ast::Range, String)>,
-        tr: &DashMap<String, trait_scanner::Trait>,
-        sp: &DashMap<String, sprite_scanner::Sprite>,
-        ids: &DashMap<String, idea_scanner::Idea>,
-        provs: &DashMap<u32, province_scanner::Province>,
-        mod_maps: &DashMap<String, String>,
-        ig_loc: &[regex::Regex],
-        comments: &[(String, ast::Range)],
-        styling_enabled: bool,
+        ctx: &ValidationContext,
+        rules: &[Box<dyn ValidationRule>],
         scope_stack: &mut scope::ScopeStack,
-        s_effects: &DashMap<String, sound_scanner::SoundEffect>,
-        ct: &DashMap<String, country_scanner::CountryTag>,
     ) {
         match &val.value {
             ast::Value::Block(entries) => {
-                self.check_duplicate_keys(entries, diagnostics, mod_maps);
+                self.check_duplicate_keys(entries, diagnostics, ctx.modifier_mappings);
                 for entry in entries {
-                    self.check_entry_semantic(
-                        entry,
-                        diagnostics,
-                        loc,
-                        st,
-                        se,
-                        id,
-                        sid,
-                        tr,
-                        sp,
-                        ids,
-                        provs,
-                        mod_maps,
-                        ig_loc,
-                        comments,
-                        styling_enabled,
-                        scope_stack,
-                        s_effects,
-                        ct,
-                    );
+                    self.check_entry_semantic(entry, diagnostics, ctx, rules, scope_stack);
                 }
             }
             ast::Value::TaggedBlock(tag, entries, block_range) => {
-                if styling_enabled {
+                if ctx.styling_enabled {
                     if block_range.start_line > val.range.start_line {
                         diagnostics.push(Diagnostic {
                             range: Range {
@@ -2510,28 +1834,9 @@ impl Backend {
                         }
                     }
                 }
-                self.check_duplicate_keys(entries, diagnostics, mod_maps);
+                self.check_duplicate_keys(entries, diagnostics, ctx.modifier_mappings);
                 for entry in entries {
-                    self.check_entry_semantic(
-                        entry,
-                        diagnostics,
-                        loc,
-                        st,
-                        se,
-                        id,
-                        sid,
-                        tr,
-                        sp,
-                        ids,
-                        provs,
-                        mod_maps,
-                        ig_loc,
-                        comments,
-                        styling_enabled,
-                        scope_stack,
-                        s_effects,
-                        ct,
-                    );
+                    self.check_entry_semantic(entry, diagnostics, ctx, rules, scope_stack);
                 }
             }
             _ => {}
