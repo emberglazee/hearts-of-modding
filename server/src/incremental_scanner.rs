@@ -180,6 +180,11 @@ fn classify_file(path: &str) -> Vec<FileCategory> {
             cats.push(FileCategory::StrategicRegions);
         }
 
+        // Music song/txt files
+        if lower.contains("/music/") || lower.contains("\\music\\") {
+            cats.push(FileCategory::MusicAssets);
+        }
+
         cats.push(FileCategory::Variables);
     }
 

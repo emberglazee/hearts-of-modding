@@ -56,7 +56,7 @@ Client helpers in `package.json`: `npm run cargo:test`, `cargo:check`, `cargo:fm
 
 ## Extension
 
-- **Activation:** Opening `.txt` files in `common/events/map/history/script/`, `descriptor.mod`, `.gui`, `.gfx`, `.asset` (lang `hoi4`); `.yml` in `localisation/` (lang `hoi4-localisation`); or workspace contains `descriptor.mod`.
+- **Activation:** Opening `.txt` files in `common/events/map/history/script/music/`, `descriptor.mod`, `.gui`, `.gfx`, `.asset` (lang `hoi4`); `.yml` in `localisation/` (lang `hoi4-localisation`); or workspace contains `descriptor.mod`.
 - **Key settings:** `hoi4.gamePath` (required for VFS), `hoi4.validator.workspaceScan.enabled` (off by default), `hoi4.styling.enabled`, `hoi4.validator.ignoreFiles`, `hoi4.validator.ignoreLocalization`.
 
 ## Architecture Decisions (unstable — may need reconsideration)

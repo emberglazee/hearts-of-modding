@@ -111,6 +111,7 @@
                 ],
                 "filenamePatterns": [
                     "**/common/**/*.txt",
+                    "**/music/**/*.txt",
                     "**/events/**/*.txt",
                     "**/map/**/*.txt",
                     "**/map/**/*.map",

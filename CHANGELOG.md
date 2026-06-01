@@ -2,6 +2,12 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
+## [v0.13.0] - 2026-06-01
+
+### Added
+
+- **Proper semantic token highlighting for music definitions**.
+
 ## [v0.12.1] - 2026-06-01
 
 ### Changed

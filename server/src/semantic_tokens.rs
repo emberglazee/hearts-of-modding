@@ -32,6 +32,9 @@ pub fn get_semantic_tokens(
     scripted_effects: &HashSet<String>,
     country_tags: &HashSet<String>,
     color_codes: &HashSet<String>,
+    music_assets: &HashSet<String>,
+    music_stations: &HashSet<String>,
+    songs: &HashSet<String>,
 ) -> SemanticTokensResult {
     let mut tokens = Vec::new();
     for entry in &script.entries {
@@ -50,6 +53,9 @@ pub fn get_semantic_tokens(
             scripted_effects,
             country_tags,
             color_codes,
+            music_assets,
+            music_stations,
+            songs,
             None,
         );
     }
@@ -108,6 +114,9 @@ fn push_entry_tokens(
     scripted_effects: &HashSet<String>,
     country_tags: &HashSet<String>,
     color_codes: &HashSet<String>,
+    music_assets: &HashSet<String>,
+    music_stations: &HashSet<String>,
+    songs: &HashSet<String>,
     parent_key: Option<&str>,
 ) {
     match entry {
@@ -120,6 +129,9 @@ fn push_entry_tokens(
             let is_character = character_names.contains(&ass.key);
             let is_achievement = achievement_names.contains(&ass.key);
             let is_color_code = color_codes.contains(&ass.key);
+            let is_music_asset = music_assets.contains(&ass.key);
+            let is_music_station = music_stations.contains(&ass.key);
+            let is_song = songs.contains(&ass.key);
 
             if is_keyword {
                 tokens.push(RawToken {
@@ -135,6 +147,9 @@ fn push_entry_tokens(
                 || is_character
                 || is_achievement
                 || is_color_code
+                || is_music_asset
+                || is_music_station
+                || is_song
                 || country_tags.contains(&ass.key)
                 || scripted_triggers.contains(&ass.key)
                 || scripted_effects.contains(&ass.key)
@@ -168,6 +183,9 @@ fn push_entry_tokens(
                 scripted_effects,
                 country_tags,
                 color_codes,
+                music_assets,
+                music_stations,
+                songs,
                 Some(&ass.key),
             );
         }
@@ -187,6 +205,9 @@ fn push_entry_tokens(
                 scripted_effects,
                 country_tags,
                 color_codes,
+                music_assets,
+                music_stations,
+                songs,
                 parent_key,
             );
         }
@@ -216,6 +237,9 @@ fn push_value_tokens(
     scripted_effects: &HashSet<String>,
     country_tags: &HashSet<String>,
     color_codes: &HashSet<String>,
+    music_assets: &HashSet<String>,
+    music_stations: &HashSet<String>,
+    songs: &HashSet<String>,
     parent_key: Option<&str>,
 ) {
     match &val.value {
@@ -230,18 +254,21 @@ fn push_value_tokens(
                     length: val.range.end_col - val.range.start_col,
                     token_type: TokenType::Keyword as u32,
                 });
-            } else if !is_localization_value
-                && (abilities.contains(s)
-                    || strategy_plans.contains(s)
-                    || ai_areas.contains(s)
-                    || portrait_names.contains(s)
-                    || character_names.contains(s)
-                    || ideology_types.contains(s)
-                    || achievement_names.contains(s)
-                    || color_codes.contains(s)
-                    || country_tags.contains(s)
-                    || scripted_triggers.contains(s)
-                    || scripted_effects.contains(s))
+            } else if music_assets.contains(s)
+                || music_stations.contains(s)
+                || songs.contains(s)
+                || (!is_localization_value
+                    && (abilities.contains(s)
+                        || strategy_plans.contains(s)
+                        || ai_areas.contains(s)
+                        || portrait_names.contains(s)
+                        || character_names.contains(s)
+                        || ideology_types.contains(s)
+                        || achievement_names.contains(s)
+                        || color_codes.contains(s)
+                        || country_tags.contains(s)
+                        || scripted_triggers.contains(s)
+                        || scripted_effects.contains(s)))
             {
                 tokens.push(RawToken {
                     line: val.range.start_line,
@@ -291,6 +318,9 @@ fn push_value_tokens(
                     scripted_effects,
                     country_tags,
                     color_codes,
+                    music_assets,
+                    music_stations,
+                    songs,
                     parent_key,
                 );
             }
@@ -318,6 +348,9 @@ fn push_value_tokens(
                     scripted_effects,
                     country_tags,
                     color_codes,
+                    music_assets,
+                    music_stations,
+                    songs,
                     parent_key,
                 );
             }

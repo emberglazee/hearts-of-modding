@@ -420,6 +420,18 @@ impl LanguageServer for Backend {
                 keywords.insert("continents".to_string());
                 keywords.insert("strategic_regions".to_string());
 
+                // Music keywords
+                keywords.insert("music".to_string());
+                keywords.insert("music_station".to_string());
+                keywords.insert("song".to_string());
+                keywords.insert("chance".to_string());
+                keywords.insert("base".to_string());
+                keywords.insert("factor".to_string());
+                keywords.insert("add".to_string());
+                keywords.insert("modifier".to_string());
+                keywords.insert("volume".to_string());
+                keywords.insert("file".to_string());
+
                 let lookup = entity_lookup::EntityLookup::new(&self.scanner_data);
                 let all_names = lookup.entity_names();
 
@@ -434,6 +446,9 @@ impl LanguageServer for Backend {
                 let mut scripted_effect_names = HashSet::new();
                 let mut country_tag_names = HashSet::new();
                 let mut color_code_names = HashSet::new();
+                let mut music_asset_names = HashSet::new();
+                let mut music_station_names = HashSet::new();
+                let mut song_names = HashSet::new();
 
                 for (name, kind) in all_names {
                     match kind {
@@ -470,6 +485,15 @@ impl LanguageServer for Backend {
                         entity_lookup::EntityKind::ColorCode => {
                             color_code_names.insert(name);
                         }
+                        entity_lookup::EntityKind::MusicAsset => {
+                            music_asset_names.insert(name);
+                        }
+                        entity_lookup::EntityKind::MusicStation => {
+                            music_station_names.insert(name);
+                        }
+                        entity_lookup::EntityKind::Song => {
+                            song_names.insert(name);
+                        }
                         _ => {}
                     }
                 }
@@ -488,6 +512,9 @@ impl LanguageServer for Backend {
                     &scripted_effect_names,
                     &country_tag_names,
                     &color_code_names,
+                    &music_asset_names,
+                    &music_station_names,
+                    &song_names,
                 )))
             }
             _ => Ok(None),
