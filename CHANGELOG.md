@@ -10,6 +10,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### Changed
 
+- **Bumped up the minimal VSCode version requirement to v1.82.0.**
+
 - **More internal refactors in the LSP.**
 
 ## [v0.13.0] - 2026-06-01
