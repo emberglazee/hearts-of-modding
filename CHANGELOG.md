@@ -2,6 +2,12 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
+## [v0.12.1] - 2026-06-01
+
+### Changed
+
+- **Move trigger, effect, and modifier definitions to a static JSON file** rather than a hardcoded Rust file.
+
 ## [v0.12.0] - 2026-06-01
 
 ### Changed
