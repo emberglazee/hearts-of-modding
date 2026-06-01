@@ -1,6 +1,6 @@
-use serde::{Deserialize, Serialize};
-use dashmap::DashMap;
 use crate::achievement_scanner::Achievement;
+use dashmap::DashMap;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Scope {
@@ -128,10 +128,7 @@ impl Scope {
 /// Resolve a key to its semantic scope, with achievement/ribbon overrides.
 /// Use this instead of `Scope::from_str` directly when achievements data is available.
 /// This ensures the achievement-override logic lives in one place.
-pub fn resolve_key_scope(
-    key: &str,
-    achievements: &DashMap<String, Achievement>,
-) -> Scope {
+pub fn resolve_key_scope(key: &str, achievements: &DashMap<String, Achievement>) -> Scope {
     if let Some(achievement) = achievements.get(key) {
         if achievement.is_ribbon {
             Scope::Ribbon

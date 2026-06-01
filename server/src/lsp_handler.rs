@@ -1,9 +1,9 @@
 use std::collections::HashSet;
 use std::sync::Arc;
 
+use tower_lsp_server::LanguageServer;
 use tower_lsp_server::jsonrpc::Result;
 use tower_lsp_server::ls_types::*;
-use tower_lsp_server::LanguageServer;
 
 use crate::backend::Backend;
 use crate::call_hierarchy;
@@ -12,8 +12,8 @@ use crate::csv_parser;
 use crate::document_symbols;
 use crate::enhanced_color;
 use crate::entity_lookup;
-use crate::loc_preview::find_identifier_in_loc;
 use crate::loc_parser;
+use crate::loc_preview::find_identifier_in_loc;
 use crate::lsp_convert::ast_range_to_lsp_location;
 use crate::parser;
 use crate::rename;

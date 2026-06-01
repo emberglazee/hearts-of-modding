@@ -148,7 +148,8 @@ fn push_entry_tokens(
 
             // Inside ideas = { ... } or idea_categories = { ... }, non-keyword
             // assignment keys are idea/category definition names.
-            let is_idea_category = parent_key.is_some_and(|p| p == "ideas" || p == "idea_categories");
+            let is_idea_category =
+                parent_key.is_some_and(|p| p == "ideas" || p == "idea_categories");
 
             if is_keyword {
                 tokens.push(RawToken {

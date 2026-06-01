@@ -2,8 +2,8 @@ use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
 use dashmap::DashMap;
-use tower_lsp_server::ls_types::*;
 use tower_lsp_server::Client;
+use tower_lsp_server::ls_types::*;
 
 use crate::advanced_validation;
 use crate::ast;
@@ -47,7 +47,11 @@ impl Backend {
     }
 
     /// Parse and cache the AST for a URI. Returns (Arc<Script>, parse_errors).
-    pub(crate) fn cache_ast(&self, uri: &str, content: &str) -> (Arc<ast::Script>, Vec<(String, ast::Range)>) {
+    pub(crate) fn cache_ast(
+        &self,
+        uri: &str,
+        content: &str,
+    ) -> (Arc<ast::Script>, Vec<(String, ast::Range)>) {
         let (script, errors) = parser::parse_script(content);
         let script = Arc::new(script);
         self.document_asts
