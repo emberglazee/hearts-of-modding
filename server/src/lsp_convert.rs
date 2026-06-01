@@ -51,3 +51,17 @@ pub fn ast_range_to_lsp_location(range: &ast::Range, path: &str) -> Location {
         range: ast_range_to_lsp(range),
     }
 }
+
+/// Check if an LSP Position falls within an AST Range (inclusive).
+pub(crate) fn is_pos_in_range(pos: Position, range: &ast::Range) -> bool {
+    if pos.line < range.start_line || pos.line > range.end_line {
+        return false;
+    }
+    if pos.line == range.start_line && pos.character < range.start_col {
+        return false;
+    }
+    if pos.line == range.end_line && pos.character > range.end_col {
+        return false;
+    }
+    true
+}

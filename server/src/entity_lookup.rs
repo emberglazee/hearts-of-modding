@@ -2,6 +2,7 @@
 
 use crate::ScannerData;
 use crate::ast;
+use crate::lsp_convert::is_pos_in_range;
 use std::collections::HashMap;
 use tower_lsp_server::ls_types::Position;
 
@@ -700,13 +701,4 @@ impl<'a> EntityLookup<'a> {
 
         results
     }
-}
-
-fn is_pos_in_range(pos: Position, range: &ast::Range) -> bool {
-    let line = pos.line;
-    let character = pos.character;
-    line >= range.start_line
-        && line <= range.end_line
-        && (line != range.start_line || character >= range.start_col)
-        && (line != range.end_line || character <= range.end_col)
 }

@@ -1,5 +1,6 @@
 use crate::achievement_scanner;
 use crate::ast;
+use crate::lsp_convert::is_pos_in_range;
 use crate::scope;
 use dashmap::DashMap;
 use tower_lsp_server::ls_types::Position;
@@ -48,15 +49,7 @@ pub fn find_in_entry(
 
             let mut pushed_scope = None;
             if let ast::Value::Block(_) | ast::Value::TaggedBlock(_, _, _) = &ass.value.value {
-                let s = if let Some(achievement) = achievements.get(&ass.key) {
-                    if achievement.is_ribbon {
-                        scope::Scope::Ribbon
-                    } else {
-                        scope::Scope::Achievement
-                    }
-                } else {
-                    scope::Scope::from_str(&ass.key)
-                };
+                let s = scope::resolve_key_scope(&ass.key, achievements);
 
                 if s != scope::Scope::Unknown || ass.key.contains(':') || ass.key.contains('.') {
                     scope_stack.push(s);
@@ -199,17 +192,4 @@ pub fn find_in_value(
             None
         }
     }
-}
-
-pub fn is_pos_in_range(pos: Position, range: &ast::Range) -> bool {
-    if pos.line < range.start_line || pos.line > range.end_line {
-        return false;
-    }
-    if pos.line == range.start_line && pos.character < range.start_col {
-        return false;
-    }
-    if pos.line == range.end_line && pos.character > range.end_col {
-        return false;
-    }
-    true
 }

@@ -1,7 +1,7 @@
 use crate::achievement_scanner;
 use crate::ast;
+use crate::lsp_convert::is_pos_in_range;
 use crate::scope;
-use crate::symbol_search::is_pos_in_range;
 use dashmap::DashMap;
 use tower_lsp_server::ls_types::Position;
 
@@ -31,15 +31,7 @@ fn find_scope_context_in_entry(
         ast::Entry::Assignment(ass) => {
             if is_pos_in_range(pos, &ass.value.range) {
                 if let ast::Value::Block(_) | ast::Value::TaggedBlock(_, _, _) = &ass.value.value {
-                    let s = if let Some(achievement) = achievements.get(&ass.key) {
-                        if achievement.is_ribbon {
-                            scope::Scope::Ribbon
-                        } else {
-                            scope::Scope::Achievement
-                        }
-                    } else {
-                        scope::Scope::from_str(&ass.key)
-                    };
+                    let s = scope::resolve_key_scope(&ass.key, achievements);
                     scope_stack.push(s);
                 }
 
