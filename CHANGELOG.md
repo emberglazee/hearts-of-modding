@@ -4,6 +4,10 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ## [v0.14.0] - 2026-06-01
 
+### Added
+
+- **Added `set_temp_variable` to the list of keywords.**
+
 ### Changed
 
 - **More internal refactors in the LSP.**

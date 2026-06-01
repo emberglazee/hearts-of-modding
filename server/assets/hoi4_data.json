@@ -52,7 +52,7 @@
     },
     "all_country_with_original_tag": {
       "name": "all_country_with_original_tag",
-      "description": "Checks if all countries originating from the specified country, including the dynamic countries created for civil wars and other purposes, meet the triggers. `original_tag_to_check = TAG` is used to specify the original tag.\n\n**Example:**\n```paradox\nall_country_with_original_tag = {\n    original_tag_to_check = TAG  #required\n    …                  #triggers to check\n}\n```",
+      "description": "Checks if all countries originating from the specified country, including the dynamic countries created for civil wars and other purposes, meet the triggers. `original_tag_to_check = TAG` is used to specify the original tag.\n\n**Example:**\n```paradox\nall_country_with_original_tag = {\n\toriginal_tag_to_check = TAG  #required\n\t… # triggers to check\n}\n```",
       "scopes": [
         "Global",
         "Country",
@@ -84,7 +84,7 @@
     },
     "career_profile_check_playthrough_ratio": {
       "name": "career_profile_check_playthrough_ratio",
-      "description": "Compares the ratio (first/second) of two playthrough values to a number.\n\n**Example:**\n```paradox\ncareer_profile_check_playthrough_ratio = {\n  first = enemy_casualties\n  second = total_own_casualties\n  ratio = 4\n  compare = greater_than_or_equals\n}\n```",
+      "description": "Compares the ratio (first/second) of two playthrough values to a number.\n\n**Example:**\n```paradox\ncareer_profile_check_playthrough_ratio = {\n\tfirst = enemy_casualties\n\tsecond = total_own_casualties\n\tratio = 4\n\tcompare = greater_than_or_equals\n}\n```",
       "scopes": [
         "Global",
         "Country",
@@ -6842,6 +6842,17 @@
         "Unit"
       ]
     },
+    "set_temp_variable": {
+      "name": "set_temp_variable",
+      "description": "Sets a temporary variable's value to the specified amount, creating it if not defined. Temporary variables exist only for the duration of the current effect/trigger block and are not persisted. They are unscoped (the same everywhere) and can be modified in triggers.\n\n**Example:**\n```paradox\nset_temp_variable = {\n    temp_var = ROOT.overlord\n}\n```\n\n```paradox\nset_temp_variable = { my_temp_var = 1 }\n```",
+      "scopes": [
+        "Global",
+        "Country",
+        "State",
+        "Character",
+        "Unit"
+      ]
+    },
     "remove_unit_leader": {
       "name": "remove_unit_leader",
       "description": "Removes the specified unit leader by their legacy ID.\n\n**Example:**\n```paradox\nremove_unit_leader = 70\n```",
@@ -7338,7 +7349,7 @@
     },
     "set_politics": {
       "name": "set_politics",
-      "description": "Sets the political status of the country, including the ruling party and elections.\n\n**Example:**\n```paradox\nset_politics = {\n    ruling_party = democratic\n    elections_allowed = no\n    last_election = \"1935.12.17\"\n    election_frequency = 48\n    long_name = TAG_party_long\n    name = TAG_party\n}\n```",
+      "description": "Sets the political status of the country, including the ruling party and elections.\n\n**Example:**\n```paradox\nset_politics = {\n\truling_party = democratic\n\telections_allowed = no\n\tlast_election = \"1935.12.17\"\n\telection_frequency = 48\n\tlong_name = TAG_party_long\n\tname = TAG_party\n}\n```",
       "scopes": [
         "Country"
       ]
@@ -7359,7 +7370,7 @@
     },
     "add_relation_rule_override": {
       "name": "add_relation_rule_override",
-      "description": "Toggles the special game rules for the current scope in diplomacy towards the specified country only, if the trigger is met.\n\n**Example:**\n```paradox\nadd_relation_rule_override = {\n    target = SOV\n    usage_desc = TAG_my_rule_description\n    trigger = my_scripted_trigger\n    can_access_market = yes\n}\n```",
+      "description": "Toggles the special game rules for the current scope in diplomacy towards the specified country only, if the trigger is met.\n\n**Example:**\n```paradox\nadd_relation_rule_override = {\n\ttarget = SOV\n\tusage_desc = TAG_my_rule_description\n\ttrigger = my_scripted_trigger\n\tcan_access_market = yes\n}\n```",
       "scopes": [
         "Country"
       ]
