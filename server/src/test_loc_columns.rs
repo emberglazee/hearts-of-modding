@@ -1,15 +1,16 @@
 #[cfg(test)]
 mod tests {
     use crate::ast::Range;
+    use crate::interner::InternedStr;
     use crate::loc_parser::{self, LocEntry};
     use dashmap::DashMap;
     use std::collections::HashSet;
 
     /// Empty containers for validate_loc_string parameters
-    fn empty_targets() -> DashMap<String, Vec<crate::variable_scanner::EventTarget>> {
+    fn empty_targets() -> DashMap<InternedStr, Vec<crate::variable_scanner::EventTarget>> {
         DashMap::new()
     }
-    fn empty_scripted_locs() -> DashMap<String, crate::scripted_loc_scanner::ScriptedLoc> {
+    fn empty_scripted_locs() -> DashMap<InternedStr, crate::scripted_loc_scanner::ScriptedLoc> {
         DashMap::new()
     }
     fn empty_color_codes() -> HashSet<String> {
@@ -19,7 +20,7 @@ mod tests {
     /// Helper: build a minimal LocEntry with a given value and value_start_col
     fn entry(value: &str, value_start_col: u32, start_line: u32) -> LocEntry {
         LocEntry {
-            key: "test".to_string(),
+            key: InternedStr::from("test"),
             value: value.to_string(),
             range: Range {
                 start_line,
@@ -27,7 +28,7 @@ mod tests {
                 end_line: start_line,
                 end_col: value_start_col + value.len() as u32,
             },
-            path: "test.yml".to_string(),
+            path: InternedStr::from("test.yml"),
             value_start_col,
             version: None,
             version_range: None,

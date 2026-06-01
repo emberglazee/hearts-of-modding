@@ -1,3 +1,4 @@
+use crate::interner::InternedStr;
 use crate::loc_parser;
 use base64::{Engine as _, engine::general_purpose};
 use dashmap::DashMap;
@@ -40,7 +41,7 @@ static RE_COLOR: Lazy<regex::Regex> = Lazy::new(|| regex::Regex::new(r"§([a-zA-
 
 pub fn resolve_loc(
     input: &str,
-    localization: &DashMap<String, loc_parser::LocEntry>,
+    localization: &DashMap<InternedStr, loc_parser::LocEntry>,
     depth: u32,
 ) -> String {
     if depth > 10 {
@@ -65,8 +66,8 @@ pub fn resolve_loc(
     result
 }
 
-/// Build a hex color map: symbol "Y" → "#FFBD00" from ColorCode data
-pub fn build_color_map(data: &crate::ScannerData) -> DashMap<String, String> {
+/// Build a hex color map: symbol "Y" -> "#FFBD00" from ColorCode data
+pub fn build_color_map(data: &crate::ScannerData) -> DashMap<InternedStr, String> {
     let codes = &data.color_codes;
     let map = DashMap::new();
     for entry in codes.iter() {
@@ -82,8 +83,8 @@ pub fn build_color_map(data: &crate::ScannerData) -> DashMap<String, String> {
 
 pub fn paradox_to_markdown(
     input: &str,
-    localization: Option<&DashMap<String, loc_parser::LocEntry>>,
-    color_map: Option<&DashMap<String, String>>,
+    localization: Option<&DashMap<InternedStr, loc_parser::LocEntry>>,
+    color_map: Option<&DashMap<InternedStr, String>>,
 ) -> String {
     fn split_leading_punctuation(s: &str) -> (&str, &str) {
         let punct_end = s
@@ -317,15 +318,17 @@ pub fn find_identifier_in_loc(content: &str, pos: Position) -> Option<String> {
 mod tests {
     use super::*;
     use crate::ast::Range;
+    use crate::interner::InternedStr;
     use crate::loc_parser::LocEntry;
+    use std::sync::Arc;
 
     #[test]
     fn test_resolve_loc() {
-        let loc = DashMap::new();
+        let loc: DashMap<InternedStr, LocEntry> = DashMap::new();
         loc.insert(
-            "KEY1".to_string(),
+            Arc::from("KEY1"),
             LocEntry {
-                key: "KEY1".to_string(),
+                key: Arc::from("KEY1"),
                 value: "Value 1".to_string(),
                 range: Range {
                     start_line: 0,
@@ -333,16 +336,16 @@ mod tests {
                     end_line: 0,
                     end_col: 0,
                 },
-                path: "".to_string(),
+                path: Arc::from(""),
                 value_start_col: 0,
                 version: None,
                 version_range: None,
             },
         );
         loc.insert(
-            "KEY2".to_string(),
+            Arc::from("KEY2"),
             LocEntry {
-                key: "KEY2".to_string(),
+                key: Arc::from("KEY2"),
                 value: "Contains $KEY1$".to_string(),
                 range: Range {
                     start_line: 0,
@@ -350,7 +353,7 @@ mod tests {
                     end_line: 0,
                     end_col: 0,
                 },
-                path: "".to_string(),
+                path: Arc::from(""),
                 value_start_col: 0,
                 version: None,
                 version_range: None,
@@ -368,7 +371,7 @@ mod tests {
     #[test]
     fn test_paradox_to_markdown_newlines() {
         use base64::Engine as _;
-        let loc = DashMap::new();
+        let loc: DashMap<InternedStr, LocEntry> = DashMap::new();
         let input = "Line 1\\nLine 2";
         let output = paradox_to_markdown(input, Some(&loc), None);
         let decoded = String::from_utf8(

@@ -1,3 +1,4 @@
+use crate::interner::InternedStr;
 use crate::ast;
 use crate::parser;
 use std::collections::HashMap;
@@ -12,7 +13,7 @@ pub struct Adjacency {
     pub adj_type: String,
     pub through_prov: i32,
     pub rule_name: String,
-    pub path: String,
+    pub path: InternedStr,
     pub start_line: u32,
 }
 
@@ -22,7 +23,7 @@ pub struct AdjacencyRule {
     pub name: String,
     pub required_provinces: Vec<u32>,
     pub icon: Option<u32>,
-    pub path: String,
+    pub path: InternedStr,
     pub range: ast::Range,
 }
 
@@ -66,7 +67,7 @@ where
                         adj_type,
                         through_prov,
                         rule_name,
-                        path: adj_csv_path.to_string_lossy().to_string(),
+                        path: std::sync::Arc::from(adj_csv_path.to_string_lossy().as_ref()),
                         start_line: line_idx as u32,
                     });
                 }
@@ -119,7 +120,7 @@ where
                                 name: n,
                                 required_provinces,
                                 icon,
-                                path: rules_path.to_string_lossy().to_string(),
+                                path: std::sync::Arc::from(rules_path.to_string_lossy().as_ref()),
                                 range: ass.key_range.clone(),
                             },
                         );

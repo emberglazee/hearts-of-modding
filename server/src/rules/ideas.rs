@@ -26,7 +26,7 @@ impl ValidationRule for IdeaRule {
         // Idea existence checks (add_ideas, has_idea, remove_ideas)
         if key_lower == "add_ideas" || key_lower == "has_idea" || key_lower == "remove_ideas" {
             if let ast::Value::String(val) = &ass.value.value {
-                if val != "all" && !ctx.ideas.contains_key(val) {
+                if val != "all" && !ctx.ideas.contains_key(val.as_str()) {
                     diags.push(Diagnostic {
                         range: ast_range_to_lsp(&ass.value.range),
                         severity: Some(DiagnosticSeverity::WARNING),
@@ -56,7 +56,7 @@ impl ValidationRule for IdeaRule {
 
                 if !has_picture {
                     let default_gfx = format!("GFX_idea_{}", ass.key);
-                    let exists = ctx.sprites.contains_key(&default_gfx)
+                    let exists = ctx.sprites.contains_key(default_gfx.as_str())
                         || ctx
                             .sprites
                             .iter()

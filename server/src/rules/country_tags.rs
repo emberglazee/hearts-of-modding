@@ -60,7 +60,7 @@ impl ValidationRule for CountryTagRule {
                 "NOT" | "AND" | "TAG" | "OOB" | "LOG" | "NUM" | "RED"
             );
 
-        if !is_scope_ref && !is_var_ref && looks_like_tag && !ctx.country_tags.contains_key(val) {
+        if !is_scope_ref && !is_var_ref && looks_like_tag && !ctx.country_tags.contains_key(val.as_str()) {
             diags.push(Diagnostic {
                 range: ast_range_to_lsp(&ass.value.range),
                 severity: Some(DiagnosticSeverity::WARNING),

@@ -1,3 +1,4 @@
+use crate::interner::InternedStr;
 use crate::ast::{self, Entry, Value};
 use crate::parser;
 use std::collections::HashMap;
@@ -7,7 +8,7 @@ use std::path::Path;
 #[allow(dead_code)]
 pub struct ScriptedLoc {
     pub name: String,
-    pub path: String,
+    pub path: InternedStr,
     pub range: ast::Range,
 }
 
@@ -42,7 +43,7 @@ pub(crate) fn find_scripted_locs_in_entries(
                         name.clone(),
                         ScriptedLoc {
                             name: name.clone(),
-                            path: file_path.to_string(),
+                            path: std::sync::Arc::from(file_path),
                             range: child_ass.value.range.clone(),
                         },
                     );

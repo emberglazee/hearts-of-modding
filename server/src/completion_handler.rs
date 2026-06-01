@@ -47,7 +47,7 @@ impl Backend {
                             let target_map = &self.scanner_data.event_targets;
                             for entry in target_map.iter() {
                                 items.push(CompletionItem {
-                                    label: entry.key().clone(),
+                                    label: entry.key().to_string(),
                                     kind: Some(CompletionItemKind::VARIABLE),
                                     detail: Some("Event Target".to_string()),
                                     ..Default::default()
@@ -85,7 +85,7 @@ impl Backend {
                             let rules = &self.scanner_data.adjacency_rules;
                             for entry in rules.iter() {
                                 items.push(CompletionItem {
-                                    label: entry.key().clone(),
+                                    label: entry.key().to_string(),
                                     kind: Some(CompletionItemKind::ENUM),
                                     detail: Some("Adjacency Rule".to_string()),
                                     ..Default::default()
@@ -471,7 +471,7 @@ impl Backend {
             let sid = entry.key();
             let (parent, _, _) = entry.value();
             items.push(CompletionItem {
-                label: sid.clone(),
+                label: sid.to_string(),
                 kind: Some(CompletionItemKind::ENUM_MEMBER),
                 detail: Some(format!("Sub-Ideology (Parent: {})", parent)),
                 ..Default::default()
@@ -597,7 +597,7 @@ impl Backend {
         for entry in var_map.iter() {
             let var_name = entry.key();
             items.push(CompletionItem {
-                label: var_name.clone(),
+                label: var_name.to_string(),
                 kind: Some(CompletionItemKind::VARIABLE),
                 detail: Some("Variable".to_string()),
                 ..Default::default()
@@ -608,7 +608,7 @@ impl Backend {
         for entry in target_map.iter() {
             let target_name = entry.key();
             items.push(CompletionItem {
-                label: target_name.clone(),
+                label: target_name.to_string(),
                 kind: Some(CompletionItemKind::STRUCT),
                 detail: Some("Event Target".to_string()),
                 ..Default::default()

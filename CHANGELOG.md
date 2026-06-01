@@ -2,7 +2,7 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
-## [v0.14.0] - 2026-06-01
+## [v0.14.0] - 2026-06-02
 
 ### Added
 
@@ -12,7 +12,7 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Bumped up the minimal VSCode version requirement to v1.82.0.**
 
-- **More internal refactors in the LSP.**
+- **Massive internal LSP refactor:** Split `advanced_validation.rs` and `backend.rs` into a more coherent code structure, implemented Reverse Index for localization, and String Interning.
 
 ## [v0.13.0] - 2026-06-01
 

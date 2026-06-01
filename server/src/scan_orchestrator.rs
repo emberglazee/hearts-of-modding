@@ -29,6 +29,7 @@ use crate::state_scanner;
 use crate::strategic_region_scanner;
 use crate::trait_scanner;
 use crate::variable_scanner;
+use crate::interner::InternedStr;
 use std::collections::{HashMap, HashSet};
 use tower_lsp_server::ls_types::MessageType;
 
@@ -43,7 +44,7 @@ macro_rules! scan_dashmap {
             .unwrap();
         $self.scanner_data.$field.clear();
         for (k, v) in result {
-            $self.scanner_data.$field.insert(k, v);
+            $self.scanner_data.$field.insert(k.into(), v);
         }
         let count = $self.scanner_data.$field.len();
         $self
@@ -145,7 +146,7 @@ impl Backend {
 
         self.scanner_data.adjacency_rules.clear();
         for (k, v) in result.rules {
-            self.scanner_data.adjacency_rules.insert(k, v);
+            self.scanner_data.adjacency_rules.insert(k.into(), v);
         }
         let rules = &self.scanner_data.adjacency_rules;
 
@@ -235,7 +236,7 @@ impl Backend {
 
         self.scanner_data.continents.clear();
         for (k, v) in result {
-            self.scanner_data.continents.insert(k, v);
+            self.scanner_data.continents.insert(k.into(), v);
         }
         let c = &self.scanner_data.continents;
 
@@ -267,19 +268,19 @@ impl Backend {
 
         self.scanner_data.music_assets.clear();
         for (k, v) in result.assets {
-            self.scanner_data.music_assets.insert(k, v);
+            self.scanner_data.music_assets.insert(k.into(), v);
         }
         let assets = &self.scanner_data.music_assets;
 
         self.scanner_data.music_stations.clear();
         for (k, v) in result.stations {
-            self.scanner_data.music_stations.insert(k, v);
+            self.scanner_data.music_stations.insert(k.into(), v);
         }
         let stations = &self.scanner_data.music_stations;
 
         self.scanner_data.songs.clear();
         for (k, v) in result.songs {
-            self.scanner_data.songs.insert(k, v);
+            self.scanner_data.songs.insert(k.into(), v);
         }
         let songs = &self.scanner_data.songs;
 
@@ -306,25 +307,25 @@ impl Backend {
 
         self.scanner_data.sounds.clear();
         for (k, v) in result.sounds {
-            self.scanner_data.sounds.insert(k, v);
+            self.scanner_data.sounds.insert(k.into(), v);
         }
         let sounds = &self.scanner_data.sounds;
 
         self.scanner_data.sound_effects.clear();
         for (k, v) in result.sound_effects {
-            self.scanner_data.sound_effects.insert(k, v);
+            self.scanner_data.sound_effects.insert(k.into(), v);
         }
         let effects = &self.scanner_data.sound_effects;
 
         self.scanner_data.falloffs.clear();
         for (k, v) in result.falloffs {
-            self.scanner_data.falloffs.insert(k, v);
+            self.scanner_data.falloffs.insert(k.into(), v);
         }
         let falloffs = &self.scanner_data.falloffs;
 
         self.scanner_data.sound_categories.clear();
         for (k, v) in result.categories {
-            self.scanner_data.sound_categories.insert(k, v);
+            self.scanner_data.sound_categories.insert(k.into(), v);
         }
         let categories = &self.scanner_data.sound_categories;
 
@@ -353,13 +354,13 @@ impl Backend {
 
         self.scanner_data.custom_modifiers.clear();
         for (k, v) in result.custom_modifiers {
-            self.scanner_data.custom_modifiers.insert(k, v);
+            self.scanner_data.custom_modifiers.insert(k.into(), v);
         }
         let custom = &self.scanner_data.custom_modifiers;
 
         self.scanner_data.modifier_mappings.clear();
         for (k, v) in result.builtin_mappings {
-            self.scanner_data.modifier_mappings.insert(k, v);
+            self.scanner_data.modifier_mappings.insert(k.into(), v);
         }
         let mappings = &self.scanner_data.modifier_mappings;
 
@@ -423,13 +424,13 @@ impl Backend {
 
         self.scanner_data.variables.clear();
         for (k, v) in result.variables {
-            self.scanner_data.variables.insert(k, v);
+            self.scanner_data.variables.insert(k.into(), v);
         }
         let vars = &self.scanner_data.variables;
 
         self.scanner_data.event_targets.clear();
         for (k, v) in result.event_targets {
-            self.scanner_data.event_targets.insert(k, v);
+            self.scanner_data.event_targets.insert(k.into(), v);
         }
         let targets = &self.scanner_data.event_targets;
 
@@ -460,7 +461,7 @@ impl Backend {
             let mut all_locs = HashMap::new();
             let mut dups = HashSet::new();
             let mut game_keys = HashSet::new();
-            let mut seen_locs_by_lang: HashSet<(String, String)> = HashSet::new();
+            let mut seen_locs_by_lang: HashSet<(String, InternedStr)> = HashSet::new();
             let mut logs = Vec::new();
             let has_game_root = roots_owned.len() > 1;
 
@@ -543,13 +544,13 @@ impl Backend {
 
         self.scanner_data.duplicated_loc_keys.clear();
         for x in dups {
-            self.scanner_data.duplicated_loc_keys.insert(x);
+            self.scanner_data.duplicated_loc_keys.insert((x.0.into(), x.1));
         }
         let _d_map = &self.scanner_data.duplicated_loc_keys;
 
         self.scanner_data.game_loc_keys.clear();
         for x in game_keys {
-            self.scanner_data.game_loc_keys.insert(x);
+            self.scanner_data.game_loc_keys.insert((x.0.into(), x.1));
         }
         let game_loc_count = self.scanner_data.game_loc_keys.len();
 
@@ -604,19 +605,19 @@ impl Backend {
 
         self.scanner_data.scripted_triggers.clear();
         for (k, v) in all_triggers {
-            self.scanner_data.scripted_triggers.insert(k, v);
+            self.scanner_data.scripted_triggers.insert(k.into(), v);
         }
         let t_map = &self.scanner_data.scripted_triggers;
 
         self.scanner_data.scripted_effects.clear();
         for (k, v) in all_effects {
-            self.scanner_data.scripted_effects.insert(k, v);
+            self.scanner_data.scripted_effects.insert(k.into(), v);
         }
         let e_map = &self.scanner_data.scripted_effects;
 
         self.scanner_data.scripted_locs.clear();
         for (k, v) in all_locs {
-            self.scanner_data.scripted_locs.insert(k, v);
+            self.scanner_data.scripted_locs.insert(k.into(), v);
         }
         let l_map = &self.scanner_data.scripted_locs;
 
@@ -663,13 +664,13 @@ impl Backend {
 
         self.scanner_data.ideologies.clear();
         for (k, v) in all_results {
-            self.scanner_data.ideologies.insert(k, v);
+            self.scanner_data.ideologies.insert(k.into(), v);
         }
         let i_map = &self.scanner_data.ideologies;
 
         self.scanner_data.sub_ideologies.clear();
         for (k, v) in sub_map {
-            self.scanner_data.sub_ideologies.insert(k, v);
+            self.scanner_data.sub_ideologies.insert(k.into(), (v.0.into(), v.1, v.2));
         }
         let s_map = &self.scanner_data.sub_ideologies;
 
@@ -722,7 +723,7 @@ impl Backend {
 
         self.scanner_data.traits.clear();
         for (k, v) in all_traits {
-            self.scanner_data.traits.insert(k, v);
+            self.scanner_data.traits.insert(k.into(), v);
         }
         let t_map = &self.scanner_data.traits;
 
@@ -754,7 +755,7 @@ impl Backend {
 
         self.scanner_data.sprites.clear();
         for (k, v) in all_sprites {
-            self.scanner_data.sprites.insert(k, v);
+            self.scanner_data.sprites.insert(k.into(), v);
         }
         let s_map = &self.scanner_data.sprites;
 
@@ -796,7 +797,7 @@ impl Backend {
 
         self.scanner_data.ideas.clear();
         for (k, v) in all_ideas {
-            self.scanner_data.ideas.insert(k, v);
+            self.scanner_data.ideas.insert(k.into(), v);
         }
         let i_map = &self.scanner_data.ideas;
 
@@ -856,7 +857,7 @@ impl Backend {
             if let Ok(content) = std::fs::read_to_string(&path) {
                 if let Ok(mappings) = serde_json::from_str::<HashMap<String, String>>(&content) {
                     for (k, v) in mappings {
-                        self.scanner_data.modifier_mappings.insert(k, v);
+                        self.scanner_data.modifier_mappings.insert(k.into(), v);
                     }
                     let m = &self.scanner_data.modifier_mappings;
                     self.client
@@ -873,7 +874,7 @@ impl Backend {
             if let Ok(content) = std::fs::read_to_string(&path) {
                 if let Ok(formats) = serde_json::from_str::<HashMap<String, String>>(&content) {
                     for (k, v) in formats {
-                        self.scanner_data.modifier_formats.insert(k, v);
+                        self.scanner_data.modifier_formats.insert(k.into(), v);
                     }
                     let f = &self.scanner_data.modifier_formats;
                     self.client

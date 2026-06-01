@@ -1,3 +1,4 @@
+use crate::interner::InternedStr;
 use crate::ast;
 use crate::parser;
 use std::collections::HashMap;
@@ -6,21 +7,21 @@ use std::collections::HashMap;
 pub struct MusicAsset {
     pub name: String,
     pub file: String,
-    pub path: String,
+    pub path: InternedStr,
     pub range: ast::Range,
 }
 
 #[derive(Debug, Clone)]
 pub struct MusicStation {
     pub name: String,
-    pub path: String,
+    pub path: InternedStr,
     pub range: ast::Range,
 }
 
 #[derive(Debug, Clone)]
 pub struct Song {
     pub name: String,
-    pub path: String,
+    pub path: InternedStr,
     pub range: ast::Range,
 }
 
@@ -101,7 +102,7 @@ pub(crate) fn find_assets_in_entries(
                             MusicAsset {
                                 name: n,
                                 file: f,
-                                path: file_path.to_string(),
+                                path: std::sync::Arc::from(file_path),
                                 range: ass.key_range.clone(),
                             },
                         );
@@ -127,7 +128,7 @@ pub(crate) fn find_stations_and_songs_in_entries(
                         name.clone(),
                         MusicStation {
                             name: name.clone(),
-                            path: file_path.to_string(),
+                            path: std::sync::Arc::from(file_path),
                             range: ass.key_range.clone(),
                         },
                     );
@@ -142,7 +143,7 @@ pub(crate) fn find_stations_and_songs_in_entries(
                                         name.clone(),
                                         Song {
                                             name: name.clone(),
-                                            path: file_path.to_string(),
+                                            path: std::sync::Arc::from(file_path),
                                             range: d_ass.key_range.clone(),
                                         },
                                     );

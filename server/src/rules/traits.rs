@@ -26,7 +26,7 @@ impl ValidationRule for TraitRule {
             return;
         };
 
-        if !ctx.traits.contains_key(val) {
+        if !ctx.traits.contains_key(val.as_str()) {
             diags.push(Diagnostic {
                 range: ast_range_to_lsp(&ass.value.range),
                 severity: Some(DiagnosticSeverity::WARNING),

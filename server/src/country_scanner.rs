@@ -1,3 +1,4 @@
+use crate::interner::InternedStr;
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
@@ -27,7 +28,7 @@ pub(crate) fn is_valid_tag(s: &str) -> bool {
 pub struct CountryTag {
     pub tag: String,
     pub name: String,
-    pub path: String,
+    pub path: InternedStr,
     pub range: ast::Range,
     pub dynamic: bool,
 }
@@ -75,7 +76,7 @@ where
                                     tags.entry(tag.clone()).or_insert_with(|| CountryTag {
                                         tag,
                                         name,
-                                        path: source_path.clone(),
+                                        path: source_path.clone().into(),
                                         range: ast::Range {
                                             start_line: line_no,
                                             start_col: 0,
@@ -115,7 +116,7 @@ where
                                 tags.entry(tag.clone()).or_insert_with(|| CountryTag {
                                     tag,
                                     name,
-                                    path: source_path.clone(),
+                                    path: source_path.clone().into(),
                                     range: ast::Range {
                                         start_line: 0,
                                         start_col: 0,
@@ -154,7 +155,7 @@ where
                                 tags.entry(tag.clone()).or_insert_with(|| CountryTag {
                                     tag,
                                     name,
-                                    path: source_path.clone(),
+                                    path: source_path.clone().into(),
                                     range: ast::Range {
                                         start_line: 0,
                                         start_col: 0,

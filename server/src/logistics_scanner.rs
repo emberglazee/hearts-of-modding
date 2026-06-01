@@ -1,3 +1,4 @@
+use crate::interner::InternedStr;
 use std::fs;
 use std::path::PathBuf;
 
@@ -6,7 +7,7 @@ use std::path::PathBuf;
 pub struct SupplyNode {
     pub level: u32,
     pub province_id: u32,
-    pub path: String,
+    pub path: InternedStr,
     // Note: since it's not a script, we don't have ast::Range easily, but we can store line/col
     pub start_line: u32,
 }
@@ -16,7 +17,7 @@ pub struct SupplyNode {
 pub struct Railway {
     pub level: u32,
     pub provinces: Vec<u32>,
-    pub path: String,
+    pub path: InternedStr,
     pub start_line: u32,
 }
 
@@ -47,7 +48,7 @@ where
                     supply_nodes.push(SupplyNode {
                         level,
                         province_id,
-                        path: supply_nodes_path.to_string_lossy().to_string(),
+                        path: std::sync::Arc::from(supply_nodes_path.to_string_lossy().as_ref()),
                         start_line: line_idx as u32,
                     });
                 }
@@ -75,7 +76,7 @@ where
                     railways.push(Railway {
                         level,
                         provinces: provs,
-                        path: railways_path.to_string_lossy().to_string(),
+                        path: std::sync::Arc::from(railways_path.to_string_lossy().as_ref()),
                         start_line: line_idx as u32,
                     });
                 }

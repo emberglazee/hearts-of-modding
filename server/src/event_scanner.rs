@@ -1,15 +1,29 @@
+use crate::interner::InternedStr;
 use crate::ast;
 use crate::parser;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone)]
 pub struct Event {
     pub id: String,
     pub event_type: String, // country_event, state_event, etc.
-    pub path: String,
+    pub path: InternedStr,
     pub range: ast::Range,
     pub triggered_events: Vec<String>, // IDs of events triggered BY this event
+}
+
+impl serde::Serialize for Event {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeStruct;
+        let mut state = serializer.serialize_struct("Event", 5)?;
+        state.serialize_field("id", &self.id)?;
+        state.serialize_field("event_type", &self.event_type)?;
+        state.serialize_field("path", &*self.path)?;
+        state.serialize_field("range", &self.range)?;
+        state.serialize_field("triggered_events", &self.triggered_events)?;
+        state.end()
+    }
 }
 
 pub fn scan_events<F>(roots: &[PathBuf], filter: &F) -> HashMap<String, Event>
@@ -69,7 +83,7 @@ pub(crate) fn find_event_definitions(
                         Event {
                             id: event_id,
                             event_type: key.to_string(),
-                            path: path.to_string(),
+                            path: std::sync::Arc::from(path),
                             range: ass.key_range.clone(),
                             triggered_events: Vec::new(),
                         },

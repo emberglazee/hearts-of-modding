@@ -1,3 +1,4 @@
+use crate::interner::InternedStr;
 use crate::ast;
 use crate::parser;
 use std::collections::HashMap;
@@ -9,7 +10,7 @@ pub struct Idea {
     pub category: String,
     #[allow(dead_code)]
     pub picture: Option<String>,
-    pub path: String,
+    pub path: InternedStr,
     pub range: ast::Range,
 }
 
@@ -82,7 +83,7 @@ fn parse_ideas_block(ass: &ast::Assignment, file_path: &str, map: &mut HashMap<S
                                     name: idea_ass.key.clone(),
                                     category: category_name.clone(),
                                     picture,
-                                    path: file_path.to_string(),
+                                    path: std::sync::Arc::from(file_path),
                                     range: idea_ass.key_range.clone(),
                                 },
                             );

@@ -1,3 +1,4 @@
+use crate::interner::InternedStr;
 use crate::ast;
 use crate::parser;
 use std::collections::HashMap;
@@ -8,7 +9,7 @@ use std::path::{Path, PathBuf};
 pub struct State {
     pub id: u32,
     pub name: String, // e.g. "STATE_123"
-    pub path: String,
+    pub path: InternedStr,
     pub range: ast::Range,
 }
 
@@ -63,7 +64,7 @@ fn extract_state(entries: &[ast::Entry], path: &Path, map: &mut HashMap<u32, Sta
                     State {
                         id,
                         name: state_name,
-                        path: path.to_string_lossy().to_string(),
+                        path: std::sync::Arc::from(path.to_string_lossy().as_ref()),
                         range: ass.key_range.clone(),
                     },
                 );

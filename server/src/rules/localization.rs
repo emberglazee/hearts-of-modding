@@ -60,7 +60,7 @@ impl ValidationRule for LocalizationRule {
         }
 
         if should_flag {
-            if !ctx.loc.contains_key(val) {
+            if !ctx.loc.contains_key(val.as_str()) {
                 let target = format!("{}:", val);
                 if !ctx.loc.iter().any(|e| e.key().starts_with(&target)) {
                     // Final check against regex

@@ -1,3 +1,4 @@
+use crate::interner::InternedStr;
 use crate::ast;
 use crate::parser;
 use std::collections::HashMap;
@@ -7,7 +8,7 @@ use std::path::PathBuf;
 pub struct Sound {
     pub name: String,
     pub file: String,
-    pub path: String,
+    pub path: InternedStr,
     pub range: ast::Range,
 }
 
@@ -15,14 +16,14 @@ pub struct Sound {
 pub struct SoundEffect {
     pub name: String,
     pub sounds: Vec<String>,
-    pub path: String,
+    pub path: InternedStr,
     pub range: ast::Range,
 }
 
 #[derive(Debug, Clone)]
 pub struct Falloff {
     pub name: String,
-    pub path: String,
+    pub path: InternedStr,
     pub range: ast::Range,
 }
 
@@ -30,7 +31,7 @@ pub struct Falloff {
 pub struct SoundCategory {
     pub name: String,
     pub soundeffects: Vec<String>,
-    pub path: String,
+    pub path: InternedStr,
     pub range: ast::Range,
 }
 
@@ -166,7 +167,7 @@ pub(crate) fn find_sound_definitions(
                             Sound {
                                 name: n,
                                 file: f,
-                                path: file_path.to_string(),
+                                path: std::sync::Arc::from(file_path),
                                 range: ass.key_range.clone(),
                             },
                         );
@@ -229,7 +230,7 @@ pub(crate) fn find_sound_definitions(
                             SoundEffect {
                                 name: n,
                                 sounds: sounds_list,
-                                path: file_path.to_string(),
+                                path: std::sync::Arc::from(file_path),
                                 range: ass.key_range.clone(),
                             },
                         );
@@ -252,7 +253,7 @@ pub(crate) fn find_sound_definitions(
                             n.clone(),
                             Falloff {
                                 name: n,
-                                path: file_path.to_string(),
+                                path: std::sync::Arc::from(file_path),
                                 range: ass.key_range.clone(),
                             },
                         );
@@ -288,7 +289,7 @@ pub(crate) fn find_sound_definitions(
                             SoundCategory {
                                 name: n,
                                 soundeffects: effects,
-                                path: file_path.to_string(),
+                                path: std::sync::Arc::from(file_path),
                                 range: ass.key_range.clone(),
                             },
                         );

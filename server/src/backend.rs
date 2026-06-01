@@ -6,6 +6,7 @@ use tower_lsp_server::Client;
 use tower_lsp_server::ls_types::*;
 
 use crate::advanced_validation;
+use crate::interner::InternedStr;
 use crate::ast;
 use crate::config::Config;
 use crate::loc_parser;
@@ -180,7 +181,7 @@ impl Backend {
 
         self.scanner_data.workspace_files.clear();
         for f in all_files {
-            self.scanner_data.workspace_files.insert(f);
+            self.scanner_data.workspace_files.insert(f.into());
         }
     }
 
@@ -1045,7 +1046,7 @@ impl Backend {
             }
 
             let color_code_set: std::collections::HashSet<String> =
-                color_codes.iter().map(|e| e.key().clone()).collect();
+                color_codes.iter().map(|e| e.key().to_string()).collect();
             let loc_diagnostics = loc_parser::validate_loc_string(
                 entry,
                 event_targets,
@@ -1084,13 +1085,13 @@ impl Backend {
             }
 
             // Check for duplicated localization keys across files
-            let is_duplicated = dups.contains(&(doc_lang_str.clone(), entry.key.clone()));
+            let is_duplicated = dups.contains(&(doc_lang_str.clone().into(), entry.key.clone()));
 
             if is_duplicated {
                 // If the key exists in the vanilla game's localization files,
                 // it's an intentional override — no warning needed.
                 let is_game_override =
-                    game_loc_keys.contains(&(doc_lang_str.clone(), entry.key.clone()));
+                    game_loc_keys.contains(&(doc_lang_str.clone().into(), entry.key.clone()));
 
                 if !is_game_override {
                     let loc_map = &self.scanner_data.localization;
@@ -1518,7 +1519,7 @@ impl Backend {
             sound_effects: s_effects,
             country_tags: ct,
             buildings,
-            defines: &*defines,
+            defines: &defines,
             continents: &self.scanner_data.continents,
             strategic_regions: &self.scanner_data.strategic_regions,
             abilities: &self.scanner_data.abilities,
@@ -1847,7 +1848,7 @@ impl Backend {
         &self,
         entries: &[ast::Entry],
         diagnostics: &mut Vec<Diagnostic>,
-        mod_maps: &DashMap<String, String>,
+        mod_maps: &DashMap<InternedStr, String>,
     ) {
         // Currently only checks keys that are in `mod_maps` (modifier names) plus a small
         // hardcoded set of common structural keys (`name`, `id`, `icon`). All other keys
@@ -1865,7 +1866,7 @@ impl Backend {
                 // But specific engine modifiers (like 'stability_factor') should NEVER be duplicated.
 
                 let is_modifier =
-                    mod_maps.contains_key(&ass.key) || COMMON_KEYS.contains(&ass.key.as_str());
+                    mod_maps.contains_key(ass.key.as_str()) || COMMON_KEYS.contains(&ass.key.as_str());
 
                 // Exceptions: Some effects/triggers are specifically designed to be used multiple times
                 let is_exception = ass.key == "modifier"

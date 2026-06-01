@@ -1,3 +1,4 @@
+use crate::interner::InternedStr;
 use crate::ast;
 use crate::parser;
 use std::collections::HashMap;
@@ -33,7 +34,7 @@ pub struct Ability {
     pub has_one_time_effect: bool,
     pub has_unit_modifiers: bool,
     pub has_ai_will_do: bool,
-    pub path: String,
+    pub path: InternedStr,
     pub range: ast::Range,
 }
 
@@ -75,7 +76,7 @@ where
                     has_one_time_effect: false,
                     has_unit_modifiers: false,
                     has_ai_will_do: false,
-                    path: String::new(),
+                    path: std::sync::Arc::from(""),
                     range: ast::Range {
                         start_line: 0,
                         start_col: 0,
@@ -210,7 +211,7 @@ pub(crate) fn find_abilities_in_entries(
                                         has_one_time_effect,
                                         has_unit_modifiers,
                                         has_ai_will_do,
-                                        path: file_path.to_string(),
+                                        path: std::sync::Arc::from(file_path),
                                         range: a_ass.key_range.clone(),
                                     },
                                 );

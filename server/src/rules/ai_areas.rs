@@ -41,7 +41,7 @@ impl ValidationRule for AiAreaRule {
                             for ce in cont_entries {
                                 if let ast::Entry::Value(val) = ce {
                                     if let ast::Value::String(name) = &val.value {
-                                        if !ctx.continents.contains_key(name) {
+                                        if !ctx.continents.contains_key(name.as_str()) {
                                             diags.push(Diagnostic {
                                                 range: ast_range_to_lsp(&val.range),
                                                 severity: Some(DiagnosticSeverity::WARNING),

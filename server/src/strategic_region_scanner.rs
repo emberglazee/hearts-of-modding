@@ -1,3 +1,4 @@
+use crate::interner::InternedStr;
 use crate::ast;
 use crate::parser;
 use std::collections::HashMap;
@@ -11,7 +12,7 @@ pub struct StrategicRegion {
     pub provinces: Vec<u32>,
     pub weather: Option<String>,
     pub naval_terrain: Option<String>,
-    pub path: String,
+    pub path: InternedStr,
     pub range: ast::Range,
 }
 
@@ -102,7 +103,7 @@ pub(crate) fn extract_strategic_region(
                             provinces,
                             weather,
                             naval_terrain,
-                            path: path.to_string_lossy().to_string(),
+                            path: std::sync::Arc::from(path.to_string_lossy().as_ref()),
                             range: ass.key_range.clone(),
                         },
                     );

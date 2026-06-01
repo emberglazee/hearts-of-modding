@@ -25,7 +25,7 @@ impl ValidationRule for AchievementRule {
                 let name_key = format!("{}_NAME", ass.key);
                 let desc_key = format!("{}_DESC", ass.key);
 
-                if !ctx.loc.contains_key(&name_key) {
+                if !ctx.loc.contains_key(name_key.as_str()) {
                     diags.push(Diagnostic {
                         range: ast_range_to_lsp(&ass.key_range),
                         severity: Some(DiagnosticSeverity::WARNING),
@@ -41,7 +41,7 @@ impl ValidationRule for AchievementRule {
                         ..Default::default()
                     });
                 }
-                if !ctx.loc.contains_key(&desc_key) {
+                if !ctx.loc.contains_key(desc_key.as_str()) {
                     diags.push(Diagnostic {
                         range: ast_range_to_lsp(&ass.key_range),
                         severity: Some(DiagnosticSeverity::WARNING),

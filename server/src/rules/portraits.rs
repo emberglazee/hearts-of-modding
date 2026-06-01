@@ -30,7 +30,7 @@ fn validate_portrait_gfx_recursive(
             continue;
         };
 
-        if ass.key.to_ascii_lowercase() == "portraits" {
+        if ass.key.eq_ignore_ascii_case("portraits") {
             if let ast::Value::Block(portrait_entries) = &ass.value.value {
                 validate_portrait_values(portrait_entries, ctx, diags);
             }
@@ -60,7 +60,7 @@ fn validate_portrait_values(
 
         // Check if value is a string starting with GFX_
         if let ast::Value::String(s) = &ass.value.value {
-            if s.starts_with("GFX_") && !ctx.sprites.contains_key(s) {
+            if s.starts_with("GFX_") && !ctx.sprites.contains_key(s.as_str()) {
                 diags.push(Diagnostic {
                     range: ast_range_to_lsp(&ass.value.range),
                     severity: Some(DiagnosticSeverity::WARNING),

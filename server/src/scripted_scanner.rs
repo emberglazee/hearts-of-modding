@@ -1,3 +1,4 @@
+use crate::interner::InternedStr;
 use crate::ast;
 use crate::parser;
 use std::collections::HashMap;
@@ -6,7 +7,7 @@ use std::path::Path;
 #[derive(Debug, Clone)]
 pub struct ScriptedEntity {
     pub name: String,
-    pub path: String,
+    pub path: InternedStr,
     pub range: ast::Range,
 }
 
@@ -23,7 +24,7 @@ where
                     ass.key.clone(),
                     ScriptedEntity {
                         name: ass.key.clone(),
-                        path: path.to_string_lossy().to_string(),
+                        path: std::sync::Arc::from(path.to_string_lossy().as_ref()),
                         range: ass.key_range,
                     },
                 );

@@ -1,12 +1,13 @@
 #[cfg(test)]
 mod tests {
     use crate::ast::Range;
+    use crate::interner::InternedStr;
     use crate::loc_parser::{self, LocEntry};
 
     #[test]
     fn test_check_unnecessary_version() {
         let entry = LocEntry {
-            key: "test_key".to_string(),
+            key: InternedStr::from("test_key"),
             value: "test value".to_string(),
             range: Range {
                 start_line: 0,
@@ -14,7 +15,7 @@ mod tests {
                 end_line: 0,
                 end_col: 10,
             },
-            path: "file_a.yml".to_string(),
+            path: InternedStr::from("file_a.yml"),
             value_start_col: 15,
             version: Some("0".to_string()),
             version_range: Some(Range {

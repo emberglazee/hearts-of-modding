@@ -30,7 +30,7 @@ fn validate_buildings_recursive(
             continue;
         };
 
-        if ass.key.to_ascii_lowercase() == "buildings" {
+        if ass.key.eq_ignore_ascii_case("buildings") {
             if let ast::Value::Block(building_entries) = &ass.value.value {
                 validate_building_block(building_entries, ctx, diags);
             }
@@ -66,7 +66,7 @@ fn validate_building_block(
         };
 
         if let Some(level) = level {
-            if let Some(building) = ctx.buildings.get(building_name) {
+            if let Some(building) = ctx.buildings.get(building_name.as_str()) {
                 if let Some(max_level) = building.max_level {
                     if level > max_level {
                         diags.push(Diagnostic {

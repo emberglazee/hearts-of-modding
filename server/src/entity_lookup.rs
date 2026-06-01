@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use crate::interner::InternedStr;
 use crate::ScannerData;
 use crate::ast;
 use crate::lsp_convert::is_pos_in_range;
@@ -102,7 +103,7 @@ impl EntityKind {
 pub struct EntityLocation {
     pub kind: EntityKind,
     pub range: ast::Range,
-    pub path: String,
+    pub path: InternedStr,
 }
 
 #[derive(Debug, Clone)]
@@ -262,8 +263,8 @@ impl<'a> EntityLookup<'a> {
                 for entry in self.data.$name.iter() {
                     let entity = entry.value();
                     let name = entry.key();
-                    if entity.path == path && is_pos_in_range(pos, &entity.range) {
-                        return Some((EntityKind::$kind, entity.range.clone(), name.clone()));
+                    if entity.path.as_ref() == path && is_pos_in_range(pos, &entity.range) {
+                        return Some((EntityKind::$kind, entity.range.clone(), name.to_string()));
                     }
                 }
             };
@@ -282,8 +283,8 @@ impl<'a> EntityLookup<'a> {
             for entry in map.iter() {
                 let name = entry.key();
                 for var in entry.value().iter() {
-                    if var.path == path && is_pos_in_range(pos, &var.range) {
-                        return Some((EntityKind::Variable, var.range.clone(), name.clone()));
+                    if var.path.as_ref() == path && is_pos_in_range(pos, &var.range) {
+                        return Some((EntityKind::Variable, var.range.clone(), name.to_string()));
                     }
                 }
             }
@@ -298,7 +299,7 @@ impl<'a> EntityLookup<'a> {
         macro_rules! collect_names {
             ($kind:ident, $name:ident) => {
                 for entry in self.data.$name.iter() {
-                    names.insert(entry.key().clone(), EntityKind::$kind);
+                    names.insert(entry.key().to_string(), EntityKind::$kind);
                 }
             };
         }
@@ -311,7 +312,7 @@ impl<'a> EntityLookup<'a> {
         {
             let map = &self.data.sub_ideologies;
             for entry in map.iter() {
-                names.insert(entry.key().clone(), EntityKind::SubIdeology);
+                names.insert(entry.key().to_string(), EntityKind::SubIdeology);
             }
         }
 
@@ -355,7 +356,7 @@ impl<'a> EntityLookup<'a> {
                     let entity = entry.value();
                     if fuzzy_match(&query_lower, name) {
                         results.push(EntityHit {
-                            name: name.clone(),
+                            name: name.to_string(),
                             kind: EntityKind::$kind,
                             container: Some($container.to_string()),
                             location: EntityLocation {
@@ -380,7 +381,7 @@ impl<'a> EntityLookup<'a> {
                 let event = entry.value();
                 if fuzzy_match(&query_lower, id) {
                     results.push(EntityHit {
-                        name: id.clone(),
+                        name: id.to_string(),
                         kind: EntityKind::Event,
                         container: Some(event.event_type.clone()),
                         location: EntityLocation {
@@ -400,7 +401,7 @@ impl<'a> EntityLookup<'a> {
                 let idea = entry.value();
                 if fuzzy_match(&query_lower, name) {
                     results.push(EntityHit {
-                        name: name.clone(),
+                        name: name.to_string(),
                         kind: EntityKind::Idea,
                         container: Some(idea.category.clone()),
                         location: EntityLocation {
@@ -420,7 +421,7 @@ impl<'a> EntityLookup<'a> {
                 let entity = entry.value();
                 if fuzzy_match(&query_lower, name) {
                     results.push(EntityHit {
-                        name: name.clone(),
+                        name: name.to_string(),
                         kind: EntityKind::Trait,
                         container: Some(entity.trait_type.clone()),
                         location: EntityLocation {
@@ -643,7 +644,7 @@ impl<'a> EntityLookup<'a> {
                 let loc = entry.value();
                 if fuzzy_match(&query_lower, name) {
                     results.push(EntityHit {
-                        name: name.clone(),
+                        name: name.to_string(),
                         kind: EntityKind::Localization,
                         container: Some("Localisation".to_string()),
                         location: EntityLocation {
@@ -669,7 +670,7 @@ impl<'a> EntityLookup<'a> {
                 let (parent, range, path) = entry.value();
                 if fuzzy_match(&query_lower, name) {
                     results.push(EntityHit {
-                        name: name.clone(),
+                        name: name.to_string(),
                         kind: EntityKind::SubIdeology,
                         container: Some(format!("Sub-Ideology ({})", parent)),
                         location: EntityLocation {

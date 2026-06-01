@@ -42,7 +42,7 @@ impl ValidationRule for SpriteRule {
             lookup_key = format!("GFX_idea_{}", val);
         }
 
-        let exists = ctx.sprites.contains_key(&lookup_key)
+        let exists = ctx.sprites.contains_key(lookup_key.as_str())
             || (key_lower == "picture"
                 && scope.current() == Scope::Idea
                 && ctx

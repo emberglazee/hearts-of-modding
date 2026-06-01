@@ -1,3 +1,4 @@
+use crate::interner::InternedStr;
 use crate::ast;
 use std::collections::HashMap;
 use std::path::Path;
@@ -7,7 +8,7 @@ pub struct ColorCode {
     #[allow(dead_code)]
     pub symbol: String,
     pub rgb: (u8, u8, u8),
-    pub path: String,
+    pub path: InternedStr,
     pub range: ast::Range,
 }
 
@@ -44,7 +45,7 @@ where
                         ColorCode {
                             symbol,
                             rgb: (r, g, b),
-                            path: path_str.clone(),
+                            path: path_str.clone().into(),
                             range: ast::Range {
                                 start_line: _start + line,
                                 start_col: col as u32,

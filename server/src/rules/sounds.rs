@@ -17,7 +17,7 @@ impl ValidationRule for SoundRule {
         _scope: &ScopeStack,
         diags: &mut Vec<Diagnostic>,
     ) {
-        if ass.key.to_ascii_lowercase() != "sound_effect" {
+        if !ass.key.eq_ignore_ascii_case("sound_effect") {
             return;
         }
 
@@ -25,7 +25,7 @@ impl ValidationRule for SoundRule {
             return;
         };
 
-        if !ctx.sound_effects.contains_key(val) {
+        if !ctx.sound_effects.contains_key(val.as_str()) {
             diags.push(Diagnostic {
                 range: ast_range_to_lsp(&ass.value.range),
                 severity: Some(DiagnosticSeverity::WARNING),

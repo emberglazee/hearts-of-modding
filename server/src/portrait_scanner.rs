@@ -1,3 +1,4 @@
+use crate::interner::InternedStr;
 use crate::ast;
 use crate::parser;
 use std::collections::HashMap;
@@ -26,7 +27,7 @@ pub struct Portrait {
     pub ideologies: Vec<String>,
     pub gfx_entries: Vec<String>,
     #[allow(dead_code)]
-    pub path: String,
+    pub path: InternedStr,
     #[allow(dead_code)]
     pub range: ast::Range,
 }
@@ -140,7 +141,7 @@ pub(crate) fn extract_portraits(
                         has_scientist,
                         ideologies,
                         gfx_entries,
-                        path: path.to_string_lossy().to_string(),
+                        path: std::sync::Arc::from(path.to_string_lossy().as_ref()),
                         range: ass.key_range.clone(),
                     },
                 );

@@ -1,3 +1,4 @@
+use crate::interner::InternedStr;
 use crate::ast;
 use crate::parser;
 use std::collections::HashMap;
@@ -12,7 +13,7 @@ pub struct AiArea {
     #[allow(dead_code)]
     pub strategic_regions: Vec<u32>,
     #[allow(dead_code)]
-    pub path: String,
+    pub path: InternedStr,
     #[allow(dead_code)]
     pub range: ast::Range,
 }
@@ -85,7 +86,7 @@ pub(crate) fn extract_areas(
                         name: ass.key.clone(),
                         continents,
                         strategic_regions,
-                        path: path.to_string_lossy().to_string(),
+                        path: std::sync::Arc::from(path.to_string_lossy().as_ref()),
                         range: ass.key_range.clone(),
                     },
                 );

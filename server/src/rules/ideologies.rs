@@ -41,8 +41,8 @@ impl ValidationRule for IdeologyRule {
         // Allow variable references (var:SCOPE@name or var:name)
         let is_var_ref = val.starts_with("var:");
 
-        if !ctx.ideologies.contains_key(val)
-            && !ctx.sub_ideologies.contains_key(val)
+        if !ctx.ideologies.contains_key(val.as_str())
+            && !ctx.sub_ideologies.contains_key(val.as_str())
             && !is_scope_ref
             && !is_var_ref
         {

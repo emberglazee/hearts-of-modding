@@ -1,3 +1,4 @@
+use crate::interner::InternedStr;
 use crate::ast;
 use crate::parser;
 use std::collections::HashMap;
@@ -7,7 +8,7 @@ use std::path::Path;
 pub struct Trait {
     pub name: String,
     pub trait_type: String, // e.g., "Leader Trait", "Country Leader Trait"
-    pub path: String,
+    pub path: InternedStr,
     pub range: ast::Range,
 }
 
@@ -50,7 +51,7 @@ pub(crate) fn find_traits_in_entries(
                                     Trait {
                                         name: t_ass.key.clone(),
                                         trait_type: trait_type.to_string(),
-                                        path: file_path.to_string(),
+                                        path: std::sync::Arc::from(file_path),
                                         range: t_ass.key_range.clone(),
                                     },
                                 );

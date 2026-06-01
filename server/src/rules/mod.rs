@@ -1,6 +1,7 @@
 use crate::ast;
 use crate::building_scanner;
 use crate::defines_parser;
+use crate::interner::InternedStr;
 use crate::scope;
 use dashmap::DashMap;
 use regex::Regex;
@@ -29,29 +30,29 @@ pub(crate) mod traits;
 /// previously required.
 pub(crate) struct ValidationContext<'a> {
     pub(crate) uri: &'a str,
-    pub(crate) loc: &'a DashMap<String, crate::loc_parser::LocEntry>,
+    pub(crate) loc: &'a DashMap<InternedStr, crate::loc_parser::LocEntry>,
     /// Scripted triggers - available for rule use (not yet used by any rule)
     #[allow(dead_code)]
-    pub(crate) scripted_triggers: &'a DashMap<String, crate::scripted_scanner::ScriptedEntity>,
+    pub(crate) scripted_triggers: &'a DashMap<InternedStr, crate::scripted_scanner::ScriptedEntity>,
     /// Scripted effects - available for rule use (not yet used by any rule)
     #[allow(dead_code)]
-    pub(crate) scripted_effects: &'a DashMap<String, crate::scripted_scanner::ScriptedEntity>,
-    pub(crate) ideologies: &'a DashMap<String, crate::ideology_scanner::Ideology>,
-    pub(crate) sub_ideologies: &'a DashMap<String, (String, ast::Range, String)>,
-    pub(crate) traits: &'a DashMap<String, crate::trait_scanner::Trait>,
-    pub(crate) sprites: &'a DashMap<String, crate::sprite_scanner::Sprite>,
-    pub(crate) ideas: &'a DashMap<String, crate::idea_scanner::Idea>,
+    pub(crate) scripted_effects: &'a DashMap<InternedStr, crate::scripted_scanner::ScriptedEntity>,
+    pub(crate) ideologies: &'a DashMap<InternedStr, crate::ideology_scanner::Ideology>,
+    pub(crate) sub_ideologies: &'a DashMap<InternedStr, (InternedStr, ast::Range, InternedStr)>,
+    pub(crate) traits: &'a DashMap<InternedStr, crate::trait_scanner::Trait>,
+    pub(crate) sprites: &'a DashMap<InternedStr, crate::sprite_scanner::Sprite>,
+    pub(crate) ideas: &'a DashMap<InternedStr, crate::idea_scanner::Idea>,
     pub(crate) provinces: &'a DashMap<u32, crate::province_scanner::Province>,
-    pub(crate) modifier_mappings: &'a DashMap<String, String>,
+    pub(crate) modifier_mappings: &'a DashMap<InternedStr, String>,
     pub(crate) ignored_loc_regex: &'a [Regex],
     pub(crate) comments: &'a [(String, ast::Range)],
-    pub(crate) sound_effects: &'a DashMap<String, crate::sound_scanner::SoundEffect>,
-    pub(crate) country_tags: &'a DashMap<String, crate::country_scanner::CountryTag>,
-    pub(crate) buildings: &'a DashMap<String, building_scanner::Building>,
+    pub(crate) sound_effects: &'a DashMap<InternedStr, crate::sound_scanner::SoundEffect>,
+    pub(crate) country_tags: &'a DashMap<InternedStr, crate::country_scanner::CountryTag>,
+    pub(crate) buildings: &'a DashMap<InternedStr, building_scanner::Building>,
     pub(crate) defines: &'a defines_parser::GameDefines,
-    pub(crate) continents: &'a DashMap<String, crate::continent_scanner::Continent>,
+    pub(crate) continents: &'a DashMap<InternedStr, crate::continent_scanner::Continent>,
     pub(crate) strategic_regions: &'a DashMap<u32, crate::strategic_region_scanner::StrategicRegion>,
-    pub(crate) abilities: &'a DashMap<String, crate::ability_scanner::Ability>,
+    pub(crate) abilities: &'a DashMap<InternedStr, crate::ability_scanner::Ability>,
     pub(crate) game_path: Option<String>,
     pub(crate) styling_enabled: bool,
 }

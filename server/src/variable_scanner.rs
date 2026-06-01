@@ -1,3 +1,4 @@
+use crate::interner::InternedStr;
 use crate::ast;
 use crate::parser;
 use std::collections::HashMap;
@@ -6,7 +7,7 @@ use std::fs;
 pub struct Variable {
     #[allow(dead_code)]
     pub name: String,
-    pub path: String,
+    pub path: InternedStr,
     pub range: ast::Range,
 }
 
@@ -14,7 +15,7 @@ pub struct Variable {
 pub struct EventTarget {
     #[allow(dead_code)]
     pub name: String,
-    pub path: String,
+    pub path: InternedStr,
     pub range: ast::Range,
     pub is_global: bool,
 }
@@ -186,7 +187,7 @@ fn add_variable(
 ) {
     let entry = Variable {
         name: name.clone(),
-        path: path.to_string(),
+        path: std::sync::Arc::from(path),
         range: range.clone(),
     };
     variables.entry(name).or_default().push(entry);
@@ -201,7 +202,7 @@ fn add_event_target(
 ) {
     let entry = EventTarget {
         name: name.clone(),
-        path: path.to_string(),
+        path: std::sync::Arc::from(path),
         range: range.clone(),
         is_global,
     };

@@ -1,3 +1,4 @@
+use crate::interner::InternedStr;
 use crate::ast;
 use crate::parser;
 use std::collections::HashMap;
@@ -8,7 +9,7 @@ pub struct Ideology {
     pub name: String,
     pub sub_ideologies: Vec<String>,
     pub sub_ideology_ranges: HashMap<String, ast::Range>,
-    pub path: String,
+    pub path: InternedStr,
     pub range: ast::Range,
 }
 
@@ -67,7 +68,7 @@ pub(crate) fn find_ideologies_in_entries(
                                         name: ideology_ass.key.clone(),
                                         sub_ideologies,
                                         sub_ideology_ranges,
-                                        path: file_path.to_string(),
+                                        path: std::sync::Arc::from(file_path),
                                         range: ideology_ass.key_range.clone(),
                                     },
                                 );

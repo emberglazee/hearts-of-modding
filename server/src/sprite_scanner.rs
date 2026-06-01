@@ -1,3 +1,4 @@
+use crate::interner::InternedStr;
 use crate::ast;
 use crate::parser;
 use std::collections::HashMap;
@@ -7,7 +8,7 @@ use std::path::Path;
 pub struct Sprite {
     pub name: String,
     pub texture_file: String,
-    pub path: String,
+    pub path: InternedStr,
     pub range: ast::Range,
 }
 
@@ -90,7 +91,7 @@ fn parse_sprite_node(ass: &ast::Assignment, file_path: &str, map: &mut HashMap<S
                 Sprite {
                     name: n,
                     texture_file: t,
-                    path: file_path.to_string(),
+                    path: std::sync::Arc::from(file_path),
                     range: ass.key_range.clone(),
                 },
             );

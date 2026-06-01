@@ -1,3 +1,4 @@
+use crate::interner::InternedStr;
 use crate::ast;
 use crate::parser;
 use std::collections::HashMap;
@@ -7,7 +8,7 @@ use std::path::PathBuf;
 pub struct Achievement {
     pub name: String,
     pub is_ribbon: bool,
-    pub path: String,
+    pub path: InternedStr,
     pub range: ast::Range,
 }
 
@@ -68,7 +69,7 @@ pub(crate) fn find_achievements_in_entries(
                         Achievement {
                             name: ass.key.clone(),
                             is_ribbon,
-                            path: file_path.to_string(),
+                            path: std::sync::Arc::from(file_path),
                             range: ass.key_range.clone(),
                         },
                     );
@@ -95,7 +96,7 @@ pub(crate) fn find_achievements_in_entries(
                                                 Achievement {
                                                     name: s.clone(),
                                                     is_ribbon,
-                                                    path: file_path.to_string(),
+                                                    path: std::sync::Arc::from(file_path),
                                                     range: ass.key_range.clone(),
                                                 },
                                             );

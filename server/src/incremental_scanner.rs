@@ -24,6 +24,7 @@ use crate::sprite_scanner;
 use crate::strategic_region_scanner;
 use crate::trait_scanner;
 use crate::variable_scanner;
+use crate::interner::InternedStr;
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
@@ -37,7 +38,57 @@ fn path_matches(stored: &str, target: &str) -> bool {
     normalized == target || target.ends_with(normalized)
 }
 
-trait HasPath {
+/// O(K) replacement for DashMap::retain + insert pattern using a reverse
+/// file-path index. Removes old entries by looking up which keys were
+/// defined in the changed file, then inserts new entries and updates the index.
+///
+/// Falls back to O(N) retain when the index has no entry for the path
+/// (e.g., first incremental update before `rebuild_all_file_indices` runs,
+/// or newly created files that weren't in the initial scan).
+///
+/// Two forms:
+/// - 4-arg: values implement `HasPath` (uses `v.path()` for fallback retain)
+/// - 5-arg: custom path accessor closure `|v| -> &str` for tuple types
+macro_rules! retain_path {
+    ($map:expr, $index:expr, $path:expr, $new_entries:expr $(,)?) => {{
+        let p: &str = $path;
+        if let Some((_, old_keys)) = $index.remove(p) {
+            for key in old_keys {
+                $map.remove(&key);
+            }
+        } else {
+            let p_owned = p.to_owned();
+            $map.retain(|_, v| !path_matches(v.path(), &p_owned));
+        }
+        let mut file_keys = Vec::with_capacity($new_entries.len());
+        for (key, value) in $new_entries {
+            let ik: InternedStr = std::sync::Arc::from(key.as_ref());
+            $map.insert(ik.clone(), value);
+            file_keys.push(ik);
+        }
+        $index.insert(std::sync::Arc::from(p), file_keys);
+    }};
+    ($map:expr, $index:expr, $path:expr, $new_entries:expr, $path_fn:expr $(,)?) => {{
+        let p: &str = $path;
+        if let Some((_, old_keys)) = $index.remove(p) {
+            for key in old_keys {
+                $map.remove(&key);
+            }
+        } else {
+            let p_owned = p.to_owned();
+            $map.retain(|_, v| !path_matches($path_fn(v), &p_owned));
+        }
+        let mut file_keys = Vec::with_capacity($new_entries.len());
+        for (key, value) in $new_entries {
+            let ik: InternedStr = std::sync::Arc::from(key.as_ref());
+            $map.insert(ik.clone(), value);
+            file_keys.push(ik);
+        }
+        $index.insert(std::sync::Arc::from(p), file_keys);
+    }};
+}
+
+pub(crate) trait HasPath {
     fn path(&self) -> &str;
 }
 
@@ -323,23 +374,22 @@ fn update_from_ast(
 
 // ── Per-category update helpers ──
 //
-// Each helper now operates directly on DashMap fields — no cloning of the
-// entire registry. retain() removes old entries, insert() adds new ones,
-// all without allocating a full snapshot.
+// Each helper now uses retain_path! macro for O(K) removal via reverse index.
 
 fn update_localization(scanner_data: &ScannerData, path_str: &str, content: &str) {
     let (parsed, _, _) = loc_parser::parse_loc_file(content, path_str);
 
-    scanner_data
-        .localization
-        .retain(|_, v| !path_matches(&v.path, path_str));
-    for (key, entry) in parsed {
-        scanner_data.localization.insert(key, entry);
-    }
+    // O(K) removal via reverse index instead of O(N) retain
+    retain_path!(
+        scanner_data.localization,
+        scanner_data.localization_file_index,
+        path_str,
+        parsed
+    );
 
     // Rebuild duplicated_loc_keys from scratch (cheapest after a loc change)
-    let mut seen: HashSet<(String, String)> = HashSet::new();
-    let mut dups = HashSet::new();
+    let mut seen: HashSet<(InternedStr, InternedStr)> = HashSet::new();
+    let mut dups: HashSet<(InternedStr, InternedStr)> = HashSet::new();
     for entry in scanner_data.localization.iter() {
         let pair = (entry.value().path.clone(), entry.value().key.clone());
         if seen.contains(&pair) {
@@ -355,15 +405,10 @@ fn update_localization(scanner_data: &ScannerData, path_str: &str, content: &str
 }
 
 fn update_events(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
-    let mut new_events = HashMap::new();
-    event_scanner::find_event_definitions(&script.entries, path_str, &mut new_events);
+    let mut new_entries = HashMap::new();
+    event_scanner::find_event_definitions(&script.entries, path_str, &mut new_entries);
 
-    scanner_data
-        .events
-        .retain(|_, v| !path_matches(v.path(), path_str));
-    for (key, event) in new_events {
-        scanner_data.events.insert(key, event);
-    }
+    retain_path!(scanner_data.events, scanner_data.events_file_index, path_str, new_entries);
 }
 
 fn update_scripted(scanner_data: &ScannerData, kind: &str, path_str: &str, script: &ast::Script) {
@@ -374,7 +419,7 @@ fn update_scripted(scanner_data: &ScannerData, kind: &str, path_str: &str, scrip
                 ass.key.clone(),
                 scripted_scanner::ScriptedEntity {
                     name: ass.key.clone(),
-                    path: path_str.to_string(),
+                    path: path_str.into(),
                     range: ass.key_range.clone(),
                 },
             );
@@ -383,20 +428,10 @@ fn update_scripted(scanner_data: &ScannerData, kind: &str, path_str: &str, scrip
 
     match kind {
         "triggers" => {
-            scanner_data
-                .scripted_triggers
-                .retain(|_, v| !path_matches(v.path(), path_str));
-            for (k, v) in new_entries {
-                scanner_data.scripted_triggers.insert(k, v);
-            }
+            retain_path!(scanner_data.scripted_triggers, scanner_data.scripted_triggers_file_index, path_str, new_entries);
         }
         "effects" => {
-            scanner_data
-                .scripted_effects
-                .retain(|_, v| !path_matches(v.path(), path_str));
-            for (k, v) in new_entries {
-                scanner_data.scripted_effects.insert(k, v);
-            }
+            retain_path!(scanner_data.scripted_effects, scanner_data.scripted_effects_file_index, path_str, new_entries);
         }
         _ => {}
     }
@@ -410,24 +445,14 @@ fn update_scripted_locs(scanner_data: &ScannerData, path_str: &str, script: &ast
         &mut new_entries,
     );
 
-    scanner_data
-        .scripted_locs
-        .retain(|_, v| !path_matches(v.path(), path_str));
-    for (k, v) in new_entries {
-        scanner_data.scripted_locs.insert(k, v);
-    }
+    retain_path!(scanner_data.scripted_locs, scanner_data.scripted_locs_file_index, path_str, new_entries);
 }
 
 fn update_achievements(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
     achievement_scanner::find_achievements_in_entries(&script.entries, path_str, &mut new_entries);
 
-    scanner_data
-        .achievements
-        .retain(|_, v| !path_matches(v.path(), path_str));
-    for (k, v) in new_entries {
-        scanner_data.achievements.insert(k, v);
-    }
+    retain_path!(scanner_data.achievements, scanner_data.achievements_file_index, path_str, new_entries);
 }
 
 fn update_modifiers(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
@@ -438,48 +463,52 @@ fn update_modifiers(scanner_data: &ScannerData, path_str: &str, script: &ast::Sc
                 ass.key.clone(),
                 modifier_scanner::Modifier {
                     name: ass.key.clone(),
-                    path: path_str.to_string(),
+                    path: path_str.into(),
                     range: ass.key_range.clone(),
                 },
             );
         }
     }
 
-    scanner_data
-        .custom_modifiers
-        .retain(|_, v| !path_matches(v.path(), path_str));
-    for (k, v) in new_entries {
-        scanner_data.custom_modifiers.insert(k, v);
-    }
+    retain_path!(scanner_data.custom_modifiers, scanner_data.custom_modifiers_file_index, path_str, new_entries);
 }
 
 fn update_ideologies(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
     ideology_scanner::find_ideologies_in_entries(&script.entries, path_str, &mut new_entries);
 
-    let mut sub_map = HashMap::new();
+    let mut sub_map: HashMap<InternedStr, (InternedStr, ast::Range, InternedStr)> = HashMap::new();
     for ideology in new_entries.values() {
         for (sub, range) in &ideology.sub_ideology_ranges {
             sub_map.insert(
-                sub.clone(),
-                (ideology.name.clone(), range.clone(), ideology.path.clone()),
+                std::sync::Arc::from(sub.as_str()),
+                (std::sync::Arc::from(ideology.name.as_str()), range.clone(), ideology.path.clone()),
             );
         }
     }
 
-    scanner_data
-        .ideologies
-        .retain(|_, v| !path_matches(v.path(), path_str));
-    for (k, v) in new_entries {
-        scanner_data.ideologies.insert(k, v);
-    }
+    retain_path!(scanner_data.ideologies, scanner_data.ideologies_file_index, path_str, new_entries);
 
-    scanner_data
-        .sub_ideologies
-        .retain(|_, v| !path_matches(&v.2, path_str));
-    for (k, v) in sub_map {
-        scanner_data.sub_ideologies.insert(k, v);
+    // sub_ideologies is a tuple (String, Range, String) — handle manually
+    // since tuples can't implement HasPath or use the retain_path! macro
+    if let Some((_, old_keys)) = scanner_data.sub_ideologies_file_index.remove(path_str) {
+        for key in old_keys {
+            scanner_data.sub_ideologies.remove(&key);
+        }
+    } else {
+        let p_owned = path_str.to_owned();
+        scanner_data
+            .sub_ideologies
+            .retain(|_, v| !path_matches(&v.2, &p_owned));
     }
+    let mut sub_keys = Vec::with_capacity(sub_map.len());
+    for (key, value) in sub_map {
+        scanner_data.sub_ideologies.insert(key.clone(), value);
+        sub_keys.push(key);
+    }
+    scanner_data
+        .sub_ideologies_file_index
+        .insert(std::sync::Arc::from(path_str), sub_keys);
 }
 
 fn update_traits(
@@ -491,36 +520,21 @@ fn update_traits(
     let mut new_entries = HashMap::new();
     trait_scanner::find_traits_in_entries(&script.entries, path_str, trait_type, &mut new_entries);
 
-    scanner_data
-        .traits
-        .retain(|_, v| !path_matches(v.path(), path_str));
-    for (k, v) in new_entries {
-        scanner_data.traits.insert(k, v);
-    }
+    retain_path!(scanner_data.traits, scanner_data.traits_file_index, path_str, new_entries);
 }
 
 fn update_ideas(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
     idea_scanner::find_ideas_in_entries(&script.entries, path_str, &mut new_entries);
 
-    scanner_data
-        .ideas
-        .retain(|_, v| !path_matches(v.path(), path_str));
-    for (k, v) in new_entries {
-        scanner_data.ideas.insert(k, v);
-    }
+    retain_path!(scanner_data.ideas, scanner_data.ideas_file_index, path_str, new_entries);
 }
 
 fn update_characters(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
     character_scanner::find_characters_in_entries(&script.entries, path_str, &mut new_entries);
 
-    scanner_data
-        .characters
-        .retain(|_, v| !path_matches(v.path(), path_str));
-    for (k, v) in new_entries {
-        scanner_data.characters.insert(k, v);
-    }
+    retain_path!(scanner_data.characters, scanner_data.characters_file_index, path_str, new_entries);
 }
 
 fn update_buildings(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
@@ -528,24 +542,14 @@ fn update_buildings(scanner_data: &ScannerData, path_str: &str, script: &ast::Sc
     let path = Path::new(path_str);
     building_scanner::extract_buildings(&script.entries, path, &mut new_entries);
 
-    scanner_data
-        .buildings
-        .retain(|_, v| !path_matches(v.path(), path_str));
-    for (k, v) in new_entries {
-        scanner_data.buildings.insert(k, v);
-    }
+    retain_path!(scanner_data.buildings, scanner_data.buildings_file_index, path_str, new_entries);
 }
 
 fn update_abilities(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
     ability_scanner::find_abilities_in_entries(&script.entries, path_str, &mut new_entries);
 
-    scanner_data
-        .abilities
-        .retain(|_, v| !path_matches(v.path(), path_str));
-    for (k, v) in new_entries {
-        scanner_data.abilities.insert(k, v);
-    }
+    retain_path!(scanner_data.abilities, scanner_data.abilities_file_index, path_str, new_entries);
 }
 
 fn update_ai_strategy_plans(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
@@ -553,12 +557,7 @@ fn update_ai_strategy_plans(scanner_data: &ScannerData, path_str: &str, script: 
     let path = Path::new(path_str);
     ai_strategy_plan_scanner::extract_plans(&script.entries, path, &mut new_entries);
 
-    scanner_data
-        .ai_strategy_plans
-        .retain(|_, v| !path_matches(v.path(), path_str));
-    for (k, v) in new_entries {
-        scanner_data.ai_strategy_plans.insert(k, v);
-    }
+    retain_path!(scanner_data.ai_strategy_plans, scanner_data.ai_strategy_plans_file_index, path_str, new_entries);
 }
 
 fn update_ai_areas(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
@@ -566,12 +565,7 @@ fn update_ai_areas(scanner_data: &ScannerData, path_str: &str, script: &ast::Scr
     let path = Path::new(path_str);
     ai_area_scanner::extract_areas(&script.entries, path, &mut new_entries);
 
-    scanner_data
-        .ai_areas
-        .retain(|_, v| !path_matches(v.path(), path_str));
-    for (k, v) in new_entries {
-        scanner_data.ai_areas.insert(k, v);
-    }
+    retain_path!(scanner_data.ai_areas, scanner_data.ai_areas_file_index, path_str, new_entries);
 }
 
 fn update_defines(scanner_data: &ScannerData, content: &str) {
@@ -610,7 +604,7 @@ fn update_country_tags(scanner_data: &ScannerData, path_str: &str, content: &str
                     country_scanner::CountryTag {
                         tag: tag.to_string(),
                         name,
-                        path: path_str.to_string(),
+                        path: path_str.into(),
                         range: ast::Range {
                             start_line: 0,
                             start_col: 0,
@@ -638,7 +632,7 @@ fn update_country_tags(scanner_data: &ScannerData, path_str: &str, content: &str
                         country_scanner::CountryTag {
                             tag: tag.to_string(),
                             name,
-                            path: path_str.to_string(),
+                            path: path_str.into(),
                             range: ast::Range {
                                 start_line: 0,
                                 start_col: 0,
@@ -653,12 +647,7 @@ fn update_country_tags(scanner_data: &ScannerData, path_str: &str, content: &str
         }
     }
 
-    scanner_data
-        .country_tags
-        .retain(|_, v| !path_matches(v.path(), path_str));
-    for (k, v) in new_entries {
-        scanner_data.country_tags.insert(k, v);
-    }
+    retain_path!(scanner_data.country_tags, scanner_data.country_tags_file_index, path_str, new_entries);
 }
 
 fn update_variables(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
@@ -673,7 +662,7 @@ fn update_variables(scanner_data: &ScannerData, path_str: &str, script: &ast::Sc
         !vec.is_empty()
     });
     for (k, mut v) in new_vars {
-        scanner_data.variables.entry(k).or_default().append(&mut v);
+        scanner_data.variables.entry(k.into()).or_default().append(&mut v);
     }
 
     scanner_data.event_targets.retain(|_, vec| {
@@ -683,7 +672,7 @@ fn update_variables(scanner_data: &ScannerData, path_str: &str, script: &ast::Sc
     for (k, mut v) in new_targets {
         scanner_data
             .event_targets
-            .entry(k)
+            .entry(k.into())
             .or_default()
             .append(&mut v);
     }
@@ -699,12 +688,7 @@ fn update_music_asset(scanner_data: &ScannerData, path_str: &str, script: &ast::
         let mut assets = HashMap::new();
         music_scanner::find_assets_in_entries(&script.entries, path_str, &mut assets);
 
-        scanner_data
-            .music_assets
-            .retain(|_, v| !path_matches(v.path(), path_str));
-        for (k, v) in assets {
-            scanner_data.music_assets.insert(k, v);
-        }
+        retain_path!(scanner_data.music_assets, scanner_data.music_assets_file_index, path_str, assets);
     } else if ext == "txt" {
         let mut stations = HashMap::new();
         let mut songs = HashMap::new();
@@ -715,19 +699,8 @@ fn update_music_asset(scanner_data: &ScannerData, path_str: &str, script: &ast::
             &mut songs,
         );
 
-        scanner_data
-            .music_stations
-            .retain(|_, v| !path_matches(v.path(), path_str));
-        for (k, v) in stations {
-            scanner_data.music_stations.insert(k, v);
-        }
-
-        scanner_data
-            .songs
-            .retain(|_, v| !path_matches(v.path(), path_str));
-        for (k, v) in songs {
-            scanner_data.songs.insert(k, v);
-        }
+        retain_path!(scanner_data.music_stations, scanner_data.music_stations_file_index, path_str, stations);
+        retain_path!(scanner_data.songs, scanner_data.songs_file_index, path_str, songs);
     }
 }
 
@@ -745,33 +718,10 @@ fn update_sounds(scanner_data: &ScannerData, path_str: &str, script: &ast::Scrip
         &mut categories,
     );
 
-    scanner_data
-        .sounds
-        .retain(|_, v| !path_matches(v.path(), path_str));
-    for (k, v) in sounds {
-        scanner_data.sounds.insert(k, v);
-    }
-
-    scanner_data
-        .sound_effects
-        .retain(|_, v| !path_matches(v.path(), path_str));
-    for (k, v) in effects {
-        scanner_data.sound_effects.insert(k, v);
-    }
-
-    scanner_data
-        .falloffs
-        .retain(|_, v| !path_matches(v.path(), path_str));
-    for (k, v) in falloffs {
-        scanner_data.falloffs.insert(k, v);
-    }
-
-    scanner_data
-        .sound_categories
-        .retain(|_, v| !path_matches(v.path(), path_str));
-    for (k, v) in categories {
-        scanner_data.sound_categories.insert(k, v);
-    }
+    retain_path!(scanner_data.sounds, scanner_data.sounds_file_index, path_str, sounds);
+    retain_path!(scanner_data.sound_effects, scanner_data.sound_effects_file_index, path_str, effects);
+    retain_path!(scanner_data.falloffs, scanner_data.falloffs_file_index, path_str, falloffs);
+    retain_path!(scanner_data.sound_categories, scanner_data.sound_categories_file_index, path_str, categories);
 }
 
 fn update_portraits(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
@@ -779,24 +729,14 @@ fn update_portraits(scanner_data: &ScannerData, path_str: &str, script: &ast::Sc
     let path = Path::new(path_str);
     portrait_scanner::extract_portraits(&script.entries, path, &mut new_entries);
 
-    scanner_data
-        .portraits
-        .retain(|_, v| !path_matches(v.path(), path_str));
-    for (k, v) in new_entries {
-        scanner_data.portraits.insert(k, v);
-    }
+    retain_path!(scanner_data.portraits, scanner_data.portraits_file_index, path_str, new_entries);
 }
 
 fn update_sprites(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
     sprite_scanner::find_sprites_in_entries(&script.entries, path_str, &mut new_entries);
 
-    scanner_data
-        .sprites
-        .retain(|_, v| !path_matches(v.path(), path_str));
-    for (k, v) in new_entries {
-        scanner_data.sprites.insert(k, v);
-    }
+    retain_path!(scanner_data.sprites, scanner_data.sprites_file_index, path_str, new_entries);
 }
 
 fn update_strategic_regions(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
@@ -807,10 +747,23 @@ fn update_strategic_regions(scanner_data: &ScannerData, path_str: &str, script: 
         &mut new_entries,
     );
 
-    scanner_data
-        .strategic_regions
-        .retain(|_, v| !path_matches(&v.path, path_str));
-    for (k, v) in new_entries {
-        scanner_data.strategic_regions.insert(k, v);
+    let p: &str = path_str;
+    if let Some((_, old_keys)) = scanner_data.strategic_regions_file_index.remove(p) {
+        for key in old_keys {
+            scanner_data.strategic_regions.remove(&key);
+        }
+    } else {
+        let p_owned = p.to_owned();
+        scanner_data
+            .strategic_regions
+            .retain(|_, v| !path_matches(v.path(), &p_owned));
     }
+    let mut file_keys = Vec::with_capacity(new_entries.len());
+    for (key, value) in new_entries {
+        scanner_data.strategic_regions.insert(key, value);
+        file_keys.push(key);
+    }
+    scanner_data
+        .strategic_regions_file_index
+        .insert(std::sync::Arc::from(path_str), file_keys);
 }

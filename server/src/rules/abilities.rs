@@ -31,7 +31,7 @@ impl ValidationRule for AbilityRule {
             return;
         };
 
-        if !ctx.abilities.contains_key(val) {
+        if !ctx.abilities.contains_key(val.as_str()) {
             diags.push(Diagnostic {
                 range: ast_range_to_lsp(&ass.value.range),
                 severity: Some(DiagnosticSeverity::WARNING),
@@ -112,7 +112,7 @@ fn check_ability_properties(
         if p_key.eq_ignore_ascii_case("name") {
             has_name = true;
             if let ast::Value::String(s) = &p_ass.value.value {
-                if !ctx.loc.contains_key(s) {
+                if !ctx.loc.contains_key(s.as_str()) {
                     diags.push(Diagnostic {
                         range: ast_range_to_lsp(&p_ass.value.range),
                         severity: Some(DiagnosticSeverity::WARNING),
@@ -131,7 +131,7 @@ fn check_ability_properties(
         } else if p_key.eq_ignore_ascii_case("desc") {
             has_desc = true;
             if let ast::Value::String(s) = &p_ass.value.value {
-                if !ctx.loc.contains_key(s) {
+                if !ctx.loc.contains_key(s.as_str()) {
                     diags.push(Diagnostic {
                         range: ast_range_to_lsp(&p_ass.value.range),
                         severity: Some(DiagnosticSeverity::WARNING),

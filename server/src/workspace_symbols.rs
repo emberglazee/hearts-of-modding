@@ -32,7 +32,7 @@ pub async fn generate_workspace_symbols(
         if fuzzy_match(&query_lower, name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
-                name: name.clone(),
+                name: name.to_string(),
                 kind: SymbolKind::PROPERTY,
                 tags: None,
                 deprecated: None,
@@ -53,7 +53,7 @@ pub async fn generate_workspace_symbols(
         if fuzzy_match(&query_lower, name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
-                name: name.clone(),
+                name: name.to_string(),
                 kind: SymbolKind::EVENT,
                 tags: None,
                 deprecated: None,
@@ -74,7 +74,7 @@ pub async fn generate_workspace_symbols(
         if fuzzy_match(&query_lower, id) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
-                name: id.clone(),
+                name: id.to_string(),
                 kind: SymbolKind::EVENT,
                 tags: None,
                 deprecated: None,
@@ -95,7 +95,7 @@ pub async fn generate_workspace_symbols(
         if fuzzy_match(&query_lower, name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
-                name: name.clone(),
+                name: name.to_string(),
                 kind: SymbolKind::CLASS,
                 tags: None,
                 deprecated: None,
@@ -116,7 +116,7 @@ pub async fn generate_workspace_symbols(
         if fuzzy_match(&query_lower, name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
-                name: name.clone(),
+                name: name.to_string(),
                 kind: SymbolKind::STRUCT,
                 tags: None,
                 deprecated: None,
@@ -137,7 +137,7 @@ pub async fn generate_workspace_symbols(
         if fuzzy_match(&query_lower, name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
-                name: name.clone(),
+                name: name.to_string(),
                 kind: SymbolKind::FUNCTION,
                 tags: None,
                 deprecated: None,
@@ -158,7 +158,7 @@ pub async fn generate_workspace_symbols(
         if fuzzy_match(&query_lower, name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
-                name: name.clone(),
+                name: name.to_string(),
                 kind: SymbolKind::FUNCTION,
                 tags: None,
                 deprecated: None,
@@ -179,7 +179,7 @@ pub async fn generate_workspace_symbols(
         if fuzzy_match(&query_lower, name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
-                name: name.clone(),
+                name: name.to_string(),
                 kind: SymbolKind::FUNCTION,
                 tags: None,
                 deprecated: None,
@@ -408,7 +408,7 @@ pub async fn generate_workspace_symbols(
         if fuzzy_match(&query_lower, name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
-                name: name.clone(),
+                name: name.to_string(),
                 kind: SymbolKind::FUNCTION,
                 tags: None,
                 deprecated: None,
@@ -453,7 +453,7 @@ pub async fn generate_workspace_symbols(
         if fuzzy_match(&query_lower, name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
-                name: name.clone(),
+                name: name.to_string(),
                 kind: SymbolKind::STRING,
                 tags: None,
                 deprecated: None,
@@ -479,7 +479,7 @@ pub async fn generate_workspace_symbols(
         if fuzzy_match(&query_lower, name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
-                name: name.clone(),
+                name: name.to_string(),
                 kind: SymbolKind::ENUM,
                 tags: None,
                 deprecated: None,
@@ -500,7 +500,7 @@ pub async fn generate_workspace_symbols(
         if fuzzy_match(&query_lower, name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
-                name: name.clone(),
+                name: name.to_string(),
                 kind: SymbolKind::ENUM_MEMBER,
                 tags: None,
                 deprecated: None,
@@ -521,7 +521,7 @@ pub async fn generate_workspace_symbols(
         if fuzzy_match(&query_lower, name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
-                name: name.clone(),
+                name: name.to_string(),
                 kind: SymbolKind::CONSTANT,
                 tags: None,
                 deprecated: None,
@@ -542,7 +542,7 @@ pub async fn generate_workspace_symbols(
         if fuzzy_match(&query_lower, name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
-                name: name.clone(),
+                name: name.to_string(),
                 kind: SymbolKind::STRUCT,
                 tags: None,
                 deprecated: None,
@@ -563,7 +563,7 @@ pub async fn generate_workspace_symbols(
         if fuzzy_match(&query_lower, name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
-                name: name.clone(),
+                name: name.to_string(),
                 kind: SymbolKind::FUNCTION,
                 tags: None,
                 deprecated: None,
@@ -584,7 +584,7 @@ pub async fn generate_workspace_symbols(
         if fuzzy_match(&query_lower, name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
-                name: name.clone(),
+                name: name.to_string(),
                 kind: SymbolKind::ENUM,
                 tags: None,
                 deprecated: None,
@@ -632,7 +632,7 @@ pub async fn generate_workspace_symbols(
             if let Some(var) = var_list.first() {
                 #[allow(deprecated)]
                 symbols.push(SymbolInformation {
-                    name: name.clone(),
+                    name: name.to_string(),
                     kind: SymbolKind::VARIABLE,
                     tags: None,
                     deprecated: None,
@@ -654,7 +654,7 @@ pub async fn generate_workspace_symbols(
         if fuzzy_match(&query_lower, name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
-                name: name.clone(),
+                name: name.to_string(),
                 kind: SymbolKind::EVENT,
                 tags: None,
                 deprecated: None,
@@ -675,7 +675,7 @@ pub async fn generate_workspace_symbols(
         if fuzzy_match(&query_lower, name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
-                name: name.clone(),
+                name: name.to_string(),
                 kind: SymbolKind::EVENT,
                 tags: None,
                 deprecated: None,
@@ -696,7 +696,7 @@ pub async fn generate_workspace_symbols(
         if fuzzy_match(&query_lower, name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
-                name: name.clone(),
+                name: name.to_string(),
                 kind: SymbolKind::EVENT,
                 tags: None,
                 deprecated: None,
@@ -717,7 +717,7 @@ pub async fn generate_workspace_symbols(
         if fuzzy_match(&query_lower, name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {
-                name: name.clone(),
+                name: name.to_string(),
                 kind: SymbolKind::EVENT,
                 tags: None,
                 deprecated: None,

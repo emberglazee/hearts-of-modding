@@ -1,4 +1,5 @@
 use crate::ast::{Entry, Range, Value};
+use crate::interner::InternedStr;
 use dashmap::DashSet;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -44,7 +45,7 @@ pub async fn rename_symbol(
         String,
         (Arc<crate::ast::Script>, Vec<(String, crate::ast::Range)>),
     >,
-    workspace_files: &DashSet<String>,
+    workspace_files: &DashSet<InternedStr>,
 ) -> Option<WorkspaceEdit> {
     let path = uri.trim_start_matches("file://");
 
@@ -175,7 +176,7 @@ fn find_event_references(
         String,
         (Arc<crate::ast::Script>, Vec<(String, crate::ast::Range)>),
     >,
-    workspace_files: &DashSet<String>,
+    workspace_files: &DashSet<InternedStr>,
     changes: &mut HashMap<Uri, Vec<TextEdit>>,
 ) {
     for entry in document_asts.iter() {
@@ -194,7 +195,7 @@ fn find_event_references(
 
     // Process unopened workspace files
     for entry in workspace_files.iter() {
-        let file_path = &*entry;
+        let file_path: &str = &entry;
         let Some(url) = Uri::from_file_path(std::path::Path::new(file_path)) else {
             continue;
         };
@@ -262,7 +263,7 @@ fn find_scripted_trigger_references(
         String,
         (Arc<crate::ast::Script>, Vec<(String, crate::ast::Range)>),
     >,
-    workspace_files: &DashSet<String>,
+    workspace_files: &DashSet<InternedStr>,
     changes: &mut HashMap<Uri, Vec<TextEdit>>,
 ) {
     for entry in document_asts.iter() {
@@ -281,7 +282,7 @@ fn find_scripted_trigger_references(
 
     // Process unopened workspace files
     for entry in workspace_files.iter() {
-        let file_path = &*entry;
+        let file_path: &str = &entry;
         let Some(url) = Uri::from_file_path(std::path::Path::new(file_path)) else {
             continue;
         };
@@ -308,7 +309,7 @@ fn find_scripted_effect_references(
         String,
         (Arc<crate::ast::Script>, Vec<(String, crate::ast::Range)>),
     >,
-    workspace_files: &DashSet<String>,
+    workspace_files: &DashSet<InternedStr>,
     changes: &mut HashMap<Uri, Vec<TextEdit>>,
 ) {
     for entry in document_asts.iter() {
@@ -327,7 +328,7 @@ fn find_scripted_effect_references(
 
     // Process unopened workspace files
     for entry in workspace_files.iter() {
-        let file_path = &*entry;
+        let file_path: &str = &entry;
         let Some(url) = Uri::from_file_path(std::path::Path::new(file_path)) else {
             continue;
         };
@@ -387,7 +388,7 @@ fn find_idea_references(
         String,
         (Arc<crate::ast::Script>, Vec<(String, crate::ast::Range)>),
     >,
-    workspace_files: &DashSet<String>,
+    workspace_files: &DashSet<InternedStr>,
     changes: &mut HashMap<Uri, Vec<TextEdit>>,
 ) {
     for entry in document_asts.iter() {
@@ -406,7 +407,7 @@ fn find_idea_references(
 
     // Process unopened workspace files
     for entry in workspace_files.iter() {
-        let file_path = &*entry;
+        let file_path: &str = &entry;
         let Some(url) = Uri::from_file_path(std::path::Path::new(file_path)) else {
             continue;
         };
@@ -474,7 +475,7 @@ fn find_character_references(
         String,
         (Arc<crate::ast::Script>, Vec<(String, crate::ast::Range)>),
     >,
-    workspace_files: &DashSet<String>,
+    workspace_files: &DashSet<InternedStr>,
     changes: &mut HashMap<Uri, Vec<TextEdit>>,
 ) {
     for entry in document_asts.iter() {
@@ -493,7 +494,7 @@ fn find_character_references(
 
     // Process unopened workspace files
     for entry in workspace_files.iter() {
-        let file_path = &*entry;
+        let file_path: &str = &entry;
         let Some(url) = Uri::from_file_path(std::path::Path::new(file_path)) else {
             continue;
         };
@@ -573,7 +574,7 @@ fn find_variable_references(
         String,
         (Arc<crate::ast::Script>, Vec<(String, crate::ast::Range)>),
     >,
-    workspace_files: &DashSet<String>,
+    workspace_files: &DashSet<InternedStr>,
     changes: &mut HashMap<Uri, Vec<TextEdit>>,
 ) {
     for entry in document_asts.iter() {
@@ -592,7 +593,7 @@ fn find_variable_references(
 
     // Process unopened workspace files
     for entry in workspace_files.iter() {
-        let file_path = &*entry;
+        let file_path: &str = &entry;
         let Some(url) = Uri::from_file_path(std::path::Path::new(file_path)) else {
             continue;
         };
@@ -664,7 +665,7 @@ fn find_ability_references(
         String,
         (Arc<crate::ast::Script>, Vec<(String, crate::ast::Range)>),
     >,
-    workspace_files: &DashSet<String>,
+    workspace_files: &DashSet<InternedStr>,
     changes: &mut HashMap<Uri, Vec<TextEdit>>,
 ) {
     for entry in document_asts.iter() {
@@ -683,7 +684,7 @@ fn find_ability_references(
 
     // Process unopened workspace files
     for entry in workspace_files.iter() {
-        let file_path = &*entry;
+        let file_path: &str = &entry;
         let Some(url) = Uri::from_file_path(std::path::Path::new(file_path)) else {
             continue;
         };
@@ -741,7 +742,7 @@ fn find_color_code_references(
     old_name: &str,
     new_name: &str,
     documents: &dashmap::DashMap<String, String>,
-    workspace_files: &DashSet<String>,
+    workspace_files: &DashSet<InternedStr>,
     changes: &mut HashMap<Uri, Vec<TextEdit>>,
 ) {
     // Only allow single-character color codes
@@ -790,7 +791,7 @@ fn find_color_code_references(
 
     // Process unopened workspace files
     for entry in workspace_files.iter() {
-        let file_path = &*entry;
+        let file_path: &str = &entry;
         let Some(url) = Uri::from_file_path(std::path::Path::new(file_path)) else {
             continue;
         };

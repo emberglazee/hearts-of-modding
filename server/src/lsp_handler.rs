@@ -183,6 +183,9 @@ impl LanguageServer for Backend {
             self.scan_gfx(&roots),
         );
 
+        // Rebuild reverse file-path indices so incremental updates are O(K) not O(N)
+        self.scanner_data.rebuild_all_file_indices();
+
         // Collect workspace file paths for rename operations
         // Only scan the mod workspace (first root), not the game path
         self.collect_workspace_files(&roots[..1]).await;
@@ -817,7 +820,13 @@ impl LanguageServer for Backend {
 
     async fn execute_command(&self, params: ExecuteCommandParams) -> Result<Option<LSPAny>> {
         if params.command == "hoi4/getEventGraph" {
-            let json = serde_json::to_value(&self.scanner_data.events).unwrap();
+            let events_map: std::collections::HashMap<String, crate::event_scanner::Event> = self
+                .scanner_data
+                .events
+                .iter()
+                .map(|e| (e.key().to_string(), e.value().clone()))
+                .collect();
+            let json = serde_json::to_value(&events_map).unwrap();
             return Ok(Some(json));
         } else if params.command == "hoi4/getMemoryUsage" {
             let mut sys = self.system_info.lock().unwrap();

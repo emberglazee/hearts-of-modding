@@ -1,3 +1,4 @@
+use crate::interner::InternedStr;
 use crate::ast::{DiagnosticSeverity, Range};
 use crate::byte_offset_to_utf16;
 use dashmap::DashMap;
@@ -15,10 +16,10 @@ type Span<'a> = LocatedSpan<&'a str>;
 
 #[derive(Debug, Clone)]
 pub struct LocEntry {
-    pub key: String,
+    pub key: InternedStr,
     pub value: String,
     pub range: Range,
-    pub path: String,
+    pub path: InternedStr,
     pub value_start_col: u32,
     pub version: Option<String>,
     pub version_range: Option<Range>,
@@ -103,8 +104,8 @@ static RE_NESTED: Lazy<regex::Regex> = Lazy::new(|| regex::Regex::new(r"\$([^\$]
 
 pub fn validate_loc_string(
     entry: &LocEntry,
-    event_targets: &DashMap<String, Vec<crate::variable_scanner::EventTarget>>,
-    scripted_locs: &DashMap<String, crate::scripted_loc_scanner::ScriptedLoc>,
+    event_targets: &DashMap<InternedStr, Vec<crate::variable_scanner::EventTarget>>,
+    scripted_locs: &DashMap<InternedStr, crate::scripted_loc_scanner::ScriptedLoc>,
     color_codes: &HashSet<String>,
 ) -> Vec<LocDiagnostic> {
     let mut diagnostics = Vec::new();
@@ -649,11 +650,11 @@ pub fn parse_loc_file(
     input: &str,
     path: &str,
 ) -> (
-    HashMap<String, LocEntry>,
+    HashMap<InternedStr, LocEntry>,
     Vec<LocDiagnostic>,
     Option<String>,
 ) {
-    let mut map = HashMap::new();
+    let mut map: HashMap<InternedStr, LocEntry> = HashMap::new();
     let mut diagnostics = validate_loc_file_structure(input);
     diagnostics.extend(validate_unescaped_quotes_in_file(input));
 
@@ -801,10 +802,13 @@ fn parse_loc_entry<'a>(input: Span<'a>, path: &'a str) -> IResult<Span<'a>, LocE
     Ok((
         input,
         LocEntry {
-            key: key_span.fragment().to_string(),
+            key: {
+                let key_s: &str = key_span.fragment();
+                std::sync::Arc::from(key_s)
+            },
             value,
             range: to_range(key_span),
-            path: path.to_string(),
+            path: std::sync::Arc::from(path),
             value_start_col: start_val.get_column() as u32 - 1,
             version,
             version_range,

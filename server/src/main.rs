@@ -33,6 +33,7 @@ mod hover_handler;
 mod idea_scanner;
 mod ideology_scanner;
 mod incremental_scanner;
+mod interner;
 mod loc_parser;
 mod loc_preview;
 mod logistics_scanner;

@@ -1,3 +1,4 @@
+use crate::interner::InternedStr;
 use crate::ast;
 use crate::parser;
 use std::collections::HashMap;
@@ -25,7 +26,7 @@ pub struct Character {
     pub desc: Option<String>,               // Loc key for country_leader/scientist description
     pub portraits: HashMap<String, String>, // e.g. "army_large" -> "GFX_portrait...", "civilian_small" -> ...
     pub roles: Vec<CharacterRole>,
-    pub path: String,
+    pub path: InternedStr,
     pub range: ast::Range,
 }
 
@@ -69,7 +70,7 @@ pub(crate) fn find_characters_in_entries(
                                     desc: None,
                                     portraits: HashMap::new(),
                                     roles: Vec::new(),
-                                    path: file_path.to_string(),
+                                    path: std::sync::Arc::from(file_path),
                                     range: char_ass.key_range.clone(),
                                 };
 

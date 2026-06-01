@@ -1,3 +1,4 @@
+use crate::interner::InternedStr;
 use std::fs;
 use std::path::PathBuf;
 
@@ -11,7 +12,7 @@ pub struct MapBuilding {
     pub z: f64,
     pub rotation: f64,
     pub sea_province: u32,
-    pub path: String,
+    pub path: InternedStr,
     pub start_line: u32,
 }
 
@@ -25,7 +26,7 @@ pub struct UnitStack {
     pub z: f64,
     pub rotation: f64,
     pub offset: f64,
-    pub path: String,
+    pub path: InternedStr,
     pub start_line: u32,
 }
 
@@ -37,7 +38,7 @@ pub struct WeatherPosition {
     pub y: f64,
     pub z: f64,
     pub size: String,
-    pub path: String,
+    pub path: InternedStr,
     pub start_line: u32,
 }
 
@@ -81,7 +82,7 @@ where
                         z,
                         rotation,
                         sea_province,
-                        path: buildings_path.to_string_lossy().to_string(),
+                        path: std::sync::Arc::from(buildings_path.to_string_lossy().as_ref()),
                         start_line: line_idx as u32,
                     });
                 }
@@ -113,7 +114,7 @@ where
                         z,
                         rotation,
                         offset,
-                        path: unitstacks_path.to_string_lossy().to_string(),
+                        path: std::sync::Arc::from(unitstacks_path.to_string_lossy().as_ref()),
                         start_line: line_idx as u32,
                     });
                 }
@@ -141,7 +142,7 @@ where
                         y,
                         z,
                         size,
-                        path: weather_path.to_string_lossy().to_string(),
+                        path: std::sync::Arc::from(weather_path.to_string_lossy().as_ref()),
                         start_line: line_idx as u32,
                     });
                 }

@@ -1,3 +1,4 @@
+use crate::interner::InternedStr;
 use crate::ast;
 use crate::parser;
 use std::collections::HashMap;
@@ -5,7 +6,7 @@ use std::path::Path;
 
 #[derive(Debug, Clone)]
 pub struct Focus {
-    pub path: String,
+    pub path: InternedStr,
     pub range: ast::Range,
 }
 
@@ -48,7 +49,7 @@ pub(crate) fn find_focuses_in_entries(
                             map.insert(
                                 id,
                                 Focus {
-                                    path: file_path.to_string(),
+                                    path: std::sync::Arc::from(file_path),
                                     range: ass.key_range.clone(),
                                 },
                             );
@@ -61,7 +62,7 @@ pub(crate) fn find_focuses_in_entries(
                         map.insert(
                             focus_id.clone(),
                             Focus {
-                                path: file_path.to_string(),
+                                path: std::sync::Arc::from(file_path),
                                 range: ass.value.range.clone(),
                             },
                         );
