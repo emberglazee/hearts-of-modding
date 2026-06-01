@@ -31,44 +31,48 @@ use crate::variable_scanner;
 use std::collections::{HashMap, HashSet};
 use tower_lsp_server::ls_types::MessageType;
 
+/// Spawn a blocking scan that returns `HashMap<K, V>`, then clear and
+/// re-insert results into the named DashMap field on `ScannerData`.
+macro_rules! scan_dashmap {
+    ($self:ident, $roots:expr, $scanner_fn:expr, $field:ident, $msg:literal) => {{
+        let filter = $self.get_sync_filter();
+        let roots_owned = $roots.to_vec();
+        let result = tokio::task::spawn_blocking(move || $scanner_fn(&roots_owned, &filter))
+            .await
+            .unwrap();
+        $self.scanner_data.$field.clear();
+        for (k, v) in result {
+            $self.scanner_data.$field.insert(k, v);
+        }
+        let count = $self.scanner_data.$field.len();
+        $self
+            .client
+            .log_message(MessageType::INFO, format!($msg, count))
+            .await;
+    }};
+}
+
+// ── Scan methods ────────────────────────────────────────────────────
+
 impl Backend {
     pub(crate) async fn scan_provinces(&self, roots: &[std::path::PathBuf]) {
-        let filter = self.get_sync_filter();
-        let roots_owned = roots.to_vec();
-        let result = tokio::task::spawn_blocking(move || {
-            province_scanner::scan_provinces(&roots_owned, &filter)
-        })
-        .await
-        .unwrap();
-        self.scanner_data.provinces.clear();
-        for (k, v) in result {
-            self.scanner_data.provinces.insert(k, v);
-        }
-        let provinces = &self.scanner_data.provinces;
-        self.client
-            .log_message(
-                MessageType::INFO,
-                format!("Total: Loaded {} province definitions", provinces.len()),
-            )
-            .await;
+        scan_dashmap!(
+            self,
+            roots,
+            province_scanner::scan_provinces,
+            provinces,
+            "Total: Loaded {} province definitions"
+        );
     }
 
     pub(crate) async fn scan_states(&self, roots: &[std::path::PathBuf]) {
-        let filter = self.get_sync_filter();
-        let roots_owned = roots.to_vec();
-        let result =
-            tokio::task::spawn_blocking(move || state_scanner::scan_states(&roots_owned, &filter))
-                .await
-                .unwrap();
-
-        self.scanner_data.states.clear();
-        for (k, v) in result {
-            self.scanner_data.states.insert(k, v);
-        }
-        let map = &self.scanner_data.states;
-        self.client
-            .log_message(MessageType::INFO, format!("Loaded {} states", map.len()))
-            .await;
+        scan_dashmap!(
+            self,
+            roots,
+            state_scanner::scan_states,
+            states,
+            "Loaded {} states"
+        );
     }
 
     pub(crate) async fn scan_logistics(&self, roots: &[std::path::PathBuf]) {
@@ -157,113 +161,53 @@ impl Backend {
     }
 
     pub(crate) async fn scan_strategic_regions(&self, roots: &[std::path::PathBuf]) {
-        let filter = self.get_sync_filter();
-        let roots_owned = roots.to_vec();
-        let result = tokio::task::spawn_blocking(move || {
-            strategic_region_scanner::scan_strategic_regions(&roots_owned, &filter)
-        })
-        .await
-        .unwrap();
-
-        self.scanner_data.strategic_regions.clear();
-        for (k, v) in result {
-            self.scanner_data.strategic_regions.insert(k, v);
-        }
-        let regions = &self.scanner_data.strategic_regions;
-
-        self.client
-            .log_message(
-                MessageType::INFO,
-                format!("Loaded {} strategic regions", regions.len()),
-            )
-            .await;
+        scan_dashmap!(
+            self,
+            roots,
+            strategic_region_scanner::scan_strategic_regions,
+            strategic_regions,
+            "Loaded {} strategic regions"
+        );
     }
 
     pub(crate) async fn scan_events(&self, roots: &[std::path::PathBuf]) {
-        let filter = self.get_sync_filter();
-        let roots_owned = roots.to_vec();
-        let result =
-            tokio::task::spawn_blocking(move || event_scanner::scan_events(&roots_owned, &filter))
-                .await
-                .unwrap();
-        self.scanner_data.events.clear();
-        for (k, v) in result {
-            self.scanner_data.events.insert(k, v);
-        }
-        let events = &self.scanner_data.events;
-        self.client
-            .log_message(
-                MessageType::INFO,
-                format!("Total: Loaded {} event definitions", events.len()),
-            )
-            .await;
+        scan_dashmap!(
+            self,
+            roots,
+            event_scanner::scan_events,
+            events,
+            "Total: Loaded {} event definitions"
+        );
     }
 
     pub(crate) async fn scan_abilities(&self, roots: &[std::path::PathBuf]) {
-        let filter = self.get_sync_filter();
-        let roots_owned = roots.to_vec();
-        let result = tokio::task::spawn_blocking(move || {
-            ability_scanner::scan_abilities(&roots_owned, &filter)
-        })
-        .await
-        .unwrap();
-        self.scanner_data.abilities.clear();
-        for (k, v) in result {
-            self.scanner_data.abilities.insert(k, v);
-        }
-        let map = &self.scanner_data.abilities;
-        self.client
-            .log_message(
-                MessageType::INFO,
-                format!("Total: Loaded {} abilities", map.len()),
-            )
-            .await;
+        scan_dashmap!(
+            self,
+            roots,
+            ability_scanner::scan_abilities,
+            abilities,
+            "Total: Loaded {} abilities"
+        );
     }
 
     pub(crate) async fn scan_ai_strategy_plans(&self, roots: &[std::path::PathBuf]) {
-        let filter = self.get_sync_filter();
-        let roots_owned = roots.to_vec();
-        let plans = tokio::task::spawn_blocking(move || {
-            ai_strategy_plan_scanner::scan_ai_strategy_plans(&roots_owned, &filter)
-        })
-        .await
-        .unwrap();
-
-        self.scanner_data.ai_strategy_plans.clear();
-        for (k, v) in plans {
-            self.scanner_data.ai_strategy_plans.insert(k, v);
-        }
-        let p = &self.scanner_data.ai_strategy_plans;
-
-        self.client
-            .log_message(
-                MessageType::INFO,
-                format!("Total: Loaded {} AI strategy plans", p.len()),
-            )
-            .await;
+        scan_dashmap!(
+            self,
+            roots,
+            ai_strategy_plan_scanner::scan_ai_strategy_plans,
+            ai_strategy_plans,
+            "Total: Loaded {} AI strategy plans"
+        );
     }
 
     pub(crate) async fn scan_ai_areas(&self, roots: &[std::path::PathBuf]) {
-        let filter = self.get_sync_filter();
-        let roots_owned = roots.to_vec();
-        let areas = tokio::task::spawn_blocking(move || {
-            ai_area_scanner::scan_ai_areas(&roots_owned, &filter)
-        })
-        .await
-        .unwrap();
-
-        self.scanner_data.ai_areas.clear();
-        for (k, v) in areas {
-            self.scanner_data.ai_areas.insert(k, v);
-        }
-        let a = &self.scanner_data.ai_areas;
-
-        self.client
-            .log_message(
-                MessageType::INFO,
-                format!("Total: Loaded {} AI areas", a.len()),
-            )
-            .await;
+        scan_dashmap!(
+            self,
+            roots,
+            ai_area_scanner::scan_ai_areas,
+            ai_areas,
+            "Total: Loaded {} AI areas"
+        );
     }
 
     pub(crate) async fn scan_continents(&self, roots: &[std::path::PathBuf]) {
@@ -293,26 +237,13 @@ impl Backend {
     }
 
     pub(crate) async fn scan_portraits(&self, roots: &[std::path::PathBuf]) {
-        let filter = self.get_sync_filter();
-        let roots_owned = roots.to_vec();
-        let portraits = tokio::task::spawn_blocking(move || {
-            portrait_scanner::scan_portraits(&roots_owned, &filter)
-        })
-        .await
-        .unwrap();
-
-        self.scanner_data.portraits.clear();
-        for (k, v) in portraits {
-            self.scanner_data.portraits.insert(k, v);
-        }
-        let p = &self.scanner_data.portraits;
-
-        self.client
-            .log_message(
-                MessageType::INFO,
-                format!("Total: Loaded {} portrait definitions", p.len()),
-            )
-            .await;
+        scan_dashmap!(
+            self,
+            roots,
+            portrait_scanner::scan_portraits,
+            portraits,
+            "Total: Loaded {} portrait definitions"
+        );
     }
 
     pub(crate) async fn scan_music(&self, roots: &[std::path::PathBuf]) {
@@ -434,49 +365,23 @@ impl Backend {
     }
 
     pub(crate) async fn scan_buildings(&self, roots: &[std::path::PathBuf]) {
-        let filter = self.get_sync_filter();
-        let roots_owned = roots.to_vec();
-        let buildings = tokio::task::spawn_blocking(move || {
-            building_scanner::scan_buildings(&roots_owned, &filter)
-        })
-        .await
-        .unwrap();
-
-        self.scanner_data.buildings.clear();
-        for (k, v) in buildings {
-            self.scanner_data.buildings.insert(k, v);
-        }
-        let b = &self.scanner_data.buildings;
-
-        self.client
-            .log_message(
-                MessageType::INFO,
-                format!("Total: Loaded {} buildings", b.len()),
-            )
-            .await;
+        scan_dashmap!(
+            self,
+            roots,
+            building_scanner::scan_buildings,
+            buildings,
+            "Total: Loaded {} buildings"
+        );
     }
 
     pub(crate) async fn scan_achievements(&self, roots: &[std::path::PathBuf]) {
-        let filter = self.get_sync_filter();
-        let roots_owned = roots.to_vec();
-        let achievements = tokio::task::spawn_blocking(move || {
-            achievement_scanner::scan_achievements(&roots_owned, &filter)
-        })
-        .await
-        .unwrap();
-
-        self.scanner_data.achievements.clear();
-        for (k, v) in achievements {
-            self.scanner_data.achievements.insert(k, v);
-        }
-        let a = &self.scanner_data.achievements;
-
-        self.client
-            .log_message(
-                MessageType::INFO,
-                format!("Total: Loaded {} achievements", a.len()),
-            )
-            .await;
+        scan_dashmap!(
+            self,
+            roots,
+            achievement_scanner::scan_achievements,
+            achievements,
+            "Total: Loaded {} achievements"
+        );
     }
 
     pub(crate) async fn scan_defines(&self, roots: &[std::path::PathBuf]) {
@@ -851,26 +756,13 @@ impl Backend {
     }
 
     pub(crate) async fn scan_characters(&self, roots: &[std::path::PathBuf]) {
-        let filter = self.get_sync_filter();
-        let roots_owned = roots.to_vec();
-        let found = tokio::task::spawn_blocking(move || {
-            character_scanner::scan_characters(&roots_owned, &filter)
-        })
-        .await
-        .unwrap();
-
-        self.scanner_data.characters.clear();
-        for (k, v) in found {
-            self.scanner_data.characters.insert(k, v);
-        }
-        let c_map = &self.scanner_data.characters;
-
-        self.client
-            .log_message(
-                MessageType::INFO,
-                format!("Total: Loaded {} characters", c_map.len()),
-            )
-            .await;
+        scan_dashmap!(
+            self,
+            roots,
+            character_scanner::scan_characters,
+            characters,
+            "Total: Loaded {} characters"
+        );
     }
 
     pub(crate) async fn scan_ideas(&self, roots: &[std::path::PathBuf]) {
@@ -906,46 +798,23 @@ impl Backend {
     }
 
     pub(crate) async fn scan_gfx(&self, roots: &[std::path::PathBuf]) {
-        let filter = self.get_sync_filter();
-        let roots_owned = roots.to_vec();
-        let codes = tokio::task::spawn_blocking(move || {
-            gfx_scanner::scan_color_codes(&roots_owned, &filter)
-        })
-        .await
-        .unwrap();
-
-        self.scanner_data.color_codes.clear();
-        for (k, v) in codes {
-            self.scanner_data.color_codes.insert(k, v);
-        }
-        let c = &self.scanner_data.color_codes;
-        self.client
-            .log_message(
-                MessageType::INFO,
-                format!("Total: Loaded {} color codes from interface/*.gfx", c.len()),
-            )
-            .await;
+        scan_dashmap!(
+            self,
+            roots,
+            gfx_scanner::scan_color_codes,
+            color_codes,
+            "Total: Loaded {} color codes from interface/*.gfx"
+        );
     }
 
     pub(crate) async fn scan_countries(&self, roots: &[std::path::PathBuf]) {
-        let filter = self.get_sync_filter();
-        let roots_owned = roots.to_vec();
-        let result = tokio::task::spawn_blocking(move || {
-            country_scanner::scan_country_tags(&roots_owned, &filter)
-        })
-        .await
-        .unwrap();
-        self.scanner_data.country_tags.clear();
-        for (k, v) in result {
-            self.scanner_data.country_tags.insert(k, v);
-        }
-        let tags = &self.scanner_data.country_tags;
-        self.client
-            .log_message(
-                MessageType::INFO,
-                format!("Loaded {} country tags", tags.len()),
-            )
-            .await;
+        scan_dashmap!(
+            self,
+            roots,
+            country_scanner::scan_country_tags,
+            country_tags,
+            "Loaded {} country tags"
+        );
     }
 
     pub(crate) async fn load_assets(&self) {

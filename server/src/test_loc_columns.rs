@@ -38,9 +38,6 @@ mod tests {
 
     #[test]
     fn test_dangling_color_reset_column_with_section_symbols() {
-        // This is the exact pattern from the reported bug:
-        //   §8...§g...§!...§!   — the second §! is dangling
-        // Value has 3 § characters before the dangling §!
         let e = entry("§8Is home to a §gNovice§! exploitation effort.§!", 11, 0);
         let diags = loc_parser::validate_loc_string(
             &e,
@@ -60,11 +57,6 @@ mod tests {
             "expected exactly one dangling_color_reset diagnostic"
         );
 
-        // Byte offset of last §! in value = 49. With value_start_col = 11 (all ASCII
-        // prefix), the correct UTF-16 start_col is 11 + 46 = 57.
-        //   Byte offset 49 = 3 § chars (6 bytes) + 43 ASCII bytes = 49
-        //   UTF-16 offset = 3 § chars (3 units) + 43 ASCII chars (43 units) = 46
-        // Wrong (byte-based) would give 11 + 49 = 60.
         assert_eq!(
             dangling[0].range.start_col, 57,
             "dangling §! should be at UTF-16 column 57, not byte-based 60"
@@ -77,7 +69,6 @@ mod tests {
 
     #[test]
     fn test_dangling_color_reset_column_no_section_symbols() {
-        // No § characters before the dangling reset — byte and UTF-16 should match
         let e = entry("plain text§! trailing", 5, 0);
         let diags = loc_parser::validate_loc_string(
             &e,
@@ -92,8 +83,6 @@ mod tests {
             .collect();
         assert_eq!(dangling.len(), 1);
 
-        // Byte offset of §! = 10. All ASCII, so UTF-16 offset = 10.
-        // start_col = 5 + 10 = 15
         assert_eq!(dangling[0].range.start_col, 15);
         assert_eq!(dangling[0].range.end_col, 17);
     }
@@ -120,15 +109,10 @@ mod tests {
             "expected exactly one unclosed_color_code diagnostic"
         );
 
-        // value bytes: §(0-1),8(2),S(3),o(4),m(5),e(6),§(7-8),g(9),T(10),e(11),x(12),t(13),§(14-15),R(16)
-        // pos = byte offset of last § = 14
-        // chars before last §: §8Some§gText = 12 chars = 12 UTF-16 units
-        // start_col = value_start_col(3) + 12 = 15
         assert_eq!(
             unclosed[0].range.start_col, 15,
             "unclosed §R at byte=14 should be at UTF-16 col=15 with 3 § prefix"
         );
-        // §R is 2 chars = 2 UTF-16 units
         assert_eq!(unclosed[0].range.end_col, 17);
     }
 
@@ -136,9 +120,6 @@ mod tests {
 
     #[test]
     fn test_unescaped_bracket_column_after_section_symbols() {
-        // value: "§Rtext[InvalidScope]more"
-        // §Rtext = 6 chars (1§ + 5 ASCII), then [ = char 6
-        // bracket [ starts at byte 7, which is 6 UTF-16 code units in
         let e = entry("§Rtext[InvalidScope]more", 2, 0);
         let diags = loc_parser::validate_loc_string(
             &e,
@@ -147,30 +128,25 @@ mod tests {
             &empty_color_codes(),
         );
 
-        // "[InvalidScope]" is unrecognized — all parts are invalid.
-        // The unescaped_bracket diagnostic covers from [ (inclusive).
-        // start_col = value_start_col + byte_offset_to_utf16(value, byte_of_[)
-        //           = 2 + byte_offset_to_utf16("§Rtext[InvalidScope]more", 7)
-        // s[..7] = bytes 0..6 = chars "§Rtext" = 6 UTF-16 units
-        // start_col = 2 + 6 = 8
         let unescaped: Vec<_> = diags
             .iter()
             .filter(|d| d.code.as_deref() == Some("unescaped_bracket"))
             .collect();
-        assert!(!unescaped.is_empty(), "all-parts-invalid diagnostic expected");
+        assert!(
+            !unescaped.is_empty(),
+            "all-parts-invalid diagnostic expected"
+        );
         assert_eq!(
             unescaped[0].range.start_col, 8,
             "unescaped bracket [ at byte 7 → UTF-16 col 8 after § prefix"
         );
 
-        // Also check the first "invalid_loc_scope" for "InvalidScope"
         let invalid: Vec<_> = diags
             .iter()
             .filter(|d| d.code.as_deref() == Some("invalid_loc_scope"))
             .collect();
         assert!(!invalid.is_empty());
-        // "InvalidScope" starts at byte 8 (after "[") = 7 chars from value start
-        // UTF-16 offset = 7 chars = 7. start_col = 2 + 7 = 9.
+
         assert_eq!(
             invalid[0].range.start_col, 9,
             "invalid scope at byte 8 → UTF-16 col 9"
@@ -192,9 +168,7 @@ mod tests {
             .iter()
             .filter(|d| d.code.as_deref() == Some("invalid_loc_scope"))
             .collect();
-        // "[Foo]" matches RE_SCOPE; start_pos = 4 (byte offset of [)
-        // byte_offset_to_utf16("text[Foo]more", 4) = 4 (all ASCII = same)
-        // start_col = 5 + 4 + 1 = 10 (the "F" of Foo)
+
         assert!(!invalid.is_empty());
         assert_eq!(
             invalid[0].range.start_col, 10,
@@ -226,14 +200,6 @@ mod tests {
             "expected invalid_var_format for '@' in formatting"
         );
 
-        // The scope match starts at '[' at byte 7
-        // "var|FORMAT@" in inner (after [?var|FORMAT@])
-        // pipe_pos = 3 (position of | in "var|FORMAT@")
-        // formatting = "FORMAT@"  (starts at pipe_pos + 1 = 4 in var_inner)
-        // "@" is at formatting.find('@') = 6 in formatting
-        // start_col = value_start_col + byte_offset_to_utf16(value, 7) + 2 + 3 + 6
-        // byte_offset_to_utf16("§Rtext[?var|FORMAT@]more", 7) = 6 chars = 6
-        // start_col = 2 + 6 + 2 + 3 + 6 = 19
         assert_eq!(
             var_fmts[0].range.start_col, 19,
             "var formatting '@' column should account for § prefix"
@@ -262,20 +228,6 @@ mod tests {
             "expected invalid_var_format for '@' in $key$ formatting"
         );
 
-        // $key|FORMAT@$ match starts at byte 7 (after §Rtext)
-        // cap.get(0).unwrap().start() = 7
-        // byte_offset_to_utf16(value, 7) = chars "§Rtext" = 6 UTF-16 units... wait
-        // No, s[..7] = bytes 0-6 = chars: §,R,t,e,x,t = 6 chars = 6 UTF-16 units
-        // Hmm but that's the $ sign. Let me recount.
-        // 
-        // value = "§Rtext$key|FORMAT@$more"
-        // §(0-1), R(2), t(3), e(4), x(5), t(6), $(7)
-        // s[..7] = bytes 0-6 = chars "§Rtext" = 6 chars = 6 UTF-16
-        // So byte_offset_to_utf16(value, 7) = 6
-        //
-        // But wait, for the invalid_var_format diagnostic:
-        // start_col = value_start_col + byte_offset_to_utf16(value, cap_start) + 1 + pipe_pos + 1 + formatting.find(c)
-        // = 2 + 6 + 1 + 3 + 1 + 6 = 19
         assert_eq!(
             var_fmts[0].range.start_col, 19,
             "nested $key$ formatting column should account for § prefix"
@@ -304,23 +256,6 @@ mod tests {
             "expected escaped_bracket diagnostic for backslash before ["
         );
 
-        // The backslash is at byte 7 in value (after §Rtext = 6 bytes for 6 chars)
-        // Wait: §(0-1), R(2), t(3), e(4), x(5), t(6), \(7), [(8)
-        // The backslash is at byte 7.
-        // start_pos = 7 (byte offset of backslash from the regex match start_pos)
-        // Actually let me think about what RE_SCOPE returns.
-        // RE_SCOPE = r"\[([^\]]+)\]"
-        // For "§Rtext\[GetTag]", it matches "[GetTag]" starting at byte 8
-        // start_pos = 8
-        // But the escaped_bracket check looks at entry.value[..start_pos].chars().last()
-        // to check if the preceding char is a backslash. start_pos = 8 here.
-        // s[..8] = bytes 0-7 = chars "§Rtext\" = 7 chars
-        // The last char is '\'. So preceding_char = Some('\\').
-        //
-        // The diagnostic start_col = value_start_col + byte_offset_to_utf16(value, start_pos)
-        // byte_offset_to_utf16("§Rtext\\[GetTag]", 8):
-        //   s[..8] = bytes 0-7 = chars "§Rtext\" = 7 chars = 7 UTF-16
-        // start_col = 2 + 7 = 9
         assert_eq!(
             escaped[0].range.start_col, 9,
             "escaped bracket at byte 8 → UTF-16 col 9 (backslash at char 6)"
@@ -349,11 +284,6 @@ mod tests {
             "expected unknown_loc_formatter diagnostic"
         );
 
-        // Scope match starts at '[' at byte 7
-        // start_pos = 7
-        // byte_offset_to_utf16(value, 7) = chars in s[..7] = "§Rtext" = 6 chars = 6
-        // start_col = value_start_col + byte_offset_to_utf16(value, 7) + 1
-        // = 2 + 6 + 1 = 9  (the 'F' of FakeFormatter)
         assert_eq!(
             unknown_fmt[0].range.start_col, 9,
             "loc formatter column should account for § bytes: byte 7 → UTF-16 6, start_col=2+6+1=9"

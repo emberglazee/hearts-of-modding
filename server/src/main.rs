@@ -3462,6 +3462,8 @@ async fn main() {
 }
 
 #[cfg(test)]
+pub mod test_loc_columns;
+#[cfg(test)]
 pub mod test_loc_dups;
 #[cfg(test)]
 pub mod test_loc_empty;
@@ -3469,5 +3471,3 @@ pub mod test_loc_empty;
 pub mod test_parser_skip;
 #[cfg(test)]
 pub mod test_utf16_conversion;
-#[cfg(test)]
-pub mod test_loc_columns;

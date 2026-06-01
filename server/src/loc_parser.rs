@@ -1,6 +1,6 @@
 use crate::ast::{DiagnosticSeverity, Range};
-use dashmap::DashMap;
 use crate::byte_offset_to_utf16;
+use dashmap::DashMap;
 use nom::{
     IResult, Parser,
     bytes::complete::{tag, take_until, take_while1},
@@ -247,9 +247,12 @@ pub fn validate_loc_string(
             if preceding_char == Some('\\') {
                 let range = Range {
                     start_line: entry.range.start_line,
-                    start_col: entry.value_start_col + byte_offset_to_utf16(&entry.value, start_pos),
+                    start_col: entry.value_start_col
+                        + byte_offset_to_utf16(&entry.value, start_pos),
                     end_line: entry.range.start_line,
-                    end_col: entry.value_start_col + byte_offset_to_utf16(&entry.value, start_pos) + 1,
+                    end_col: entry.value_start_col
+                        + byte_offset_to_utf16(&entry.value, start_pos)
+                        + 1,
                 };
                 diagnostics.push(LocDiagnostic {
                     range,
@@ -331,9 +334,14 @@ pub fn validate_loc_string(
             if !formatters.contains(&formatter) {
                 let range = Range {
                     start_line: entry.range.start_line,
-                    start_col: entry.value_start_col + byte_offset_to_utf16(&entry.value, start_pos) + 1,
+                    start_col: entry.value_start_col
+                        + byte_offset_to_utf16(&entry.value, start_pos)
+                        + 1,
                     end_line: entry.range.start_line,
-                    end_col: entry.value_start_col + byte_offset_to_utf16(&entry.value, start_pos) + 1 + formatter.len() as u32,
+                    end_col: entry.value_start_col
+                        + byte_offset_to_utf16(&entry.value, start_pos)
+                        + 1
+                        + formatter.len() as u32,
                 };
                 diagnostics.push(LocDiagnostic {
                     range,
@@ -379,9 +387,12 @@ pub fn validate_loc_string(
             if !valid {
                 let range = Range {
                     start_line: entry.range.start_line,
-                    start_col: entry.value_start_col + byte_offset_to_utf16(&entry.value, current_part_start),
+                    start_col: entry.value_start_col
+                        + byte_offset_to_utf16(&entry.value, current_part_start),
                     end_line: entry.range.start_line,
-                    end_col: entry.value_start_col + byte_offset_to_utf16(&entry.value, current_part_start) + part.len() as u32,
+                    end_col: entry.value_start_col
+                        + byte_offset_to_utf16(&entry.value, current_part_start)
+                        + part.len() as u32,
                 };
                 diagnostics.push(LocDiagnostic {
                     range,
