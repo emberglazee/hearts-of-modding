@@ -596,6 +596,22 @@ impl LanguageServer for Backend {
                 keywords.insert("add_claim_by".to_string());
                 keywords.insert("set_state_name".to_string());
 
+                // Strategic region definition keywords (map/strategicregions/*.txt)
+                keywords.insert("strategic_region".to_string());
+                keywords.insert("weather".to_string());
+                keywords.insert("period".to_string());
+                keywords.insert("between".to_string());
+                keywords.insert("temperature".to_string());
+                keywords.insert("no_phenomenon".to_string());
+                keywords.insert("rain_light".to_string());
+                keywords.insert("rain_heavy".to_string());
+                keywords.insert("snow".to_string());
+                keywords.insert("blizzard".to_string());
+                keywords.insert("mud".to_string());
+                keywords.insert("sandstorm".to_string());
+                keywords.insert("min_snow_level".to_string());
+                keywords.insert("naval_terrain".to_string());
+
                 // Resource types (inside resources = { })
                 // Dynamically scanned from common/resources/*.txt — flows through entity_names pipeline
                 // Building types (inside buildings = { } in state history)

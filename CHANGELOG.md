@@ -18,7 +18,7 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Expanded state scanner:** Validation for custom resources, buildings, and state categories, with expanded semantic highlighting.
 
-- Added `set_temp_variable` to the list of keywords.
+- **Added more missing keywords to semantic highlighting.**
 
 ### 🔧 Changed
 
