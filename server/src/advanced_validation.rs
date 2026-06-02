@@ -17,6 +17,9 @@ pub const ABILITY_MISSING_LOCALIZATION: &str = "HOM3002";
 pub const ABILITY_MISSING_REQUIRED_FIELD: &str = "HOM3003";
 pub const ABILITY_MISSING_AI_LOGIC: &str = "HOM3004";
 pub const PORTRAIT_UNKNOWN_GFX: &str = "HOM4001";
+pub const UNKNOWN_STATE_CATEGORY: &str = "HOM5001";
+pub const UNKNOWN_RESOURCE: &str = "HOM5002";
+pub const UNKNOWN_BUILDING: &str = "HOM5003";
 
 #[derive(Debug, Clone)]
 /// Kept for public API compatibility; no longer directly constructed by validation rules.

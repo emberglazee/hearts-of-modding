@@ -6,13 +6,15 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### Added
 
-- **Added `set_temp_variable` to the list of keywords.**
-
 - **Custom Light/Dark VSCode theme:** Introduced a custom Hearts of Modding VSCode theme that greatly expands the potential for richer semantic highlighting.
 
 - **Semantic highlighting for localization:** Introduced semantic highlighting for localization (`.yml`) files with the custom Hearts of Modding VSCode theme.
 
 - **Validation for country tags in localization commands.**
+
+- **Expanded state scanner:** Validation for custom resources, buildings, and state categories, with expanded semantic highlighting.
+
+- Added `set_temp_variable` to the list of keywords.
 
 ### Changed
 

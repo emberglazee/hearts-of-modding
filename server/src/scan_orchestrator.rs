@@ -22,10 +22,12 @@ use crate::modifier_scanner;
 use crate::music_scanner;
 use crate::portrait_scanner;
 use crate::province_scanner;
+use crate::resource_scanner;
 use crate::scripted_loc_scanner;
 use crate::scripted_scanner;
 use crate::sound_scanner;
 use crate::sprite_scanner;
+use crate::state_category_scanner;
 use crate::state_scanner;
 use crate::strategic_region_scanner;
 use crate::trait_scanner;
@@ -383,6 +385,26 @@ impl Backend {
             building_scanner::scan_buildings,
             buildings,
             "Total: Loaded {} buildings"
+        );
+    }
+
+    pub(crate) async fn scan_resources(&self, roots: &[std::path::PathBuf]) {
+        scan_dashmap!(
+            self,
+            roots,
+            resource_scanner::scan_resources,
+            resources,
+            "Total: Loaded {} resources"
+        );
+    }
+
+    pub(crate) async fn scan_state_categories(&self, roots: &[std::path::PathBuf]) {
+        scan_dashmap!(
+            self,
+            roots,
+            state_category_scanner::scan_state_categories,
+            state_categories,
+            "Total: Loaded {} state categories"
         );
     }
 

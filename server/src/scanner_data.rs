@@ -23,10 +23,12 @@ use crate::modifier_scanner;
 use crate::music_scanner;
 use crate::portrait_scanner;
 use crate::province_scanner;
+use crate::resource_scanner;
 use crate::scripted_loc_scanner;
 use crate::scripted_scanner;
 use crate::sound_scanner;
 use crate::sprite_scanner;
+use crate::state_category_scanner;
 use crate::state_scanner;
 use crate::strategic_region_scanner;
 use crate::trait_scanner;
@@ -85,6 +87,8 @@ pub(crate) struct ScannerData {
     pub falloffs: DashMap<InternedStr, sound_scanner::Falloff>,
     pub sound_categories: DashMap<InternedStr, sound_scanner::SoundCategory>,
     pub buildings: DashMap<InternedStr, building_scanner::Building>,
+    pub resources: DashMap<InternedStr, resource_scanner::Resource>,
+    pub state_categories: DashMap<InternedStr, state_category_scanner::StateCategory>,
     pub achievements: DashMap<InternedStr, achievement_scanner::Achievement>,
     pub abilities: DashMap<InternedStr, ability_scanner::Ability>,
     pub ai_strategy_plans: DashMap<InternedStr, ai_strategy_plan_scanner::AiStrategyPlan>,
@@ -122,6 +126,8 @@ pub(crate) struct ScannerData {
     pub falloffs_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub sound_categories_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub buildings_file_index: DashMap<InternedStr, Vec<InternedStr>>,
+    pub resources_file_index: DashMap<InternedStr, Vec<InternedStr>>,
+    pub state_categories_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub achievements_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub abilities_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub ai_strategy_plans_file_index: DashMap<InternedStr, Vec<InternedStr>>,
@@ -175,6 +181,8 @@ impl ScannerData {
             falloffs: DashMap::new(),
             sound_categories: DashMap::new(),
             buildings: DashMap::new(),
+            resources: DashMap::new(),
+            state_categories: DashMap::new(),
             achievements: DashMap::new(),
             abilities: DashMap::new(),
             ai_strategy_plans: DashMap::new(),
@@ -207,6 +215,8 @@ impl ScannerData {
             falloffs_file_index: DashMap::new(),
             sound_categories_file_index: DashMap::new(),
             buildings_file_index: DashMap::new(),
+            resources_file_index: DashMap::new(),
+            state_categories_file_index: DashMap::new(),
             achievements_file_index: DashMap::new(),
             abilities_file_index: DashMap::new(),
             ai_strategy_plans_file_index: DashMap::new(),
@@ -281,6 +291,8 @@ impl ScannerData {
         rebuild_index!(self.falloffs, self.falloffs_file_index);
         rebuild_index!(self.sound_categories, self.sound_categories_file_index);
         rebuild_index!(self.buildings, self.buildings_file_index);
+        rebuild_index!(self.resources, self.resources_file_index);
+        rebuild_index!(self.state_categories, self.state_categories_file_index);
         rebuild_index!(self.achievements, self.achievements_file_index);
         rebuild_index!(self.abilities, self.abilities_file_index);
         rebuild_index!(self.ai_strategy_plans, self.ai_strategy_plans_file_index);

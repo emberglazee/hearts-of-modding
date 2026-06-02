@@ -1488,6 +1488,8 @@ impl Backend {
         let mod_maps = &self.scanner_data.modifier_mappings;
         let ig_loc = self.config.ignored_loc_regex();
         let buildings = &self.scanner_data.buildings;
+        let resources = &self.scanner_data.resources;
+        let state_categories = &self.scanner_data.state_categories;
         let defines = self.scanner_data.defines();
         let s_effects = &self.scanner_data.sound_effects;
         let ct = &self.scanner_data.country_tags;
@@ -1526,6 +1528,8 @@ impl Backend {
             sound_effects: s_effects,
             country_tags: ct,
             buildings,
+            resources,
+            state_categories,
             defines: &defines,
             continents: &self.scanner_data.continents,
             strategic_regions: &self.scanner_data.strategic_regions,
@@ -1549,6 +1553,7 @@ impl Backend {
             Box::new(rules::provinces::ProvinceRule),
             Box::new(rules::sounds::SoundRule),
             Box::new(rules::sprites::SpriteRule),
+            Box::new(rules::state_definitions::StateDefinitionRule),
             Box::new(rules::traits::TraitRule),
         ];
 

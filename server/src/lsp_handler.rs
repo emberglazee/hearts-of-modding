@@ -175,6 +175,8 @@ impl LanguageServer for Backend {
             self.scan_strategic_regions(&roots),
             self.scan_modifiers(&roots),
             self.scan_buildings(&roots),
+            self.scan_resources(&roots),
+            self.scan_state_categories(&roots),
             self.scan_achievements(&roots),
             self.scan_defines(&roots),
             self.scan_events(&roots),
@@ -563,6 +565,34 @@ impl LanguageServer for Backend {
 
                 // AI strategy plan keywords
                 keywords.insert("ai_strategy".to_string());
+
+                // State definition keywords (history/states/*.txt)
+                keywords.insert("state".to_string());
+                keywords.insert("id".to_string());
+                keywords.insert("manpower".to_string());
+                keywords.insert("state_category".to_string());
+                keywords.insert("impassable".to_string());
+                keywords.insert("resources".to_string());
+                keywords.insert("local_supplies".to_string());
+                keywords.insert("buildings_max_level_factor".to_string());
+                keywords.insert("history".to_string());
+                keywords.insert("provinces".to_string());
+
+                // State history sub-keywords
+                keywords.insert("owner".to_string());
+                keywords.insert("controller".to_string());
+                keywords.insert("victory_points".to_string());
+                keywords.insert("buildings".to_string());
+                keywords.insert("add_core_of".to_string());
+                keywords.insert("add_claim_by".to_string());
+                keywords.insert("set_state_name".to_string());
+
+                // Resource types (inside resources = { })
+                // Dynamically scanned from common/resources/*.txt — flows through entity_names pipeline
+                // Building types (inside buildings = { } in state history)
+                // Dynamically scanned from common/buildings/*.txt — flows through entity_names pipeline
+                // Known state category names (game-defined, highlights values in state_category = X)
+                // Dynamically scanned from common/state_category/*.txt — flows through entity_names pipeline
 
                 let lookup = entity_lookup::EntityLookup::new(&self.scanner_data);
                 let all_names = lookup.entity_names();

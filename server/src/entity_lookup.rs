@@ -50,6 +50,8 @@ pub enum EntityKind {
     ModifierMapping,
     CountryTag,
     ColorCode,
+    Resource,
+    StateCategory,
 }
 
 impl EntityKind {
@@ -95,6 +97,8 @@ impl EntityKind {
             EntityKind::ModifierMapping => SymbolKind::PROPERTY,
             EntityKind::CountryTag => SymbolKind::MODULE,
             EntityKind::ColorCode => SymbolKind::CONSTANT,
+            EntityKind::Resource => SymbolKind::PROPERTY,
+            EntityKind::StateCategory => SymbolKind::ENUM,
         }
     }
 }
@@ -216,6 +220,8 @@ impl<'a> EntityLookup<'a> {
         try_lookup!(ColorCode, color_codes);
         try_lookup!(CountryTag, country_tags);
         try_lookup!(Building, buildings);
+        try_lookup!(Resource, resources);
+        try_lookup!(StateCategory, state_categories);
         try_lookup!(AiStrategyPlan, ai_strategy_plans);
 
         {
@@ -337,6 +343,8 @@ impl<'a> EntityLookup<'a> {
         collect_names!(SoundCategory, sound_categories);
         collect_names!(AdjacencyRule, adjacency_rules);
         collect_names!(Building, buildings);
+        collect_names!(Resource, resources);
+        collect_names!(StateCategory, state_categories);
         collect_names!(CountryTag, country_tags);
         collect_names!(ColorCode, color_codes);
 

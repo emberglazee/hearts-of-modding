@@ -57,10 +57,14 @@ fn entity_kind_to_token_type(kind: EntityKind) -> u32 {
         | EntityKind::AdjacencyRule => TokenType::Function as u32,
 
         // Named categories → Enum
-        EntityKind::Ideology | EntityKind::SoundCategory => TokenType::Enum as u32,
+        EntityKind::Ideology | EntityKind::SoundCategory | EntityKind::StateCategory => {
+            TokenType::Enum as u32
+        }
 
         // Members of named categories → EnumMember
-        EntityKind::SubIdeology | EntityKind::ColorCode => TokenType::EnumMember as u32,
+        EntityKind::SubIdeology | EntityKind::ColorCode | EntityKind::Resource => {
+            TokenType::EnumMember as u32
+        }
 
         // Data structures → Struct
         EntityKind::Trait | EntityKind::Character | EntityKind::Building => {
