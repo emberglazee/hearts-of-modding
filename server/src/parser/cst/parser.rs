@@ -136,9 +136,31 @@ impl CstParser {
 
             TokenKind::Number(_) => {
                 let token = self.advance().expect("Number token");
-                Some(CstNode::EntryValue(CstEntryValue::new(CstValue::Number(
-                    Box::new(token),
-                ))))
+                match self.peek_kind() {
+                    // Operator follows → this is a key=value assignment
+                    Some(TokenKind::OpEquals)
+                    | Some(TokenKind::OpLessThan)
+                    | Some(TokenKind::OpGreaterThan)
+                    | Some(TokenKind::OpNotEquals)
+                    | Some(TokenKind::OpLessOrEqual)
+                    | Some(TokenKind::OpGreaterOrEqual) => {
+                        Some(CstNode::Assignment(self.parse_assignment(token)))
+                    }
+                    // OpenBrace follows → tagged block
+                    Some(TokenKind::OpenBrace) => {
+                        let block = self.parse_block();
+                        Some(CstNode::EntryValue(CstEntryValue::new(
+                            CstValue::TaggedBlock {
+                                tag: Box::new(token),
+                                block: Box::new(block),
+                            },
+                        )))
+                    }
+                    // Otherwise it's a bare number value
+                    _ => Some(CstNode::EntryValue(CstEntryValue::new(CstValue::Number(
+                        Box::new(token),
+                    )))),
+                }
             }
 
             // These tokens belong to the enclosing block; signal the caller
@@ -995,5 +1017,55 @@ mod tests {
                 other => panic!("Expected Assignment, got {:?}", other),
             }
         }
+    }
+
+    #[test]
+    fn numeric_key_assignment() {
+        let script = parse("588 = { naval_base = 3 }");
+        assert_eq!(script.nodes.len(), 1, "should have 1 node");
+        assert_eq!(script.diagnostics.len(), 0, "no diagnostics expected");
+        match &script.nodes[0] {
+            CstNode::Assignment(assign) => {
+                assert_eq!(assign.key.text, "588", "numeric key text should be '588'");
+                assert!(matches!(assign.value, CstValue::Block(_)), "value should be a block");
+            }
+            other => panic!("Expected Assignment with numeric key, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn state_history_numeric_keys() {
+        let input = r#"state = {
+	id = 11
+	name = "STATE_11"
+	manpower = 3031124
+	state_category = large_city
+	provinces = {
+		588 1646 1978
+	}
+	resources = {
+		wood = 2
+		coal = 1
+	}
+	history = {
+		owner = SPE
+		add_core_of = SPE
+		victory_points = { 5259 20 }
+		victory_points = { 1978 10 }
+		buildings = {
+			infrastructure = 3
+			arms_factory = 1
+			588 = { naval_base = 3 }
+		}
+	}
+}
+"#;
+        let script = parse(input);
+        assert_eq!(
+            script.diagnostics.len(), 0,
+            "state history should parse with 0 diagnostics, got {}",
+            script.diagnostics.iter().map(|d| format!("{}", d.message)).collect::<Vec<_>>().join(", ")
+        );
+        assert_eq!(script.nodes.len(), 1, "should have 1 top-level node");
     }
 }
