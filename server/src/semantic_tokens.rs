@@ -341,9 +341,7 @@ pub fn loc_semantic_tokens(content: &str) -> SemanticTokensResult {
                 for c in rest_after_open.chars() {
                     if c == '"' {
                         // Check if escaped
-                        if byte_offset > 0
-                            && rest_after_open[..byte_offset].ends_with('\\')
-                        {
+                        if byte_offset > 0 && rest_after_open[..byte_offset].ends_with('\\') {
                             byte_offset += c.len_utf8();
                             continue;
                         }
@@ -621,9 +619,20 @@ mod tests {
             SemanticTokensResult::Tokens(t) => {
                 // Decode delta encoding back to absolute positions
                 let legend = [
-                    "keyword", "variable", "string", "number", "operator",
-                    "comment", "type", "event", "function", "enum",
-                    "enum_member", "struct", "class", "property",
+                    "keyword",
+                    "variable",
+                    "string",
+                    "number",
+                    "operator",
+                    "comment",
+                    "type",
+                    "event",
+                    "function",
+                    "enum",
+                    "enum_member",
+                    "struct",
+                    "class",
+                    "property",
                 ];
                 let mut absolute: Vec<(u32, u32, u32, u32)> = Vec::new();
                 let mut last_line = 0u32;
@@ -659,7 +668,11 @@ mod tests {
         let content = "l_english:\n KEY:0 \"Hello world\"\n";
         let tokens = collect_loc_tokens(content);
         // l_english: → keyword + operator
-        assert_eq!(tokens[0], (0, 0, 9, "keyword".to_string()), "header keyword");
+        assert_eq!(
+            tokens[0],
+            (0, 0, 9, "keyword".to_string()),
+            "header keyword"
+        );
         assert_eq!(tokens[1], (0, 9, 1, "operator".to_string()), "header colon");
         // KEY:0 "Hello world" → type + operator + number + string + string + string
         assert_eq!(tokens[2], (1, 1, 3, "type".to_string()), "key");
@@ -717,7 +730,7 @@ mod tests {
             tokens.iter().filter(|t| t.3 == "variable").collect();
         assert_eq!(variables.len(), 1, "nested key is variable");
         assert_eq!(variables[0].1, 15); // OTHER starts at col 15
-        assert_eq!(variables[0].2, 5);  // "OTHER" length
+        assert_eq!(variables[0].2, 5); // "OTHER" length
     }
 
     #[test]
@@ -750,8 +763,7 @@ mod tests {
 
     #[test]
     fn test_loc_mixed_content() {
-        let content =
-            "l_english:\n MY_KEY:0 \"§GHello§! from [ROOT.GetName] with $NESTED$\"\n";
+        let content = "l_english:\n MY_KEY:0 \"§GHello§! from [ROOT.GetName] with $NESTED$\"\n";
         let tokens = collect_loc_tokens(content);
         let enum_members: Vec<&(u32, u32, u32, String)> =
             tokens.iter().filter(|t| t.3 == "enum_member").collect();
@@ -780,4 +792,3 @@ mod tests {
         assert_eq!(line1_tokens[2].1, 6); // opening " at col 6
     }
 }
-
