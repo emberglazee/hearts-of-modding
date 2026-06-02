@@ -1,7 +1,7 @@
-use crate::ast;
-use crate::lsp_convert::ast_range_to_lsp;
+use crate::parser::ast;
 use crate::rules::{ValidationContext, ValidationRule};
-use crate::scope::ScopeStack;
+use crate::scope::scope::ScopeStack;
+use crate::utils::lsp_convert::ast_range_to_lsp;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
 /// Validates ability references and ability definition completeness.
@@ -35,7 +35,7 @@ impl ValidationRule for AbilityRule {
                 severity: Some(DiagnosticSeverity::WARNING),
                 message: format!("Unknown ability: '{}'", val),
                 code: Some(NumberOrString::String(
-                    crate::advanced_validation::UNKNOWN_TRIGGER.to_string(),
+                    crate::validation::advanced_validation::UNKNOWN_TRIGGER.to_string(),
                 )),
                 source: Some("Hearts of Modding".to_string()),
                 ..Default::default()
@@ -119,7 +119,8 @@ fn check_ability_properties(
                             a_ass.key, s
                         ),
                         code: Some(NumberOrString::String(
-                            crate::advanced_validation::ABILITY_MISSING_LOCALIZATION.to_string(),
+                            crate::validation::advanced_validation::ABILITY_MISSING_LOCALIZATION
+                                .to_string(),
                         )),
                         source: Some("Hearts of Modding".to_string()),
                         ..Default::default()
@@ -138,7 +139,8 @@ fn check_ability_properties(
                             a_ass.key, s
                         ),
                         code: Some(NumberOrString::String(
-                            crate::advanced_validation::ABILITY_MISSING_LOCALIZATION.to_string(),
+                            crate::validation::advanced_validation::ABILITY_MISSING_LOCALIZATION
+                                .to_string(),
                         )),
                         source: Some("Hearts of Modding".to_string()),
                         ..Default::default()
@@ -162,7 +164,7 @@ fn check_ability_properties(
             severity: Some(DiagnosticSeverity::WARNING),
             message: format!("Ability '{}' is missing required 'name' field", a_ass.key),
             code: Some(NumberOrString::String(
-                crate::advanced_validation::ABILITY_MISSING_REQUIRED_FIELD.to_string(),
+                crate::validation::advanced_validation::ABILITY_MISSING_REQUIRED_FIELD.to_string(),
             )),
             source: Some("Hearts of Modding".to_string()),
             ..Default::default()
@@ -174,7 +176,7 @@ fn check_ability_properties(
             severity: Some(DiagnosticSeverity::WARNING),
             message: format!("Ability '{}' is missing required 'desc' field", a_ass.key),
             code: Some(NumberOrString::String(
-                crate::advanced_validation::ABILITY_MISSING_REQUIRED_FIELD.to_string(),
+                crate::validation::advanced_validation::ABILITY_MISSING_REQUIRED_FIELD.to_string(),
             )),
             source: Some("Hearts of Modding".to_string()),
             ..Default::default()
@@ -186,7 +188,7 @@ fn check_ability_properties(
             severity: Some(DiagnosticSeverity::WARNING),
             message: format!("Ability '{}' is missing required 'cost' field", a_ass.key),
             code: Some(NumberOrString::String(
-                crate::advanced_validation::ABILITY_MISSING_REQUIRED_FIELD.to_string(),
+                crate::validation::advanced_validation::ABILITY_MISSING_REQUIRED_FIELD.to_string(),
             )),
             source: Some("Hearts of Modding".to_string()),
             ..Default::default()
@@ -201,7 +203,7 @@ fn check_ability_properties(
                 a_ass.key
             ),
             code: Some(NumberOrString::String(
-                crate::advanced_validation::ABILITY_MISSING_REQUIRED_FIELD.to_string(),
+                crate::validation::advanced_validation::ABILITY_MISSING_REQUIRED_FIELD.to_string(),
             )),
             source: Some("Hearts of Modding".to_string()),
             ..Default::default()
@@ -216,7 +218,7 @@ fn check_ability_properties(
                 a_ass.key
             ),
             code: Some(NumberOrString::String(
-                crate::advanced_validation::ABILITY_MISSING_REQUIRED_FIELD.to_string(),
+                crate::validation::advanced_validation::ABILITY_MISSING_REQUIRED_FIELD.to_string(),
             )),
             source: Some("Hearts of Modding".to_string()),
             ..Default::default()
@@ -231,7 +233,7 @@ fn check_ability_properties(
                 a_ass.key
             ),
             code: Some(NumberOrString::String(
-                crate::advanced_validation::ABILITY_MISSING_AI_LOGIC.to_string(),
+                crate::validation::advanced_validation::ABILITY_MISSING_AI_LOGIC.to_string(),
             )),
             source: Some("Hearts of Modding".to_string()),
             ..Default::default()

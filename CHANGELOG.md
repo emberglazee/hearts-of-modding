@@ -1,10 +1,12 @@
-# 🧾 Changelog
+# 📝 Changelog
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
 ## [v0.14.0] - 2026-06-02
 
-### Added
+***The home stretch to v1.0.0 is here.***
+
+### ✨ Added
 
 - **Huge semantic highlighting improvements:**
 
@@ -18,11 +20,17 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - Added `set_temp_variable` to the list of keywords.
 
-### Changed
+### 🔧 Changed
 
 - **Bumped up the minimal VSCode version requirement to v1.82.0.**
 
-- **Massive internal LSP refactor:** Split `advanced_validation.rs` and `backend.rs` into a more coherent code structure, implemented Reverse Index for localization, and String Interning.
+- **Massive internal LSP refactor:**
+
+  - **Split `advanced_validation.rs` and `backend.rs` into a more coherent code structure.**
+
+  - **Implemented Reverse Index for localization, and String Interning** for memory optimization wherever possible.
+
+  - (finally) **Sorted and organized the 80+ flat Rust files into separate directories.**
 
 ## [v0.13.0] - 2026-06-01
 

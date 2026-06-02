@@ -1,6 +1,6 @@
-use crate::ast;
-use crate::lsp_convert::ast_range_to_lsp;
+use crate::parser::ast;
 use crate::rules::{ValidationContext, ValidationRule};
+use crate::utils::lsp_convert::ast_range_to_lsp;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
 /// Validates building level values against their maximum allowed levels.
@@ -77,7 +77,8 @@ fn validate_building_block(
                                 level, max_level, building_name
                             ),
                             code: Some(NumberOrString::String(
-                                crate::advanced_validation::BUILDING_LEVEL_EXCEEDS_MAX.to_string(),
+                                crate::validation::advanced_validation::BUILDING_LEVEL_EXCEEDS_MAX
+                                    .to_string(),
                             )),
                             source: Some("Hearts of Modding".to_string()),
                             data: Some(serde_json::json!({

@@ -1,7 +1,7 @@
-use crate::ast;
-use crate::lsp_convert::ast_range_to_lsp;
+use crate::parser::ast;
 use crate::rules::{ValidationContext, ValidationRule};
-use crate::scope::ScopeStack;
+use crate::scope::scope::ScopeStack;
+use crate::utils::lsp_convert::ast_range_to_lsp;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
 /// Validates province references.
@@ -63,7 +63,7 @@ fn check_is_province(val: &ast::NodeedValue, ctx: &ValidationContext, diags: &mu
                 severity: Some(DiagnosticSeverity::WARNING),
                 message: format!("Unknown province ID: {}", id),
                 code: Some(NumberOrString::String(
-                    crate::advanced_validation::UNKNOWN_TRIGGER.to_string(),
+                    crate::validation::advanced_validation::UNKNOWN_TRIGGER.to_string(),
                 )),
                 source: Some("Hearts of Modding".to_string()),
                 ..Default::default()
@@ -90,7 +90,8 @@ fn validate_victory_points_reference(entries: &[ast::Entry], diags: &mut Vec<Dia
                         vp_province
                     ),
                     code: Some(NumberOrString::String(
-                        crate::advanced_validation::VICTORY_POINT_PROVINCE_NOT_IN_STATE.to_string(),
+                        crate::validation::advanced_validation::VICTORY_POINT_PROVINCE_NOT_IN_STATE
+                            .to_string(),
                     )),
                     source: Some("Hearts of Modding".to_string()),
                     data: Some(serde_json::json!({

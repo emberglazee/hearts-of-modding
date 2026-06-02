@@ -5,18 +5,18 @@ use dashmap::DashMap;
 use tower_lsp_server::Client;
 use tower_lsp_server::ls_types::*;
 
-use crate::advanced_validation;
-use crate::ast;
 use crate::config::Config;
-use crate::interner::InternedStr;
-use crate::loc_parser;
-use crate::lsp_convert::{ast_range_to_lsp, ast_related_info_to_lsp, ast_tag_to_lsp};
-use crate::parser;
+use crate::data::interner::InternedStr;
+use crate::data::scanner_data::ScannerData;
+use crate::parser::ast;
+use crate::parser::loc_parser;
+use crate::parser::parser;
 use crate::rules;
 use crate::rules::{ValidationContext, ValidationRule};
-use crate::scanner_data::ScannerData;
-use crate::scope;
+use crate::scope::scope;
 use crate::utf16_len;
+use crate::utils::lsp_convert::{ast_range_to_lsp, ast_related_info_to_lsp, ast_tag_to_lsp};
+use crate::validation::advanced_validation;
 
 pub(crate) struct Backend {
     pub(crate) client: Client,
@@ -75,7 +75,7 @@ impl Backend {
     ) {
         let extensions = ["txt", "yml", "gfx", "gui", "asset"];
         let filter = self.get_sync_filter();
-        let files = crate::fs_util::collect_files(root, &extensions, filter, false);
+        let files = crate::utils::fs_util::collect_files(root, &extensions, filter, false);
 
         for path in &files {
             if let Ok(content) = std::fs::read_to_string(path) {
@@ -126,7 +126,7 @@ impl Backend {
         &self,
     ) -> impl Fn(&std::path::Path) -> bool + Send + Sync + 'static {
         let ignored = self.config.ignored_files_regex();
-        move |path| crate::fs_util::is_path_ignored(path, &ignored)
+        move |path| crate::utils::fs_util::is_path_ignored(path, &ignored)
     }
 
     pub(crate) async fn validate_workspace(&self, root: &std::path::Path) {
@@ -139,7 +139,7 @@ impl Backend {
 
         let extensions = ["txt", "yml", "csv"];
         let filter = self.get_sync_filter();
-        let files = crate::fs_util::collect_files(root, &extensions, filter, true);
+        let files = crate::utils::fs_util::collect_files(root, &extensions, filter, true);
         let mut file_count = 0;
 
         for path in &files {
@@ -170,8 +170,12 @@ impl Backend {
         let extensions = ["txt", "yml"];
 
         for root in roots {
-            let files =
-                crate::fs_util::collect_files(root, &extensions, self.get_sync_filter(), true);
+            let files = crate::utils::fs_util::collect_files(
+                root,
+                &extensions,
+                self.get_sync_filter(),
+                true,
+            );
             for path in &files {
                 if let Ok(abs_path) = path.canonicalize() {
                     all_files.insert(abs_path.to_string_lossy().to_string());
@@ -204,7 +208,7 @@ impl Backend {
 
         let styling_enabled = self.config.styling_enabled();
         let mut script_opt: Option<Arc<ast::Script>> = None;
-        let map_config = crate::map_config::get_map_config(std::path::Path::new("."));
+        let map_config = crate::utils::map_config::get_map_config(std::path::Path::new("."));
 
         if uri.as_str().ends_with(".yml") {
             self.validate_localization_content(uri, content, &mut diagnostics)

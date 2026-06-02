@@ -1,6 +1,6 @@
-use crate::ast;
-use crate::lsp_convert::ast_range_to_lsp;
+use crate::parser::ast;
 use crate::rules::{ValidationContext, ValidationRule};
+use crate::utils::lsp_convert::ast_range_to_lsp;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
 /// Validates AI area definitions: checks that continents and strategic

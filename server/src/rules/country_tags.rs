@@ -1,7 +1,7 @@
-use crate::ast;
-use crate::lsp_convert::ast_range_to_lsp;
+use crate::parser::ast;
 use crate::rules::{ValidationContext, ValidationRule};
-use crate::scope::ScopeStack;
+use crate::scope::scope::ScopeStack;
+use crate::utils::lsp_convert::ast_range_to_lsp;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
 /// Validates country tag references and dynamic/static tag ratios.
@@ -23,7 +23,7 @@ impl ValidationRule for CountryTagRule {
         let key_lower = ass.key.to_ascii_lowercase();
 
         // Skip 'tag' inside Idea scope — ideas use 'tag = { ... }' differently
-        if key_lower == "tag" && scope.current() == crate::scope::Scope::Idea {
+        if key_lower == "tag" && scope.current() == crate::scope::scope::Scope::Idea {
             return;
         }
 
@@ -73,7 +73,7 @@ impl ValidationRule for CountryTagRule {
                 severity: Some(DiagnosticSeverity::WARNING),
                 message: format!("Unknown country tag: '{}'", val),
                 code: Some(NumberOrString::String(
-                    crate::advanced_validation::UNKNOWN_TRIGGER.to_string(),
+                    crate::validation::advanced_validation::UNKNOWN_TRIGGER.to_string(),
                 )),
                 source: Some("Hearts of Modding".to_string()),
                 ..Default::default()
@@ -100,7 +100,7 @@ impl ValidationRule for CountryTagRule {
 
         if total > 0 && dynamic_count == 0 {
             diags.push(Diagnostic {
-                range: crate::lsp_convert::ast_range_to_lsp(&ast::Range {
+                range: crate::utils::lsp_convert::ast_range_to_lsp(&ast::Range {
                     start_line: 0,
                     start_col: 0,
                     end_line: 0,
@@ -114,7 +114,7 @@ impl ValidationRule for CountryTagRule {
             });
         } else if static_count > 10 && dynamic_count < (static_count / 10).max(3) {
             diags.push(Diagnostic {
-                range: crate::lsp_convert::ast_range_to_lsp(&ast::Range {
+                range: crate::utils::lsp_convert::ast_range_to_lsp(&ast::Range {
                     start_line: 0,
                     start_col: 0,
                     end_line: 0,

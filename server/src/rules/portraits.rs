@@ -1,6 +1,6 @@
-use crate::ast;
-use crate::lsp_convert::ast_range_to_lsp;
+use crate::parser::ast;
 use crate::rules::{ValidationContext, ValidationRule};
+use crate::utils::lsp_convert::ast_range_to_lsp;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
 /// Validates portrait GFX references inside `portraits = { ... }` blocks.
@@ -69,7 +69,7 @@ fn validate_portrait_values(
                         s
                     ),
                     code: Some(NumberOrString::String(
-                        crate::advanced_validation::PORTRAIT_UNKNOWN_GFX.to_string(),
+                        crate::validation::advanced_validation::PORTRAIT_UNKNOWN_GFX.to_string(),
                     )),
                     source: Some("Hearts of Modding".to_string()),
                     ..Default::default()

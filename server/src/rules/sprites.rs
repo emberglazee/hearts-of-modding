@@ -1,7 +1,7 @@
-use crate::ast;
-use crate::lsp_convert::ast_range_to_lsp;
+use crate::parser::ast;
 use crate::rules::{ValidationContext, ValidationRule};
-use crate::scope::{Scope, ScopeStack};
+use crate::scope::scope::{Scope, ScopeStack};
+use crate::utils::lsp_convert::ast_range_to_lsp;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
 /// Validates sprite/GFX references in `sprite`, `icon`, `sprite_name`,
@@ -60,7 +60,7 @@ impl ValidationRule for SpriteRule {
                     lookup_key, val
                 ),
                 code: Some(NumberOrString::String(
-                    crate::advanced_validation::UNKNOWN_TRIGGER.to_string(),
+                    crate::validation::advanced_validation::UNKNOWN_TRIGGER.to_string(),
                 )),
                 source: Some("Hearts of Modding".to_string()),
                 ..Default::default()

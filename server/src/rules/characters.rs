@@ -1,6 +1,6 @@
-use crate::ast;
-use crate::lsp_convert::ast_range_to_lsp;
+use crate::parser::ast;
 use crate::rules::{ValidationContext, ValidationRule};
+use crate::utils::lsp_convert::ast_range_to_lsp;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
 /// Validates character skill levels against game-defined maxima.
@@ -62,7 +62,8 @@ fn validate_character_skills_recursive(
                                 skill, max_skill, ct
                             ),
                             code: Some(NumberOrString::String(
-                                crate::advanced_validation::CHARACTER_SKILL_EXCEEDS_MAX.to_string(),
+                                crate::validation::advanced_validation::CHARACTER_SKILL_EXCEEDS_MAX
+                                    .to_string(),
                             )),
                             source: Some("Hearts of Modding".to_string()),
                             data: Some(serde_json::json!({

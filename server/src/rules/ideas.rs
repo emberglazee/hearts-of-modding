@@ -1,7 +1,7 @@
-use crate::ast;
-use crate::lsp_convert::ast_range_to_lsp;
+use crate::parser::ast;
 use crate::rules::{ValidationContext, ValidationRule};
-use crate::scope::{Scope, ScopeStack};
+use crate::scope::scope::{Scope, ScopeStack};
+use crate::utils::lsp_convert::ast_range_to_lsp;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity};
 
 /// Validates idea references and default picture coverage.

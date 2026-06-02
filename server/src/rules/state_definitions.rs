@@ -1,8 +1,8 @@
-use crate::ast;
-use crate::interner::InternedStr;
-use crate::lsp_convert::ast_range_to_lsp;
+use crate::data::interner::InternedStr;
+use crate::parser::ast;
 use crate::rules::{ValidationContext, ValidationRule};
-use crate::scope::ScopeStack;
+use crate::scope::scope::ScopeStack;
+use crate::utils::lsp_convert::ast_range_to_lsp;
 use dashmap::DashMap;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
@@ -46,7 +46,8 @@ impl ValidationRule for StateDefinitionRule {
                             },
                         ),
                         code: Some(NumberOrString::String(
-                            crate::advanced_validation::UNKNOWN_STATE_CATEGORY.to_string(),
+                            crate::validation::advanced_validation::UNKNOWN_STATE_CATEGORY
+                                .to_string(),
                         )),
                         source: Some("Hearts of Modding".to_string()),
                         ..Default::default()
@@ -64,7 +65,7 @@ impl ValidationRule for StateDefinitionRule {
                     ctx.resources,
                     "resource",
                     "common/resources/*.txt",
-                    crate::advanced_validation::UNKNOWN_RESOURCE,
+                    crate::validation::advanced_validation::UNKNOWN_RESOURCE,
                     diags,
                 );
             }
@@ -88,7 +89,7 @@ impl ValidationRule for StateDefinitionRule {
                                     ctx.buildings,
                                     "building",
                                     "common/buildings/*.txt",
-                                    crate::advanced_validation::UNKNOWN_BUILDING,
+                                    crate::validation::advanced_validation::UNKNOWN_BUILDING,
                                     diags,
                                 );
                             }
@@ -103,7 +104,7 @@ impl ValidationRule for StateDefinitionRule {
                                         key,
                                     ),
                                     code: Some(NumberOrString::String(
-                                        crate::advanced_validation::UNKNOWN_BUILDING.to_string(),
+                                        crate::validation::advanced_validation::UNKNOWN_BUILDING.to_string(),
                                     )),
                                     source: Some("Hearts of Modding".to_string()),
                                     ..Default::default()
@@ -161,7 +162,7 @@ fn validate_keys_in_dashmap<T>(
 
 /// Build a comma-separated list of known state categories.
 fn format_known_list(
-    map: &DashMap<InternedStr, crate::state_category_scanner::StateCategory>,
+    map: &DashMap<InternedStr, crate::scanner::state_category_scanner::StateCategory>,
 ) -> String {
     let mut names: Vec<String> = map.iter().map(|e| e.key().to_string()).collect();
     names.sort();

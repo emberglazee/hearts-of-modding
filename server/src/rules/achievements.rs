@@ -1,6 +1,6 @@
-use crate::ast;
-use crate::lsp_convert::ast_range_to_lsp;
+use crate::parser::ast;
 use crate::rules::{ValidationContext, ValidationRule};
+use crate::utils::lsp_convert::ast_range_to_lsp;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
 /// Validates achievement and ribbon definitions for localization coverage.
@@ -34,7 +34,7 @@ impl ValidationRule for AchievementRule {
                             ass.key, name_key
                         ),
                         code: Some(NumberOrString::String(
-                            crate::advanced_validation::ACHIEVEMENT_MISSING_LOCALIZATION
+                            crate::validation::advanced_validation::ACHIEVEMENT_MISSING_LOCALIZATION
                                 .to_string(),
                         )),
                         source: Some("Hearts of Modding".to_string()),
@@ -50,7 +50,7 @@ impl ValidationRule for AchievementRule {
                             ass.key, desc_key
                         ),
                         code: Some(NumberOrString::String(
-                            crate::advanced_validation::ACHIEVEMENT_MISSING_LOCALIZATION
+                            crate::validation::advanced_validation::ACHIEVEMENT_MISSING_LOCALIZATION
                                 .to_string(),
                         )),
                         source: Some("Hearts of Modding".to_string()),
