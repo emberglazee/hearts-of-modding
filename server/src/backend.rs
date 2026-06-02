@@ -9,6 +9,7 @@ use crate::config::Config;
 use crate::data::interner::InternedStr;
 use crate::data::scanner_data::ScannerData;
 use crate::parser::ast;
+use crate::parser::cst::types::CstScript;
 use crate::parser::loc_parser;
 use crate::parser::parser;
 use crate::rules;
@@ -22,6 +23,7 @@ pub(crate) struct Backend {
     pub(crate) client: Client,
     pub(crate) documents: DashMap<String, String>,
     pub(crate) document_asts: DashMap<String, (Arc<ast::Script>, Vec<(String, ast::Range)>)>,
+    pub(crate) document_csts: DashMap<String, Arc<CstScript>>,
     pub(crate) scanner_data: ScannerData,
     pub(crate) config: Config,
     pub(crate) system_info: Mutex<sysinfo::System>,
@@ -47,7 +49,16 @@ impl Backend {
         uri: &str,
         content: &str,
     ) -> (Arc<ast::Script>, Vec<(String, ast::Range)>) {
-        let (script, errors) = parser::parse_script(content);
+        // Parse using CST pipeline: tokenize → CST → AST
+        let (tokens, _) = crate::parser::cst::lexer::tokenize(content);
+        let cst = crate::parser::cst::parser::parse_cst(tokens);
+
+        // Cache CST
+        let cst_arc = Arc::new(cst.clone());
+        self.document_csts.insert(uri.to_string(), cst_arc);
+
+        // Lower to AST and cache AST
+        let (script, errors) = crate::parser::cst::lower::lower(cst);
         let script = Arc::new(script);
         self.document_asts
             .insert(uri.to_string(), (script.clone(), errors.clone()));
@@ -65,6 +76,11 @@ impl Backend {
         self.documents
             .get(uri)
             .map(|content| self.cache_ast(uri, &content))
+    }
+
+    /// Get cached CST for a URI, if available.
+    pub(crate) fn get_cached_cst(&self, uri: &str) -> Option<Arc<CstScript>> {
+        self.document_csts.get(uri).map(|c| c.value().clone())
     }
 
     pub(crate) async fn find_references_in_root(

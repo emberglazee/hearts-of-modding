@@ -74,6 +74,7 @@ async fn main() {
         client,
         documents: DashMap::new(),
         document_asts: DashMap::new(),
+        document_csts: DashMap::new(),
         scanner_data: ScannerData::new(),
         config: Config::new(),
         system_info: Mutex::new(sysinfo::System::new()),

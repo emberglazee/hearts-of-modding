@@ -289,56 +289,7 @@ fn to_error_range(span: Span) -> crate::parser::ast::Range {
 }
 
 pub fn parse_script(input: &str) -> (Script, Vec<(String, crate::parser::ast::Range)>) {
-    let input_clean = input.strip_prefix('\u{feff}').unwrap_or(input);
-    let mut span = Span::new(input_clean);
-    let mut entries = Vec::new();
-    let mut errors = Vec::new();
-
-    loop {
-        // Skip leading whitespace
-        if let Ok((remainder, _)) = multispace0::<Span, nom::error::Error<Span>>(span) {
-            span = remainder;
-        }
-
-        if span.fragment().is_empty() {
-            break;
-        }
-
-        match parse_entry(span) {
-            Ok((remainder, entry)) => {
-                entries.push(entry);
-                span = remainder;
-            }
-            Err(_) => {
-                let range = to_error_range(span);
-                let mut snippet = span
-                    .fragment()
-                    .lines()
-                    .next()
-                    .unwrap_or("")
-                    .trim()
-                    .to_string();
-                if snippet.len() > 30 {
-                    snippet = snippet.chars().take(30).collect::<String>();
-                    snippet.push_str("...");
-                }
-                if snippet.is_empty() {
-                    snippet = span.fragment().chars().take(10).collect::<String>();
-                }
-
-                errors.push((format!("Parsing error near: '{}'", snippet), range));
-
-                // Recovery: skip to the next line and try again
-                if let Some(pos) = span.fragment().find('\n') {
-                    span = Span::new(&span.fragment()[pos + 1..]);
-                } else {
-                    break;
-                }
-            }
-        }
-    }
-
-    (Script { entries }, errors)
+    crate::parser::cst::parse_and_lower(input)
 }
 
 #[cfg(test)]

@@ -16,5 +16,19 @@ pub mod parser;
 pub mod token;
 pub mod types;
 
+/// Parse source text into CST, then lower to existing AST.
+/// Returns (ast::Script, parse_error_tuples) matching the old parser signature.
+pub fn parse_and_lower(input: &str) -> (crate::parser::ast::Script, Vec<(String, crate::parser::ast::Range)>) {
+    let (tokens, _) = lexer::tokenize(input);
+    let cst = parser::parse_cst(tokens);
+    lower::lower(cst)
+}
+
+/// Parse source text into CST only (no lowering).
+pub fn parse_cst(input: &str) -> crate::parser::cst::types::CstScript {
+    let (tokens, _) = lexer::tokenize(input);
+    parser::parse_cst(tokens)
+}
+
 #[cfg(test)]
 pub mod tests;
