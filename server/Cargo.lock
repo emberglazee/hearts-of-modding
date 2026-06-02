@@ -633,7 +633,7 @@ dependencies = [
 [[package]]
 name = "tikv-jemalloc-sys"
 version = "0.6.1+5.3.0-1-ge13ca993e8ccb9ba9847cc330696e02839f328f7"
-source = "git+https://github.com/emberglazee/jemallocator?rev=80ec168#80ec168a1e0d504ef88fac3c5e631c5bfb18eae0"
+source = "git+https://github.com/emberglazee/jemallocator?rev=c74b240#c74b2401796184c1bbeb8c2185b3f343680923a9"
 dependencies = [
  "cc",
  "libc",
@@ -642,7 +642,7 @@ dependencies = [
 [[package]]
 name = "tikv-jemallocator"
 version = "0.6.1"
-source = "git+https://github.com/emberglazee/jemallocator?rev=80ec168#80ec168a1e0d504ef88fac3c5e631c5bfb18eae0"
+source = "git+https://github.com/emberglazee/jemallocator?rev=c74b240#c74b2401796184c1bbeb8c2185b3f343680923a9"
 dependencies = [
  "libc",
  "tikv-jemalloc-sys",

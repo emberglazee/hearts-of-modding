@@ -21,8 +21,8 @@ paste = "1.0.15"
 tikv-jemallocator = "0.6"
 
 [patch.crates-io]
-tikv-jemalloc-sys = { git = "https://github.com/emberglazee/jemallocator", rev = "80ec168" }
-tikv-jemallocator = { git = "https://github.com/emberglazee/jemallocator", rev = "80ec168" }
+tikv-jemalloc-sys = { git = "https://github.com/emberglazee/jemallocator", rev = "c74b240" }
+tikv-jemallocator = { git = "https://github.com/emberglazee/jemallocator", rev = "c74b240" }
 
 [profile.release]
 strip = true
