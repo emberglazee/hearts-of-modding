@@ -342,9 +342,13 @@ impl LanguageServer for Backend {
     ) -> Result<Option<SemanticTokensResult>> {
         let uri = params.text_document.uri.to_string();
 
-        // Skip semantic tokens for YAML localization files
+        // YAML localization files get their own line-based semantic tokens
         if uri.ends_with(".yml") {
-            return Ok(None);
+            return if let Some(content) = self.documents.get(&uri) {
+                Ok(Some(semantic_tokens::loc_semantic_tokens(&content)))
+            } else {
+                Ok(None)
+            };
         }
 
         match self.ensure_ast_cached(&uri) {

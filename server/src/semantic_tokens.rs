@@ -1,5 +1,7 @@
-use crate::ast::*;
+use crate::byte_offset_to_utf16;
 use crate::entity_lookup::EntityKind;
+use once_cell::sync::Lazy;
+use regex::Regex;
 use std::collections::{HashMap, HashSet};
 use tower_lsp_server::ls_types::{SemanticToken, SemanticTokens, SemanticTokensResult};
 
@@ -108,8 +110,20 @@ pub fn get_semantic_tokens(script: &Script, ctx: &SemanticTokenContext) -> Seman
         push_entry_tokens(entry, &mut tokens, ctx, None);
     }
 
-    // Sort tokens by line and column
-    tokens.sort_by(|a, b| {
+    tokens_to_lsp(tokens)
+}
+
+/// Convert a sorted Vec<RawToken> into the LSP delta-encoded format.
+fn tokens_to_lsp(tokens: Vec<RawToken>) -> SemanticTokensResult {
+    if tokens.is_empty() {
+        return SemanticTokensResult::Tokens(SemanticTokens {
+            result_id: None,
+            data: vec![],
+        });
+    }
+
+    let mut sorted = tokens;
+    sorted.sort_by(|a, b| {
         if a.line != b.line {
             a.line.cmp(&b.line)
         } else {
@@ -117,11 +131,11 @@ pub fn get_semantic_tokens(script: &Script, ctx: &SemanticTokenContext) -> Seman
         }
     });
 
-    let mut lsp_tokens = Vec::new();
+    let mut lsp_tokens = Vec::with_capacity(sorted.len());
     let mut last_line = 0;
     let mut last_start = 0;
 
-    for token in tokens {
+    for token in sorted {
         let delta_line = token.line - last_line;
         let delta_start = if delta_line == 0 {
             token.start - last_start
@@ -146,6 +160,309 @@ pub fn get_semantic_tokens(script: &Script, ctx: &SemanticTokenContext) -> Seman
         data: lsp_tokens,
     })
 }
+
+// ── Locality patterns for .yml localization file highlighting ──
+
+/// Matches HOI4 color codes: §G, §R, §B, §Y, §!, etc.
+static LOC_COLOR_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"§[a-zA-Z0-9!]").unwrap());
+/// Matches scope references: [ROOT.GetName], [From.GetTag], etc.
+static LOC_SCOPE_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"\[([^\]]+)\]").unwrap());
+/// Matches nested key references: $SOME_KEY$, $OTHER_KEY$, etc.
+static LOC_NESTED_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"\$([^$\n]+)\$").unwrap());
+
+/// Valid language header prefixes in HOI4 localization files.
+const LOC_LANGUAGE_PREFIXES: [&str; 10] = [
+    "l_english",
+    "l_braz_por",
+    "l_french",
+    "l_german",
+    "l_polish",
+    "l_russian",
+    "l_spanish",
+    "l_japanese",
+    "l_simp_chinese",
+    "l_korean",
+];
+
+/// Produce semantic tokens for a .yml HOI4 localization file.
+///
+/// Highlights:
+/// - Language header (`l_english:`) → Keyword + Operator
+/// - Comments → Comment
+/// - Localization keys → Type
+/// - Version numbers → Number
+/// - Colons and delimiters → Operator
+/// - Quote characters → String
+/// - Plain text values → String
+/// - Color codes (§G, §R, §! etc.) → EnumMember
+/// - Scope references ([ROOT.GetName]) → Function
+/// - Nested key refs ($key$) → Variable
+pub fn loc_semantic_tokens(content: &str) -> SemanticTokensResult {
+    let mut tokens = Vec::new();
+
+    for (line_idx, line) in content.lines().enumerate() {
+        let line_u32 = line_idx as u32;
+        let line_len = line.len() as u32;
+
+        if line.is_empty() {
+            continue;
+        }
+
+        let trimmed_start = line.trim_start();
+        let trim_col = (line.len() - trimmed_start.len()) as u32;
+
+        // ── Comment lines ──
+        if trimmed_start.starts_with('#') {
+            let hash_col = line.find('#').unwrap() as u32;
+            tokens.push(RawToken {
+                line: line_u32,
+                start: hash_col,
+                length: line_len - hash_col,
+                token_type: TokenType::Comment as u32,
+            });
+            continue;
+        }
+
+        // ── Language header (e.g. "l_english:") ──
+        if LOC_LANGUAGE_PREFIXES
+            .iter()
+            .any(|p| trimmed_start.starts_with(p))
+            && trimmed_start.contains(':')
+        {
+            let colon_col = line.find(':').unwrap() as u32;
+            tokens.push(RawToken {
+                line: line_u32,
+                start: trim_col,
+                length: colon_col - trim_col,
+                token_type: TokenType::Keyword as u32,
+            });
+            tokens.push(RawToken {
+                line: line_u32,
+                start: colon_col,
+                length: 1,
+                token_type: TokenType::Operator as u32,
+            });
+            continue;
+        }
+
+        // ── Localization entry: <key>:<version> "<value>" ──
+        // Find the first colon to split key from the rest
+        if let Some(first_colon) = line.find(':') {
+            let first_colon_u = first_colon as u32;
+
+            // Key token (from first non-whitespace to colon)
+            let key_start = line.find(|c: char| !c.is_whitespace()).unwrap_or(0) as u32;
+            if first_colon_u > key_start {
+                tokens.push(RawToken {
+                    line: line_u32,
+                    start: key_start,
+                    length: first_colon_u - key_start,
+                    token_type: TokenType::Type as u32,
+                });
+            }
+
+            // First colon operator
+            tokens.push(RawToken {
+                line: line_u32,
+                start: first_colon_u,
+                length: 1,
+                token_type: TokenType::Operator as u32,
+            });
+
+            // Parse version (digits after first colon)
+            let after_colon = &line[first_colon + 1..];
+            let digit_end = after_colon
+                .find(|c: char| !c.is_ascii_digit())
+                .unwrap_or(after_colon.len());
+
+            if digit_end > 0 {
+                tokens.push(RawToken {
+                    line: line_u32,
+                    start: first_colon_u + 1,
+                    length: digit_end as u32,
+                    token_type: TokenType::Number as u32,
+                });
+            }
+
+            // Find the opening quote of the value
+            let after_digits = &after_colon[digit_end..];
+            let quote_offset = after_digits.find('"');
+            let second_colon_pos = after_digits.find(':');
+
+            // Handle optional second colon before the value (some editors add it)
+            // e.g. "KEY:0: \"value\"" instead of "KEY:0 \"value\""
+            let value_colon_offset = if let (Some(sc), Some(qo)) = (second_colon_pos, quote_offset)
+            {
+                if sc < qo {
+                    // There's a colon before the quote, emit it as operator
+                    let colon_abs = first_colon_u + 1u32 + digit_end as u32 + sc as u32;
+                    tokens.push(RawToken {
+                        line: line_u32,
+                        start: colon_abs,
+                        length: 1,
+                        token_type: TokenType::Operator as u32,
+                    });
+                    Some(sc)
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
+
+            // Determine where the quoted value starts
+            let search_start = if let Some(sc) = value_colon_offset {
+                digit_end + sc + 1
+            } else {
+                digit_end
+            };
+
+            let remaining = &after_colon[search_start..];
+            let quote_start = remaining.find('"');
+
+            if let Some(qs) = quote_start {
+                let abs_quote_col = first_colon_u + 1u32 + search_start as u32 + qs as u32;
+
+                // Opening quote
+                tokens.push(RawToken {
+                    line: line_u32,
+                    start: abs_quote_col,
+                    length: 1,
+                    token_type: TokenType::String as u32,
+                });
+
+                // Find closing quote (not escaped by backslash)
+                // Track BYTE offset, not char offset — multibyte chars like §
+                // would otherwise cause off-by-one errors.
+                let value_start_byte = abs_quote_col as usize + 1;
+                let rest_after_open = &line[value_start_byte..];
+                let mut closing_rel = None;
+                let mut byte_offset = 0;
+                for c in rest_after_open.chars() {
+                    if c == '"' {
+                        // Check if escaped
+                        if byte_offset > 0
+                            && rest_after_open[..byte_offset].ends_with('\\')
+                        {
+                            byte_offset += c.len_utf8();
+                            continue;
+                        }
+                        closing_rel = Some(byte_offset);
+                        break;
+                    }
+                    byte_offset += c.len_utf8();
+                }
+
+                if let Some(cq) = closing_rel {
+                    let value_end_byte = value_start_byte + cq;
+
+                    // Emit sub-tokens for the value content between quotes.
+                    // All positions in the value region MUST be converted from
+                    // byte offsets to UTF-16 code unit columns, because LSP
+                    // uses UTF-16 (§ is 2 bytes but 1 code unit, etc.).
+                    let value_content = &line[value_start_byte..value_end_byte];
+
+                    // Convert a byte offset within value_content to a
+                    // UTF-16 column in the full line.
+                    let byte_to_col = |rel_byte: usize| -> u32 {
+                        byte_offset_to_utf16(line, value_start_byte + rel_byte)
+                    };
+
+                    // Collect all interesting ranges (color codes, scopes, nested keys)
+                    // sorted by start position
+                    let mut ranges: Vec<(usize, usize, u32)> = Vec::new();
+
+                    // Color codes → EnumMember
+                    for m in LOC_COLOR_RE.find_iter(value_content) {
+                        ranges.push((m.start(), m.end(), TokenType::EnumMember as u32));
+                    }
+
+                    // Scope references [...] → Operator for brackets, Function for content
+                    for m in LOC_SCOPE_RE.find_iter(value_content) {
+                        let s = m.start();
+                        let e = m.end();
+                        // Opening bracket
+                        ranges.push((s, s + 1, TokenType::Operator as u32));
+                        // Content
+                        if e - s > 2 {
+                            ranges.push((s + 1, e - 1, TokenType::Function as u32));
+                        }
+                        // Closing bracket
+                        ranges.push((e - 1, e, TokenType::Operator as u32));
+                    }
+
+                    // Nested key references $...$ → Operator for $, Variable for key
+                    for m in LOC_NESTED_RE.find_iter(value_content) {
+                        let s = m.start();
+                        let e = m.end();
+                        // Opening $
+                        ranges.push((s, s + 1, TokenType::Operator as u32));
+                        // Key content
+                        if e - s > 2 {
+                            ranges.push((s + 1, e - 1, TokenType::Variable as u32));
+                        }
+                        // Closing $
+                        ranges.push((e - 1, e, TokenType::Operator as u32));
+                    }
+
+                    // Sort by start position
+                    ranges.sort_by_key(|r| r.0);
+
+                    // Fill gaps between ranges with String tokens
+                    let mut pos = 0;
+                    for (start, end, ttype) in &ranges {
+                        if *start > pos {
+                            tokens.push(RawToken {
+                                line: line_u32,
+                                start: byte_to_col(pos),
+                                length: byte_to_col(*start) - byte_to_col(pos),
+                                token_type: TokenType::String as u32,
+                            });
+                        }
+                        tokens.push(RawToken {
+                            line: line_u32,
+                            start: byte_to_col(*start),
+                            length: byte_to_col(*end) - byte_to_col(*start),
+                            token_type: *ttype,
+                        });
+                        pos = *end;
+                    }
+
+                    // Trailing plain text after last special range
+                    if pos < value_content.len() {
+                        tokens.push(RawToken {
+                            line: line_u32,
+                            start: byte_to_col(pos),
+                            length: byte_to_col(value_content.len()) - byte_to_col(pos),
+                            token_type: TokenType::String as u32,
+                        });
+                    }
+
+                    // Closing quote
+                    tokens.push(RawToken {
+                        line: line_u32,
+                        start: byte_offset_to_utf16(line, value_end_byte),
+                        length: 1,
+                        token_type: TokenType::String as u32,
+                    });
+                } else {
+                    // No closing quote found — highlight as String from open to end
+                    let remaining_len = line_len.saturating_sub(abs_quote_col);
+                    tokens.push(RawToken {
+                        line: line_u32,
+                        start: abs_quote_col,
+                        length: remaining_len,
+                        token_type: TokenType::String as u32,
+                    });
+                }
+            }
+        }
+    }
+
+    tokens_to_lsp(tokens)
+}
+
+// ── AST-based token generation (for .txt script files) ──
 
 fn push_entry_tokens(
     entry: &Entry,
@@ -287,3 +604,180 @@ struct RawToken {
     length: u32,
     token_type: u32,
 }
+
+// ── Re-exports for backwards compatibility ──
+
+/// The Script type referenced in get_semantic_tokens signature.
+use crate::ast::*;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Helper: call loc_semantic_tokens and collect (line, start, length, token_type_str)
+    fn collect_loc_tokens(content: &str) -> Vec<(u32, u32, u32, String)> {
+        let result = loc_semantic_tokens(content);
+        match result {
+            SemanticTokensResult::Tokens(t) => {
+                // Decode delta encoding back to absolute positions
+                let legend = [
+                    "keyword", "variable", "string", "number", "operator",
+                    "comment", "type", "event", "function", "enum",
+                    "enum_member", "struct", "class", "property",
+                ];
+                let mut absolute: Vec<(u32, u32, u32, u32)> = Vec::new();
+                let mut last_line = 0u32;
+                let mut last_start = 0u32;
+                for st in &t.data {
+                    let line = last_line + st.delta_line;
+                    let start = if st.delta_line == 0 {
+                        last_start + st.delta_start
+                    } else {
+                        st.delta_start
+                    };
+                    absolute.push((line, start, st.length, st.token_type));
+                    last_line = line;
+                    last_start = start;
+                }
+                absolute
+                    .into_iter()
+                    .map(|(l, s, len, tt)| {
+                        let name = legend
+                            .get(tt as usize)
+                            .map(|s| s.to_string())
+                            .unwrap_or_else(|| format!("unknown({})", tt));
+                        (l, s, len, name)
+                    })
+                    .collect()
+            }
+            _ => panic!("expected Tokens result"),
+        }
+    }
+
+    #[test]
+    fn test_loc_basic_entry() {
+        let content = "l_english:\n KEY:0 \"Hello world\"\n";
+        let tokens = collect_loc_tokens(content);
+        // l_english: → keyword + operator
+        assert_eq!(tokens[0], (0, 0, 9, "keyword".to_string()), "header keyword");
+        assert_eq!(tokens[1], (0, 9, 1, "operator".to_string()), "header colon");
+        // KEY:0 "Hello world" → type + operator + number + string + string + string
+        assert_eq!(tokens[2], (1, 1, 3, "type".to_string()), "key");
+        assert_eq!(tokens[3], (1, 4, 1, "operator".to_string()), "key colon");
+        assert_eq!(tokens[4], (1, 5, 1, "number".to_string()), "version");
+        assert_eq!(tokens[5], (1, 7, 1, "string".to_string()), "open quote");
+        assert_eq!(tokens[6], (1, 8, 11, "string".to_string()), "value");
+        assert_eq!(tokens[7], (1, 19, 1, "string".to_string()), "close quote");
+    }
+
+    #[test]
+    fn test_loc_color_codes() {
+        let content = "l_english:\n KEY:0 \"Hello §Gworld§!\"\n";
+        let tokens = collect_loc_tokens(content);
+        // Check that §G and §! are enum_member, not plain string
+        let enum_members: Vec<&(u32, u32, u32, String)> =
+            tokens.iter().filter(|t| t.3 == "enum_member").collect();
+        assert_eq!(enum_members.len(), 2, "should highlight §G and §!");
+        // line: " KEY:0 \"Hello §Gworld§!\""
+        // pos:   KEY:0 "Hello §Gworld§!"
+        // 0: space, 1:K, 2:E, 3:Y, 4::, 5:0, 6:space, 7:", 8:H, 9:e, 10:l, 11:l, 12:o, 13:space, 14:§, 15:G, 16:w, 17:o, 18:r, 19:l, 20:d, 21:§, 22:!, 23:"
+        assert_eq!(enum_members[0].1, 14, "§G start col at UTF-16 14");
+        assert_eq!(enum_members[1].1, 21, "§! start col at UTF-16 21");
+    }
+
+    #[test]
+    fn test_loc_scope_ref() {
+        let content = "l_english:\n KEY:0 \"Hello [ROOT.GetName]\"\n";
+        let tokens = collect_loc_tokens(content);
+        // [ROOT.GetName] should produce: operator([) + function(content) + operator(])
+        // line: " KEY:0 \"Hello [ROOT.GetName]\""
+        // pos: 0:_,1:K,2:E,3:Y,4::,5:0,6:_,7:\",8:H,9:e,10:l,11:l,12:o,13:_,14:[,15:R...
+        let operators: Vec<&(u32, u32, u32, String)> =
+            tokens.iter().filter(|t| t.3 == "operator").collect();
+        // Should have: header colon, key colon, [, ]
+        assert!(
+            operators.iter().any(|t| t.2 == 1 && t.1 == 14),
+            "opening bracket at col 14"
+        );
+        let functions: Vec<&(u32, u32, u32, String)> =
+            tokens.iter().filter(|t| t.3 == "function").collect();
+        assert_eq!(functions.len(), 1, "scope content is function");
+        assert_eq!(functions[0].1, 15); // "ROOT.GetName" starts at col 15
+        assert_eq!(functions[0].2, 12); // "ROOT.GetName" length
+    }
+
+    #[test]
+    fn test_loc_nested_key() {
+        let content = "l_english:\n KEY:0 \"Hello $OTHER$\"\n";
+        let tokens = collect_loc_tokens(content);
+        // $OTHER$ should produce: operator($) + variable(OTHER) + operator($)
+        // line: " KEY:0 \"Hello $OTHER$\""
+        // pos: 7:\",8:H,9:e,10:l,11:l,12:o,13:_,14:$,15:O,16:T,17:H,18:E,19:R,20:$,21:\"
+        let variables: Vec<&(u32, u32, u32, String)> =
+            tokens.iter().filter(|t| t.3 == "variable").collect();
+        assert_eq!(variables.len(), 1, "nested key is variable");
+        assert_eq!(variables[0].1, 15); // OTHER starts at col 15
+        assert_eq!(variables[0].2, 5);  // "OTHER" length
+    }
+
+    #[test]
+    fn test_loc_comment() {
+        let content = "l_english:\n# This is a comment\n";
+        let tokens = collect_loc_tokens(content);
+        let comments: Vec<&(u32, u32, u32, String)> =
+            tokens.iter().filter(|t| t.3 == "comment").collect();
+        assert_eq!(comments.len(), 1);
+        assert_eq!(comments[0].0, 1); // line 1
+        assert_eq!(comments[0].1, 0); // starts at col 0
+    }
+
+    #[test]
+    fn test_loc_closing_quote_is_highlighted() {
+        // Regression test: closing quote must have its own String token
+        let content = "l_english:\n KEY:0 \"Hello\"\n";
+        let tokens = collect_loc_tokens(content);
+        // Tokens on line 1 should be: type, operator, number, string(open), string(value), string(close)
+        let line1_tokens: Vec<&(u32, u32, u32, String)> =
+            tokens.iter().filter(|t| t.0 == 1).collect();
+        // Last token on line 1 should be the closing quote
+        let last = line1_tokens.last().unwrap();
+        assert_eq!(last.3, "string", "closing quote should be string");
+        assert_eq!(last.2, 1, "closing quote should be length 1");
+        // line: " KEY:0 \"Hello\""
+        // pos: 7:\",8:H,9:e,10:l,11:l,12:o,13:\"
+        assert_eq!(last.1, 13, "closing quote at col 13");
+    }
+
+    #[test]
+    fn test_loc_mixed_content() {
+        let content =
+            "l_english:\n MY_KEY:0 \"§GHello§! from [ROOT.GetName] with $NESTED$\"\n";
+        let tokens = collect_loc_tokens(content);
+        let enum_members: Vec<&(u32, u32, u32, String)> =
+            tokens.iter().filter(|t| t.3 == "enum_member").collect();
+        let functions: Vec<&(u32, u32, u32, String)> =
+            tokens.iter().filter(|t| t.3 == "function").collect();
+        let variables: Vec<&(u32, u32, u32, String)> =
+            tokens.iter().filter(|t| t.3 == "variable").collect();
+        assert_eq!(enum_members.len(), 2, "§G and §!");
+        assert_eq!(functions.len(), 1, "one scope ref");
+        assert_eq!(variables.len(), 1, "one nested key");
+    }
+
+    #[test]
+    fn test_loc_no_version() {
+        // Format: KEY: "value" (no version number)
+        let content = "l_english:\n KEY: \"Hello\"\n";
+        let tokens = collect_loc_tokens(content);
+        // " KEY: \"Hello\""
+        // pos: 1:K,2:E,3:Y,4::,5:_,6:\",...
+        let line1_tokens: Vec<&(u32, u32, u32, String)> =
+            tokens.iter().filter(|t| t.0 == 1).collect();
+        // type, operator, string(open), string(value), string(close)
+        assert_eq!(line1_tokens.len(), 5);
+        assert_eq!(line1_tokens[1].3, "operator"); // :
+        assert_eq!(line1_tokens[2].3, "string"); // opening " at col 6
+        assert_eq!(line1_tokens[2].1, 6); // opening " at col 6
+    }
+}
+
