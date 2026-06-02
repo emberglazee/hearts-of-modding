@@ -1,458 +1,348 @@
 use crate::Backend;
 use crate::parser::ast;
-use std::collections::HashMap;
+use crate::parser::cst::parse_cst;
+use crate::formatter::serialize::serialize;
+use crate::formatter::transform;
 use tower_lsp_server::ls_types::{Position, Range};
 
 impl Backend {
-    pub(crate) fn collect_styling_fixes(&self, content: &str, fixes: &mut Vec<(Range, String)>) {
-        for (line_idx, line) in content.lines().enumerate() {
-            if line.ends_with(' ') || line.ends_with('\t') {
-                let trimmed_len = line.trim_end().len();
-                let start_col = crate::utf16_len(&line[..trimmed_len]);
-                let end_col = crate::utf16_len(line);
-                fixes.push((
-                    Range {
-                        start: Position {
-                            line: line_idx as u32,
-                            character: start_col,
-                        },
-                        end: Position {
-                            line: line_idx as u32,
-                            character: end_col,
-                        },
-                    },
-                    "".to_string(),
-                ));
-            }
-        }
+    /// Format a document using the full CST pipeline.
+    /// Returns the formatted text.
+    pub(crate) fn format_document(&self, content: &str) -> String {
+        let mut cst = parse_cst(content);
+        transform::format(&mut cst);
+        serialize(&cst)
     }
 
+    /// Find trailing whitespace lines and produce LSP edits to remove it.
+    pub(crate) fn collect_styling_fixes(&self, content: &str, fixes: &mut Vec<(Range, String)>) {
+        let mut cst = parse_cst(content);
+        transform::fix_trailing_whitespace(&mut cst);
+        let formatted = serialize(&cst);
+        compute_lsp_edits(content, &formatted, fixes);
+    }
+
+    /// Fix indentation to use tabs at the correct depth.
+    /// `_script_opt` is ignored (kept for backward compatibility).
     pub(crate) fn collect_indentation_fixes(
         &self,
         content: &str,
-        script_opt: Option<&ast::Script>,
+        _script_opt: Option<&ast::Script>,
         fixes: &mut Vec<(Range, String)>,
     ) {
-        let mut expected_indents = HashMap::new();
-        if let Some(script) = script_opt {
-            Self::compute_expected_indentations(&script.entries, 0, &mut expected_indents);
-        }
+        let mut cst = parse_cst(content);
+        transform::fix_indentation(&mut cst);
+        let formatted = serialize(&cst);
+        compute_lsp_edits(content, &formatted, fixes);
+    }
 
-        for (line_idx, line) in content.lines().enumerate() {
-            let leading = line
-                .chars()
-                .take_while(|c| c.is_whitespace())
-                .collect::<String>();
-            if line.trim().is_empty() {
-                continue;
-            }
+    /// Ensure single space around assignment operators (= < > <= >= !=).
+    pub(crate) fn collect_assignment_space_fixes(&self, content: &str, fixes: &mut Vec<(ast::Range, String)>) {
+        let mut cst = parse_cst(content);
+        transform::fix_assignment_spacing(&mut cst);
+        let formatted = serialize(&cst);
+        compute_ast_edits(content, &formatted, fixes);
+    }
 
-            if let Some(&expected_tabs) = expected_indents.get(&(line_idx as u32)) {
-                let expected_str = "\t".repeat(expected_tabs);
-                if leading != expected_str {
-                    fixes.push((
-                        Range {
-                            start: Position {
-                                line: line_idx as u32,
-                                character: 0,
-                            },
-                            end: Position {
-                                line: line_idx as u32,
-                                character: leading.len() as u32,
-                            },
+    /// Move open braces to the same line as the assignment (no newline before {).
+    pub(crate) fn collect_brace_newline_fixes(&self, content: &str, fixes: &mut Vec<(ast::Range, String)>) {
+        let mut cst = parse_cst(content);
+        transform::fix_brace_style(&mut cst);
+        let formatted = serialize(&cst);
+        compute_ast_edits(content, &formatted, fixes);
+    }
+
+    /// Fix spacing inside braces (also applies brace-style and assignment spacing).
+    pub(crate) fn collect_brace_space_fixes(&self, content: &str, fixes: &mut Vec<(ast::Range, String)>) {
+        let mut cst = parse_cst(content);
+        transform::fix_brace_style(&mut cst);
+        transform::fix_assignment_spacing(&mut cst);
+        let formatted = serialize(&cst);
+        compute_ast_edits(content, &formatted, fixes);
+    }
+
+    /// Fix key casing for known HOI4 keywords.
+    pub(crate) fn collect_casing_fixes(&self, content: &str, fixes: &mut Vec<(ast::Range, String)>) {
+        let mut cst = parse_cst(content);
+        apply_casing_fixes_cst(&mut cst);
+        let formatted = serialize(&cst);
+        compute_ast_edits(content, &formatted, fixes);
+    }
+
+    /// Normalize path separators in texturefile values to forward slashes.
+    pub(crate) fn collect_path_separator_fixes(&self, content: &str, fixes: &mut Vec<(ast::Range, String)>) {
+        let mut cst = parse_cst(content);
+        apply_path_sep_fixes_cst(&mut cst);
+        let formatted = serialize(&cst);
+        compute_ast_edits(content, &formatted, fixes);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Edit computation helpers
+// ---------------------------------------------------------------------------
+
+/// Compute per-line LSP edits by comparing original and formatted texts.
+fn compute_lsp_edits(original: &str, formatted: &str, fixes: &mut Vec<(Range, String)>) {
+    if original == formatted {
+        return;
+    }
+
+    let orig_lines: Vec<&str> = original.lines().collect();
+    let fmt_lines: Vec<&str> = formatted.lines().collect();
+
+    if orig_lines.len() == fmt_lines.len() {
+        // Same number of lines — per-line edits
+        for (i, (orig, fmt)) in orig_lines.iter().zip(fmt_lines.iter()).enumerate() {
+            if orig != fmt {
+                let eol = crate::utf16_len(orig);
+                fixes.push((
+                    Range {
+                        start: Position {
+                            line: i as u32,
+                            character: 0,
                         },
-                        expected_str,
-                    ));
-                }
-            } else if leading.contains(' ') {
-                let new_indent = if leading.is_empty() {
-                    String::new()
-                } else if leading.starts_with('\t') {
-                    leading.clone()
-                } else {
-                    "\t".to_string()
-                };
-
-                if new_indent != leading {
-                    fixes.push((
-                        Range {
-                            start: Position {
-                                line: line_idx as u32,
-                                character: 0,
-                            },
-                            end: Position {
-                                line: line_idx as u32,
-                                character: leading.len() as u32,
-                            },
+                        end: Position {
+                            line: i as u32,
+                            character: eol,
                         },
-                        new_indent,
-                    ));
-                }
+                    },
+                    fmt.to_string(),
+                ));
             }
         }
+    } else {
+        // Different line count — find the diff block and replace it
+        let mut first_diff = 0;
+        while first_diff < orig_lines.len().min(fmt_lines.len())
+            && orig_lines[first_diff] == fmt_lines[first_diff]
+        {
+            first_diff += 1;
+        }
+
+        let mut orig_end = orig_lines.len();
+        let mut fmt_end = fmt_lines.len();
+        while orig_end > first_diff && fmt_end > first_diff
+            && orig_lines[orig_end - 1] == fmt_lines[fmt_end - 1]
+        {
+            orig_end -= 1;
+            fmt_end -= 1;
+        }
+
+        let replacement = fmt_lines[first_diff..fmt_end].join("\n");
+        // Preserve trailing newline if original had one
+        let replacement = if original.ends_with('\n') && !replacement.ends_with('\n') {
+            replacement + "\n"
+        } else {
+            replacement
+        };
+
+        let end_line = if orig_end == 0 {
+            0
+        } else {
+            (orig_end - 1) as u32
+        };
+        let end_col = if orig_end > 0 && orig_end <= orig_lines.len() {
+            crate::utf16_len(orig_lines[orig_end - 1])
+        } else {
+            0
+        };
+
+        fixes.push((
+            Range {
+                start: Position {
+                    line: first_diff as u32,
+                    character: 0,
+                },
+                end: Position {
+                    line: end_line,
+                    character: end_col,
+                },
+            },
+            replacement,
+        ));
+    }
+}
+
+/// Compute per-line AST edits by comparing original and formatted texts.
+fn compute_ast_edits(original: &str, formatted: &str, fixes: &mut Vec<(ast::Range, String)>) {
+    if original == formatted {
+        return;
     }
 
-    pub(crate) fn collect_assignment_space_fixes(
-        &self,
-        entries: &[ast::Entry],
-        fixes: &mut Vec<(ast::Range, String)>,
-        content: &str,
-    ) {
-        for entry in entries {
-            match entry {
-                ast::Entry::Assignment(ass) => {
-                    let mut needs_fix = false;
-                    if ass.key_range.end_line == ass.operator_range.start_line
-                        && ass.key_range.end_line == ass.value.range.start_line
-                    {
-                        if ass.operator_range.start_col > ass.key_range.end_col
-                            && ass.value.range.start_col > ass.operator_range.end_col
-                        {
-                            let space_before = ass.operator_range.start_col - ass.key_range.end_col;
-                            let space_after =
-                                ass.value.range.start_col - ass.operator_range.end_col;
-                            if space_before != 1 || space_after != 1 {
-                                needs_fix = true;
-                            }
-                        } else {
-                            needs_fix = true;
-                        }
-                    }
+    let orig_lines: Vec<&str> = original.lines().collect();
+    let fmt_lines: Vec<&str> = formatted.lines().collect();
 
-                    if needs_fix {
-                        let line_idx = ass.key_range.end_line as usize;
-                        if let Some(line) = content.lines().nth(line_idx) {
-                            let start = ass.key_range.end_col as usize;
-                            let end = ass.value.range.start_col as usize;
-                            if start <= end && end <= line.len() {
-                                let op_str = &line[start..end];
-                                fixes.push((
-                                    ast::Range {
-                                        start_line: ass.key_range.end_line,
-                                        start_col: ass.key_range.end_col,
-                                        end_line: ass.value.range.start_line,
-                                        end_col: ass.value.range.start_col,
-                                    },
-                                    format!(" {} ", op_str.trim()),
-                                ));
-                            }
-                        }
-                    }
-
-                    match &ass.value.value {
-                        ast::Value::Block(inner) => {
-                            self.collect_assignment_space_fixes(inner, fixes, content)
-                        }
-                        ast::Value::TaggedBlock(_, inner, _) => {
-                            self.collect_assignment_space_fixes(inner, fixes, content)
-                        }
-                        _ => {}
-                    }
-                }
-                ast::Entry::Value(val) => match &val.value {
-                    ast::Value::Block(inner) => {
-                        self.collect_assignment_space_fixes(inner, fixes, content)
-                    }
-                    ast::Value::TaggedBlock(_, inner, _) => {
-                        self.collect_assignment_space_fixes(inner, fixes, content)
-                    }
-                    _ => {}
-                },
-                _ => {}
+    if orig_lines.len() == fmt_lines.len() {
+        // Same number of lines — per-line edits
+        for (i, (orig, fmt)) in orig_lines.iter().zip(fmt_lines.iter()).enumerate() {
+            if orig != fmt {
+                let eol = crate::utf16_len(orig);
+                fixes.push((
+                    ast::Range {
+                        start_line: i as u32,
+                        start_col: 0,
+                        end_line: i as u32,
+                        end_col: eol,
+                    },
+                    fmt.to_string(),
+                ));
             }
         }
-    }
-
-    pub(crate) fn collect_brace_newline_fixes(
-        &self,
-        entries: &[ast::Entry],
-        fixes: &mut Vec<(ast::Range, String)>,
-    ) {
-        for entry in entries {
-            match entry {
-                ast::Entry::Assignment(ass) => match &ass.value.value {
-                    ast::Value::Block(_) => {
-                        if ass.value.range.start_line > ass.operator_range.end_line {
-                            fixes.push((
-                                ast::Range {
-                                    start_line: ass.operator_range.end_line,
-                                    start_col: ass.operator_range.end_col,
-                                    end_line: ass.value.range.start_line,
-                                    end_col: ass.value.range.start_col,
-                                },
-                                " ".to_string(),
-                            ));
-                        }
-                        self.collect_brace_newline_fixes(
-                            match &ass.value.value {
-                                ast::Value::Block(i) => i,
-                                _ => &[],
-                            },
-                            fixes,
-                        );
-                    }
-                    ast::Value::TaggedBlock(tag, inner, block_range) => {
-                        if block_range.start_line > ass.operator_range.end_line {
-                            fixes.push((
-                                ast::Range {
-                                    start_line: ass.operator_range.end_line,
-                                    start_col: ass.operator_range.end_col,
-                                    end_line: block_range.start_line,
-                                    end_col: block_range.start_col,
-                                },
-                                " ".to_string(),
-                            ));
-                        } else {
-                            let tag_end_col = ass.value.range.start_col + tag.len() as u32;
-                            if block_range.start_col != tag_end_col + 1 {
-                                fixes.push((
-                                    ast::Range {
-                                        start_line: ass.value.range.start_line,
-                                        start_col: tag_end_col,
-                                        end_line: block_range.start_line,
-                                        end_col: block_range.start_col,
-                                    },
-                                    " ".to_string(),
-                                ));
-                            }
-                        }
-                        self.collect_brace_newline_fixes(inner, fixes);
-                    }
-                    _ => {}
-                },
-                ast::Entry::Value(val) => match &val.value {
-                    ast::Value::Block(inner) => self.collect_brace_newline_fixes(inner, fixes),
-                    ast::Value::TaggedBlock(tag, inner, block_range) => {
-                        if block_range.start_line > val.range.start_line {
-                            fixes.push((
-                                ast::Range {
-                                    start_line: val.range.start_line,
-                                    start_col: val.range.start_col + tag.len() as u32,
-                                    end_line: block_range.start_line,
-                                    end_col: block_range.start_col,
-                                },
-                                " ".to_string(),
-                            ));
-                        } else {
-                            let tag_end_col = val.range.start_col + tag.len() as u32;
-                            if block_range.start_col != tag_end_col + 1 {
-                                fixes.push((
-                                    ast::Range {
-                                        start_line: val.range.start_line,
-                                        start_col: tag_end_col,
-                                        end_line: block_range.start_line,
-                                        end_col: block_range.start_col,
-                                    },
-                                    " ".to_string(),
-                                ));
-                            }
-                        }
-                        self.collect_brace_newline_fixes(inner, fixes);
-                    }
-                    _ => {}
-                },
-                _ => {}
-            }
+    } else {
+        // Different line count — find the diff block and replace it
+        let mut first_diff = 0;
+        while first_diff < orig_lines.len().min(fmt_lines.len())
+            && orig_lines[first_diff] == fmt_lines[first_diff]
+        {
+            first_diff += 1;
         }
-    }
 
-    pub(crate) fn collect_brace_space_fixes(
-        &self,
-        entries: &[ast::Entry],
-        fixes: &mut Vec<(ast::Range, String)>,
-        content: &str,
-    ) {
-        for entry in entries {
-            match entry {
-                ast::Entry::Assignment(ass) => {
-                    Self::check_and_fix_brace(&ass.value.range, &ass.value.value, content, fixes);
-                    match &ass.value.value {
-                        ast::Value::Block(inner) => {
-                            self.collect_brace_space_fixes(inner, fixes, content)
+        let mut orig_end = orig_lines.len();
+        let mut fmt_end = fmt_lines.len();
+        while orig_end > first_diff && fmt_end > first_diff
+            && orig_lines[orig_end - 1] == fmt_lines[fmt_end - 1]
+        {
+            orig_end -= 1;
+            fmt_end -= 1;
+        }
+
+        let replacement = fmt_lines[first_diff..fmt_end].join("\n");
+        // Preserve trailing newline if original had one
+        let replacement = if original.ends_with('\n') && !replacement.ends_with('\n') {
+            replacement + "\n"
+        } else {
+            replacement
+        };
+
+        let end_line = if orig_end == 0 {
+            0
+        } else {
+            (orig_end - 1) as u32
+        };
+        let end_col = if orig_end > 0 && orig_end <= orig_lines.len() {
+            crate::utf16_len(orig_lines[orig_end - 1])
+        } else {
+            0
+        };
+
+        fixes.push((
+            ast::Range {
+                start_line: first_diff as u32,
+                start_col: 0,
+                end_line,
+                end_col,
+            },
+            replacement,
+        ));
+    }
+}
+
+// ---------------------------------------------------------------------------
+// CST-based casing fixer
+// ---------------------------------------------------------------------------
+
+/// Apply casing fixes directly to a CST by checking key names against known
+/// HOI4 keywords and correcting the case.
+fn apply_casing_fixes_cst(cst: &mut crate::parser::cst::types::CstScript) {
+    use crate::parser::cst::types::*;
+
+    let keywords = [
+        "spriteTypes",
+        "spriteType",
+        "name",
+        "texturefile",
+        "ideologies",
+        "types",
+        "ideas",
+        "country",
+        "national_focus",
+        "leader_traits",
+        "country_leader_traits",
+        "traits",
+        "orientation",
+        "buttonType",
+        "containerWindowType",
+        "origo",
+        "alwaystransparent",
+    ];
+
+    fn walk_nodes(nodes: &mut [CstNode], keywords: &[&str]) {
+        for node in nodes {
+            match node {
+                CstNode::Assignment(ass) => {
+                    for kw in keywords {
+                        if ass.key.text.eq_ignore_ascii_case(kw) && ass.key.text != *kw {
+                            ass.key.text = kw.to_string();
+                            break;
                         }
-                        ast::Value::TaggedBlock(_, inner, _) => {
-                            self.collect_brace_space_fixes(inner, fixes, content)
-                        }
-                        _ => {}
                     }
+                    walk_value(&mut ass.value, keywords);
                 }
-                ast::Entry::Value(val) => {
-                    Self::check_and_fix_brace(&val.range, &val.value, content, fixes);
-                    match &val.value {
-                        ast::Value::Block(inner) => {
-                            self.collect_brace_space_fixes(inner, fixes, content)
-                        }
-                        ast::Value::TaggedBlock(_, inner, _) => {
-                            self.collect_brace_space_fixes(inner, fixes, content)
-                        }
-                        _ => {}
-                    }
+                CstNode::EntryValue(ev) => {
+                    walk_value(&mut ev.value, keywords);
                 }
                 _ => {}
             }
         }
     }
 
-    pub(crate) fn check_and_fix_brace(
-        range: &ast::Range,
-        value: &ast::Value,
-        content: &str,
-        fixes: &mut Vec<(ast::Range, String)>,
-    ) {
+    fn walk_value(value: &mut CstValue, keywords: &[&str]) {
         match value {
-            ast::Value::Block(_) | ast::Value::TaggedBlock(_, _, _)
-                if range.start_line == range.end_line =>
-            {
-                let line_idx = range.start_line as usize;
-                if let Some(line) = content.lines().nth(line_idx) {
-                    let start = range.start_col as usize;
-                    let end = range.end_col as usize;
-                    if start < end && end <= line.len() {
-                        let full_str = &line[start..end];
-                        if let Some(brace_start_rel) = full_str.find('{') {
-                            let block_str = &full_str[brace_start_rel..];
-                            let mut needs_fix = false;
-
-                            if let ast::Value::TaggedBlock(tag, _, _) = value {
-                                if &full_str[tag.len()..brace_start_rel] != " " {
-                                    needs_fix = true;
-                                }
-                            }
-
-                            if block_str.len() >= 2 {
-                                let inner = &block_str[1..block_str.len() - 1];
-                                if inner.trim().is_empty() {
-                                    if block_str != "{}" {
-                                        needs_fix = true;
-                                    }
-                                } else {
-                                    if !block_str.starts_with("{ ")
-                                        || !block_str.ends_with(" }")
-                                        || block_str.starts_with("{  ")
-                                        || block_str.ends_with("  }")
-                                    {
-                                        needs_fix = true;
-                                    }
-                                }
-                            }
-
-                            if needs_fix {
-                                let brace_end_rel =
-                                    full_str.rfind('}').unwrap_or(full_str.len() - 1);
-                                let inner = &full_str[brace_start_rel + 1..brace_end_rel];
-
-                                let before_brace = full_str[..brace_start_rel].trim();
-
-                                let new_text = if inner.trim().is_empty() {
-                                    if !before_brace.is_empty() {
-                                        format!("{} {{}}", before_brace)
-                                    } else {
-                                        "{}".to_string()
-                                    }
-                                } else {
-                                    if !before_brace.is_empty() {
-                                        format!("{} {{ {} }}", before_brace, inner.trim())
-                                    } else {
-                                        format!("{{ {} }}", inner.trim())
-                                    }
-                                };
-                                fixes.push((range.clone(), new_text));
-                            }
-                        }
-                    }
-                }
+            CstValue::Block(block) => {
+                walk_nodes(&mut block.entries, keywords);
+            }
+            CstValue::TaggedBlock { block, .. } => {
+                walk_nodes(&mut block.entries, keywords);
             }
             _ => {}
         }
     }
 
-    pub(crate) fn collect_path_separator_fixes(
-        &self,
-        entries: &[ast::Entry],
-        fixes: &mut Vec<(ast::Range, String)>,
-    ) {
-        for entry in entries {
-            match entry {
-                ast::Entry::Assignment(ass) => {
-                    if ass.key.eq_ignore_ascii_case("texturefile") {
-                        if let ast::Value::String(val) = &ass.value.value {
-                            if val.contains("//") || val.contains('\\') {
-                                let normalized = val.replace("//", "/").replace('\\', "/");
-                                fixes
-                                    .push((ass.value.range.clone(), format!("\"{}\"", normalized)));
+    walk_nodes(&mut cst.nodes, &keywords);
+}
+
+// ---------------------------------------------------------------------------
+// CST-based path separator fixer
+// ---------------------------------------------------------------------------
+
+/// Normalize path separators in texturefile values (and similar) to forward
+/// slashes by modifying CST token text in place.
+fn apply_path_sep_fixes_cst(cst: &mut crate::parser::cst::types::CstScript) {
+    use crate::parser::cst::types::*;
+
+    fn walk_nodes(nodes: &mut [CstNode]) {
+        for node in nodes {
+            match node {
+                CstNode::Assignment(ass) => {
+                    if ass.key.text.eq_ignore_ascii_case("texturefile") {
+                        if let CstValue::String(tok) = &mut ass.value {
+                            if tok.text.contains("//") || tok.text.contains('\\') {
+                                tok.text = tok.text.replace("//", "/").replace('\\', "/");
                             }
                         }
                     }
-                    match &ass.value.value {
-                        ast::Value::Block(inner) => self.collect_path_separator_fixes(inner, fixes),
-                        ast::Value::TaggedBlock(_, inner, _) => {
-                            self.collect_path_separator_fixes(inner, fixes)
-                        }
-                        _ => {}
-                    }
+                    walk_value(&mut ass.value);
                 }
-                ast::Entry::Value(val) => match &val.value {
-                    ast::Value::Block(inner) => self.collect_path_separator_fixes(inner, fixes),
-                    ast::Value::TaggedBlock(_, inner, _) => {
-                        self.collect_path_separator_fixes(inner, fixes)
-                    }
-                    _ => {}
-                },
+                CstNode::EntryValue(ev) => {
+                    walk_value(&mut ev.value);
+                }
                 _ => {}
             }
         }
     }
 
-    pub(crate) fn collect_casing_fixes(
-        &self,
-        entries: &[ast::Entry],
-        fixes: &mut Vec<(ast::Range, String)>,
-    ) {
-        let keywords = [
-            "spriteTypes",
-            "spriteType",
-            "name",
-            "texturefile",
-            "ideologies",
-            "types",
-            "ideas",
-            "country",
-            "national_focus",
-            "leader_traits",
-            "country_leader_traits",
-            "traits",
-            "orientation",
-            "buttonType",
-            "containerWindowType",
-            "origo",
-            "alwaystransparent",
-        ];
-
-        for entry in entries {
-            match entry {
-                ast::Entry::Assignment(ass) => {
-                    for kw in keywords {
-                        if ass.key.eq_ignore_ascii_case(kw) && ass.key != kw {
-                            fixes.push((ass.key_range.clone(), kw.to_string()));
-                            break;
-                        }
-                    }
-
-                    match &ass.value.value {
-                        ast::Value::Block(inner) => self.collect_casing_fixes(inner, fixes),
-                        ast::Value::TaggedBlock(_, inner, _) => {
-                            self.collect_casing_fixes(inner, fixes)
-                        }
-                        _ => {}
-                    }
-                }
-                ast::Entry::Value(val) => match &val.value {
-                    ast::Value::Block(inner) => self.collect_casing_fixes(inner, fixes),
-                    ast::Value::TaggedBlock(_, inner, _) => self.collect_casing_fixes(inner, fixes),
-                    _ => {}
-                },
-                _ => {}
+    fn walk_value(value: &mut CstValue) {
+        match value {
+            CstValue::Block(block) => {
+                walk_nodes(&mut block.entries);
             }
+            CstValue::TaggedBlock { block, .. } => {
+                walk_nodes(&mut block.entries);
+            }
+            _ => {}
         }
     }
+
+    walk_nodes(&mut cst.nodes);
 }

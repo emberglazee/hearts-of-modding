@@ -3,6 +3,7 @@
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::module_inception)]
 mod data;
+mod formatter;
 mod lsp;
 mod parser;
 mod scanner;
