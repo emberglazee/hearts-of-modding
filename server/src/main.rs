@@ -2,6 +2,11 @@
 #![allow(clippy::type_complexity)]
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::module_inception)]
+
+use tikv_jemallocator::Jemalloc;
+
+#[global_allocator]
+static GLOBAL: Jemalloc = Jemalloc;
 mod data;
 mod lsp;
 mod parser;
