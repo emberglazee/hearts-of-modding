@@ -67,6 +67,12 @@
                     "type": "boolean",
                     "default": true,
                     "description": "Show language server memory usage in the status bar."
+                },
+                "hoi4.themePromptDismissed": {
+                    "type": "boolean",
+                    "default": false,
+                    "scope": "window",
+                    "description": "Whether the Hearts of Modding theme prompt has been dismissed for this workspace."
                 }
             }
         },
@@ -94,6 +100,11 @@
             {
                 "command": "hearts-of-modding.showMemoryUsage",
                 "title": "Show Memory Usage",
+                "category": "Hearts of Modding"
+            },
+            {
+                "command": "hearts-of-modding.toggleTheme",
+                "title": "Toggle Workspace Theme",
                 "category": "Hearts of Modding"
             }
         ],

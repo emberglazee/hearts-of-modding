@@ -38,6 +38,25 @@ export async function activate(context: ExtensionContext) {
         window.showInformationMessage(`Memory Usage Display: ${!currentState ? 'Enabled' : 'Disabled'}`)
     }))
 
+    context.subscriptions.push(commands.registerCommand('hearts-of-modding.toggleTheme', async () => {
+        const workbenchConfig = workspace.getConfiguration('workbench')
+        const currentTheme = workbenchConfig.inspect<string>('colorTheme')
+        const current = currentTheme?.workspaceValue || currentTheme?.globalValue || 'Default Dark+'
+
+        const pick = await window.showQuickPick(
+            ['HoM Dark', 'HoM Light', 'Reset to Global Theme'],
+            { placeHolder: `Current: ${current}` }
+        )
+
+        if (pick === 'Reset to Global Theme') {
+            await workbenchConfig.update('colorTheme', undefined, ConfigurationTarget.Workspace)
+            window.showInformationMessage('✓ Theme reset to your global preference!')
+        } else if (pick) {
+            await workbenchConfig.update('colorTheme', pick, ConfigurationTarget.Workspace)
+            window.showInformationMessage(`✓ Switched to ${pick}!`)
+        }
+    }))
+
     context.subscriptions.push(commands.registerCommand('hearts-of-modding.toggleWorkspaceScan', async () => {
         const config = workspace.getConfiguration('hoi4.validator.workspaceScan')
         const currentState = config.get('enabled')
@@ -52,6 +71,7 @@ export async function activate(context: ExtensionContext) {
             return
         }
         await workspace.getConfiguration('hoi4').update('enabled', true, ConfigurationTarget.Workspace)
+        await promptForTheme()
         await startServer(context, statusBarItem)
     }))
 
@@ -111,6 +131,8 @@ export async function activate(context: ExtensionContext) {
     }
 
     if (enabled === true) {
+        // Ask about HoM workspace theme once (only if not already using it)
+        await promptForTheme()
         await startServer(context, statusBarItem)
     }
 
@@ -188,6 +210,31 @@ export async function activate(context: ExtensionContext) {
             })
         }
     }))
+}
+
+async function promptForTheme(): Promise<void> {
+    const hoi4Config = workspace.getConfiguration('hoi4')
+    const dismissed = hoi4Config.get<boolean>('themePromptDismissed')
+    if (dismissed) return
+
+    const workbenchConfig = workspace.getConfiguration('workbench')
+    const currentTheme = workbenchConfig.get<string>('colorTheme')
+    if (currentTheme === 'Hearts of Modding Dark' || currentTheme === 'Hearts of Modding Light') return
+
+    const choice = await window.showInformationMessage(
+        'This workspace supports Hearts of Modding themes! Would you like to use one? (Your global theme stays unchanged.)',
+        'Hearts of Modding Dark', 'Hearts of Modding Light', 'Not Now'
+    )
+
+    if (choice === 'Hearts of Modding Dark') {
+        await workbenchConfig.update('colorTheme', 'Hearts of Modding Dark', ConfigurationTarget.Workspace)
+        window.showInformationMessage('✓ HoM Dark theme applied to this workspace!')
+    } else if (choice === 'Hearts of Modding Light') {
+        await workbenchConfig.update('colorTheme', 'Hearts of Modding Light', ConfigurationTarget.Workspace)
+        window.showInformationMessage('✓ HoM Light theme applied to this workspace!')
+    } else if (choice === 'Not Now') {
+        await hoi4Config.update('themePromptDismissed', true, ConfigurationTarget.Workspace)
+    }
 }
 
 async function startServer(context: ExtensionContext, statusBarItem: StatusBarItem) {

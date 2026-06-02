@@ -58,10 +58,11 @@ Inspired by the extensions [CWTools](https://github.com/cwtools/cwtools) and [VM
 - `Hearts of Modding: Toggle Styling Checks`: Enable or disable cosmetic casing and whitespace diagnostics.
 - `Hearts of Modding: Toggle Workspace Scan`: Enable or disable automatic workspace-wide diagnostic scanning.
 - `Hearts of Modding: Show Memory Usage`: Toggle the real-time memory usage display in the status bar.
+- `Hearts of Modding: Toggle Workspace Theme`: Switch between the HoM Dark, HoM Light, or your global theme, for just this workspace.
 
 ## Requirements
 
-- VS Code version 1.75.0 or higher.
+- VS Code version 1.82.0 or higher.
 - (Optional) Hearts of Iron IV installation for full VFS and vanilla game data features.
 
 ---
