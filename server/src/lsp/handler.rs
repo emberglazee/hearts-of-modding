@@ -612,6 +612,44 @@ impl LanguageServer for Backend {
                 keywords.insert("min_snow_level".to_string());
                 keywords.insert("naval_terrain".to_string());
 
+                // Event definition keywords (events/*.txt) structural — not in triggers/effects data
+                keywords.insert("add_namespace".to_string());
+                keywords.insert("mean_time_to_happen".to_string());
+                keywords.insert("fire_only_once".to_string());
+                keywords.insert("is_triggered_only".to_string());
+                keywords.insert("major".to_string());
+                keywords.insert("show_major".to_string());
+                keywords.insert("fire_for_sender".to_string());
+                keywords.insert("minor_flavor".to_string());
+                keywords.insert("timeout_days".to_string());
+                keywords.insert("immediate".to_string());
+                keywords.insert("after".to_string());
+                keywords.insert("option".to_string());
+                keywords.insert("original_recipient_only".to_string());
+                keywords.insert("ai_chance".to_string());
+                keywords.insert("title".to_string());
+                keywords.insert("text".to_string());
+                keywords.insert("tooltip".to_string());
+                keywords.insert("trigger".to_string());
+
+                // Event time / delay keywords (MTTH + event firing effect)
+                keywords.insert("days".to_string());
+                keywords.insert("months".to_string());
+                keywords.insert("years".to_string());
+                keywords.insert("hours".to_string());
+                keywords.insert("random_hours".to_string());
+                keywords.insert("random_days".to_string());
+                keywords.insert("random".to_string());
+
+                // Event-type-specific effect sub-keys
+                keywords.insert("trigger_for".to_string());
+                keywords.insert("occupied".to_string());
+                keywords.insert("originator".to_string());
+                keywords.insert("recipient".to_string());
+                keywords.insert("set_root".to_string());
+                keywords.insert("set_from".to_string());
+                keywords.insert("set_from_from".to_string());
+
                 // Resource types (inside resources = { })
                 // Dynamically scanned from common/resources/*.txt — flows through entity_names pipeline
                 // Building types (inside buildings = { } in state history)
