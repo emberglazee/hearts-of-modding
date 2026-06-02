@@ -1,8 +1,10 @@
 use crate::ast::*;
-use std::collections::HashSet;
+use crate::entity_lookup::EntityKind;
+use std::collections::{HashMap, HashSet};
 use tower_lsp_server::ls_types::{SemanticToken, SemanticTokens, SemanticTokensResult};
 
-#[allow(dead_code)]
+/// Indices into the LSP semantic token legend registered in lsp_handler.rs.
+/// Must match the order of token_types in the legend vec.
 #[repr(u32)]
 enum TokenType {
     Keyword = 0,
@@ -12,58 +14,103 @@ enum TokenType {
     Operator = 4,
     Comment = 5,
     Type = 6,
+    Event = 7,
+    Function = 8,
+    Enum = 9,
+    EnumMember = 10,
+    Struct = 11,
+    Class = 12,
+    Property = 13,
 }
 
 /// Fields whose values are always localization keys, not entity references.
 /// Values under these keys skip entity-type semantic highlighting.
 const LOCALIZATION_VALUE_FIELDS: [&str; 4] = ["name", "desc", "custom_description", "text"];
 
+/// Context struct that replaces the 18-parameter threading pattern.
+/// Carries all data needed to resolve token types for a document.
+pub struct SemanticTokenContext {
+    pub keywords: HashSet<String>,
+    pub entity_names: HashMap<String, EntityKind>,
+}
+
+impl SemanticTokenContext {
+    pub fn new(keywords: HashSet<String>, entity_names: HashMap<String, EntityKind>) -> Self {
+        SemanticTokenContext {
+            keywords,
+            entity_names,
+        }
+    }
+}
+
+/// Map an entity kind to its semantic token type index.
+/// Each entity kind gets a distinct type so the theme can color them differently.
+fn entity_kind_to_token_type(kind: EntityKind) -> u32 {
+    match kind {
+        // Callable/behavioural constructs → Function
+        EntityKind::ScriptedTrigger
+        | EntityKind::ScriptedEffect
+        | EntityKind::ScriptedLoc
+        | EntityKind::Ability
+        | EntityKind::AdjacencyRule => TokenType::Function as u32,
+
+        // Named categories → Enum
+        EntityKind::Ideology | EntityKind::SoundCategory => TokenType::Enum as u32,
+
+        // Members of named categories → EnumMember
+        EntityKind::SubIdeology | EntityKind::ColorCode => TokenType::EnumMember as u32,
+
+        // Data structures → Struct
+        EntityKind::Trait | EntityKind::Character | EntityKind::Building => {
+            TokenType::Struct as u32
+        }
+
+        // Named concept definitions → Class
+        EntityKind::Idea | EntityKind::AiArea | EntityKind::AiStrategyPlan => {
+            TokenType::Class as u32
+        }
+
+        // Narrative / event-like → Event
+        EntityKind::Event | EntityKind::Focus | EntityKind::Achievement => {
+            TokenType::Event as u32
+        }
+
+        // Asset references → Property
+        EntityKind::Sprite
+        | EntityKind::MusicAsset
+        | EntityKind::MusicStation
+        | EntityKind::Song
+        | EntityKind::Sound
+        | EntityKind::SoundEffect
+        | EntityKind::Falloff
+        | EntityKind::Portrait
+        | EntityKind::CustomModifier
+        | EntityKind::ModifierMapping => TokenType::Property as u32,
+
+        // Identifiers → Type
+        EntityKind::CountryTag
+        | EntityKind::StrategicRegion
+        | EntityKind::State
+        | EntityKind::Province => TokenType::Type as u32,
+
+        // Variables
+        EntityKind::Variable | EntityKind::EventTarget => TokenType::Variable as u32,
+
+        // Localization entries → String
+        EntityKind::Localization => TokenType::String as u32,
+
+        // Fallback for any unexpected kind
+        _ => TokenType::Type as u32,
+    }
+}
+
 pub fn get_semantic_tokens(
     script: &Script,
-    keywords: &HashSet<String>,
-    abilities: &HashSet<String>,
-    strategy_plans: &HashSet<String>,
-    ai_areas: &HashSet<String>,
-    portrait_names: &HashSet<String>,
-    character_names: &HashSet<String>,
-    ideology_types: &HashSet<String>,
-    ideology_names: &HashSet<String>,
-    achievement_names: &HashSet<String>,
-    scripted_triggers: &HashSet<String>,
-    scripted_effects: &HashSet<String>,
-    country_tags: &HashSet<String>,
-    color_codes: &HashSet<String>,
-    music_assets: &HashSet<String>,
-    music_stations: &HashSet<String>,
-    songs: &HashSet<String>,
-    idea_names: &HashSet<String>,
-    focus_names: &HashSet<String>,
+    ctx: &SemanticTokenContext,
 ) -> SemanticTokensResult {
     let mut tokens = Vec::new();
     for entry in &script.entries {
-        push_entry_tokens(
-            entry,
-            &mut tokens,
-            keywords,
-            abilities,
-            strategy_plans,
-            ai_areas,
-            portrait_names,
-            character_names,
-            ideology_types,
-            ideology_names,
-            achievement_names,
-            scripted_triggers,
-            scripted_effects,
-            country_tags,
-            color_codes,
-            music_assets,
-            music_stations,
-            songs,
-            idea_names,
-            focus_names,
-            None,
-        );
+        push_entry_tokens(entry, &mut tokens, ctx, None);
     }
 
     // Sort tokens by line and column
@@ -108,48 +155,12 @@ pub fn get_semantic_tokens(
 fn push_entry_tokens(
     entry: &Entry,
     tokens: &mut Vec<RawToken>,
-    keywords: &HashSet<String>,
-    abilities: &HashSet<String>,
-    strategy_plans: &HashSet<String>,
-    ai_areas: &HashSet<String>,
-    portrait_names: &HashSet<String>,
-    character_names: &HashSet<String>,
-    ideology_types: &HashSet<String>,
-    ideology_names: &HashSet<String>,
-    achievement_names: &HashSet<String>,
-    scripted_triggers: &HashSet<String>,
-    scripted_effects: &HashSet<String>,
-    country_tags: &HashSet<String>,
-    color_codes: &HashSet<String>,
-    music_assets: &HashSet<String>,
-    music_stations: &HashSet<String>,
-    songs: &HashSet<String>,
-    idea_names: &HashSet<String>,
-    focus_names: &HashSet<String>,
+    ctx: &SemanticTokenContext,
     parent_key: Option<&str>,
 ) {
     match entry {
         Entry::Assignment(ass) => {
-            let is_keyword = keywords.contains(&ass.key);
-            let is_ability = abilities.contains(&ass.key);
-            let is_strategy_plan = strategy_plans.contains(&ass.key);
-            let is_ai_area = ai_areas.contains(&ass.key);
-            let is_portrait = portrait_names.contains(&ass.key);
-            let is_character = character_names.contains(&ass.key);
-            let is_achievement = achievement_names.contains(&ass.key);
-            let is_color_code = color_codes.contains(&ass.key);
-            let is_music_asset = music_assets.contains(&ass.key);
-            let is_music_station = music_stations.contains(&ass.key);
-            let is_song = songs.contains(&ass.key);
-            let is_ideology = ideology_names.contains(&ass.key);
-            let is_ideology_type = ideology_types.contains(&ass.key);
-            let is_idea = idea_names.contains(&ass.key);
-            let is_focus = focus_names.contains(&ass.key);
-
-            // Inside ideas = { ... } or idea_categories = { ... }, non-keyword
-            // assignment keys are idea/category definition names.
-            let is_idea_category =
-                parent_key.is_some_and(|p| p == "ideas" || p == "idea_categories");
+            let is_keyword = ctx.keywords.contains(&ass.key);
 
             if is_keyword {
                 tokens.push(RawToken {
@@ -158,87 +169,40 @@ fn push_entry_tokens(
                     length: ass.key_range.end_col - ass.key_range.start_col,
                     token_type: TokenType::Keyword as u32,
                 });
-            } else if is_ability
-                || is_strategy_plan
-                || is_ai_area
-                || is_portrait
-                || is_character
-                || is_achievement
-                || is_color_code
-                || is_music_asset
-                || is_music_station
-                || is_song
-                || is_ideology
-                || is_ideology_type
-                || is_idea
-                || is_idea_category
-                || is_focus
-                || country_tags.contains(&ass.key)
-                || scripted_triggers.contains(&ass.key)
-                || scripted_effects.contains(&ass.key)
-            {
+            } else if let Some(kind) = ctx.entity_names.get(&ass.key) {
                 tokens.push(RawToken {
                     line: ass.key_range.start_line,
                     start: ass.key_range.start_col,
                     length: ass.key_range.end_col - ass.key_range.start_col,
-                    token_type: TokenType::Type as u32,
+                    token_type: entity_kind_to_token_type(*kind),
                 });
+            } else {
+                // Contextual checks based on parent key
+                let is_idea_category =
+                    parent_key.is_some_and(|p| p == "ideas" || p == "idea_categories");
+
+                if is_idea_category {
+                    tokens.push(RawToken {
+                        line: ass.key_range.start_line,
+                        start: ass.key_range.start_col,
+                        length: ass.key_range.end_col - ass.key_range.start_col,
+                        token_type: TokenType::Type as u32,
+                    });
+                }
             }
 
+            // Always emit operator token
             tokens.push(RawToken {
                 line: ass.operator_range.start_line,
                 start: ass.operator_range.start_col,
                 length: ass.operator_range.end_col - ass.operator_range.start_col,
                 token_type: TokenType::Operator as u32,
             });
-            push_value_tokens(
-                &ass.value,
-                tokens,
-                keywords,
-                abilities,
-                strategy_plans,
-                ai_areas,
-                portrait_names,
-                character_names,
-                ideology_types,
-                ideology_names,
-                achievement_names,
-                scripted_triggers,
-                scripted_effects,
-                country_tags,
-                color_codes,
-                music_assets,
-                music_stations,
-                songs,
-                idea_names,
-                focus_names,
-                Some(&ass.key),
-            );
+
+            push_value_tokens(&ass.value, tokens, ctx, Some(&ass.key));
         }
         Entry::Value(val) => {
-            push_value_tokens(
-                val,
-                tokens,
-                keywords,
-                abilities,
-                strategy_plans,
-                ai_areas,
-                portrait_names,
-                character_names,
-                ideology_types,
-                ideology_names,
-                achievement_names,
-                scripted_triggers,
-                scripted_effects,
-                country_tags,
-                color_codes,
-                music_assets,
-                music_stations,
-                songs,
-                idea_names,
-                focus_names,
-                parent_key,
-            );
+            push_value_tokens(val, tokens, ctx, parent_key);
         }
         Entry::Comment(_, range) => {
             tokens.push(RawToken {
@@ -254,24 +218,7 @@ fn push_entry_tokens(
 fn push_value_tokens(
     val: &NodeedValue,
     tokens: &mut Vec<RawToken>,
-    keywords: &HashSet<String>,
-    abilities: &HashSet<String>,
-    strategy_plans: &HashSet<String>,
-    ai_areas: &HashSet<String>,
-    portrait_names: &HashSet<String>,
-    character_names: &HashSet<String>,
-    ideology_types: &HashSet<String>,
-    ideology_names: &HashSet<String>,
-    achievement_names: &HashSet<String>,
-    scripted_triggers: &HashSet<String>,
-    scripted_effects: &HashSet<String>,
-    country_tags: &HashSet<String>,
-    color_codes: &HashSet<String>,
-    music_assets: &HashSet<String>,
-    music_stations: &HashSet<String>,
-    songs: &HashSet<String>,
-    idea_names: &HashSet<String>,
-    focus_names: &HashSet<String>,
+    ctx: &SemanticTokenContext,
     parent_key: Option<&str>,
 ) {
     match &val.value {
@@ -279,45 +226,29 @@ fn push_value_tokens(
             let is_localization_value =
                 parent_key.is_some_and(|k| LOCALIZATION_VALUE_FIELDS.contains(&k));
 
-            if keywords.contains(s) {
+            if ctx.keywords.contains(s) {
                 tokens.push(RawToken {
                     line: val.range.start_line,
                     start: val.range.start_col,
                     length: val.range.end_col - val.range.start_col,
                     token_type: TokenType::Keyword as u32,
                 });
-            } else if music_assets.contains(s)
-                || music_stations.contains(s)
-                || songs.contains(s)
-                || (!is_localization_value
-                    && (abilities.contains(s)
-                        || strategy_plans.contains(s)
-                        || ai_areas.contains(s)
-                        || portrait_names.contains(s)
-                        || character_names.contains(s)
-                        || ideology_types.contains(s)
-                        || ideology_names.contains(s)
-                        || achievement_names.contains(s)
-                        || color_codes.contains(s)
-                        || country_tags.contains(s)
-                        || scripted_triggers.contains(s)
-                        || scripted_effects.contains(s)
-                        || idea_names.contains(s)
-                        || focus_names.contains(s)))
-            {
-                tokens.push(RawToken {
-                    line: val.range.start_line,
-                    start: val.range.start_col,
-                    length: val.range.end_col - val.range.start_col,
-                    token_type: TokenType::Type as u32,
-                });
-            } else if s.starts_with("var:") || s.starts_with("temp_var:") {
-                tokens.push(RawToken {
-                    line: val.range.start_line,
-                    start: val.range.start_col,
-                    length: val.range.end_col - val.range.start_col,
-                    token_type: TokenType::Variable as u32,
-                });
+            } else if !is_localization_value {
+                if let Some(kind) = ctx.entity_names.get(s) {
+                    tokens.push(RawToken {
+                        line: val.range.start_line,
+                        start: val.range.start_col,
+                        length: val.range.end_col - val.range.start_col,
+                        token_type: entity_kind_to_token_type(*kind),
+                    });
+                } else if s.starts_with("var:") || s.starts_with("temp_var:") {
+                    tokens.push(RawToken {
+                        line: val.range.start_line,
+                        start: val.range.start_col,
+                        length: val.range.end_col - val.range.start_col,
+                        token_type: TokenType::Variable as u32,
+                    });
+                }
             }
         }
         Value::Number(_) => {
@@ -338,29 +269,7 @@ fn push_value_tokens(
         }
         Value::Block(entries) => {
             for entry in entries {
-                push_entry_tokens(
-                    entry,
-                    tokens,
-                    keywords,
-                    abilities,
-                    strategy_plans,
-                    ai_areas,
-                    portrait_names,
-                    character_names,
-                    ideology_types,
-                    ideology_names,
-                    achievement_names,
-                    scripted_triggers,
-                    scripted_effects,
-                    country_tags,
-                    color_codes,
-                    music_assets,
-                    music_stations,
-                    songs,
-                    idea_names,
-                    focus_names,
-                    parent_key,
-                );
+                push_entry_tokens(entry, tokens, ctx, parent_key);
             }
         }
         Value::TaggedBlock(tag, entries, _) => {
@@ -371,29 +280,7 @@ fn push_value_tokens(
                 token_type: TokenType::Keyword as u32,
             });
             for entry in entries {
-                push_entry_tokens(
-                    entry,
-                    tokens,
-                    keywords,
-                    abilities,
-                    strategy_plans,
-                    ai_areas,
-                    portrait_names,
-                    character_names,
-                    ideology_types,
-                    ideology_names,
-                    achievement_names,
-                    scripted_triggers,
-                    scripted_effects,
-                    country_tags,
-                    color_codes,
-                    music_assets,
-                    music_stations,
-                    songs,
-                    idea_names,
-                    focus_names,
-                    parent_key,
-                );
+                push_entry_tokens(entry, tokens, ctx, parent_key);
             }
         }
     }

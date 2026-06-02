@@ -176,6 +176,18 @@
                 "scopeName": "source.cwt",
                 "path": "./syntaxes/cwt.tmLanguage.json"
             }
+        ],
+        "themes": [
+            {
+                "label": "Hearts of Modding Dark",
+                "uiTheme": "vs-dark",
+                "path": "./themes/hoi4-dark-color-theme.json"
+            },
+            {
+                "label": "Hearts of Modding Light",
+                "uiTheme": "vs",
+                "path": "./themes/hoi4-light-color-theme.json"
+            }
         ]
     },
     "scripts": {

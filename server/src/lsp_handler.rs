@@ -97,6 +97,13 @@ impl LanguageServer for Backend {
                                     SemanticTokenType::OPERATOR,
                                     SemanticTokenType::COMMENT,
                                     SemanticTokenType::TYPE,
+                                    SemanticTokenType::EVENT,
+                                    SemanticTokenType::FUNCTION,
+                                    SemanticTokenType::ENUM,
+                                    SemanticTokenType::ENUM_MEMBER,
+                                    SemanticTokenType::STRUCT,
+                                    SemanticTokenType::CLASS,
+                                    SemanticTokenType::PROPERTY,
                                 ],
                                 token_modifiers: vec![],
                             },
@@ -556,101 +563,14 @@ impl LanguageServer for Backend {
                 let lookup = entity_lookup::EntityLookup::new(&self.scanner_data);
                 let all_names = lookup.entity_names();
 
-                let mut ability_names = HashSet::new();
-                let mut strategy_plan_names = HashSet::new();
-                let mut ai_area_names = HashSet::new();
-                let mut portrait_names = HashSet::new();
-                let mut character_names = HashSet::new();
-                let mut ideology_types = HashSet::new();
-                let mut ideology_names = HashSet::new();
-                let mut achievement_names = HashSet::new();
-                let mut scripted_trigger_names = HashSet::new();
-                let mut scripted_effect_names = HashSet::new();
-                let mut country_tag_names = HashSet::new();
-                let mut color_code_names = HashSet::new();
-                let mut music_asset_names = HashSet::new();
-                let mut music_station_names = HashSet::new();
-                let mut song_names = HashSet::new();
-                let mut idea_names = HashSet::new();
-                let mut focus_names = HashSet::new();
-
-                for (name, kind) in all_names {
-                    match kind {
-                        entity_lookup::EntityKind::Ability => {
-                            ability_names.insert(name);
-                        }
-                        entity_lookup::EntityKind::AiStrategyPlan => {
-                            strategy_plan_names.insert(name);
-                        }
-                        entity_lookup::EntityKind::AiArea => {
-                            ai_area_names.insert(name);
-                        }
-                        entity_lookup::EntityKind::Portrait => {
-                            portrait_names.insert(name);
-                        }
-                        entity_lookup::EntityKind::Character => {
-                            character_names.insert(name);
-                        }
-                        entity_lookup::EntityKind::SubIdeology => {
-                            ideology_types.insert(name);
-                        }
-                        entity_lookup::EntityKind::Ideology => {
-                            ideology_names.insert(name);
-                        }
-                        entity_lookup::EntityKind::Achievement => {
-                            achievement_names.insert(name);
-                        }
-                        entity_lookup::EntityKind::ScriptedTrigger => {
-                            scripted_trigger_names.insert(name);
-                        }
-                        entity_lookup::EntityKind::ScriptedEffect => {
-                            scripted_effect_names.insert(name);
-                        }
-                        entity_lookup::EntityKind::CountryTag => {
-                            country_tag_names.insert(name);
-                        }
-                        entity_lookup::EntityKind::ColorCode => {
-                            color_code_names.insert(name);
-                        }
-                        entity_lookup::EntityKind::MusicAsset => {
-                            music_asset_names.insert(name);
-                        }
-                        entity_lookup::EntityKind::MusicStation => {
-                            music_station_names.insert(name);
-                        }
-                        entity_lookup::EntityKind::Song => {
-                            song_names.insert(name);
-                        }
-                        entity_lookup::EntityKind::Idea => {
-                            idea_names.insert(name);
-                        }
-                        entity_lookup::EntityKind::Focus => {
-                            focus_names.insert(name);
-                        }
-                        _ => {}
-                    }
-                }
+                let ctx = semantic_tokens::SemanticTokenContext::new(
+                    keywords,
+                    all_names,
+                );
 
                 Ok(Some(semantic_tokens::get_semantic_tokens(
                     &script,
-                    &keywords,
-                    &ability_names,
-                    &strategy_plan_names,
-                    &ai_area_names,
-                    &portrait_names,
-                    &character_names,
-                    &ideology_types,
-                    &ideology_names,
-                    &achievement_names,
-                    &scripted_trigger_names,
-                    &scripted_effect_names,
-                    &country_tag_names,
-                    &color_code_names,
-                    &music_asset_names,
-                    &music_station_names,
-                    &song_names,
-                    &idea_names,
-                    &focus_names,
+                    &ctx,
                 )))
             }
             _ => Ok(None),
