@@ -2,9 +2,7 @@ use crate::ast;
 use crate::lsp_convert::ast_range_to_lsp;
 use crate::rules::{ValidationContext, ValidationRule};
 use crate::scope::ScopeStack;
-use tower_lsp_server::ls_types::{
-    Diagnostic, DiagnosticSeverity, NumberOrString,
-};
+use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
 /// Checks that string values assigned to `name`, `desc`, `text`,
 /// and `title` keys have corresponding localization entries.

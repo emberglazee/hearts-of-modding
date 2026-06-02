@@ -248,10 +248,7 @@ impl ScannerData {
                 $index.clear();
                 for entry in $map.iter() {
                     let path = self.interner.intern(entry.value().path());
-                    $index
-                        .entry(path)
-                        .or_default()
-                        .push(entry.key().clone());
+                    $index.entry(path).or_default().push(entry.key().clone());
                 }
             };
         }

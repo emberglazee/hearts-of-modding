@@ -14,6 +14,7 @@ use crate::focus_scanner;
 use crate::gfx_scanner;
 use crate::idea_scanner;
 use crate::ideology_scanner;
+use crate::interner::InternedStr;
 use crate::loc_parser;
 use crate::logistics_scanner;
 use crate::map_object_scanner;
@@ -29,7 +30,6 @@ use crate::state_scanner;
 use crate::strategic_region_scanner;
 use crate::trait_scanner;
 use crate::variable_scanner;
-use crate::interner::InternedStr;
 use std::collections::{HashMap, HashSet};
 use tower_lsp_server::ls_types::MessageType;
 
@@ -544,7 +544,9 @@ impl Backend {
 
         self.scanner_data.duplicated_loc_keys.clear();
         for x in dups {
-            self.scanner_data.duplicated_loc_keys.insert((x.0.into(), x.1));
+            self.scanner_data
+                .duplicated_loc_keys
+                .insert((x.0.into(), x.1));
         }
         let _d_map = &self.scanner_data.duplicated_loc_keys;
 
@@ -670,7 +672,9 @@ impl Backend {
 
         self.scanner_data.sub_ideologies.clear();
         for (k, v) in sub_map {
-            self.scanner_data.sub_ideologies.insert(k.into(), (v.0.into(), v.1, v.2));
+            self.scanner_data
+                .sub_ideologies
+                .insert(k.into(), (v.0.into(), v.1, v.2));
         }
         let s_map = &self.scanner_data.sub_ideologies;
 

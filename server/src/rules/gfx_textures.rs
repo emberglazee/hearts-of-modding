@@ -20,7 +20,12 @@ impl<'a> GfxTextureRule<'a> {
         Self { gfx_file_path }
     }
 
-    pub(crate) fn validate(&self, entries: &[ast::Entry], ctx: &ValidationContext, diags: &mut Vec<Diagnostic>) {
+    pub(crate) fn validate(
+        &self,
+        entries: &[ast::Entry],
+        ctx: &ValidationContext,
+        diags: &mut Vec<Diagnostic>,
+    ) {
         let game_path = &ctx.game_path;
         let gfx_dir = self.gfx_file_path.parent();
 

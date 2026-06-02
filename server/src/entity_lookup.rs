@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 
-use crate::interner::InternedStr;
 use crate::ScannerData;
 use crate::ast;
+use crate::interner::InternedStr;
 use crate::lsp_convert::is_pos_in_range;
 use std::collections::HashMap;
 use tower_lsp_server::ls_types::Position;

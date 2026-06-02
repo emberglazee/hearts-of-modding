@@ -11,6 +11,7 @@ use crate::event_scanner;
 use crate::focus_scanner;
 use crate::idea_scanner;
 use crate::ideology_scanner;
+use crate::interner::InternedStr;
 use crate::loc_parser;
 use crate::modifier_scanner;
 use crate::music_scanner;
@@ -24,7 +25,6 @@ use crate::sprite_scanner;
 use crate::strategic_region_scanner;
 use crate::trait_scanner;
 use crate::variable_scanner;
-use crate::interner::InternedStr;
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
@@ -408,7 +408,12 @@ fn update_events(scanner_data: &ScannerData, path_str: &str, script: &ast::Scrip
     let mut new_entries = HashMap::new();
     event_scanner::find_event_definitions(&script.entries, path_str, &mut new_entries);
 
-    retain_path!(scanner_data.events, scanner_data.events_file_index, path_str, new_entries);
+    retain_path!(
+        scanner_data.events,
+        scanner_data.events_file_index,
+        path_str,
+        new_entries
+    );
 }
 
 fn update_scripted(scanner_data: &ScannerData, kind: &str, path_str: &str, script: &ast::Script) {
@@ -428,10 +433,20 @@ fn update_scripted(scanner_data: &ScannerData, kind: &str, path_str: &str, scrip
 
     match kind {
         "triggers" => {
-            retain_path!(scanner_data.scripted_triggers, scanner_data.scripted_triggers_file_index, path_str, new_entries);
+            retain_path!(
+                scanner_data.scripted_triggers,
+                scanner_data.scripted_triggers_file_index,
+                path_str,
+                new_entries
+            );
         }
         "effects" => {
-            retain_path!(scanner_data.scripted_effects, scanner_data.scripted_effects_file_index, path_str, new_entries);
+            retain_path!(
+                scanner_data.scripted_effects,
+                scanner_data.scripted_effects_file_index,
+                path_str,
+                new_entries
+            );
         }
         _ => {}
     }
@@ -445,14 +460,24 @@ fn update_scripted_locs(scanner_data: &ScannerData, path_str: &str, script: &ast
         &mut new_entries,
     );
 
-    retain_path!(scanner_data.scripted_locs, scanner_data.scripted_locs_file_index, path_str, new_entries);
+    retain_path!(
+        scanner_data.scripted_locs,
+        scanner_data.scripted_locs_file_index,
+        path_str,
+        new_entries
+    );
 }
 
 fn update_achievements(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
     achievement_scanner::find_achievements_in_entries(&script.entries, path_str, &mut new_entries);
 
-    retain_path!(scanner_data.achievements, scanner_data.achievements_file_index, path_str, new_entries);
+    retain_path!(
+        scanner_data.achievements,
+        scanner_data.achievements_file_index,
+        path_str,
+        new_entries
+    );
 }
 
 fn update_modifiers(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
@@ -470,7 +495,12 @@ fn update_modifiers(scanner_data: &ScannerData, path_str: &str, script: &ast::Sc
         }
     }
 
-    retain_path!(scanner_data.custom_modifiers, scanner_data.custom_modifiers_file_index, path_str, new_entries);
+    retain_path!(
+        scanner_data.custom_modifiers,
+        scanner_data.custom_modifiers_file_index,
+        path_str,
+        new_entries
+    );
 }
 
 fn update_ideologies(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
@@ -482,12 +512,21 @@ fn update_ideologies(scanner_data: &ScannerData, path_str: &str, script: &ast::S
         for (sub, range) in &ideology.sub_ideology_ranges {
             sub_map.insert(
                 std::sync::Arc::from(sub.as_str()),
-                (std::sync::Arc::from(ideology.name.as_str()), range.clone(), ideology.path.clone()),
+                (
+                    std::sync::Arc::from(ideology.name.as_str()),
+                    range.clone(),
+                    ideology.path.clone(),
+                ),
             );
         }
     }
 
-    retain_path!(scanner_data.ideologies, scanner_data.ideologies_file_index, path_str, new_entries);
+    retain_path!(
+        scanner_data.ideologies,
+        scanner_data.ideologies_file_index,
+        path_str,
+        new_entries
+    );
 
     // sub_ideologies is a tuple (String, Range, String) — handle manually
     // since tuples can't implement HasPath or use the retain_path! macro
@@ -520,21 +559,36 @@ fn update_traits(
     let mut new_entries = HashMap::new();
     trait_scanner::find_traits_in_entries(&script.entries, path_str, trait_type, &mut new_entries);
 
-    retain_path!(scanner_data.traits, scanner_data.traits_file_index, path_str, new_entries);
+    retain_path!(
+        scanner_data.traits,
+        scanner_data.traits_file_index,
+        path_str,
+        new_entries
+    );
 }
 
 fn update_ideas(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
     idea_scanner::find_ideas_in_entries(&script.entries, path_str, &mut new_entries);
 
-    retain_path!(scanner_data.ideas, scanner_data.ideas_file_index, path_str, new_entries);
+    retain_path!(
+        scanner_data.ideas,
+        scanner_data.ideas_file_index,
+        path_str,
+        new_entries
+    );
 }
 
 fn update_characters(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
     character_scanner::find_characters_in_entries(&script.entries, path_str, &mut new_entries);
 
-    retain_path!(scanner_data.characters, scanner_data.characters_file_index, path_str, new_entries);
+    retain_path!(
+        scanner_data.characters,
+        scanner_data.characters_file_index,
+        path_str,
+        new_entries
+    );
 }
 
 fn update_buildings(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
@@ -542,14 +596,24 @@ fn update_buildings(scanner_data: &ScannerData, path_str: &str, script: &ast::Sc
     let path = Path::new(path_str);
     building_scanner::extract_buildings(&script.entries, path, &mut new_entries);
 
-    retain_path!(scanner_data.buildings, scanner_data.buildings_file_index, path_str, new_entries);
+    retain_path!(
+        scanner_data.buildings,
+        scanner_data.buildings_file_index,
+        path_str,
+        new_entries
+    );
 }
 
 fn update_abilities(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
     ability_scanner::find_abilities_in_entries(&script.entries, path_str, &mut new_entries);
 
-    retain_path!(scanner_data.abilities, scanner_data.abilities_file_index, path_str, new_entries);
+    retain_path!(
+        scanner_data.abilities,
+        scanner_data.abilities_file_index,
+        path_str,
+        new_entries
+    );
 }
 
 fn update_ai_strategy_plans(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
@@ -557,7 +621,12 @@ fn update_ai_strategy_plans(scanner_data: &ScannerData, path_str: &str, script: 
     let path = Path::new(path_str);
     ai_strategy_plan_scanner::extract_plans(&script.entries, path, &mut new_entries);
 
-    retain_path!(scanner_data.ai_strategy_plans, scanner_data.ai_strategy_plans_file_index, path_str, new_entries);
+    retain_path!(
+        scanner_data.ai_strategy_plans,
+        scanner_data.ai_strategy_plans_file_index,
+        path_str,
+        new_entries
+    );
 }
 
 fn update_ai_areas(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
@@ -565,7 +634,12 @@ fn update_ai_areas(scanner_data: &ScannerData, path_str: &str, script: &ast::Scr
     let path = Path::new(path_str);
     ai_area_scanner::extract_areas(&script.entries, path, &mut new_entries);
 
-    retain_path!(scanner_data.ai_areas, scanner_data.ai_areas_file_index, path_str, new_entries);
+    retain_path!(
+        scanner_data.ai_areas,
+        scanner_data.ai_areas_file_index,
+        path_str,
+        new_entries
+    );
 }
 
 fn update_defines(scanner_data: &ScannerData, content: &str) {
@@ -647,7 +721,12 @@ fn update_country_tags(scanner_data: &ScannerData, path_str: &str, content: &str
         }
     }
 
-    retain_path!(scanner_data.country_tags, scanner_data.country_tags_file_index, path_str, new_entries);
+    retain_path!(
+        scanner_data.country_tags,
+        scanner_data.country_tags_file_index,
+        path_str,
+        new_entries
+    );
 }
 
 fn update_variables(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
@@ -662,7 +741,11 @@ fn update_variables(scanner_data: &ScannerData, path_str: &str, script: &ast::Sc
         !vec.is_empty()
     });
     for (k, mut v) in new_vars {
-        scanner_data.variables.entry(k.into()).or_default().append(&mut v);
+        scanner_data
+            .variables
+            .entry(k.into())
+            .or_default()
+            .append(&mut v);
     }
 
     scanner_data.event_targets.retain(|_, vec| {
@@ -688,7 +771,12 @@ fn update_music_asset(scanner_data: &ScannerData, path_str: &str, script: &ast::
         let mut assets = HashMap::new();
         music_scanner::find_assets_in_entries(&script.entries, path_str, &mut assets);
 
-        retain_path!(scanner_data.music_assets, scanner_data.music_assets_file_index, path_str, assets);
+        retain_path!(
+            scanner_data.music_assets,
+            scanner_data.music_assets_file_index,
+            path_str,
+            assets
+        );
     } else if ext == "txt" {
         let mut stations = HashMap::new();
         let mut songs = HashMap::new();
@@ -699,8 +787,18 @@ fn update_music_asset(scanner_data: &ScannerData, path_str: &str, script: &ast::
             &mut songs,
         );
 
-        retain_path!(scanner_data.music_stations, scanner_data.music_stations_file_index, path_str, stations);
-        retain_path!(scanner_data.songs, scanner_data.songs_file_index, path_str, songs);
+        retain_path!(
+            scanner_data.music_stations,
+            scanner_data.music_stations_file_index,
+            path_str,
+            stations
+        );
+        retain_path!(
+            scanner_data.songs,
+            scanner_data.songs_file_index,
+            path_str,
+            songs
+        );
     }
 }
 
@@ -718,10 +816,30 @@ fn update_sounds(scanner_data: &ScannerData, path_str: &str, script: &ast::Scrip
         &mut categories,
     );
 
-    retain_path!(scanner_data.sounds, scanner_data.sounds_file_index, path_str, sounds);
-    retain_path!(scanner_data.sound_effects, scanner_data.sound_effects_file_index, path_str, effects);
-    retain_path!(scanner_data.falloffs, scanner_data.falloffs_file_index, path_str, falloffs);
-    retain_path!(scanner_data.sound_categories, scanner_data.sound_categories_file_index, path_str, categories);
+    retain_path!(
+        scanner_data.sounds,
+        scanner_data.sounds_file_index,
+        path_str,
+        sounds
+    );
+    retain_path!(
+        scanner_data.sound_effects,
+        scanner_data.sound_effects_file_index,
+        path_str,
+        effects
+    );
+    retain_path!(
+        scanner_data.falloffs,
+        scanner_data.falloffs_file_index,
+        path_str,
+        falloffs
+    );
+    retain_path!(
+        scanner_data.sound_categories,
+        scanner_data.sound_categories_file_index,
+        path_str,
+        categories
+    );
 }
 
 fn update_portraits(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
@@ -729,14 +847,24 @@ fn update_portraits(scanner_data: &ScannerData, path_str: &str, script: &ast::Sc
     let path = Path::new(path_str);
     portrait_scanner::extract_portraits(&script.entries, path, &mut new_entries);
 
-    retain_path!(scanner_data.portraits, scanner_data.portraits_file_index, path_str, new_entries);
+    retain_path!(
+        scanner_data.portraits,
+        scanner_data.portraits_file_index,
+        path_str,
+        new_entries
+    );
 }
 
 fn update_sprites(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
     sprite_scanner::find_sprites_in_entries(&script.entries, path_str, &mut new_entries);
 
-    retain_path!(scanner_data.sprites, scanner_data.sprites_file_index, path_str, new_entries);
+    retain_path!(
+        scanner_data.sprites,
+        scanner_data.sprites_file_index,
+        path_str,
+        new_entries
+    );
 }
 
 fn update_strategic_regions(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {

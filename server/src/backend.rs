@@ -6,9 +6,9 @@ use tower_lsp_server::Client;
 use tower_lsp_server::ls_types::*;
 
 use crate::advanced_validation;
-use crate::interner::InternedStr;
 use crate::ast;
 use crate::config::Config;
+use crate::interner::InternedStr;
 use crate::loc_parser;
 use crate::lsp_convert::{ast_range_to_lsp, ast_related_info_to_lsp, ast_tag_to_lsp};
 use crate::parser;
@@ -1865,8 +1865,8 @@ impl Backend {
                 // Some Paradox keys (like 'modifier = { ... }' or 'option = { ... }') are intended to be duplicates.
                 // But specific engine modifiers (like 'stability_factor') should NEVER be duplicated.
 
-                let is_modifier =
-                    mod_maps.contains_key(ass.key.as_str()) || COMMON_KEYS.contains(&ass.key.as_str());
+                let is_modifier = mod_maps.contains_key(ass.key.as_str())
+                    || COMMON_KEYS.contains(&ass.key.as_str());
 
                 // Exceptions: Some effects/triggers are specifically designed to be used multiple times
                 let is_exception = ass.key == "modifier"

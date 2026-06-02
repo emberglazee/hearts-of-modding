@@ -297,12 +297,13 @@ impl Backend {
                                     let regions = &self.scanner_data.strategic_regions;
                                     if let Some(region) = regions.get(&region_id) {
                                         let loc = &self.scanner_data.localization;
-                                        let region_name =
-                                            if let Some(loc_entry) = loc.get(region.name.as_str()) {
-                                                loc_entry.value.clone()
-                                            } else {
-                                                region.name.clone()
-                                            };
+                                        let region_name = if let Some(loc_entry) =
+                                            loc.get(region.name.as_str())
+                                        {
+                                            loc_entry.value.clone()
+                                        } else {
+                                            region.name.clone()
+                                        };
                                         hover_text.push_str(&format!(
                                             "**Hovered:** Strategic Region ID `{}` (🗺️ {})\n",
                                             region_id, region_name
@@ -662,15 +663,16 @@ impl Backend {
 
                             if is_state_key {
                                 let loc = &self.scanner_data.localization;
-                                let state_name = if let Some(loc_entry) = loc.get(state.name.as_str()) {
-                                    paradox_to_markdown(
-                                        &loc_entry.value,
-                                        Some(loc),
-                                        Some(&color_map),
-                                    )
-                                } else {
-                                    state.name.clone()
-                                };
+                                let state_name =
+                                    if let Some(loc_entry) = loc.get(state.name.as_str()) {
+                                        paradox_to_markdown(
+                                            &loc_entry.value,
+                                            Some(loc),
+                                            Some(&color_map),
+                                        )
+                                    } else {
+                                        state.name.clone()
+                                    };
 
                                 push_section(
                                     &mut hover_text,
@@ -727,11 +729,12 @@ impl Backend {
 
                             if is_region_key {
                                 let loc = &self.scanner_data.localization;
-                                let region_name = if let Some(loc_entry) = loc.get(region.name.as_str()) {
-                                    loc_entry.value.clone()
-                                } else {
-                                    region.name.clone()
-                                };
+                                let region_name =
+                                    if let Some(loc_entry) = loc.get(region.name.as_str()) {
+                                        loc_entry.value.clone()
+                                    } else {
+                                        region.name.clone()
+                                    };
 
                                 let mut text = format!(
                                     "### 🗺️ Strategic Region: {}\n\nID: `{}`\n\n",

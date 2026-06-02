@@ -1,5 +1,5 @@
-use crate::interner::InternedStr;
 use crate::ast;
+use crate::interner::InternedStr;
 use crate::parser;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};

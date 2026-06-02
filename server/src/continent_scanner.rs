@@ -1,5 +1,5 @@
-use crate::interner::InternedStr;
 use crate::ast;
+use crate::interner::InternedStr;
 use crate::parser;
 use std::collections::HashMap;
 use std::fs;
@@ -34,7 +34,9 @@ pub fn scan_continents(root: &Path) -> HashMap<String, Continent> {
                                         name.clone(),
                                         Continent {
                                             name: name.clone(),
-                                            path: std::sync::Arc::from(path.to_string_lossy().as_ref()),
+                                            path: std::sync::Arc::from(
+                                                path.to_string_lossy().as_ref(),
+                                            ),
                                             range: ast::Range {
                                                 start_line: val.range.start_line,
                                                 start_col: val.range.start_col,

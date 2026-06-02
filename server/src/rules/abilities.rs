@@ -2,9 +2,7 @@ use crate::ast;
 use crate::lsp_convert::ast_range_to_lsp;
 use crate::rules::{ValidationContext, ValidationRule};
 use crate::scope::ScopeStack;
-use tower_lsp_server::ls_types::{
-    Diagnostic, DiagnosticSeverity, NumberOrString,
-};
+use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
 /// Validates ability references and ability definition completeness.
 ///
@@ -162,10 +160,7 @@ fn check_ability_properties(
         diags.push(Diagnostic {
             range: ast_range_to_lsp(&a_ass.key_range),
             severity: Some(DiagnosticSeverity::WARNING),
-            message: format!(
-                "Ability '{}' is missing required 'name' field",
-                a_ass.key
-            ),
+            message: format!("Ability '{}' is missing required 'name' field", a_ass.key),
             code: Some(NumberOrString::String(
                 crate::advanced_validation::ABILITY_MISSING_REQUIRED_FIELD.to_string(),
             )),
@@ -177,10 +172,7 @@ fn check_ability_properties(
         diags.push(Diagnostic {
             range: ast_range_to_lsp(&a_ass.key_range),
             severity: Some(DiagnosticSeverity::WARNING),
-            message: format!(
-                "Ability '{}' is missing required 'desc' field",
-                a_ass.key
-            ),
+            message: format!("Ability '{}' is missing required 'desc' field", a_ass.key),
             code: Some(NumberOrString::String(
                 crate::advanced_validation::ABILITY_MISSING_REQUIRED_FIELD.to_string(),
             )),
@@ -192,10 +184,7 @@ fn check_ability_properties(
         diags.push(Diagnostic {
             range: ast_range_to_lsp(&a_ass.key_range),
             severity: Some(DiagnosticSeverity::WARNING),
-            message: format!(
-                "Ability '{}' is missing required 'cost' field",
-                a_ass.key
-            ),
+            message: format!("Ability '{}' is missing required 'cost' field", a_ass.key),
             code: Some(NumberOrString::String(
                 crate::advanced_validation::ABILITY_MISSING_REQUIRED_FIELD.to_string(),
             )),

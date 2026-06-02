@@ -2,9 +2,7 @@ use crate::ast;
 use crate::lsp_convert::ast_range_to_lsp;
 use crate::rules::{ValidationContext, ValidationRule};
 use crate::scope::ScopeStack;
-use tower_lsp_server::ls_types::{
-    Diagnostic, DiagnosticSeverity, NumberOrString,
-};
+use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
 /// Validates province references.
 ///
@@ -51,11 +49,7 @@ impl ValidationRule for ProvinceRule {
     }
 }
 
-fn check_is_province(
-    val: &ast::NodeedValue,
-    ctx: &ValidationContext,
-    diags: &mut Vec<Diagnostic>,
-) {
+fn check_is_province(val: &ast::NodeedValue, ctx: &ValidationContext, diags: &mut Vec<Diagnostic>) {
     let id_opt = match &val.value {
         ast::Value::Number(n) => Some(*n as u32),
         ast::Value::String(s) => s.parse::<u32>().ok(),
@@ -80,10 +74,7 @@ fn check_is_province(
 
 /// Check that `victory_points = { ... }` province IDs exist in the
 /// state's `provinces = { ... }` list.
-fn validate_victory_points_reference(
-    entries: &[ast::Entry],
-    diags: &mut Vec<Diagnostic>,
-) {
+fn validate_victory_points_reference(entries: &[ast::Entry], diags: &mut Vec<Diagnostic>) {
     let mut state_provinces: Option<std::collections::HashSet<i32>> = None;
     let mut victory_points: Option<Vec<(i32, ast::Range)>> = None;
     collect_vp_data(entries, &mut state_provinces, &mut victory_points);
@@ -99,8 +90,7 @@ fn validate_victory_points_reference(
                         vp_province
                     ),
                     code: Some(NumberOrString::String(
-                        crate::advanced_validation::VICTORY_POINT_PROVINCE_NOT_IN_STATE
-                            .to_string(),
+                        crate::advanced_validation::VICTORY_POINT_PROVINCE_NOT_IN_STATE.to_string(),
                     )),
                     source: Some("Hearts of Modding".to_string()),
                     data: Some(serde_json::json!({

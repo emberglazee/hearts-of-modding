@@ -2,9 +2,7 @@ use crate::ast;
 use crate::lsp_convert::ast_range_to_lsp;
 use crate::rules::{ValidationContext, ValidationRule};
 use crate::scope::ScopeStack;
-use tower_lsp_server::ls_types::{
-    Diagnostic, DiagnosticSeverity, NumberOrString,
-};
+use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
 /// Validates ideology and sub-ideology references.
 ///
@@ -33,10 +31,18 @@ impl ValidationRule for IdeologyRule {
         // Allow scoped references (ROOT, FROM, PREV, THIS, etc.)
         let is_scope_ref = matches!(
             val.to_uppercase().as_str(),
-            "ROOT" | "FROM" | "PREV" | "THIS"
-                | "PREVPREV" | "PREVPREVPREV" | "PREVPREVPREVPREV"
-                | "OWNER" | "CONTROLLER" | "CAPITAL"
-                | "FROM.FROM" | "FROM.FROM.FROM"
+            "ROOT"
+                | "FROM"
+                | "PREV"
+                | "THIS"
+                | "PREVPREV"
+                | "PREVPREVPREV"
+                | "PREVPREVPREVPREV"
+                | "OWNER"
+                | "CONTROLLER"
+                | "CAPITAL"
+                | "FROM.FROM"
+                | "FROM.FROM.FROM"
         );
         // Allow variable references (var:SCOPE@name or var:name)
         let is_var_ref = val.starts_with("var:");

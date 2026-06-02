@@ -2,9 +2,7 @@ use crate::ast;
 use crate::lsp_convert::ast_range_to_lsp;
 use crate::rules::{ValidationContext, ValidationRule};
 use crate::scope::{Scope, ScopeStack};
-use tower_lsp_server::ls_types::{
-    Diagnostic, DiagnosticSeverity, NumberOrString,
-};
+use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
 /// Validates sprite/GFX references in `sprite`, `icon`, `sprite_name`,
 /// and `picture` assignments.

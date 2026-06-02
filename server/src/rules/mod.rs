@@ -51,7 +51,8 @@ pub(crate) struct ValidationContext<'a> {
     pub(crate) buildings: &'a DashMap<InternedStr, building_scanner::Building>,
     pub(crate) defines: &'a defines_parser::GameDefines,
     pub(crate) continents: &'a DashMap<InternedStr, crate::continent_scanner::Continent>,
-    pub(crate) strategic_regions: &'a DashMap<u32, crate::strategic_region_scanner::StrategicRegion>,
+    pub(crate) strategic_regions:
+        &'a DashMap<u32, crate::strategic_region_scanner::StrategicRegion>,
     pub(crate) abilities: &'a DashMap<InternedStr, crate::ability_scanner::Ability>,
     pub(crate) game_path: Option<String>,
     pub(crate) styling_enabled: bool,

@@ -563,15 +563,9 @@ impl LanguageServer for Backend {
                 let lookup = entity_lookup::EntityLookup::new(&self.scanner_data);
                 let all_names = lookup.entity_names();
 
-                let ctx = semantic_tokens::SemanticTokenContext::new(
-                    keywords,
-                    all_names,
-                );
+                let ctx = semantic_tokens::SemanticTokenContext::new(keywords, all_names);
 
-                Ok(Some(semantic_tokens::get_semantic_tokens(
-                    &script,
-                    &ctx,
-                )))
+                Ok(Some(semantic_tokens::get_semantic_tokens(&script, &ctx)))
             }
             _ => Ok(None),
         }

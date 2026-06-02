@@ -1,9 +1,7 @@
 use crate::ast;
 use crate::lsp_convert::ast_range_to_lsp;
 use crate::rules::{ValidationContext, ValidationRule};
-use tower_lsp_server::ls_types::{
-    Diagnostic, DiagnosticSeverity, NumberOrString,
-};
+use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
 /// Validates AI area definitions: checks that continents and strategic
 /// regions referenced in `/common/ai_areas/` files actually exist in
@@ -45,16 +43,11 @@ impl ValidationRule for AiAreaRule {
                                             diags.push(Diagnostic {
                                                 range: ast_range_to_lsp(&val.range),
                                                 severity: Some(DiagnosticSeverity::WARNING),
-                                                message: format!(
-                                                    "Unknown continent: '{}'",
-                                                    name
-                                                ),
+                                                message: format!("Unknown continent: '{}'", name),
                                                 code: Some(NumberOrString::String(
                                                     "HOM6001".to_string(),
                                                 )),
-                                                source: Some(
-                                                    "Hearts of Modding".to_string(),
-                                                ),
+                                                source: Some("Hearts of Modding".to_string()),
                                                 ..Default::default()
                                             });
                                         }
@@ -80,9 +73,7 @@ impl ValidationRule for AiAreaRule {
                                                 code: Some(NumberOrString::String(
                                                     "HOM6002".to_string(),
                                                 )),
-                                                source: Some(
-                                                    "Hearts of Modding".to_string(),
-                                                ),
+                                                source: Some("Hearts of Modding".to_string()),
                                                 ..Default::default()
                                             });
                                         }

@@ -2,9 +2,7 @@ use crate::ast;
 use crate::lsp_convert::ast_range_to_lsp;
 use crate::rules::{ValidationContext, ValidationRule};
 use crate::scope::ScopeStack;
-use tower_lsp_server::ls_types::{
-    Diagnostic, DiagnosticSeverity, NumberOrString,
-};
+use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
 /// Validates country tag references and dynamic/static tag ratios.
 ///
@@ -29,9 +27,7 @@ impl ValidationRule for CountryTagRule {
             return;
         }
 
-        if key_lower != "tag"
-            && key_lower != "original_tag"
-            && key_lower != "original_tag_to_check"
+        if key_lower != "tag" && key_lower != "original_tag" && key_lower != "original_tag_to_check"
         {
             return;
         }
@@ -43,9 +39,16 @@ impl ValidationRule for CountryTagRule {
         // Allow scope references (ROOT, FROM, PREV, etc.)
         let is_scope_ref = matches!(
             val.to_uppercase().as_str(),
-            "ROOT" | "FROM" | "PREV" | "THIS"
-                | "PREVPREV" | "PREVPREVPREV" | "PREVPREVPREVPREV"
-                | "OWNER" | "CONTROLLER" | "CAPITAL"
+            "ROOT"
+                | "FROM"
+                | "PREV"
+                | "THIS"
+                | "PREVPREV"
+                | "PREVPREVPREV"
+                | "PREVPREVPREVPREV"
+                | "OWNER"
+                | "CONTROLLER"
+                | "CAPITAL"
         );
         let is_var_ref = val.starts_with("var:");
 
@@ -60,7 +63,11 @@ impl ValidationRule for CountryTagRule {
                 "NOT" | "AND" | "TAG" | "OOB" | "LOG" | "NUM" | "RED"
             );
 
-        if !is_scope_ref && !is_var_ref && looks_like_tag && !ctx.country_tags.contains_key(val.as_str()) {
+        if !is_scope_ref
+            && !is_var_ref
+            && looks_like_tag
+            && !ctx.country_tags.contains_key(val.as_str())
+        {
             diags.push(Diagnostic {
                 range: ast_range_to_lsp(&ass.value.range),
                 severity: Some(DiagnosticSeverity::WARNING),

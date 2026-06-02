@@ -71,9 +71,7 @@ fn entity_kind_to_token_type(kind: EntityKind) -> u32 {
         }
 
         // Narrative / event-like → Event
-        EntityKind::Event | EntityKind::Focus | EntityKind::Achievement => {
-            TokenType::Event as u32
-        }
+        EntityKind::Event | EntityKind::Focus | EntityKind::Achievement => TokenType::Event as u32,
 
         // Asset references → Property
         EntityKind::Sprite
@@ -104,10 +102,7 @@ fn entity_kind_to_token_type(kind: EntityKind) -> u32 {
     }
 }
 
-pub fn get_semantic_tokens(
-    script: &Script,
-    ctx: &SemanticTokenContext,
-) -> SemanticTokensResult {
+pub fn get_semantic_tokens(script: &Script, ctx: &SemanticTokenContext) -> SemanticTokensResult {
     let mut tokens = Vec::new();
     for entry in &script.entries {
         push_entry_tokens(entry, &mut tokens, ctx, None);

@@ -1,6 +1,6 @@
-use crate::interner::InternedStr;
 use crate::ast::{DiagnosticSeverity, Range};
 use crate::byte_offset_to_utf16;
+use crate::interner::InternedStr;
 use dashmap::DashMap;
 use nom::{
     IResult, Parser,

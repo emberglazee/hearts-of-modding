@@ -62,8 +62,7 @@ fn validate_character_skills_recursive(
                                 skill, max_skill, ct
                             ),
                             code: Some(NumberOrString::String(
-                                crate::advanced_validation::CHARACTER_SKILL_EXCEEDS_MAX
-                                    .to_string(),
+                                crate::advanced_validation::CHARACTER_SKILL_EXCEEDS_MAX.to_string(),
                             )),
                             source: Some("Hearts of Modding".to_string()),
                             data: Some(serde_json::json!({
