@@ -20,7 +20,6 @@ pub enum TokenKind {
     Ident(String),  // unquoted identifier
     String(String), // "quoted string"
     Number(f64),    // numeric literal
-    Boolean(bool),  // yes / no
 
     // Special
     Eof,
@@ -40,7 +39,6 @@ impl std::fmt::Display for TokenKind {
             TokenKind::Ident(s) => write!(f, "identifier '{}'", s),
             TokenKind::String(s) => write!(f, "string \"{}\"", s),
             TokenKind::Number(n) => write!(f, "number {}", n),
-            TokenKind::Boolean(b) => write!(f, "boolean {}", b),
             TokenKind::Eof => write!(f, "end of file"),
         }
     }
@@ -79,7 +77,8 @@ pub struct CstToken {
     pub text: String,
     /// Line/column range for LSP compatibility.
     pub range: ast::Range,
-    /// Byte-level range for efficient position tracking.
+    /// Byte-level range for efficient position tracking (used internally by lexer/parser).
+    #[allow(dead_code)]
     pub byte_range: TextRange,
     /// All trivia that appears before this token (whitespace, newlines, comments).
     pub leading_trivia: Vec<Trivia>,

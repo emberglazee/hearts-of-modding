@@ -1,7 +1,6 @@
 //! AST Lowering — convert CST to existing AST types for semantic consumers.
 
 use crate::parser::ast;
-use crate::parser::cst::diagnostic::*;
 use crate::parser::cst::token::*;
 use crate::parser::cst::types::*;
 
@@ -58,7 +57,6 @@ fn lower_node(node: CstNode) -> Option<ast::Entry> {
                 .to_string();
             Some(ast::Entry::Comment(text, trivia.range.clone()))
         }
-        CstNode::Error(_) => None,
     }
 }
 
@@ -506,8 +504,9 @@ mod tests {
     }
 
     #[test]
-    fn test_error_node_skipped() {
-        let diag = CstDiagnostic::error(
+    fn test_error_value_skipped() {
+        use crate::parser::cst::diagnostic::CstDiagnostic;
+        let value = CstValue::Error(CstDiagnostic::error(
             "test error",
             ast::Range {
                 start_line: 0,
@@ -515,8 +514,8 @@ mod tests {
                 end_line: 0,
                 end_col: 0,
             },
-        );
-        let node = CstNode::Error(diag);
-        assert!(lower_node(node).is_none(), "Error node should be skipped");
+        ));
+        let result = lower_value(value);
+        assert!(matches!(result, ast::Value::String(_)), "Error value should lower to empty string placeholder");
     }
 }

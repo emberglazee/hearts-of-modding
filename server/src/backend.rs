@@ -79,6 +79,7 @@ impl Backend {
     }
 
     /// Get cached CST for a URI, if available.
+    #[allow(dead_code)]
     pub(crate) fn get_cached_cst(&self, uri: &str) -> Option<Arc<CstScript>> {
         self.document_csts.get(uri).map(|c| c.value().clone())
     }

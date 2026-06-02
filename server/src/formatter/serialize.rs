@@ -62,7 +62,6 @@ fn serialize_node(node: &CstNode, out: &mut String) {
         CstNode::EntryComment(trivia) => {
             out.push_str(&trivia.text); // includes # and the comment content
         }
-        CstNode::Error(_) => { /* skip — no text to emit */ }
     }
 }
 

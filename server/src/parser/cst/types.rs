@@ -28,7 +28,7 @@ impl CloseBrace {
     }
 }
 
-/// A top-level node in the CST — an assignment, bare value, comment, or error.
+/// A top-level node in the CST — an assignment, bare value, or comment.
 #[derive(Debug, Clone)]
 pub enum CstNode {
     /// `key = value`
@@ -37,8 +37,6 @@ pub enum CstNode {
     EntryValue(CstEntryValue),
     /// A standalone comment line.
     EntryComment(Trivia),
-    /// A parse error recovered at the entry level.
-    Error(CstDiagnostic),
 }
 
 /// `key = value`
@@ -92,22 +90,4 @@ pub struct CstBlock {
     pub open_brace: CstToken,
     pub entries: Vec<CstNode>,
     pub close_brace: CloseBrace,
-}
-
-impl CstBlock {
-    pub fn new(open_brace: CstToken) -> Self {
-        Self {
-            open_brace,
-            entries: Vec::new(),
-            close_brace: CloseBrace::Missing(CstDiagnostic::error(
-                "Unclosed block",
-                crate::parser::ast::Range {
-                    start_line: 0,
-                    start_col: 0,
-                    end_line: 0,
-                    end_col: 0,
-                },
-            )),
-        }
-    }
 }

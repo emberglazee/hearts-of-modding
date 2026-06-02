@@ -6,8 +6,9 @@ use crate::parser::cst::parse_cst;
 use tower_lsp_server::ls_types::{Position, Range};
 
 impl Backend {
-    /// Format a document using the full CST pipeline.
-    /// Returns the formatted text.
+    /// Format a document using the CST pipeline.
+    /// Returns the full formatted text.
+    #[allow(dead_code)]
     pub(crate) fn format_document(&self, content: &str) -> String {
         let mut cst = parse_cst(content);
         transform::format(&mut cst);

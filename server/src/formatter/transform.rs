@@ -8,6 +8,7 @@ use crate::parser::cst::token::{CstToken, Trivia, TriviaKind};
 use crate::parser::cst::types::*;
 
 /// Apply all formatting transformations to a CST in place.
+#[allow(dead_code)]
 pub fn format(cst: &mut CstScript) {
     fix_indentation(cst);
     fix_assignment_spacing(cst);
@@ -44,9 +45,9 @@ fn fix_node_indentation(node: &mut CstNode, depth: &mut u32) {
         CstNode::EntryComment(trivia) => {
             fix_single_trivia_indentation(trivia, *depth);
         }
-        CstNode::Error(_) => {}
     }
 }
+
 
 fn fix_value_indentation(value: &mut CstValue, depth: &mut u32) {
     match value {
@@ -171,7 +172,7 @@ fn fix_node_assignment_spacing(node: &mut CstNode) {
         CstNode::EntryValue(ev) => {
             fix_value_assignment_spacing(&mut ev.value);
         }
-        CstNode::EntryComment(_) | CstNode::Error(_) => {}
+        CstNode::EntryComment(_) => {}
     }
 }
 
@@ -345,7 +346,7 @@ pub(crate) fn fix_trailing_whitespace(cst: &mut CstScript) {
             CstNode::EntryValue(ev) => {
                 process_value(&mut ev.value);
             }
-            CstNode::EntryComment(_) | CstNode::Error(_) => {}
+            CstNode::EntryComment(_) => {}
         }
     }
 
