@@ -22,9 +22,32 @@ jobs:
   build-server:
     uses: ./.github/workflows/server-build.yml
 
+  lint-client:
+    name: Lint Client
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Use Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: 'npm'
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install Dependencies
+        run: |
+          cd client
+          npm install
+
+      - name: Lint
+        run: |
+          cd client
+          npm run lint
+
   create-release:
     name: Create Release
-    needs: build-server
+    needs: [build-server, lint-client]
     runs-on: ubuntu-latest
     permissions:
       contents: write
