@@ -72,16 +72,46 @@ impl ValidationRule for StateDefinitionRule {
         }
 
         // buildings = { <building> = <level> } — validate building names
+        // Numeric keys are province IDs for province-level building placements
+        // (e.g., 2671 = { naval_base = 2 }), not building type names.
+        // Recurse into province-level blocks to validate their building names too.
         if key_lower == "buildings" {
             if let ast::Value::Block(building_entries) = &ass.value.value {
-                validate_keys_in_dashmap(
-                    building_entries,
-                    ctx.buildings,
-                    "building",
-                    "common/buildings/*.txt",
-                    crate::advanced_validation::UNKNOWN_BUILDING,
-                    diags,
-                );
+                for entry in building_entries {
+                    if let ast::Entry::Assignment(ass) = entry {
+                        let key = ass.key.as_str();
+                        if key.bytes().all(|b| b.is_ascii_digit()) {
+                            // Province-level placement: 2671 = { naval_base = 2 }
+                            if let ast::Value::Block(province_entries) = &ass.value.value {
+                                validate_keys_in_dashmap(
+                                    province_entries,
+                                    ctx.buildings,
+                                    "building",
+                                    "common/buildings/*.txt",
+                                    crate::advanced_validation::UNKNOWN_BUILDING,
+                                    diags,
+                                );
+                            }
+                        } else {
+                            // State-level building: infrastructure = 2
+                            if !ctx.buildings.is_empty() && !ctx.buildings.contains_key(key) {
+                                diags.push(Diagnostic {
+                                    range: ast_range_to_lsp(&ass.key_range),
+                                    severity: Some(DiagnosticSeverity::WARNING),
+                                    message: format!(
+                                        "Unknown building '{}'. buildings are defined in common/buildings/*.txt",
+                                        key,
+                                    ),
+                                    code: Some(NumberOrString::String(
+                                        crate::advanced_validation::UNKNOWN_BUILDING.to_string(),
+                                    )),
+                                    source: Some("Hearts of Modding".to_string()),
+                                    ..Default::default()
+                                });
+                            }
+                        }
+                    }
+                }
             }
         }
     }
