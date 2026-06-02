@@ -4,11 +4,11 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ## [v0.14.1] - 2026-06-03
 
-### Added
+### ✨ Added
 
 - **Added a prompt offering to switch to the custom VSCode theme for workspaces where HoM is active.**
 
-### Fixed
+### 🩹 Fixed
 
 - **Corrected `README.md` to mention the higher minimal VSCode version requirement to v1.82.0.**
 
