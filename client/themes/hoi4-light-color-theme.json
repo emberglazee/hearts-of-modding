@@ -147,6 +147,61 @@
         {
             "scope": "punctuation.separator.hoi4",
             "settings": { "foreground": "#8a8a9a" }
+        },
+        {
+            "scope": ["support.type.property-name.json"],
+            "settings": { "foreground": "#1565c0" }
+        },
+        {
+            "scope": ["string.quoted.double.json"],
+            "settings": { "foreground": "#a68a2a" }
+        },
+        {
+            "scope": ["constant.language.json"],
+            "settings": { "foreground": "#b8860b" }
+        },
+        {
+            "scope": ["constant.numeric.json"],
+            "settings": { "foreground": "#b8456e" }
+        },
+        {
+            "scope": [
+                "punctuation.separator.dictionary.json",
+                "punctuation.separator.json"
+            ],
+            "settings": { "foreground": "#8a8a9a" }
+        },
+        {
+            "scope": ["markup.heading"],
+            "settings": { "foreground": "#b8860b", "fontStyle": "bold" }
+        },
+        {
+            "scope": ["markup.bold.markdown"],
+            "settings": { "foreground": "#1a1a2e", "fontStyle": "bold" }
+        },
+        {
+            "scope": ["markup.italic.markdown"],
+            "settings": { "foreground": "#1a1a2e", "fontStyle": "italic" }
+        },
+        {
+            "scope": ["markup.inline.raw.markdown", "markup.raw.block.markdown", "markup.fenced_code.block.markdown"],
+            "settings": { "foreground": "#a68a2a" }
+        },
+        {
+            "scope": ["markup.underline.link.markdown", "string.other.link.title.markdown"],
+            "settings": { "foreground": "#1565c0" }
+        },
+        {
+            "scope": ["markup.list.unnumbered.markdown", "markup.list.numbered.markdown"],
+            "settings": { "foreground": "#1a1a2e" }
+        },
+        {
+            "scope": ["markup.quote.markdown"],
+            "settings": { "foreground": "#5a5a62", "fontStyle": "italic" }
+        },
+        {
+            "scope": ["meta.separator.markdown"],
+            "settings": { "foreground": "#e0dcd4" }
         }
     ]
 }
