@@ -1047,11 +1047,18 @@ impl Backend {
 
             let color_code_set: std::collections::HashSet<String> =
                 color_codes.iter().map(|e| e.key().to_string()).collect();
+            let country_tag_set: std::collections::HashSet<String> = self
+                .scanner_data
+                .country_tags
+                .iter()
+                .map(|e| e.key().to_string())
+                .collect();
             let loc_diagnostics = loc_parser::validate_loc_string(
                 entry,
                 event_targets,
                 scripted_locs,
                 &color_code_set,
+                &country_tag_set,
             );
             for d in loc_diagnostics {
                 diagnostics.push(Diagnostic {

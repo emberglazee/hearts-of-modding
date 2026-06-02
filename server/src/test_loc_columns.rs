@@ -16,6 +16,9 @@ mod tests {
     fn empty_color_codes() -> HashSet<String> {
         HashSet::new()
     }
+    fn empty_country_tags() -> HashSet<String> {
+        HashSet::new()
+    }
 
     /// Helper: build a minimal LocEntry with a given value and value_start_col
     fn entry(value: &str, value_start_col: u32, start_line: u32) -> LocEntry {
@@ -45,6 +48,7 @@ mod tests {
             &empty_targets(),
             &empty_scripted_locs(),
             &empty_color_codes(),
+            &empty_country_tags(),
         );
 
         // Find the dangling color reset diagnostic
@@ -76,6 +80,7 @@ mod tests {
             &empty_targets(),
             &empty_scripted_locs(),
             &empty_color_codes(),
+            &empty_country_tags(),
         );
 
         let dangling: Vec<_> = diags
@@ -98,6 +103,7 @@ mod tests {
             &empty_targets(),
             &empty_scripted_locs(),
             &empty_color_codes(),
+            &empty_country_tags(),
         );
 
         let unclosed: Vec<_> = diags
@@ -127,6 +133,7 @@ mod tests {
             &empty_targets(),
             &empty_scripted_locs(),
             &empty_color_codes(),
+            &empty_country_tags(),
         );
 
         let unescaped: Vec<_> = diags
@@ -157,12 +164,14 @@ mod tests {
     #[test]
     fn test_bracket_column_ascii_only() {
         // No multi-byte chars — byte and UTF-16 should be identical
-        let e = entry("text[Foo]more", 5, 0);
+        // "Foobar" is 6 chars, not a 3-letter country tag — still invalid in lax mode
+        let e = entry("text[Foobar]more", 5, 0);
         let diags = loc_parser::validate_loc_string(
             &e,
             &empty_targets(),
             &empty_scripted_locs(),
             &empty_color_codes(),
+            &empty_country_tags(),
         );
 
         let invalid: Vec<_> = diags
@@ -189,6 +198,7 @@ mod tests {
             &empty_targets(),
             &empty_scripted_locs(),
             &empty_color_codes(),
+            &empty_country_tags(),
         );
 
         // Should get invalid_var_format diagnostics for '@'
@@ -218,6 +228,7 @@ mod tests {
             &empty_targets(),
             &empty_scripted_locs(),
             &empty_color_codes(),
+            &empty_country_tags(),
         );
 
         let var_fmts: Vec<_> = diags
@@ -246,6 +257,7 @@ mod tests {
             &empty_targets(),
             &empty_scripted_locs(),
             &empty_color_codes(),
+            &empty_country_tags(),
         );
 
         let escaped: Vec<_> = diags
@@ -274,6 +286,7 @@ mod tests {
             &empty_targets(),
             &empty_scripted_locs(),
             &empty_color_codes(),
+            &empty_country_tags(),
         );
 
         let unknown_fmt: Vec<_> = diags

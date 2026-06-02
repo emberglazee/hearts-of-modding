@@ -107,6 +107,7 @@ pub fn validate_loc_string(
     event_targets: &DashMap<InternedStr, Vec<crate::variable_scanner::EventTarget>>,
     scripted_locs: &DashMap<InternedStr, crate::scripted_loc_scanner::ScriptedLoc>,
     color_codes: &HashSet<String>,
+    country_tags: &HashSet<String>,
 ) -> Vec<LocDiagnostic> {
     let mut diagnostics = Vec::new();
 
@@ -360,29 +361,26 @@ pub fn validate_loc_string(
         let mut current_part_start = start_pos + 1; // +1 for [
         let mut all_parts_invalid = true;
 
-        for (i, part) in parts.iter().enumerate() {
-            let is_last = i == parts.len() - 1;
+        for part in &parts {
             let mut valid = false;
             let part_upper = part.to_uppercase();
 
-            if is_last {
-                if loc_commands.iter().any(|&c| c.eq_ignore_ascii_case(part))
-                    || scopes.contains(&part_upper.as_str())
-                    || event_targets.contains_key(*part)
-                    || scripted_locs.contains_key(*part)
-                    || part.chars().all(|c| c.is_ascii_digit())
-                {
-                    // Allow numbers as scopes (state IDs)
-                    valid = true;
-                }
-            } else {
-                if scopes.contains(&part_upper.as_str())
-                    || event_targets.contains_key(*part)
-                    || scripted_locs.contains_key(*part)
-                    || part.chars().all(|c| c.is_ascii_digit())
-                {
-                    valid = true;
-                }
+            // Check if this part is a known loc_command (valid in any position
+            // — some commands like GetLeader, GetCapital act as scope transitions)
+            let is_loc_command = loc_commands.iter().any(|&c| c.eq_ignore_ascii_case(part));
+
+            // Check if this part is a country tag like GER, USA, SOV
+            let is_country_tag = crate::country_scanner::is_valid_tag(&part_upper)
+                && (country_tags.is_empty() || country_tags.contains(&part_upper));
+
+            // Check if this part is a known scope keyword, event target, scripted loc, or numeric (state ID)
+            let is_scope_or_target = scopes.contains(&part_upper.as_str())
+                || event_targets.contains_key(*part)
+                || scripted_locs.contains_key(*part)
+                || part.chars().all(|c| c.is_ascii_digit());
+
+            if is_loc_command || is_scope_or_target || is_country_tag {
+                valid = true;
             }
 
             if !valid {

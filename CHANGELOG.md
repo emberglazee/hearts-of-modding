@@ -12,6 +12,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Semantic highlighting for localization:** Introduced semantic highlighting for localization (`.yml`) files with the custom Hearts of Modding VSCode theme.
 
+- **Validation for country tags in localization commands.**
+
 ### Changed
 
 - **Bumped up the minimal VSCode version requirement to v1.82.0.**
