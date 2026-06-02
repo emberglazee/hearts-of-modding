@@ -409,6 +409,17 @@ impl LanguageServer for Backend {
                 keywords.insert("expire".to_string());
                 keywords.insert("recruit_character".to_string());
                 keywords.insert("ideology".to_string());
+                // Unit leader skill properties
+                keywords.insert("attack_skill".to_string());
+                keywords.insert("defense_skill".to_string());
+                keywords.insert("planning_skill".to_string());
+                keywords.insert("logistics_skill".to_string());
+                keywords.insert("maneuvering_skill".to_string());
+                keywords.insert("coordination_skill".to_string());
+                // Scientist specialization block
+                keywords.insert("skills".to_string());
+                // Advisor-only property
+                keywords.insert("can_be_fired".to_string());
 
                 // Custom advancement field keywords
                 keywords.insert("achievement".to_string());

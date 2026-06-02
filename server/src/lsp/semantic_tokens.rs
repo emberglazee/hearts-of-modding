@@ -495,12 +495,27 @@ fn push_entry_tokens(
                 let is_idea_category =
                     parent_key.is_some_and(|p| p == "ideas" || p == "idea_categories");
 
+                let is_portrait_category =
+                    parent_key.is_some_and(|p| p == "portraits")
+                    && matches!(ass.key.as_str(), "civilian" | "army" | "navy");
+
+                let is_portrait_size =
+                    matches!(parent_key, Some("civilian") | Some("army") | Some("navy"))
+                    && matches!(ass.key.as_str(), "large" | "small");
+
                 if is_idea_category {
                     tokens.push(RawToken {
                         line: ass.key_range.start_line,
                         start: ass.key_range.start_col,
                         length: ass.key_range.end_col - ass.key_range.start_col,
                         token_type: TokenType::Type as u32,
+                    });
+                } else if is_portrait_category || is_portrait_size {
+                    tokens.push(RawToken {
+                        line: ass.key_range.start_line,
+                        start: ass.key_range.start_col,
+                        length: ass.key_range.end_col - ass.key_range.start_col,
+                        token_type: TokenType::Keyword as u32,
                     });
                 }
             }
