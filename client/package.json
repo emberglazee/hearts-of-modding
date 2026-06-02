@@ -111,6 +111,7 @@
                 ],
                 "filenamePatterns": [
                     "**/common/**/*.txt",
+                    "**/country_metadata/**/*.txt",
                     "**/music/**/*.txt",
                     "**/events/**/*.txt",
                     "**/map/**/*.txt",

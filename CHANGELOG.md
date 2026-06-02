@@ -2,7 +2,7 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
-## [v0.14.0] - 2026-06-02
+## [v0.14.0] - 2026-06-03
 
 ***The home stretch to v1.0.0 is here.***
 
@@ -17,6 +17,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 - **Validation for country tags in localization commands.**
 
 - **Expanded state scanner:** Validation for custom resources, buildings, and state categories, with expanded semantic highlighting.
+
+- **Country metadata scanner:** Scan and validate `country_metadata/*.txt` GFX.
 
 - **Added more missing keywords to semantic highlighting.**
 

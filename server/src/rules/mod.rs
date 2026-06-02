@@ -12,6 +12,7 @@ pub(crate) mod achievements;
 pub(crate) mod ai_areas;
 pub(crate) mod buildings;
 pub(crate) mod characters;
+pub(crate) mod country_metadata;
 pub(crate) mod country_tags;
 pub(crate) mod gfx_textures;
 pub(crate) mod ideas;

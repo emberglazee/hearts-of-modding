@@ -30,11 +30,5 @@ Thumbs.db
 .vscode/*.swp
 .vscode/*.swo
 
-# Generated documentation
-/server/doc/
-
-# Jemallocator fork checkout
-/jemallocator/
-
-# Handoff notes
-HANDOFF.md
+# Wiki reference documentation (scraped from paradox wikis)
+hoi4-wiki/

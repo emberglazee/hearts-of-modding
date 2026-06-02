@@ -1550,6 +1550,7 @@ impl Backend {
             Box::new(rules::buildings::BuildingRule),
             Box::new(rules::characters::CharacterRule),
             Box::new(rules::country_tags::CountryTagRule),
+            Box::new(rules::country_metadata::CountryMetadataRule),
             Box::new(rules::ideologies::IdeologyRule),
             Box::new(rules::ideas::IdeaRule),
             Box::new(rules::localization::LocalizationRule),
