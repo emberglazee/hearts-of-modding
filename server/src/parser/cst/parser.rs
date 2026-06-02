@@ -1,9 +1,9 @@
 //! CST Parser — recursive descent from token stream with error recovery.
 
+use crate::parser::ast;
 use crate::parser::cst::diagnostic::*;
 use crate::parser::cst::token::*;
 use crate::parser::cst::types::*;
-use crate::parser::ast;
 
 /// Parse a token stream into a CST script.
 ///
@@ -121,24 +121,24 @@ impl CstParser {
                         )))
                     }
                     // Otherwise the ident is a bare value on its own
-                    _ => Some(CstNode::EntryValue(CstEntryValue::new(
-                        classify_ident(ident),
-                    ))),
+                    _ => Some(CstNode::EntryValue(CstEntryValue::new(classify_ident(
+                        ident,
+                    )))),
                 }
             }
 
             TokenKind::String(_) => {
                 let token = self.advance().expect("String token");
-                Some(CstNode::EntryValue(CstEntryValue::new(
-                    CstValue::String(Box::new(token)),
-                )))
+                Some(CstNode::EntryValue(CstEntryValue::new(CstValue::String(
+                    Box::new(token),
+                ))))
             }
 
             TokenKind::Number(_) => {
                 let token = self.advance().expect("Number token");
-                Some(CstNode::EntryValue(CstEntryValue::new(
-                    CstValue::Number(Box::new(token)),
-                )))
+                Some(CstNode::EntryValue(CstEntryValue::new(CstValue::Number(
+                    Box::new(token),
+                ))))
             }
 
             // These tokens belong to the enclosing block; signal the caller
@@ -150,10 +150,7 @@ impl CstParser {
             _ => {
                 let token = self.peek().expect("current token");
                 let range = token.range.clone();
-                self.emit_error(
-                    format!("Unexpected token: {}", token.kind),
-                    range,
-                );
+                self.emit_error(format!("Unexpected token: {}", token.kind), range);
                 None
             }
         }
@@ -161,9 +158,7 @@ impl CstParser {
 
     /// Parse `= value` after the key has already been consumed.
     fn parse_assignment(&mut self, key: CstToken) -> CstAssignment {
-        let operator = self
-            .advance()
-            .expect("operator token (already peeked)");
+        let operator = self.advance().expect("operator token (already peeked)");
         let value = self.parse_value();
 
         if let CstValue::Error(_) = &value {
@@ -221,10 +216,7 @@ impl CstParser {
             TokenKind::CloseBrace => {
                 let token = self.advance().expect("CloseBrace token");
                 self.emit_error("Unexpected '}'", token.range.clone());
-                CstValue::Error(CstDiagnostic::error(
-                    "Unexpected '}'",
-                    token.range,
-                ))
+                CstValue::Error(CstDiagnostic::error("Unexpected '}'", token.range))
             }
 
             TokenKind::Eof => {
@@ -409,10 +401,7 @@ impl CstParser {
                 TokenKind::Eof => break,
                 _ => {
                     let range = token.range.clone();
-                    self.emit_error(
-                        format!("Skipping unexpected token: {}", token.kind),
-                        range,
-                    );
+                    self.emit_error(format!("Skipping unexpected token: {}", token.kind), range);
                     self.advance();
                 }
             }
@@ -421,8 +410,7 @@ impl CstParser {
 
     /// Record a diagnostic (error).
     fn emit_error(&mut self, msg: impl Into<String>, range: ast::Range) {
-        self.diagnostics
-            .push(CstDiagnostic::error(msg, range));
+        self.diagnostics.push(CstDiagnostic::error(msg, range));
     }
 
     /// Drain the first `Comment` trivia from the current token's leading_trivia
@@ -436,7 +424,10 @@ impl CstParser {
             return None;
         }
         let token = &mut self.tokens[self.pos];
-        let idx = token.leading_trivia.iter().position(|t| t.kind == TriviaKind::Comment)?;
+        let idx = token
+            .leading_trivia
+            .iter()
+            .position(|t| t.kind == TriviaKind::Comment)?;
         let comment = token.leading_trivia.remove(idx);
         Some(CstNode::EntryComment(comment))
     }
@@ -796,16 +787,12 @@ mod tests {
                                                     CstValue::Number(n) => {
                                                         assert_eq!(n.text, "1");
                                                     }
-                                                    other => panic!(
-                                                        "Expected Number, got {:?}",
-                                                        other
-                                                    ),
+                                                    other => {
+                                                        panic!("Expected Number, got {:?}", other)
+                                                    }
                                                 }
                                             }
-                                            other => panic!(
-                                                "Expected Assignment, got {:?}",
-                                                other
-                                            ),
+                                            other => panic!("Expected Assignment, got {:?}", other),
                                         }
                                     }
                                     other => panic!("Expected Block, got {:?}", other),
@@ -948,15 +935,13 @@ mod tests {
         let script = parse("x = { }");
         assert_eq!(script.nodes.len(), 1);
         match &script.nodes[0] {
-            CstNode::Assignment(assign) => {
-                match &assign.value {
-                    CstValue::Block(block) => {
-                        assert_eq!(block.entries.len(), 0);
-                        assert!(matches!(block.close_brace, CloseBrace::Present(_)));
-                    }
-                    other => panic!("Expected Block, got {:?}", other),
+            CstNode::Assignment(assign) => match &assign.value {
+                CstValue::Block(block) => {
+                    assert_eq!(block.entries.len(), 0);
+                    assert!(matches!(block.close_brace, CloseBrace::Present(_)));
                 }
-            }
+                other => panic!("Expected Block, got {:?}", other),
+            },
             other => panic!("Expected Assignment, got {:?}", other),
         }
         assert_eq!(script.diagnostics.len(), 0);

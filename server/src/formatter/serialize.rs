@@ -157,9 +157,9 @@ fn guess_indent_from_trivia(trivia: &[Trivia]) -> u32 {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::parser::cst::lexer::tokenize;
     use crate::parser::cst::parser::parse_cst;
-    use super::*;
 
     fn roundtrip(input: &str) -> String {
         let (tokens, _) = tokenize(input);

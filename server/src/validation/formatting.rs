@@ -1,8 +1,8 @@
 use crate::Backend;
-use crate::parser::ast;
-use crate::parser::cst::parse_cst;
 use crate::formatter::serialize::serialize;
 use crate::formatter::transform;
+use crate::parser::ast;
+use crate::parser::cst::parse_cst;
 use tower_lsp_server::ls_types::{Position, Range};
 
 impl Backend {
@@ -37,7 +37,11 @@ impl Backend {
     }
 
     /// Ensure single space around assignment operators (= < > <= >= !=).
-    pub(crate) fn collect_assignment_space_fixes(&self, content: &str, fixes: &mut Vec<(ast::Range, String)>) {
+    pub(crate) fn collect_assignment_space_fixes(
+        &self,
+        content: &str,
+        fixes: &mut Vec<(ast::Range, String)>,
+    ) {
         let mut cst = parse_cst(content);
         transform::fix_assignment_spacing(&mut cst);
         let formatted = serialize(&cst);
@@ -45,7 +49,11 @@ impl Backend {
     }
 
     /// Move open braces to the same line as the assignment (no newline before {).
-    pub(crate) fn collect_brace_newline_fixes(&self, content: &str, fixes: &mut Vec<(ast::Range, String)>) {
+    pub(crate) fn collect_brace_newline_fixes(
+        &self,
+        content: &str,
+        fixes: &mut Vec<(ast::Range, String)>,
+    ) {
         let mut cst = parse_cst(content);
         transform::fix_brace_style(&mut cst);
         let formatted = serialize(&cst);
@@ -53,7 +61,11 @@ impl Backend {
     }
 
     /// Fix spacing inside braces (also applies brace-style and assignment spacing).
-    pub(crate) fn collect_brace_space_fixes(&self, content: &str, fixes: &mut Vec<(ast::Range, String)>) {
+    pub(crate) fn collect_brace_space_fixes(
+        &self,
+        content: &str,
+        fixes: &mut Vec<(ast::Range, String)>,
+    ) {
         let mut cst = parse_cst(content);
         transform::fix_brace_style(&mut cst);
         transform::fix_assignment_spacing(&mut cst);
@@ -62,7 +74,11 @@ impl Backend {
     }
 
     /// Fix key casing for known HOI4 keywords.
-    pub(crate) fn collect_casing_fixes(&self, content: &str, fixes: &mut Vec<(ast::Range, String)>) {
+    pub(crate) fn collect_casing_fixes(
+        &self,
+        content: &str,
+        fixes: &mut Vec<(ast::Range, String)>,
+    ) {
         let mut cst = parse_cst(content);
         apply_casing_fixes_cst(&mut cst);
         let formatted = serialize(&cst);
@@ -70,7 +86,11 @@ impl Backend {
     }
 
     /// Normalize path separators in texturefile values to forward slashes.
-    pub(crate) fn collect_path_separator_fixes(&self, content: &str, fixes: &mut Vec<(ast::Range, String)>) {
+    pub(crate) fn collect_path_separator_fixes(
+        &self,
+        content: &str,
+        fixes: &mut Vec<(ast::Range, String)>,
+    ) {
         let mut cst = parse_cst(content);
         apply_path_sep_fixes_cst(&mut cst);
         let formatted = serialize(&cst);
@@ -122,7 +142,8 @@ fn compute_lsp_edits(original: &str, formatted: &str, fixes: &mut Vec<(Range, St
 
         let mut orig_end = orig_lines.len();
         let mut fmt_end = fmt_lines.len();
-        while orig_end > first_diff && fmt_end > first_diff
+        while orig_end > first_diff
+            && fmt_end > first_diff
             && orig_lines[orig_end - 1] == fmt_lines[fmt_end - 1]
         {
             orig_end -= 1;
@@ -200,7 +221,8 @@ fn compute_ast_edits(original: &str, formatted: &str, fixes: &mut Vec<(ast::Rang
 
         let mut orig_end = orig_lines.len();
         let mut fmt_end = fmt_lines.len();
-        while orig_end > first_diff && fmt_end > first_diff
+        while orig_end > first_diff
+            && fmt_end > first_diff
             && orig_lines[orig_end - 1] == fmt_lines[fmt_end - 1]
         {
             orig_end -= 1;

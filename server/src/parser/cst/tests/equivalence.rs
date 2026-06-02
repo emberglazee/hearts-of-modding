@@ -9,8 +9,8 @@
 
 use crate::parser::ast::{self, Entry, Value};
 use crate::parser::cst::lexer::tokenize;
-use crate::parser::cst::parser::parse_cst;
 use crate::parser::cst::lower::lower;
+use crate::parser::cst::parser::parse_cst;
 
 /// Run the full CST pipeline on `input` and return the same type as the old
 /// parser.
@@ -33,14 +33,22 @@ fn entries_eq(old: &Entry, new: &Entry, input: &str, index: usize) {
     match (old, new) {
         (Entry::Assignment(oa), Entry::Assignment(na)) => {
             assert_eq!(
-                oa.key, na.key,
+                oa.key,
+                na.key,
                 "input[{i}]: assignment key mismatch\n  old: {:?}\n  new: {:?}\n  input: {:?}",
-                oa.key, na.key, input, i = index
+                oa.key,
+                na.key,
+                input,
+                i = index
             );
             assert!(
                 std::mem::discriminant(&oa.operator) == std::mem::discriminant(&na.operator),
                 "input[{i}]: operator mismatch for key {:?}\n  old: {:?}\n  new: {:?}\n  input: {:?}",
-                oa.key, oa.operator, na.operator, input, i = index
+                oa.key,
+                oa.operator,
+                na.operator,
+                input,
+                i = index
             );
             values_eq(&oa.value.value, &na.value.value, input, index);
         }
@@ -49,9 +57,13 @@ fn entries_eq(old: &Entry, new: &Entry, input: &str, index: usize) {
         }
         (Entry::Comment(ot, _), Entry::Comment(nt, _)) => {
             assert_eq!(
-                ot, nt,
+                ot,
+                nt,
                 "input[{i}]: comment text mismatch\n  old: {:?}\n  new: {:?}\n  input: {:?}",
-                ot, nt, input, i = index
+                ot,
+                nt,
+                input,
+                i = index
             );
         }
         _ => {
@@ -71,30 +83,45 @@ fn values_eq(old: &Value, new: &Value, input: &str, index: usize) {
     match (old, new) {
         (Value::String(os), Value::String(ns)) => {
             assert_eq!(
-                os, ns,
+                os,
+                ns,
                 "input[{i}]: String value mismatch\n  old: {:?}\n  new: {:?}\n  input: {:?}",
-                os, ns, input, i = index
+                os,
+                ns,
+                input,
+                i = index
             );
         }
         (Value::Number(on), Value::Number(nn)) => {
             assert!(
                 (on - nn).abs() < f64::EPSILON,
                 "input[{i}]: Number value mismatch\n  old: {}\n  new: {}\n  input: {:?}",
-                on, nn, input, i = index
+                on,
+                nn,
+                input,
+                i = index
             );
         }
         (Value::Boolean(ob), Value::Boolean(nb)) => {
             assert_eq!(
-                ob, nb,
+                ob,
+                nb,
                 "input[{i}]: Boolean value mismatch\n  old: {}\n  new: {}\n  input: {:?}",
-                ob, nb, input, i = index
+                ob,
+                nb,
+                input,
+                i = index
             );
         }
         (Value::Block(ob), Value::Block(nb)) => {
             assert_eq!(
-                ob.len(), nb.len(),
+                ob.len(),
+                nb.len(),
                 "input[{i}]: Block child count mismatch\n  old: {:?}\n  new: {:?}\n  input: {:?}",
-                ob, nb, input, i = index
+                ob,
+                nb,
+                input,
+                i = index
             );
             for (j, (o_entry, n_entry)) in ob.iter().zip(nb.iter()).enumerate() {
                 entries_eq(o_entry, n_entry, input, j);
@@ -102,14 +129,22 @@ fn values_eq(old: &Value, new: &Value, input: &str, index: usize) {
         }
         (Value::TaggedBlock(ot, ob, _), Value::TaggedBlock(nt, nb, _)) => {
             assert_eq!(
-                ot, nt,
+                ot,
+                nt,
                 "input[{i}]: TaggedBlock tag mismatch\n  old: {:?}\n  new: {:?}\n  input: {:?}",
-                ot, nt, input, i = index
+                ot,
+                nt,
+                input,
+                i = index
             );
             assert_eq!(
-                ob.len(), nb.len(),
+                ob.len(),
+                nb.len(),
                 "input[{i}]: TaggedBlock child count mismatch\n  old: {:?}\n  new: {:?}\n  input: {:?}",
-                ob, nb, input, i = index
+                ob,
+                nb,
+                input,
+                i = index
             );
             for (j, (o_entry, n_entry)) in ob.iter().zip(nb.iter()).enumerate() {
                 entries_eq(o_entry, n_entry, input, j);
@@ -158,11 +193,18 @@ fn assert_ast_equivalent(input: &str) {
         old_script.entries.len(),
         new_script.entries.len(),
         "Entry count mismatch for: {:?}\nOld entries: {:#?}\nNew entries: {:#?}",
-        input, old_script.entries, new_script.entries
+        input,
+        old_script.entries,
+        new_script.entries
     );
 
     // Compare each entry structurally (ignoring exact ranges)
-    for (i, (old, new)) in old_script.entries.iter().zip(new_script.entries.iter()).enumerate() {
+    for (i, (old, new)) in old_script
+        .entries
+        .iter()
+        .zip(new_script.entries.iter())
+        .enumerate()
+    {
         entries_eq(old, new, input, i);
     }
 
@@ -233,13 +275,19 @@ equiv_test!(special_key, "[?my_var] = 10");
 
 // ── String escaping ─────────────────────────────────────────────────────────
 
-equiv_test!(escaped_quotes, r#"title = "Event \"The Great War\" Begins""#);
+equiv_test!(
+    escaped_quotes,
+    r#"title = "Event \"The Great War\" Begins""#
+);
 equiv_test!(plain_string, r#"title = "plain text""#);
 
 // ── Comments ──── KNOWN DISCREPANCY: CST pipeline doesn't extract comments ──
 
 equiv_test!(comment_only, "# just a comment");
-equiv_test!(comment_before_entry, "# This is a test HOI4 script\ncountry_event = { }");
+equiv_test!(
+    comment_before_entry,
+    "# This is a test HOI4 script\ncountry_event = { }"
+);
 equiv_test!(comment_between_entries, "a = 1\n# comment between\nb = 2");
 equiv_test!(comment_after_entry, "a = 1\n# trailing comment");
 equiv_test!(multiple_comments, "# first\n# second\nkey = val");
@@ -249,7 +297,10 @@ equiv_test!(comment_after_block, "a = { }\n# comment after block");
 // ── Inline comments (should NOT be extracted as entries) ────────────────────
 
 equiv_test!(inline_comment, "key = val # not standalone\nnext = 1");
-equiv_test!(inline_comment_block, "a = {\n  # this is inline\n  b = 1\n}");
+equiv_test!(
+    inline_comment_block,
+    "a = {\n  # this is inline\n  b = 1\n}"
+);
 
 // ── Complex scripts ─────────────────────────────────────────────────────────
 
@@ -296,12 +347,21 @@ fn test_missing_close_brace() {
     let (old_script, _old_errors) = parse_old("e = { id = 1");
     let (new_script, _new_errors) = parse_and_lower("e = { id = 1");
     // Both should produce at least one entry
-    assert!(old_script.entries.len() >= 1, "old parser should produce at least 1 entry");
-    assert!(new_script.entries.len() >= 1, "new parser should produce at least 1 entry");
+    assert!(
+        old_script.entries.len() >= 1,
+        "old parser should produce at least 1 entry"
+    );
+    assert!(
+        new_script.entries.len() >= 1,
+        "new parser should produce at least 1 entry"
+    );
     // The new parser's error recovery should include the old parser's error
     // messages (the old parser reports a parsing error for the rest)
     // At minimum, the new parser should have some diagnostics for the missing brace
-    assert!(!_new_errors.is_empty(), "expected diagnostic for missing close brace");
+    assert!(
+        !_new_errors.is_empty(),
+        "expected diagnostic for missing close brace"
+    );
 }
 
 #[test]
@@ -315,7 +375,12 @@ fn test_extra_close_brace() {
         new_script.entries.len(),
         "Entry count mismatch for extra close brace"
     );
-    for (i, (old, new)) in old_script.entries.iter().zip(new_script.entries.iter()).enumerate() {
+    for (i, (old, new)) in old_script
+        .entries
+        .iter()
+        .zip(new_script.entries.iter())
+        .enumerate()
+    {
         entries_eq(old, new, "x = { } }", i);
     }
 }

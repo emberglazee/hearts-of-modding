@@ -15,7 +15,10 @@ impl TextRange {
 
     /// Empty range at a given position (for placeholders).
     pub fn empty(pos: usize) -> Self {
-        Self { start: pos, end: pos }
+        Self {
+            start: pos,
+            end: pos,
+        }
     }
 }
 

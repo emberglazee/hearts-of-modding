@@ -5,8 +5,8 @@ use crate::parser::cst::diagnostic::TextRange;
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenKind {
     // Structural
-    OpenBrace,    // {
-    CloseBrace,   // }
+    OpenBrace,  // {
+    CloseBrace, // }
 
     // Operators
     OpEquals,         // =
@@ -17,10 +17,10 @@ pub enum TokenKind {
     OpGreaterOrEqual, // >=
 
     // Literals
-    Ident(String),    // unquoted identifier
-    String(String),   // "quoted string"
-    Number(f64),      // numeric literal
-    Boolean(bool),    // yes / no
+    Ident(String),  // unquoted identifier
+    String(String), // "quoted string"
+    Number(f64),    // numeric literal
+    Boolean(bool),  // yes / no
 
     // Special
     Eof,

@@ -230,11 +230,7 @@ fn fix_value_leading_spacing(value: &mut CstValue) {
         } else {
             trivia.insert(
                 0,
-                Trivia::new(
-                    TriviaKind::Whitespace,
-                    " ".to_string(),
-                    placeholder_range(),
-                ),
+                Trivia::new(TriviaKind::Whitespace, " ".to_string(), placeholder_range()),
             );
         }
     }
@@ -242,10 +238,9 @@ fn fix_value_leading_spacing(value: &mut CstValue) {
 
 fn first_token_mut(value: &mut CstValue) -> Option<&mut CstToken> {
     match value {
-        CstValue::Ident(t)
-        | CstValue::String(t)
-        | CstValue::Number(t)
-        | CstValue::Boolean(t) => Some(t.as_mut()),
+        CstValue::Ident(t) | CstValue::String(t) | CstValue::Number(t) | CstValue::Boolean(t) => {
+            Some(t.as_mut())
+        }
         CstValue::Block(b) => Some(&mut b.open_brace),
         CstValue::TaggedBlock { tag, .. } => Some(tag.as_mut()),
         CstValue::Error(_) => None,
@@ -297,7 +292,10 @@ fn fix_value_brace_style(value: &mut CstValue) {
 
 fn fix_block_brace_style(block: &mut CstBlock) {
     // Remove newlines from open_brace's leading_trivia to keep { on same line
-    block.open_brace.leading_trivia.retain(|t| t.kind != TriviaKind::Newline);
+    block
+        .open_brace
+        .leading_trivia
+        .retain(|t| t.kind != TriviaKind::Newline);
     // Ensure at least a space before {
     if block.open_brace.leading_trivia.is_empty() {
         block.open_brace.leading_trivia.push(Trivia::new(
@@ -322,8 +320,7 @@ pub(crate) fn fix_trailing_whitespace(cst: &mut CstScript) {
     fn process_trivia(trivia: &mut Vec<Trivia>) {
         let mut i = 0;
         while i + 1 < trivia.len() {
-            if trivia[i].kind == TriviaKind::Whitespace
-                && trivia[i + 1].kind == TriviaKind::Newline
+            if trivia[i].kind == TriviaKind::Whitespace && trivia[i + 1].kind == TriviaKind::Newline
             {
                 trivia.remove(i);
                 // Don't increment i — the newline at position i may follow
@@ -409,9 +406,9 @@ fn placeholder_range() -> ast::Range {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::parser::cst::lexer::tokenize;
     use crate::parser::cst::parser::parse_cst;
-    use super::*;
 
     fn format_str(input: &str) -> String {
         let (tokens, _) = tokenize(input);

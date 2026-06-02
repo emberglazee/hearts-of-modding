@@ -51,7 +51,11 @@ fn lower_node(node: CstNode) -> Option<ast::Entry> {
             Some(ast::Entry::Value(nodeed))
         }
         CstNode::EntryComment(trivia) => {
-            let text = trivia.text.strip_prefix('#').unwrap_or(&trivia.text).to_string();
+            let text = trivia
+                .text
+                .strip_prefix('#')
+                .unwrap_or(&trivia.text)
+                .to_string();
             Some(ast::Entry::Comment(text, trivia.range.clone()))
         }
         CstNode::Error(_) => None,
@@ -108,16 +112,12 @@ fn lower_value_to_nodeed(value: CstValue) -> ast::NodeedValue {
 /// Extract the `ast::Range` from a `CstValue` for use in `NodeedValue`.
 fn value_range(value: &CstValue) -> ast::Range {
     match value {
-        CstValue::Ident(t)
-        | CstValue::String(t)
-        | CstValue::Number(t)
-        | CstValue::Boolean(t) => t.range.clone(),
+        CstValue::Ident(t) | CstValue::String(t) | CstValue::Number(t) | CstValue::Boolean(t) => {
+            t.range.clone()
+        }
         CstValue::Block(block) => {
             let start = block.open_brace.range.clone();
-            let end = block
-                .close_brace
-                .range()
-                .unwrap_or_else(|| start.clone());
+            let end = block.close_brace.range().unwrap_or_else(|| start.clone());
             combined_range(&start, &end)
         }
         CstValue::TaggedBlock { tag, block } => {

@@ -20,7 +20,12 @@ pub fn is_identifier_char(c: char) -> bool {
 
 /// Parse HOI4 script using the CST pipeline, then lower to AST.
 /// This is the main entry point for all consumers.
-pub fn parse_script(input: &str) -> (crate::parser::ast::Script, Vec<(String, crate::parser::ast::Range)>) {
+pub fn parse_script(
+    input: &str,
+) -> (
+    crate::parser::ast::Script,
+    Vec<(String, crate::parser::ast::Range)>,
+) {
     crate::parser::cst::parse_and_lower(input)
 }
 

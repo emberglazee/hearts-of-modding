@@ -613,14 +613,28 @@ mod tests {
         assert!(diags.is_empty());
         assert_eq!(tokens.len(), 1);
         assert_eq!(tokens[0].kind, TokenKind::Eof);
-        assert_eq!(trivia_kinds(&tokens[0]), &[&TriviaKind::Whitespace, &TriviaKind::Newline, &TriviaKind::Whitespace]);
+        assert_eq!(
+            trivia_kinds(&tokens[0]),
+            &[
+                &TriviaKind::Whitespace,
+                &TriviaKind::Newline,
+                &TriviaKind::Whitespace
+            ]
+        );
     }
 
     #[test]
     fn test_basic_tokens() {
         let (tokens, diags) = tokenize("{}");
         assert!(diags.is_empty());
-        assert_eq!(kinds(&tokens), &[&TokenKind::OpenBrace, &TokenKind::CloseBrace, &TokenKind::Eof]);
+        assert_eq!(
+            kinds(&tokens),
+            &[
+                &TokenKind::OpenBrace,
+                &TokenKind::CloseBrace,
+                &TokenKind::Eof
+            ]
+        );
     }
 
     #[test]
@@ -675,10 +689,7 @@ mod tests {
         assert!(diags.is_empty());
         assert_eq!(
             kinds(&tokens),
-            &[
-                &TokenKind::String("hello world".into()),
-                &TokenKind::Eof,
-            ]
+            &[&TokenKind::String("hello world".into()), &TokenKind::Eof,]
         );
     }
 
@@ -731,10 +742,7 @@ mod tests {
         assert!(diags.is_empty());
         assert_eq!(
             kinds(&tokens),
-            &[
-                &TokenKind::Ident("42abc".into()),
-                &TokenKind::Eof,
-            ]
+            &[&TokenKind::Ident("42abc".into()), &TokenKind::Eof,]
         );
     }
 
@@ -861,11 +869,14 @@ mod tests {
     fn test_crlf_newline() {
         let (tokens, diags) = tokenize("a\r\nb");
         assert!(diags.is_empty());
-        assert_eq!(kinds(&tokens), &[
-            &TokenKind::Ident("a".into()),
-            &TokenKind::Ident("b".into()),
-            &TokenKind::Eof,
-        ]);
+        assert_eq!(
+            kinds(&tokens),
+            &[
+                &TokenKind::Ident("a".into()),
+                &TokenKind::Ident("b".into()),
+                &TokenKind::Eof,
+            ]
+        );
         // The trivia between a and b should be a Newline containing \r\n
         assert_eq!(tokens[1].leading_trivia.len(), 1);
         assert_eq!(tokens[1].leading_trivia[0].kind, TriviaKind::Newline);
