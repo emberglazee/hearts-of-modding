@@ -32,7 +32,7 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
   - (finally) **Sorted and organized the 80+ flat Rust files into separate directories.**
 
-  - Switched from `malloc` to `jemalloc` resulting in huge RAM usage savings.
+  - **Switched from `malloc` to `jemalloc`** (personal fork fixing Windows support) resulting in huge RAM usage savings.
 
 ## [v0.13.0] - 2026-06-01
 
