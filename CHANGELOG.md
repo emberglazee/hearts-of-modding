@@ -6,9 +6,11 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### Added
 
-- **Custom Light/Dark VSCode theme:** Introduced a custom Hearts of Modding VSCode theme that greatly expands the potential for richer semantic highlighting.
+- **Huge semantic highlighting improvements:**
 
-- **Semantic highlighting for localization:** Introduced semantic highlighting for localization (`.yml`) files with the custom Hearts of Modding VSCode theme.
+  - **Custom Light/Dark VSCode theme:** Introduced a custom Hearts of Modding VSCode theme that greatly expands the potential for richer semantic highlighting.
+
+  - **Semantic highlighting for localization and `.csv` map files** with the new custom Hearts of Modding VSCode theme set.
 
 - **Validation for country tags in localization commands.**
 

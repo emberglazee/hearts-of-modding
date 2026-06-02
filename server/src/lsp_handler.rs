@@ -353,6 +353,15 @@ impl LanguageServer for Backend {
             };
         }
 
+        // CSV map files (definition.csv, adjacencies.csv) get positional tokens
+        if uri.ends_with(".csv") {
+            return if let Some(content) = self.documents.get(&uri) {
+                Ok(semantic_tokens::csv_semantic_tokens(&content))
+            } else {
+                Ok(None)
+            };
+        }
+
         match self.ensure_ast_cached(&uri) {
             Some((script, _)) => {
                 let mut keywords = HashSet::new();

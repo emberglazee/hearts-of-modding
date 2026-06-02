@@ -600,6 +600,163 @@ fn push_value_tokens(
     }
 }
 
+// ── CSV file highlighting (definition.csv, adjacencies.csv) ──
+
+/// Token type for a column in definition.csv (8‑column format).
+/// Columns: Province ID;R;G;B;Type(land/sea/lake);Coastal(true/false);Terrain;Continent
+fn definition_csv_col(col_idx: u32) -> u32 {
+    match col_idx {
+        0 | 1 | 2 | 3 | 7 => TokenType::Number as u32, // ID, R, G, B, continent
+        4 | 5 => TokenType::Keyword as u32,            // type, coastal status
+        6 => TokenType::Type as u32,                   // terrain
+        _ => TokenType::String as u32,
+    }
+}
+
+/// Token type for a column in adjacencies.csv (10‑column format).
+/// Columns: From;To;Type;Through;start_x;start_y;stop_x;stop_y;adjacency_rule_name;comment
+fn adjacency_csv_col(col_idx: u32) -> u32 {
+    match col_idx {
+        0 | 1 => TokenType::Number as u32, // start/end province IDs
+        2 => TokenType::Keyword as u32,    // adjacency type
+        3..=7 => TokenType::Number as u32, // through, x/y positions
+        8 => TokenType::String as u32,     // adjacency rule name
+        _ => TokenType::String as u32,
+    }
+}
+
+/// Produce semantic tokens for a `.csv` HOI4 map file.
+///
+/// Two formats are recognised by column count:
+/// - **8 columns** → `definition.csv` (province definitions)
+/// - **10 columns** → `adjacencies.csv` (adjacency relations)
+///
+/// Comment lines (`# …`) are highlighted as Comment. Headers (first line
+/// starting with `Province` / `From`) are fully Keyword. Data columns
+/// are coloured positionally: numbers, keywords (type/coastal), and
+/// terrain names (Type).
+pub fn csv_semantic_tokens(content: &str) -> Option<SemanticTokensResult> {
+    let mut tokens = Vec::new();
+
+    for (line_idx, line) in content.lines().enumerate() {
+        let line_u32 = line_idx as u32;
+        let trimmed = line.trim();
+
+        // Skip empty lines
+        if trimmed.is_empty() {
+            continue;
+        }
+
+        // Comment lines starting with `#`
+        if trimmed.starts_with('#') {
+            if let Some(hash_pos) = line.find('#') {
+                tokens.push(RawToken {
+                    line: line_u32,
+                    start: hash_pos as u32,
+                    length: (line.len() - hash_pos) as u32,
+                    token_type: TokenType::Comment as u32,
+                });
+            }
+            continue;
+        }
+
+        // Detect header from the first column of the raw (untrimmed) line
+        let is_header = {
+            let first_semi = line.find(';');
+            let first_col = match first_semi {
+                Some(pos) => line[..pos].trim(),
+                None => line.trim(),
+            };
+            let lowered = first_col.to_lowercase();
+            lowered == "province" || lowered == "from"
+        };
+
+        // Count semicolons IN THE ORIGINAL LINE to determine column count.
+        // This is the only reliable way to detect format (8-col vs 10-col)
+        // because whitespace or leading/trailing semicolons affect trimming
+        // but not the logical column structure.
+        let semicolon_count = line.matches(';').count();
+
+        // Minimum 1 semicolon (= 2 columns) to be a data line
+        if semicolon_count == 0 {
+            continue;
+        }
+
+        let is_adjacencies = semicolon_count >= 9; // 10 columns = 9 semicolons
+
+        // Scan for semicolons in the *original* line to compute correct
+        // column byte-offsets, so whitespace padding is handled correctly.
+        let mut col_start = 0usize;
+        let mut col_idx = 0u32;
+
+        for (byte_pos, ch) in line.char_indices() {
+            if ch != ';' {
+                continue;
+            }
+            // Emit a token for the column that ends at this semicolon
+            if col_start < byte_pos {
+                if let Some(col_content) = line.get(col_start..byte_pos) {
+                    let trimmed_val = col_content.trim();
+                    if !trimmed_val.is_empty() {
+                        let indent = col_content.len() - col_content.trim_start().len();
+                        let content_start = col_start + indent;
+
+                        let token_type = if is_header {
+                            TokenType::Keyword as u32
+                        } else if is_adjacencies {
+                            adjacency_csv_col(col_idx)
+                        } else {
+                            definition_csv_col(col_idx)
+                        };
+
+                        tokens.push(RawToken {
+                            line: line_u32,
+                            start: content_start as u32,
+                            length: trimmed_val.len() as u32,
+                            token_type,
+                        });
+                    }
+                }
+            }
+            col_start = byte_pos + 1;
+            col_idx += 1;
+        }
+
+        // Last column (after the final semicolon)
+        if col_start < line.len() {
+            if let Some(col_content) = line.get(col_start..) {
+                let trimmed_val = col_content.trim();
+                if !trimmed_val.is_empty() {
+                    let indent = col_content.len() - col_content.trim_start().len();
+                    let content_start = col_start + indent;
+
+                    let token_type = if is_header {
+                        TokenType::Keyword as u32
+                    } else if is_adjacencies {
+                        adjacency_csv_col(col_idx)
+                    } else {
+                        definition_csv_col(col_idx)
+                    };
+
+                    tokens.push(RawToken {
+                        line: line_u32,
+                        start: content_start as u32,
+                        length: trimmed_val.len() as u32,
+                        token_type,
+                    });
+                }
+            }
+        }
+    }
+
+    // No tokens → caller returns None so TextMate grammar isn't overridden
+    if tokens.is_empty() {
+        return None;
+    }
+
+    Some(tokens_to_lsp(tokens))
+}
+
 struct RawToken {
     line: u32,
     start: u32,
@@ -794,5 +951,188 @@ mod tests {
         assert_eq!(line1_tokens[1].3, "operator"); // :
         assert_eq!(line1_tokens[2].3, "string"); // opening " at col 6
         assert_eq!(line1_tokens[2].1, 6); // opening " at col 6
+    }
+
+    // ── CSV helper ──
+
+    /// Helper: call csv_semantic_tokens and decode delta encoding into
+    /// (line, start, length, token_type_name) tuples.
+    fn collect_csv_tokens(content: &str) -> Vec<(u32, u32, u32, String)> {
+        let result = csv_semantic_tokens(content).unwrap_or_else(|| {
+            panic!("csv_semantic_tokens returned None for test content");
+        });
+        let legend = [
+            "keyword",
+            "variable",
+            "string",
+            "number",
+            "operator",
+            "comment",
+            "type",
+            "event",
+            "function",
+            "enum",
+            "enum_member",
+            "struct",
+            "class",
+            "property",
+        ];
+        match result {
+            SemanticTokensResult::Tokens(t) => {
+                let mut absolute: Vec<(u32, u32, u32, u32)> = Vec::new();
+                let mut last_line = 0u32;
+                let mut last_start = 0u32;
+                for st in &t.data {
+                    let line = last_line + st.delta_line;
+                    let start = if st.delta_line == 0 {
+                        last_start + st.delta_start
+                    } else {
+                        st.delta_start
+                    };
+                    absolute.push((line, start, st.length, st.token_type));
+                    last_line = line;
+                    last_start = start;
+                }
+                absolute
+                    .into_iter()
+                    .map(|(l, s, len, tt)| {
+                        let name = legend
+                            .get(tt as usize)
+                            .map(|s| s.to_string())
+                            .unwrap_or_else(|| format!("unknown({})", tt));
+                        (l, s, len, name)
+                    })
+                    .collect()
+            }
+            _ => panic!("expected Tokens result"),
+        }
+    }
+
+    #[test]
+    fn test_csv_def_basic_entry() {
+        // definition.csv: Province ID;R;G;B;Type;Coastal;Terrain;Continent
+        let content = "7;212;179;179;sea;true;ocean;0\n";
+        let tokens = collect_csv_tokens(content);
+        assert_eq!(tokens.len(), 8, "all 8 columns should produce tokens");
+        // Province ID: col 0
+        assert_eq!(tokens[0].0, 0);
+        assert_eq!(tokens[0].1, 0);
+        assert_eq!(tokens[0].2, 1);
+        assert_eq!(tokens[0].3, "number");
+        // R value: col 1
+        assert_eq!(tokens[1].1, 2);
+        assert_eq!(tokens[1].2, 3);
+        assert_eq!(tokens[1].3, "number");
+        // B value: col 3
+        assert_eq!(tokens[3].1, 10);
+        assert_eq!(tokens[3].2, 3);
+        assert_eq!(tokens[3].3, "number");
+        // Type 'sea': col 4 → keyword
+        assert_eq!(tokens[4].1, 14);
+        assert_eq!(tokens[4].2, 3);
+        assert_eq!(tokens[4].3, "keyword");
+        // Coastal 'true': col 5 → keyword
+        assert_eq!(tokens[5].1, 18);
+        assert_eq!(tokens[5].2, 4);
+        assert_eq!(tokens[5].3, "keyword");
+        // Terrain 'ocean': col 6 → type
+        assert_eq!(tokens[6].1, 23);
+        assert_eq!(tokens[6].2, 5);
+        assert_eq!(tokens[6].3, "type");
+        // Continent '0': col 7 → number
+        assert_eq!(tokens[7].1, 29);
+        assert_eq!(tokens[7].2, 1);
+        assert_eq!(tokens[7].3, "number");
+    }
+
+    #[test]
+    fn test_csv_def_comment() {
+        let content = "# This is a province definition\n";
+        let tokens = collect_csv_tokens(content);
+        assert_eq!(tokens.len(), 1);
+        assert_eq!(tokens[0].0, 0); // line 0
+        assert_eq!(tokens[0].1, 0); // starts at col 0
+        assert_eq!(tokens[0].3, "comment");
+    }
+
+    #[test]
+    fn test_csv_def_header() {
+        let content = "Province;R;G;B;Terrain;Coastal;Continent;ID\n";
+        let tokens = collect_csv_tokens(content);
+        // All columns are keyword (header)
+        assert_eq!(tokens.len(), 8, "all 8 header columns keyword");
+        for (i, tok) in tokens.iter().enumerate() {
+            assert_eq!(
+                tok.3, "keyword",
+                "header col {} should be keyword, got {:?}",
+                i, tok
+            );
+        }
+    }
+
+    #[test]
+    fn test_csv_adj_basic_entry() {
+        // adjacencies.csv: From;To;Type;Through;start_x;start_y;stop_x;stop_y;adjacency_rule_name;comment
+        let content = "6891;3838;sea;5579;-1;-1;-1;-1;;Sardinia-Corsica\n";
+        let tokens = collect_csv_tokens(content);
+        // Expect 9 tokens (two empty columns aren't emitted: after ;; and last is text)
+        // Columns: 6891(0), 3838(1), sea(2), 5579(3), -1(4), -1(5), -1(6), -1(7), (8 empty - skipped), Sardinia-Corsica(9)
+        // Number: cols 0,1,3,4,5,6,7 → 7 number tokens
+        assert!(
+            tokens.len() >= 7,
+            "at least 7 non-empty columns → {}",
+            tokens.len()
+        );
+        // Check types
+        let numbers: Vec<&(u32, u32, u32, String)> =
+            tokens.iter().filter(|t| t.3 == "number").collect();
+        let keywords: Vec<&(u32, u32, u32, String)> =
+            tokens.iter().filter(|t| t.3 == "keyword").collect();
+        let strings: Vec<&(u32, u32, u32, String)> =
+            tokens.iter().filter(|t| t.3 == "string").collect();
+        assert_eq!(numbers.len(), 7, "7 number columns");
+        assert_eq!(keywords.len(), 1, "adjacency type 'sea'");
+        assert_eq!(strings.len(), 1, "comment text");
+        // Verify adjacency type
+        assert_eq!(keywords[0].3, "keyword");
+        assert_eq!(keywords[0].2, 3); // "sea" length 3
+    }
+
+    #[test]
+    fn test_csv_adj_comment() {
+        let content = "# Comment line for adjacencies\n";
+        let tokens = collect_csv_tokens(content);
+        assert_eq!(tokens.len(), 1);
+        assert_eq!(tokens[0].3, "comment");
+    }
+
+    #[test]
+    fn test_csv_whitespace_padding() {
+        // definition.csv with extra whitespace around columns
+        let content = "  7  ;  212  ;  179  ;  179  ;  sea  ;  true  ;  ocean  ;  0  \n";
+        let tokens = collect_csv_tokens(content);
+        assert_eq!(tokens.len(), 8, "all 8 padded columns tokenised");
+        // Province ID: starts after padding
+        assert_eq!(tokens[0].1, 2, "padded ID starts at col 2");
+        assert_eq!(tokens[0].2, 1, "padded ID length 1");
+        // Terrain
+        assert_eq!(tokens[6].3, "type", "terrain is type");
+    }
+
+    #[test]
+    fn test_csv_empty_lines_skipped() {
+        let content = "7;212;179;179;sea;true;ocean;0\n\n\n114;40;15;15;land;false;plains;1\n";
+        let tokens = collect_csv_tokens(content);
+        assert_eq!(tokens.len(), 16, "2 data lines × 8 columns each");
+    }
+
+    #[test]
+    fn test_csv_adj_header_detection() {
+        let content = "From;To;Type;Through;start_x;start_y;stop_x;stop_y;adjacency_rule_name\n";
+        let tokens = collect_csv_tokens(content);
+        assert_eq!(tokens.len(), 9, "9 header columns");
+        for tok in &tokens {
+            assert_eq!(tok.3, "keyword", "header should be keyword");
+        }
     }
 }
