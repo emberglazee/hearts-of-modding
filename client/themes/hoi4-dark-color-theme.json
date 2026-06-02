@@ -90,7 +90,7 @@
         "string": "#e2c15a",
         "number": "#d96c8c",
         "operator": "#8a8a9e",
-        "comment": { "foreground": "#5a5a72", "fontStyle": "italic" },
+        "comment": { "foreground": "#8a8a9e", "fontStyle": "italic" },
         "type": "#52b9e2",
         "event": "#e8833a",
         "function": "#6c9ef0",
@@ -103,7 +103,7 @@
     "tokenColors": [
         {
             "scope": ["comment", "punctuation.definition.comment"],
-            "settings": { "foreground": "#5a5a72", "fontStyle": "italic" }
+            "settings": { "foreground": "#8a8a9e", "fontStyle": "italic" }
         },
         {
             "scope": "string.quoted.double.hoi4",
