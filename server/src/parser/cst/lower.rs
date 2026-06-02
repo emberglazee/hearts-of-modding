@@ -51,7 +51,7 @@ fn lower_node(node: CstNode) -> Option<ast::Entry> {
             Some(ast::Entry::Value(nodeed))
         }
         CstNode::EntryComment(trivia) => {
-            let text = trivia.text.trim_start_matches('#').trim().to_string();
+            let text = trivia.text.strip_prefix('#').unwrap_or(&trivia.text).to_string();
             Some(ast::Entry::Comment(text, trivia.range.clone()))
         }
         CstNode::Error(_) => None,
@@ -63,18 +63,19 @@ fn lower_value(value: CstValue) -> ast::Value {
     match value {
         CstValue::Ident(token) => ast::Value::String(token.text.clone()),
         CstValue::String(token) => {
-            // Token text includes surrounding quotes (e.g. "\"hello\""),
-            // but the AST expects the content without quotes.
-            // The TokenKind::String inner value has escape sequences resolved;
-            // for safety we also handle via text stripping.
-            ast::Value::String(
-                token
+            // Use the resolved string content from TokenKind::String, which
+            // has escape sequences processed.  Fall back to stripping quotes
+            // from the source text for any other TokenKind.
+            let content = match &token.kind {
+                TokenKind::String(s) => s.clone(),
+                _ => token
                     .text
                     .strip_prefix('"')
                     .and_then(|s| s.strip_suffix('"'))
                     .unwrap_or(&token.text)
                     .to_string(),
-            )
+            };
+            ast::Value::String(content)
         }
         CstValue::Number(token) => ast::Value::Number(token.text.parse::<f64>().unwrap()),
         CstValue::Boolean(token) => ast::Value::Boolean(token.text == "yes"),
@@ -475,7 +476,7 @@ mod tests {
         let node = CstNode::EntryComment(trivia);
         match lower_node(node) {
             Some(ast::Entry::Comment(text, range)) => {
-                assert_eq!(text, "a comment with extra spacing");
+                assert_eq!(text, "   a comment with extra spacing   ");
                 assert_eq!(range.start_line, 0);
             }
             other => panic!("Expected Comment entry, got {:?}", other),

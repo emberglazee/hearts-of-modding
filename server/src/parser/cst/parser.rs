@@ -37,16 +37,19 @@ impl CstParser {
 
     /// Parse the top-level script.
     fn parse_script(&mut self) -> CstScript {
-        // Extract trailing trivia from the EOF token's leading trivia
-        let trailing_trivia = self
-            .tokens
-            .last()
-            .map(|eof| eof.leading_trivia.clone())
-            .unwrap_or_default();
-
         let mut nodes: Vec<CstNode> = Vec::new();
 
-        while !self.is_at_end() && !self.is_eof(self.peek()) {
+        loop {
+            // Drain standalone comments from the current token first (even if EOF)
+            if let Some(comment) = self.drain_comment() {
+                nodes.push(comment);
+                continue;
+            }
+
+            if self.is_at_end() || self.is_eof(self.peek()) {
+                break;
+            }
+
             // At the script level, a CloseBrace has no enclosing block to
             // propagate to — consume it and emit an error.
             if self.is_close_brace(self.peek()) {
@@ -61,6 +64,13 @@ impl CstParser {
             }
         }
 
+        // Extract trailing trivia from the EOF token AFTER draining comments
+        let trailing_trivia = self
+            .tokens
+            .last()
+            .map(|eof| eof.leading_trivia.clone())
+            .unwrap_or_default();
+
         CstScript {
             nodes,
             diagnostics: std::mem::take(&mut self.diagnostics),
@@ -73,6 +83,13 @@ impl CstParser {
     /// Returns `None` if the current token does not start an entry
     /// (e.g. `CloseBrace` or `Eof`), letting the caller handle recovery.
     fn parse_entry(&mut self) -> Option<CstNode> {
+        // Always drain comments from the current token's leading trivia first.
+        // This handles both standalone comment lines and inline comments after
+        // values (e.g. `key = val # comment\nnext = 1`).
+        if let Some(comment_node) = self.drain_comment() {
+            return Some(comment_node);
+        }
+
         let kind = self.peek_kind()?.clone();
 
         match kind {
@@ -406,6 +423,22 @@ impl CstParser {
     fn emit_error(&mut self, msg: impl Into<String>, range: ast::Range) {
         self.diagnostics
             .push(CstDiagnostic::error(msg, range));
+    }
+
+    /// Drain the first `Comment` trivia from the current token's leading_trivia
+    /// and return it as an `EntryComment` node.
+    ///
+    /// All comments — whether standalone (on their own line) or inline (after
+    /// a value on the same line) — are extracted as entries. This matches the
+    /// old parser's behavior which treats every `#` line as a comment entry.
+    fn drain_comment(&mut self) -> Option<CstNode> {
+        if self.pos >= self.tokens.len() {
+            return None;
+        }
+        let token = &mut self.tokens[self.pos];
+        let idx = token.leading_trivia.iter().position(|t| t.kind == TriviaKind::Comment)?;
+        let comment = token.leading_trivia.remove(idx);
+        Some(CstNode::EntryComment(comment))
     }
 }
 

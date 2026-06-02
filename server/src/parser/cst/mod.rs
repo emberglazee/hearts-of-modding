@@ -15,3 +15,6 @@ pub mod lower;
 pub mod parser;
 pub mod token;
 pub mod types;
+
+#[cfg(test)]
+pub mod tests;
