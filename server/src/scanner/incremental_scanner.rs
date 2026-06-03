@@ -92,6 +92,23 @@ macro_rules! retain_path {
     }};
 }
 
+/// O(K) removal-only variant of `retain_path!` — removes a path's entries
+/// from a DashMap by consulting the companion reverse file-path index,
+/// falling back to O(N) `retain` when the index has no entry.
+macro_rules! remove_path {
+    ($map:expr, $index:expr, $path:expr) => {{
+        let p: &str = $path;
+        if let Some((_, old_keys)) = $index.remove(p) {
+            for key in old_keys {
+                $map.remove(&key);
+            }
+        } else {
+            let p_owned = p.to_owned();
+            $map.retain(|_, v| !path_matches(v.path(), &p_owned));
+        }
+    }};
+}
+
 pub(crate) trait HasPath {
     fn path(&self) -> &str;
 }
@@ -923,4 +940,214 @@ fn update_balance_of_powers(scanner_data: &ScannerData, path_str: &str, script: 
         path_str,
         new_entries
     );
+}
+
+/// Remove all scanner data entries originating from a given file path.
+/// Used by `did_change_watched_files` when a file is deleted externally
+/// (Git branch switch, file explorer rename, etc.).
+pub fn remove_path_from_scanner_data(scanner_data: &ScannerData, path_str: &str) {
+    let categories = classify_file(path_str);
+
+    for category in categories {
+        match category {
+            FileCategory::Localization => {
+                remove_path!(
+                    scanner_data.localization,
+                    scanner_data.localization_file_index,
+                    path_str
+                );
+            }
+            FileCategory::Events => {
+                remove_path!(scanner_data.events, scanner_data.events_file_index, path_str);
+            }
+            FileCategory::ScriptedTriggers => {
+                remove_path!(
+                    scanner_data.scripted_triggers,
+                    scanner_data.scripted_triggers_file_index,
+                    path_str
+                );
+            }
+            FileCategory::ScriptedEffects => {
+                remove_path!(
+                    scanner_data.scripted_effects,
+                    scanner_data.scripted_effects_file_index,
+                    path_str
+                );
+            }
+            FileCategory::ScriptedLocalisation => {
+                remove_path!(
+                    scanner_data.scripted_locs,
+                    scanner_data.scripted_locs_file_index,
+                    path_str
+                );
+            }
+            FileCategory::Achievements => {
+                remove_path!(
+                    scanner_data.achievements,
+                    scanner_data.achievements_file_index,
+                    path_str
+                );
+            }
+            FileCategory::Modifiers => {
+                remove_path!(
+                    scanner_data.custom_modifiers,
+                    scanner_data.custom_modifiers_file_index,
+                    path_str
+                );
+            }
+            FileCategory::Ideologies => {
+                remove_path!(
+                    scanner_data.ideologies,
+                    scanner_data.ideologies_file_index,
+                    path_str
+                );
+                // sub_ideologies stores (InternedStr, Range, InternedStr)
+                // tuples — handle separately since tuples don't impl HasPath
+                let p: &str = path_str;
+                if let Some((_, old_keys)) = scanner_data.sub_ideologies_file_index.remove(p) {
+                    for key in old_keys {
+                        scanner_data.sub_ideologies.remove(&key);
+                    }
+                } else {
+                    let p_owned = p.to_owned();
+                    scanner_data
+                        .sub_ideologies
+                        .retain(|_, v| !path_matches(&v.2, &p_owned));
+                }
+            }
+            FileCategory::UnitLeaderTraits
+            | FileCategory::CountryLeaderTraits
+            | FileCategory::Traits => {
+                remove_path!(scanner_data.traits, scanner_data.traits_file_index, path_str);
+            }
+            FileCategory::Ideas => {
+                remove_path!(scanner_data.ideas, scanner_data.ideas_file_index, path_str);
+            }
+            FileCategory::Characters => {
+                remove_path!(
+                    scanner_data.characters,
+                    scanner_data.characters_file_index,
+                    path_str
+                );
+            }
+            FileCategory::Buildings => {
+                remove_path!(
+                    scanner_data.buildings,
+                    scanner_data.buildings_file_index,
+                    path_str
+                );
+            }
+            FileCategory::Abilities => {
+                remove_path!(
+                    scanner_data.abilities,
+                    scanner_data.abilities_file_index,
+                    path_str
+                );
+            }
+            FileCategory::AiStrategyPlans => {
+                remove_path!(
+                    scanner_data.ai_strategy_plans,
+                    scanner_data.ai_strategy_plans_file_index,
+                    path_str
+                );
+            }
+            FileCategory::AiAreas => {
+                remove_path!(scanner_data.ai_areas, scanner_data.ai_areas_file_index, path_str);
+            }
+            FileCategory::Countries => {
+                remove_path!(
+                    scanner_data.country_tags,
+                    scanner_data.country_tags_file_index,
+                    path_str
+                );
+            }
+            FileCategory::Variables => {
+                let p_owned = path_str.to_owned();
+                scanner_data.variables.retain(|_, vec| {
+                    vec.retain(|v| !path_matches(v.path(), &p_owned));
+                    !vec.is_empty()
+                });
+                scanner_data.event_targets.retain(|_, vec| {
+                    vec.retain(|t| !path_matches(t.path(), &p_owned));
+                    !vec.is_empty()
+                });
+            }
+            FileCategory::MusicAssets => {
+                let path = std::path::Path::new(path_str);
+                let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
+                if ext == "asset" {
+                    remove_path!(
+                        scanner_data.music_assets,
+                        scanner_data.music_assets_file_index,
+                        path_str
+                    );
+                } else if ext == "txt" {
+                    remove_path!(
+                        scanner_data.music_stations,
+                        scanner_data.music_stations_file_index,
+                        path_str
+                    );
+                    remove_path!(scanner_data.songs, scanner_data.songs_file_index, path_str);
+                }
+            }
+            FileCategory::Sounds => {
+                remove_path!(scanner_data.sounds, scanner_data.sounds_file_index, path_str);
+                remove_path!(
+                    scanner_data.sound_effects,
+                    scanner_data.sound_effects_file_index,
+                    path_str
+                );
+                remove_path!(scanner_data.falloffs, scanner_data.falloffs_file_index, path_str);
+                remove_path!(
+                    scanner_data.sound_categories,
+                    scanner_data.sound_categories_file_index,
+                    path_str
+                );
+            }
+            FileCategory::Portraits => {
+                remove_path!(
+                    scanner_data.portraits,
+                    scanner_data.portraits_file_index,
+                    path_str
+                );
+            }
+            FileCategory::Sprites => {
+                remove_path!(scanner_data.sprites, scanner_data.sprites_file_index, path_str);
+            }
+            FileCategory::StrategicRegions => {
+                let p: &str = path_str;
+                if let Some((_, old_keys)) = scanner_data.strategic_regions_file_index.remove(p) {
+                    for key in old_keys {
+                        scanner_data.strategic_regions.remove(&key);
+                    }
+                } else {
+                    let p_owned = p.to_owned();
+                    scanner_data
+                        .strategic_regions
+                        .retain(|_, v| !path_matches(v.path(), &p_owned));
+                }
+            }
+            FileCategory::Terrains => {
+                remove_path!(
+                    scanner_data.terrain_categories,
+                    scanner_data.terrain_categories_file_index,
+                    path_str
+                );
+            }
+            FileCategory::BalanceOfPower => {
+                remove_path!(
+                    scanner_data.balance_of_powers,
+                    scanner_data.balance_of_powers_file_index,
+                    path_str
+                );
+            }
+            FileCategory::Defines => {
+                // Defines are cumulative (multiple files contribute to a single
+                // defines struct). A full rescan of all remaining defines files
+                // would be needed to remove a single file's contributions.
+                // For now, log a message and leave as-is.
+                // TODO: implement proper defines removal if needed
+            }
+        }
+    }
 }

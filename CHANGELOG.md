@@ -12,6 +12,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Centralized AST Visitor:** File edit performance optimization by introducing a centralized AST visitor.
 
+- **Workspace file watcher to properly track file creations, changes, and deletions.**
+
 ### 🩹 Fixed
 
 - **Fixed URI-to-file-path conversion for call hierarchy and symbol rename** for Windows users.

@@ -212,6 +212,36 @@ impl LanguageServer for Backend {
         if self.config.workspace_scan_enabled() {
             self.validate_workspace(std::path::Path::new(".")).await;
         }
+
+        // Register file watchers so did_change_watched_files fires for
+        // external file operations (Git branch switch, rename/delete via
+        // VS Code file explorer, etc.)
+        let watchers = vec![
+            FileSystemWatcher {
+                glob_pattern: GlobPattern::String("**/*.{txt,yml,asset,gfx,gui,csv,lua,mod}".into()),
+                kind: Some(WatchKind::Create | WatchKind::Change | WatchKind::Delete),
+            },
+        ];
+        let registration = Registration {
+            id: "hoi4-watched-files".to_string(),
+            method: "workspace/didChangeWatchedFiles".to_string(),
+            register_options: Some(
+                serde_json::to_value(DidChangeWatchedFilesRegistrationOptions { watchers })
+                    .unwrap_or_default(),
+            ),
+        };
+        if let Err(e) = self
+            .client
+            .register_capability(vec![registration])
+            .await
+        {
+            self.client
+                .log_message(
+                    MessageType::WARNING,
+                    format!("Failed to register file watchers: {}", e),
+                )
+                .await;
+        }
     }
 
     async fn did_change_configuration(&self, params: DidChangeConfigurationParams) {
@@ -338,6 +368,55 @@ impl LanguageServer for Backend {
         let uri = params.text_document.uri.as_str().to_string();
         self.documents.remove(&uri);
         self.document_asts.remove(&uri);
+    }
+
+    async fn did_change_watched_files(&self, params: DidChangeWatchedFilesParams) {
+        use std::sync::Arc;
+
+        for event in params.changes {
+            let uri = &event.uri;
+            let path_str = match uri.to_file_path() {
+                Some(p) => p.to_string_lossy().to_string(),
+                None => continue,
+            };
+
+            match event.typ {
+                FileChangeType::CREATED | FileChangeType::CHANGED => {
+                    // Try to read the file from disk and route through
+                    // the incremental scanner to add/refresh entities.
+                    match tokio::fs::read_to_string(&path_str).await {
+                        Ok(content) => {
+                            crate::scanner::incremental_scanner::update_scanner_data_for_file(
+                                &self.scanner_data,
+                                &path_str,
+                                &content,
+                            );
+                            // Track in workspace_files for rename operations
+                            self.scanner_data
+                                .workspace_files
+                                .insert(Arc::from(path_str.as_str()));
+                        }
+                        Err(_) => {
+                            // File disappeared between the event and our
+                            // attempt to read it — treat as deletion.
+                            crate::scanner::incremental_scanner::remove_path_from_scanner_data(
+                                &self.scanner_data,
+                                &path_str,
+                            );
+                            self.scanner_data.workspace_files.remove(path_str.as_str());
+                        }
+                    }
+                }
+                FileChangeType::DELETED => {
+                    crate::scanner::incremental_scanner::remove_path_from_scanner_data(
+                        &self.scanner_data,
+                        &path_str,
+                    );
+                    self.scanner_data.workspace_files.remove(path_str.as_str());
+                }
+                _ => {}
+            }
+        }
     }
 
     async fn semantic_tokens_full(
