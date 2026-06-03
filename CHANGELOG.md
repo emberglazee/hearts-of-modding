@@ -8,6 +8,10 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Asynchronous AST updates** to reduce stutter while actively editing a file.
 
+### 🩹 Fixed
+
+- **Fixed an idea picture validation bug which caused the LSP to check for a picture in the wrong (idea category) scope.**
+
 ## [v0.15.0] - 2026-06-03
 
 ### ✨ Added

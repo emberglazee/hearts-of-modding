@@ -127,7 +127,7 @@ fn walk_entries(
 
                 // 2) check_assignment for rules that use the traditional pattern
                 for rule in rules {
-                    rule.check_assignment(ass, ctx, scope_stack, diags);
+                    rule.check_assignment(ass, ctx, scope_stack, pushed_scope, diags);
                 }
 
                 // 3) Check for duplicate keys, then recurse into children

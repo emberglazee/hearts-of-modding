@@ -16,6 +16,7 @@ impl ValidationRule for CountryMetadataRule {
         ass: &crate::parser::ast::Assignment,
         ctx: &ValidationContext,
         _scope: &ScopeStack,
+        _pushed_scope: bool,
         diags: &mut Vec<Diagnostic>,
     ) {
         let key_lower = ass.key.to_ascii_lowercase();

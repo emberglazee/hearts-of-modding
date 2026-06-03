@@ -94,11 +94,17 @@ pub(crate) struct ValidationContext<'a> {
 /// what they need.
 pub(crate) trait ValidationRule {
     /// Called for every `Assignment` during AST traversal.
+    ///
+    /// `pushed_scope` is true when this assignment's value is a block AND the
+    /// scope stack was pushed for it (i.e. it's a structural node, not a
+    /// simple value assignment). Rules can use this to distinguish definition
+    /// entries from their children.
     fn check_assignment(
         &self,
         _ass: &ast::Assignment,
         _ctx: &ValidationContext,
         _scope: &scope::ScopeStack,
+        _pushed_scope: bool,
         _diags: &mut Vec<Diagnostic>,
     ) {
     }

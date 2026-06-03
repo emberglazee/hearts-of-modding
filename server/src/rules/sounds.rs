@@ -13,6 +13,7 @@ impl ValidationRule for SoundRule {
         ass: &ast::Assignment,
         ctx: &ValidationContext,
         _scope: &ScopeStack,
+        _pushed_scope: bool,
         diags: &mut Vec<Diagnostic>,
     ) {
         if !ass.key.eq_ignore_ascii_case("sound_effect") {

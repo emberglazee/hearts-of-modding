@@ -4,6 +4,17 @@ use crate::scope::scope::{Scope, ScopeStack};
 use crate::utils::lsp_convert::ast_range_to_lsp;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity};
 
+/// Known idea structure keywords that should not have picture validation.
+/// These are the top-level `ideas = { ... }` wrapper and built-in category
+/// names. `country` is handled implicitly because it resolves to
+/// `Scope::Country`, so the picture check doesn't fire for it.
+fn is_idea_structure_key(key: &str) -> bool {
+    matches!(
+        key.to_ascii_lowercase().as_str(),
+        "ideas" | "hidden_ideas" | "designer" | "law"
+    )
+}
+
 /// Validates idea references and default picture coverage.
 ///
 /// Per-entry: checks `add_ideas`, `has_idea`, `remove_ideas` values.
@@ -17,6 +28,7 @@ impl ValidationRule for IdeaRule {
         ass: &ast::Assignment,
         ctx: &ValidationContext,
         scope: &ScopeStack,
+        pushed_scope: bool,
         diags: &mut Vec<Diagnostic>,
     ) {
         let key_lower = ass.key.to_ascii_lowercase();
@@ -38,9 +50,11 @@ impl ValidationRule for IdeaRule {
         }
 
         // Default picture check for idea definitions
-        // This runs when we see an assignment whose key is the idea name
-        // (Scope::Idea, depth 3 = inside ideas > category > idea)
-        if scope.stack().len() == 3 && scope.current() == Scope::Idea {
+        // Fires only when the assignment caused a scope push (structural
+        // entry) AND the current scope is Idea (actual idea definition,
+        // not a sub-block like modifier/on_add), excluding structural
+        // keywords like `ideas`, `hidden_ideas`, `designer`, `law`.
+        if pushed_scope && scope.current() == Scope::Idea && !is_idea_structure_key(&ass.key) {
             if let ast::Value::Block(entries) | ast::Value::TaggedBlock(_, entries, _) =
                 &ass.value.value
             {

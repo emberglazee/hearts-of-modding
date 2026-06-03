@@ -18,6 +18,7 @@ impl ValidationRule for CountryTagRule {
         ass: &ast::Assignment,
         ctx: &ValidationContext,
         scope: &ScopeStack,
+        _pushed_scope: bool,
         diags: &mut Vec<Diagnostic>,
     ) {
         let key_lower = ass.key.to_ascii_lowercase();
