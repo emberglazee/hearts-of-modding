@@ -1,50 +1,78 @@
 use crate::parser::ast;
+use crate::rules::visitor::AstVisitor;
 use crate::rules::{ValidationContext, ValidationRule};
 use crate::utils::lsp_convert::ast_range_to_lsp;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
 /// Validates character skill levels against game-defined maxima.
 ///
-/// Recurses through entries looking for character definitions
-/// (`create_field_marshal`, `create_corps_commander`, etc.) and
-/// checks `skill` values against the `GameDefines` max_skill table.
+/// Uses the centralized AST visitor to check `skill` values inside
+/// character definition blocks (create_field_marshal, etc.).
 pub(crate) struct CharacterRule;
 
 impl ValidationRule for CharacterRule {
     fn check_block(
         &self,
-        entries: &[ast::Entry],
-        ctx: &ValidationContext,
-        diags: &mut Vec<Diagnostic>,
+        _entries: &[ast::Entry],
+        _ctx: &ValidationContext,
+        _diags: &mut Vec<Diagnostic>,
     ) {
-        validate_character_skills_recursive(entries, ctx, diags, None);
     }
 }
 
-fn validate_character_skills_recursive(
-    entries: &[ast::Entry],
-    ctx: &ValidationContext,
-    diags: &mut Vec<Diagnostic>,
-    current_character_type: Option<&str>,
-) {
-    for entry in entries {
-        let ast::Entry::Assignment(ass) = entry else {
-            continue;
-        };
-        let key_lower = ass.key.to_ascii_lowercase();
+/// Visitor state: a stack of character types for nested definition blocks.
+///
+/// For the HOI4 character structure:
+/// ```hoi4
+/// create_field_marshal = {
+///     skill = 5
+///     traits = { ... }
+/// }
+/// ```
+/// Uses a stack so nested character definitions don't corrupt the type:
+/// when we `enter` a definition we push, when we `exit` we pop.
+fn detect_character_type(key: &str) -> Option<&'static str> {
+    match key.to_ascii_lowercase().as_str() {
+        "create_field_marshal" | "field_marshal" => Some("field_marshal"),
+        "create_corps_commander" | "corps_commander" => Some("corps_commander"),
+        "create_navy_leader" | "navy_leader" => Some("navy_leader"),
+        "create_operative_leader" => Some("operative"),
+        _ => None,
+    }
+}
 
-        // Detect character type
-        let char_type = match key_lower.as_str() {
-            "create_field_marshal" | "field_marshal" => Some("field_marshal"),
-            "create_corps_commander" | "corps_commander" => Some("corps_commander"),
-            "create_navy_leader" | "navy_leader" => Some("navy_leader"),
-            "create_operative_leader" => Some("operative"),
-            _ => current_character_type,
-        };
+struct CharacterVisitor {
+    char_type_stack: Vec<&'static str>,
+}
 
-        // Check skill field
-        if key_lower == "skill" {
-            if let Some(ct) = char_type {
+impl CharacterVisitor {
+    fn new() -> Self {
+        Self {
+            char_type_stack: Vec::new(),
+        }
+    }
+
+    fn current_character_type(&self) -> Option<&str> {
+        self.char_type_stack.last().copied()
+    }
+}
+
+impl AstVisitor for CharacterVisitor {
+    fn enter_assignment(
+        &mut self,
+        ass: &ast::Assignment,
+        ctx: &ValidationContext,
+        _scope: &crate::scope::scope::ScopeStack,
+        diags: &mut Vec<Diagnostic>,
+    ) {
+        // Detect character type from definition keys and push onto stack.
+        if let Some(ct) = detect_character_type(&ass.key) {
+            self.char_type_stack.push(ct);
+        }
+
+        // Validate skill level if we're inside a character definition
+        if ass.key.eq_ignore_ascii_case("skill") {
+            if let Some(ct) = self.current_character_type() {
                 let skill = match &ass.value.value {
                     ast::Value::Number(n) => Some(*n as i32),
                     ast::Value::String(s) => s.parse::<i32>().ok(),
@@ -75,19 +103,24 @@ fn validate_character_skills_recursive(
                 }
             }
         }
+    }
 
-        // Recurse into nested blocks — pass char_type as a string copy to
-        // satisfy the borrow checker (char_type borrows from 'key_lower'
-        // which is local to this iteration).
-        let char_type_owned = char_type.map(|s| s.to_string());
-        match &ass.value.value {
-            ast::Value::Block(inner) => {
-                validate_character_skills_recursive(inner, ctx, diags, char_type_owned.as_deref());
-            }
-            ast::Value::TaggedBlock(_, inner, _) => {
-                validate_character_skills_recursive(inner, ctx, diags, char_type_owned.as_deref());
-            }
-            _ => {}
+    fn exit_assignment(
+        &mut self,
+        ass: &ast::Assignment,
+        _ctx: &ValidationContext,
+        _scope: &crate::scope::scope::ScopeStack,
+        _diags: &mut Vec<Diagnostic>,
+    ) {
+        // Pop the stack when we leave a character definition block
+        if detect_character_type(&ass.key).is_some() {
+            self.char_type_stack.pop();
         }
+    }
+}
+
+impl CharacterRule {
+    pub(crate) fn visitor() -> Box<dyn AstVisitor> {
+        Box::new(CharacterVisitor::new())
     }
 }

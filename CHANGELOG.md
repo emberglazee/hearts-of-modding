@@ -10,6 +10,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Terrain scanner:** Parsing, highlighting, and validation for `common/terrain/*.txt` terrain definitions and their uses for strategic region naval terrain and `definition.csv` province terrain.
 
+- **Centralized AST Visitor:** File edit performance optimization by introducing a centralized AST visitor.
+
 ## [v0.14.1] - 2026-06-03
 
 ### ✨ Added

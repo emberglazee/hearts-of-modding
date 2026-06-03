@@ -1590,19 +1590,25 @@ impl Backend {
             styling_enabled,
         };
 
-        // Collect all rules
+        // ── AST visitors (single traversal, replaces per-rule recursion) ──
+        let mut visitors: Vec<Box<dyn rules::visitor::AstVisitor>> = vec![
+            rules::buildings::BuildingRule::visitor(),
+            rules::portraits::PortraitRule::visitor(),
+            rules::characters::CharacterRule::visitor(),
+            rules::abilities::AbilityRule::visitor(),
+            rules::ai_areas::AiAreaRule::visitor(uri),
+            rules::provinces::ProvinceRule::vp_visitor(),
+        ];
+
+        // Rules that still use check_assignment / check_block
         let rules: Vec<Box<dyn ValidationRule>> = vec![
             Box::new(rules::achievements::AchievementRule),
             Box::new(rules::abilities::AbilityRule),
-            Box::new(rules::ai_areas::AiAreaRule),
-            Box::new(rules::buildings::BuildingRule),
-            Box::new(rules::characters::CharacterRule),
             Box::new(rules::country_tags::CountryTagRule),
             Box::new(rules::country_metadata::CountryMetadataRule),
             Box::new(rules::ideologies::IdeologyRule),
             Box::new(rules::ideas::IdeaRule),
             Box::new(rules::localization::LocalizationRule),
-            Box::new(rules::portraits::PortraitRule),
             Box::new(rules::provinces::ProvinceRule),
             Box::new(rules::sounds::SoundRule),
             Box::new(rules::sprites::SpriteRule),
@@ -1611,16 +1617,28 @@ impl Backend {
             Box::new(rules::traits::TraitRule),
         ];
 
-        // Run block-level rules (check_block is called for each)
+        // Block-level rules: top-level entries only, NO recursion.
+        // Rules that did their own recursion (BuildingRule, PortraitRule, etc.)
+        // have been converted to AstVisitor and have empty check_block.
         for rule in &rules {
             rule.check_block(&script.entries, &ctx, diagnostics);
         }
 
-        // Traverse entries with assignment rules
-        let mut scope_stack = scope::ScopeStack::new(initial_scope);
-        for entry in &script.entries {
-            self.check_entry_semantic(entry, diagnostics, &ctx, &rules, &mut scope_stack);
-        }
+        // ── One AST traversal ──
+        // This single walk replaces the old per-rule recursive pattern:
+        // check_block (with internal recursion) × N rules
+        // + check_entry_semantic (with inline recursion)
+        // + check_value_semantic (with recursive entry calls)
+        //
+        // Now: 1 traversal, N visitor hooks + M check_assignment calls.
+        rules::visitor::walk_script(
+            &script.entries,
+            &mut visitors,
+            &rules,
+            &ctx,
+            diagnostics,
+            initial_scope,
+        );
 
         // Texture file path validation for .gfx and .gui files
         if uri.ends_with(".gfx") || uri.ends_with(".gui") {
@@ -1632,320 +1650,46 @@ impl Backend {
             }
         }
     }
+}
 
-    fn check_entry_semantic(
-        &self,
-        entry: &ast::Entry,
-        diagnostics: &mut Vec<Diagnostic>,
-        ctx: &ValidationContext,
-        rules: &[Box<dyn ValidationRule>],
-        scope_stack: &mut scope::ScopeStack,
-    ) {
-        match entry {
-            ast::Entry::Assignment(ass) => {
-                let key_lower = ass.key.to_ascii_lowercase();
-                let mut pushed_scope = false;
+/// Check for duplicate modifier keys within a block of entries.
+/// This was previously a method on `Backend`, now a free function called
+/// by the centralized AST walker for every block entry.
+pub(crate) fn check_duplicate_keys(
+    entries: &[ast::Entry],
+    diagnostics: &mut Vec<Diagnostic>,
+    mod_maps: &DashMap<InternedStr, String>,
+) {
+    // Currently only checks keys that are in `mod_maps` (modifier names) plus a small
+    // hardcoded set of common structural keys (`name`, `id`, `icon`). All other keys
+    // (e.g. arbitrary custom keys from mods) are silently allowed. To extend coverage,
+    // add more entries to `COMMON_KEYS` or replace the hardcoded list with a configurable
+    // set of key patterns.
+    const COMMON_KEYS: [&str; 3] = ["name", "id", "icon"];
 
-                // Structural blocks that push scope
-                let mut s = scope::Scope::from_str(&ass.key);
+    let mut seen_keys: HashMap<String, ast::Range> = HashMap::new();
 
-                // Internal 'idea' definition block context
-                if s == scope::Scope::Unknown {
-                    let stack = scope_stack.stack();
-                    if stack.contains(&scope::Scope::Idea) {
-                        // We are inside 'ideas'. If depth is 2 (Global, Idea), this is a category.
-                        // If depth is 3 (Global, Idea, Category), this is an idea definition.
-                        if stack.len() == 2 || stack.len() == 3 {
-                            s = scope::Scope::Idea;
-                        }
-                    }
-                }
+    for entry in entries {
+        if let ast::Entry::Assignment(ass) = entry {
+            // We only care about duplicates if they are modifiers.
+            // Some Paradox keys (like 'modifier = { ... }' or 'option = { ... }') are intended to be duplicates.
+            // But specific engine modifiers (like 'stability_factor') should NEVER be duplicated.
 
-                if s != scope::Scope::Unknown || ass.key.contains(':') || ass.key.contains('.') {
-                    match &ass.value.value {
-                        ast::Value::Block(_entries) | ast::Value::TaggedBlock(_, _entries, _) => {
-                            scope_stack.push(s);
-                            pushed_scope = true;
-                        }
-                        _ => {}
-                    }
-                }
+            let is_modifier =
+                mod_maps.contains_key(ass.key.as_str()) || COMMON_KEYS.contains(&ass.key.as_str());
 
-                // Run all assignment-level rules (scope is pushed so rules see it)
-                for rule in rules {
-                    rule.check_assignment(ass, ctx, scope_stack, diagnostics);
-                }
+            // Exceptions: Some effects/triggers are specifically designed to be used multiple times
+            let is_exception = ass.key == "modifier"
+                || ass.key == "option"
+                || ass.key == "limit"
+                || ass.key == "if"
+                || ass.key == "else"
+                || ass.key == "else_if"
+                || ass.key == "variable_name";
 
-                // ── Styling checks (remain in backend.rs — not rule-extracted) ──
-
-                // Casing checks for keywords
-                if ctx.styling_enabled {
-                    let mut needs_fix = false;
-                    if ass.key_range.end_line == ass.operator_range.start_line
-                        && ass.key_range.end_line == ass.value.range.start_line
-                    {
-                        if ass.operator_range.start_col > ass.key_range.end_col
-                            && ass.value.range.start_col > ass.operator_range.end_col
-                        {
-                            let space_before = ass.operator_range.start_col - ass.key_range.end_col;
-                            let space_after =
-                                ass.value.range.start_col - ass.operator_range.end_col;
-                            if space_before != 1 || space_after != 1 {
-                                needs_fix = true;
-                            }
-                        } else {
-                            needs_fix = true;
-                        }
-                    }
-
-                    if needs_fix {
-                        diagnostics.push(Diagnostic {
-                            range: Range {
-                                start: Position { line: ass.key_range.end_line, character: ass.key_range.end_col },
-                                end: Position { line: ass.value.range.start_line, character: ass.value.range.start_col },
-                            },
-                            severity: Some(DiagnosticSeverity::INFORMATION),
-                            code: Some(NumberOrString::String("styling_assignment_space".to_string())),
-                            message: "Assignment operator should be surrounded by exactly one space on each side.".to_string(),
-                            source: Some("Hearts of Modding".to_string()),
-                            ..Default::default()
-                        });
-                    }
-
-                    // Brace newline check
-                    match &ass.value.value {
-                        ast::Value::Block(_)
-                            if ass.value.range.start_line > ass.operator_range.end_line =>
-                        {
-                            diagnostics.push(Diagnostic {
-                                range: Range {
-                                    start: Position {
-                                        line: ass.operator_range.end_line,
-                                        character: ass.operator_range.end_col,
-                                    },
-                                    end: Position {
-                                        line: ass.value.range.start_line,
-                                        character: ass.value.range.start_col,
-                                    },
-                                },
-                                severity: Some(DiagnosticSeverity::INFORMATION),
-                                code: Some(NumberOrString::String(
-                                    "styling_brace_newline".to_string(),
-                                )),
-                                message: "Curly brace should not be on a new line.".to_string(),
-                                source: Some("Hearts of Modding".to_string()),
-                                ..Default::default()
-                            });
-                        }
-                        ast::Value::TaggedBlock(tag, _, block_range) => {
-                            if block_range.start_line > ass.operator_range.end_line {
-                                diagnostics.push(Diagnostic {
-                                    range: Range {
-                                        start: Position {
-                                            line: ass.operator_range.end_line,
-                                            character: ass.operator_range.end_col,
-                                        },
-                                        end: Position {
-                                            line: block_range.start_line,
-                                            character: block_range.start_col,
-                                        },
-                                    },
-                                    severity: Some(DiagnosticSeverity::INFORMATION),
-                                    code: Some(NumberOrString::String(
-                                        "styling_brace_newline".to_string(),
-                                    )),
-                                    message: "Curly brace should not be on a new line.".to_string(),
-                                    source: Some("Hearts of Modding".to_string()),
-                                    ..Default::default()
-                                });
-                            } else {
-                                let tag_end_col = ass.value.range.start_col + tag.len() as u32;
-                                if block_range.start_col != tag_end_col + 1 {
-                                    diagnostics.push(Diagnostic {
-                                        range: Range {
-                                            start: Position { line: ass.value.range.start_line, character: tag_end_col },
-                                            end: Position { line: block_range.start_line, character: block_range.start_col },
-                                        },
-                                        severity: Some(DiagnosticSeverity::INFORMATION),
-                                        code: Some(NumberOrString::String("styling_brace_newline".to_string())),
-                                        message: "Exactly one space should separate the tag and the curly brace.".to_string(),
-                                        source: Some("Hearts of Modding".to_string()),
-                                        ..Default::default()
-                                    });
-                                }
-                            }
-                        }
-                        _ => {}
-                    }
-
-                    let keywords = [
-                        "spriteTypes",
-                        "spriteType",
-                        "name",
-                        "texturefile",
-                        "ideologies",
-                        "types",
-                        "ideas",
-                        "country",
-                        "national_focus",
-                        "leader_traits",
-                        "country_leader_traits",
-                        "traits",
-                        "orientation",
-                        "buttonType",
-                    ];
-
-                    for kw in keywords {
-                        if key_lower == kw && ass.key != kw {
-                            let mut message = format!(
-                                "Standard Paradox Script convention uses '{}' instead of '{}'.",
-                                kw, ass.key
-                            );
-                            if kw.contains("sprite") || kw == "texturefile" {
-                                message.push_str(
-                                    "\nReference: https://hoi4.paradoxwikis.com/Modding#GFX",
-                                );
-                            } else if kw == "orientation" || kw == "buttonType" {
-                                message.push_str(
-                                    "\nReference: https://hoi4.paradoxwikis.com/Interface_modding",
-                                );
-                            }
-
-                            diagnostics.push(Diagnostic {
-                                range: ast_range_to_lsp(&ass.key_range),
-                                severity: Some(DiagnosticSeverity::INFORMATION),
-                                code: Some(NumberOrString::String("casing".to_string())),
-                                message,
-                                source: Some("Hearts of Modding".to_string()),
-                                data: Some(serde_json::to_value(kw).unwrap()),
-                                ..Default::default()
-                            });
-                            break;
-                        }
-                    }
-                }
-
-                // Check value recursively
-                self.check_value_semantic(&ass.value, diagnostics, ctx, rules, scope_stack);
-
-                if pushed_scope {
-                    scope_stack.pop();
-                }
-            }
-            ast::Entry::Value(val) => {
-                self.check_value_semantic(val, diagnostics, ctx, rules, scope_stack);
-            }
-            _ => {}
-        }
-    }
-
-    fn check_value_semantic(
-        &self,
-        val: &ast::NodeedValue,
-        diagnostics: &mut Vec<Diagnostic>,
-        ctx: &ValidationContext,
-        rules: &[Box<dyn ValidationRule>],
-        scope_stack: &mut scope::ScopeStack,
-    ) {
-        match &val.value {
-            ast::Value::Block(entries) => {
-                self.check_duplicate_keys(entries, diagnostics, ctx.modifier_mappings);
-                for entry in entries {
-                    self.check_entry_semantic(entry, diagnostics, ctx, rules, scope_stack);
-                }
-            }
-            ast::Value::TaggedBlock(tag, entries, block_range) => {
-                if ctx.styling_enabled {
-                    if block_range.start_line > val.range.start_line {
-                        diagnostics.push(Diagnostic {
-                            range: Range {
-                                start: Position {
-                                    line: val.range.start_line,
-                                    character: val.range.start_col + tag.len() as u32,
-                                },
-                                end: Position {
-                                    line: block_range.start_line,
-                                    character: block_range.start_col,
-                                },
-                            },
-                            severity: Some(DiagnosticSeverity::INFORMATION),
-                            code: Some(NumberOrString::String("styling_brace_newline".to_string())),
-                            message: "Curly brace should not be on a new line.".to_string(),
-                            source: Some("Hearts of Modding".to_string()),
-                            ..Default::default()
-                        });
-                    } else {
-                        let tag_end_col = val.range.start_col + tag.len() as u32;
-                        if block_range.start_col != tag_end_col + 1 {
-                            diagnostics.push(Diagnostic {
-                                range: Range {
-                                    start: Position {
-                                        line: val.range.start_line,
-                                        character: tag_end_col,
-                                    },
-                                    end: Position {
-                                        line: block_range.start_line,
-                                        character: block_range.start_col,
-                                    },
-                                },
-                                severity: Some(DiagnosticSeverity::INFORMATION),
-                                code: Some(NumberOrString::String(
-                                    "styling_brace_newline".to_string(),
-                                )),
-                                message:
-                                    "Exactly one space should separate the tag and the curly brace."
-                                        .to_string(),
-                                source: Some("Hearts of Modding".to_string()),
-                                ..Default::default()
-                            });
-                        }
-                    }
-                }
-                self.check_duplicate_keys(entries, diagnostics, ctx.modifier_mappings);
-                for entry in entries {
-                    self.check_entry_semantic(entry, diagnostics, ctx, rules, scope_stack);
-                }
-            }
-            _ => {}
-        }
-    }
-
-    fn check_duplicate_keys(
-        &self,
-        entries: &[ast::Entry],
-        diagnostics: &mut Vec<Diagnostic>,
-        mod_maps: &DashMap<InternedStr, String>,
-    ) {
-        // Currently only checks keys that are in `mod_maps` (modifier names) plus a small
-        // hardcoded set of common structural keys (`name`, `id`, `icon`). All other keys
-        // (e.g. arbitrary custom keys from mods) are silently allowed. To extend coverage,
-        // add more entries to `COMMON_KEYS` or replace the hardcoded list with a configurable
-        // set of key patterns.
-        const COMMON_KEYS: [&str; 3] = ["name", "id", "icon"];
-
-        let mut seen_keys: HashMap<String, ast::Range> = HashMap::new();
-
-        for entry in entries {
-            if let ast::Entry::Assignment(ass) = entry {
-                // We only care about duplicates if they are modifiers.
-                // Some Paradox keys (like 'modifier = { ... }' or 'option = { ... }') are intended to be duplicates.
-                // But specific engine modifiers (like 'stability_factor') should NEVER be duplicated.
-
-                let is_modifier = mod_maps.contains_key(ass.key.as_str())
-                    || COMMON_KEYS.contains(&ass.key.as_str());
-
-                // Exceptions: Some effects/triggers are specifically designed to be used multiple times
-                let is_exception = ass.key == "modifier"
-                    || ass.key == "option"
-                    || ass.key == "limit"
-                    || ass.key == "if"
-                    || ass.key == "else"
-                    || ass.key == "else_if"
-                    || ass.key == "variable_name";
-
-                if is_modifier && !is_exception {
-                    if let Some(prev_range) = seen_keys.get(&ass.key) {
-                        diagnostics.push(Diagnostic {
+            if is_modifier && !is_exception {
+                if let Some(prev_range) = seen_keys.get(&ass.key) {
+                    diagnostics.push(Diagnostic {
                             range: ast_range_to_lsp(prev_range),
                             severity: Some(DiagnosticSeverity::WARNING),
                             code: Some(NumberOrString::String("duplicate_key".to_string())),
@@ -1953,16 +1697,15 @@ impl Backend {
                             source: Some("Hearts of Modding".to_string()),
                             ..Default::default()
                         });
-                    }
-
-                    let full_range = ast::Range {
-                        start_line: ass.key_range.start_line,
-                        start_col: ass.key_range.start_col,
-                        end_line: ass.value.range.end_line,
-                        end_col: ass.value.range.end_col,
-                    };
-                    seen_keys.insert(ass.key.clone(), full_range);
                 }
+
+                let full_range = ast::Range {
+                    start_line: ass.key_range.start_line,
+                    start_col: ass.key_range.start_col,
+                    end_line: ass.value.range.end_line,
+                    end_col: ass.value.range.end_col,
+                };
+                seen_keys.insert(ass.key.clone(), full_range);
             }
         }
     }

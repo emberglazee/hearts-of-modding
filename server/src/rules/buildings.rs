@@ -1,64 +1,73 @@
 use crate::parser::ast;
+use crate::rules::visitor::AstVisitor;
 use crate::rules::{ValidationContext, ValidationRule};
 use crate::utils::lsp_convert::ast_range_to_lsp;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
 /// Validates building level values against their maximum allowed levels.
 ///
-/// Recurses through entries looking for `buildings = { ... }` blocks and
-/// checks each building's level against the scanner's max_level data.
+/// Uses the centralized AST visitor to react to `buildings = { ... }`
+/// blocks and check each building's level against the scanner's max_level
+/// data — no more recursive traversal.
 pub(crate) struct BuildingRule;
 
 impl ValidationRule for BuildingRule {
     fn check_block(
         &self,
-        entries: &[ast::Entry],
+        _entries: &[ast::Entry],
+        _ctx: &ValidationContext,
+        _diags: &mut Vec<Diagnostic>,
+    ) {
+    }
+}
+
+/// Visitor state: tracks depth inside `buildings = { ... }` blocks.
+///
+/// For the HOI4 building structure:
+/// ```hoi4
+/// buildings = {
+///     infrastructure = 10
+///     2671 = {              # province-level block
+///         naval_base = 5
+///     }
+/// }
+/// ```
+/// The depth counter increments when we see `buildings = { Block }`
+/// and decrements on exit. Nested province blocks (like `2671 = { }`)
+/// are automatically inside the buildings block because depth > 0,
+/// so their building-name keys are checked too.
+struct BuildingVisitor {
+    in_buildings: u32,
+}
+
+impl BuildingVisitor {
+    fn new() -> Self {
+        Self { in_buildings: 0 }
+    }
+}
+
+impl AstVisitor for BuildingVisitor {
+    fn enter_assignment(
+        &mut self,
+        ass: &ast::Assignment,
         ctx: &ValidationContext,
+        _scope: &crate::scope::scope::ScopeStack,
         diags: &mut Vec<Diagnostic>,
     ) {
-        validate_buildings_recursive(entries, ctx, diags);
-    }
-}
-
-fn validate_buildings_recursive(
-    entries: &[ast::Entry],
-    ctx: &ValidationContext,
-    diags: &mut Vec<Diagnostic>,
-) {
-    for entry in entries {
-        let ast::Entry::Assignment(ass) = entry else {
-            continue;
-        };
-
+        // Track entry into `buildings = { ... }` blocks
         if ass.key.eq_ignore_ascii_case("buildings") {
-            if let ast::Value::Block(building_entries) = &ass.value.value {
-                validate_building_block(building_entries, ctx, diags);
+            if matches!(&ass.value.value, ast::Value::Block(_)) {
+                self.in_buildings += 1;
             }
+            return; // 'buildings' itself is not a building name to check
         }
 
-        match &ass.value.value {
-            ast::Value::Block(inner) => {
-                validate_buildings_recursive(inner, ctx, diags);
-            }
-            ast::Value::TaggedBlock(_, inner, _) => {
-                validate_buildings_recursive(inner, ctx, diags);
-            }
-            _ => {}
+        if self.in_buildings == 0 {
+            return;
         }
-    }
-}
 
-fn validate_building_block(
-    entries: &[ast::Entry],
-    ctx: &ValidationContext,
-    diags: &mut Vec<Diagnostic>,
-) {
-    for entry in entries {
-        let ast::Entry::Assignment(ass) = entry else {
-            continue;
-        };
-        let building_name = &ass.key;
-
+        // We're inside a `buildings = { ... }` block.
+        // Check if this key is a known building name with a numeric level.
         let level = match &ass.value.value {
             ast::Value::Number(n) => Some(*n as i32),
             ast::Value::String(s) => s.parse::<i32>().ok(),
@@ -66,7 +75,7 @@ fn validate_building_block(
         };
 
         if let Some(level) = level {
-            if let Some(building) = ctx.buildings.get(building_name.as_str()) {
+            if let Some(building) = ctx.buildings.get(ass.key.as_str()) {
                 if let Some(max_level) = building.max_level {
                     if level > max_level {
                         diags.push(Diagnostic {
@@ -74,7 +83,7 @@ fn validate_building_block(
                             severity: Some(DiagnosticSeverity::ERROR),
                             message: format!(
                                 "Building level {} exceeds maximum level {} for '{}'",
-                                level, max_level, building_name
+                                level, max_level, ass.key
                             ),
                             code: Some(NumberOrString::String(
                                 crate::validation::advanced_validation::BUILDING_LEVEL_EXCEEDS_MAX
@@ -90,12 +99,25 @@ fn validate_building_block(
                 }
             }
         }
+    }
 
-        // Recurse into province-specific building blocks (keyed by numeric province ID)
-        if let ast::Value::Block(nested) = &ass.value.value {
-            if ass.key.parse::<i32>().is_ok() {
-                validate_building_block(nested, ctx, diags);
+    fn exit_assignment(
+        &mut self,
+        ass: &ast::Assignment,
+        _ctx: &ValidationContext,
+        _scope: &crate::scope::scope::ScopeStack,
+        _diags: &mut Vec<Diagnostic>,
+    ) {
+        if ass.key.eq_ignore_ascii_case("buildings") {
+            if matches!(&ass.value.value, ast::Value::Block(_)) {
+                self.in_buildings = self.in_buildings.saturating_sub(1);
             }
         }
+    }
+}
+
+impl BuildingRule {
+    pub(crate) fn visitor() -> Box<dyn AstVisitor> {
+        Box::new(BuildingVisitor::new())
     }
 }

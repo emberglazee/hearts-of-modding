@@ -1,4 +1,7 @@
+use std::collections::HashSet;
+
 use crate::parser::ast;
+use crate::rules::visitor::AstVisitor;
 use crate::rules::{ValidationContext, ValidationRule};
 use crate::scope::scope::ScopeStack;
 use crate::utils::lsp_convert::ast_range_to_lsp;
@@ -8,7 +11,10 @@ use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString}
 ///
 /// Per-entry: checks `province`, `on_province`, `is_province_id`, and
 /// `victory_points` values against known province IDs.
-/// Block-level: validates victory points reference provinces in the state.
+///
+/// Block-level (via AstVisitor): validates victory points reference
+/// provinces in the state — accumulates data during the walk and
+/// cross-references in `after_walk`.
 pub(crate) struct ProvinceRule;
 
 impl ValidationRule for ProvinceRule {
@@ -41,14 +47,14 @@ impl ValidationRule for ProvinceRule {
 
     fn check_block(
         &self,
-        entries: &[ast::Entry],
+        _entries: &[ast::Entry],
         _ctx: &ValidationContext,
-        diags: &mut Vec<Diagnostic>,
+        _diags: &mut Vec<Diagnostic>,
     ) {
-        validate_victory_points_reference(entries, diags);
     }
 }
 
+/// Simple province ID existence check.
 fn check_is_province(val: &ast::NodeedValue, ctx: &ValidationContext, diags: &mut Vec<Diagnostic>) {
     let id_opt = match &val.value {
         ast::Value::Number(n) => Some(*n as u32),
@@ -72,70 +78,74 @@ fn check_is_province(val: &ast::NodeedValue, ctx: &ValidationContext, diags: &mu
     }
 }
 
-/// Check that `victory_points = { ... }` province IDs exist in the
-/// state's `provinces = { ... }` list.
-fn validate_victory_points_reference(entries: &[ast::Entry], diags: &mut Vec<Diagnostic>) {
-    let mut state_provinces: Option<std::collections::HashSet<i32>> = None;
-    let mut victory_points: Option<Vec<(i32, ast::Range)>> = None;
-    collect_vp_data(entries, &mut state_provinces, &mut victory_points);
+/// Visitor state for victory point cross-reference.
+///
+/// For a state definition like:
+/// ```hoi4
+/// state = {
+///     provinces = { 1 2 3 }
+///     victory_points = { 1 10 3 5 }
+/// }
+/// ```
+/// The visitor accumulates the province set and VP pairs during
+/// `enter_assignment`. `after_walk` cross-references once both
+/// data sets are collected.
+struct ProvinceVpVisitor {
+    /// Set of province IDs from `provinces = { ... }`
+    state_provinces: Option<HashSet<i32>>,
+    /// Victory point province IDs with their source ranges
+    victory_points: Option<Vec<(i32, ast::Range)>>,
+}
 
-    if let (Some(provs), Some(vps)) = (state_provinces, victory_points) {
-        for (vp_province, range) in &vps {
-            if !provs.contains(vp_province) {
-                diags.push(Diagnostic {
-                    range: ast_range_to_lsp(range),
-                    severity: Some(DiagnosticSeverity::HINT),
-                    message: format!(
-                        "Victory point province {} is not in the state's province list",
-                        vp_province
-                    ),
-                    code: Some(NumberOrString::String(
-                        crate::validation::advanced_validation::VICTORY_POINT_PROVINCE_NOT_IN_STATE
-                            .to_string(),
-                    )),
-                    source: Some("Hearts of Modding".to_string()),
-                    data: Some(serde_json::json!({
-                        "fix": "Remove this victory point or add the province to the state"
-                    })),
-                    ..Default::default()
-                });
-            }
+impl ProvinceVpVisitor {
+    fn new() -> Self {
+        Self {
+            state_provinces: None,
+            victory_points: None,
         }
     }
 }
 
-fn collect_vp_data(
-    entries: &[ast::Entry],
-    state_provinces: &mut Option<std::collections::HashSet<i32>>,
-    victory_points: &mut Option<Vec<(i32, ast::Range)>>,
-) {
-    for entry in entries {
-        let ast::Entry::Assignment(ass) = entry else {
-            continue;
-        };
+impl AstVisitor for ProvinceVpVisitor {
+    fn enter_assignment(
+        &mut self,
+        ass: &ast::Assignment,
+        _ctx: &ValidationContext,
+        _scope: &ScopeStack,
+        _diags: &mut Vec<Diagnostic>,
+    ) {
         let key_lower = ass.key.to_ascii_lowercase();
 
+        // Collect province IDs from `provinces = { ... }`
         if key_lower == "provinces" {
-            if let ast::Value::Block(inner) = &ass.value.value {
-                let mut provs = std::collections::HashSet::new();
-                for prov_entry in inner {
-                    if let ast::Entry::Value(val) = prov_entry {
-                        if let ast::Value::Number(n) = &val.value {
-                            provs.insert(*n as i32);
-                        } else if let ast::Value::String(s) = &val.value {
-                            if let Ok(n) = s.parse::<i32>() {
-                                provs.insert(n);
+            if let ast::Value::Block(entries) = &ass.value.value {
+                let mut provs = HashSet::new();
+                for entry in entries {
+                    if let ast::Entry::Value(val) = entry {
+                        match &val.value {
+                            ast::Value::Number(n) => {
+                                provs.insert(*n as i32);
                             }
+                            ast::Value::String(s) => {
+                                if let Ok(n) = s.parse::<i32>() {
+                                    provs.insert(n);
+                                }
+                            }
+                            _ => {}
                         }
                     }
                 }
-                *state_provinces = Some(provs);
+                self.state_provinces = Some(provs);
             }
-        } else if key_lower == "victory_points" {
-            if let ast::Value::Block(inner) = &ass.value.value {
+            return;
+        }
+
+        // Collect victory points from `victory_points = { ... }`
+        if key_lower == "victory_points" {
+            if let ast::Value::Block(entries) = &ass.value.value {
                 let mut values: Vec<(i32, ast::Range)> = Vec::new();
-                for vp_entry in inner {
-                    if let ast::Entry::Value(val) = vp_entry {
+                for entry in entries {
+                    if let ast::Entry::Value(val) = entry {
                         let num = match &val.value {
                             ast::Value::Number(n) => Some(*n as i32),
                             ast::Value::String(s) => s.parse::<i32>().ok(),
@@ -153,16 +163,43 @@ fn collect_vp_data(
                         vps.push(values[i].clone());
                     }
                 }
-                *victory_points = Some(vps);
+                self.victory_points = Some(vps);
             }
         }
+    }
 
-        // Recurse
-        match &ass.value.value {
-            ast::Value::Block(inner) | ast::Value::TaggedBlock(_, inner, _) => {
-                collect_vp_data(inner, state_provinces, victory_points);
+    fn after_walk(&mut self, _ctx: &ValidationContext, diags: &mut Vec<Diagnostic>) {
+        // Cross-reference: check that VP provinces exist in the state's province list
+        if let (Some(provs), Some(vps)) =
+            (self.state_provinces.as_ref(), self.victory_points.as_ref())
+        {
+            for (vp_province, range) in vps {
+                if !provs.contains(vp_province) {
+                    diags.push(Diagnostic {
+                        range: ast_range_to_lsp(range),
+                        severity: Some(DiagnosticSeverity::HINT),
+                        message: format!(
+                            "Victory point province {} is not in the state's province list",
+                            vp_province
+                        ),
+                        code: Some(NumberOrString::String(
+                            crate::validation::advanced_validation::VICTORY_POINT_PROVINCE_NOT_IN_STATE
+                                .to_string(),
+                        )),
+                        source: Some("Hearts of Modding".to_string()),
+                        data: Some(serde_json::json!({
+                            "fix": "Remove this victory point or add the province to the state"
+                        })),
+                        ..Default::default()
+                    });
+                }
             }
-            _ => {}
         }
+    }
+}
+
+impl ProvinceRule {
+    pub(crate) fn vp_visitor() -> Box<dyn AstVisitor> {
+        Box::new(ProvinceVpVisitor::new())
     }
 }

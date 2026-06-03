@@ -1,64 +1,73 @@
 use crate::parser::ast;
+use crate::rules::visitor::AstVisitor;
 use crate::rules::{ValidationContext, ValidationRule};
 use crate::utils::lsp_convert::ast_range_to_lsp;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
 /// Validates portrait GFX references inside `portraits = { ... }` blocks.
 ///
-/// Recursively checks that all string values starting with `GFX_` in
-/// portrait blocks reference known sprites from the scanner.
+/// Uses the centralized AST visitor to check that all string values
+/// starting with `GFX_` in portrait blocks reference known sprites.
 pub(crate) struct PortraitRule;
 
 impl ValidationRule for PortraitRule {
     fn check_block(
         &self,
-        entries: &[ast::Entry],
+        _entries: &[ast::Entry],
+        _ctx: &ValidationContext,
+        _diags: &mut Vec<Diagnostic>,
+    ) {
+    }
+}
+
+/// Visitor state: tracks depth inside `portraits = { ... }` blocks.
+///
+/// For the HOI4 portrait structure:
+/// ```hoi4
+/// portraits = {
+///     civilian = {
+///         western = {
+///             post_apocalyptic = {
+///                 small = "GFX_portrait_eng_small"
+///             }
+///         }
+///     }
+/// }
+/// ```
+/// The depth counter increments when we see `portraits = { Block }`
+/// and decrements on exit. All nested category blocks are automatically
+/// inside the portraits block.
+struct PortraitVisitor {
+    in_portraits: u32,
+}
+
+impl PortraitVisitor {
+    fn new() -> Self {
+        Self { in_portraits: 0 }
+    }
+}
+
+impl AstVisitor for PortraitVisitor {
+    fn enter_assignment(
+        &mut self,
+        ass: &ast::Assignment,
         ctx: &ValidationContext,
+        _scope: &crate::scope::scope::ScopeStack,
         diags: &mut Vec<Diagnostic>,
     ) {
-        validate_portrait_gfx_recursive(entries, ctx, diags);
-    }
-}
-
-fn validate_portrait_gfx_recursive(
-    entries: &[ast::Entry],
-    ctx: &ValidationContext,
-    diags: &mut Vec<Diagnostic>,
-) {
-    for entry in entries {
-        let ast::Entry::Assignment(ass) = entry else {
-            continue;
-        };
-
+        // Track entry into `portraits = { ... }` blocks
         if ass.key.eq_ignore_ascii_case("portraits") {
-            if let ast::Value::Block(portrait_entries) = &ass.value.value {
-                validate_portrait_values(portrait_entries, ctx, diags);
+            if matches!(&ass.value.value, ast::Value::Block(_)) {
+                self.in_portraits += 1;
             }
+            return;
         }
 
-        match &ass.value.value {
-            ast::Value::Block(inner) => {
-                validate_portrait_gfx_recursive(inner, ctx, diags);
-            }
-            ast::Value::TaggedBlock(_, inner, _) => {
-                validate_portrait_gfx_recursive(inner, ctx, diags);
-            }
-            _ => {}
+        if self.in_portraits == 0 {
+            return;
         }
-    }
-}
 
-fn validate_portrait_values(
-    entries: &[ast::Entry],
-    ctx: &ValidationContext,
-    diags: &mut Vec<Diagnostic>,
-) {
-    for entry in entries {
-        let ast::Entry::Assignment(ass) = entry else {
-            continue;
-        };
-
-        // Check if value is a string starting with GFX_
+        // Inside a portraits block: check string values for GFX_ references
         if let ast::Value::String(s) = &ass.value.value {
             if s.starts_with("GFX_") && !ctx.sprites.contains_key(s.as_str()) {
                 diags.push(Diagnostic {
@@ -76,10 +85,25 @@ fn validate_portrait_values(
                 });
             }
         }
+    }
 
-        // Recurse into nested blocks (for civilian/army/navy categories)
-        if let ast::Value::Block(inner) = &ass.value.value {
-            validate_portrait_values(inner, ctx, diags);
+    fn exit_assignment(
+        &mut self,
+        ass: &ast::Assignment,
+        _ctx: &ValidationContext,
+        _scope: &crate::scope::scope::ScopeStack,
+        _diags: &mut Vec<Diagnostic>,
+    ) {
+        if ass.key.eq_ignore_ascii_case("portraits") {
+            if matches!(&ass.value.value, ast::Value::Block(_)) {
+                self.in_portraits = self.in_portraits.saturating_sub(1);
+            }
         }
+    }
+}
+
+impl PortraitRule {
+    pub(crate) fn visitor() -> Box<dyn AstVisitor> {
+        Box::new(PortraitVisitor::new())
     }
 }
