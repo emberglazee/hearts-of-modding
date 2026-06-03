@@ -7,6 +7,7 @@ use crate::scanner::achievement_scanner;
 use crate::scanner::adjacency_scanner;
 use crate::scanner::ai_area_scanner;
 use crate::scanner::ai_strategy_plan_scanner;
+use crate::scanner::bop_scanner;
 use crate::scanner::building_scanner;
 use crate::scanner::character_scanner;
 use crate::scanner::continent_scanner;
@@ -415,6 +416,16 @@ impl Backend {
             achievement_scanner::scan_achievements,
             achievements,
             "Total: Loaded {} achievements"
+        );
+    }
+
+    pub(crate) async fn scan_balance_of_powers(&self, roots: &[std::path::PathBuf]) {
+        scan_dashmap!(
+            self,
+            roots,
+            bop_scanner::scan_balance_of_powers,
+            balance_of_powers,
+            "Total: Loaded {} balance of power definitions"
         );
     }
 

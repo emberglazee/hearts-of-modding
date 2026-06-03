@@ -34,6 +34,7 @@ pub enum EntityKind {
     Falloff,
     SoundCategory,
     AdjacencyRule,
+    BalanceOfPower,
     StrategicRegion,
     Portrait,
     Building,
@@ -86,6 +87,7 @@ impl EntityKind {
             EntityKind::Building => SymbolKind::OBJECT,
             EntityKind::AiArea => SymbolKind::CLASS,
             EntityKind::AiStrategyPlan => SymbolKind::CLASS,
+            EntityKind::BalanceOfPower => SymbolKind::CLASS,
             EntityKind::Province => SymbolKind::NUMBER,
             EntityKind::State => SymbolKind::OBJECT,
             EntityKind::SupplyNode | EntityKind::Railway => SymbolKind::OBJECT,
@@ -168,6 +170,7 @@ impl<'a> EntityLookup<'a> {
         try_lookup!(Ability, abilities);
         try_lookup!(Achievement, achievements);
         try_lookup!(AiArea, ai_areas);
+        try_lookup!(BalanceOfPower, balance_of_powers);
 
         {
             let map = &self.data.variables;
@@ -283,6 +286,7 @@ impl<'a> EntityLookup<'a> {
         check_entity!(Idea, ideas);
         check_entity!(Character, characters);
         check_entity!(Ability, abilities);
+        check_entity!(BalanceOfPower, balance_of_powers);
 
         {
             let map = &self.data.variables;
@@ -311,6 +315,7 @@ impl<'a> EntityLookup<'a> {
         }
 
         collect_names!(Ability, abilities);
+        collect_names!(BalanceOfPower, balance_of_powers);
         collect_names!(AiStrategyPlan, ai_strategy_plans);
         collect_names!(Portrait, portraits);
         collect_names!(Character, characters);
@@ -708,6 +713,7 @@ impl<'a> EntityLookup<'a> {
         push_symbols!(Building, buildings, "Building");
         push_symbols!(AiStrategyPlan, ai_strategy_plans, "AI Strategy Plan");
         push_symbols!(AiArea, ai_areas, "AI Area");
+        push_symbols!(BalanceOfPower, balance_of_powers, "Balance of Power");
 
         results
     }

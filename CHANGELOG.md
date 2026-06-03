@@ -2,6 +2,12 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
+## [v0.15.0] - 2026-06-03
+
+### ✨ Added
+
+- **Balance of Power scanner.**
+
 ## [v0.14.1] - 2026-06-03
 
 ### ✨ Added

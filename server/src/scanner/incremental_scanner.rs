@@ -8,6 +8,7 @@ use crate::scanner::ability_scanner;
 use crate::scanner::achievement_scanner;
 use crate::scanner::ai_area_scanner;
 use crate::scanner::ai_strategy_plan_scanner;
+use crate::scanner::bop_scanner;
 use crate::scanner::building_scanner;
 use crate::scanner::character_scanner;
 use crate::scanner::country_scanner;
@@ -134,6 +135,7 @@ impl_has_path!(variable_scanner::Variable);
 impl_has_path!(variable_scanner::EventTarget);
 impl_has_path!(strategic_region_scanner::StrategicRegion);
 impl_has_path!(country_scanner::CountryTag);
+impl_has_path!(bop_scanner::BalanceOfPower);
 
 /// Determines which scanner categories apply to a given file path.
 fn classify_file(path: &str) -> Vec<FileCategory> {
@@ -146,99 +148,86 @@ fn classify_file(path: &str) -> Vec<FileCategory> {
 
     if lower.ends_with(".txt") {
         // Order matters: more specific paths should match before "any .txt" fallbacks
-        if lower.contains("/events/") || lower.contains("\\events\\") {
+        if lower.contains("/events/") {
             cats.push(FileCategory::Events);
         }
-        if lower.contains("/common/scripted_triggers/")
-            || lower.contains("\\common\\scripted_triggers\\")
-        {
+        if lower.contains("/common/scripted_triggers/") {
             cats.push(FileCategory::ScriptedTriggers);
         }
-        if lower.contains("/common/scripted_effects/")
-            || lower.contains("\\common\\scripted_effects\\")
-        {
+        if lower.contains("/common/scripted_effects/") {
             cats.push(FileCategory::ScriptedEffects);
         }
-        if lower.contains("/common/scripted_localisation/")
-            || lower.contains("\\common\\scripted_localisation\\")
-        {
+        if lower.contains("/common/scripted_localisation/") {
             cats.push(FileCategory::ScriptedLocalisation);
         }
-        if lower.contains("/common/achievements/") || lower.contains("\\common\\achievements\\") {
+        if lower.contains("/common/achievements/") {
             cats.push(FileCategory::Achievements);
         }
-        if lower.contains("/common/modifiers/")
-            || lower.contains("\\common\\modifiers\\")
-            || lower.contains("/common/dynamic_modifiers/")
-            || lower.contains("\\common\\dynamic_modifiers\\")
-        {
+        if lower.contains("/common/modifiers/") || lower.contains("/common/dynamic_modifiers/") {
             cats.push(FileCategory::Modifiers);
         }
-        if lower.contains("/common/ideologies/") || lower.contains("\\common\\ideologies\\") {
+        if lower.contains("/common/ideologies/") {
             cats.push(FileCategory::Ideologies);
         }
-        if lower.contains("/common/unit_leader/") || lower.contains("\\common\\unit_leader\\") {
+        if lower.contains("/common/unit_leader/") {
             cats.push(FileCategory::UnitLeaderTraits);
         }
-        if lower.contains("/common/country_leader/") || lower.contains("\\common\\country_leader\\")
-        {
+        if lower.contains("/common/country_leader/") {
             cats.push(FileCategory::CountryLeaderTraits);
         }
-        if lower.contains("/common/traits/") || lower.contains("\\common\\traits\\") {
+        if lower.contains("/common/traits/") {
             cats.push(FileCategory::Traits);
         }
-        if lower.contains("/common/ideas/") || lower.contains("\\common\\ideas\\") {
+        if lower.contains("/common/ideas/") {
             cats.push(FileCategory::Ideas);
         }
-        if lower.contains("/common/characters/") || lower.contains("\\common\\characters\\") {
+        if lower.contains("/common/characters/") {
             cats.push(FileCategory::Characters);
         }
-        if lower.contains("/common/buildings/") || lower.contains("\\common\\buildings\\") {
+        if lower.contains("/common/buildings/") {
             cats.push(FileCategory::Buildings);
         }
-        if lower.contains("/common/abilities/") || lower.contains("\\common\\abilities\\") {
+        if lower.contains("/common/abilities/") {
             cats.push(FileCategory::Abilities);
         }
-        if lower.contains("/common/ai_strategy_plans/")
-            || lower.contains("\\common\\ai_strategy_plans\\")
-        {
+        if lower.contains("/common/ai_strategy_plans/") {
             cats.push(FileCategory::AiStrategyPlans);
         }
-        if lower.contains("/common/ai_areas/") || lower.contains("\\common\\ai_areas\\") {
+        if lower.contains("/common/ai_areas/") {
             cats.push(FileCategory::AiAreas);
         }
-        if lower.contains("/common/defines/") || lower.contains("\\common\\defines\\") {
+        if lower.contains("/common/defines/") {
             cats.push(FileCategory::Defines);
         }
         if lower.contains("/common/country_tags/")
-            || lower.contains("\\common\\country_tags\\")
             || lower.contains("/common/countries/")
-            || lower.contains("\\common\\countries\\")
             || lower.contains("/history/countries/")
-            || lower.contains("\\history\\countries\\")
         {
             cats.push(FileCategory::Countries);
         }
 
         // Interface .gfx sprites
-        if lower.contains("/interface/") || lower.contains("\\interface\\") {
+        if lower.contains("/interface/") {
             cats.push(FileCategory::Sprites);
         }
 
         // Portraits
-        if lower.contains("/portraits/") || lower.contains("\\portraits\\") {
+        if lower.contains("/portraits/") {
             cats.push(FileCategory::Portraits);
         }
 
         // Strategic regions
-        if lower.contains("/common/strategic_regions/")
-            || lower.contains("\\common\\strategic_regions\\")
-        {
+        if lower.contains("/common/strategic_regions/") {
             cats.push(FileCategory::StrategicRegions);
         }
 
+        // Balance of power
+        if lower.contains("/common/bop/") {
+            cats.push(FileCategory::BalanceOfPower);
+        }
+
         // Music song/txt files
-        if lower.contains("/music/") || lower.contains("\\music\\") {
+        if lower.contains("/music/") {
             cats.push(FileCategory::MusicAssets);
         }
 
@@ -246,22 +235,19 @@ fn classify_file(path: &str) -> Vec<FileCategory> {
     }
 
     if lower.ends_with(".asset") {
-        if lower.contains("/music/") || lower.contains("\\music\\") {
+        if lower.contains("/music/") {
             cats.push(FileCategory::MusicAssets);
         }
-        if lower.contains("/sound/") || lower.contains("\\sound\\") {
+        if lower.contains("/sound/") {
             cats.push(FileCategory::Sounds);
         }
     }
 
-    if lower.ends_with(".lua")
-        && (lower.contains("/common/defines/") || lower.contains("\\common\\defines\\"))
-    {
+    if lower.ends_with(".lua") && lower.contains("/common/defines/") {
         cats.push(FileCategory::Defines);
     }
 
-    if lower.ends_with(".gfx") && (lower.contains("/interface/") || lower.contains("\\interface\\"))
-    {
+    if lower.ends_with(".gfx") && lower.contains("/interface/") {
         cats.push(FileCategory::Sprites);
     }
 
@@ -295,6 +281,7 @@ enum FileCategory {
     Portraits,
     Sprites,
     StrategicRegions,
+    BalanceOfPower,
 }
 
 /// Update `ScannerData` with fresh entities extracted from a single saved file.
@@ -370,6 +357,7 @@ fn update_from_ast(
         FileCategory::Portraits => update_portraits(scanner_data, path_str, script),
         FileCategory::Sprites => update_sprites(scanner_data, path_str, script),
         FileCategory::StrategicRegions => update_strategic_regions(scanner_data, path_str, script),
+        FileCategory::BalanceOfPower => update_balance_of_powers(scanner_data, path_str, script),
         FileCategory::Localization | FileCategory::Defines | FileCategory::Countries => {
             // Handled directly in update_scanner_data_for_file, unreachable here
         }
@@ -898,4 +886,16 @@ fn update_strategic_regions(scanner_data: &ScannerData, path_str: &str, script: 
     scanner_data
         .strategic_regions_file_index
         .insert(std::sync::Arc::from(path_str), file_keys);
+}
+
+fn update_balance_of_powers(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
+    let mut new_entries = std::collections::HashMap::new();
+    bop_scanner::extract_balance_of_powers(&script.entries, path_str, &mut new_entries);
+
+    retain_path!(
+        scanner_data.balance_of_powers,
+        scanner_data.balance_of_powers_file_index,
+        path_str,
+        new_entries
+    );
 }

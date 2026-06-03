@@ -7,6 +7,7 @@ use crate::scanner::achievement_scanner;
 use crate::scanner::adjacency_scanner;
 use crate::scanner::ai_area_scanner;
 use crate::scanner::ai_strategy_plan_scanner;
+use crate::scanner::bop_scanner;
 use crate::scanner::building_scanner;
 use crate::scanner::character_scanner;
 use crate::scanner::continent_scanner;
@@ -98,6 +99,7 @@ pub(crate) struct ScannerData {
     pub scripted_locs: DashMap<InternedStr, scripted_loc_scanner::ScriptedLoc>,
     pub adjacency_rules: DashMap<InternedStr, adjacency_scanner::AdjacencyRule>,
     pub strategic_regions: DashMap<u32, strategic_region_scanner::StrategicRegion>,
+    pub balance_of_powers: DashMap<InternedStr, bop_scanner::BalanceOfPower>,
     pub color_codes: DashMap<InternedStr, gfx_scanner::ColorCode>,
     pub country_tags: DashMap<InternedStr, country_scanner::CountryTag>,
     pub states: DashMap<u32, state_scanner::State>,
@@ -136,6 +138,7 @@ pub(crate) struct ScannerData {
     pub scripted_locs_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub country_tags_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub strategic_regions_file_index: DashMap<InternedStr, Vec<u32>>,
+    pub balance_of_powers_file_index: DashMap<InternedStr, Vec<InternedStr>>,
 
     // ── DashSet registries ──
     pub duplicated_loc_keys: DashSet<(InternedStr, InternedStr)>,
@@ -192,6 +195,7 @@ impl ScannerData {
             scripted_locs: DashMap::new(),
             adjacency_rules: DashMap::new(),
             strategic_regions: DashMap::new(),
+            balance_of_powers: DashMap::new(),
             color_codes: DashMap::new(),
             country_tags: DashMap::new(),
             states: DashMap::new(),
@@ -225,6 +229,7 @@ impl ScannerData {
             scripted_locs_file_index: DashMap::new(),
             country_tags_file_index: DashMap::new(),
             strategic_regions_file_index: DashMap::new(),
+            balance_of_powers_file_index: DashMap::new(),
             duplicated_loc_keys: DashSet::new(),
             game_loc_keys: DashSet::new(),
             workspace_files: DashSet::new(),
@@ -301,5 +306,6 @@ impl ScannerData {
         rebuild_index!(self.scripted_locs, self.scripted_locs_file_index);
         rebuild_index!(self.country_tags, self.country_tags_file_index);
         rebuild_index!(self.strategic_regions, self.strategic_regions_file_index);
+        rebuild_index!(self.balance_of_powers, self.balance_of_powers_file_index);
     }
 }

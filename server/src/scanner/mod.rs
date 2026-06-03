@@ -3,6 +3,7 @@ pub mod achievement_scanner;
 pub mod adjacency_scanner;
 pub mod ai_area_scanner;
 pub mod ai_strategy_plan_scanner;
+pub mod bop_scanner;
 pub mod building_scanner;
 pub mod character_scanner;
 pub mod continent_scanner;

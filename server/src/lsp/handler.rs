@@ -178,6 +178,7 @@ impl LanguageServer for Backend {
             self.scan_resources(&roots),
             self.scan_state_categories(&roots),
             self.scan_achievements(&roots),
+            self.scan_balance_of_powers(&roots),
             self.scan_defines(&roots),
             self.scan_events(&roots),
             self.scan_focuses(&roots),
@@ -622,6 +623,18 @@ impl LanguageServer for Backend {
                 keywords.insert("sandstorm".to_string());
                 keywords.insert("min_snow_level".to_string());
                 keywords.insert("naval_terrain".to_string());
+
+                // Balance of power definition keywords (common/bop/*.txt)
+                keywords.insert("initial_value".to_string());
+                keywords.insert("left_side".to_string());
+                keywords.insert("right_side".to_string());
+                keywords.insert("decision_category".to_string());
+                keywords.insert("side".to_string());
+                keywords.insert("range".to_string());
+                keywords.insert("min".to_string());
+                keywords.insert("max".to_string());
+                keywords.insert("on_activate".to_string());
+                keywords.insert("on_deactivate".to_string());
 
                 // Event definition keywords (events/*.txt) structural — not in triggers/effects data
                 keywords.insert("add_namespace".to_string());
