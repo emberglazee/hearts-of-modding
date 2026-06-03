@@ -26,11 +26,11 @@ impl ValidationRule for TerrainRule {
         _pushed_scope: bool,
         diags: &mut Vec<Diagnostic>,
     ) {
-        let key_lower = ass.key.to_ascii_lowercase();
+        let key_lower = ass.key_text(ctx.source).to_ascii_lowercase();
 
         // Validate naval_terrain = <value> in strategic region definitions
         if key_lower == "naval_terrain" {
-            if let Some(value_str) = extract_string_value(&ass.value) {
+            if let Some(value_str) = extract_string_value(&ass.value, ctx.source) {
                 if !ctx.terrain_categories.is_empty()
                     && !ctx.terrain_categories.iter().any(|entry| {
                         let terrain = entry.value();
@@ -118,12 +118,8 @@ impl ValidationRule for TerrainRule {
 }
 
 /// Extract a string value from a `NodeedValue`.
-fn extract_string_value(val: &ast::NodeedValue) -> Option<String> {
-    if let ast::Value::String(s) = &val.value {
-        Some(s.clone())
-    } else {
-        None
-    }
+fn extract_string_value<'a>(val: &'a ast::NodeedValue, source: &'a str) -> Option<&'a str> {
+    val.value.as_str(source)
 }
 
 /// Build a comma-separated list of known naval terrain categories.

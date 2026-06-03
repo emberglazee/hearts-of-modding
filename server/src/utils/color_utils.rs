@@ -5,7 +5,7 @@ use tower_lsp_server::ls_types::{Color, ColorInformation};
 pub fn find_colors(script: &ast::Script) -> Vec<ColorInformation> {
     let mut colors = Vec::new();
     for entry in &script.entries {
-        find_colors_in_entry(entry, &mut colors, &[]);
+        find_colors_in_entry(entry, &mut colors, &[], &script.source);
     }
     colors
 }
@@ -14,15 +14,17 @@ fn find_colors_in_entry(
     entry: &ast::Entry,
     colors: &mut Vec<ColorInformation>,
     parent_keys: &[&str],
+    content: &str,
 ) {
     if let ast::Entry::Assignment(ass) = entry {
-        let is_color_context =
-            ass.key.to_ascii_lowercase().contains("color") || parent_keys.contains(&"textcolors");
-        let mut keys = parent_keys.to_vec();
-        keys.push(&ass.key);
-        find_colors_in_value(&ass.value, colors, is_color_context, &keys);
+        let is_color_context = ass.key_text(content).to_ascii_lowercase().contains("color")
+            || parent_keys.contains(&"textcolors");
+        let mut keys: Vec<String> = parent_keys.iter().map(|s| s.to_string()).collect();
+        keys.push(ass.key_text(content).to_string());
+        let keys_refs: Vec<&str> = keys.iter().map(|s| s.as_str()).collect();
+        find_colors_in_value(&ass.value, colors, is_color_context, &keys_refs, content);
     } else if let ast::Entry::Value(val) = entry {
-        find_colors_in_value(val, colors, false, parent_keys);
+        find_colors_in_value(val, colors, false, parent_keys, content);
     }
 }
 
@@ -31,6 +33,7 @@ fn find_colors_in_value(
     colors: &mut Vec<ColorInformation>,
     is_color_context: bool,
     parent_keys: &[&str],
+    content: &str,
 ) {
     match &val.value {
         ast::Value::Block(entries) => {
@@ -40,7 +43,7 @@ fn find_colors_in_value(
                     if let ast::Entry::Value(v) = e {
                         match &v.value {
                             ast::Value::Number(n) => Some(*n),
-                            ast::Value::String(s) => s.parse::<f64>().ok(),
+                            ast::Value::String(s) => s.resolve(content).parse::<f64>().ok(),
                             _ => None,
                         }
                     } else {
@@ -71,7 +74,7 @@ fn find_colors_in_value(
                 });
             } else {
                 for e in entries {
-                    find_colors_in_entry(e, colors, parent_keys);
+                    find_colors_in_entry(e, colors, parent_keys, content);
                 }
             }
         }
@@ -82,7 +85,7 @@ fn find_colors_in_value(
                     if let ast::Entry::Value(v) = e {
                         match &v.value {
                             ast::Value::Number(n) => Some(*n),
-                            ast::Value::String(s) => s.parse::<f64>().ok(),
+                            ast::Value::String(s) => s.resolve(content).parse::<f64>().ok(),
                             _ => None,
                         }
                     } else {
@@ -92,7 +95,7 @@ fn find_colors_in_value(
                 .collect();
 
             if nums.len() == 3 {
-                let tag_lower = tag.to_ascii_lowercase();
+                let tag_lower = tag.resolve(content).to_ascii_lowercase();
                 if tag_lower == "rgb" {
                     let r = (nums[0] / 255.0) as f32;
                     let g = (nums[1] / 255.0) as f32;
@@ -120,7 +123,7 @@ fn find_colors_in_value(
                 }
             } else {
                 for e in entries {
-                    find_colors_in_entry(e, colors, parent_keys);
+                    find_colors_in_entry(e, colors, parent_keys, content);
                 }
             }
         }

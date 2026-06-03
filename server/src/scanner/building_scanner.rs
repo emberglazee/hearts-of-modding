@@ -28,7 +28,7 @@ where
             filter,
             |path, content| {
                 let (script, _) = parser::parse_script(&content);
-                extract_buildings(&script.entries, path, &mut buildings);
+                extract_buildings(&script.entries, &script.source, path, &mut buildings);
             },
         );
     }
@@ -38,20 +38,21 @@ where
 
 pub(crate) fn extract_buildings(
     entries: &[ast::Entry],
+    source: &str,
     path: &Path,
     map: &mut HashMap<String, Building>,
 ) {
     // First pass: find top-level `buildings = { ... }` block and extract from inside it
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
-            if ass.key.eq_ignore_ascii_case("buildings") {
+            if ass.key_text(source).eq_ignore_ascii_case("buildings") {
                 // Standard format: buildings = { infrastructure = { ... } }
                 if let ast::Value::Block(inner_entries) = &ass.value.value {
-                    extract_building_defs(inner_entries, path, map);
+                    extract_building_defs(inner_entries, source, path, map);
                 }
             } else {
                 // bare format: infrastructure = { ... } or single-building file
-                extract_building_def(entry, path, map);
+                extract_building_def(entry, source, path, map);
             }
         }
     }
@@ -59,27 +60,39 @@ pub(crate) fn extract_buildings(
 
 /// Extract individual building definitions from entries that are inside the
 /// `buildings = { ... }` block.
-fn extract_building_defs(entries: &[ast::Entry], path: &Path, map: &mut HashMap<String, Building>) {
+fn extract_building_defs(
+    entries: &[ast::Entry],
+    source: &str,
+    path: &Path,
+    map: &mut HashMap<String, Building>,
+) {
     for entry in entries {
-        extract_building_def(entry, path, map);
+        extract_building_def(entry, source, path, map);
     }
 }
 
 /// Extract a single building definition from an assignment entry.
-fn extract_building_def(entry: &ast::Entry, path: &Path, map: &mut HashMap<String, Building>) {
+fn extract_building_def(
+    entry: &ast::Entry,
+    source: &str,
+    path: &Path,
+    map: &mut HashMap<String, Building>,
+) {
     if let ast::Entry::Assignment(ass) = entry {
-        let building_name = ass.key.clone();
+        let building_name = ass.key_text(source).to_string();
         let mut max_level = None;
 
         // Extract max_level from building definition
         if let ast::Value::Block(building_entries) = &ass.value.value {
             for building_entry in building_entries {
                 if let ast::Entry::Assignment(building_ass) = building_entry {
-                    if building_ass.key.eq_ignore_ascii_case("max_level")
+                    if building_ass
+                        .key_text(source)
+                        .eq_ignore_ascii_case("max_level")
                         && let ast::Value::Number(level) = &building_ass.value.value
                     {
                         max_level = Some(*level as i32);
-                    } else if let ast::Value::String(s) = &building_ass.value.value {
+                    } else if let Some(s) = building_ass.value.value.as_str(source) {
                         max_level = s.parse::<i32>().ok();
                     }
                 }

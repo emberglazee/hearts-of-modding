@@ -136,7 +136,7 @@ mod tests {
     #[test]
     fn test_multiline_block_no_spaces() {
         let content = "strategic_region={\n\tid=1\n\tname=\"foo\"\n}\n";
-        let fixes = get_fixes(&content);
+        let fixes = get_fixes(content);
         // Should find at least the `strategic_region={...}` issue
         assert!(
             !fixes.is_empty(),
@@ -147,7 +147,7 @@ mod tests {
     #[test]
     fn test_multiline_block_correct_spacing() {
         let content = "strategic_region = {\n\tid = 1\n\tname = \"foo\"\n}\n";
-        let fixes = get_fixes(&content);
+        let fixes = get_fixes(content);
         assert!(
             fixes.is_empty(),
             "Should NOT produce fixes for correctly spaced multi-line"
@@ -159,10 +159,10 @@ mod tests {
     #[test]
     fn test_block_assignment_no_spaces() {
         let content = "strategic_region={\n\tid= 1\n\tname =\"foo\"\n\tprovinces= { 1 2 3 }\n}\n";
-        let fixes = get_fixes(&content);
+        let fixes = get_fixes(content);
         // `strategic_region={` should be a fix (no space before `{`)
         // `id= 1` should be a fix (no space before `=`)
-        // `name ="foo"` should be a fix (no space after `=`)
+        // `name =\"foo\"` should be a fix (no space after `=`)
         // `provinces= { 1 2 3 }` should also be a fix (no space before `=`)
         assert_eq!(
             fixes.len(),
@@ -176,7 +176,7 @@ mod tests {
     #[test]
     fn test_mixed_spacing() {
         let content = "id= 1\nname = \"foo\"\nprovinces = { 1 2 }\n";
-        let fixes = get_fixes(&content);
+        let fixes = get_fixes(content);
         assert_eq!(fixes.len(), 1, "Only 'id= 1' should need a fix");
         assert_eq!(fixes[0].1, " = ", "Fix should normalize to ' = '");
     }

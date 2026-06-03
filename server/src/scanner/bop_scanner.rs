@@ -47,7 +47,12 @@ where
             filter,
             |path, content| {
                 let (script, _) = parser::parse_script(&content);
-                extract_balance_of_powers(&script.entries, &path.to_string_lossy(), &mut map);
+                extract_balance_of_powers(
+                    &script.entries,
+                    &script.source,
+                    &path.to_string_lossy(),
+                    &mut map,
+                );
             },
         );
     }
@@ -57,12 +62,13 @@ where
 
 pub(crate) fn extract_balance_of_powers(
     entries: &[ast::Entry],
+    source: &str,
     file_path: &str,
     map: &mut HashMap<String, BalanceOfPower>,
 ) {
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
-            let bop_id = ass.key.clone();
+            let bop_id = ass.key_text(source).to_string();
 
             if let ast::Value::Block(bop_entries) = &ass.value.value {
                 let mut initial_value = None;
@@ -74,7 +80,7 @@ pub(crate) fn extract_balance_of_powers(
 
                 for bop_entry in bop_entries {
                     if let ast::Entry::Assignment(bop_ass) = bop_entry {
-                        let bop_key = bop_ass.key.as_str();
+                        let bop_key = bop_ass.key_text(source);
                         match bop_key.to_ascii_lowercase().as_str() {
                             "initial_value" => {
                                 if let ast::Value::Number(val) = &bop_ass.value.value {
@@ -82,30 +88,30 @@ pub(crate) fn extract_balance_of_powers(
                                 }
                             }
                             "left_side" => {
-                                if let ast::Value::String(val) = &bop_ass.value.value {
-                                    left_side = Some(val.clone());
+                                if let Some(val) = bop_ass.value.value.as_str(source) {
+                                    left_side = Some(val.to_string());
                                 }
                             }
                             "right_side" => {
-                                if let ast::Value::String(val) = &bop_ass.value.value {
-                                    right_side = Some(val.clone());
+                                if let Some(val) = bop_ass.value.value.as_str(source) {
+                                    right_side = Some(val.to_string());
                                 }
                             }
                             "decision_category" => {
-                                if let ast::Value::String(val) = &bop_ass.value.value {
-                                    decision_category = Some(val.clone());
+                                if let Some(val) = bop_ass.value.value.as_str(source) {
+                                    decision_category = Some(val.to_string());
                                 }
                             }
                             "range" => {
                                 if let ast::Value::Block(range_entries) = &bop_ass.value.value {
-                                    if let Some(range) = parse_range_block(range_entries) {
+                                    if let Some(range) = parse_range_block(range_entries, source) {
                                         ranges.push(range);
                                     }
                                 }
                             }
                             "side" => {
                                 if let ast::Value::Block(side_entries) = &bop_ass.value.value {
-                                    if let Some(side) = parse_side_block(side_entries) {
+                                    if let Some(side) = parse_side_block(side_entries, source) {
                                         sides.push(side);
                                     }
                                 }
@@ -134,27 +140,27 @@ pub(crate) fn extract_balance_of_powers(
     }
 }
 
-fn parse_side_block(entries: &[ast::Entry]) -> Option<BoPSide> {
+fn parse_side_block(entries: &[ast::Entry], source: &str) -> Option<BoPSide> {
     let mut id = None;
     let mut icon = None;
     let mut ranges = Vec::new();
 
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
-            match ass.key.to_ascii_lowercase().as_str() {
+            match ass.key_text(source).to_ascii_lowercase().as_str() {
                 "id" => {
-                    if let ast::Value::String(val) = &ass.value.value {
-                        id = Some(val.clone());
+                    if let Some(val) = ass.value.value.as_str(source) {
+                        id = Some(val.to_string());
                     }
                 }
                 "icon" => {
-                    if let ast::Value::String(val) = &ass.value.value {
-                        icon = Some(val.clone());
+                    if let Some(val) = ass.value.value.as_str(source) {
+                        icon = Some(val.to_string());
                     }
                 }
                 "range" => {
                     if let ast::Value::Block(range_entries) = &ass.value.value {
-                        if let Some(range) = parse_range_block(range_entries) {
+                        if let Some(range) = parse_range_block(range_entries, source) {
                             ranges.push(range);
                         }
                     }
@@ -171,17 +177,17 @@ fn parse_side_block(entries: &[ast::Entry]) -> Option<BoPSide> {
     })
 }
 
-fn parse_range_block(entries: &[ast::Entry]) -> Option<BoPRange> {
+fn parse_range_block(entries: &[ast::Entry], source: &str) -> Option<BoPRange> {
     let mut id = None;
     let mut min = None;
     let mut max = None;
 
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
-            match ass.key.to_ascii_lowercase().as_str() {
+            match ass.key_text(source).to_ascii_lowercase().as_str() {
                 "id" => {
-                    if let ast::Value::String(val) = &ass.value.value {
-                        id = Some(val.clone());
+                    if let Some(val) = ass.value.value.as_str(source) {
+                        id = Some(val.to_string());
                     }
                 }
                 "min" => {

@@ -19,12 +19,12 @@ impl ValidationRule for CountryMetadataRule {
         _pushed_scope: bool,
         diags: &mut Vec<Diagnostic>,
     ) {
-        let key_lower = ass.key.to_ascii_lowercase();
+        let key_lower = ass.key_text(ctx.source).to_ascii_lowercase();
         if key_lower != "playthrough_stats_background" && key_lower != "career_profile_background" {
             return;
         }
 
-        let crate::parser::ast::Value::String(val) = &ass.value.value else {
+        let Some(val) = ass.value.value.as_str(ctx.source) else {
             return;
         };
 
@@ -32,7 +32,7 @@ impl ValidationRule for CountryMetadataRule {
             return;
         }
 
-        if !ctx.sprites.contains_key(val.as_str()) {
+        if !ctx.sprites.contains_key(val) {
             diags.push(Diagnostic {
                 range: ast_range_to_lsp(&ass.value.range),
                 severity: Some(DiagnosticSeverity::WARNING),

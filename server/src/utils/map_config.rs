@@ -25,14 +25,14 @@ pub fn get_map_config(root: &Path) -> MapConfig {
             let (script, _) = parser::parse_script(&content);
             for entry in script.entries {
                 if let ast::Entry::Assignment(ass) = entry {
-                    let key = ass.key.as_str();
+                    let key = ass.key_text(&content);
                     if key.eq_ignore_ascii_case("definitions") {
-                        if let ast::Value::String(s) = ass.value.value {
-                            config.definitions = s;
+                        if let Some(s) = ass.value.value.as_str(&content) {
+                            config.definitions = s.to_string();
                         }
                     } else if key.eq_ignore_ascii_case("adjacencies") {
-                        if let ast::Value::String(s) = ass.value.value {
-                            config.adjacencies = s;
+                        if let Some(s) = ass.value.value.as_str(&content) {
+                            config.adjacencies = s.to_string();
                         }
                     }
                 }

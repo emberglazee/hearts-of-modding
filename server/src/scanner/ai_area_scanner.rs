@@ -31,7 +31,7 @@ where
             filter,
             |path, content| {
                 let (script, _) = parser::parse_script(&content);
-                extract_areas(&script.entries, path, &mut areas);
+                extract_areas(&script.entries, &script.source, path, &mut areas);
             },
         );
     }
@@ -41,6 +41,7 @@ where
 
 pub(crate) fn extract_areas(
     entries: &[ast::Entry],
+    source: &str,
     path: &Path,
     map: &mut HashMap<String, AiArea>,
 ) {
@@ -52,13 +53,13 @@ pub(crate) fn extract_areas(
 
                 for inner in inner_entries {
                     if let ast::Entry::Assignment(inner_ass) = inner {
-                        match inner_ass.key.as_str() {
+                        match inner_ass.key_text(source) {
                             "continents" => {
                                 if let ast::Value::Block(cont_entries) = &inner_ass.value.value {
                                     for ce in cont_entries {
                                         if let ast::Entry::Value(val) = ce {
-                                            if let ast::Value::String(name) = &val.value {
-                                                continents.push(name.clone());
+                                            if let Some(name) = val.value.as_str(source) {
+                                                continents.push(name.to_string());
                                             }
                                         }
                                     }
@@ -80,10 +81,11 @@ pub(crate) fn extract_areas(
                     }
                 }
 
+                let name = ass.key_text(source).to_string();
                 map.insert(
-                    ass.key.clone(),
+                    name.clone(),
                     AiArea {
-                        name: ass.key.clone(),
+                        name,
                         continents,
                         strategic_regions,
                         path: std::sync::Arc::from(path.to_string_lossy().as_ref()),

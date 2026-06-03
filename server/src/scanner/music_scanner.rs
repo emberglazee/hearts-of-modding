@@ -48,11 +48,17 @@ where
                 let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
                 if ext == "asset" {
                     let (script, _) = parser::parse_script(&content);
-                    find_assets_in_entries(&script.entries, &path.to_string_lossy(), &mut assets);
+                    find_assets_in_entries(
+                        &script.entries,
+                        &script.source,
+                        &path.to_string_lossy(),
+                        &mut assets,
+                    );
                 } else if ext == "txt" {
                     let (script, _) = parser::parse_script(&content);
                     find_stations_and_songs_in_entries(
                         &script.entries,
+                        &script.source,
                         &path.to_string_lossy(),
                         &mut stations,
                         &mut songs,
@@ -71,26 +77,27 @@ where
 
 pub(crate) fn find_assets_in_entries(
     entries: &[ast::Entry],
+    source: &str,
     file_path: &str,
     map: &mut HashMap<String, MusicAsset>,
 ) {
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
-            if ass.key.eq_ignore_ascii_case("music") {
+            if ass.key_text(source).eq_ignore_ascii_case("music") {
                 if let ast::Value::Block(details) = &ass.value.value {
                     let mut name = None;
                     let mut file = None;
 
                     for detail in details {
                         if let ast::Entry::Assignment(d_ass) = detail {
-                            let d_key = d_ass.key.to_ascii_lowercase();
+                            let d_key = d_ass.key_text(source).to_ascii_lowercase();
                             if d_key == "name" {
-                                if let ast::Value::String(s) = &d_ass.value.value {
-                                    name = Some(s.clone());
+                                if let Some(s) = d_ass.value.value.as_str(source) {
+                                    name = Some(s.to_string());
                                 }
                             } else if d_key == "file" {
-                                if let ast::Value::String(s) = &d_ass.value.value {
-                                    file = Some(s.clone());
+                                if let Some(s) = d_ass.value.value.as_str(source) {
+                                    file = Some(s.to_string());
                                 }
                             }
                         }
@@ -115,19 +122,20 @@ pub(crate) fn find_assets_in_entries(
 
 pub(crate) fn find_stations_and_songs_in_entries(
     entries: &[ast::Entry],
+    source: &str,
     file_path: &str,
     stations: &mut HashMap<String, MusicStation>,
     songs: &mut HashMap<String, Song>,
 ) {
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
-            let key_lower = ass.key.to_ascii_lowercase();
+            let key_lower = ass.key_text(source).to_ascii_lowercase();
             if key_lower == "music_station" {
-                if let ast::Value::String(name) = &ass.value.value {
+                if let Some(name) = ass.value.value.as_str(source) {
                     stations.insert(
-                        name.clone(),
+                        name.to_string(),
                         MusicStation {
-                            name: name.clone(),
+                            name: name.to_string(),
                             path: std::sync::Arc::from(file_path),
                             range: ass.key_range.clone(),
                         },
@@ -137,12 +145,12 @@ pub(crate) fn find_stations_and_songs_in_entries(
                 if let ast::Value::Block(details) = &ass.value.value {
                     for detail in details {
                         if let ast::Entry::Assignment(d_ass) = detail {
-                            if d_ass.key.eq_ignore_ascii_case("song") {
-                                if let ast::Value::String(name) = &d_ass.value.value {
+                            if d_ass.key_text(source).eq_ignore_ascii_case("song") {
+                                if let Some(name) = d_ass.value.value.as_str(source) {
                                     songs.insert(
-                                        name.clone(),
+                                        name.to_string(),
                                         Song {
-                                            name: name.clone(),
+                                            name: name.to_string(),
                                             path: std::sync::Arc::from(file_path),
                                             range: d_ass.key_range.clone(),
                                         },

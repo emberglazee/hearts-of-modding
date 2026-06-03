@@ -194,7 +194,13 @@ fn find_event_references(
         let (script, _) = entry.value();
 
         let mut edits = Vec::new();
-        find_event_references_in_entries(&script.entries, old_name, new_name, &mut edits);
+        find_event_references_in_entries(
+            &script.entries,
+            old_name,
+            new_name,
+            &mut edits,
+            &script.source,
+        );
 
         if !edits.is_empty() {
             if let Ok(url) = uri_str.parse::<Uri>() {
@@ -216,7 +222,13 @@ fn find_event_references(
         if let Ok(content) = std::fs::read_to_string(file_path) {
             let (script, _) = crate::parser::parser::parse_script(&content);
             let mut edits = Vec::new();
-            find_event_references_in_entries(&script.entries, old_name, new_name, &mut edits);
+            find_event_references_in_entries(
+                &script.entries,
+                old_name,
+                new_name,
+                &mut edits,
+                &script.source,
+            );
             if !edits.is_empty() {
                 changes.insert(url, edits);
             }
@@ -230,20 +242,21 @@ fn find_event_references_in_entries(
     old_name: &str,
     new_name: &str,
     edits: &mut Vec<TextEdit>,
+    source: &str,
 ) {
     for entry in entries {
         if let Entry::Assignment(ass) = entry {
             // Check for event triggers: country_event = { id = old_name }
-            if ass.key == "country_event"
-                || ass.key == "state_event"
-                || ass.key == "news_event"
-                || ass.key == "unit_leader_event"
+            if ass.key_text(source) == "country_event"
+                || ass.key_text(source) == "state_event"
+                || ass.key_text(source) == "news_event"
+                || ass.key_text(source) == "unit_leader_event"
             {
                 if let Value::Block(children) = &ass.value.value {
                     for child in children {
                         if let Entry::Assignment(child_ass) = child {
-                            if child_ass.key == "id" {
-                                if let Value::String(id) = &child_ass.value.value {
+                            if child_ass.key_text(source) == "id" {
+                                if let Some(id) = child_ass.value.value.as_str(source) {
                                     if id == old_name {
                                         edits.push(TextEdit {
                                             range: range_to_lsp(&child_ass.value.range),
@@ -259,7 +272,7 @@ fn find_event_references_in_entries(
 
             // Recurse into blocks
             if let Value::Block(children) = &ass.value.value {
-                find_event_references_in_entries(children, old_name, new_name, edits);
+                find_event_references_in_entries(children, old_name, new_name, edits, source);
             }
         }
     }
@@ -284,7 +297,13 @@ fn find_scripted_trigger_references(
         let (script, _) = entry.value();
 
         let mut edits = Vec::new();
-        find_scripted_references_in_entries(&script.entries, old_name, new_name, &mut edits);
+        find_scripted_references_in_entries(
+            &script.entries,
+            old_name,
+            new_name,
+            &mut edits,
+            &script.source,
+        );
 
         if !edits.is_empty() {
             if let Ok(url) = uri_str.parse::<Uri>() {
@@ -306,7 +325,13 @@ fn find_scripted_trigger_references(
         if let Ok(content) = std::fs::read_to_string(file_path) {
             let (script, _) = crate::parser::parser::parse_script(&content);
             let mut edits = Vec::new();
-            find_scripted_references_in_entries(&script.entries, old_name, new_name, &mut edits);
+            find_scripted_references_in_entries(
+                &script.entries,
+                old_name,
+                new_name,
+                &mut edits,
+                &script.source,
+            );
             if !edits.is_empty() {
                 changes.insert(url, edits);
             }
@@ -333,7 +358,13 @@ fn find_scripted_effect_references(
         let (script, _) = entry.value();
 
         let mut edits = Vec::new();
-        find_scripted_references_in_entries(&script.entries, old_name, new_name, &mut edits);
+        find_scripted_references_in_entries(
+            &script.entries,
+            old_name,
+            new_name,
+            &mut edits,
+            &script.source,
+        );
 
         if !edits.is_empty() {
             if let Ok(url) = uri_str.parse::<Uri>() {
@@ -355,7 +386,13 @@ fn find_scripted_effect_references(
         if let Ok(content) = std::fs::read_to_string(file_path) {
             let (script, _) = crate::parser::parser::parse_script(&content);
             let mut edits = Vec::new();
-            find_scripted_references_in_entries(&script.entries, old_name, new_name, &mut edits);
+            find_scripted_references_in_entries(
+                &script.entries,
+                old_name,
+                new_name,
+                &mut edits,
+                &script.source,
+            );
             if !edits.is_empty() {
                 changes.insert(url, edits);
             }
@@ -369,11 +406,12 @@ fn find_scripted_references_in_entries(
     old_name: &str,
     new_name: &str,
     edits: &mut Vec<TextEdit>,
+    source: &str,
 ) {
     for entry in entries {
         if let Entry::Assignment(ass) = entry {
             // Check for definition
-            if ass.key == old_name {
+            if ass.key_text(source) == old_name {
                 edits.push(TextEdit {
                     range: range_to_lsp(&ass.key_range),
                     new_text: new_name.to_string(),
@@ -381,7 +419,7 @@ fn find_scripted_references_in_entries(
             }
 
             // Check for usage: old_name = yes
-            if ass.key == old_name {
+            if ass.key_text(source) == old_name {
                 edits.push(TextEdit {
                     range: range_to_lsp(&ass.key_range),
                     new_text: new_name.to_string(),
@@ -390,7 +428,7 @@ fn find_scripted_references_in_entries(
 
             // Recurse into blocks
             if let Value::Block(children) = &ass.value.value {
-                find_scripted_references_in_entries(children, old_name, new_name, edits);
+                find_scripted_references_in_entries(children, old_name, new_name, edits, source);
             }
         }
     }
@@ -415,7 +453,13 @@ fn find_idea_references(
         let (script, _) = entry.value();
 
         let mut edits = Vec::new();
-        find_idea_references_in_entries(&script.entries, old_name, new_name, &mut edits);
+        find_idea_references_in_entries(
+            &script.entries,
+            old_name,
+            new_name,
+            &mut edits,
+            &script.source,
+        );
 
         if !edits.is_empty() {
             if let Ok(url) = uri_str.parse::<Uri>() {
@@ -437,7 +481,13 @@ fn find_idea_references(
         if let Ok(content) = std::fs::read_to_string(file_path) {
             let (script, _) = crate::parser::parser::parse_script(&content);
             let mut edits = Vec::new();
-            find_idea_references_in_entries(&script.entries, old_name, new_name, &mut edits);
+            find_idea_references_in_entries(
+                &script.entries,
+                old_name,
+                new_name,
+                &mut edits,
+                &script.source,
+            );
             if !edits.is_empty() {
                 changes.insert(url, edits);
             }
@@ -451,11 +501,12 @@ fn find_idea_references_in_entries(
     old_name: &str,
     new_name: &str,
     edits: &mut Vec<TextEdit>,
+    source: &str,
 ) {
     for entry in entries {
         if let Entry::Assignment(ass) = entry {
             // Check for idea definition or usage
-            if ass.key == old_name {
+            if ass.key_text(source) == old_name {
                 edits.push(TextEdit {
                     range: range_to_lsp(&ass.key_range),
                     new_text: new_name.to_string(),
@@ -463,12 +514,12 @@ fn find_idea_references_in_entries(
             }
 
             // Check for add_ideas/remove_ideas
-            if ass.key == "add_ideas"
-                || ass.key == "remove_ideas"
-                || ass.key == "add_timed_idea"
-                || ass.key == "swap_ideas"
+            if ass.key_text(source) == "add_ideas"
+                || ass.key_text(source) == "remove_ideas"
+                || ass.key_text(source) == "add_timed_idea"
+                || ass.key_text(source) == "swap_ideas"
             {
-                if let Value::String(idea_name) = &ass.value.value {
+                if let Some(idea_name) = ass.value.value.as_str(source) {
                     if idea_name == old_name {
                         edits.push(TextEdit {
                             range: range_to_lsp(&ass.value.range),
@@ -480,7 +531,7 @@ fn find_idea_references_in_entries(
 
             // Recurse into blocks
             if let Value::Block(children) = &ass.value.value {
-                find_idea_references_in_entries(children, old_name, new_name, edits);
+                find_idea_references_in_entries(children, old_name, new_name, edits, source);
             }
         }
     }
@@ -505,7 +556,13 @@ fn find_character_references(
         let (script, _) = entry.value();
 
         let mut edits = Vec::new();
-        find_character_references_in_entries(&script.entries, old_name, new_name, &mut edits);
+        find_character_references_in_entries(
+            &script.entries,
+            old_name,
+            new_name,
+            &mut edits,
+            &script.source,
+        );
 
         if !edits.is_empty() {
             if let Ok(url) = uri_str.parse::<Uri>() {
@@ -527,7 +584,13 @@ fn find_character_references(
         if let Ok(content) = std::fs::read_to_string(file_path) {
             let (script, _) = crate::parser::parser::parse_script(&content);
             let mut edits = Vec::new();
-            find_character_references_in_entries(&script.entries, old_name, new_name, &mut edits);
+            find_character_references_in_entries(
+                &script.entries,
+                old_name,
+                new_name,
+                &mut edits,
+                &script.source,
+            );
             if !edits.is_empty() {
                 changes.insert(url, edits);
             }
@@ -541,11 +604,12 @@ fn find_character_references_in_entries(
     old_name: &str,
     new_name: &str,
     edits: &mut Vec<TextEdit>,
+    source: &str,
 ) {
     for entry in entries {
         if let Entry::Assignment(ass) = entry {
             // Character definition
-            if ass.key == old_name {
+            if ass.key_text(source) == old_name {
                 edits.push(TextEdit {
                     range: range_to_lsp(&ass.key_range),
                     new_text: new_name.to_string(),
@@ -553,12 +617,12 @@ fn find_character_references_in_entries(
             }
 
             // Character usage (recruit_character, etc)
-            if ass.key == "recruit_character"
-                || ass.key == "has_character"
-                || ass.key == "promote_character"
-                || ass.key == "retire_character"
+            if ass.key_text(source) == "recruit_character"
+                || ass.key_text(source) == "has_character"
+                || ass.key_text(source) == "promote_character"
+                || ass.key_text(source) == "retire_character"
             {
-                if let Value::String(char_name) = &ass.value.value {
+                if let Some(char_name) = ass.value.value.as_str(source) {
                     if char_name == old_name {
                         edits.push(TextEdit {
                             range: range_to_lsp(&ass.value.range),
@@ -569,8 +633,8 @@ fn find_character_references_in_entries(
             }
 
             // character = X block usage
-            if ass.key == "character" {
-                if let Value::String(char_name) = &ass.value.value {
+            if ass.key_text(source) == "character" {
+                if let Some(char_name) = ass.value.value.as_str(source) {
                     if char_name == old_name {
                         edits.push(TextEdit {
                             range: range_to_lsp(&ass.value.range),
@@ -582,7 +646,7 @@ fn find_character_references_in_entries(
 
             // Recurse into blocks
             if let Value::Block(children) = &ass.value.value {
-                find_character_references_in_entries(children, old_name, new_name, edits);
+                find_character_references_in_entries(children, old_name, new_name, edits, source);
             }
         }
     }
@@ -607,7 +671,13 @@ fn find_variable_references(
         let (script, _) = entry.value();
 
         let mut edits = Vec::new();
-        find_variable_references_in_entries(&script.entries, old_name, new_name, &mut edits);
+        find_variable_references_in_entries(
+            &script.entries,
+            old_name,
+            new_name,
+            &mut edits,
+            &script.source,
+        );
 
         if !edits.is_empty() {
             if let Ok(url) = uri_str.parse::<Uri>() {
@@ -629,7 +699,13 @@ fn find_variable_references(
         if let Ok(content) = std::fs::read_to_string(file_path) {
             let (script, _) = crate::parser::parser::parse_script(&content);
             let mut edits = Vec::new();
-            find_variable_references_in_entries(&script.entries, old_name, new_name, &mut edits);
+            find_variable_references_in_entries(
+                &script.entries,
+                old_name,
+                new_name,
+                &mut edits,
+                &script.source,
+            );
             if !edits.is_empty() {
                 changes.insert(url, edits);
             }
@@ -643,24 +719,27 @@ fn find_variable_references_in_entries(
     old_name: &str,
     new_name: &str,
     edits: &mut Vec<TextEdit>,
+    source: &str,
 ) {
     for entry in entries {
         if let Entry::Assignment(ass) = entry {
             // Check for set_variable, check_variable, etc.
-            if ass.key == "set_variable"
-                || ass.key == "check_variable"
-                || ass.key == "add_to_variable"
-                || ass.key == "subtract_from_variable"
-                || ass.key == "multiply_variable"
-                || ass.key == "divide_variable"
-                || ass.key == "modulo_variable"
-                || ass.key == "clamp_variable"
+            if ass.key_text(source) == "set_variable"
+                || ass.key_text(source) == "check_variable"
+                || ass.key_text(source) == "add_to_variable"
+                || ass.key_text(source) == "subtract_from_variable"
+                || ass.key_text(source) == "multiply_variable"
+                || ass.key_text(source) == "divide_variable"
+                || ass.key_text(source) == "modulo_variable"
+                || ass.key_text(source) == "clamp_variable"
             {
                 if let Value::Block(children) = &ass.value.value {
                     for child in children {
                         if let Entry::Assignment(child_ass) = child {
-                            if child_ass.key == "var" || child_ass.key == "variable" {
-                                if let Value::String(var_name) = &child_ass.value.value {
+                            if child_ass.key_text(source) == "var"
+                                || child_ass.key_text(source) == "variable"
+                            {
+                                if let Some(var_name) = child_ass.value.value.as_str(source) {
                                     if var_name == old_name {
                                         edits.push(TextEdit {
                                             range: range_to_lsp(&child_ass.value.range),
@@ -676,7 +755,7 @@ fn find_variable_references_in_entries(
 
             // Recurse into blocks
             if let Value::Block(children) = &ass.value.value {
-                find_variable_references_in_entries(children, old_name, new_name, edits);
+                find_variable_references_in_entries(children, old_name, new_name, edits, source);
             }
         }
     }
@@ -701,7 +780,13 @@ fn find_ability_references(
         let (script, _) = entry.value();
 
         let mut edits = Vec::new();
-        find_ability_references_in_entries(&script.entries, old_name, new_name, &mut edits);
+        find_ability_references_in_entries(
+            &script.entries,
+            old_name,
+            new_name,
+            &mut edits,
+            &script.source,
+        );
 
         if !edits.is_empty() {
             if let Ok(url) = uri_str.parse::<Uri>() {
@@ -723,7 +808,13 @@ fn find_ability_references(
         if let Ok(content) = std::fs::read_to_string(file_path) {
             let (script, _) = crate::parser::parser::parse_script(&content);
             let mut edits = Vec::new();
-            find_ability_references_in_entries(&script.entries, old_name, new_name, &mut edits);
+            find_ability_references_in_entries(
+                &script.entries,
+                old_name,
+                new_name,
+                &mut edits,
+                &script.source,
+            );
             if !edits.is_empty() {
                 changes.insert(url, edits);
             }
@@ -737,10 +828,11 @@ fn find_ability_references_in_entries(
     old_name: &str,
     new_name: &str,
     edits: &mut Vec<TextEdit>,
+    source: &str,
 ) {
     for entry in entries {
         if let Entry::Assignment(ass) = entry {
-            if ass.key == old_name {
+            if ass.key_text(source) == old_name {
                 edits.push(TextEdit {
                     range: range_to_lsp(&ass.key_range),
                     new_text: new_name.to_string(),
@@ -748,12 +840,12 @@ fn find_ability_references_in_entries(
             }
 
             if let Value::Block(children) = &ass.value.value {
-                find_ability_references_in_entries(children, old_name, new_name, edits);
-            } else if let Value::String(s) = &ass.value.value {
+                find_ability_references_in_entries(children, old_name, new_name, edits, source);
+            } else if let Some(s) = ass.value.value.as_str(source) {
                 if s == old_name
-                    && (ass.key == "has_ability"
-                        || ass.key == "add_ability"
-                        || ass.key == "remove_ability")
+                    && (ass.key_text(source) == "has_ability"
+                        || ass.key_text(source) == "add_ability"
+                        || ass.key_text(source) == "remove_ability")
                 {
                     edits.push(TextEdit {
                         range: range_to_lsp(&ass.value.range),

@@ -21,13 +21,13 @@ impl ValidationRule for LocalizationRule {
         _pushed_scope: bool,
         diags: &mut Vec<Diagnostic>,
     ) {
-        let key_lower = ass.key.to_ascii_lowercase();
+        let key_lower = ass.key_text(ctx.source).to_ascii_lowercase();
         if key_lower != "name" && key_lower != "desc" && key_lower != "text" && key_lower != "title"
         {
             return;
         }
 
-        let ast::Value::String(val) = &ass.value.value else {
+        let Some(val) = ass.value.value.as_str(ctx.source) else {
             return;
         };
 
@@ -50,7 +50,11 @@ impl ValidationRule for LocalizationRule {
         if should_flag {
             for (comment_text, range) in ctx.comments {
                 if range.start_line == ass.key_range.start_line {
-                    if comment_text.to_ascii_lowercase().contains("ignore") {
+                    if comment_text
+                        .resolve(ctx.source)
+                        .to_ascii_lowercase()
+                        .contains("ignore")
+                    {
                         should_flag = false;
                         break;
                     }
@@ -59,7 +63,7 @@ impl ValidationRule for LocalizationRule {
         }
 
         if should_flag {
-            if !ctx.loc.contains_key(val.as_str()) {
+            if !ctx.loc.contains_key(val) {
                 let target = format!("{}:", val);
                 if !ctx.loc.iter().any(|e| e.key().starts_with(&target)) {
                     // Final check against regex

@@ -26,13 +26,12 @@ impl ValidationRule for StateDefinitionRule {
         _pushed_scope: bool,
         diags: &mut Vec<Diagnostic>,
     ) {
-        let key_lower = ass.key.to_ascii_lowercase();
+        let key_lower = ass.key_text(ctx.source).to_ascii_lowercase();
 
         // state_category = <value> — validate value is known
         if key_lower == "state_category" {
-            if let Some(value_str) = extract_string_value(&ass.value) {
-                if !ctx.state_categories.is_empty()
-                    && !ctx.state_categories.contains_key(value_str.as_str())
+            if let Some(value_str) = extract_string_value(&ass.value, ctx.source) {
+                if !ctx.state_categories.is_empty() && !ctx.state_categories.contains_key(value_str)
                 {
                     let known = format_known_list(ctx.state_categories);
                     diags.push(Diagnostic {
@@ -69,6 +68,7 @@ impl ValidationRule for StateDefinitionRule {
                     "common/resources/*.txt",
                     crate::validation::advanced_validation::UNKNOWN_RESOURCE,
                     diags,
+                    ctx.source,
                 );
             }
             return;
@@ -81,11 +81,11 @@ impl ValidationRule for StateDefinitionRule {
         if key_lower == "buildings" {
             if let ast::Value::Block(building_entries) = &ass.value.value {
                 for entry in building_entries {
-                    if let ast::Entry::Assignment(ass) = entry {
-                        let key = ass.key.as_str();
+                    if let ast::Entry::Assignment(inner_ass) = entry {
+                        let key = inner_ass.key_text(ctx.source);
                         if key.bytes().all(|b| b.is_ascii_digit()) {
                             // Province-level placement: 2671 = { naval_base = 2 }
-                            if let ast::Value::Block(province_entries) = &ass.value.value {
+                            if let ast::Value::Block(province_entries) = &inner_ass.value.value {
                                 validate_keys_in_dashmap(
                                     province_entries,
                                     ctx.buildings,
@@ -93,13 +93,14 @@ impl ValidationRule for StateDefinitionRule {
                                     "common/buildings/*.txt",
                                     crate::validation::advanced_validation::UNKNOWN_BUILDING,
                                     diags,
+                                    ctx.source,
                                 );
                             }
                         } else {
                             // State-level building: infrastructure = 2
                             if !ctx.buildings.is_empty() && !ctx.buildings.contains_key(key) {
                                 diags.push(Diagnostic {
-                                    range: ast_range_to_lsp(&ass.key_range),
+                                    range: ast_range_to_lsp(&inner_ass.key_range),
                                     severity: Some(DiagnosticSeverity::WARNING),
                                     message: format!(
                                         "Unknown building '{}'. buildings are defined in common/buildings/*.txt",
@@ -122,12 +123,8 @@ impl ValidationRule for StateDefinitionRule {
 
 /// Extract a string value from a `NodeedValue`.
 /// HOI4 identifiers are parsed as `Value::String` by the parser.
-fn extract_string_value(val: &ast::NodeedValue) -> Option<String> {
-    if let ast::Value::String(s) = &val.value {
-        Some(s.clone())
-    } else {
-        None
-    }
+fn extract_string_value<'a>(val: &'a ast::NodeedValue, source: &'a str) -> Option<&'a str> {
+    val.value.as_str(source)
 }
 
 /// Check that every assignment key in `entries` exists in the DashMap.
@@ -138,13 +135,14 @@ fn validate_keys_in_dashmap<T>(
     source_hint: &str,
     error_code: &str,
     diags: &mut Vec<Diagnostic>,
+    source: &str,
 ) {
     if map.is_empty() {
         return;
     }
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
-            let name = ass.key.as_str();
+            let name = ass.key_text(source);
             if !map.contains_key(name) {
                 diags.push(Diagnostic {
                     range: ast_range_to_lsp(&ass.key_range),

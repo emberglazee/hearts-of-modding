@@ -20,12 +20,12 @@ impl ValidationRule for IdeologyRule {
         _pushed_scope: bool,
         diags: &mut Vec<Diagnostic>,
     ) {
-        let key_lower = ass.key.to_ascii_lowercase();
+        let key_lower = ass.key_text(ctx.source).to_ascii_lowercase();
         if key_lower != "ideology" && key_lower != "has_ideology" {
             return;
         }
 
-        let ast::Value::String(val) = &ass.value.value else {
+        let Some(val) = ass.value.value.as_str(ctx.source) else {
             return;
         };
 
@@ -48,8 +48,8 @@ impl ValidationRule for IdeologyRule {
         // Allow variable references (var:SCOPE@name or var:name)
         let is_var_ref = val.starts_with("var:");
 
-        if !ctx.ideologies.contains_key(val.as_str())
-            && !ctx.sub_ideologies.contains_key(val.as_str())
+        if !ctx.ideologies.contains_key(val)
+            && !ctx.sub_ideologies.contains_key(val)
             && !is_scope_ref
             && !is_var_ref
         {

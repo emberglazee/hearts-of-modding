@@ -20,20 +20,26 @@ where
     let mut map = HashMap::new();
     crate::utils::fs_util::walk_and_parse_files(dir_path, &["txt"], filter, |path, content| {
         let (script, _) = parser::parse_script(&content);
-        find_ideologies_in_entries(&script.entries, &path.to_string_lossy(), &mut map);
+        find_ideologies_in_entries(
+            &script.entries,
+            &script.source,
+            &path.to_string_lossy(),
+            &mut map,
+        );
     });
     map
 }
 
 pub(crate) fn find_ideologies_in_entries(
     entries: &[ast::Entry],
+    source: &str,
     file_path: &str,
     map: &mut HashMap<String, Ideology>,
 ) {
     for entry in entries {
         match entry {
             ast::Entry::Assignment(ass) => {
-                let key_lower = ass.key.to_ascii_lowercase();
+                let key_lower = ass.key_text(source).to_ascii_lowercase();
                 if key_lower == "ideologies" {
                     if let ast::Value::Block(ideology_entries) = &ass.value.value {
                         for ideology_entry in ideology_entries {
@@ -45,27 +51,30 @@ pub(crate) fn find_ideologies_in_entries(
                                 {
                                     for detail in ideology_details {
                                         if let ast::Entry::Assignment(detail_ass) = detail
-                                            && detail_ass.key.eq_ignore_ascii_case("types")
+                                            && detail_ass
+                                                .key_text(source)
+                                                .eq_ignore_ascii_case("types")
                                             && let ast::Value::Block(type_entries) =
                                                 &detail_ass.value.value
                                         {
                                             for type_entry in type_entries {
                                                 if let ast::Entry::Assignment(type_ass) = type_entry
                                                 {
-                                                    sub_ideologies.push(type_ass.key.clone());
-                                                    sub_ideology_ranges.insert(
-                                                        type_ass.key.clone(),
-                                                        type_ass.key_range.clone(),
-                                                    );
+                                                    let name =
+                                                        type_ass.key_text(source).to_string();
+                                                    sub_ideologies.push(name.clone());
+                                                    sub_ideology_ranges
+                                                        .insert(name, type_ass.key_range.clone());
                                                 }
                                             }
                                         }
                                     }
                                 }
+                                let name = ideology_ass.key_text(source).to_string();
                                 map.insert(
-                                    ideology_ass.key.clone(),
+                                    name.clone(),
                                     Ideology {
-                                        name: ideology_ass.key.clone(),
+                                        name,
                                         sub_ideologies,
                                         sub_ideology_ranges,
                                         path: std::sync::Arc::from(file_path),
@@ -78,16 +87,16 @@ pub(crate) fn find_ideologies_in_entries(
                 } else {
                     // Recurse into other blocks
                     if let ast::Value::Block(inner_entries) = &ass.value.value {
-                        find_ideologies_in_entries(inner_entries, file_path, map);
+                        find_ideologies_in_entries(inner_entries, source, file_path, map);
                     }
                 }
             }
             ast::Entry::Value(val) => match &val.value {
                 ast::Value::Block(inner_entries) => {
-                    find_ideologies_in_entries(inner_entries, file_path, map);
+                    find_ideologies_in_entries(inner_entries, source, file_path, map);
                 }
                 ast::Value::TaggedBlock(_, inner_entries, _) => {
-                    find_ideologies_in_entries(inner_entries, file_path, map);
+                    find_ideologies_in_entries(inner_entries, source, file_path, map);
                 }
                 _ => {}
             },

@@ -65,6 +65,7 @@ where
                                 let (script, _) = parser::parse_script(&content);
                                 scan_entries(
                                     &script.entries,
+                                    &script.source,
                                     &path.to_string_lossy(),
                                     &mut variables,
                                     &mut event_targets,
@@ -85,6 +86,7 @@ where
 
 pub(crate) fn scan_entries(
     entries: &[ast::Entry],
+    source: &str,
     path: &str,
     variables: &mut HashMap<String, Vec<Variable>>,
     event_targets: &mut HashMap<String, Vec<EventTarget>>,
@@ -92,7 +94,7 @@ pub(crate) fn scan_entries(
     for entry in entries {
         match entry {
             ast::Entry::Assignment(ass) => {
-                match ass.key.as_str() {
+                match ass.key_text(source) {
                     "set_variable"
                     | "set_temp_variable"
                     | "set_local_variable"
@@ -106,19 +108,19 @@ pub(crate) fn scan_entries(
                     | "clear_variable"
                     | "has_variable"
                     | "check_variable" => {
-                        handle_variable_assignment(ass, path, variables);
+                        handle_variable_assignment(ass, source, path, variables);
                     }
                     "save_event_target_as" | "save_global_event_target_as" => {
-                        handle_event_target_assignment(ass, path, event_targets);
+                        handle_event_target_assignment(ass, source, path, event_targets);
                     }
                     _ => {
                         // Recurse into blocks
                         match &ass.value.value {
                             ast::Value::Block(inner) => {
-                                scan_entries(inner, path, variables, event_targets)
+                                scan_entries(inner, source, path, variables, event_targets)
                             }
                             ast::Value::TaggedBlock(_, inner, _) => {
-                                scan_entries(inner, path, variables, event_targets)
+                                scan_entries(inner, source, path, variables, event_targets)
                             }
                             _ => {}
                         }
@@ -126,9 +128,11 @@ pub(crate) fn scan_entries(
                 }
             }
             ast::Entry::Value(val) => match &val.value {
-                ast::Value::Block(inner) => scan_entries(inner, path, variables, event_targets),
+                ast::Value::Block(inner) => {
+                    scan_entries(inner, source, path, variables, event_targets)
+                }
                 ast::Value::TaggedBlock(_, inner, _) => {
-                    scan_entries(inner, path, variables, event_targets)
+                    scan_entries(inner, source, path, variables, event_targets)
                 }
                 _ => {}
             },
@@ -139,20 +143,22 @@ pub(crate) fn scan_entries(
 
 fn handle_variable_assignment(
     ass: &ast::Assignment,
+    source: &str,
     path: &str,
     variables: &mut HashMap<String, Vec<Variable>>,
 ) {
     match &ass.value.value {
-        ast::Value::String(name) => {
-            add_variable(variables, name.clone(), path, &ass.value.range);
+        ast::Value::String(name_span) => {
+            let name = name_span.resolve(source).to_string();
+            add_variable(variables, name, path, &ass.value.range);
         }
         ast::Value::Block(inner) => {
             // Find 'name = xxx' inside the block
             for entry in inner {
                 if let ast::Entry::Assignment(inner_ass) = entry {
-                    if inner_ass.key == "name" {
-                        if let ast::Value::String(name) = &inner_ass.value.value {
-                            add_variable(variables, name.clone(), path, &inner_ass.value.range);
+                    if inner_ass.key_text(source) == "name" {
+                        if let Some(name) = inner_ass.value.value.as_str(source) {
+                            add_variable(variables, name.to_string(), path, &inner_ass.value.range);
                         }
                     }
                 }
@@ -164,14 +170,15 @@ fn handle_variable_assignment(
 
 fn handle_event_target_assignment(
     ass: &ast::Assignment,
+    source: &str,
     path: &str,
     event_targets: &mut HashMap<String, Vec<EventTarget>>,
 ) {
-    if let ast::Value::String(name) = &ass.value.value {
-        let is_global = ass.key == "save_global_event_target_as";
+    if let Some(name) = ass.value.value.as_str(source) {
+        let is_global = ass.key_text(source) == "save_global_event_target_as";
         add_event_target(
             event_targets,
-            name.clone(),
+            name.to_string(),
             path,
             &ass.value.range,
             is_global,

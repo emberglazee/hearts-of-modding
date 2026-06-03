@@ -24,7 +24,12 @@ where
             filter,
             |path, content| {
                 let (script, _) = parser::parse_script(&content);
-                find_achievements_in_entries(&script.entries, &path.to_string_lossy(), &mut map);
+                find_achievements_in_entries(
+                    &script.entries,
+                    &script.source,
+                    &path.to_string_lossy(),
+                    &mut map,
+                );
             },
         );
     }
@@ -33,12 +38,13 @@ where
 
 pub(crate) fn find_achievements_in_entries(
     entries: &[ast::Entry],
+    source: &str,
     file_path: &str,
     map: &mut HashMap<String, Achievement>,
 ) {
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
-            let key_lower = ass.key.to_ascii_lowercase();
+            let key_lower = ass.key_text(source).to_ascii_lowercase();
 
             // Skip unique_id assignment
             if key_lower == "unique_id" {
@@ -52,7 +58,7 @@ pub(crate) fn find_achievements_in_entries(
 
                 for inner in inner_entries {
                     if let ast::Entry::Assignment(inner_ass) = inner {
-                        let inner_key = inner_ass.key.to_ascii_lowercase();
+                        let inner_key = inner_ass.key_text(source).to_ascii_lowercase();
                         if inner_key == "ribbon" {
                             is_ribbon = true;
                         }
@@ -63,11 +69,12 @@ pub(crate) fn find_achievements_in_entries(
                 }
 
                 if is_achievement || is_ribbon {
+                    let name = ass.key_text(source).to_string();
                     // Always store the block key as the achievement name
                     map.insert(
-                        ass.key.clone(),
+                        name.clone(),
                         Achievement {
-                            name: ass.key.clone(),
+                            name: name.clone(),
                             is_ribbon,
                             path: std::sync::Arc::from(file_path),
                             range: ass.key_range.clone(),
@@ -82,19 +89,19 @@ pub(crate) fn find_achievements_in_entries(
                         let is_ribbon_block = key_lower == "custom_ribbon";
                         for inner in inner_entries {
                             if let ast::Entry::Assignment(inner_ass) = inner {
-                                let inner_field = inner_ass.key.to_ascii_lowercase();
+                                let inner_field = inner_ass.key_text(source).to_ascii_lowercase();
                                 let should_extract = if is_ribbon_block {
                                     inner_field == "key"
                                 } else {
                                     inner_field == "achievement"
                                 };
                                 if should_extract {
-                                    if let ast::Value::String(s) = &inner_ass.value.value {
+                                    if let Some(s) = inner_ass.value.value.as_str(source) {
                                         if !map.contains_key(s) {
                                             map.insert(
-                                                s.clone(),
+                                                s.to_string(),
                                                 Achievement {
-                                                    name: s.clone(),
+                                                    name: s.to_string(),
                                                     is_ribbon,
                                                     path: std::sync::Arc::from(file_path),
                                                     range: ass.key_range.clone(),

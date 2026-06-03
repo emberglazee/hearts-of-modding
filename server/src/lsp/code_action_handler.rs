@@ -368,7 +368,7 @@ impl Backend {
             let uri_str = params.text_document.uri.as_str();
             if let Some((script, _)) = self.ensure_ast_cached(uri_str) {
                 let mut all_fixes = Vec::new();
-                self.collect_casing_fixes(&script.entries, &mut all_fixes);
+                self.collect_casing_fixes(&script.entries, &mut all_fixes, &script.source);
 
                 if !all_fixes.is_empty() {
                     let mut changes = HashMap::new();
@@ -401,7 +401,7 @@ impl Backend {
             let uri_str = params.text_document.uri.as_str();
             if let Some((script, _)) = self.ensure_ast_cached(uri_str) {
                 let mut all_fixes = Vec::new();
-                self.collect_path_separator_fixes(&script.entries, &mut all_fixes);
+                self.collect_path_separator_fixes(&script.entries, &mut all_fixes, &script.source);
 
                 if !all_fixes.is_empty() {
                     let mut changes = HashMap::new();
@@ -695,7 +695,7 @@ impl Backend {
                     }
 
                     let mut casing_fixes = Vec::new();
-                    self.collect_casing_fixes(&script.entries, &mut casing_fixes);
+                    self.collect_casing_fixes(&script.entries, &mut casing_fixes, &script.source);
                     for (range, text) in casing_fixes {
                         all_changes.push(TextEdit {
                             range: ast_range_to_lsp(&range),
@@ -763,7 +763,11 @@ impl Backend {
                     }
 
                     let mut path_sep_fixes = Vec::new();
-                    self.collect_path_separator_fixes(&script.entries, &mut path_sep_fixes);
+                    self.collect_path_separator_fixes(
+                        &script.entries,
+                        &mut path_sep_fixes,
+                        &script.source,
+                    );
                     for (range, text) in path_sep_fixes {
                         all_changes.push(TextEdit {
                             range: ast_range_to_lsp(&range),

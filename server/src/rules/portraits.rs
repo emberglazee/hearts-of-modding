@@ -56,7 +56,7 @@ impl AstVisitor for PortraitVisitor {
         diags: &mut Vec<Diagnostic>,
     ) {
         // Track entry into `portraits = { ... }` blocks
-        if ass.key.eq_ignore_ascii_case("portraits") {
+        if ass.key_text(ctx.source).eq_ignore_ascii_case("portraits") {
             if matches!(&ass.value.value, ast::Value::Block(_)) {
                 self.in_portraits += 1;
             }
@@ -68,8 +68,8 @@ impl AstVisitor for PortraitVisitor {
         }
 
         // Inside a portraits block: check string values for GFX_ references
-        if let ast::Value::String(s) = &ass.value.value {
-            if s.starts_with("GFX_") && !ctx.sprites.contains_key(s.as_str()) {
+        if let Some(s) = ass.value.value.as_str(ctx.source) {
+            if s.starts_with("GFX_") && !ctx.sprites.contains_key(s) {
                 diags.push(Diagnostic {
                     range: ast_range_to_lsp(&ass.value.range),
                     severity: Some(DiagnosticSeverity::WARNING),
@@ -94,7 +94,7 @@ impl AstVisitor for PortraitVisitor {
         _scope: &crate::scope::scope::ScopeStack,
         _diags: &mut Vec<Diagnostic>,
     ) {
-        if ass.key.eq_ignore_ascii_case("portraits") {
+        if ass.key_text(_ctx.source).eq_ignore_ascii_case("portraits") {
             if matches!(&ass.value.value, ast::Value::Block(_)) {
                 self.in_portraits = self.in_portraits.saturating_sub(1);
             }

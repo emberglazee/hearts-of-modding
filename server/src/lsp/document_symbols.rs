@@ -4,11 +4,11 @@ use tower_lsp_server::ls_types::{
 };
 
 /// Generate document symbols for outline view
-pub fn generate_document_symbols(entries: &[Entry]) -> Vec<DocumentSymbol> {
+pub fn generate_document_symbols(entries: &[Entry], source: &str) -> Vec<DocumentSymbol> {
     let mut symbols = Vec::new();
 
     for entry in entries {
-        if let Some(symbol) = entry_to_symbol(entry) {
+        if let Some(symbol) = entry_to_symbol(entry, source) {
             symbols.push(symbol);
         }
     }
@@ -17,17 +17,20 @@ pub fn generate_document_symbols(entries: &[Entry]) -> Vec<DocumentSymbol> {
 }
 
 /// Convert an AST entry to a DocumentSymbol
-fn entry_to_symbol(entry: &Entry) -> Option<DocumentSymbol> {
+fn entry_to_symbol(entry: &Entry, source: &str) -> Option<DocumentSymbol> {
     match entry {
         Entry::Assignment(assignment) => {
-            let symbol_kind = classify_assignment(&assignment.key);
-            let name = extract_symbol_name(&assignment.key, &assignment.value);
-            let detail = extract_symbol_detail(&assignment.key, &assignment.value);
+            let key_text = assignment.key_text(source);
+            let symbol_kind = classify_assignment(key_text);
+            let name = extract_symbol_name(key_text, &assignment.value, source);
+            let detail = extract_symbol_detail(key_text, &assignment.value, source);
 
             // Recursively process children if it's a block
             let children = if let Value::Block(entries) = &assignment.value.value {
-                let child_symbols: Vec<DocumentSymbol> =
-                    entries.iter().filter_map(entry_to_symbol).collect();
+                let child_symbols: Vec<DocumentSymbol> = entries
+                    .iter()
+                    .filter_map(|e| entry_to_symbol(e, source))
+                    .collect();
 
                 if child_symbols.is_empty() {
                     None
@@ -60,8 +63,10 @@ fn entry_to_symbol(entry: &Entry) -> Option<DocumentSymbol> {
         Entry::Comment(_, _) => None,
         Entry::Value(nodeed_value) => match &nodeed_value.value {
             Value::Block(entries) => {
-                let children: Vec<DocumentSymbol> =
-                    entries.iter().filter_map(entry_to_symbol).collect();
+                let children: Vec<DocumentSymbol> = entries
+                    .iter()
+                    .filter_map(|e| entry_to_symbol(e, source))
+                    .collect();
                 let children = if children.is_empty() {
                     None
                 } else {
@@ -82,9 +87,12 @@ fn entry_to_symbol(entry: &Entry) -> Option<DocumentSymbol> {
                     children,
                 })
             }
-            Value::TaggedBlock(tag, entries, _) => {
-                let children: Vec<DocumentSymbol> =
-                    entries.iter().filter_map(entry_to_symbol).collect();
+            Value::TaggedBlock(tag_span, entries, _) => {
+                let tag = tag_span.resolve(source);
+                let children: Vec<DocumentSymbol> = entries
+                    .iter()
+                    .filter_map(|e| entry_to_symbol(e, source))
+                    .collect();
                 let children = if children.is_empty() {
                     None
                 } else {
@@ -188,7 +196,7 @@ fn classify_assignment(key: &str) -> SymbolKind {
 }
 
 /// Extract a meaningful name for the symbol
-fn extract_symbol_name(key: &str, value: &NodeedValue) -> String {
+fn extract_symbol_name(key: &str, value: &NodeedValue, source: &str) -> String {
     // For events, try to extract the ID
     if key == "country_event"
         || key == "state_event"
@@ -198,8 +206,8 @@ fn extract_symbol_name(key: &str, value: &NodeedValue) -> String {
         if let Value::Block(entries) = &value.value {
             for entry in entries {
                 if let Entry::Assignment(ass) = entry {
-                    if ass.key == "id" {
-                        if let Value::String(id) = &ass.value.value {
+                    if ass.key_text(source) == "id" {
+                        if let Some(id) = ass.value.value.as_str(source) {
                             return format!("{} ({})", key, id);
                         }
                     }
@@ -214,8 +222,8 @@ fn extract_symbol_name(key: &str, value: &NodeedValue) -> String {
         if let Value::Block(entries) = &value.value {
             for entry in entries {
                 if let Entry::Assignment(ass) = entry {
-                    if ass.key == "id" {
-                        if let Value::String(id) = &ass.value.value {
+                    if ass.key_text(source) == "id" {
+                        if let Some(id) = ass.value.value.as_str(source) {
                             return format!("{} ({})", key, id);
                         }
                     }
@@ -230,8 +238,8 @@ fn extract_symbol_name(key: &str, value: &NodeedValue) -> String {
         if let Value::Block(entries) = &value.value {
             for entry in entries {
                 if let Entry::Assignment(ass) = entry {
-                    if ass.key == "name" {
-                        if let Value::String(name) = &ass.value.value {
+                    if ass.key_text(source) == "name" {
+                        if let Some(name) = ass.value.value.as_str(source) {
                             return format!("option ({})", name);
                         }
                     }
@@ -245,7 +253,7 @@ fn extract_symbol_name(key: &str, value: &NodeedValue) -> String {
 }
 
 /// Extract detail information for the symbol
-fn extract_symbol_detail(key: &str, value: &NodeedValue) -> Option<String> {
+fn extract_symbol_detail(key: &str, value: &NodeedValue, source: &str) -> Option<String> {
     // For events, extract title
     if key == "country_event"
         || key == "state_event"
@@ -255,8 +263,8 @@ fn extract_symbol_detail(key: &str, value: &NodeedValue) -> Option<String> {
         if let Value::Block(entries) = &value.value {
             for entry in entries {
                 if let Entry::Assignment(ass) = entry {
-                    if ass.key == "title" {
-                        if let Value::String(title) = &ass.value.value {
+                    if ass.key_text(source) == "title" {
+                        if let Some(title) = ass.value.value.as_str(source) {
                             return Some(format!("title: {}", title));
                         }
                     }
@@ -270,7 +278,7 @@ fn extract_symbol_detail(key: &str, value: &NodeedValue) -> Option<String> {
         if let Value::Block(entries) = &value.value {
             for entry in entries {
                 if let Entry::Assignment(ass) = entry {
-                    if ass.key == "cost" {
+                    if ass.key_text(source) == "cost" {
                         if let Value::Number(cost) = &ass.value.value {
                             return Some(format!("cost: {}", cost));
                         }
@@ -282,7 +290,7 @@ fn extract_symbol_detail(key: &str, value: &NodeedValue) -> Option<String> {
 
     // For simple assignments, show the value
     match &value.value {
-        Value::String(s) => Some(s.clone()),
+        Value::String(span) => Some(span.resolve(source).to_string()),
         Value::Number(n) => Some(n.to_string()),
         Value::Boolean(b) => Some(b.to_string()),
         Value::Block(entries) => {

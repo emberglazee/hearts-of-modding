@@ -31,12 +31,12 @@ impl ValidationRule for IdeaRule {
         pushed_scope: bool,
         diags: &mut Vec<Diagnostic>,
     ) {
-        let key_lower = ass.key.to_ascii_lowercase();
+        let key_lower = ass.key_text(ctx.source).to_ascii_lowercase();
 
         // Idea existence checks (add_ideas, has_idea, remove_ideas)
         if key_lower == "add_ideas" || key_lower == "has_idea" || key_lower == "remove_ideas" {
-            if let ast::Value::String(val) = &ass.value.value {
-                if val != "all" && !ctx.ideas.contains_key(val.as_str()) {
+            if let Some(val) = ass.value.value.as_str(ctx.source) {
+                if val != "all" && !ctx.ideas.contains_key(val) {
                     diags.push(Diagnostic {
                         range: ast_range_to_lsp(&ass.value.range),
                         severity: Some(DiagnosticSeverity::WARNING),
@@ -54,7 +54,10 @@ impl ValidationRule for IdeaRule {
         // entry) AND the current scope is Idea (actual idea definition,
         // not a sub-block like modifier/on_add), excluding structural
         // keywords like `ideas`, `hidden_ideas`, `designer`, `law`.
-        if pushed_scope && scope.current() == Scope::Idea && !is_idea_structure_key(&ass.key) {
+        if pushed_scope
+            && scope.current() == Scope::Idea
+            && !is_idea_structure_key(ass.key_text(ctx.source))
+        {
             // Skip picture check for ideas within `hidden_ideas` — they
             // are never displayed in the UI so a picture is unnecessary.
             if scope.stack().contains(&Scope::HiddenIdeaCategory) {
@@ -65,14 +68,14 @@ impl ValidationRule for IdeaRule {
             {
                 let has_picture = entries.iter().any(|e| {
                     if let ast::Entry::Assignment(a) = e {
-                        a.key.eq_ignore_ascii_case("picture")
+                        a.key_text(ctx.source).eq_ignore_ascii_case("picture")
                     } else {
                         false
                     }
                 });
 
                 if !has_picture {
-                    let default_gfx = format!("GFX_idea_{}", ass.key);
+                    let default_gfx = format!("GFX_idea_{}", ass.key_text(ctx.source));
                     let exists = ctx.sprites.contains_key(default_gfx.as_str())
                         || ctx
                             .sprites
@@ -84,7 +87,7 @@ impl ValidationRule for IdeaRule {
                             severity: Some(DiagnosticSeverity::WARNING),
                             message: format!(
                                 "Idea '{}' is missing a 'picture' field and the default GFX '{}' was not found.",
-                                ass.key, default_gfx
+                                ass.key_text(ctx.source), default_gfx
                             ),
                             source: Some("Hearts of Modding".to_string()),
                             ..Default::default()

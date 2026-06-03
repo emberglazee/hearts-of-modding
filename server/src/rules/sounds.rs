@@ -16,15 +16,18 @@ impl ValidationRule for SoundRule {
         _pushed_scope: bool,
         diags: &mut Vec<Diagnostic>,
     ) {
-        if !ass.key.eq_ignore_ascii_case("sound_effect") {
+        if !ass
+            .key_text(ctx.source)
+            .eq_ignore_ascii_case("sound_effect")
+        {
             return;
         }
 
-        let ast::Value::String(val) = &ass.value.value else {
+        let Some(val) = ass.value.value.as_str(ctx.source) else {
             return;
         };
 
-        if !ctx.sound_effects.contains_key(val.as_str()) {
+        if !ctx.sound_effects.contains_key(val) {
             diags.push(Diagnostic {
                 range: ast_range_to_lsp(&ass.value.range),
                 severity: Some(DiagnosticSeverity::WARNING),

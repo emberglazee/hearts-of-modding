@@ -35,6 +35,7 @@ pub(crate) mod visitor;
 /// previously required.
 pub(crate) struct ValidationContext<'a> {
     pub(crate) uri: &'a str,
+    pub(crate) source: &'a str,
     pub(crate) loc: &'a DashMap<InternedStr, LayeredValue<crate::parser::loc_parser::LocEntry>>,
     /// Scripted triggers - available for rule use (not yet used by any rule)
     #[allow(dead_code)]
@@ -55,7 +56,7 @@ pub(crate) struct ValidationContext<'a> {
     pub(crate) provinces: &'a DashMap<u32, crate::scanner::province_scanner::Province>,
     pub(crate) modifier_mappings: &'a DashMap<InternedStr, String>,
     pub(crate) ignored_loc_regex: &'a [Regex],
-    pub(crate) comments: &'a [(String, ast::Range)],
+    pub(crate) comments: &'a [(ast::ByteSpan, ast::Range)],
     pub(crate) sound_effects:
         &'a DashMap<InternedStr, LayeredValue<crate::scanner::sound_scanner::SoundEffect>>,
     pub(crate) country_tags:

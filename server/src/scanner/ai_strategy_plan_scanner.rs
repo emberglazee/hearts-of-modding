@@ -34,7 +34,7 @@ where
             filter,
             |path, content| {
                 let (script, _) = parser::parse_script(&content);
-                extract_plans(&script.entries, path, &mut plans);
+                extract_plans(&script.entries, &script.source, path, &mut plans);
             },
         );
     }
@@ -44,6 +44,7 @@ where
 
 pub(crate) fn extract_plans(
     entries: &[ast::Entry],
+    source: &str,
     path: &Path,
     map: &mut HashMap<String, AiStrategyPlan>,
 ) {
@@ -60,7 +61,7 @@ pub(crate) fn extract_plans(
 
                 for inner in inner_entries {
                     if let ast::Entry::Assignment(inner_ass) = inner {
-                        let inner_key = inner_ass.key.as_str();
+                        let inner_key = inner_ass.key_text(source);
                         if inner_key.eq_ignore_ascii_case("ai_national_focuses") {
                             has_ai_national_focuses = true;
                         } else if inner_key.eq_ignore_ascii_case("research") {
@@ -79,10 +80,11 @@ pub(crate) fn extract_plans(
                     }
                 }
 
+                let name = ass.key_text(source).to_string();
                 map.insert(
-                    ass.key.clone(),
+                    name.clone(),
                     AiStrategyPlan {
-                        name: ass.key.clone(),
+                        name,
                         has_ai_national_focuses,
                         has_research,
                         has_ideas,

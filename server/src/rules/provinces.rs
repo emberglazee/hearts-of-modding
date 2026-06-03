@@ -26,7 +26,7 @@ impl ValidationRule for ProvinceRule {
         _pushed_scope: bool,
         diags: &mut Vec<Diagnostic>,
     ) {
-        let key_lower = ass.key.to_ascii_lowercase();
+        let key_lower = ass.key_text(ctx.source).to_ascii_lowercase();
 
         // Province existence checks
         if key_lower == "province" || key_lower == "on_province" || key_lower == "is_province_id" {
@@ -59,7 +59,7 @@ impl ValidationRule for ProvinceRule {
 fn check_is_province(val: &ast::NodeedValue, ctx: &ValidationContext, diags: &mut Vec<Diagnostic>) {
     let id_opt = match &val.value {
         ast::Value::Number(n) => Some(*n as u32),
-        ast::Value::String(s) => s.parse::<u32>().ok(),
+        ast::Value::String(s) => s.resolve(ctx.source).parse::<u32>().ok(),
         _ => None,
     };
 
@@ -111,11 +111,11 @@ impl AstVisitor for ProvinceVpVisitor {
     fn enter_assignment(
         &mut self,
         ass: &ast::Assignment,
-        _ctx: &ValidationContext,
+        ctx: &ValidationContext,
         _scope: &ScopeStack,
         _diags: &mut Vec<Diagnostic>,
     ) {
-        let key_lower = ass.key.to_ascii_lowercase();
+        let key_lower = ass.key_text(ctx.source).to_ascii_lowercase();
 
         // Collect province IDs from `provinces = { ... }`
         if key_lower == "provinces" {
@@ -128,7 +128,7 @@ impl AstVisitor for ProvinceVpVisitor {
                                 provs.insert(*n as i32);
                             }
                             ast::Value::String(s) => {
-                                if let Ok(n) = s.parse::<i32>() {
+                                if let Ok(n) = s.resolve(ctx.source).parse::<i32>() {
                                     provs.insert(n);
                                 }
                             }
@@ -149,7 +149,7 @@ impl AstVisitor for ProvinceVpVisitor {
                     if let ast::Entry::Value(val) = entry {
                         let num = match &val.value {
                             ast::Value::Number(n) => Some(*n as i32),
-                            ast::Value::String(s) => s.parse::<i32>().ok(),
+                            ast::Value::String(s) => s.resolve(ctx.source).parse::<i32>().ok(),
                             _ => None,
                         };
                         if let Some(n) = num {

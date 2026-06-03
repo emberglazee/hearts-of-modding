@@ -51,7 +51,12 @@ where
             filter,
             |path, content| {
                 let (script, _) = parser::parse_script(&content);
-                find_abilities_in_entries(&script.entries, &path.to_string_lossy(), &mut map);
+                find_abilities_in_entries(
+                    &script.entries,
+                    &script.source,
+                    &path.to_string_lossy(),
+                    &mut map,
+                );
             },
         );
     }
@@ -93,13 +98,14 @@ where
 
 pub(crate) fn find_abilities_in_entries(
     entries: &[ast::Entry],
+    source: &str,
     file_path: &str,
     map: &mut HashMap<String, Ability>,
 ) {
     for entry in entries {
         match entry {
             ast::Entry::Assignment(ass) => {
-                if ass.key.eq_ignore_ascii_case("ability") {
+                if ass.key_text(source).eq_ignore_ascii_case("ability") {
                     if let ast::Value::Block(ability_entries) = &ass.value.value {
                         for ability_entry in ability_entries {
                             if let ast::Entry::Assignment(a_ass) = ability_entry {
@@ -120,28 +126,29 @@ pub(crate) fn find_abilities_in_entries(
                                 if let ast::Value::Block(props) = &a_ass.value.value {
                                     for prop in props {
                                         if let ast::Entry::Assignment(p_ass) = prop {
-                                            let p_key = p_ass.key.as_str();
+                                            let p_key = p_ass.key_text(source);
                                             if p_key.eq_ignore_ascii_case("name") {
-                                                if let ast::Value::String(s) = &p_ass.value.value {
-                                                    name_loc = Some(s.clone());
+                                                if let Some(s) = p_ass.value.value.as_str(source) {
+                                                    name_loc = Some(s.to_string());
                                                 }
                                             } else if p_key.eq_ignore_ascii_case("desc") {
-                                                if let ast::Value::String(s) = &p_ass.value.value {
-                                                    desc_loc = Some(s.clone());
+                                                if let Some(s) = p_ass.value.value.as_str(source) {
+                                                    desc_loc = Some(s.to_string());
                                                 }
                                             } else if p_key.eq_ignore_ascii_case("sound_effect") {
-                                                if let ast::Value::String(s) = &p_ass.value.value {
-                                                    sound_effect = Some(s.clone());
+                                                if let Some(s) = p_ass.value.value.as_str(source) {
+                                                    sound_effect = Some(s.to_string());
                                                 }
                                             } else if p_key.eq_ignore_ascii_case("type") {
-                                                if let ast::Value::String(s) = &p_ass.value.value {
-                                                    type_name = Some(s.clone());
+                                                if let Some(s) = p_ass.value.value.as_str(source) {
+                                                    type_name = Some(s.to_string());
                                                 }
                                             } else if p_key.eq_ignore_ascii_case("cost") {
                                                 match &p_ass.value.value {
                                                     ast::Value::Number(n) => cost = Some(*n),
-                                                    ast::Value::String(s) => {
-                                                        if let Ok(n) = s.parse() {
+                                                    ast::Value::String(span) => {
+                                                        if let Ok(n) = span.resolve(source).parse()
+                                                        {
                                                             cost = Some(n);
                                                         }
                                                     }
@@ -152,8 +159,9 @@ pub(crate) fn find_abilities_in_entries(
                                                     ast::Value::Number(n) => {
                                                         duration = Some(*n as i32)
                                                     }
-                                                    ast::Value::String(s) => {
-                                                        if let Ok(n) = s.parse() {
+                                                    ast::Value::String(span) => {
+                                                        if let Ok(n) = span.resolve(source).parse()
+                                                        {
                                                             duration = Some(n);
                                                         }
                                                     }
@@ -161,7 +169,9 @@ pub(crate) fn find_abilities_in_entries(
                                                 }
                                             } else if p_key.eq_ignore_ascii_case("cancelable") {
                                                 cancelable = match &p_ass.value.value {
-                                                    ast::Value::String(s) => Some(s == "yes"),
+                                                    ast::Value::String(span) => {
+                                                        Some(span.resolve(source) == "yes")
+                                                    }
                                                     _ => None,
                                                 };
                                             } else if p_key.eq_ignore_ascii_case("cooldown") {
@@ -169,16 +179,17 @@ pub(crate) fn find_abilities_in_entries(
                                                     ast::Value::Number(n) => {
                                                         cooldown = Some(*n as i32)
                                                     }
-                                                    ast::Value::String(s) => {
-                                                        if let Ok(n) = s.parse() {
+                                                    ast::Value::String(span) => {
+                                                        if let Ok(n) = span.resolve(source).parse()
+                                                        {
                                                             cooldown = Some(n);
                                                         }
                                                     }
                                                     _ => {}
                                                 }
                                             } else if p_key.eq_ignore_ascii_case("icon") {
-                                                if let ast::Value::String(s) = &p_ass.value.value {
-                                                    icon = Some(s.clone());
+                                                if let Some(s) = p_ass.value.value.as_str(source) {
+                                                    icon = Some(s.to_string());
                                                 }
                                             } else if p_key.eq_ignore_ascii_case("allowed") {
                                                 has_allowed = true;
@@ -194,10 +205,11 @@ pub(crate) fn find_abilities_in_entries(
                                     }
                                 }
 
+                                let key = a_ass.key_text(source).to_string();
                                 map.insert(
-                                    a_ass.key.clone(),
+                                    key.clone(),
                                     Ability {
-                                        key: a_ass.key.clone(),
+                                        key,
                                         name_loc,
                                         desc_loc,
                                         cost,
@@ -221,13 +233,13 @@ pub(crate) fn find_abilities_in_entries(
                 } else {
                     // Recurse into other blocks
                     if let ast::Value::Block(inner_entries) = &ass.value.value {
-                        find_abilities_in_entries(inner_entries, file_path, map);
+                        find_abilities_in_entries(inner_entries, source, file_path, map);
                     }
                 }
             }
             ast::Entry::Value(val) => match &val.value {
                 ast::Value::Block(inner_entries) | ast::Value::TaggedBlock(_, inner_entries, _) => {
-                    find_abilities_in_entries(inner_entries, file_path, map);
+                    find_abilities_in_entries(inner_entries, source, file_path, map);
                 }
                 _ => {}
             },

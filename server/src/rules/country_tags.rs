@@ -21,7 +21,7 @@ impl ValidationRule for CountryTagRule {
         _pushed_scope: bool,
         diags: &mut Vec<Diagnostic>,
     ) {
-        let key_lower = ass.key.to_ascii_lowercase();
+        let key_lower = ass.key_text(ctx.source).to_ascii_lowercase();
 
         // Skip 'tag' inside Idea scope — ideas use 'tag = { ... }' differently
         if key_lower == "tag" && scope.current() == crate::scope::scope::Scope::Idea {
@@ -33,7 +33,7 @@ impl ValidationRule for CountryTagRule {
             return;
         }
 
-        let ast::Value::String(val) = &ass.value.value else {
+        let Some(val) = ass.value.value.as_str(ctx.source) else {
             return;
         };
 
@@ -51,6 +51,7 @@ impl ValidationRule for CountryTagRule {
                 | "CONTROLLER"
                 | "CAPITAL"
         );
+        // Allow variable references (var:SCOPE@name or var:name)
         let is_var_ref = val.starts_with("var:");
 
         let b = val.as_bytes();
@@ -59,16 +60,9 @@ impl ValidationRule for CountryTagRule {
             && b[0].is_ascii_uppercase()
             && b[1].is_ascii_alphanumeric()
             && b[2].is_ascii_alphanumeric()
-            && !matches!(
-                val.as_str(),
-                "NOT" | "AND" | "TAG" | "OOB" | "LOG" | "NUM" | "RED"
-            );
+            && !matches!(val, "NOT" | "AND" | "TAG" | "OOB" | "LOG" | "NUM" | "RED");
 
-        if !is_scope_ref
-            && !is_var_ref
-            && looks_like_tag
-            && !ctx.country_tags.contains_key(val.as_str())
-        {
+        if !is_scope_ref && !is_var_ref && looks_like_tag && !ctx.country_tags.contains_key(val) {
             diags.push(Diagnostic {
                 range: ast_range_to_lsp(&ass.value.range),
                 severity: Some(DiagnosticSeverity::WARNING),

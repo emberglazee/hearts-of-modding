@@ -20,7 +20,7 @@ impl ValidationRule for SpriteRule {
         _pushed_scope: bool,
         diags: &mut Vec<Diagnostic>,
     ) {
-        let key_lower = ass.key.to_ascii_lowercase();
+        let key_lower = ass.key_text(ctx.source).to_ascii_lowercase();
         if key_lower != "sprite"
             && key_lower != "icon"
             && key_lower != "sprite_name"
@@ -29,11 +29,11 @@ impl ValidationRule for SpriteRule {
             return;
         }
 
-        let ast::Value::String(val) = &ass.value.value else {
+        let Some(val) = ass.value.value.as_str(ctx.source) else {
             return;
         };
 
-        let mut lookup_key = val.clone();
+        let mut lookup_key = val.to_string();
 
         // Country idea "picture" field resolution
         if key_lower == "picture" && scope.current() == Scope::Idea && !val.starts_with("GFX_idea_")

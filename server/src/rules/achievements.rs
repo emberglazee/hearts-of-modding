@@ -20,10 +20,10 @@ impl ValidationRule for AchievementRule {
             let ast::Entry::Assignment(ass) = entry else {
                 continue;
             };
-            let key_lower = ass.key.to_ascii_lowercase();
+            let key_lower = ass.key_text(ctx.source).to_ascii_lowercase();
             if key_lower == "custom_achievement" || key_lower == "custom_ribbon" {
-                let name_key = format!("{}_NAME", ass.key);
-                let desc_key = format!("{}_DESC", ass.key);
+                let name_key = format!("{}_NAME", ass.key_text(ctx.source));
+                let desc_key = format!("{}_DESC", ass.key_text(ctx.source));
 
                 if !ctx.loc.contains_key(name_key.as_str()) {
                     diags.push(Diagnostic {
@@ -31,7 +31,7 @@ impl ValidationRule for AchievementRule {
                         severity: Some(DiagnosticSeverity::WARNING),
                         message: format!(
                             "Achievement '{}' is missing localization key: '{}'",
-                            ass.key, name_key
+                            ass.key_text(ctx.source), name_key
                         ),
                         code: Some(NumberOrString::String(
                             crate::validation::advanced_validation::ACHIEVEMENT_MISSING_LOCALIZATION
@@ -47,7 +47,7 @@ impl ValidationRule for AchievementRule {
                         severity: Some(DiagnosticSeverity::WARNING),
                         message: format!(
                             "Achievement '{}' is missing localization key: '{}'",
-                            ass.key, desc_key
+                            ass.key_text(ctx.source), desc_key
                         ),
                         code: Some(NumberOrString::String(
                             crate::validation::advanced_validation::ACHIEVEMENT_MISSING_LOCALIZATION

@@ -21,6 +21,7 @@ where
         let (script, _) = parser::parse_script(&content);
         find_traits_in_entries(
             &script.entries,
+            &script.source,
             &path.to_string_lossy(),
             trait_type,
             &mut map,
@@ -31,6 +32,7 @@ where
 
 pub(crate) fn find_traits_in_entries(
     entries: &[ast::Entry],
+    source: &str,
     file_path: &str,
     trait_type: &str,
     map: &mut HashMap<String, Trait>,
@@ -38,7 +40,7 @@ pub(crate) fn find_traits_in_entries(
     for entry in entries {
         match entry {
             ast::Entry::Assignment(ass) => {
-                let key_lower = ass.key.to_ascii_lowercase();
+                let key_lower = ass.key_text(source).to_ascii_lowercase();
                 if key_lower == "leader_traits"
                     || key_lower == "country_leader_traits"
                     || key_lower == "traits"
@@ -46,10 +48,11 @@ pub(crate) fn find_traits_in_entries(
                     if let ast::Value::Block(trait_entries) = &ass.value.value {
                         for trait_entry in trait_entries {
                             if let ast::Entry::Assignment(t_ass) = trait_entry {
+                                let name = t_ass.key_text(source).to_string();
                                 map.insert(
-                                    t_ass.key.clone(),
+                                    name.clone(),
                                     Trait {
-                                        name: t_ass.key.clone(),
+                                        name,
                                         trait_type: trait_type.to_string(),
                                         path: std::sync::Arc::from(file_path),
                                         range: t_ass.key_range.clone(),
@@ -61,16 +64,16 @@ pub(crate) fn find_traits_in_entries(
                 } else {
                     // Recurse into other blocks
                     if let ast::Value::Block(inner_entries) = &ass.value.value {
-                        find_traits_in_entries(inner_entries, file_path, trait_type, map);
+                        find_traits_in_entries(inner_entries, source, file_path, trait_type, map);
                     }
                 }
             }
             ast::Entry::Value(val) => match &val.value {
                 ast::Value::Block(inner_entries) => {
-                    find_traits_in_entries(inner_entries, file_path, trait_type, map);
+                    find_traits_in_entries(inner_entries, source, file_path, trait_type, map);
                 }
                 ast::Value::TaggedBlock(_, inner_entries, _) => {
-                    find_traits_in_entries(inner_entries, file_path, trait_type, map);
+                    find_traits_in_entries(inner_entries, source, file_path, trait_type, map);
                 }
                 _ => {}
             },

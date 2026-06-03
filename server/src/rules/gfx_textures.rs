@@ -32,8 +32,8 @@ impl<'a> GfxTextureRule<'a> {
         for entry in entries {
             match entry {
                 ast::Entry::Assignment(ass) => {
-                    if ass.key.eq_ignore_ascii_case("texturefile") {
-                        if let ast::Value::String(val) = &ass.value.value {
+                    if ass.key_text(ctx.source).eq_ignore_ascii_case("texturefile") {
+                        if let Some(val) = ass.value.value.as_str(ctx.source) {
                             let has_double_slash = val.contains("//");
                             let has_backslash = val.contains('\\');
 

@@ -1330,7 +1330,8 @@ impl Backend {
                             modifier_display::ModifierDisplayService::new(mappings, formats, loc);
 
                         if let Some(value) = &assigned_value {
-                            let blocks = display_service.extract_modifier_blocks(value);
+                            let blocks =
+                                display_service.extract_modifier_blocks(value, &script.source);
                             if !blocks.is_empty() {
                                 let section_title = if identifier_lower == "unit_modifiers" {
                                     "### 📊 Unit Modifiers\n\n"
@@ -1354,11 +1355,14 @@ impl Backend {
                             let mut effect_list = Vec::new();
                             for entry in entries {
                                 if let ast::Entry::Assignment(ass) = entry {
-                                    let key = &ass.key;
                                     if matches!(&ass.value.value, ast::Value::Block(_)) {
-                                        effect_list.push(format!("`{}` {{ ... }}", key));
+                                        effect_list.push(format!(
+                                            "`{}` {{ ... }}",
+                                            ass.key_text(&script.source)
+                                        ));
                                     } else {
-                                        effect_list.push(format!("`{}`", key));
+                                        effect_list
+                                            .push(format!("`{}`", ass.key_text(&script.source)));
                                     }
                                 }
                             }
@@ -1400,7 +1404,9 @@ impl Backend {
 
                         let parsed_val = match assigned_value {
                             Some(ast::Value::Number(val)) => Some(val),
-                            Some(ast::Value::String(s)) => s.parse::<f64>().ok(),
+                            Some(ast::Value::String(s)) => {
+                                s.resolve(&script.source).parse::<f64>().ok()
+                            }
                             _ => None,
                         };
 

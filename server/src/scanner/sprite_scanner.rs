@@ -19,7 +19,12 @@ where
     let mut map = HashMap::new();
     crate::utils::fs_util::walk_and_parse_files(dir_path, &["gfx"], filter, |path, content| {
         let (script, parse_errors) = parser::parse_script(&content);
-        find_sprites_in_entries(&script.entries, &path.to_string_lossy(), &mut map);
+        find_sprites_in_entries(
+            &script.entries,
+            &script.source,
+            &path.to_string_lossy(),
+            &mut map,
+        );
         for (e, range) in parse_errors {
             eprintln!(
                 "Failed to parse GFX file {:?} at {}:{}: {}",
@@ -32,32 +37,33 @@ where
 
 pub(crate) fn find_sprites_in_entries(
     entries: &[ast::Entry],
+    source: &str,
     file_path: &str,
     map: &mut HashMap<String, Sprite>,
 ) {
     for entry in entries {
         match entry {
             ast::Entry::Assignment(ass) => {
-                let key_lower = ass.key.to_ascii_lowercase();
+                let key_lower = ass.key_text(source).to_ascii_lowercase();
                 if key_lower == "spritetypes" {
                     if let ast::Value::Block(inner_entries) = &ass.value.value {
-                        find_sprites_in_entries(inner_entries, file_path, map);
+                        find_sprites_in_entries(inner_entries, source, file_path, map);
                     }
                 } else if key_lower == "spritetype" {
-                    parse_sprite_node(ass, file_path, map);
+                    parse_sprite_node(ass, source, file_path, map);
                 } else {
                     // Recurse into other blocks just in case
                     if let ast::Value::Block(inner_entries) = &ass.value.value {
-                        find_sprites_in_entries(inner_entries, file_path, map);
+                        find_sprites_in_entries(inner_entries, source, file_path, map);
                     }
                 }
             }
             ast::Entry::Value(val) => match &val.value {
                 ast::Value::Block(inner_entries) => {
-                    find_sprites_in_entries(inner_entries, file_path, map);
+                    find_sprites_in_entries(inner_entries, source, file_path, map);
                 }
                 ast::Value::TaggedBlock(_, inner_entries, _) => {
-                    find_sprites_in_entries(inner_entries, file_path, map);
+                    find_sprites_in_entries(inner_entries, source, file_path, map);
                 }
                 _ => {}
             },
@@ -66,20 +72,25 @@ pub(crate) fn find_sprites_in_entries(
     }
 }
 
-fn parse_sprite_node(ass: &ast::Assignment, file_path: &str, map: &mut HashMap<String, Sprite>) {
+fn parse_sprite_node(
+    ass: &ast::Assignment,
+    source: &str,
+    file_path: &str,
+    map: &mut HashMap<String, Sprite>,
+) {
     if let ast::Value::Block(details) = &ass.value.value {
         let mut name = None;
         let mut texture_file = None;
 
         for detail in details {
             if let ast::Entry::Assignment(d_ass) = detail {
-                if d_ass.key.eq_ignore_ascii_case("name") {
-                    if let ast::Value::String(s) = &d_ass.value.value {
-                        name = Some(s.clone());
+                if d_ass.key_text(source).eq_ignore_ascii_case("name") {
+                    if let Some(s) = d_ass.value.value.as_str(source) {
+                        name = Some(s.to_string());
                     }
-                } else if d_ass.key.eq_ignore_ascii_case("texturefile") {
-                    if let ast::Value::String(s) = &d_ass.value.value {
-                        texture_file = Some(s.clone());
+                } else if d_ass.key_text(source).eq_ignore_ascii_case("texturefile") {
+                    if let Some(s) = d_ass.value.value.as_str(source) {
+                        texture_file = Some(s.to_string());
                     }
                 }
             }

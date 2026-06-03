@@ -29,7 +29,7 @@ where
             filter,
             |path, content| {
                 let (script, _) = parser::parse_script(&content);
-                extract_strategic_region(&script.entries, path, &mut regions);
+                extract_strategic_region(&script.entries, &script.source, path, &mut regions);
             },
         );
     }
@@ -39,12 +39,16 @@ where
 
 pub(crate) fn extract_strategic_region(
     entries: &[ast::Entry],
+    source: &str,
     path: &Path,
     map: &mut HashMap<u32, StrategicRegion>,
 ) {
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
-            if ass.key.eq_ignore_ascii_case("strategic_region") {
+            if ass
+                .key_text(source)
+                .eq_ignore_ascii_case("strategic_region")
+            {
                 let mut region_id = None;
                 let mut region_name = String::new();
                 let mut provinces = Vec::new();
@@ -54,14 +58,14 @@ pub(crate) fn extract_strategic_region(
                 if let ast::Value::Block(region_entries) = &ass.value.value {
                     for region_entry in region_entries {
                         if let ast::Entry::Assignment(r_ass) = region_entry {
-                            let r_key = r_ass.key.as_str();
+                            let r_key = r_ass.key_text(source);
                             if r_key.eq_ignore_ascii_case("id") {
                                 if let ast::Value::Number(id) = &r_ass.value.value {
                                     region_id = Some(*id as u32);
                                 }
                             } else if r_key.eq_ignore_ascii_case("name") {
-                                if let ast::Value::String(name) = &r_ass.value.value {
-                                    region_name = name.clone();
+                                if let Some(name) = r_ass.value.value.as_str(source) {
+                                    region_name = name.to_string();
                                 }
                             } else if r_key.eq_ignore_ascii_case("provinces") {
                                 if let ast::Value::Block(prov_entries) = &r_ass.value.value {
@@ -86,8 +90,8 @@ pub(crate) fn extract_strategic_region(
                             } else if r_key.eq_ignore_ascii_case("weather") {
                                 weather = Some("Defined".to_string());
                             } else if r_key.eq_ignore_ascii_case("naval_terrain") {
-                                if let ast::Value::String(s) = &r_ass.value.value {
-                                    naval_terrain = Some(s.clone());
+                                if let Some(s) = r_ass.value.value.as_str(source) {
+                                    naval_terrain = Some(s.to_string());
                                 }
                             }
                         }

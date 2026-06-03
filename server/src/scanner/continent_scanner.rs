@@ -25,15 +25,15 @@ pub fn scan_continents(root: &Path) -> HashMap<String, Continent> {
         let (script, _) = parser::parse_script(&content);
         for entry in &script.entries {
             if let ast::Entry::Assignment(ass) = entry {
-                if ass.key == "continents" {
+                if ass.key_text(&script.source) == "continents" {
                     if let ast::Value::Block(inner) = &ass.value.value {
                         for inner_entry in inner.iter() {
                             if let ast::Entry::Value(val) = inner_entry {
-                                if let ast::Value::String(name) = &val.value {
+                                if let Some(name) = val.value.as_str(&script.source) {
                                     map.insert(
-                                        name.clone(),
+                                        name.to_string(),
                                         Continent {
-                                            name: name.clone(),
+                                            name: name.to_string(),
                                             path: std::sync::Arc::from(
                                                 path.to_string_lossy().as_ref(),
                                             ),

@@ -45,7 +45,7 @@ where
             filter,
             |path, content| {
                 let (script, _) = parser::parse_script(&content);
-                extract_portraits(&script.entries, path, &mut portraits);
+                extract_portraits(&script.entries, &script.source, path, &mut portraits);
             },
         );
     }
@@ -55,13 +55,14 @@ where
 
 pub(crate) fn extract_portraits(
     entries: &[ast::Entry],
+    source: &str,
     path: &Path,
     map: &mut HashMap<String, Portrait>,
 ) {
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
             if let ast::Value::Block(inner_entries) = &ass.value.value {
-                let is_continent = ass.key.eq_ignore_ascii_case("continent");
+                let is_continent = ass.key_text(source).eq_ignore_ascii_case("continent");
 
                 let mut continent_name = None;
                 let mut has_male = false;
@@ -76,10 +77,10 @@ pub(crate) fn extract_portraits(
 
                 for inner in inner_entries {
                     if let ast::Entry::Assignment(inner_ass) = inner {
-                        let inner_key = inner_ass.key.as_str();
+                        let inner_key = inner_ass.key_text(source);
                         if inner_key.eq_ignore_ascii_case("name") && is_continent {
-                            if let ast::Value::String(s) = &inner_ass.value.value {
-                                continent_name = Some(s.clone());
+                            if let Some(s) = inner_ass.value.value.as_str(source) {
+                                continent_name = Some(s.to_string());
                             }
                         } else if inner_key.eq_ignore_ascii_case("male") {
                             has_male = true;
@@ -98,7 +99,7 @@ pub(crate) fn extract_portraits(
                             if let ast::Value::Block(pol_entries) = &inner_ass.value.value {
                                 for pol_entry in pol_entries {
                                     if let ast::Entry::Assignment(pol_ass) = pol_entry {
-                                        let ideo = pol_ass.key.clone();
+                                        let ideo = pol_ass.key_text(source).to_string();
                                         if !ideologies.contains(&ideo) {
                                             ideologies.push(ideo);
                                         }
@@ -110,17 +111,19 @@ pub(crate) fn extract_portraits(
                 }
 
                 // Collect GFX references from string values in the block
-                collect_gfx_references(inner_entries, &mut gfx_entries);
+                collect_gfx_references(inner_entries, source, &mut gfx_entries);
 
                 let portrait_name = if is_continent {
-                    continent_name.clone().unwrap_or_else(|| ass.key.clone())
+                    continent_name
+                        .clone()
+                        .unwrap_or_else(|| ass.key_text(source).to_string())
                 } else {
-                    ass.key.clone()
+                    ass.key_text(source).to_string()
                 };
 
                 let block_type = if is_continent {
                     PortraitBlockType::Continent
-                } else if ass.key.eq_ignore_ascii_case("default") {
+                } else if ass.key_text(source).eq_ignore_ascii_case("default") {
                     PortraitBlockType::Default
                 } else {
                     PortraitBlockType::Tag
@@ -150,33 +153,33 @@ pub(crate) fn extract_portraits(
     }
 }
 
-fn collect_gfx_references(entries: &[ast::Entry], gfx_list: &mut Vec<String>) {
+fn collect_gfx_references(entries: &[ast::Entry], source: &str, gfx_list: &mut Vec<String>) {
     for entry in entries {
         match entry {
             ast::Entry::Assignment(ass) => {
-                if let ast::Value::String(s) = &ass.value.value {
-                    if s.starts_with("GFX_") && !gfx_list.contains(s) {
-                        gfx_list.push(s.clone());
+                if let Some(s) = ass.value.value.as_str(source) {
+                    if s.starts_with("GFX_") && !gfx_list.iter().any(|x| x.as_str() == s) {
+                        gfx_list.push(s.to_string());
                     }
                 }
                 if let ast::Value::Block(inner) = &ass.value.value {
-                    collect_gfx_references(inner, gfx_list);
+                    collect_gfx_references(inner, source, gfx_list);
                 }
                 if let ast::Value::TaggedBlock(_, inner, _) = &ass.value.value {
-                    collect_gfx_references(inner, gfx_list);
+                    collect_gfx_references(inner, source, gfx_list);
                 }
             }
             ast::Entry::Value(val) => {
-                if let ast::Value::String(s) = &val.value {
-                    if s.starts_with("GFX_") && !gfx_list.contains(s) {
-                        gfx_list.push(s.clone());
+                if let Some(s) = val.value.as_str(source) {
+                    if s.starts_with("GFX_") && !gfx_list.iter().any(|x| x.as_str() == s) {
+                        gfx_list.push(s.to_string());
                     }
                 }
                 if let ast::Value::Block(inner) = &val.value {
-                    collect_gfx_references(inner, gfx_list);
+                    collect_gfx_references(inner, source, gfx_list);
                 }
                 if let ast::Value::TaggedBlock(_, inner, _) = &val.value {
-                    collect_gfx_references(inner, gfx_list);
+                    collect_gfx_references(inner, source, gfx_list);
                 }
             }
             _ => {}

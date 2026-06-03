@@ -66,16 +66,16 @@ impl AstVisitor for CharacterVisitor {
         diags: &mut Vec<Diagnostic>,
     ) {
         // Detect character type from definition keys and push onto stack.
-        if let Some(ct) = detect_character_type(&ass.key) {
+        if let Some(ct) = detect_character_type(ass.key_text(ctx.source)) {
             self.char_type_stack.push(ct);
         }
 
         // Validate skill level if we're inside a character definition
-        if ass.key.eq_ignore_ascii_case("skill") {
+        if ass.key_text(ctx.source).eq_ignore_ascii_case("skill") {
             if let Some(ct) = self.current_character_type() {
                 let skill = match &ass.value.value {
                     ast::Value::Number(n) => Some(*n as i32),
-                    ast::Value::String(s) => s.parse::<i32>().ok(),
+                    ast::Value::String(s) => s.resolve(ctx.source).parse::<i32>().ok(),
                     _ => None,
                 };
 
@@ -113,7 +113,7 @@ impl AstVisitor for CharacterVisitor {
         _diags: &mut Vec<Diagnostic>,
     ) {
         // Pop the stack when we leave a character definition block
-        if detect_character_type(&ass.key).is_some() {
+        if detect_character_type(ass.key_text(_ctx.source)).is_some() {
             self.char_type_stack.pop();
         }
     }

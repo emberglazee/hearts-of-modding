@@ -498,7 +498,12 @@ fn update_localization(scanner_data: &ScannerData, path_str: &str, content: &str
 
 fn update_events(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
-    event_scanner::find_event_definitions(&script.entries, path_str, &mut new_entries);
+    event_scanner::find_event_definitions(
+        &script.entries,
+        &script.source,
+        path_str,
+        &mut new_entries,
+    );
 
     retain_path!(
         scanner_data.events,
@@ -512,10 +517,11 @@ fn update_scripted(scanner_data: &ScannerData, kind: &str, path_str: &str, scrip
     let mut new_entries = HashMap::new();
     for entry_ast in script.entries.iter() {
         if let ast::Entry::Assignment(ass) = entry_ast {
+            let name = ass.key_text(&script.source).to_string();
             new_entries.insert(
-                ass.key.clone(),
+                name.clone(),
                 scripted_scanner::ScriptedEntity {
-                    name: ass.key.clone(),
+                    name,
                     path: path_str.into(),
                     range: ass.key_range.clone(),
                 },
@@ -548,6 +554,7 @@ fn update_scripted_locs(scanner_data: &ScannerData, path_str: &str, script: &ast
     let mut new_entries = HashMap::new();
     scripted_loc_scanner::find_scripted_locs_in_entries(
         &script.entries,
+        &script.source,
         path_str,
         &mut new_entries,
     );
@@ -562,7 +569,12 @@ fn update_scripted_locs(scanner_data: &ScannerData, path_str: &str, script: &ast
 
 fn update_achievements(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
-    achievement_scanner::find_achievements_in_entries(&script.entries, path_str, &mut new_entries);
+    achievement_scanner::find_achievements_in_entries(
+        &script.entries,
+        &script.source,
+        path_str,
+        &mut new_entries,
+    );
 
     retain_path!(
         scanner_data.achievements,
@@ -576,10 +588,11 @@ fn update_modifiers(scanner_data: &ScannerData, path_str: &str, script: &ast::Sc
     let mut new_entries = HashMap::new();
     for entry_ast in script.entries.iter() {
         if let ast::Entry::Assignment(ass) = entry_ast {
+            let name = ass.key_text(&script.source).to_string();
             new_entries.insert(
-                ass.key.clone(),
+                name.clone(),
                 modifier_scanner::Modifier {
-                    name: ass.key.clone(),
+                    name,
                     path: path_str.into(),
                     range: ass.key_range.clone(),
                 },
@@ -597,7 +610,12 @@ fn update_modifiers(scanner_data: &ScannerData, path_str: &str, script: &ast::Sc
 
 fn update_ideologies(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
-    ideology_scanner::find_ideologies_in_entries(&script.entries, path_str, &mut new_entries);
+    ideology_scanner::find_ideologies_in_entries(
+        &script.entries,
+        &script.source,
+        path_str,
+        &mut new_entries,
+    );
 
     let mut sub_map: HashMap<InternedStr, (InternedStr, ast::Range, InternedStr)> = HashMap::new();
     for ideology in new_entries.values() {
@@ -670,7 +688,13 @@ fn update_traits(
     script: &ast::Script,
 ) {
     let mut new_entries = HashMap::new();
-    trait_scanner::find_traits_in_entries(&script.entries, path_str, trait_type, &mut new_entries);
+    trait_scanner::find_traits_in_entries(
+        &script.entries,
+        &script.source,
+        path_str,
+        trait_type,
+        &mut new_entries,
+    );
 
     retain_path!(
         scanner_data.traits,
@@ -682,7 +706,12 @@ fn update_traits(
 
 fn update_ideas(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
-    idea_scanner::find_ideas_in_entries(&script.entries, path_str, &mut new_entries);
+    idea_scanner::find_ideas_in_entries(
+        &script.entries,
+        &script.source,
+        path_str,
+        &mut new_entries,
+    );
 
     retain_path!(
         scanner_data.ideas,
@@ -694,7 +723,12 @@ fn update_ideas(scanner_data: &ScannerData, path_str: &str, script: &ast::Script
 
 fn update_characters(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
-    character_scanner::find_characters_in_entries(&script.entries, path_str, &mut new_entries);
+    character_scanner::find_characters_in_entries(
+        &script.entries,
+        &script.source,
+        path_str,
+        &mut new_entries,
+    );
 
     retain_path!(
         scanner_data.characters,
@@ -707,7 +741,7 @@ fn update_characters(scanner_data: &ScannerData, path_str: &str, script: &ast::S
 fn update_buildings(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
     let path = Path::new(path_str);
-    building_scanner::extract_buildings(&script.entries, path, &mut new_entries);
+    building_scanner::extract_buildings(&script.entries, &script.source, path, &mut new_entries);
 
     retain_path!(
         scanner_data.buildings,
@@ -719,7 +753,12 @@ fn update_buildings(scanner_data: &ScannerData, path_str: &str, script: &ast::Sc
 
 fn update_abilities(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
-    ability_scanner::find_abilities_in_entries(&script.entries, path_str, &mut new_entries);
+    ability_scanner::find_abilities_in_entries(
+        &script.entries,
+        &script.source,
+        path_str,
+        &mut new_entries,
+    );
 
     retain_path!(
         scanner_data.abilities,
@@ -732,7 +771,12 @@ fn update_abilities(scanner_data: &ScannerData, path_str: &str, script: &ast::Sc
 fn update_ai_strategy_plans(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
     let path = Path::new(path_str);
-    ai_strategy_plan_scanner::extract_plans(&script.entries, path, &mut new_entries);
+    ai_strategy_plan_scanner::extract_plans(
+        &script.entries,
+        &script.source,
+        path,
+        &mut new_entries,
+    );
 
     retain_path!(
         scanner_data.ai_strategy_plans,
@@ -745,7 +789,7 @@ fn update_ai_strategy_plans(scanner_data: &ScannerData, path_str: &str, script: 
 fn update_ai_areas(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
     let path = Path::new(path_str);
-    ai_area_scanner::extract_areas(&script.entries, path, &mut new_entries);
+    ai_area_scanner::extract_areas(&script.entries, &script.source, path, &mut new_entries);
 
     retain_path!(
         scanner_data.ai_areas,
@@ -845,7 +889,13 @@ fn update_country_tags(scanner_data: &ScannerData, path_str: &str, content: &str
 fn update_variables(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_vars: HashMap<String, Vec<variable_scanner::Variable>> = HashMap::new();
     let mut new_targets: HashMap<String, Vec<variable_scanner::EventTarget>> = HashMap::new();
-    variable_scanner::scan_entries(&script.entries, path_str, &mut new_vars, &mut new_targets);
+    variable_scanner::scan_entries(
+        &script.entries,
+        &script.source,
+        path_str,
+        &mut new_vars,
+        &mut new_targets,
+    );
 
     // Remove old variable entries from this path, keeping others untouched.
     // Then insert new ones — DashMap entry API lets us append to a Vec value.
@@ -882,7 +932,12 @@ fn update_music_asset(scanner_data: &ScannerData, path_str: &str, script: &ast::
 
     if ext == "asset" {
         let mut assets = HashMap::new();
-        music_scanner::find_assets_in_entries(&script.entries, path_str, &mut assets);
+        music_scanner::find_assets_in_entries(
+            &script.entries,
+            &script.source,
+            path_str,
+            &mut assets,
+        );
 
         retain_path!(
             scanner_data.music_assets,
@@ -895,6 +950,7 @@ fn update_music_asset(scanner_data: &ScannerData, path_str: &str, script: &ast::
         let mut songs = HashMap::new();
         music_scanner::find_stations_and_songs_in_entries(
             &script.entries,
+            &script.source,
             path_str,
             &mut stations,
             &mut songs,
@@ -922,6 +978,7 @@ fn update_sounds(scanner_data: &ScannerData, path_str: &str, script: &ast::Scrip
     let mut categories = HashMap::new();
     sound_scanner::find_sound_definitions(
         &script.entries,
+        &script.source,
         path_str,
         &mut sounds,
         &mut effects,
@@ -958,7 +1015,7 @@ fn update_sounds(scanner_data: &ScannerData, path_str: &str, script: &ast::Scrip
 fn update_portraits(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
     let path = Path::new(path_str);
-    portrait_scanner::extract_portraits(&script.entries, path, &mut new_entries);
+    portrait_scanner::extract_portraits(&script.entries, &script.source, path, &mut new_entries);
 
     retain_path!(
         scanner_data.portraits,
@@ -970,7 +1027,12 @@ fn update_portraits(scanner_data: &ScannerData, path_str: &str, script: &ast::Sc
 
 fn update_sprites(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
-    sprite_scanner::find_sprites_in_entries(&script.entries, path_str, &mut new_entries);
+    sprite_scanner::find_sprites_in_entries(
+        &script.entries,
+        &script.source,
+        path_str,
+        &mut new_entries,
+    );
 
     retain_path!(
         scanner_data.sprites,
@@ -984,6 +1046,7 @@ fn update_strategic_regions(scanner_data: &ScannerData, path_str: &str, script: 
     let mut new_entries: HashMap<u32, strategic_region_scanner::StrategicRegion> = HashMap::new();
     strategic_region_scanner::extract_strategic_region(
         &script.entries,
+        &script.source,
         Path::new(path_str),
         &mut new_entries,
     );
@@ -1013,6 +1076,7 @@ fn update_terrains(scanner_data: &ScannerData, path_str: &str, script: &ast::Scr
     let mut new_entries = HashMap::new();
     terrain_scanner::extract_terrain_categories(
         &script.entries,
+        &script.source,
         Path::new(path_str),
         &mut new_entries,
     );
@@ -1027,7 +1091,12 @@ fn update_terrains(scanner_data: &ScannerData, path_str: &str, script: &ast::Scr
 
 fn update_balance_of_powers(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = std::collections::HashMap::new();
-    bop_scanner::extract_balance_of_powers(&script.entries, path_str, &mut new_entries);
+    bop_scanner::extract_balance_of_powers(
+        &script.entries,
+        &script.source,
+        path_str,
+        &mut new_entries,
+    );
 
     retain_path!(
         scanner_data.balance_of_powers,

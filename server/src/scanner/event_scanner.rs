@@ -39,7 +39,12 @@ where
             filter,
             |path, content| {
                 let (script, _) = parser::parse_script(&content);
-                find_event_definitions(&script.entries, &path.to_string_lossy(), &mut events);
+                find_event_definitions(
+                    &script.entries,
+                    &script.source,
+                    &path.to_string_lossy(),
+                    &mut events,
+                );
             },
         );
     }
@@ -54,12 +59,13 @@ where
 
 pub(crate) fn find_event_definitions(
     entries: &[ast::Entry],
+    source: &str,
     path: &str,
     events: &mut HashMap<String, Event>,
 ) {
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
-            let key = ass.key.as_str();
+            let key = ass.key_text(source);
             if (key == "country_event"
                 || key == "state_event"
                 || key == "news_event"
@@ -69,10 +75,10 @@ pub(crate) fn find_event_definitions(
                 let mut id = None;
                 for inner_entry in inner {
                     if let ast::Entry::Assignment(inner_ass) = inner_entry
-                        && inner_ass.key == "id"
-                        && let ast::Value::String(s) = &inner_ass.value.value
+                        && inner_ass.key_text(source) == "id"
+                        && let Some(s) = inner_ass.value.value.as_str(source)
                     {
-                        id = Some(s.clone());
+                        id = Some(s.to_string());
                         break;
                     }
                 }
@@ -105,27 +111,32 @@ where
             filter,
             |_path, content| {
                 let (script, _) = parser::parse_script(&content);
-                find_triggers_in_script(&script.entries, events);
+                find_triggers_in_script(&script.entries, &script.source, events);
             },
         );
     }
 }
 
-fn find_triggers_in_script(entries: &[ast::Entry], events: &mut HashMap<String, Event>) {
+fn find_triggers_in_script(
+    entries: &[ast::Entry],
+    source: &str,
+    events: &mut HashMap<String, Event>,
+) {
     // This is tricky because we need to know WHICH event we are currently inside
     // if we find a trigger.
-    find_triggers_recursive(entries, None, events);
+    find_triggers_recursive(entries, source, None, events);
 }
 
 fn find_triggers_recursive(
     entries: &[ast::Entry],
+    source: &str,
     current_event_id: Option<&str>,
     events: &mut HashMap<String, Event>,
 ) {
     for entry in entries {
         match entry {
             ast::Entry::Assignment(ass) => {
-                let key = ass.key.as_str();
+                let key = ass.key_text(source);
 
                 // Are we entering a new event definition?
                 let next_event_id = if key == "country_event"
@@ -137,10 +148,10 @@ fn find_triggers_recursive(
                     if let ast::Value::Block(inner) = &ass.value.value {
                         inner.iter().find_map(|e| {
                             if let ast::Entry::Assignment(ia) = e
-                                && ia.key == "id"
-                                && let ast::Value::String(s) = &ia.value.value
+                                && ia.key_text(source) == "id"
+                                && let Some(s) = ia.value.value.as_str(source)
                             {
-                                return Some(s.as_str());
+                                return Some(s);
                             }
                             None
                         })
@@ -159,22 +170,22 @@ fn find_triggers_recursive(
                 {
                     // Check if it's a call: country_event = { id = ... } OR country_event = id
                     let called_id = match &ass.value.value {
-                        ast::Value::String(s) => Some(s.as_str()),
+                        ast::Value::String(span) => Some(span.resolve(source)),
                         ast::Value::Block(inner) => inner.iter().find_map(|e| {
                             if let ast::Entry::Assignment(ia) = e
-                                && ia.key == "id"
-                                && let ast::Value::String(s) = &ia.value.value
+                                && ia.key_text(source) == "id"
+                                && let Some(s) = ia.value.value.as_str(source)
                             {
-                                return Some(s.as_str());
+                                return Some(s);
                             }
                             None
                         }),
                         _ => None,
                     };
 
-                    if let (Some(source), Some(target)) = (current_event_id, called_id)
-                        && source != target
-                        && let Some(event) = events.get_mut(source)
+                    if let (Some(src), Some(target)) = (current_event_id, called_id)
+                        && src != target
+                        && let Some(event) = events.get_mut(src)
                     {
                         if !event.triggered_events.contains(&target.to_string()) {
                             event.triggered_events.push(target.to_string());
@@ -185,20 +196,20 @@ fn find_triggers_recursive(
                 // Recurse
                 match &ass.value.value {
                     ast::Value::Block(inner) => {
-                        find_triggers_recursive(inner, next_event_id, events)
+                        find_triggers_recursive(inner, source, next_event_id, events)
                     }
                     ast::Value::TaggedBlock(_, inner, _) => {
-                        find_triggers_recursive(inner, next_event_id, events)
+                        find_triggers_recursive(inner, source, next_event_id, events)
                     }
                     _ => {}
                 }
             }
             ast::Entry::Value(val) => match &val.value {
                 ast::Value::Block(inner) => {
-                    find_triggers_recursive(inner, current_event_id, events)
+                    find_triggers_recursive(inner, source, current_event_id, events)
                 }
                 ast::Value::TaggedBlock(_, inner, _) => {
-                    find_triggers_recursive(inner, current_event_id, events)
+                    find_triggers_recursive(inner, source, current_event_id, events)
                 }
                 _ => {}
             },

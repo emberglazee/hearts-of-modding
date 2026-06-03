@@ -111,7 +111,7 @@ fn entity_kind_to_token_type(kind: EntityKind) -> u32 {
 pub fn get_semantic_tokens(script: &Script, ctx: &SemanticTokenContext) -> SemanticTokensResult {
     let mut tokens = Vec::new();
     for entry in &script.entries {
-        push_entry_tokens(entry, &mut tokens, ctx, None);
+        push_entry_tokens(entry, &mut tokens, ctx, &script.source, None);
     }
 
     tokens_to_lsp(tokens)
@@ -474,11 +474,13 @@ fn push_entry_tokens(
     entry: &Entry,
     tokens: &mut Vec<RawToken>,
     ctx: &SemanticTokenContext,
+    source: &str,
     parent_key: Option<&str>,
 ) {
     match entry {
         Entry::Assignment(ass) => {
-            let is_keyword = ctx.keywords.contains(&ass.key);
+            let key_text = ass.key_text(source);
+            let is_keyword = ctx.keywords.contains(key_text);
 
             if is_keyword {
                 tokens.push(RawToken {
@@ -487,7 +489,7 @@ fn push_entry_tokens(
                     length: ass.key_range.end_col - ass.key_range.start_col,
                     token_type: TokenType::Keyword as u32,
                 });
-            } else if let Some(kind) = ctx.entity_names.get(&ass.key) {
+            } else if let Some(kind) = ctx.entity_names.get(key_text) {
                 tokens.push(RawToken {
                     line: ass.key_range.start_line,
                     start: ass.key_range.start_col,
@@ -500,11 +502,11 @@ fn push_entry_tokens(
                     parent_key.is_some_and(|p| p == "ideas" || p == "idea_categories");
 
                 let is_portrait_category = parent_key.is_some_and(|p| p == "portraits")
-                    && matches!(ass.key.as_str(), "civilian" | "army" | "navy");
+                    && matches!(key_text, "civilian" | "army" | "navy");
 
                 let is_portrait_size =
                     matches!(parent_key, Some("civilian") | Some("army") | Some("navy"))
-                        && matches!(ass.key.as_str(), "large" | "small");
+                        && matches!(key_text, "large" | "small");
 
                 if is_idea_category {
                     tokens.push(RawToken {
@@ -531,10 +533,10 @@ fn push_entry_tokens(
                 token_type: TokenType::Operator as u32,
             });
 
-            push_value_tokens(&ass.value, tokens, ctx, Some(&ass.key));
+            push_value_tokens(&ass.value, tokens, ctx, source, Some(key_text));
         }
         Entry::Value(val) => {
-            push_value_tokens(val, tokens, ctx, parent_key);
+            push_value_tokens(val, tokens, ctx, source, parent_key);
         }
         Entry::Comment(_, range) => {
             tokens.push(RawToken {
@@ -551,10 +553,12 @@ fn push_value_tokens(
     val: &NodeedValue,
     tokens: &mut Vec<RawToken>,
     ctx: &SemanticTokenContext,
+    source: &str,
     parent_key: Option<&str>,
 ) {
     match &val.value {
-        Value::String(s) => {
+        Value::String(span) => {
+            let s = span.resolve(source);
             let is_localization_value =
                 parent_key.is_some_and(|k| LOCALIZATION_VALUE_FIELDS.contains(&k));
 
@@ -601,7 +605,7 @@ fn push_value_tokens(
         }
         Value::Block(entries) => {
             for entry in entries {
-                push_entry_tokens(entry, tokens, ctx, parent_key);
+                push_entry_tokens(entry, tokens, ctx, source, parent_key);
             }
         }
         Value::TaggedBlock(tag, entries, _) => {
@@ -612,8 +616,17 @@ fn push_value_tokens(
                 token_type: TokenType::Keyword as u32,
             });
             for entry in entries {
-                push_entry_tokens(entry, tokens, ctx, parent_key);
+                push_entry_tokens(entry, tokens, ctx, source, parent_key);
             }
+        }
+        Value::QuotedString(_) => {
+            // Quoted string literals get String token type
+            tokens.push(RawToken {
+                line: val.range.start_line,
+                start: val.range.start_col,
+                length: val.range.end_col - val.range.start_col,
+                token_type: TokenType::String as u32,
+            });
         }
     }
 }

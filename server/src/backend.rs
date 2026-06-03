@@ -912,11 +912,14 @@ impl Backend {
 
         for entry in script.entries {
             if let ast::Entry::Assignment(ass) = entry {
-                if ass.key.eq_ignore_ascii_case("adjacency_rule") {
+                if ass.key_text(content).eq_ignore_ascii_case("adjacency_rule") {
                     if let ast::Value::Block(rule_entries) = &ass.value.value {
                         for rule_entry in rule_entries {
                             if let ast::Entry::Assignment(r_ass) = rule_entry {
-                                if r_ass.key.eq_ignore_ascii_case("required_provinces") {
+                                if r_ass
+                                    .key_text(content)
+                                    .eq_ignore_ascii_case("required_provinces")
+                                {
                                     if let ast::Value::Block(prov_entries) = &r_ass.value.value {
                                         for p_entry in prov_entries {
                                             if let ast::Entry::Value(p_val) = p_entry {
@@ -959,11 +962,17 @@ impl Backend {
 
         for entry in &script.entries {
             if let ast::Entry::Assignment(ass) = entry {
-                if ass.key.eq_ignore_ascii_case("strategic_region") {
+                if ass
+                    .key_text(&script.source)
+                    .eq_ignore_ascii_case("strategic_region")
+                {
                     if let ast::Value::Block(region_entries) = &ass.value.value {
                         for region_entry in region_entries {
                             if let ast::Entry::Assignment(r_ass) = region_entry {
-                                if r_ass.key.eq_ignore_ascii_case("provinces") {
+                                if r_ass
+                                    .key_text(&script.source)
+                                    .eq_ignore_ascii_case("provinces")
+                                {
                                     if let ast::Value::Block(prov_entries) = &r_ass.value.value {
                                         for prov_entry in prov_entries {
                                             if let ast::Entry::Value(val) = prov_entry {
@@ -1640,7 +1649,7 @@ impl Backend {
         let mut comments = Vec::new();
         for entry in &script.entries {
             if let ast::Entry::Comment(c, r) = entry {
-                comments.push((c.clone(), r.clone()));
+                comments.push((*c, r.clone()));
             }
         }
 
@@ -1656,6 +1665,7 @@ impl Backend {
         // Build validation context
         let ctx = ValidationContext {
             uri,
+            source: &script.source,
             loc,
             scripted_triggers: st,
             scripted_effects: se,
@@ -1751,6 +1761,7 @@ pub(crate) fn check_duplicate_keys(
     entries: &[ast::Entry],
     diagnostics: &mut Vec<Diagnostic>,
     mod_maps: &DashMap<InternedStr, String>,
+    source: &str,
 ) {
     // Currently only checks keys that are in `mod_maps` (modifier names) plus a small
     // hardcoded set of common structural keys (`name`, `id`, `icon`). All other keys
@@ -1767,25 +1778,25 @@ pub(crate) fn check_duplicate_keys(
             // Some Paradox keys (like 'modifier = { ... }' or 'option = { ... }') are intended to be duplicates.
             // But specific engine modifiers (like 'stability_factor') should NEVER be duplicated.
 
-            let is_modifier =
-                mod_maps.contains_key(ass.key.as_str()) || COMMON_KEYS.contains(&ass.key.as_str());
+            let key = ass.key_text(source);
+            let is_modifier = mod_maps.contains_key(key) || COMMON_KEYS.contains(&key);
 
             // Exceptions: Some effects/triggers are specifically designed to be used multiple times
-            let is_exception = ass.key == "modifier"
-                || ass.key == "option"
-                || ass.key == "limit"
-                || ass.key == "if"
-                || ass.key == "else"
-                || ass.key == "else_if"
-                || ass.key == "variable_name";
+            let is_exception = key == "modifier"
+                || key == "option"
+                || key == "limit"
+                || key == "if"
+                || key == "else"
+                || key == "else_if"
+                || key == "variable_name";
 
             if is_modifier && !is_exception {
-                if let Some(prev_range) = seen_keys.get(&ass.key) {
+                if let Some(prev_range) = seen_keys.get(key) {
                     diagnostics.push(Diagnostic {
                             range: ast_range_to_lsp(prev_range),
                             severity: Some(DiagnosticSeverity::WARNING),
                             code: Some(NumberOrString::String("duplicate_key".to_string())),
-                            message: format!("Duplicate modifier/key '{}' detected in the same scope. The game will ignore this value and use the last one.", ass.key),
+                            message: format!("Duplicate modifier/key '{}' detected in the same scope. The game will ignore this value and use the last one.", key),
                             source: Some("Hearts of Modding".to_string()),
                             ..Default::default()
                         });
@@ -1797,7 +1808,7 @@ pub(crate) fn check_duplicate_keys(
                     end_line: ass.value.range.end_line,
                     end_col: ass.value.range.end_col,
                 };
-                seen_keys.insert(ass.key.clone(), full_range);
+                seen_keys.insert(key.to_string(), full_range);
             }
         }
     }

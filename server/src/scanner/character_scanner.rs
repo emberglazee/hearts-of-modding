@@ -43,7 +43,12 @@ where
             filter,
             |path, content| {
                 let (script, _) = parser::parse_script(&content);
-                find_characters_in_entries(&script.entries, &path.to_string_lossy(), &mut map);
+                find_characters_in_entries(
+                    &script.entries,
+                    &script.source,
+                    &path.to_string_lossy(),
+                    &mut map,
+                );
             },
         );
     }
@@ -53,18 +58,20 @@ where
 
 pub(crate) fn find_characters_in_entries(
     entries: &[ast::Entry],
+    source: &str,
     file_path: &str,
     map: &mut HashMap<String, Character>,
 ) {
     for entry in entries {
         match entry {
             ast::Entry::Assignment(ass) => {
-                if ass.key.eq_ignore_ascii_case("characters") {
+                if ass.key_text(source).eq_ignore_ascii_case("characters") {
                     if let ast::Value::Block(characters) = &ass.value.value {
                         for char_entry in characters {
                             if let ast::Entry::Assignment(char_ass) = char_entry {
+                                let id = char_ass.key_text(source).to_string();
                                 let mut character = Character {
-                                    id: char_ass.key.clone(),
+                                    id: id.clone(),
                                     name: None,
                                     gender: None,
                                     desc: None,
@@ -75,21 +82,21 @@ pub(crate) fn find_characters_in_entries(
                                 };
 
                                 if let ast::Value::Block(details) = &char_ass.value.value {
-                                    parse_character_details(details, &mut character);
+                                    parse_character_details(details, source, &mut character);
                                 }
-                                map.insert(character.id.clone(), character);
+                                map.insert(id, character);
                             }
                         }
                     }
                 } else {
                     if let ast::Value::Block(inner_entries) = &ass.value.value {
-                        find_characters_in_entries(inner_entries, file_path, map);
+                        find_characters_in_entries(inner_entries, source, file_path, map);
                     }
                 }
             }
             ast::Entry::Value(val) => {
                 if let ast::Value::Block(inner_entries) = &val.value {
-                    find_characters_in_entries(inner_entries, file_path, map);
+                    find_characters_in_entries(inner_entries, source, file_path, map);
                 }
             }
             _ => {}
@@ -97,41 +104,42 @@ pub(crate) fn find_characters_in_entries(
     }
 }
 
-fn parse_character_details(entries: &[ast::Entry], character: &mut Character) {
+fn parse_character_details(entries: &[ast::Entry], source: &str, character: &mut Character) {
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
-            let key = ass.key.to_ascii_lowercase();
+            let key = ass.key_text(source).to_ascii_lowercase();
             match key.as_str() {
                 "name" => {
-                    if let ast::Value::String(s) = &ass.value.value {
-                        character.name = Some(s.clone());
+                    if let Some(s) = ass.value.value.as_str(source) {
+                        character.name = Some(s.to_string());
                     }
                 }
                 "gender" => {
-                    if let ast::Value::String(s) = &ass.value.value {
-                        character.gender = Some(s.clone());
+                    if let Some(s) = ass.value.value.as_str(source) {
+                        character.gender = Some(s.to_string());
                     }
                 }
                 "desc" => {
-                    if let ast::Value::String(s) = &ass.value.value {
-                        character.desc = Some(s.clone());
+                    if let Some(s) = ass.value.value.as_str(source) {
+                        character.desc = Some(s.to_string());
                     }
                 }
                 "portraits" => {
                     if let ast::Value::Block(categories) = &ass.value.value {
                         for cat_entry in categories {
                             if let ast::Entry::Assignment(cat_ass) = cat_entry {
-                                let category = cat_ass.key.to_ascii_lowercase();
+                                let category = cat_ass.key_text(source).to_ascii_lowercase();
                                 if let ast::Value::Block(sizes) = &cat_ass.value.value {
                                     for size_entry in sizes {
                                         if let ast::Entry::Assignment(size_ass) = size_entry {
-                                            let size = size_ass.key.to_ascii_lowercase();
-                                            if let ast::Value::String(sprite) =
-                                                &size_ass.value.value
+                                            let size =
+                                                size_ass.key_text(source).to_ascii_lowercase();
+                                            if let Some(sprite) =
+                                                size_ass.value.value.as_str(source)
                                             {
                                                 character.portraits.insert(
                                                     format!("{}_{}", category, size),
-                                                    sprite.clone(),
+                                                    sprite.to_string(),
                                                 );
                                             }
                                         }
@@ -144,7 +152,7 @@ fn parse_character_details(entries: &[ast::Entry], character: &mut Character) {
                 "instance" => {
                     // Characters in instance = { allowed = { ... } ... } blocks
                     if let ast::Value::Block(instance_entries) = &ass.value.value {
-                        parse_character_details(instance_entries, character);
+                        parse_character_details(instance_entries, source, character);
                     }
                 }
                 "advisor" | "country_leader" | "corps_commander" | "field_marshal"
@@ -162,7 +170,7 @@ fn parse_character_details(entries: &[ast::Entry], character: &mut Character) {
                             coordination_skill: None,
                             ideology: None,
                         };
-                        parse_role_details(role_details, &mut role);
+                        parse_role_details(role_details, source, &mut role);
                         character.roles.push(role);
                     }
                 }
@@ -172,52 +180,52 @@ fn parse_character_details(entries: &[ast::Entry], character: &mut Character) {
     }
 }
 
-fn parse_role_details(entries: &[ast::Entry], role: &mut CharacterRole) {
+fn parse_role_details(entries: &[ast::Entry], source: &str, role: &mut CharacterRole) {
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
-            let key = ass.key.to_ascii_lowercase();
+            let key = ass.key_text(source).to_ascii_lowercase();
             match key.as_str() {
                 "ideology" => {
-                    if let ast::Value::String(s) = &ass.value.value {
-                        role.ideology = Some(s.clone());
+                    if let Some(s) = ass.value.value.as_str(source) {
+                        role.ideology = Some(s.to_string());
                     }
                 }
                 "traits" => {
                     if let ast::Value::Block(trait_entries) = &ass.value.value {
                         for trait_entry in trait_entries {
                             if let ast::Entry::Value(v) = trait_entry {
-                                if let ast::Value::String(s) = &v.value {
-                                    role.traits.push(s.clone());
+                                if let Some(s) = v.value.as_str(source) {
+                                    role.traits.push(s.to_string());
                                 }
                             }
                         }
                     } else if let ast::Value::TaggedBlock(_, trait_entries, _) = &ass.value.value {
                         for trait_entry in trait_entries {
                             if let ast::Entry::Value(v) = trait_entry {
-                                if let ast::Value::String(s) = &v.value {
-                                    role.traits.push(s.clone());
+                                if let Some(s) = v.value.as_str(source) {
+                                    role.traits.push(s.to_string());
                                 }
                             }
                         }
                     }
                 }
-                "skill" => role.skill = get_int(&ass.value),
-                "attack_skill" => role.attack_skill = get_int(&ass.value),
-                "defense_skill" => role.defense_skill = get_int(&ass.value),
-                "planning_skill" => role.planning_skill = get_int(&ass.value),
-                "logistics_skill" => role.logistics_skill = get_int(&ass.value),
-                "maneuvering_skill" => role.maneuvering_skill = get_int(&ass.value),
-                "coordination_skill" => role.coordination_skill = get_int(&ass.value),
+                "skill" => role.skill = get_int(&ass.value, source),
+                "attack_skill" => role.attack_skill = get_int(&ass.value, source),
+                "defense_skill" => role.defense_skill = get_int(&ass.value, source),
+                "planning_skill" => role.planning_skill = get_int(&ass.value, source),
+                "logistics_skill" => role.logistics_skill = get_int(&ass.value, source),
+                "maneuvering_skill" => role.maneuvering_skill = get_int(&ass.value, source),
+                "coordination_skill" => role.coordination_skill = get_int(&ass.value, source),
                 _ => {}
             }
         }
     }
 }
 
-fn get_int(val: &ast::NodeedValue) -> Option<i32> {
+fn get_int(val: &ast::NodeedValue, source: &str) -> Option<i32> {
     match &val.value {
         ast::Value::Number(n) => Some(*n as i32),
-        ast::Value::String(s) => s.parse::<i32>().ok(),
+        ast::Value::String(span) => span.resolve(source).parse::<i32>().ok(),
         _ => None,
     }
 }

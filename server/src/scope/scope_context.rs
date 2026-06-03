@@ -15,7 +15,9 @@ pub fn find_scope_context_at(
     let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
     let mut context = None;
     for entry in &script.entries {
-        if let Some(ctx) = find_scope_context_in_entry(entry, pos, &mut scope_stack, achievements) {
+        if let Some(ctx) =
+            find_scope_context_in_entry(entry, pos, &mut scope_stack, achievements, script)
+        {
             context = Some(ctx);
             break;
         }
@@ -28,26 +30,29 @@ fn find_scope_context_in_entry(
     pos: Position,
     scope_stack: &mut scope::ScopeStack,
     achievements: &DashMap<InternedStr, LayeredValue<achievement_scanner::Achievement>>,
+    script: &ast::Script,
 ) -> Option<String> {
     match entry {
         ast::Entry::Assignment(ass) => {
             if is_pos_in_range(pos, &ass.value.range) {
                 if let ast::Value::Block(_) | ast::Value::TaggedBlock(_, _, _) = &ass.value.value {
-                    let s = scope::resolve_key_scope(&ass.key, achievements);
+                    let s = scope::resolve_key_scope(ass.key_text(&script.source), achievements);
                     scope_stack.push(s);
                 }
 
                 if let Some(inner) =
-                    find_scope_context_in_value(&ass.value, pos, scope_stack, achievements)
+                    find_scope_context_in_value(&ass.value, pos, scope_stack, achievements, script)
                 {
                     return Some(inner);
                 }
 
-                return Some(ass.key.clone());
+                return Some(ass.key_text(&script.source).to_string());
             }
             None
         }
-        ast::Entry::Value(val) => find_scope_context_in_value(val, pos, scope_stack, achievements),
+        ast::Entry::Value(val) => {
+            find_scope_context_in_value(val, pos, scope_stack, achievements, script)
+        }
         _ => None,
     }
 }
@@ -57,12 +62,13 @@ fn find_scope_context_in_value(
     pos: Position,
     scope_stack: &mut scope::ScopeStack,
     achievements: &DashMap<InternedStr, LayeredValue<achievement_scanner::Achievement>>,
+    script: &ast::Script,
 ) -> Option<String> {
     match &val.value {
         ast::Value::Block(entries) => {
             for entry in entries {
                 if let Some(ctx) =
-                    find_scope_context_in_entry(entry, pos, scope_stack, achievements)
+                    find_scope_context_in_entry(entry, pos, scope_stack, achievements, script)
                 {
                     return Some(ctx);
                 }
@@ -72,7 +78,7 @@ fn find_scope_context_in_value(
         ast::Value::TaggedBlock(_, entries, _) => {
             for entry in entries {
                 if let Some(ctx) =
-                    find_scope_context_in_entry(entry, pos, scope_stack, achievements)
+                    find_scope_context_in_entry(entry, pos, scope_stack, achievements, script)
                 {
                     return Some(ctx);
                 }
@@ -85,34 +91,34 @@ fn find_scope_context_in_value(
 
 pub fn find_context_at(script: &ast::Script, pos: Position) -> Option<String> {
     for entry in &script.entries {
-        if let Some(ctx) = find_context_in_entry(entry, pos) {
+        if let Some(ctx) = find_context_in_entry(entry, pos, &script.source) {
             return Some(ctx);
         }
     }
     None
 }
 
-fn find_context_in_entry(entry: &ast::Entry, pos: Position) -> Option<String> {
+fn find_context_in_entry(entry: &ast::Entry, pos: Position, source: &str) -> Option<String> {
     match entry {
         ast::Entry::Assignment(ass) => {
             if is_pos_in_range(pos, &ass.value.range) {
-                if let Some(inner) = find_context_in_value(&ass.value, pos) {
+                if let Some(inner) = find_context_in_value(&ass.value, pos, source) {
                     return Some(inner);
                 }
-                return Some(ass.key.clone());
+                return Some(ass.key_text(source).to_string());
             }
             None
         }
-        ast::Entry::Value(val) => find_context_in_value(val, pos),
+        ast::Entry::Value(val) => find_context_in_value(val, pos, source),
         _ => None,
     }
 }
 
-fn find_context_in_value(val: &ast::NodeedValue, pos: Position) -> Option<String> {
+fn find_context_in_value(val: &ast::NodeedValue, pos: Position, source: &str) -> Option<String> {
     match &val.value {
         ast::Value::Block(entries) => {
             for entry in entries {
-                if let Some(ctx) = find_context_in_entry(entry, pos) {
+                if let Some(ctx) = find_context_in_entry(entry, pos, source) {
                     return Some(ctx);
                 }
             }
@@ -120,7 +126,7 @@ fn find_context_in_value(val: &ast::NodeedValue, pos: Position) -> Option<String
         }
         ast::Value::TaggedBlock(_, entries, _) => {
             for entry in entries {
-                if let Some(ctx) = find_context_in_entry(entry, pos) {
+                if let Some(ctx) = find_context_in_entry(entry, pos, source) {
                     return Some(ctx);
                 }
             }

@@ -55,40 +55,45 @@ impl ModifierDisplayService {
     }
 
     /// Extract all modifier blocks from an AST value
-    pub fn extract_modifier_blocks(&self, value: &ast::Value) -> Vec<ModifierBlock> {
+    pub fn extract_modifier_blocks(&self, value: &ast::Value, content: &str) -> Vec<ModifierBlock> {
         let mut blocks = Vec::new();
 
         if let ast::Value::Block(entries) = value {
             for entry in entries {
                 if let ast::Entry::Assignment(ass) = entry {
-                    let key_lower = ass.key.to_ascii_lowercase();
+                    let key_lower = ass.key_text(content).to_ascii_lowercase();
 
                     // Check for special modifier types
                     if key_lower == "targeted_modifier" {
-                        if let Some(block) = self.extract_targeted_modifier(&ass.value.value) {
+                        if let Some(block) =
+                            self.extract_targeted_modifier(&ass.value.value, content)
+                        {
                             blocks.push(block);
                         }
                     } else if key_lower == "equipment_bonus" {
-                        if let Some(block) = self.extract_equipment_bonus(&ass.value.value) {
+                        if let Some(block) = self.extract_equipment_bonus(&ass.value.value, content)
+                        {
                             blocks.push(block);
                         }
                     } else if key_lower == "hidden_modifier" {
-                        if let Some(block) = self.extract_hidden_modifier(&ass.value.value) {
+                        if let Some(block) = self.extract_hidden_modifier(&ass.value.value, content)
+                        {
                             blocks.push(block);
                         }
                     } else if key_lower == "custom_effect_tooltip"
                         || key_lower == "custom_modifier_tooltip"
                     {
-                        if let ast::Value::String(text) = &ass.value.value {
-                            blocks.push(ModifierBlock::CustomTooltip(text.clone()));
+                        if let Some(text) = ass.value.value.as_str(content) {
+                            blocks.push(ModifierBlock::CustomTooltip(text.to_string()));
                         }
                     } else {
                         // Try to parse as a simple modifier
-                        if let Some(val) = self.parse_numeric_value(&ass.value.value) {
+                        if let Some(val) = self.parse_numeric_value(&ass.value.value, content) {
+                            let key_text = ass.key_text(content).to_string();
                             blocks.push(ModifierBlock::Simple(vec![ModifierEntry {
-                                key: ass.key.clone(),
+                                key: key_text.clone(),
                                 value: val,
-                                is_positive: self.is_positive_modifier(&ass.key, val),
+                                is_positive: self.is_positive_modifier(&key_text, val),
                             }]));
                         }
                     }
@@ -100,23 +105,28 @@ impl ModifierDisplayService {
     }
 
     /// Extract targeted_modifier block
-    fn extract_targeted_modifier(&self, value: &ast::Value) -> Option<ModifierBlock> {
+    fn extract_targeted_modifier(
+        &self,
+        value: &ast::Value,
+        content: &str,
+    ) -> Option<ModifierBlock> {
         if let ast::Value::Block(entries) = value {
             let mut target = String::new();
             let mut modifiers = Vec::new();
 
             for entry in entries {
                 if let ast::Entry::Assignment(ass) = entry {
-                    let key_lower = ass.key.to_ascii_lowercase();
+                    let key_lower = ass.key_text(content).to_ascii_lowercase();
                     if key_lower == "tag" {
-                        if let ast::Value::String(tag) = &ass.value.value {
-                            target = tag.clone();
+                        if let Some(tag) = ass.value.value.as_str(content) {
+                            target = tag.to_string();
                         }
-                    } else if let Some(val) = self.parse_numeric_value(&ass.value.value) {
+                    } else if let Some(val) = self.parse_numeric_value(&ass.value.value, content) {
+                        let key_text = ass.key_text(content).to_string();
                         modifiers.push(ModifierEntry {
-                            key: ass.key.clone(),
+                            key: key_text.clone(),
                             value: val,
-                            is_positive: self.is_positive_modifier(&ass.key, val),
+                            is_positive: self.is_positive_modifier(&key_text, val),
                         });
                     }
                 }
@@ -130,20 +140,23 @@ impl ModifierDisplayService {
     }
 
     /// Extract equipment_bonus block
-    fn extract_equipment_bonus(&self, value: &ast::Value) -> Option<ModifierBlock> {
+    fn extract_equipment_bonus(&self, value: &ast::Value, content: &str) -> Option<ModifierBlock> {
         if let ast::Value::Block(entries) = value {
             for entry in entries {
                 if let ast::Entry::Assignment(ass) = entry {
-                    let equipment_type = ass.key.clone();
+                    let equipment_type = ass.key_text(content).to_string();
                     if let ast::Value::Block(mod_entries) = &ass.value.value {
                         let mut modifiers = Vec::new();
                         for mod_entry in mod_entries {
                             if let ast::Entry::Assignment(mod_ass) = mod_entry {
-                                if let Some(val) = self.parse_numeric_value(&mod_ass.value.value) {
+                                if let Some(val) =
+                                    self.parse_numeric_value(&mod_ass.value.value, content)
+                                {
+                                    let key_text = mod_ass.key_text(content).to_string();
                                     modifiers.push(ModifierEntry {
-                                        key: mod_ass.key.clone(),
+                                        key: key_text.clone(),
                                         value: val,
-                                        is_positive: self.is_positive_modifier(&mod_ass.key, val),
+                                        is_positive: self.is_positive_modifier(&key_text, val),
                                     });
                                 }
                             }
@@ -162,16 +175,17 @@ impl ModifierDisplayService {
     }
 
     /// Extract hidden_modifier block
-    fn extract_hidden_modifier(&self, value: &ast::Value) -> Option<ModifierBlock> {
+    fn extract_hidden_modifier(&self, value: &ast::Value, content: &str) -> Option<ModifierBlock> {
         if let ast::Value::Block(entries) = value {
             let mut modifiers = Vec::new();
             for entry in entries {
                 if let ast::Entry::Assignment(ass) = entry {
-                    if let Some(val) = self.parse_numeric_value(&ass.value.value) {
+                    if let Some(val) = self.parse_numeric_value(&ass.value.value, content) {
+                        let key_text = ass.key_text(content).to_string();
                         modifiers.push(ModifierEntry {
-                            key: ass.key.clone(),
+                            key: key_text.clone(),
                             value: val,
-                            is_positive: self.is_positive_modifier(&ass.key, val),
+                            is_positive: self.is_positive_modifier(&key_text, val),
                         });
                     }
                 }
@@ -184,10 +198,10 @@ impl ModifierDisplayService {
     }
 
     /// Parse a numeric value from AST
-    fn parse_numeric_value(&self, value: &ast::Value) -> Option<f64> {
+    fn parse_numeric_value(&self, value: &ast::Value, content: &str) -> Option<f64> {
         match value {
             ast::Value::Number(n) => Some(*n),
-            ast::Value::String(s) => s.parse::<f64>().ok(),
+            ast::Value::String(s) => s.resolve(content).parse::<f64>().ok(),
             _ => None,
         }
     }

@@ -10,6 +10,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Debounce AST parsing and cancel ongoing stale AST parsing** while actively editing a file to further decrease stutter and wasted processing.
 
+- **AST ByteSpan optimization:** AST nodes now store start/end byte offsets instead of raw text for potential memory usage and parse time reductions.
+
 ### 🩹 Fixed
 
 - **Fixed the `styling_assignment_space` diagnostic not being emitted.**

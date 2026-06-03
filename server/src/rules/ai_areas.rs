@@ -63,13 +63,13 @@ impl AstVisitor for AiAreaVisitor {
             return;
         }
 
-        match ass.key.as_str() {
+        match ass.key_text(ctx.source) {
             "continents" => {
                 if let ast::Value::Block(cont_entries) = &ass.value.value {
                     for ce in cont_entries {
                         if let ast::Entry::Value(val) = ce {
-                            if let ast::Value::String(name) = &val.value {
-                                if !ctx.continents.contains_key(name.as_str()) {
+                            if let Some(name) = val.value.as_str(ctx.source) {
+                                if !ctx.continents.contains_key(name) {
                                     diags.push(Diagnostic {
                                         range: ast_range_to_lsp(&val.range),
                                         severity: Some(DiagnosticSeverity::WARNING),

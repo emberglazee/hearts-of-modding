@@ -21,17 +21,17 @@ impl ValidationRule for AbilityRule {
         _pushed_scope: bool,
         diags: &mut Vec<Diagnostic>,
     ) {
-        let key_lower = ass.key.to_ascii_lowercase();
+        let key_lower = ass.key_text(ctx.source).to_ascii_lowercase();
         if key_lower != "has_ability" && key_lower != "add_ability" && key_lower != "remove_ability"
         {
             return;
         }
 
-        let ast::Value::String(val) = &ass.value.value else {
+        let Some(val) = ass.value.value.as_str(ctx.source) else {
             return;
         };
 
-        if !ctx.abilities.contains_key(val.as_str()) {
+        if !ctx.abilities.contains_key(val) {
             diags.push(Diagnostic {
                 range: ast_range_to_lsp(&ass.value.range),
                 severity: Some(DiagnosticSeverity::WARNING),
@@ -106,7 +106,7 @@ impl AstVisitor for AbilityVisitor {
         diags: &mut Vec<Diagnostic>,
     ) {
         // Track entry into `ability = { ... }` section
-        if ass.key.eq_ignore_ascii_case("ability") {
+        if ass.key_text(ctx.source).eq_ignore_ascii_case("ability") {
             if matches!(&ass.value.value, ast::Value::Block(_)) {
                 self.in_ability_section += 1;
             }
@@ -120,7 +120,7 @@ impl AstVisitor for AbilityVisitor {
                 ast::Value::Block(_) | ast::Value::TaggedBlock(..)
             ) {
                 self.ability_stack.push(AbilityDefState {
-                    name: ass.key.clone(),
+                    name: ass.key_text(ctx.source).to_string(),
                     key_range: ass.key_range.clone(),
                     has_name: false,
                     has_desc: false,
@@ -134,11 +134,11 @@ impl AstVisitor for AbilityVisitor {
 
             // Otherwise, this is a property of the current ability
             if let Some(state) = self.ability_stack.last_mut() {
-                let p_key = ass.key.as_str();
+                let p_key = ass.key_text(ctx.source);
                 if p_key.eq_ignore_ascii_case("name") {
                     state.has_name = true;
-                    if let ast::Value::String(s) = &ass.value.value {
-                        if !ctx.loc.contains_key(s.as_str()) {
+                    if let Some(s) = ass.value.value.as_str(ctx.source) {
+                        if !ctx.loc.contains_key(s) {
                             diags.push(Diagnostic {
                                 range: ast_range_to_lsp(&ass.value.range),
                                 severity: Some(DiagnosticSeverity::WARNING),
@@ -157,8 +157,8 @@ impl AstVisitor for AbilityVisitor {
                     }
                 } else if p_key.eq_ignore_ascii_case("desc") {
                     state.has_desc = true;
-                    if let ast::Value::String(s) = &ass.value.value {
-                        if !ctx.loc.contains_key(s.as_str()) {
+                    if let Some(s) = ass.value.value.as_str(ctx.source) {
+                        if !ctx.loc.contains_key(s) {
                             diags.push(Diagnostic {
                                 range: ast_range_to_lsp(&ass.value.range),
                                 severity: Some(DiagnosticSeverity::WARNING),
@@ -191,12 +191,12 @@ impl AstVisitor for AbilityVisitor {
     fn exit_assignment(
         &mut self,
         ass: &ast::Assignment,
-        _ctx: &ValidationContext,
+        ctx: &ValidationContext,
         _scope: &ScopeStack,
         diags: &mut Vec<Diagnostic>,
     ) {
         // Track exit from `ability = { ... }` section
-        if ass.key.eq_ignore_ascii_case("ability") {
+        if ass.key_text(ctx.source).eq_ignore_ascii_case("ability") {
             if matches!(&ass.value.value, ast::Value::Block(_)) {
                 self.in_ability_section = self.in_ability_section.saturating_sub(1);
             }

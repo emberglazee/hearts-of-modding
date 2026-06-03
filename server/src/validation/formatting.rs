@@ -369,12 +369,13 @@ impl Backend {
         &self,
         entries: &[ast::Entry],
         fixes: &mut Vec<(ast::Range, String)>,
+        content: &str,
     ) {
         for entry in entries {
             match entry {
                 ast::Entry::Assignment(ass) => {
-                    if ass.key.eq_ignore_ascii_case("texturefile") {
-                        if let ast::Value::String(val) = &ass.value.value {
+                    if ass.key_text(content).eq_ignore_ascii_case("texturefile") {
+                        if let Some(val) = ass.value.value.as_str(content) {
                             if val.contains("//") || val.contains('\\') {
                                 let normalized = val.replace("//", "/").replace('\\', "/");
                                 fixes
@@ -383,17 +384,21 @@ impl Backend {
                         }
                     }
                     match &ass.value.value {
-                        ast::Value::Block(inner) => self.collect_path_separator_fixes(inner, fixes),
+                        ast::Value::Block(inner) => {
+                            self.collect_path_separator_fixes(inner, fixes, content)
+                        }
                         ast::Value::TaggedBlock(_, inner, _) => {
-                            self.collect_path_separator_fixes(inner, fixes)
+                            self.collect_path_separator_fixes(inner, fixes, content)
                         }
                         _ => {}
                     }
                 }
                 ast::Entry::Value(val) => match &val.value {
-                    ast::Value::Block(inner) => self.collect_path_separator_fixes(inner, fixes),
+                    ast::Value::Block(inner) => {
+                        self.collect_path_separator_fixes(inner, fixes, content)
+                    }
                     ast::Value::TaggedBlock(_, inner, _) => {
-                        self.collect_path_separator_fixes(inner, fixes)
+                        self.collect_path_separator_fixes(inner, fixes, content)
                     }
                     _ => {}
                 },
@@ -406,6 +411,7 @@ impl Backend {
         &self,
         entries: &[ast::Entry],
         fixes: &mut Vec<(ast::Range, String)>,
+        content: &str,
     ) {
         let keywords = [
             "spriteTypes",
@@ -431,23 +437,29 @@ impl Backend {
             match entry {
                 ast::Entry::Assignment(ass) => {
                     for kw in keywords {
-                        if ass.key.eq_ignore_ascii_case(kw) && ass.key != kw {
+                        if ass.key_text(content).eq_ignore_ascii_case(kw)
+                            && ass.key_text(content) != kw
+                        {
                             fixes.push((ass.key_range.clone(), kw.to_string()));
                             break;
                         }
                     }
 
                     match &ass.value.value {
-                        ast::Value::Block(inner) => self.collect_casing_fixes(inner, fixes),
+                        ast::Value::Block(inner) => {
+                            self.collect_casing_fixes(inner, fixes, content)
+                        }
                         ast::Value::TaggedBlock(_, inner, _) => {
-                            self.collect_casing_fixes(inner, fixes)
+                            self.collect_casing_fixes(inner, fixes, content)
                         }
                         _ => {}
                     }
                 }
                 ast::Entry::Value(val) => match &val.value {
-                    ast::Value::Block(inner) => self.collect_casing_fixes(inner, fixes),
-                    ast::Value::TaggedBlock(_, inner, _) => self.collect_casing_fixes(inner, fixes),
+                    ast::Value::Block(inner) => self.collect_casing_fixes(inner, fixes, content),
+                    ast::Value::TaggedBlock(_, inner, _) => {
+                        self.collect_casing_fixes(inner, fixes, content)
+                    }
                     _ => {}
                 },
                 _ => {}

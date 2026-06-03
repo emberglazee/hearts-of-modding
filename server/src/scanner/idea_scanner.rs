@@ -21,34 +21,40 @@ where
     let mut map = HashMap::new();
     crate::utils::fs_util::walk_and_parse_files(dir_path, &["txt"], filter, |path, content| {
         let (script, _) = parser::parse_script(&content);
-        find_ideas_in_entries(&script.entries, &path.to_string_lossy(), &mut map);
+        find_ideas_in_entries(
+            &script.entries,
+            &script.source,
+            &path.to_string_lossy(),
+            &mut map,
+        );
     });
     map
 }
 
 pub(crate) fn find_ideas_in_entries(
     entries: &[ast::Entry],
+    source: &str,
     file_path: &str,
     map: &mut HashMap<String, Idea>,
 ) {
     for entry in entries {
         match entry {
             ast::Entry::Assignment(ass) => {
-                if ass.key.eq_ignore_ascii_case("ideas") {
-                    parse_ideas_block(ass, file_path, map);
+                if ass.key_text(source).eq_ignore_ascii_case("ideas") {
+                    parse_ideas_block(ass, source, file_path, map);
                 } else {
                     // Recurse into other blocks
                     if let ast::Value::Block(inner_entries) = &ass.value.value {
-                        find_ideas_in_entries(inner_entries, file_path, map);
+                        find_ideas_in_entries(inner_entries, source, file_path, map);
                     }
                 }
             }
             ast::Entry::Value(val) => match &val.value {
                 ast::Value::Block(inner_entries) => {
-                    find_ideas_in_entries(inner_entries, file_path, map);
+                    find_ideas_in_entries(inner_entries, source, file_path, map);
                 }
                 ast::Value::TaggedBlock(_, inner_entries, _) => {
-                    find_ideas_in_entries(inner_entries, file_path, map);
+                    find_ideas_in_entries(inner_entries, source, file_path, map);
                 }
                 _ => {}
             },
@@ -57,11 +63,16 @@ pub(crate) fn find_ideas_in_entries(
     }
 }
 
-fn parse_ideas_block(ass: &ast::Assignment, file_path: &str, map: &mut HashMap<String, Idea>) {
+fn parse_ideas_block(
+    ass: &ast::Assignment,
+    source: &str,
+    file_path: &str,
+    map: &mut HashMap<String, Idea>,
+) {
     if let ast::Value::Block(categories) = &ass.value.value {
         for category_entry in categories {
             if let ast::Entry::Assignment(cat_ass) = category_entry {
-                let category_name = cat_ass.key.clone();
+                let category_name = cat_ass.key_text(source).to_string();
                 if let ast::Value::Block(ideas) = &cat_ass.value.value {
                     for idea_entry in ideas {
                         if let ast::Entry::Assignment(idea_ass) = idea_entry {
@@ -69,18 +80,19 @@ fn parse_ideas_block(ass: &ast::Assignment, file_path: &str, map: &mut HashMap<S
                             if let ast::Value::Block(details) = &idea_ass.value.value {
                                 for detail in details {
                                     if let ast::Entry::Assignment(d_ass) = detail
-                                        && d_ass.key.eq_ignore_ascii_case("picture")
-                                        && let ast::Value::String(s) = &d_ass.value.value
+                                        && d_ass.key_text(source).eq_ignore_ascii_case("picture")
+                                        && let Some(s) = d_ass.value.value.as_str(source)
                                     {
-                                        picture = Some(s.clone());
+                                        picture = Some(s.to_string());
                                     }
                                 }
                             }
 
+                            let name = idea_ass.key_text(source).to_string();
                             map.insert(
-                                idea_ass.key.clone(),
+                                name.clone(),
                                 Idea {
-                                    name: idea_ass.key.clone(),
+                                    name,
                                     category: category_name.clone(),
                                     picture,
                                     path: std::sync::Arc::from(file_path),

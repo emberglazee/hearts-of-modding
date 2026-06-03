@@ -22,7 +22,7 @@ defined_text = {
         "#;
         let (script, _errors) = crate::parser::parser::parse_script(content);
         let mut map = HashMap::new();
-        find_scripted_locs_in_entries(&script.entries, "test", &mut map);
+        find_scripted_locs_in_entries(&script.entries, &script.source, "test", &mut map);
         assert_eq!(map.len(), 1);
         assert!(map.contains_key("DBUG_show_lar_decisions"));
     }

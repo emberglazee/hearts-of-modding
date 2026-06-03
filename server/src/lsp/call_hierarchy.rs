@@ -125,7 +125,7 @@ pub async fn get_incoming_calls(
         let uri = entry.key();
         let (script, _) = entry.value();
 
-        let references = find_references_in_entries(&script.entries, target_name);
+        let references = find_references_in_entries(&script.entries, target_name, &script.source);
 
         if !references.is_empty() {
             // Try to find the containing symbol
@@ -160,7 +160,8 @@ pub async fn get_outgoing_calls(
         let (script, _) = &*entry;
 
         // Find all calls within this symbol's range
-        let calls = find_calls_in_range(&script.entries, &lsp_to_range(&item.range));
+        let calls =
+            find_calls_in_range(&script.entries, &lsp_to_range(&item.range), &script.source);
 
         for (call_name, call_ranges) in calls {
             // Try to find the target symbol
@@ -177,25 +178,33 @@ pub async fn get_outgoing_calls(
 }
 
 /// Find references to a symbol in AST entries
-fn find_references_in_entries(entries: &[Entry], target: &str) -> Vec<Range> {
+fn find_references_in_entries(entries: &[Entry], target: &str, source: &str) -> Vec<Range> {
     let mut references = Vec::new();
 
     for entry in entries {
-        find_references_recursive(entry, target, &mut references);
+        find_references_recursive(entry, target, &mut references, source);
     }
 
     references
 }
 
-fn find_references_recursive(entry: &Entry, target: &str, references: &mut Vec<Range>) {
+fn find_references_recursive(
+    entry: &Entry,
+    target: &str,
+    references: &mut Vec<Range>,
+    source: &str,
+) {
     if let Entry::Assignment(ass) = entry {
         // Check for event triggers: country_event = { id = target }
-        if ass.key == "country_event" || ass.key == "state_event" || ass.key == "news_event" {
+        if ass.key_text(source) == "country_event"
+            || ass.key_text(source) == "state_event"
+            || ass.key_text(source) == "news_event"
+        {
             if let Value::Block(children) = &ass.value.value {
                 for child in children {
                     if let Entry::Assignment(child_ass) = child {
-                        if child_ass.key == "id" {
-                            if let Value::String(id) = &child_ass.value.value {
+                        if child_ass.key_text(source) == "id" {
+                            if let Some(id) = child_ass.value.value.as_str(source) {
                                 if id == target {
                                     let range = Range {
                                         start_line: ass.key_range.start_line,
@@ -213,7 +222,7 @@ fn find_references_recursive(entry: &Entry, target: &str, references: &mut Vec<R
         }
 
         // Check for scripted trigger/effect calls
-        if let Value::String(s) = &ass.value.value {
+        if let Some(s) = ass.value.value.as_str(source) {
             if s == target {
                 let range = Range {
                     start_line: ass.key_range.start_line,
@@ -228,18 +237,22 @@ fn find_references_recursive(entry: &Entry, target: &str, references: &mut Vec<R
         // Recurse into blocks
         if let Value::Block(children) = &ass.value.value {
             for child in children {
-                find_references_recursive(child, target, references);
+                find_references_recursive(child, target, references, source);
             }
         }
     }
 }
 
 /// Find all calls within a specific range
-fn find_calls_in_range(entries: &[Entry], range: &Range) -> HashMap<String, Vec<Range>> {
+fn find_calls_in_range(
+    entries: &[Entry],
+    range: &Range,
+    source: &str,
+) -> HashMap<String, Vec<Range>> {
     let mut calls = HashMap::new();
 
     for entry in entries {
-        find_calls_recursive(entry, range, &mut calls);
+        find_calls_recursive(entry, range, &mut calls, source);
     }
 
     calls
@@ -249,6 +262,7 @@ fn find_calls_recursive(
     entry: &Entry,
     target_range: &Range,
     calls: &mut HashMap<String, Vec<Range>>,
+    source: &str,
 ) {
     if let Entry::Assignment(ass) = entry {
         let range = Range {
@@ -263,13 +277,16 @@ fn find_calls_recursive(
         }
 
         // Check for event triggers
-        if ass.key == "country_event" || ass.key == "state_event" || ass.key == "news_event" {
+        if ass.key_text(source) == "country_event"
+            || ass.key_text(source) == "state_event"
+            || ass.key_text(source) == "news_event"
+        {
             if let Value::Block(children) = &ass.value.value {
                 for child in children {
                     if let Entry::Assignment(child_ass) = child {
-                        if child_ass.key == "id" {
-                            if let Value::String(id) = &child_ass.value.value {
-                                calls.entry(id.clone()).or_default().push(range.clone());
+                        if child_ass.key_text(source) == "id" {
+                            if let Some(id) = child_ass.value.value.as_str(source) {
+                                calls.entry(id.to_string()).or_default().push(range.clone());
                             }
                         }
                     }
@@ -278,14 +295,14 @@ fn find_calls_recursive(
         }
 
         // Check for scripted trigger/effect calls
-        if let Value::String(s) = &ass.value.value {
-            calls.entry(s.clone()).or_default().push(range.clone());
+        if let Some(s) = ass.value.value.as_str(source) {
+            calls.entry(s.to_string()).or_default().push(range.clone());
         }
 
         // Recurse into blocks
         if let Value::Block(children) = &ass.value.value {
             for child in children {
-                find_calls_recursive(child, target_range, calls);
+                find_calls_recursive(child, target_range, calls, source);
             }
         }
     }

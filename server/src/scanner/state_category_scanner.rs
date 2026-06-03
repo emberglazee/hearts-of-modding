@@ -29,7 +29,7 @@ where
             filter,
             |path, content| {
                 let (script, _) = parser::parse_script(&content);
-                extract_categories(&script.entries, path, &mut categories);
+                extract_categories(&script.entries, &script.source, path, &mut categories);
             },
         );
     }
@@ -39,12 +39,16 @@ where
 
 pub(crate) fn extract_categories(
     entries: &[ast::Entry],
+    source: &str,
     path: &Path,
     map: &mut HashMap<String, StateCategory>,
 ) {
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
-            if ass.key.eq_ignore_ascii_case("state_categories") {
+            if ass
+                .key_text(source)
+                .eq_ignore_ascii_case("state_categories")
+            {
                 if let ast::Value::Block(category_entries) = &ass.value.value {
                     for category_entry in category_entries {
                         if let ast::Entry::Assignment(cat_def) = category_entry {
@@ -53,7 +57,9 @@ pub(crate) fn extract_categories(
                             if let ast::Value::Block(def_entries) = &cat_def.value.value {
                                 for def_entry in def_entries {
                                     if let ast::Entry::Assignment(def_ass) = def_entry {
-                                        if def_ass.key.eq_ignore_ascii_case("local_building_slots")
+                                        if def_ass
+                                            .key_text(source)
+                                            .eq_ignore_ascii_case("local_building_slots")
                                         {
                                             if let ast::Value::Number(n) = &def_ass.value.value {
                                                 local_building_slots = Some(*n as i32);
@@ -64,9 +70,9 @@ pub(crate) fn extract_categories(
                             }
 
                             map.insert(
-                                cat_def.key.clone(),
+                                cat_def.key_text(source).to_string(),
                                 StateCategory {
-                                    name: cat_def.key.clone(),
+                                    name: cat_def.key_text(source).to_string(),
                                     local_building_slots,
                                     path: std::sync::Arc::from(path.to_string_lossy().as_ref()),
                                     range: cat_def.key_range.clone(),
@@ -98,7 +104,12 @@ mod tests {
 }"#;
         let (script, _) = parser::parse_script(content);
         let mut map = HashMap::new();
-        extract_categories(&script.entries, std::path::Path::new("test.txt"), &mut map);
+        extract_categories(
+            &script.entries,
+            &script.source,
+            std::path::Path::new("test.txt"),
+            &mut map,
+        );
 
         assert_eq!(map.len(), 2);
         assert!(map.contains_key("wasteland"));

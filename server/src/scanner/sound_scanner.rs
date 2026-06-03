@@ -53,6 +53,7 @@ fn process_sound_file(
     let (script, _) = parser::parse_script(&content);
     find_sound_definitions(
         &script.entries,
+        &script.source,
         &path.to_string_lossy(),
         sounds,
         sound_effects,
@@ -134,6 +135,7 @@ where
 
 pub(crate) fn find_sound_definitions(
     entries: &[ast::Entry],
+    source: &str,
     file_path: &str,
     sounds: &mut HashMap<String, Sound>,
     sound_effects: &mut HashMap<String, SoundEffect>,
@@ -142,21 +144,21 @@ pub(crate) fn find_sound_definitions(
 ) {
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
-            let key = ass.key.as_str();
+            let key = ass.key_text(source);
             if key.eq_ignore_ascii_case("sound") {
                 if let ast::Value::Block(details) = &ass.value.value {
                     let mut name = None;
                     let mut file = None;
                     for detail in details {
                         if let ast::Entry::Assignment(d_ass) = detail {
-                            let d_key = d_ass.key.as_str();
+                            let d_key = d_ass.key_text(source);
                             if d_key.eq_ignore_ascii_case("name") {
-                                if let ast::Value::String(s) = &d_ass.value.value {
-                                    name = Some(s.clone());
+                                if let Some(s) = d_ass.value.value.as_str(source) {
+                                    name = Some(s.to_string());
                                 }
                             } else if d_key.eq_ignore_ascii_case("file") {
-                                if let ast::Value::String(s) = &d_ass.value.value {
-                                    file = Some(s.clone());
+                                if let Some(s) = d_ass.value.value.as_str(source) {
+                                    file = Some(s.to_string());
                                 }
                             }
                         }
@@ -179,21 +181,21 @@ pub(crate) fn find_sound_definitions(
                     let mut sounds_list = Vec::new();
                     for detail in details {
                         if let ast::Entry::Assignment(d_ass) = detail {
-                            let d_key = d_ass.key.as_str();
+                            let d_key = d_ass.key_text(source);
                             if d_key.eq_ignore_ascii_case("name") {
-                                if let ast::Value::String(s) = &d_ass.value.value {
-                                    name = Some(s.clone());
+                                if let Some(s) = d_ass.value.value.as_str(source) {
+                                    name = Some(s.to_string());
                                 }
                             } else if d_key.eq_ignore_ascii_case("sounds") {
                                 if let ast::Value::Block(s_details) = &d_ass.value.value {
                                     for s_detail in s_details {
                                         if let ast::Entry::Assignment(s_ass) = s_detail {
-                                            let s_key = s_ass.key.as_str();
+                                            let s_key = s_ass.key_text(source);
                                             if s_key.eq_ignore_ascii_case("sound") {
-                                                if let ast::Value::String(s_name) =
-                                                    &s_ass.value.value
+                                                if let Some(s_name) =
+                                                    s_ass.value.value.as_str(source)
                                                 {
-                                                    sounds_list.push(s_name.clone());
+                                                    sounds_list.push(s_name.to_string());
                                                 }
                                             } else if s_key.eq_ignore_ascii_case("weighted_sound") {
                                                 if let ast::Value::Block(w_details) =
@@ -204,14 +206,14 @@ pub(crate) fn find_sound_definitions(
                                                             w_detail
                                                         {
                                                             if w_ass
-                                                                .key
+                                                                .key_text(source)
                                                                 .eq_ignore_ascii_case("sound")
                                                             {
-                                                                if let ast::Value::String(s_name) =
-                                                                    &w_ass.value.value
+                                                                if let Some(s_name) =
+                                                                    w_ass.value.value.as_str(source)
                                                                 {
                                                                     sounds_list
-                                                                        .push(s_name.clone());
+                                                                        .push(s_name.to_string());
                                                                 }
                                                             }
                                                         }
@@ -241,9 +243,9 @@ pub(crate) fn find_sound_definitions(
                     let mut name = None;
                     for detail in details {
                         if let ast::Entry::Assignment(d_ass) = detail {
-                            if d_ass.key.eq_ignore_ascii_case("name") {
-                                if let ast::Value::String(s) = &d_ass.value.value {
-                                    name = Some(s.clone());
+                            if d_ass.key_text(source).eq_ignore_ascii_case("name") {
+                                if let Some(s) = d_ass.value.value.as_str(source) {
+                                    name = Some(s.to_string());
                                 }
                             }
                         }
@@ -265,17 +267,17 @@ pub(crate) fn find_sound_definitions(
                     let mut effects = Vec::new();
                     for detail in details {
                         if let ast::Entry::Assignment(d_ass) = detail {
-                            let d_key = d_ass.key.as_str();
+                            let d_key = d_ass.key_text(source);
                             if d_key.eq_ignore_ascii_case("name") {
-                                if let ast::Value::String(s) = &d_ass.value.value {
-                                    name = Some(s.clone());
+                                if let Some(s) = d_ass.value.value.as_str(source) {
+                                    name = Some(s.to_string());
                                 }
                             } else if d_key.eq_ignore_ascii_case("soundeffects") {
                                 if let ast::Value::Block(e_details) = &d_ass.value.value {
                                     for e_detail in e_details {
                                         if let ast::Entry::Value(v) = e_detail {
-                                            if let ast::Value::String(s) = &v.value {
-                                                effects.push(s.clone());
+                                            if let Some(s) = v.value.as_str(source) {
+                                                effects.push(s.to_string());
                                             }
                                         }
                                     }

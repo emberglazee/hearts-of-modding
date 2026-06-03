@@ -499,7 +499,13 @@ impl LanguageServer for Backend {
         .await
         .unwrap_or_else(|e| {
             eprintln!("[hoi4] Parse task panicked: {e}");
-            (Arc::new(ast::Script { entries: vec![] }), vec![])
+            (
+                Arc::new(ast::Script {
+                    source: Arc::from(""),
+                    entries: vec![],
+                }),
+                vec![],
+            )
         });
 
         self.document_asts.insert(uri, result);
@@ -542,7 +548,13 @@ impl LanguageServer for Backend {
         .await
         .unwrap_or_else(|e| {
             eprintln!("[hoi4] Parse task panicked: {e}");
-            (Arc::new(ast::Script { entries: vec![] }), vec![])
+            (
+                Arc::new(ast::Script {
+                    source: Arc::from(""),
+                    entries: vec![],
+                }),
+                vec![],
+            )
         });
 
         // Gate 2: re-check after parse — another keystroke may have arrived
@@ -599,7 +611,13 @@ impl LanguageServer for Backend {
         .await
         .unwrap_or_else(|e| {
             eprintln!("[hoi4] Parse task panicked: {e}");
-            (Arc::new(ast::Script { entries: vec![] }), vec![])
+            (
+                Arc::new(ast::Script {
+                    source: Arc::from(""),
+                    entries: vec![],
+                }),
+                vec![],
+            )
         });
 
         self.document_asts.insert(uri_str, result);
@@ -1242,7 +1260,8 @@ impl LanguageServer for Backend {
         let uri = params.text_document.uri.as_str();
 
         if let Some((script, _)) = self.ensure_ast_cached(uri) {
-            let symbols = document_symbols::generate_document_symbols(&script.entries);
+            let symbols =
+                document_symbols::generate_document_symbols(&script.entries, &script.source);
             return Ok(Some(DocumentSymbolResponse::Nested(symbols)));
         }
         Ok(None)

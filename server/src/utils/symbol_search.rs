@@ -19,7 +19,9 @@ pub fn find_identifier_at(
     Option<String>,
 )> {
     for entry in &script.entries {
-        if let Some(res) = find_in_entry(entry, pos, scope_stack, achievements, None) {
+        if let Some(res) =
+            find_in_entry(entry, pos, scope_stack, achievements, None, &script.source)
+        {
             return Some(res);
         }
     }
@@ -32,6 +34,7 @@ pub fn find_in_entry(
     scope_stack: &mut scope::ScopeStack,
     achievements: &DashMap<InternedStr, LayeredValue<achievement_scanner::Achievement>>,
     context_key: Option<String>,
+    source: &str,
 ) -> Option<(
     String,
     Vec<scope::Scope>,
@@ -42,7 +45,7 @@ pub fn find_in_entry(
         ast::Entry::Assignment(ass) => {
             if is_pos_in_range(pos, &ass.key_range) {
                 return Some((
-                    ass.key.clone(),
+                    ass.key_text(source).to_string(),
                     scope_stack.iter().cloned().collect(),
                     Some(ass.value.value.clone()),
                     context_key,
@@ -51,9 +54,10 @@ pub fn find_in_entry(
 
             let mut pushed_scope = None;
             if let ast::Value::Block(_) | ast::Value::TaggedBlock(_, _, _) = &ass.value.value {
-                let s = scope::resolve_key_scope(&ass.key, achievements);
+                let key_text = ass.key_text(source);
+                let s = scope::resolve_key_scope(key_text, achievements);
 
-                if s != scope::Scope::Unknown || ass.key.contains(':') || ass.key.contains('.') {
+                if s != scope::Scope::Unknown || key_text.contains(':') || key_text.contains('.') {
                     scope_stack.push(s);
                     pushed_scope = Some(s);
                 }
@@ -64,12 +68,13 @@ pub fn find_in_entry(
                 pos,
                 scope_stack,
                 achievements,
-                Some(ass.key.clone()),
+                Some(ass.key_text(source).to_string()),
+                source,
             );
 
             if let Some((ref mut id, _, ref mut val_opt, _)) = res {
                 if let ast::Value::Number(_) | ast::Value::Boolean(_) = &ass.value.value {
-                    *id = ass.key.clone();
+                    *id = ass.key_text(source).to_string();
                     *val_opt = Some(ass.value.value.clone());
                 }
             }
@@ -79,7 +84,9 @@ pub fn find_in_entry(
             }
             res
         }
-        ast::Entry::Value(val) => find_in_value(val, pos, scope_stack, achievements, context_key),
+        ast::Entry::Value(val) => {
+            find_in_value(val, pos, scope_stack, achievements, context_key, source)
+        }
         _ => None,
     }
 }
@@ -90,6 +97,7 @@ pub fn find_in_value(
     scope_stack: &mut scope::ScopeStack,
     achievements: &DashMap<InternedStr, LayeredValue<achievement_scanner::Achievement>>,
     context_key: Option<String>,
+    source: &str,
 ) -> Option<(
     String,
     Vec<scope::Scope>,
@@ -97,7 +105,8 @@ pub fn find_in_value(
     Option<String>,
 )> {
     match &val.value {
-        ast::Value::String(s) => {
+        ast::Value::String(span) => {
+            let s = span.resolve(source);
             if is_pos_in_range(pos, &val.range) {
                 if pos.line == val.range.start_line {
                     let char_offset = pos.character.saturating_sub(val.range.start_col);
@@ -143,7 +152,7 @@ pub fn find_in_value(
                     }
                 }
                 return Some((
-                    s.clone(),
+                    s.to_string(),
                     scope_stack.iter().cloned().collect(),
                     None,
                     context_key,
@@ -175,9 +184,14 @@ pub fn find_in_value(
         }
         ast::Value::Block(entries) => {
             for entry in entries {
-                if let Some(res) =
-                    find_in_entry(entry, pos, scope_stack, achievements, context_key.clone())
-                {
+                if let Some(res) = find_in_entry(
+                    entry,
+                    pos,
+                    scope_stack,
+                    achievements,
+                    context_key.clone(),
+                    source,
+                ) {
                     return Some(res);
                 }
             }
@@ -185,11 +199,27 @@ pub fn find_in_value(
         }
         ast::Value::TaggedBlock(_, entries, _) => {
             for entry in entries {
-                if let Some(res) =
-                    find_in_entry(entry, pos, scope_stack, achievements, context_key.clone())
-                {
+                if let Some(res) = find_in_entry(
+                    entry,
+                    pos,
+                    scope_stack,
+                    achievements,
+                    context_key.clone(),
+                    source,
+                ) {
                     return Some(res);
                 }
+            }
+            None
+        }
+        ast::Value::QuotedString(s) => {
+            if is_pos_in_range(pos, &val.range) {
+                return Some((
+                    s.clone(),
+                    scope_stack.iter().cloned().collect(),
+                    None,
+                    context_key,
+                ));
             }
             None
         }

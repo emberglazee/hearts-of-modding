@@ -98,7 +98,7 @@ fn walk_entries(
                 let mut pushed_scope = false;
 
                 // Structural blocks that push scope (mirrors Backend::check_entry_semantic)
-                let mut s = Scope::from_str(&ass.key);
+                let mut s = Scope::from_str(ass.key_text(ctx.source));
 
                 // Internal 'idea' definition block context
                 if s == Scope::Unknown {
@@ -110,7 +110,10 @@ fn walk_entries(
                     }
                 }
 
-                if s != Scope::Unknown || ass.key.contains(':') || ass.key.contains('.') {
+                if s != Scope::Unknown
+                    || ass.key_text(ctx.source).contains(':')
+                    || ass.key_text(ctx.source).contains('.')
+                {
                     match &ass.value.value {
                         ast::Value::Block(_) | ast::Value::TaggedBlock(_, _, _) => {
                             scope_stack.push(s);
@@ -133,7 +136,12 @@ fn walk_entries(
                 // 3) Check for duplicate keys, then recurse into children
                 match &ass.value.value {
                     ast::Value::Block(inner) | ast::Value::TaggedBlock(_, inner, _) => {
-                        crate::backend::check_duplicate_keys(inner, diags, ctx.modifier_mappings);
+                        crate::backend::check_duplicate_keys(
+                            inner,
+                            diags,
+                            ctx.modifier_mappings,
+                            ctx.source,
+                        );
                         walk_entries(inner, visitors, rules, ctx, diags, scope_stack);
                     }
                     _ => {}
@@ -150,7 +158,12 @@ fn walk_entries(
             }
             ast::Entry::Value(val) => match &val.value {
                 ast::Value::Block(inner) | ast::Value::TaggedBlock(_, inner, _) => {
-                    crate::backend::check_duplicate_keys(inner, diags, ctx.modifier_mappings);
+                    crate::backend::check_duplicate_keys(
+                        inner,
+                        diags,
+                        ctx.modifier_mappings,
+                        ctx.source,
+                    );
                     walk_entries(inner, visitors, rules, ctx, diags, scope_stack);
                 }
                 _ => {}

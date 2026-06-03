@@ -31,7 +31,7 @@ where
             filter,
             |path, content| {
                 let (script, _) = parser::parse_script(&content);
-                extract_terrain_categories(&script.entries, path, &mut terrains);
+                extract_terrain_categories(&script.entries, &script.source, path, &mut terrains);
             },
         );
     }
@@ -59,23 +59,24 @@ where
 /// ```
 pub(crate) fn extract_terrain_categories(
     entries: &[ast::Entry],
+    source: &str,
     path: &Path,
     map: &mut HashMap<String, TerrainCategory>,
 ) {
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
-            if ass.key.eq_ignore_ascii_case("categories") {
+            if ass.key_text(source).eq_ignore_ascii_case("categories") {
                 if let ast::Value::Block(cat_entries) = &ass.value.value {
                     for cat_entry in cat_entries {
                         if let ast::Entry::Assignment(cat_ass) = cat_entry {
-                            let name = cat_ass.key.clone();
+                            let name = cat_ass.key_text(source).to_string();
                             let mut is_naval = false;
                             let mut is_water = false;
 
                             if let ast::Value::Block(props) = &cat_ass.value.value {
                                 for prop in props {
                                     if let ast::Entry::Assignment(prop_ass) = prop {
-                                        let pkey = prop_ass.key.as_str();
+                                        let pkey = prop_ass.key_text(source);
                                         if pkey.eq_ignore_ascii_case("naval_terrain") {
                                             if let ast::Value::Boolean(b) = &prop_ass.value.value {
                                                 is_naval = *b;
@@ -152,8 +153,7 @@ mod tests {
         naval_terrain = yes
         is_water = yes
     }
-}
-"#;
+}"#;
 
     #[test]
     fn test_extract_terrain_categories_from_mock_data() {
@@ -161,7 +161,7 @@ mod tests {
 
         let mut terrains = HashMap::new();
         let path = Path::new("common/terrain/00_terrain.txt");
-        extract_terrain_categories(&script.entries, path, &mut terrains);
+        extract_terrain_categories(&script.entries, &script.source, path, &mut terrains);
 
         // We should find all terrain categories from the mock
         assert!(
@@ -253,7 +253,7 @@ mod tests {
         let (script, _) = parser::parse_script(content);
         let mut terrains = HashMap::new();
         let path = Path::new("common/terrain/empty.txt");
-        extract_terrain_categories(&script.entries, path, &mut terrains);
+        extract_terrain_categories(&script.entries, &script.source, path, &mut terrains);
         assert!(terrains.is_empty());
     }
 
@@ -270,6 +270,7 @@ mod tests {
         let mut terrains = HashMap::new();
         extract_terrain_categories(
             &terrain_script.entries,
+            &terrain_script.source,
             Path::new("mock/00_terrain.txt"),
             &mut terrains,
         );

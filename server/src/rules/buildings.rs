@@ -55,7 +55,7 @@ impl AstVisitor for BuildingVisitor {
         diags: &mut Vec<Diagnostic>,
     ) {
         // Track entry into `buildings = { ... }` blocks
-        if ass.key.eq_ignore_ascii_case("buildings") {
+        if ass.key_text(ctx.source).eq_ignore_ascii_case("buildings") {
             if matches!(&ass.value.value, ast::Value::Block(_)) {
                 self.in_buildings += 1;
             }
@@ -70,12 +70,12 @@ impl AstVisitor for BuildingVisitor {
         // Check if this key is a known building name with a numeric level.
         let level = match &ass.value.value {
             ast::Value::Number(n) => Some(*n as i32),
-            ast::Value::String(s) => s.parse::<i32>().ok(),
+            ast::Value::String(s) => s.resolve(ctx.source).parse::<i32>().ok(),
             _ => None,
         };
 
         if let Some(level) = level {
-            if let Some(building) = ctx.buildings.get(ass.key.as_str()) {
+            if let Some(building) = ctx.buildings.get(ass.key_text(ctx.source)) {
                 if let Some(max_level) = building.max_level {
                     if level > max_level {
                         diags.push(Diagnostic {
@@ -83,7 +83,9 @@ impl AstVisitor for BuildingVisitor {
                             severity: Some(DiagnosticSeverity::ERROR),
                             message: format!(
                                 "Building level {} exceeds maximum level {} for '{}'",
-                                level, max_level, ass.key
+                                level,
+                                max_level,
+                                ass.key_text(ctx.source)
                             ),
                             code: Some(NumberOrString::String(
                                 crate::validation::advanced_validation::BUILDING_LEVEL_EXCEEDS_MAX
@@ -108,7 +110,7 @@ impl AstVisitor for BuildingVisitor {
         _scope: &crate::scope::scope::ScopeStack,
         _diags: &mut Vec<Diagnostic>,
     ) {
-        if ass.key.eq_ignore_ascii_case("buildings") {
+        if ass.key_text(_ctx.source).eq_ignore_ascii_case("buildings") {
             if matches!(&ass.value.value, ast::Value::Block(_)) {
                 self.in_buildings = self.in_buildings.saturating_sub(1);
             }
