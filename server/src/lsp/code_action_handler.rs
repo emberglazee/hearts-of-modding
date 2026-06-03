@@ -507,7 +507,7 @@ impl Backend {
                 let uri_str = params.text_document.uri.as_str();
                 if let Some((script, _)) = self.ensure_ast_cached(uri_str) {
                     let mut all_fixes = Vec::new();
-                    self.collect_assignment_space_fixes(&script.entries, &mut all_fixes, &content);
+                    Self::collect_assignment_space_fixes(&script.entries, &mut all_fixes, &content);
 
                     if !all_fixes.is_empty() {
                         let mut changes = HashMap::new();
@@ -723,7 +723,7 @@ impl Backend {
                     }
 
                     let mut assign_fixes = Vec::new();
-                    self.collect_assignment_space_fixes(
+                    Self::collect_assignment_space_fixes(
                         &script.entries,
                         &mut assign_fixes,
                         &content,

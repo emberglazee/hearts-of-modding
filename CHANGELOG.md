@@ -8,6 +8,10 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Optimized localization string offset calculation.**
 
+### 🩹 Fixed
+
+- **Fixed the `styling_assignment_space` diagnostic not being emitted.**
+
 ## [v0.15.1] - 2026-06-04
 
 ### 🔧 Changed

@@ -1277,6 +1277,87 @@ impl Backend {
         }
     }
 
+    pub(crate) fn check_assignment_spacing(
+        entries: &[ast::Entry],
+        content: &str,
+        diagnostics: &mut Vec<Diagnostic>,
+    ) {
+        for entry in entries {
+            match entry {
+                ast::Entry::Assignment(ass) => {
+                    let mut needs_fix = false;
+                    if ass.key_range.end_line == ass.operator_range.start_line
+                        && ass.key_range.end_line == ass.value.range.start_line
+                    {
+                        if ass.operator_range.start_col > ass.key_range.end_col
+                            && ass.value.range.start_col > ass.operator_range.end_col
+                        {
+                            let space_before =
+                                ass.operator_range.start_col - ass.key_range.end_col;
+                            let space_after =
+                                ass.value.range.start_col - ass.operator_range.end_col;
+                            if space_before != 1 || space_after != 1 {
+                                needs_fix = true;
+                            }
+                        } else {
+                            needs_fix = true;
+                        }
+                    }
+
+                    if needs_fix {
+                        let line_idx = ass.key_range.end_line as usize;
+                        if let Some(line) = content.lines().nth(line_idx) {
+                            let start = ass.key_range.end_col as usize;
+                            let end = ass.value.range.start_col as usize;
+                            if start <= end && end <= line.len() {
+                                diagnostics.push(Diagnostic {
+                                    range: Range {
+                                        start: Position {
+                                            line: ass.key_range.end_line,
+                                            character: start as u32,
+                                        },
+                                        end: Position {
+                                            line: ass.value.range.start_line,
+                                            character: end as u32,
+                                        },
+                                    },
+                                    severity: Some(DiagnosticSeverity::INFORMATION),
+                                    code: Some(NumberOrString::String(
+                                        "styling_assignment_space".to_string(),
+                                    )),
+                                    message: "Assignment operator should be surrounded by exactly one space on each side (e.g., 'key = value')."
+                                        .to_string(),
+                                    source: Some("Hearts of Modding".to_string()),
+                                    ..Default::default()
+                                });
+                            }
+                        }
+                    }
+
+                    match &ass.value.value {
+                        ast::Value::Block(inner) => {
+                            Self::check_assignment_spacing(inner, content, diagnostics)
+                        }
+                        ast::Value::TaggedBlock(_, inner, _) => {
+                            Self::check_assignment_spacing(inner, content, diagnostics)
+                        }
+                        _ => {}
+                    }
+                }
+                ast::Entry::Value(val) => match &val.value {
+                    ast::Value::Block(inner) => {
+                        Self::check_assignment_spacing(inner, content, diagnostics)
+                    }
+                    ast::Value::TaggedBlock(_, inner, _) => {
+                        Self::check_assignment_spacing(inner, content, diagnostics)
+                    }
+                    _ => {}
+                },
+                _ => {}
+            }
+        }
+    }
+
     fn check_brace_spacing_for_range(
         range: &ast::Range,
         value: &ast::Value,
@@ -1388,6 +1469,7 @@ impl Backend {
         if let Some(script) = script_opt {
             Self::compute_expected_indentations(&script.entries, 0, &mut expected_indents);
             Self::check_single_line_braces(&script.entries, content, diagnostics);
+            Self::check_assignment_spacing(&script.entries, content, diagnostics);
         }
 
         for (line_idx, line) in content.lines().enumerate() {

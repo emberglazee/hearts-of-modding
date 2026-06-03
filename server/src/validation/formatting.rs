@@ -93,7 +93,6 @@ impl Backend {
     }
 
     pub(crate) fn collect_assignment_space_fixes(
-        &self,
         entries: &[ast::Entry],
         fixes: &mut Vec<(ast::Range, String)>,
         content: &str,
@@ -141,20 +140,20 @@ impl Backend {
 
                     match &ass.value.value {
                         ast::Value::Block(inner) => {
-                            self.collect_assignment_space_fixes(inner, fixes, content)
+                            Self::collect_assignment_space_fixes(inner, fixes, content)
                         }
                         ast::Value::TaggedBlock(_, inner, _) => {
-                            self.collect_assignment_space_fixes(inner, fixes, content)
+                            Self::collect_assignment_space_fixes(inner, fixes, content)
                         }
                         _ => {}
                     }
                 }
                 ast::Entry::Value(val) => match &val.value {
                     ast::Value::Block(inner) => {
-                        self.collect_assignment_space_fixes(inner, fixes, content)
+                        Self::collect_assignment_space_fixes(inner, fixes, content)
                     }
                     ast::Value::TaggedBlock(_, inner, _) => {
-                        self.collect_assignment_space_fixes(inner, fixes, content)
+                        Self::collect_assignment_space_fixes(inner, fixes, content)
                     }
                     _ => {}
                 },
