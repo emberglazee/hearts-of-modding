@@ -1,5 +1,6 @@
 use crate::byte_offset_to_utf16;
 use crate::data::interner::InternedStr;
+use crate::data::layered_value::LayeredValue;
 use crate::parser::ast::{DiagnosticSeverity, Range};
 use dashmap::DashMap;
 use nom::{
@@ -105,7 +106,10 @@ static RE_NESTED: Lazy<regex::Regex> = Lazy::new(|| regex::Regex::new(r"\$([^\$]
 pub fn validate_loc_string(
     entry: &LocEntry,
     event_targets: &DashMap<InternedStr, Vec<crate::scanner::variable_scanner::EventTarget>>,
-    scripted_locs: &DashMap<InternedStr, crate::scanner::scripted_loc_scanner::ScriptedLoc>,
+    scripted_locs: &DashMap<
+        InternedStr,
+        LayeredValue<crate::scanner::scripted_loc_scanner::ScriptedLoc>,
+    >,
     color_codes: &HashSet<String>,
     country_tags: &HashSet<String>,
 ) -> Vec<LocDiagnostic> {

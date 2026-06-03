@@ -1,4 +1,5 @@
 use crate::data::interner::InternedStr;
+use crate::data::layered_value::LayeredValue;
 use crate::scanner::achievement_scanner::Achievement;
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
@@ -129,7 +130,10 @@ impl Scope {
 /// Resolve a key to its semantic scope, with achievement/ribbon overrides.
 /// Use this instead of `Scope::from_str` directly when achievements data is available.
 /// This ensures the achievement-override logic lives in one place.
-pub fn resolve_key_scope(key: &str, achievements: &DashMap<InternedStr, Achievement>) -> Scope {
+pub fn resolve_key_scope(
+    key: &str,
+    achievements: &DashMap<InternedStr, LayeredValue<Achievement>>,
+) -> Scope {
     if let Some(achievement) = achievements.get(key) {
         if achievement.is_ribbon {
             Scope::Ribbon

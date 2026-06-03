@@ -1,4 +1,5 @@
 use crate::data::interner::InternedStr;
+use crate::data::layered_value::LayeredValue;
 use crate::parser::ast;
 use crate::parser::defines_parser;
 use crate::scanner::building_scanner;
@@ -34,37 +35,47 @@ pub(crate) mod visitor;
 /// previously required.
 pub(crate) struct ValidationContext<'a> {
     pub(crate) uri: &'a str,
-    pub(crate) loc: &'a DashMap<InternedStr, crate::parser::loc_parser::LocEntry>,
+    pub(crate) loc: &'a DashMap<InternedStr, LayeredValue<crate::parser::loc_parser::LocEntry>>,
     /// Scripted triggers - available for rule use (not yet used by any rule)
     #[allow(dead_code)]
     pub(crate) scripted_triggers:
-        &'a DashMap<InternedStr, crate::scanner::scripted_scanner::ScriptedEntity>,
+        &'a DashMap<InternedStr, LayeredValue<crate::scanner::scripted_scanner::ScriptedEntity>>,
     /// Scripted effects - available for rule use (not yet used by any rule)
     #[allow(dead_code)]
     pub(crate) scripted_effects:
-        &'a DashMap<InternedStr, crate::scanner::scripted_scanner::ScriptedEntity>,
-    pub(crate) ideologies: &'a DashMap<InternedStr, crate::scanner::ideology_scanner::Ideology>,
-    pub(crate) sub_ideologies: &'a DashMap<InternedStr, (InternedStr, ast::Range, InternedStr)>,
-    pub(crate) traits: &'a DashMap<InternedStr, crate::scanner::trait_scanner::Trait>,
-    pub(crate) sprites: &'a DashMap<InternedStr, crate::scanner::sprite_scanner::Sprite>,
-    pub(crate) ideas: &'a DashMap<InternedStr, crate::scanner::idea_scanner::Idea>,
+        &'a DashMap<InternedStr, LayeredValue<crate::scanner::scripted_scanner::ScriptedEntity>>,
+    pub(crate) ideologies:
+        &'a DashMap<InternedStr, LayeredValue<crate::scanner::ideology_scanner::Ideology>>,
+    pub(crate) sub_ideologies:
+        &'a DashMap<InternedStr, LayeredValue<(InternedStr, ast::Range, InternedStr)>>,
+    pub(crate) traits: &'a DashMap<InternedStr, LayeredValue<crate::scanner::trait_scanner::Trait>>,
+    pub(crate) sprites:
+        &'a DashMap<InternedStr, LayeredValue<crate::scanner::sprite_scanner::Sprite>>,
+    pub(crate) ideas: &'a DashMap<InternedStr, LayeredValue<crate::scanner::idea_scanner::Idea>>,
     pub(crate) provinces: &'a DashMap<u32, crate::scanner::province_scanner::Province>,
     pub(crate) modifier_mappings: &'a DashMap<InternedStr, String>,
     pub(crate) ignored_loc_regex: &'a [Regex],
     pub(crate) comments: &'a [(String, ast::Range)],
-    pub(crate) sound_effects: &'a DashMap<InternedStr, crate::scanner::sound_scanner::SoundEffect>,
-    pub(crate) country_tags: &'a DashMap<InternedStr, crate::scanner::country_scanner::CountryTag>,
-    pub(crate) buildings: &'a DashMap<InternedStr, building_scanner::Building>,
-    pub(crate) resources: &'a DashMap<InternedStr, crate::scanner::resource_scanner::Resource>,
-    pub(crate) state_categories:
-        &'a DashMap<InternedStr, crate::scanner::state_category_scanner::StateCategory>,
+    pub(crate) sound_effects:
+        &'a DashMap<InternedStr, LayeredValue<crate::scanner::sound_scanner::SoundEffect>>,
+    pub(crate) country_tags:
+        &'a DashMap<InternedStr, LayeredValue<crate::scanner::country_scanner::CountryTag>>,
+    pub(crate) buildings: &'a DashMap<InternedStr, LayeredValue<building_scanner::Building>>,
+    pub(crate) resources:
+        &'a DashMap<InternedStr, LayeredValue<crate::scanner::resource_scanner::Resource>>,
+    pub(crate) state_categories: &'a DashMap<
+        InternedStr,
+        LayeredValue<crate::scanner::state_category_scanner::StateCategory>,
+    >,
     pub(crate) defines: &'a defines_parser::GameDefines,
-    pub(crate) continents: &'a DashMap<InternedStr, crate::scanner::continent_scanner::Continent>,
+    pub(crate) continents:
+        &'a DashMap<InternedStr, LayeredValue<crate::scanner::continent_scanner::Continent>>,
     pub(crate) strategic_regions:
         &'a DashMap<u32, crate::scanner::strategic_region_scanner::StrategicRegion>,
     pub(crate) terrain_categories:
-        &'a DashMap<InternedStr, crate::scanner::terrain_scanner::TerrainCategory>,
-    pub(crate) abilities: &'a DashMap<InternedStr, crate::scanner::ability_scanner::Ability>,
+        &'a DashMap<InternedStr, LayeredValue<crate::scanner::terrain_scanner::TerrainCategory>>,
+    pub(crate) abilities:
+        &'a DashMap<InternedStr, LayeredValue<crate::scanner::ability_scanner::Ability>>,
     pub(crate) game_path: Option<String>,
     pub(crate) styling_enabled: bool,
 }

@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::data::interner::InternedStr;
+    use crate::data::layered_value::LayeredValue;
     use crate::parser::ast::Range;
     use crate::parser::loc_parser::{self, LocEntry};
     use dashmap::DashMap;
@@ -11,7 +12,7 @@ mod tests {
         DashMap::new()
     }
     fn empty_scripted_locs()
-    -> DashMap<InternedStr, crate::scanner::scripted_loc_scanner::ScriptedLoc> {
+    -> DashMap<InternedStr, LayeredValue<crate::scanner::scripted_loc_scanner::ScriptedLoc>> {
         DashMap::new()
     }
     fn empty_color_codes() -> HashSet<String> {

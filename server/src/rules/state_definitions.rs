@@ -1,4 +1,5 @@
 use crate::data::interner::InternedStr;
+use crate::data::layered_value::LayeredValue;
 use crate::parser::ast;
 use crate::rules::{ValidationContext, ValidationRule};
 use crate::scope::scope::ScopeStack;
@@ -162,7 +163,7 @@ fn validate_keys_in_dashmap<T>(
 
 /// Build a comma-separated list of known state categories.
 fn format_known_list(
-    map: &DashMap<InternedStr, crate::scanner::state_category_scanner::StateCategory>,
+    map: &DashMap<InternedStr, LayeredValue<crate::scanner::state_category_scanner::StateCategory>>,
 ) -> String {
     let mut names: Vec<String> = map.iter().map(|e| e.key().to_string()).collect();
     names.sort();

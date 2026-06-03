@@ -14,6 +14,10 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Workspace file watcher to properly track file creations, changes, and deletions.**
 
+### 🔧 Changed
+
+- **VFS refactor:** Refactored the Virtual File System and how it overrides vanilla game files to make it more reliable.
+
 ### 🩹 Fixed
 
 - **Fixed URI-to-file-path conversion for call hierarchy and symbol rename** for Windows users.

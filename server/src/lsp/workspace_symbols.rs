@@ -496,7 +496,7 @@ pub async fn generate_workspace_symbols(
     let sub_ideologies = &data.sub_ideologies;
     for entry in sub_ideologies.iter() {
         let name = entry.key();
-        let (parent, range, path) = entry.value();
+        let (parent, range, path) = entry.value().resolve();
         if fuzzy_match(&query_lower, name) {
             #[allow(deprecated)]
             symbols.push(SymbolInformation {

@@ -965,7 +965,7 @@ impl LanguageServer for Backend {
                 .scanner_data
                 .events
                 .iter()
-                .map(|e| (e.key().to_string(), e.value().clone()))
+                .map(|e| (e.key().to_string(), e.value().resolve().clone()))
                 .collect();
             let json = serde_json::to_value(&events_map).unwrap();
             return Ok(Some(json));

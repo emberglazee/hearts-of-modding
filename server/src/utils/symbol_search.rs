@@ -1,4 +1,5 @@
 use crate::data::interner::InternedStr;
+use crate::data::layered_value::LayeredValue;
 use crate::parser::ast;
 use crate::scanner::achievement_scanner;
 use crate::scope::scope;
@@ -10,7 +11,7 @@ pub fn find_identifier_at(
     script: &ast::Script,
     pos: Position,
     scope_stack: &mut scope::ScopeStack,
-    achievements: &DashMap<InternedStr, achievement_scanner::Achievement>,
+    achievements: &DashMap<InternedStr, LayeredValue<achievement_scanner::Achievement>>,
 ) -> Option<(
     String,
     Vec<scope::Scope>,
@@ -29,7 +30,7 @@ pub fn find_in_entry(
     entry: &ast::Entry,
     pos: Position,
     scope_stack: &mut scope::ScopeStack,
-    achievements: &DashMap<InternedStr, achievement_scanner::Achievement>,
+    achievements: &DashMap<InternedStr, LayeredValue<achievement_scanner::Achievement>>,
     context_key: Option<String>,
 ) -> Option<(
     String,
@@ -87,7 +88,7 @@ pub fn find_in_value(
     val: &ast::NodeedValue,
     pos: Position,
     scope_stack: &mut scope::ScopeStack,
-    achievements: &DashMap<InternedStr, achievement_scanner::Achievement>,
+    achievements: &DashMap<InternedStr, LayeredValue<achievement_scanner::Achievement>>,
     context_key: Option<String>,
 ) -> Option<(
     String,

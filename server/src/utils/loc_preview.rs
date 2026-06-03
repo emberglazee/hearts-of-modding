@@ -1,4 +1,5 @@
 use crate::data::interner::InternedStr;
+use crate::data::layered_value::LayeredValue;
 use crate::parser::loc_parser;
 use base64::{Engine as _, engine::general_purpose};
 use dashmap::DashMap;
@@ -41,7 +42,7 @@ static RE_COLOR: Lazy<regex::Regex> = Lazy::new(|| regex::Regex::new(r"§([a-zA-
 
 pub fn resolve_loc(
     input: &str,
-    localization: &DashMap<InternedStr, loc_parser::LocEntry>,
+    localization: &DashMap<InternedStr, LayeredValue<loc_parser::LocEntry>>,
     depth: u32,
 ) -> String {
     if depth > 10 {
@@ -83,7 +84,7 @@ pub fn build_color_map(data: &crate::ScannerData) -> DashMap<InternedStr, String
 
 pub fn paradox_to_markdown(
     input: &str,
-    localization: Option<&DashMap<InternedStr, loc_parser::LocEntry>>,
+    localization: Option<&DashMap<InternedStr, LayeredValue<loc_parser::LocEntry>>>,
     color_map: Option<&DashMap<InternedStr, String>>,
 ) -> String {
     fn split_leading_punctuation(s: &str) -> (&str, &str) {
@@ -324,10 +325,10 @@ mod tests {
 
     #[test]
     fn test_resolve_loc() {
-        let loc: DashMap<InternedStr, LocEntry> = DashMap::new();
+        let loc: DashMap<InternedStr, LayeredValue<LocEntry>> = DashMap::new();
         loc.insert(
             Arc::from("KEY1"),
-            LocEntry {
+            LayeredValue::new(LocEntry {
                 key: Arc::from("KEY1"),
                 value: "Value 1".to_string(),
                 range: Range {
@@ -340,11 +341,11 @@ mod tests {
                 value_start_col: 0,
                 version: None,
                 version_range: None,
-            },
+            }),
         );
         loc.insert(
             Arc::from("KEY2"),
-            LocEntry {
+            LayeredValue::new(LocEntry {
                 key: Arc::from("KEY2"),
                 value: "Contains $KEY1$".to_string(),
                 range: Range {
@@ -357,7 +358,7 @@ mod tests {
                 value_start_col: 0,
                 version: None,
                 version_range: None,
-            },
+            }),
         );
 
         assert_eq!(resolve_loc("Hello $KEY1$", &loc, 0), "Hello Value 1");
@@ -371,7 +372,7 @@ mod tests {
     #[test]
     fn test_paradox_to_markdown_newlines() {
         use base64::Engine as _;
-        let loc: DashMap<InternedStr, LocEntry> = DashMap::new();
+        let loc: DashMap<InternedStr, LayeredValue<LocEntry>> = DashMap::new();
         let input = "Line 1\\nLine 2";
         let output = paradox_to_markdown(input, Some(&loc), None);
         let decoded = String::from_utf8(

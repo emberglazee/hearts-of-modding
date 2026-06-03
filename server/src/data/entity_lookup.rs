@@ -686,7 +686,7 @@ impl<'a> EntityLookup<'a> {
             let map = &self.data.sub_ideologies;
             for entry in map.iter() {
                 let name = entry.key();
-                let (parent, range, path) = entry.value();
+                let (parent, range, path) = entry.value().resolve();
                 if fuzzy_match(&query_lower, name) {
                     results.push(EntityHit {
                         name: name.to_string(),

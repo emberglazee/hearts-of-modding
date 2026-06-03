@@ -1,4 +1,5 @@
 use crate::data::interner::{InternedStr, Interner};
+use crate::data::layered_value::LayeredValue;
 use crate::parser::ast;
 use crate::parser::defines_parser;
 use crate::parser::loc_parser;
@@ -60,50 +61,60 @@ macro_rules! scanner_vec_field {
 ///
 /// All string keys and path fields are interned (`Arc<str>`) to reduce memory
 /// duplication and make clones cheap (atomic increment).
+///
+/// **VFS layering:** Overlay-able registries (those where a mod file can override
+/// a vanilla file of the same relative path) use `DashMap<InternedStr, LayeredValue<V>>`
+/// instead of `DashMap<InternedStr, V>`. `LayeredValue` preserves ALL layers,
+/// sorted by increasing priority: entry[0] = vanilla, entry[last] = active mod.
+/// Always use `.resolve()` to get the active entry. When a mod file is deleted,
+/// `remove_path!` only removes that file's layer, keeping lower-priority layers.
 pub(crate) struct ScannerData {
     pub interner: Interner,
 
-    // ── DashMap registries (concurrent, lock-free incremental updates) ──
-    pub localization: DashMap<InternedStr, loc_parser::LocEntry>,
-    pub scripted_triggers: DashMap<InternedStr, scripted_scanner::ScriptedEntity>,
-    pub scripted_effects: DashMap<InternedStr, scripted_scanner::ScriptedEntity>,
-    pub ideologies: DashMap<InternedStr, ideology_scanner::Ideology>,
-    pub sub_ideologies: DashMap<InternedStr, (InternedStr, ast::Range, InternedStr)>,
-    pub traits: DashMap<InternedStr, trait_scanner::Trait>,
-    pub sprites: DashMap<InternedStr, sprite_scanner::Sprite>,
-    pub ideas: DashMap<InternedStr, idea_scanner::Idea>,
-    pub characters: DashMap<InternedStr, character_scanner::Character>,
+    // ── DashMap registries (VFS-layered: vanilla → mod) ──
+    // These use LayeredValue to preserve lower-priority layers when
+    // a higher-priority file is deleted.
+    pub localization: DashMap<InternedStr, LayeredValue<loc_parser::LocEntry>>,
+    pub scripted_triggers: DashMap<InternedStr, LayeredValue<scripted_scanner::ScriptedEntity>>,
+    pub scripted_effects: DashMap<InternedStr, LayeredValue<scripted_scanner::ScriptedEntity>>,
+    pub ideologies: DashMap<InternedStr, LayeredValue<ideology_scanner::Ideology>>,
+    pub sub_ideologies: DashMap<InternedStr, LayeredValue<(InternedStr, ast::Range, InternedStr)>>,
+    pub traits: DashMap<InternedStr, LayeredValue<trait_scanner::Trait>>,
+    pub sprites: DashMap<InternedStr, LayeredValue<sprite_scanner::Sprite>>,
+    pub ideas: DashMap<InternedStr, LayeredValue<idea_scanner::Idea>>,
+    pub characters: DashMap<InternedStr, LayeredValue<character_scanner::Character>>,
     pub variables: DashMap<InternedStr, Vec<variable_scanner::Variable>>,
     pub event_targets: DashMap<InternedStr, Vec<variable_scanner::EventTarget>>,
     pub provinces: DashMap<u32, province_scanner::Province>,
-    pub custom_modifiers: DashMap<InternedStr, modifier_scanner::Modifier>,
+    pub custom_modifiers: DashMap<InternedStr, LayeredValue<modifier_scanner::Modifier>>,
     pub modifier_mappings: DashMap<InternedStr, String>,
     pub modifier_formats: DashMap<InternedStr, String>,
-    pub events: DashMap<InternedStr, event_scanner::Event>,
-    pub focuses: DashMap<InternedStr, focus_scanner::Focus>,
-    pub music_assets: DashMap<InternedStr, music_scanner::MusicAsset>,
-    pub music_stations: DashMap<InternedStr, music_scanner::MusicStation>,
-    pub songs: DashMap<InternedStr, music_scanner::Song>,
-    pub sounds: DashMap<InternedStr, sound_scanner::Sound>,
-    pub sound_effects: DashMap<InternedStr, sound_scanner::SoundEffect>,
-    pub falloffs: DashMap<InternedStr, sound_scanner::Falloff>,
-    pub sound_categories: DashMap<InternedStr, sound_scanner::SoundCategory>,
-    pub buildings: DashMap<InternedStr, building_scanner::Building>,
-    pub resources: DashMap<InternedStr, resource_scanner::Resource>,
-    pub state_categories: DashMap<InternedStr, state_category_scanner::StateCategory>,
-    pub achievements: DashMap<InternedStr, achievement_scanner::Achievement>,
-    pub abilities: DashMap<InternedStr, ability_scanner::Ability>,
-    pub ai_strategy_plans: DashMap<InternedStr, ai_strategy_plan_scanner::AiStrategyPlan>,
-    pub ai_areas: DashMap<InternedStr, ai_area_scanner::AiArea>,
-    pub continents: DashMap<InternedStr, continent_scanner::Continent>,
-    pub portraits: DashMap<InternedStr, portrait_scanner::Portrait>,
-    pub scripted_locs: DashMap<InternedStr, scripted_loc_scanner::ScriptedLoc>,
-    pub adjacency_rules: DashMap<InternedStr, adjacency_scanner::AdjacencyRule>,
+    pub events: DashMap<InternedStr, LayeredValue<event_scanner::Event>>,
+    pub focuses: DashMap<InternedStr, LayeredValue<focus_scanner::Focus>>,
+    pub music_assets: DashMap<InternedStr, LayeredValue<music_scanner::MusicAsset>>,
+    pub music_stations: DashMap<InternedStr, LayeredValue<music_scanner::MusicStation>>,
+    pub songs: DashMap<InternedStr, LayeredValue<music_scanner::Song>>,
+    pub sounds: DashMap<InternedStr, LayeredValue<sound_scanner::Sound>>,
+    pub sound_effects: DashMap<InternedStr, LayeredValue<sound_scanner::SoundEffect>>,
+    pub falloffs: DashMap<InternedStr, LayeredValue<sound_scanner::Falloff>>,
+    pub sound_categories: DashMap<InternedStr, LayeredValue<sound_scanner::SoundCategory>>,
+    pub buildings: DashMap<InternedStr, LayeredValue<building_scanner::Building>>,
+    pub resources: DashMap<InternedStr, LayeredValue<resource_scanner::Resource>>,
+    pub state_categories: DashMap<InternedStr, LayeredValue<state_category_scanner::StateCategory>>,
+    pub achievements: DashMap<InternedStr, LayeredValue<achievement_scanner::Achievement>>,
+    pub abilities: DashMap<InternedStr, LayeredValue<ability_scanner::Ability>>,
+    pub ai_strategy_plans:
+        DashMap<InternedStr, LayeredValue<ai_strategy_plan_scanner::AiStrategyPlan>>,
+    pub ai_areas: DashMap<InternedStr, LayeredValue<ai_area_scanner::AiArea>>,
+    pub continents: DashMap<InternedStr, LayeredValue<continent_scanner::Continent>>,
+    pub portraits: DashMap<InternedStr, LayeredValue<portrait_scanner::Portrait>>,
+    pub scripted_locs: DashMap<InternedStr, LayeredValue<scripted_loc_scanner::ScriptedLoc>>,
+    pub adjacency_rules: DashMap<InternedStr, LayeredValue<adjacency_scanner::AdjacencyRule>>,
     pub strategic_regions: DashMap<u32, strategic_region_scanner::StrategicRegion>,
-    pub terrain_categories: DashMap<InternedStr, terrain_scanner::TerrainCategory>,
-    pub balance_of_powers: DashMap<InternedStr, bop_scanner::BalanceOfPower>,
-    pub color_codes: DashMap<InternedStr, gfx_scanner::ColorCode>,
-    pub country_tags: DashMap<InternedStr, country_scanner::CountryTag>,
+    pub terrain_categories: DashMap<InternedStr, LayeredValue<terrain_scanner::TerrainCategory>>,
+    pub balance_of_powers: DashMap<InternedStr, LayeredValue<bop_scanner::BalanceOfPower>>,
+    pub color_codes: DashMap<InternedStr, LayeredValue<gfx_scanner::ColorCode>>,
+    pub country_tags: DashMap<InternedStr, LayeredValue<country_scanner::CountryTag>>,
     pub states: DashMap<u32, state_scanner::State>,
 
     // ── Reverse file-path indices for O(K) incremental updates ──
@@ -267,6 +278,17 @@ impl ScannerData {
             ($map:expr, $index:expr) => {
                 $index.clear();
                 for entry in $map.iter() {
+                    // LayeredValue — take the resolved entry for path tracking
+                    let path = self.interner.intern(entry.value().resolve().path());
+                    $index.entry(path).or_default().push(entry.key().clone());
+                }
+            };
+        }
+
+        macro_rules! rebuild_index_flat {
+            ($map:expr, $index:expr) => {
+                $index.clear();
+                for entry in $map.iter() {
                     let path = self.interner.intern(entry.value().path());
                     $index.entry(path).or_default().push(entry.key().clone());
                 }
@@ -280,7 +302,7 @@ impl ScannerData {
         // sub_ideologies is a tuple (InternedStr, Range, InternedStr) — path is v.2
         self.sub_ideologies_file_index.clear();
         for entry in self.sub_ideologies.iter() {
-            let path = entry.value().2.clone();
+            let path = entry.value().resolve().2.clone();
             self.sub_ideologies_file_index
                 .entry(path)
                 .or_default()
@@ -310,7 +332,7 @@ impl ScannerData {
         rebuild_index!(self.portraits, self.portraits_file_index);
         rebuild_index!(self.scripted_locs, self.scripted_locs_file_index);
         rebuild_index!(self.country_tags, self.country_tags_file_index);
-        rebuild_index!(self.strategic_regions, self.strategic_regions_file_index);
+        rebuild_index_flat!(self.strategic_regions, self.strategic_regions_file_index);
         rebuild_index!(self.terrain_categories, self.terrain_categories_file_index);
         rebuild_index!(self.balance_of_powers, self.balance_of_powers_file_index);
     }

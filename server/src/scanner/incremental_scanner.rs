@@ -54,38 +54,96 @@ fn path_matches(stored: &str, target: &str) -> bool {
 /// - 4-arg: values implement `HasPath` (uses `v.path()` for fallback retain)
 /// - 5-arg: custom path accessor closure `|v| -> &str` for tuple types
 macro_rules! retain_path {
+    // 4-arg: values implement HasPath
     ($map:expr, $index:expr, $path:expr, $new_entries:expr $(,)?) => {{
         let p: &str = $path;
+        // Remove old entries from THIS path only (preserve other layers)
         if let Some((_, old_keys)) = $index.remove(p) {
-            for key in old_keys {
-                $map.remove(&key);
+            for key in &old_keys {
+                let p_inner: &str = p;
+                let empty = match $map.get_mut(key) {
+                    Some(mut value) => {
+                        value
+                            .layers_mut()
+                            .retain(|v| !path_matches(v.path(), p_inner));
+                        value.layers().is_empty()
+                    }
+                    None => false,
+                };
+                if empty {
+                    $map.remove(key);
+                }
             }
         } else {
             let p_owned = p.to_owned();
-            $map.retain(|_, v| !path_matches(v.path(), &p_owned));
+            $map.retain(|_, lv| {
+                lv.layers_mut()
+                    .retain(|v| !path_matches(v.path(), &p_owned));
+                !lv.layers().is_empty()
+            });
         }
+        // Insert new entries — push into LayeredValue (higher priority = last in vec)
         let mut file_keys = Vec::with_capacity($new_entries.len());
         for (key, value) in $new_entries {
             let ik: InternedStr = std::sync::Arc::from(key.as_ref());
-            $map.insert(ik.clone(), value);
+            match $map.get_mut(&ik) {
+                Some(mut existing) => {
+                    existing.push(value);
+                }
+                None => {
+                    $map.insert(
+                        ik.clone(),
+                        crate::data::layered_value::LayeredValue::new(value),
+                    );
+                }
+            }
             file_keys.push(ik);
         }
         $index.insert(std::sync::Arc::from(p), file_keys);
     }};
+    // 5-arg: custom path accessor for tuple types (rarely used)
     ($map:expr, $index:expr, $path:expr, $new_entries:expr, $path_fn:expr $(,)?) => {{
         let p: &str = $path;
+        // Remove old entries from THIS path only (preserve other layers)
         if let Some((_, old_keys)) = $index.remove(p) {
-            for key in old_keys {
-                $map.remove(&key);
+            for key in &old_keys {
+                let p_inner: &str = p;
+                let empty = match $map.get_mut(key) {
+                    Some(mut value) => {
+                        value
+                            .layers_mut()
+                            .retain(|v| !path_matches($path_fn(v), p_inner));
+                        value.layers().is_empty()
+                    }
+                    None => false,
+                };
+                if empty {
+                    $map.remove(key);
+                }
             }
         } else {
             let p_owned = p.to_owned();
-            $map.retain(|_, v| !path_matches($path_fn(v), &p_owned));
+            $map.retain(|_, lv| {
+                lv.layers_mut()
+                    .retain(|v| !path_matches($path_fn(v), &p_owned));
+                !lv.layers().is_empty()
+            });
         }
+        // Insert new entries — push into LayeredValue
         let mut file_keys = Vec::with_capacity($new_entries.len());
         for (key, value) in $new_entries {
             let ik: InternedStr = std::sync::Arc::from(key.as_ref());
-            $map.insert(ik.clone(), value);
+            match $map.get_mut(&ik) {
+                Some(mut existing) => {
+                    existing.push(value);
+                }
+                None => {
+                    $map.insert(
+                        ik.clone(),
+                        crate::data::layered_value::LayeredValue::new(value),
+                    );
+                }
+            }
             file_keys.push(ik);
         }
         $index.insert(std::sync::Arc::from(p), file_keys);
@@ -98,13 +156,27 @@ macro_rules! retain_path {
 macro_rules! remove_path {
     ($map:expr, $index:expr, $path:expr) => {{
         let p: &str = $path;
+        // Remove only layers matching this path — keep other layers alive
         if let Some((_, old_keys)) = $index.remove(p) {
             for key in old_keys {
-                $map.remove(&key);
+                if let ::dashmap::Entry::Occupied(mut entry) = $map.entry(key) {
+                    let p_inner: &str = p;
+                    entry
+                        .get_mut()
+                        .layers_mut()
+                        .retain(|v| !path_matches(v.path(), p_inner));
+                    if entry.get().layers().is_empty() {
+                        entry.remove();
+                    }
+                }
             }
         } else {
             let p_owned = p.to_owned();
-            $map.retain(|_, v| !path_matches(v.path(), &p_owned));
+            $map.retain(|_, lv| {
+                lv.layers_mut()
+                    .retain(|v| !path_matches(v.path(), &p_owned));
+                !lv.layers().is_empty()
+            });
         }
     }};
 }
@@ -405,15 +477,17 @@ fn update_localization(scanner_data: &ScannerData, path_str: &str, content: &str
         parsed
     );
 
-    // Rebuild duplicated_loc_keys from scratch (cheapest after a loc change)
+    // Rebuild duplicated_loc_keys from scratch — check ALL layers
     let mut seen: HashSet<(InternedStr, InternedStr)> = HashSet::new();
     let mut dups: HashSet<(InternedStr, InternedStr)> = HashSet::new();
     for entry in scanner_data.localization.iter() {
-        let pair = (entry.value().path.clone(), entry.value().key.clone());
-        if seen.contains(&pair) {
-            dups.insert(pair);
-        } else {
-            seen.insert(pair);
+        for layer in entry.value().layers() {
+            let pair = (layer.path.clone(), layer.key.clone());
+            if seen.contains(&pair) {
+                dups.insert(pair);
+            } else {
+                seen.insert(pair);
+            }
         }
     }
     scanner_data.duplicated_loc_keys.clear();
@@ -549,18 +623,39 @@ fn update_ideologies(scanner_data: &ScannerData, path_str: &str, script: &ast::S
     // sub_ideologies is a tuple (String, Range, String) — handle manually
     // since tuples can't implement HasPath or use the retain_path! macro
     if let Some((_, old_keys)) = scanner_data.sub_ideologies_file_index.remove(path_str) {
-        for key in old_keys {
-            scanner_data.sub_ideologies.remove(&key);
+        for key in &old_keys {
+            let empty = match scanner_data.sub_ideologies.get_mut(key) {
+                Some(mut value) => {
+                    let p: &str = path_str;
+                    value.layers_mut().retain(|v| !path_matches(&v.2, p));
+                    value.layers().is_empty()
+                }
+                None => false,
+            };
+            if empty {
+                scanner_data.sub_ideologies.remove(key);
+            }
         }
     } else {
         let p_owned = path_str.to_owned();
-        scanner_data
-            .sub_ideologies
-            .retain(|_, v| !path_matches(&v.2, &p_owned));
+        scanner_data.sub_ideologies.retain(|_, lv| {
+            lv.layers_mut().retain(|v| !path_matches(&v.2, &p_owned));
+            !lv.layers().is_empty()
+        });
     }
     let mut sub_keys = Vec::with_capacity(sub_map.len());
     for (key, value) in sub_map {
-        scanner_data.sub_ideologies.insert(key.clone(), value);
+        match scanner_data.sub_ideologies.get_mut(&key) {
+            Some(mut existing) => {
+                existing.push(value);
+            }
+            None => {
+                scanner_data.sub_ideologies.insert(
+                    key.clone(),
+                    crate::data::layered_value::LayeredValue::new(value),
+                );
+            }
+        }
         sub_keys.push(key);
     }
     scanner_data
@@ -1009,14 +1104,25 @@ pub fn remove_path_from_scanner_data(scanner_data: &ScannerData, path_str: &str)
                 // tuples — handle separately since tuples don't impl HasPath
                 let p: &str = path_str;
                 if let Some((_, old_keys)) = scanner_data.sub_ideologies_file_index.remove(p) {
-                    for key in old_keys {
-                        scanner_data.sub_ideologies.remove(&key);
+                    for key in &old_keys {
+                        let empty = match scanner_data.sub_ideologies.get_mut(key) {
+                            Some(mut value) => {
+                                let p_inner: &str = p;
+                                value.layers_mut().retain(|v| !path_matches(&v.2, p_inner));
+                                value.layers().is_empty()
+                            }
+                            None => false,
+                        };
+                        if empty {
+                            scanner_data.sub_ideologies.remove(key);
+                        }
                     }
                 } else {
                     let p_owned = p.to_owned();
-                    scanner_data
-                        .sub_ideologies
-                        .retain(|_, v| !path_matches(&v.2, &p_owned));
+                    scanner_data.sub_ideologies.retain(|_, lv| {
+                        lv.layers_mut().retain(|v| !path_matches(&v.2, &p_owned));
+                        !lv.layers().is_empty()
+                    });
                 }
             }
             FileCategory::UnitLeaderTraits

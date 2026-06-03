@@ -791,13 +791,15 @@ impl Backend {
                     // Check localization
                     let loc = &self.scanner_data.localization;
                     // Try exact match first, then try keys starting with ID:
-                    let entry: Option<loc_parser::LocEntry> =
-                        loc.get(identifier.as_str()).map(|e| e.clone()).or_else(|| {
+                    let entry: Option<loc_parser::LocEntry> = loc
+                        .get(identifier.as_str())
+                        .map(|e| e.value().resolve().clone())
+                        .or_else(|| {
                             // Find any key that starts with "identifier:"
                             let target = format!("{}:", identifier);
                             loc.iter()
                                 .find(|entry| entry.key().starts_with(&target))
-                                .map(|entry| entry.value().clone())
+                                .map(|entry| entry.value().resolve().clone())
                         });
 
                     if let Some(e) = entry {
@@ -864,7 +866,7 @@ impl Backend {
                     // Check sub-ideologies
                     let sid_map = &self.scanner_data.sub_ideologies;
                     if let Some(entry) = sid_map.get(identifier.as_str()) {
-                        let (parent, _, path) = entry.value();
+                        let (parent, _, path) = entry.value().resolve();
                         push_section(
                             &mut hover_text,
                             &format!(
@@ -1321,7 +1323,7 @@ impl Backend {
                             .scanner_data
                             .localization
                             .iter()
-                            .map(|e| (e.key().to_string(), e.value().clone()))
+                            .map(|e| (e.key().to_string(), e.value().resolve().clone()))
                             .collect();
 
                         let display_service =

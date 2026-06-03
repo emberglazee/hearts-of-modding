@@ -469,7 +469,7 @@ impl Backend {
         let sids = &self.scanner_data.sub_ideologies;
         for entry in sids.iter() {
             let sid = entry.key();
-            let (parent, _, _) = entry.value();
+            let (parent, _, _) = entry.value().resolve();
             items.push(CompletionItem {
                 label: sid.to_string(),
                 kind: Some(CompletionItemKind::ENUM_MEMBER),

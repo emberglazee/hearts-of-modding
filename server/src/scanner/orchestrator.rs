@@ -1,5 +1,6 @@
 use crate::Backend;
 use crate::data::interner::InternedStr;
+use crate::data::layered_value::LayeredValue;
 use crate::parser::defines_parser;
 use crate::parser::loc_parser;
 use crate::scanner::ability_scanner;
@@ -49,6 +50,48 @@ macro_rules! scan_dashmap {
         $self.scanner_data.$field.clear();
         for (k, v) in result {
             $self.scanner_data.$field.insert(k.into(), v);
+        }
+        let count = $self.scanner_data.$field.len();
+        $self
+            .client
+            .log_message(MessageType::INFO, format!($msg, count))
+            .await;
+    }};
+}
+
+/// Layered variant: scans each root separately and pushes into `LayeredValue`,
+/// preserving the VFS layering (later roots = higher priority = last in vec).
+macro_rules! scan_dashmap_layered {
+    ($self:ident, $roots:expr, $scanner_fn:expr, $field:ident, $msg:literal) => {{
+        let filter = $self.get_sync_filter();
+        let roots_owned = $roots.to_vec();
+        let per_root = tokio::task::spawn_blocking(move || {
+            let mut results: Vec<HashMap<String, _>> = Vec::new();
+            for root in &roots_owned {
+                let result = $scanner_fn(std::slice::from_ref(root), &filter);
+                results.push(result);
+            }
+            results
+        })
+        .await
+        .unwrap();
+
+        $self.scanner_data.$field.clear();
+        for root_results in per_root {
+            for (k, v) in root_results {
+                let ik: InternedStr = std::sync::Arc::from(k);
+                match $self.scanner_data.$field.get_mut(&ik) {
+                    Some(mut existing) => {
+                        existing.push(v);
+                    }
+                    None => {
+                        $self
+                            .scanner_data
+                            .$field
+                            .insert(ik, crate::data::layered_value::LayeredValue::new(v));
+                    }
+                }
+            }
         }
         let count = $self.scanner_data.$field.len();
         $self
@@ -150,7 +193,9 @@ impl Backend {
 
         self.scanner_data.adjacency_rules.clear();
         for (k, v) in result.rules {
-            self.scanner_data.adjacency_rules.insert(k.into(), v);
+            self.scanner_data
+                .adjacency_rules
+                .insert(k.into(), LayeredValue::new(v));
         }
         let rules = &self.scanner_data.adjacency_rules;
 
@@ -177,7 +222,7 @@ impl Backend {
     }
 
     pub(crate) async fn scan_terrains(&self, roots: &[std::path::PathBuf]) {
-        scan_dashmap!(
+        scan_dashmap_layered!(
             self,
             roots,
             terrain_scanner::scan_terrains,
@@ -187,7 +232,7 @@ impl Backend {
     }
 
     pub(crate) async fn scan_events(&self, roots: &[std::path::PathBuf]) {
-        scan_dashmap!(
+        scan_dashmap_layered!(
             self,
             roots,
             event_scanner::scan_events,
@@ -197,7 +242,7 @@ impl Backend {
     }
 
     pub(crate) async fn scan_focuses(&self, roots: &[std::path::PathBuf]) {
-        scan_dashmap!(
+        scan_dashmap_layered!(
             self,
             roots,
             focus_scanner::scan_focuses,
@@ -207,7 +252,7 @@ impl Backend {
     }
 
     pub(crate) async fn scan_abilities(&self, roots: &[std::path::PathBuf]) {
-        scan_dashmap!(
+        scan_dashmap_layered!(
             self,
             roots,
             ability_scanner::scan_abilities,
@@ -217,7 +262,7 @@ impl Backend {
     }
 
     pub(crate) async fn scan_ai_strategy_plans(&self, roots: &[std::path::PathBuf]) {
-        scan_dashmap!(
+        scan_dashmap_layered!(
             self,
             roots,
             ai_strategy_plan_scanner::scan_ai_strategy_plans,
@@ -227,7 +272,7 @@ impl Backend {
     }
 
     pub(crate) async fn scan_ai_areas(&self, roots: &[std::path::PathBuf]) {
-        scan_dashmap!(
+        scan_dashmap_layered!(
             self,
             roots,
             ai_area_scanner::scan_ai_areas,
@@ -237,20 +282,32 @@ impl Backend {
     }
 
     pub(crate) async fn scan_continents(&self, roots: &[std::path::PathBuf]) {
+        let _filter = self.get_sync_filter();
         let roots_owned = roots.to_vec();
-        let result = tokio::task::spawn_blocking(move || {
-            let mut all_continents = std::collections::HashMap::new();
+
+        let per_root = tokio::task::spawn_blocking(move || {
+            let mut results: Vec<HashMap<String, _>> = Vec::new();
             for root in &roots_owned {
-                all_continents.extend(continent_scanner::scan_continents(root));
+                results.push(continent_scanner::scan_continents(root));
             }
-            all_continents
+            results
         })
         .await
         .unwrap();
 
         self.scanner_data.continents.clear();
-        for (k, v) in result {
-            self.scanner_data.continents.insert(k.into(), v);
+        for root_results in per_root {
+            for (k, v) in root_results {
+                let ik: InternedStr = std::sync::Arc::from(k);
+                match self.scanner_data.continents.get_mut(&ik) {
+                    Some(mut existing) => existing.push(v),
+                    None => {
+                        self.scanner_data
+                            .continents
+                            .insert(ik, LayeredValue::new(v));
+                    }
+                }
+            }
         }
         let c = &self.scanner_data.continents;
 
@@ -263,7 +320,7 @@ impl Backend {
     }
 
     pub(crate) async fn scan_portraits(&self, roots: &[std::path::PathBuf]) {
-        scan_dashmap!(
+        scan_dashmap_layered!(
             self,
             roots,
             portrait_scanner::scan_portraits,
@@ -275,27 +332,58 @@ impl Backend {
     pub(crate) async fn scan_music(&self, roots: &[std::path::PathBuf]) {
         let filter = self.get_sync_filter();
         let roots_owned = roots.to_vec();
-        let result =
-            tokio::task::spawn_blocking(move || music_scanner::scan_music(&roots_owned, &filter))
-                .await
-                .unwrap();
+
+        let per_root = tokio::task::spawn_blocking(move || {
+            let mut results: Vec<music_scanner::MusicScanResult> = Vec::new();
+            for root in &roots_owned {
+                let result = music_scanner::scan_music(std::slice::from_ref(root), &filter);
+                results.push(result);
+            }
+            results
+        })
+        .await
+        .unwrap();
 
         self.scanner_data.music_assets.clear();
-        for (k, v) in result.assets {
-            self.scanner_data.music_assets.insert(k.into(), v);
-        }
-        let assets = &self.scanner_data.music_assets;
-
         self.scanner_data.music_stations.clear();
-        for (k, v) in result.stations {
-            self.scanner_data.music_stations.insert(k.into(), v);
-        }
-        let stations = &self.scanner_data.music_stations;
-
         self.scanner_data.songs.clear();
-        for (k, v) in result.songs {
-            self.scanner_data.songs.insert(k.into(), v);
+
+        for result in per_root {
+            for (k, v) in result.assets {
+                let ik: InternedStr = std::sync::Arc::from(k);
+                match self.scanner_data.music_assets.get_mut(&ik) {
+                    Some(mut existing) => existing.push(v),
+                    None => {
+                        self.scanner_data
+                            .music_assets
+                            .insert(ik, LayeredValue::new(v));
+                    }
+                }
+            }
+            for (k, v) in result.stations {
+                let ik: InternedStr = std::sync::Arc::from(k);
+                match self.scanner_data.music_stations.get_mut(&ik) {
+                    Some(mut existing) => existing.push(v),
+                    None => {
+                        self.scanner_data
+                            .music_stations
+                            .insert(ik, LayeredValue::new(v));
+                    }
+                }
+            }
+            for (k, v) in result.songs {
+                let ik: InternedStr = std::sync::Arc::from(k);
+                match self.scanner_data.songs.get_mut(&ik) {
+                    Some(mut existing) => existing.push(v),
+                    None => {
+                        self.scanner_data.songs.insert(ik, LayeredValue::new(v));
+                    }
+                }
+            }
         }
+
+        let assets = &self.scanner_data.music_assets;
+        let stations = &self.scanner_data.music_stations;
         let songs = &self.scanner_data.songs;
 
         self.client
@@ -314,33 +402,69 @@ impl Backend {
     pub(crate) async fn scan_sounds(&self, roots: &[std::path::PathBuf]) {
         let filter = self.get_sync_filter();
         let roots_owned = roots.to_vec();
-        let result =
-            tokio::task::spawn_blocking(move || sound_scanner::scan_sounds(&roots_owned, &filter))
-                .await
-                .unwrap();
+
+        let per_root = tokio::task::spawn_blocking(move || {
+            let mut results: Vec<sound_scanner::SoundScanResult> = Vec::new();
+            for root in &roots_owned {
+                let result = sound_scanner::scan_sounds(std::slice::from_ref(root), &filter);
+                results.push(result);
+            }
+            results
+        })
+        .await
+        .unwrap();
 
         self.scanner_data.sounds.clear();
-        for (k, v) in result.sounds {
-            self.scanner_data.sounds.insert(k.into(), v);
-        }
-        let sounds = &self.scanner_data.sounds;
-
         self.scanner_data.sound_effects.clear();
-        for (k, v) in result.sound_effects {
-            self.scanner_data.sound_effects.insert(k.into(), v);
-        }
-        let effects = &self.scanner_data.sound_effects;
-
         self.scanner_data.falloffs.clear();
-        for (k, v) in result.falloffs {
-            self.scanner_data.falloffs.insert(k.into(), v);
-        }
-        let falloffs = &self.scanner_data.falloffs;
-
         self.scanner_data.sound_categories.clear();
-        for (k, v) in result.categories {
-            self.scanner_data.sound_categories.insert(k.into(), v);
+
+        for result in per_root {
+            for (k, v) in result.sounds {
+                let ik: InternedStr = std::sync::Arc::from(k);
+                match self.scanner_data.sounds.get_mut(&ik) {
+                    Some(mut existing) => existing.push(v),
+                    None => {
+                        self.scanner_data.sounds.insert(ik, LayeredValue::new(v));
+                    }
+                }
+            }
+            for (k, v) in result.sound_effects {
+                let ik: InternedStr = std::sync::Arc::from(k);
+                match self.scanner_data.sound_effects.get_mut(&ik) {
+                    Some(mut existing) => existing.push(v),
+                    None => {
+                        self.scanner_data
+                            .sound_effects
+                            .insert(ik, LayeredValue::new(v));
+                    }
+                }
+            }
+            for (k, v) in result.falloffs {
+                let ik: InternedStr = std::sync::Arc::from(k);
+                match self.scanner_data.falloffs.get_mut(&ik) {
+                    Some(mut existing) => existing.push(v),
+                    None => {
+                        self.scanner_data.falloffs.insert(ik, LayeredValue::new(v));
+                    }
+                }
+            }
+            for (k, v) in result.categories {
+                let ik: InternedStr = std::sync::Arc::from(k);
+                match self.scanner_data.sound_categories.get_mut(&ik) {
+                    Some(mut existing) => existing.push(v),
+                    None => {
+                        self.scanner_data
+                            .sound_categories
+                            .insert(ik, LayeredValue::new(v));
+                    }
+                }
+            }
         }
+
+        let sounds = &self.scanner_data.sounds;
+        let effects = &self.scanner_data.sound_effects;
+        let falloffs = &self.scanner_data.falloffs;
         let categories = &self.scanner_data.sound_categories;
 
         self.client
@@ -360,22 +484,39 @@ impl Backend {
     pub(crate) async fn scan_modifiers(&self, roots: &[std::path::PathBuf]) {
         let filter = self.get_sync_filter();
         let roots_owned = roots.to_vec();
-        let result = tokio::task::spawn_blocking(move || {
-            modifier_scanner::scan_modifiers(&roots_owned, &filter)
+
+        let per_root = tokio::task::spawn_blocking(move || {
+            let mut results: Vec<modifier_scanner::ModifierResult> = Vec::new();
+            for root in &roots_owned {
+                let result = modifier_scanner::scan_modifiers(std::slice::from_ref(root), &filter);
+                results.push(result);
+            }
+            results
         })
         .await
         .unwrap();
 
         self.scanner_data.custom_modifiers.clear();
-        for (k, v) in result.custom_modifiers {
-            self.scanner_data.custom_modifiers.insert(k.into(), v);
-        }
-        let custom = &self.scanner_data.custom_modifiers;
-
         self.scanner_data.modifier_mappings.clear();
-        for (k, v) in result.builtin_mappings {
-            self.scanner_data.modifier_mappings.insert(k.into(), v);
+
+        for result in per_root {
+            for (k, v) in result.custom_modifiers {
+                let ik: InternedStr = std::sync::Arc::from(k);
+                match self.scanner_data.custom_modifiers.get_mut(&ik) {
+                    Some(mut existing) => existing.push(v),
+                    None => {
+                        self.scanner_data
+                            .custom_modifiers
+                            .insert(ik, LayeredValue::new(v));
+                    }
+                }
+            }
+            for (k, v) in result.builtin_mappings {
+                self.scanner_data.modifier_mappings.insert(k.into(), v);
+            }
         }
+
+        let custom = &self.scanner_data.custom_modifiers;
         let mappings = &self.scanner_data.modifier_mappings;
 
         self.client
@@ -391,7 +532,7 @@ impl Backend {
     }
 
     pub(crate) async fn scan_buildings(&self, roots: &[std::path::PathBuf]) {
-        scan_dashmap!(
+        scan_dashmap_layered!(
             self,
             roots,
             building_scanner::scan_buildings,
@@ -401,7 +542,7 @@ impl Backend {
     }
 
     pub(crate) async fn scan_resources(&self, roots: &[std::path::PathBuf]) {
-        scan_dashmap!(
+        scan_dashmap_layered!(
             self,
             roots,
             resource_scanner::scan_resources,
@@ -411,7 +552,7 @@ impl Backend {
     }
 
     pub(crate) async fn scan_state_categories(&self, roots: &[std::path::PathBuf]) {
-        scan_dashmap!(
+        scan_dashmap_layered!(
             self,
             roots,
             state_category_scanner::scan_state_categories,
@@ -421,7 +562,7 @@ impl Backend {
     }
 
     pub(crate) async fn scan_achievements(&self, roots: &[std::path::PathBuf]) {
-        scan_dashmap!(
+        scan_dashmap_layered!(
             self,
             roots,
             achievement_scanner::scan_achievements,
@@ -431,7 +572,7 @@ impl Backend {
     }
 
     pub(crate) async fn scan_balance_of_powers(&self, roots: &[std::path::PathBuf]) {
-        scan_dashmap!(
+        scan_dashmap_layered!(
             self,
             roots,
             bop_scanner::scan_balance_of_powers,
@@ -501,8 +642,8 @@ impl Backend {
         let filter = self.get_sync_filter();
         let roots_owned = roots.to_vec();
 
-        let (all_locs, dups, game_keys, logs) = tokio::task::spawn_blocking(move || {
-            let mut all_locs = HashMap::new();
+        let (per_root_locs, dups, game_keys, logs) = tokio::task::spawn_blocking(move || {
+            let mut per_root_locs: Vec<HashMap<InternedStr, loc_parser::LocEntry>> = Vec::new();
             let mut dups = HashSet::new();
             let mut game_keys = HashSet::new();
             let mut seen_locs_by_lang: HashSet<(String, InternedStr)> = HashSet::new();
@@ -513,6 +654,7 @@ impl Backend {
                 let is_game_root = has_game_root && root_idx == 0;
                 let loc_dir = root.join("localisation");
                 if !loc_dir.exists() {
+                    per_root_locs.push(HashMap::new());
                     continue;
                 }
 
@@ -532,6 +674,7 @@ impl Backend {
                     }
                 });
 
+                let mut root_locs = HashMap::new();
                 for path in files_to_scan {
                     match std::fs::read_to_string(&path) {
                         Ok(content) => {
@@ -565,7 +708,7 @@ impl Backend {
                                 } else {
                                     seen_locs_by_lang.insert(lang_key_pair);
                                 }
-                                all_locs.insert(key, entry);
+                                root_locs.insert(key, entry);
                             }
                         }
                         Err(e) => {
@@ -576,8 +719,9 @@ impl Backend {
                         }
                     }
                 }
+                per_root_locs.push(root_locs);
             }
-            (all_locs, dups, game_keys, logs)
+            (per_root_locs, dups, game_keys, logs)
         })
         .await
         .unwrap();
@@ -601,8 +745,17 @@ impl Backend {
         let game_loc_count = self.scanner_data.game_loc_keys.len();
 
         self.scanner_data.localization.clear();
-        for (k, v) in all_locs {
-            self.scanner_data.localization.insert(k, v);
+        for root_locs in per_root_locs {
+            for (k, v) in root_locs {
+                match self.scanner_data.localization.get_mut(&k) {
+                    Some(mut existing) => existing.push(v),
+                    None => {
+                        self.scanner_data
+                            .localization
+                            .insert(k, LayeredValue::new(v));
+                    }
+                }
+            }
         }
         let loc = &self.scanner_data.localization;
         self.client
@@ -621,50 +774,76 @@ impl Backend {
         let filter = self.get_sync_filter();
         let roots_owned = roots.to_vec();
 
-        let (all_triggers, all_effects, all_locs) = tokio::task::spawn_blocking(move || {
-            let mut all_triggers = HashMap::new();
-            let mut all_effects = HashMap::new();
-            let mut all_locs = HashMap::new();
-
+        let per_root = tokio::task::spawn_blocking(move || {
+            let mut results: Vec<(HashMap<String, _>, HashMap<String, _>, HashMap<String, _>)> =
+                Vec::new();
             for root in &roots_owned {
+                let mut triggers = HashMap::new();
+                let mut effects = HashMap::new();
+                let mut locs = HashMap::new();
+
                 let triggers_dir = root.join("common/scripted_triggers");
                 let effects_dir = root.join("common/scripted_effects");
                 let locs_dir = root.join("common/scripted_localisation");
 
                 if triggers_dir.exists() {
-                    let found = scripted_scanner::scan_directory(&triggers_dir, &filter);
-                    all_triggers.extend(found);
+                    triggers = scripted_scanner::scan_directory(&triggers_dir, &filter);
                 }
                 if effects_dir.exists() {
-                    let found = scripted_scanner::scan_directory(&effects_dir, &filter);
-                    all_effects.extend(found);
+                    effects = scripted_scanner::scan_directory(&effects_dir, &filter);
                 }
                 if locs_dir.exists() {
-                    let found = scripted_loc_scanner::scan_directory(&locs_dir, &filter);
-                    all_locs.extend(found);
+                    locs = scripted_loc_scanner::scan_directory(&locs_dir, &filter);
                 }
+                results.push((triggers, effects, locs));
             }
-            (all_triggers, all_effects, all_locs)
+            results
         })
         .await
         .unwrap();
 
         self.scanner_data.scripted_triggers.clear();
-        for (k, v) in all_triggers {
-            self.scanner_data.scripted_triggers.insert(k.into(), v);
-        }
-        let t_map = &self.scanner_data.scripted_triggers;
-
         self.scanner_data.scripted_effects.clear();
-        for (k, v) in all_effects {
-            self.scanner_data.scripted_effects.insert(k.into(), v);
-        }
-        let e_map = &self.scanner_data.scripted_effects;
-
         self.scanner_data.scripted_locs.clear();
-        for (k, v) in all_locs {
-            self.scanner_data.scripted_locs.insert(k.into(), v);
+
+        for (triggers, effects, locs) in per_root {
+            for (k, v) in triggers {
+                let ik: InternedStr = std::sync::Arc::from(k);
+                match self.scanner_data.scripted_triggers.get_mut(&ik) {
+                    Some(mut existing) => existing.push(v),
+                    None => {
+                        self.scanner_data
+                            .scripted_triggers
+                            .insert(ik, LayeredValue::new(v));
+                    }
+                }
+            }
+            for (k, v) in effects {
+                let ik: InternedStr = std::sync::Arc::from(k);
+                match self.scanner_data.scripted_effects.get_mut(&ik) {
+                    Some(mut existing) => existing.push(v),
+                    None => {
+                        self.scanner_data
+                            .scripted_effects
+                            .insert(ik, LayeredValue::new(v));
+                    }
+                }
+            }
+            for (k, v) in locs {
+                let ik: InternedStr = std::sync::Arc::from(k);
+                match self.scanner_data.scripted_locs.get_mut(&ik) {
+                    Some(mut existing) => existing.push(v),
+                    None => {
+                        self.scanner_data
+                            .scripted_locs
+                            .insert(ik, LayeredValue::new(v));
+                    }
+                }
+            }
         }
+
+        let t_map = &self.scanner_data.scripted_triggers;
+        let e_map = &self.scanner_data.scripted_effects;
         let l_map = &self.scanner_data.scripted_locs;
 
         self.client
@@ -684,15 +863,14 @@ impl Backend {
         let filter = self.get_sync_filter();
         let roots_owned = roots.to_vec();
 
-        let (all_results, sub_map) = tokio::task::spawn_blocking(move || {
-            let mut all_results = HashMap::new();
-            let mut sub_map = HashMap::new();
-
+        let per_root = tokio::task::spawn_blocking(move || {
+            let mut results: Vec<(HashMap<String, _>, HashMap<String, _>)> = Vec::new();
             for root in &roots_owned {
                 let dir = root.join("common/ideologies");
                 if dir.exists() {
-                    let results = ideology_scanner::scan_ideologies(&dir, &filter);
-                    for ideology in results.values() {
+                    let ideologies = ideology_scanner::scan_ideologies(&dir, &filter);
+                    let mut sub_map = HashMap::new();
+                    for ideology in ideologies.values() {
                         for (sub, range) in &ideology.sub_ideology_ranges {
                             sub_map.insert(
                                 sub.clone(),
@@ -700,26 +878,46 @@ impl Backend {
                             );
                         }
                     }
-                    all_results.extend(results);
+                    results.push((ideologies, sub_map));
+                } else {
+                    results.push((HashMap::new(), HashMap::new()));
                 }
             }
-            (all_results, sub_map)
+            results
         })
         .await
         .unwrap();
 
         self.scanner_data.ideologies.clear();
-        for (k, v) in all_results {
-            self.scanner_data.ideologies.insert(k.into(), v);
-        }
-        let i_map = &self.scanner_data.ideologies;
-
         self.scanner_data.sub_ideologies.clear();
-        for (k, v) in sub_map {
-            self.scanner_data
-                .sub_ideologies
-                .insert(k.into(), (v.0.into(), v.1, v.2));
+
+        for (ideologies, sub_map) in per_root {
+            for (k, v) in ideologies {
+                let ik: InternedStr = std::sync::Arc::from(k);
+                match self.scanner_data.ideologies.get_mut(&ik) {
+                    Some(mut existing) => existing.push(v),
+                    None => {
+                        self.scanner_data
+                            .ideologies
+                            .insert(ik, LayeredValue::new(v));
+                    }
+                }
+            }
+            for (k, v) in sub_map {
+                let ik: InternedStr = std::sync::Arc::from(k);
+                let wrapped = (InternedStr::from(v.0), v.1, InternedStr::from(v.2));
+                match self.scanner_data.sub_ideologies.get_mut(&ik) {
+                    Some(mut existing) => existing.push(wrapped),
+                    None => {
+                        self.scanner_data
+                            .sub_ideologies
+                            .insert(ik, LayeredValue::new(wrapped));
+                    }
+                }
+            }
         }
+
+        let i_map = &self.scanner_data.ideologies;
         let s_map = &self.scanner_data.sub_ideologies;
 
         self.client
@@ -738,14 +936,15 @@ impl Backend {
         let filter = self.get_sync_filter();
         let roots_owned = roots.to_vec();
 
-        let all_traits = tokio::task::spawn_blocking(move || {
-            let mut all_traits = HashMap::new();
+        let per_root = tokio::task::spawn_blocking(move || {
+            let mut results: Vec<HashMap<String, _>> = Vec::new();
             for root in &roots_owned {
+                let mut root_traits = HashMap::new();
                 let unit_leader_dir = root.join("common/unit_leader");
                 if unit_leader_dir.exists() {
                     let found =
                         trait_scanner::scan_traits(&unit_leader_dir, "Unit Leader Trait", &filter);
-                    all_traits.extend(found);
+                    root_traits.extend(found);
                 }
 
                 let country_leader_dir = root.join("common/country_leader");
@@ -755,23 +954,32 @@ impl Backend {
                         "Country Leader Trait",
                         &filter,
                     );
-                    all_traits.extend(found);
+                    root_traits.extend(found);
                 }
 
                 let trait_dir = root.join("common/traits");
                 if trait_dir.exists() {
                     let found = trait_scanner::scan_traits(&trait_dir, "Trait", &filter);
-                    all_traits.extend(found);
+                    root_traits.extend(found);
                 }
+                results.push(root_traits);
             }
-            all_traits
+            results
         })
         .await
         .unwrap();
 
         self.scanner_data.traits.clear();
-        for (k, v) in all_traits {
-            self.scanner_data.traits.insert(k.into(), v);
+        for root_results in per_root {
+            for (k, v) in root_results {
+                let ik: InternedStr = std::sync::Arc::from(k);
+                match self.scanner_data.traits.get_mut(&ik) {
+                    Some(mut existing) => existing.push(v),
+                    None => {
+                        self.scanner_data.traits.insert(ik, LayeredValue::new(v));
+                    }
+                }
+            }
         }
         let t_map = &self.scanner_data.traits;
 
@@ -787,23 +995,32 @@ impl Backend {
         let filter = self.get_sync_filter();
         let roots_owned = roots.to_vec();
 
-        let all_sprites = tokio::task::spawn_blocking(move || {
-            let mut all_sprites = HashMap::new();
+        let per_root = tokio::task::spawn_blocking(move || {
+            let mut results: Vec<HashMap<String, _>> = Vec::new();
             for root in &roots_owned {
                 let interface_dir = root.join("interface");
                 if interface_dir.exists() {
-                    let found = sprite_scanner::scan_sprites(&interface_dir, &filter);
-                    all_sprites.extend(found);
+                    results.push(sprite_scanner::scan_sprites(&interface_dir, &filter));
+                } else {
+                    results.push(HashMap::new());
                 }
             }
-            all_sprites
+            results
         })
         .await
         .unwrap();
 
         self.scanner_data.sprites.clear();
-        for (k, v) in all_sprites {
-            self.scanner_data.sprites.insert(k.into(), v);
+        for root_results in per_root {
+            for (k, v) in root_results {
+                let ik: InternedStr = std::sync::Arc::from(k);
+                match self.scanner_data.sprites.get_mut(&ik) {
+                    Some(mut existing) => existing.push(v),
+                    None => {
+                        self.scanner_data.sprites.insert(ik, LayeredValue::new(v));
+                    }
+                }
+            }
         }
         let s_map = &self.scanner_data.sprites;
 
@@ -816,7 +1033,7 @@ impl Backend {
     }
 
     pub(crate) async fn scan_characters(&self, roots: &[std::path::PathBuf]) {
-        scan_dashmap!(
+        scan_dashmap_layered!(
             self,
             roots,
             character_scanner::scan_characters,
@@ -829,23 +1046,32 @@ impl Backend {
         let filter = self.get_sync_filter();
         let roots_owned = roots.to_vec();
 
-        let all_ideas = tokio::task::spawn_blocking(move || {
-            let mut all_ideas = HashMap::new();
+        let per_root = tokio::task::spawn_blocking(move || {
+            let mut results: Vec<HashMap<String, _>> = Vec::new();
             for root in &roots_owned {
                 let ideas_dir = root.join("common/ideas");
                 if ideas_dir.exists() {
-                    let found = idea_scanner::scan_ideas(&ideas_dir, &filter);
-                    all_ideas.extend(found);
+                    results.push(idea_scanner::scan_ideas(&ideas_dir, &filter));
+                } else {
+                    results.push(HashMap::new());
                 }
             }
-            all_ideas
+            results
         })
         .await
         .unwrap();
 
         self.scanner_data.ideas.clear();
-        for (k, v) in all_ideas {
-            self.scanner_data.ideas.insert(k.into(), v);
+        for root_results in per_root {
+            for (k, v) in root_results {
+                let ik: InternedStr = std::sync::Arc::from(k);
+                match self.scanner_data.ideas.get_mut(&ik) {
+                    Some(mut existing) => existing.push(v),
+                    None => {
+                        self.scanner_data.ideas.insert(ik, LayeredValue::new(v));
+                    }
+                }
+            }
         }
         let i_map = &self.scanner_data.ideas;
 
@@ -858,7 +1084,7 @@ impl Backend {
     }
 
     pub(crate) async fn scan_gfx(&self, roots: &[std::path::PathBuf]) {
-        scan_dashmap!(
+        scan_dashmap_layered!(
             self,
             roots,
             gfx_scanner::scan_color_codes,
@@ -868,7 +1094,7 @@ impl Backend {
     }
 
     pub(crate) async fn scan_countries(&self, roots: &[std::path::PathBuf]) {
-        scan_dashmap!(
+        scan_dashmap_layered!(
             self,
             roots,
             country_scanner::scan_country_tags,
