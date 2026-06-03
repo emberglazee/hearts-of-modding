@@ -16,7 +16,8 @@ pub(crate) fn default_mod_registry_path() -> Option<PathBuf> {
     #[cfg(target_os = "linux")]
     {
         if let Some(home) = std::env::var_os("HOME") {
-            let path = Path::new(&home).join(".local/share/Paradox Interactive/Hearts of Iron IV/mod");
+            let path =
+                Path::new(&home).join(".local/share/Paradox Interactive/Hearts of Iron IV/mod");
             if path.is_dir() {
                 return Some(path);
             }
@@ -25,7 +26,8 @@ pub(crate) fn default_mod_registry_path() -> Option<PathBuf> {
     #[cfg(target_os = "windows")]
     {
         if let Some(profile) = std::env::var_os("USERPROFILE") {
-            let path = Path::new(&profile).join("Documents/Paradox Interactive/Hearts of Iron IV/mod");
+            let path =
+                Path::new(&profile).join("Documents/Paradox Interactive/Hearts of Iron IV/mod");
             if path.is_dir() {
                 return Some(path);
             }
@@ -47,7 +49,10 @@ pub(crate) fn default_mod_registry_path() -> Option<PathBuf> {
 fn extract_mod_name(content: &str) -> Option<String> {
     for line in content.lines() {
         let trimmed = line.trim();
-        if let Some(value) = trimmed.strip_prefix("name=").or_else(|| trimmed.strip_prefix("name = ")) {
+        if let Some(value) = trimmed
+            .strip_prefix("name=")
+            .or_else(|| trimmed.strip_prefix("name = "))
+        {
             let value = value.trim().trim_matches('"').trim().to_string();
             if !value.is_empty() {
                 return Some(value);
@@ -139,10 +144,7 @@ pub(crate) fn parse_dependencies(content: &str) -> Vec<String> {
 
 /// Look up dependency mod names in the registy directory and return their
 /// resolved absolute paths. Only returns paths that actually exist.
-pub(crate) fn resolve_dependency_paths(
-    registry_path: &Path,
-    dep_names: &[String],
-) -> Vec<PathBuf> {
+pub(crate) fn resolve_dependency_paths(registry_path: &Path, dep_names: &[String]) -> Vec<PathBuf> {
     // Short-circuit if there's nothing to resolve
     if dep_names.is_empty() {
         return Vec::new();
@@ -237,7 +239,8 @@ supported_version = "1.14.*""#;
     #[test]
     fn test_extract_mod_path_relative() {
         let content = r#"path = "mod/testmod""#;
-        let registry = Path::new("/home/user/.local/share/Paradox Interactive/Hearts of Iron IV/mod");
+        let registry =
+            Path::new("/home/user/.local/share/Paradox Interactive/Hearts of Iron IV/mod");
         let result = extract_mod_path(content, registry);
         assert_eq!(
             result,
@@ -253,7 +256,10 @@ supported_version = "1.14.*""#;
         let content = r#"path = "/absolute/path/to/mod""#;
         let registry = Path::new("/some/registry");
         let result = extract_mod_path(content, registry);
-        assert_eq!(result, Some(Path::new("/absolute/path/to/mod").to_path_buf()));
+        assert_eq!(
+            result,
+            Some(Path::new("/absolute/path/to/mod").to_path_buf())
+        );
     }
 
     #[test]
@@ -266,8 +272,10 @@ supported_version = "1.15.*""#;
     #[test]
     fn test_resolve_dependency_paths_no_registry() {
         // Registry path that doesn't exist should yield empty results
-        let result =
-            resolve_dependency_paths(Path::new("/nonexistent/registry"), &["Something".to_string()]);
+        let result = resolve_dependency_paths(
+            Path::new("/nonexistent/registry"),
+            &["Something".to_string()],
+        );
         assert!(result.is_empty());
     }
 

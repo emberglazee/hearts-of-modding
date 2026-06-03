@@ -273,8 +273,7 @@ mod tests {
             Path::new("mock/00_terrain.txt"),
             &mut terrains,
         );
-        let terrain_names: std::collections::HashSet<String> =
-            terrains.keys().cloned().collect();
+        let terrain_names: std::collections::HashSet<String> = terrains.keys().cloned().collect();
 
         // 2. Mock definition.csv with provinces using various terrain types
         let mock_def_csv = "\

@@ -212,13 +212,10 @@ impl LanguageServer for Backend {
         }
 
         if game_path_configured {
-            let registry_path = self
-                .config
-                .mod_registry_path()
-                .or_else(|| {
-                    crate::utils::mod_registry::default_mod_registry_path()
-                        .map(|p| p.to_string_lossy().to_string())
-                });
+            let registry_path = self.config.mod_registry_path().or_else(|| {
+                crate::utils::mod_registry::default_mod_registry_path()
+                    .map(|p| p.to_string_lossy().to_string())
+            });
 
             match registry_path {
                 Some(ref reg) => {
@@ -240,8 +237,7 @@ impl LanguageServer for Backend {
                                 if !dep_names.is_empty() {
                                     let resolved =
                                         crate::utils::mod_registry::resolve_dependency_paths(
-                                            reg_path,
-                                            &dep_names,
+                                            reg_path, &dep_names,
                                         );
                                     for resolved_path in &resolved {
                                         roots.push(resolved_path.clone());
@@ -320,11 +316,17 @@ impl LanguageServer for Backend {
             if path_buf.exists() {
                 roots.push(path_buf);
                 self.client
-                    .log_message(MessageType::INFO, format!("Using explicit dependency mod path: {}", dep_path))
+                    .log_message(
+                        MessageType::INFO,
+                        format!("Using explicit dependency mod path: {}", dep_path),
+                    )
                     .await;
             } else {
                 self.client
-                    .log_message(MessageType::WARNING, format!("Explicit dependency mod path does not exist: {}", dep_path))
+                    .log_message(
+                        MessageType::WARNING,
+                        format!("Explicit dependency mod path does not exist: {}", dep_path),
+                    )
                     .await;
             }
         }
@@ -375,7 +377,8 @@ impl LanguageServer for Backend {
         // Collect workspace file paths for rename operations
         // Use the workspace root (last element) — not the game path
         if let Some(workspace_root) = roots.last() {
-            self.collect_workspace_files(std::slice::from_ref(workspace_root)).await;
+            self.collect_workspace_files(std::slice::from_ref(workspace_root))
+                .await;
         }
 
         // Re-validate all open documents now that we have all data
