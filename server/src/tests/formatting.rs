@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use crate::parser::parser;
     use crate::Backend;
+    use crate::parser::parser;
 
     /// Helper: parse content, run collect_assignment_space_fixes, return fixes.
     fn get_fixes(content: &str) -> Vec<(crate::parser::ast::Range, String)> {
@@ -16,7 +16,10 @@ mod tests {
     #[test]
     fn test_no_spaces_around_operator() {
         let fixes = get_fixes("key=value\n");
-        assert!(!fixes.is_empty(), "Expected a fix for 'key=value' (no spaces)");
+        assert!(
+            !fixes.is_empty(),
+            "Expected a fix for 'key=value' (no spaces)"
+        );
         let (_range, text) = &fixes[0];
         assert_eq!(text, " = ", "Should produce ' = ' replacement");
         assert_eq!(_range.start_line, 0);
@@ -40,7 +43,10 @@ mod tests {
     #[test]
     fn test_correct_spacing_no_fix() {
         let fixes = get_fixes("key = value\n");
-        assert!(fixes.is_empty(), "Should NOT produce a fix for 'key = value'");
+        assert!(
+            fixes.is_empty(),
+            "Should NOT produce a fix for 'key = value'"
+        );
     }
 
     #[test]
@@ -68,7 +74,10 @@ mod tests {
     #[test]
     fn test_bool_correct_spacing() {
         let fixes = get_fixes("enable = yes\n");
-        assert!(fixes.is_empty(), "Should NOT produce a fix for correct bool spacing");
+        assert!(
+            fixes.is_empty(),
+            "Should NOT produce a fix for correct bool spacing"
+        );
     }
 
     // ── String values ──
@@ -76,13 +85,19 @@ mod tests {
     #[test]
     fn test_string_no_spaces() {
         let fixes = get_fixes("name=\"my_region\"\n");
-        assert!(!fixes.is_empty(), "Expected a fix for 'name=\"...\"' no spaces");
+        assert!(
+            !fixes.is_empty(),
+            "Expected a fix for 'name=\"...\"' no spaces"
+        );
     }
 
     #[test]
     fn test_string_correct_spacing() {
         let fixes = get_fixes("name = \"my_region\"\n");
-        assert!(fixes.is_empty(), "Should NOT produce a fix for correct string spacing");
+        assert!(
+            fixes.is_empty(),
+            "Should NOT produce a fix for correct string spacing"
+        );
     }
 
     // ── Number values ──
@@ -110,7 +125,10 @@ mod tests {
     #[test]
     fn test_inline_block_correct_spacing() {
         let fixes = get_fixes("provinces = { 1 2 3 }\n");
-        assert!(fixes.is_empty(), "Should NOT produce a fix for correct spacing");
+        assert!(
+            fixes.is_empty(),
+            "Should NOT produce a fix for correct spacing"
+        );
     }
 
     // ── Multi-line blocks ──
@@ -120,14 +138,20 @@ mod tests {
         let content = "strategic_region={\n\tid=1\n\tname=\"foo\"\n}\n";
         let fixes = get_fixes(&content);
         // Should find at least the `strategic_region={...}` issue
-        assert!(!fixes.is_empty(), "Expected fixes for multi-line with no spaces");
+        assert!(
+            !fixes.is_empty(),
+            "Expected fixes for multi-line with no spaces"
+        );
     }
 
     #[test]
     fn test_multiline_block_correct_spacing() {
         let content = "strategic_region = {\n\tid = 1\n\tname = \"foo\"\n}\n";
         let fixes = get_fixes(&content);
-        assert!(fixes.is_empty(), "Should NOT produce fixes for correctly spaced multi-line");
+        assert!(
+            fixes.is_empty(),
+            "Should NOT produce fixes for correctly spaced multi-line"
+        );
     }
 
     // ── Block-level assignment spacing ──
@@ -140,7 +164,11 @@ mod tests {
         // `id= 1` should be a fix (no space before `=`)
         // `name ="foo"` should be a fix (no space after `=`)
         // `provinces= { 1 2 3 }` should also be a fix (no space before `=`)
-        assert_eq!(fixes.len(), 4, "Expected 4 fixes: str_reg, id, name, provinces");
+        assert_eq!(
+            fixes.len(),
+            4,
+            "Expected 4 fixes: str_reg, id, name, provinces"
+        );
     }
 
     // ── Mixed patterns: some correct, some wrong ──
@@ -190,7 +218,10 @@ mod tests {
             + "\t}\n"
             + "}\n";
         let fixes = get_fixes(&content);
-        assert!(fixes.is_empty(), "Expected no fixes for correctly spaced strategic region");
+        assert!(
+            fixes.is_empty(),
+            "Expected no fixes for correctly spaced strategic region"
+        );
     }
 
     // ── Diagnostic emission (via check_assignment_spacing) ──
@@ -215,13 +246,20 @@ mod tests {
             }
             _ => panic!("Expected string code"),
         }
-        assert_eq!(diags[0].severity, Some(tower_lsp_server::ls_types::DiagnosticSeverity::INFORMATION));
+        assert_eq!(
+            diags[0].severity,
+            Some(tower_lsp_server::ls_types::DiagnosticSeverity::INFORMATION)
+        );
     }
 
     #[test]
     fn test_no_diagnostic_for_correct_spacing() {
         let diags = get_assignment_diagnostics("key = value\n");
-        assert_eq!(diags.len(), 0, "Should NOT emit diagnostic for 'key = value'");
+        assert_eq!(
+            diags.len(),
+            0,
+            "Should NOT emit diagnostic for 'key = value'"
+        );
     }
 
     #[test]
@@ -239,7 +277,11 @@ mod tests {
             + "}\n";
         let diags = get_assignment_diagnostics(&content);
         // Same 7 as the fix test
-        assert_eq!(diags.len(), 7, "Expected 7 diagnostics for strategic region with no spaces");
+        assert_eq!(
+            diags.len(),
+            7,
+            "Expected 7 diagnostics for strategic region with no spaces"
+        );
         for d in &diags {
             let code = d.code.as_ref().unwrap();
             match code {
@@ -265,7 +307,11 @@ mod tests {
             + "\t}\n"
             + "}\n";
         let diags = get_assignment_diagnostics(&content);
-        assert_eq!(diags.len(), 0, "Expected 0 diagnostics for correctly spaced strategic region");
+        assert_eq!(
+            diags.len(),
+            0,
+            "Expected 0 diagnostics for correctly spaced strategic region"
+        );
     }
 
     #[test]

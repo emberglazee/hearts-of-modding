@@ -257,12 +257,9 @@ pub fn validate_loc_string(
             if preceding_char == Some('\\') {
                 let range = Range {
                     start_line: entry.range.start_line,
-                    start_col: entry.value_start_col
-                        + line_idx.byte_to_utf16(start_pos),
+                    start_col: entry.value_start_col + line_idx.byte_to_utf16(start_pos),
                     end_line: entry.range.start_line,
-                    end_col: entry.value_start_col
-                        + line_idx.byte_to_utf16(start_pos)
-                        + 1,
+                    end_col: entry.value_start_col + line_idx.byte_to_utf16(start_pos) + 1,
                 };
                 diagnostics.push(LocDiagnostic {
                     range,
@@ -344,9 +341,7 @@ pub fn validate_loc_string(
             if !formatters.contains(&formatter) {
                 let range = Range {
                     start_line: entry.range.start_line,
-                    start_col: entry.value_start_col
-                        + line_idx.byte_to_utf16(start_pos)
-                        + 1,
+                    start_col: entry.value_start_col + line_idx.byte_to_utf16(start_pos) + 1,
                     end_line: entry.range.start_line,
                     end_col: entry.value_start_col
                         + line_idx.byte_to_utf16(start_pos)
@@ -394,8 +389,7 @@ pub fn validate_loc_string(
             if !valid {
                 let range = Range {
                     start_line: entry.range.start_line,
-                    start_col: entry.value_start_col
-                        + line_idx.byte_to_utf16(current_part_start),
+                    start_col: entry.value_start_col + line_idx.byte_to_utf16(current_part_start),
                     end_line: entry.range.start_line,
                     end_col: entry.value_start_col
                         + line_idx.byte_to_utf16(current_part_start)

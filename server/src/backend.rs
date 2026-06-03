@@ -1293,8 +1293,7 @@ impl Backend {
                         if ass.operator_range.start_col > ass.key_range.end_col
                             && ass.value.range.start_col > ass.operator_range.end_col
                         {
-                            let space_before =
-                                ass.operator_range.start_col - ass.key_range.end_col;
+                            let space_before = ass.operator_range.start_col - ass.key_range.end_col;
                             let space_after =
                                 ass.value.range.start_col - ass.operator_range.end_col;
                             if space_before != 1 || space_after != 1 {
