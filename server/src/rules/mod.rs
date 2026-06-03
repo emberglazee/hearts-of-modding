@@ -23,6 +23,7 @@ pub(crate) mod provinces;
 pub(crate) mod sounds;
 pub(crate) mod sprites;
 pub(crate) mod state_definitions;
+pub(crate) mod terrains;
 pub(crate) mod traits;
 
 /// Context passed to validation rules during semantic checking.
@@ -60,6 +61,8 @@ pub(crate) struct ValidationContext<'a> {
     pub(crate) continents: &'a DashMap<InternedStr, crate::scanner::continent_scanner::Continent>,
     pub(crate) strategic_regions:
         &'a DashMap<u32, crate::scanner::strategic_region_scanner::StrategicRegion>,
+    pub(crate) terrain_categories:
+        &'a DashMap<InternedStr, crate::scanner::terrain_scanner::TerrainCategory>,
     pub(crate) abilities: &'a DashMap<InternedStr, crate::scanner::ability_scanner::Ability>,
     pub(crate) game_path: Option<String>,
     pub(crate) styling_enabled: bool,

@@ -173,6 +173,7 @@ impl LanguageServer for Backend {
             self.scan_map_objects(&roots),
             self.scan_adjacencies(&roots),
             self.scan_strategic_regions(&roots),
+            self.scan_terrains(&roots),
             self.scan_modifiers(&roots),
             self.scan_buildings(&roots),
             self.scan_resources(&roots),
@@ -621,8 +622,37 @@ impl LanguageServer for Backend {
                 keywords.insert("blizzard".to_string());
                 keywords.insert("mud".to_string());
                 keywords.insert("sandstorm".to_string());
+                keywords.insert("arctic_water".to_string());
                 keywords.insert("min_snow_level".to_string());
                 keywords.insert("naval_terrain".to_string());
+
+                // Terrain definition keywords (common/terrain/*.txt)
+                keywords.insert("categories".to_string());
+                keywords.insert("color".to_string());
+                keywords.insert("terrain".to_string());
+                keywords.insert("movement_cost".to_string());
+                keywords.insert("is_water".to_string());
+                keywords.insert("sound_type".to_string());
+                keywords.insert("minimum_seazone_dominance".to_string());
+                keywords.insert("combat_width".to_string());
+                keywords.insert("combat_support_width".to_string());
+                keywords.insert("ai_terrain_importance_factor".to_string());
+                keywords.insert("match_value".to_string());
+                keywords.insert("buildings_max_level".to_string());
+                keywords.insert("supply_flow_penalty_factor".to_string());
+                keywords.insert("truck_attrition_factor".to_string());
+                keywords.insert("navy_fuel_consumption_factor".to_string());
+                keywords.insert("units".to_string());
+                keywords.insert("battle_cruiser".to_string());
+                keywords.insert("battleship".to_string());
+                keywords.insert("heavy_cruiser".to_string());
+                keywords.insert("carrier".to_string());
+                keywords.insert("destroyer".to_string());
+                keywords.insert("light_cruiser".to_string());
+                keywords.insert("submarine".to_string());
+                keywords.insert("texture".to_string());
+                keywords.insert("spawn_city".to_string());
+                keywords.insert("perm_snow".to_string());
 
                 // Balance of power definition keywords (common/bop/*.txt)
                 keywords.insert("initial_value".to_string());

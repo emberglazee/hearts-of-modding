@@ -36,6 +36,7 @@ pub enum EntityKind {
     AdjacencyRule,
     BalanceOfPower,
     StrategicRegion,
+    TerrainCategory,
     Portrait,
     Building,
     AiStrategyPlan,
@@ -83,6 +84,7 @@ impl EntityKind {
             | EntityKind::SoundCategory => SymbolKind::PROPERTY,
             EntityKind::AdjacencyRule => SymbolKind::FUNCTION,
             EntityKind::StrategicRegion => SymbolKind::OBJECT,
+            EntityKind::TerrainCategory => SymbolKind::ENUM,
             EntityKind::Portrait => SymbolKind::OBJECT,
             EntityKind::Building => SymbolKind::OBJECT,
             EntityKind::AiArea => SymbolKind::CLASS,
@@ -219,6 +221,8 @@ impl<'a> EntityLookup<'a> {
             }
         }
 
+        try_lookup!(TerrainCategory, terrain_categories);
+
         try_lookup!(Portrait, portraits);
         try_lookup!(ColorCode, color_codes);
         try_lookup!(CountryTag, country_tags);
@@ -350,6 +354,7 @@ impl<'a> EntityLookup<'a> {
         collect_names!(Building, buildings);
         collect_names!(Resource, resources);
         collect_names!(StateCategory, state_categories);
+        collect_names!(TerrainCategory, terrain_categories);
         collect_names!(CountryTag, country_tags);
         collect_names!(ColorCode, color_codes);
 
@@ -709,6 +714,7 @@ impl<'a> EntityLookup<'a> {
         push_symbols!(Ability, abilities, "Ability");
         push_symbols!(Portrait, portraits, "Portrait");
         push_symbols!(ColorCode, color_codes, "Color Code");
+        push_symbols!(TerrainCategory, terrain_categories, "Terrain Category");
         push_symbols!(CountryTag, country_tags, "Country Tag");
         push_symbols!(Building, buildings, "Building");
         push_symbols!(AiStrategyPlan, ai_strategy_plans, "AI Strategy Plan");

@@ -32,6 +32,7 @@ use crate::scanner::sprite_scanner;
 use crate::scanner::state_category_scanner;
 use crate::scanner::state_scanner;
 use crate::scanner::strategic_region_scanner;
+use crate::scanner::terrain_scanner;
 use crate::scanner::trait_scanner;
 use crate::scanner::variable_scanner;
 use arc_swap::ArcSwap;
@@ -99,6 +100,7 @@ pub(crate) struct ScannerData {
     pub scripted_locs: DashMap<InternedStr, scripted_loc_scanner::ScriptedLoc>,
     pub adjacency_rules: DashMap<InternedStr, adjacency_scanner::AdjacencyRule>,
     pub strategic_regions: DashMap<u32, strategic_region_scanner::StrategicRegion>,
+    pub terrain_categories: DashMap<InternedStr, terrain_scanner::TerrainCategory>,
     pub balance_of_powers: DashMap<InternedStr, bop_scanner::BalanceOfPower>,
     pub color_codes: DashMap<InternedStr, gfx_scanner::ColorCode>,
     pub country_tags: DashMap<InternedStr, country_scanner::CountryTag>,
@@ -138,6 +140,7 @@ pub(crate) struct ScannerData {
     pub scripted_locs_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub country_tags_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub strategic_regions_file_index: DashMap<InternedStr, Vec<u32>>,
+    pub terrain_categories_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub balance_of_powers_file_index: DashMap<InternedStr, Vec<InternedStr>>,
 
     // ── DashSet registries ──
@@ -195,6 +198,7 @@ impl ScannerData {
             scripted_locs: DashMap::new(),
             adjacency_rules: DashMap::new(),
             strategic_regions: DashMap::new(),
+            terrain_categories: DashMap::new(),
             balance_of_powers: DashMap::new(),
             color_codes: DashMap::new(),
             country_tags: DashMap::new(),
@@ -229,6 +233,7 @@ impl ScannerData {
             scripted_locs_file_index: DashMap::new(),
             country_tags_file_index: DashMap::new(),
             strategic_regions_file_index: DashMap::new(),
+            terrain_categories_file_index: DashMap::new(),
             balance_of_powers_file_index: DashMap::new(),
             duplicated_loc_keys: DashSet::new(),
             game_loc_keys: DashSet::new(),
@@ -306,6 +311,7 @@ impl ScannerData {
         rebuild_index!(self.scripted_locs, self.scripted_locs_file_index);
         rebuild_index!(self.country_tags, self.country_tags_file_index);
         rebuild_index!(self.strategic_regions, self.strategic_regions_file_index);
+        rebuild_index!(self.terrain_categories, self.terrain_categories_file_index);
         rebuild_index!(self.balance_of_powers, self.balance_of_powers_file_index);
     }
 }

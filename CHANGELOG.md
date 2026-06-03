@@ -6,7 +6,9 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### ✨ Added
 
-- **Balance of Power scanner.**
+- **Balance of Power scanner:** Parsing and highlighting for `common/bop/*.txt` files.
+
+- **Terrain scanner:** Parsing, highlighting, and validation for `common/terrain/*.txt` terrain definitions and their uses for strategic region naval terrain and `definition.csv` province terrain.
 
 ## [v0.14.1] - 2026-06-03
 

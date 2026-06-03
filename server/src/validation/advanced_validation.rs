@@ -21,6 +21,8 @@ pub const UNKNOWN_COUNTRY_METADATA_GFX: &str = "HOM4002";
 pub const UNKNOWN_STATE_CATEGORY: &str = "HOM5001";
 pub const UNKNOWN_RESOURCE: &str = "HOM5002";
 pub const UNKNOWN_BUILDING: &str = "HOM5003";
+pub const UNKNOWN_NAVAL_TERRAIN: &str = "HOM5004";
+pub const UNKNOWN_PROVINCE_TERRAIN: &str = "HOM5005";
 
 #[derive(Debug, Clone)]
 /// Kept for public API compatibility; no longer directly constructed by validation rules.

@@ -485,6 +485,36 @@ impl Backend {
     }
 
     async fn validate_definition_content(&self, content: &str, diagnostics: &mut Vec<Diagnostic>) {
+        // Build known terrain category names from scanned data, falling back to
+        // vanilla HOI4 defaults if no mod/game terrain files were scanned.
+        // This ensures province terrain validation works even without a game path.
+        let terrain_names: HashSet<String> = {
+            let mut names: HashSet<String> = self
+                .scanner_data
+                .terrain_categories
+                .iter()
+                .map(|entry| entry.key().to_string())
+                .collect();
+            if names.is_empty() {
+                // Fallback: vanilla HOI4 terrain categories (stable across versions)
+                names.insert("unknown".to_string());
+                names.insert("ocean".to_string());
+                names.insert("forest".to_string());
+                names.insert("hills".to_string());
+                names.insert("mountain".to_string());
+                names.insert("plains".to_string());
+                names.insert("urban".to_string());
+                names.insert("jungle".to_string());
+                names.insert("marsh".to_string());
+                names.insert("desert".to_string());
+                names.insert("lakes".to_string());
+                names.insert("water_fjords".to_string());
+                names.insert("water_shallow_sea".to_string());
+                names.insert("water_deep_ocean".to_string());
+            }
+            names
+        };
+
         for (i, line) in content.lines().enumerate() {
             let trimmed = line.trim();
             if trimmed.is_empty() || trimmed.starts_with('#') {
@@ -618,6 +648,23 @@ impl Backend {
                     message: "Continent must be an integer".to_string(),
                     ..Default::default()
                 });
+            }
+
+            // Validate terrain column (parts[6]) against known terrain categories
+            if let Some(diag) = check_province_terrain_csv(
+                parts[6],
+                &terrain_names,
+                i as u32,
+                {
+                    let mut col = 0;
+                    for part in parts.iter().take(6) {
+                        col += part.len() as u32 + 1;
+                    }
+                    col
+                },
+                parts[6].len() as u32,
+            ) {
+                diagnostics.push(diag);
             }
         }
     }
@@ -1537,6 +1584,7 @@ impl Backend {
             defines: &defines,
             continents: &self.scanner_data.continents,
             strategic_regions: &self.scanner_data.strategic_regions,
+            terrain_categories: &self.scanner_data.terrain_categories,
             abilities: &self.scanner_data.abilities,
             game_path,
             styling_enabled,
@@ -1559,6 +1607,7 @@ impl Backend {
             Box::new(rules::sounds::SoundRule),
             Box::new(rules::sprites::SpriteRule),
             Box::new(rules::state_definitions::StateDefinitionRule),
+            Box::new(rules::terrains::TerrainRule),
             Box::new(rules::traits::TraitRule),
         ];
 
@@ -1916,5 +1965,100 @@ impl Backend {
                 }
             }
         }
+    }
+}
+
+/// Check a single terrain value from definition.csv against known terrain
+/// categories. Returns `Some(Diagnostic)` if the terrain is unknown.
+pub(crate) fn check_province_terrain_csv(
+    terrain_value: &str,
+    terrain_names: &HashSet<String>,
+    line: u32,
+    col_start: u32,
+    col_len: u32,
+) -> Option<Diagnostic> {
+    let lower = terrain_value.trim().to_lowercase();
+    if !lower.is_empty() && !terrain_names.contains(&lower) {
+        Some(Diagnostic {
+            range: Range {
+                start: Position {
+                    line,
+                    character: col_start,
+                },
+                end: Position {
+                    line,
+                    character: col_start + col_len,
+                },
+            },
+            severity: Some(DiagnosticSeverity::WARNING),
+            message: format!(
+                "Unknown terrain '{}'. Terrains are defined in common/terrain/*.txt",
+                lower,
+            ),
+            code: Some(NumberOrString::String(
+                crate::validation::advanced_validation::UNKNOWN_PROVINCE_TERRAIN.to_string(),
+            )),
+            source: Some("Hearts of Modding".to_string()),
+            ..Default::default()
+        })
+    } else {
+        None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_check_province_terrain_csv_invalid() {
+        let mut names = HashSet::new();
+        names.insert("ocean".to_string());
+        names.insert("forest".to_string());
+        names.insert("plains".to_string());
+
+        // Valid terrain should produce no diagnostic
+        let result = check_province_terrain_csv("ocean", &names, 0, 0, 5);
+        assert!(
+            result.is_none(),
+            "Valid terrain 'ocean' should not produce a diagnostic"
+        );
+
+        let result = check_province_terrain_csv("forest", &names, 1, 20, 6);
+        assert!(
+            result.is_none(),
+            "Valid terrain 'forest' should not produce a diagnostic"
+        );
+
+        // Invalid terrain should be caught
+        let result = check_province_terrain_csv("oceann", &names, 2, 15, 6);
+        assert!(
+            result.is_some(),
+            "Invalid terrain 'oceann' SHOULD produce a diagnostic"
+        );
+        let diag = result.unwrap();
+        assert_eq!(diag.range.start.line, 2);
+        assert_eq!(diag.range.start.character, 15);
+        assert!(diag.message.contains("oceann"));
+        assert_eq!(
+            diag.code,
+            Some(NumberOrString::String(
+                crate::validation::advanced_validation::UNKNOWN_PROVINCE_TERRAIN.to_string()
+            ))
+        );
+
+        // Empty terrain should be ignored (no diagnostic)
+        let result = check_province_terrain_csv("", &names, 3, 0, 0);
+        assert!(
+            result.is_none(),
+            "Empty terrain should not produce a diagnostic"
+        );
+
+        // Whitespace-only terrain should be ignored
+        let result = check_province_terrain_csv("  ", &names, 4, 0, 2);
+        assert!(
+            result.is_none(),
+            "Whitespace terrain should not produce a diagnostic"
+        );
     }
 }

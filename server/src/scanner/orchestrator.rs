@@ -31,6 +31,7 @@ use crate::scanner::sprite_scanner;
 use crate::scanner::state_category_scanner;
 use crate::scanner::state_scanner;
 use crate::scanner::strategic_region_scanner;
+use crate::scanner::terrain_scanner;
 use crate::scanner::trait_scanner;
 use crate::scanner::variable_scanner;
 use std::collections::{HashMap, HashSet};
@@ -172,6 +173,16 @@ impl Backend {
             strategic_region_scanner::scan_strategic_regions,
             strategic_regions,
             "Loaded {} strategic regions"
+        );
+    }
+
+    pub(crate) async fn scan_terrains(&self, roots: &[std::path::PathBuf]) {
+        scan_dashmap!(
+            self,
+            roots,
+            terrain_scanner::scan_terrains,
+            terrain_categories,
+            "Loaded {} terrain categories"
         );
     }
 

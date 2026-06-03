@@ -26,6 +26,7 @@ use crate::scanner::sound_scanner;
 use crate::scanner::sprite_scanner;
 use crate::scanner::state_category_scanner;
 use crate::scanner::strategic_region_scanner;
+use crate::scanner::terrain_scanner;
 use crate::scanner::trait_scanner;
 use crate::scanner::variable_scanner;
 use std::collections::{HashMap, HashSet};
@@ -134,6 +135,7 @@ impl_has_path!(sprite_scanner::Sprite);
 impl_has_path!(variable_scanner::Variable);
 impl_has_path!(variable_scanner::EventTarget);
 impl_has_path!(strategic_region_scanner::StrategicRegion);
+impl_has_path!(terrain_scanner::TerrainCategory);
 impl_has_path!(country_scanner::CountryTag);
 impl_has_path!(bop_scanner::BalanceOfPower);
 
@@ -226,6 +228,11 @@ fn classify_file(path: &str) -> Vec<FileCategory> {
             cats.push(FileCategory::BalanceOfPower);
         }
 
+        // Terrain definitions
+        if lower.contains("/common/terrain/") {
+            cats.push(FileCategory::Terrains);
+        }
+
         // Music song/txt files
         if lower.contains("/music/") {
             cats.push(FileCategory::MusicAssets);
@@ -281,6 +288,7 @@ enum FileCategory {
     Portraits,
     Sprites,
     StrategicRegions,
+    Terrains,
     BalanceOfPower,
 }
 
@@ -357,6 +365,7 @@ fn update_from_ast(
         FileCategory::Portraits => update_portraits(scanner_data, path_str, script),
         FileCategory::Sprites => update_sprites(scanner_data, path_str, script),
         FileCategory::StrategicRegions => update_strategic_regions(scanner_data, path_str, script),
+        FileCategory::Terrains => update_terrains(scanner_data, path_str, script),
         FileCategory::BalanceOfPower => update_balance_of_powers(scanner_data, path_str, script),
         FileCategory::Localization | FileCategory::Defines | FileCategory::Countries => {
             // Handled directly in update_scanner_data_for_file, unreachable here
@@ -886,6 +895,22 @@ fn update_strategic_regions(scanner_data: &ScannerData, path_str: &str, script: 
     scanner_data
         .strategic_regions_file_index
         .insert(std::sync::Arc::from(path_str), file_keys);
+}
+
+fn update_terrains(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
+    let mut new_entries = HashMap::new();
+    terrain_scanner::extract_terrain_categories(
+        &script.entries,
+        Path::new(path_str),
+        &mut new_entries,
+    );
+
+    retain_path!(
+        scanner_data.terrain_categories,
+        scanner_data.terrain_categories_file_index,
+        path_str,
+        new_entries
+    );
 }
 
 fn update_balance_of_powers(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
