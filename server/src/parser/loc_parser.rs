@@ -1,7 +1,7 @@
-use crate::byte_offset_to_utf16;
 use crate::data::interner::InternedStr;
 use crate::data::layered_value::LayeredValue;
 use crate::parser::ast::{DiagnosticSeverity, Range};
+use crate::utils::line_index::LineIndex;
 use dashmap::DashMap;
 use nom::{
     IResult, Parser,
@@ -241,6 +241,10 @@ pub fn validate_loc_string(
         "building_state_modifier",
     ];
 
+    // Precompute a byte→UTF-16 index for this entry's value so that the
+    // many conversions below are O(1) each instead of O(N).
+    let line_idx = LineIndex::new(&entry.value);
+
     // 1. Validate Scopes [Root.GetTag], Variables [?var], Formatters [idea_name|idea_id], etc.
     for cap in RE_SCOPE.captures_iter(&entry.value) {
         let full_match = cap.get(0).unwrap();
@@ -254,10 +258,10 @@ pub fn validate_loc_string(
                 let range = Range {
                     start_line: entry.range.start_line,
                     start_col: entry.value_start_col
-                        + byte_offset_to_utf16(&entry.value, start_pos),
+                        + line_idx.byte_to_utf16(start_pos),
                     end_line: entry.range.start_line,
                     end_col: entry.value_start_col
-                        + byte_offset_to_utf16(&entry.value, start_pos)
+                        + line_idx.byte_to_utf16(start_pos)
                         + 1,
                 };
                 diagnostics.push(LocDiagnostic {
@@ -308,13 +312,13 @@ pub fn validate_loc_string(
                         let range = Range {
                             start_line: entry.range.start_line,
                             start_col: entry.value_start_col
-                                + byte_offset_to_utf16(&entry.value, start_pos)
+                                + line_idx.byte_to_utf16(start_pos)
                                 + 2
                                 + pipe_pos as u32
                                 + formatting.find(c).unwrap_or(0) as u32,
                             end_line: entry.range.start_line,
                             end_col: entry.value_start_col
-                                + byte_offset_to_utf16(&entry.value, start_pos)
+                                + line_idx.byte_to_utf16(start_pos)
                                 + 2
                                 + pipe_pos as u32
                                 + formatting.find(c).unwrap_or(0) as u32
@@ -341,11 +345,11 @@ pub fn validate_loc_string(
                 let range = Range {
                     start_line: entry.range.start_line,
                     start_col: entry.value_start_col
-                        + byte_offset_to_utf16(&entry.value, start_pos)
+                        + line_idx.byte_to_utf16(start_pos)
                         + 1,
                     end_line: entry.range.start_line,
                     end_col: entry.value_start_col
-                        + byte_offset_to_utf16(&entry.value, start_pos)
+                        + line_idx.byte_to_utf16(start_pos)
                         + 1
                         + formatter.len() as u32,
                 };
@@ -391,10 +395,10 @@ pub fn validate_loc_string(
                 let range = Range {
                     start_line: entry.range.start_line,
                     start_col: entry.value_start_col
-                        + byte_offset_to_utf16(&entry.value, current_part_start),
+                        + line_idx.byte_to_utf16(current_part_start),
                     end_line: entry.range.start_line,
                     end_col: entry.value_start_col
-                        + byte_offset_to_utf16(&entry.value, current_part_start)
+                        + line_idx.byte_to_utf16(current_part_start)
                         + part.len() as u32,
                 };
                 diagnostics.push(LocDiagnostic {
@@ -418,9 +422,9 @@ pub fn validate_loc_string(
             diagnostics.push(LocDiagnostic {
                 range: Range {
                     start_line: entry.range.start_line,
-                    start_col: entry.value_start_col + byte_offset_to_utf16(&entry.value, start_pos),
+                    start_col: entry.value_start_col + line_idx.byte_to_utf16(start_pos),
                     end_line: entry.range.start_line,
-                    end_col: entry.value_start_col + byte_offset_to_utf16(&entry.value, start_pos) + 2 + inner.len() as u32,
+                    end_col: entry.value_start_col + line_idx.byte_to_utf16(start_pos) + 2 + inner.len() as u32,
                 },
                 message: "Entirely unrecognized bracket content. Backslash-escaping is not valid in HOI4; remove the brackets or rewrite the text.".to_string(),
                 severity: DiagnosticSeverity::Hint,
@@ -452,14 +456,14 @@ pub fn validate_loc_string(
                     let range = Range {
                         start_line: entry.range.start_line,
                         start_col: entry.value_start_col
-                            + byte_offset_to_utf16(&entry.value, cap.get(0).unwrap().start())
+                            + line_idx.byte_to_utf16(cap.get(0).unwrap().start())
                             + 1
                             + pipe_pos as u32
                             + 1
                             + formatting.find(c).unwrap_or(0) as u32,
                         end_line: entry.range.start_line,
                         end_col: entry.value_start_col
-                            + byte_offset_to_utf16(&entry.value, cap.get(0).unwrap().start())
+                            + line_idx.byte_to_utf16(cap.get(0).unwrap().start())
                             + 1
                             + pipe_pos as u32
                             + 1
@@ -494,9 +498,9 @@ pub fn validate_loc_string(
             if open_color.is_none() {
                 let range = Range {
                     start_line: entry.range.start_line,
-                    start_col: entry.value_start_col + byte_offset_to_utf16(&entry.value, pos),
+                    start_col: entry.value_start_col + line_idx.byte_to_utf16(pos),
                     end_line: entry.range.start_line,
-                    end_col: entry.value_start_col + byte_offset_to_utf16(&entry.value, pos) + 2,
+                    end_col: entry.value_start_col + line_idx.byte_to_utf16(pos) + 2,
                 };
                 diagnostics.push(LocDiagnostic {
                     range,
@@ -514,9 +518,9 @@ pub fn validate_loc_string(
             if !color_codes.contains(code) {
                 let range = Range {
                     start_line: entry.range.start_line,
-                    start_col: entry.value_start_col + byte_offset_to_utf16(&entry.value, pos),
+                    start_col: entry.value_start_col + line_idx.byte_to_utf16(pos),
                     end_line: entry.range.start_line,
-                    end_col: entry.value_start_col + byte_offset_to_utf16(&entry.value, pos) + 2,
+                    end_col: entry.value_start_col + line_idx.byte_to_utf16(pos) + 2,
                 };
                 diagnostics.push(LocDiagnostic {
                     range,
@@ -538,9 +542,9 @@ pub fn validate_loc_string(
     if let Some((code, pos)) = open_color {
         let range = Range {
             start_line: entry.range.start_line,
-            start_col: entry.value_start_col + byte_offset_to_utf16(&entry.value, pos),
+            start_col: entry.value_start_col + line_idx.byte_to_utf16(pos),
             end_line: entry.range.start_line,
-            end_col: entry.value_start_col + byte_offset_to_utf16(&entry.value, pos) + 2,
+            end_col: entry.value_start_col + line_idx.byte_to_utf16(pos) + 2,
         };
         diagnostics.push(LocDiagnostic {
             range,

@@ -1,6 +1,7 @@
 pub mod color_utils;
 pub mod enhanced_color;
 pub mod fs_util;
+pub mod line_index;
 pub mod loc_preview;
 pub mod lsp_convert;
 pub mod map_config;

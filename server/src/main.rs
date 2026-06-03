@@ -41,8 +41,14 @@ pub(crate) static SCOPES: Lazy<Vec<&'static str>> = Lazy::new(data::hoi4_data::g
 pub(crate) static LOC_COMMANDS: Lazy<Vec<&'static str>> =
     Lazy::new(data::hoi4_data::get_loc_commands);
 
-/// Convert a byte offset in a UTF-8 string to a UTF-16 code unit offset
-/// This is required because LSP uses UTF-16 positions, but Rust strings are UTF-8
+/// Convert a byte offset in a UTF-8 string to a UTF-16 code unit offset.
+///
+/// This is required because LSP uses UTF-16 positions, but Rust strings are UTF-8.
+///
+/// **Performance note:** This is O(n) per call. If you need to convert many offsets
+/// within the same string, use [`crate::utils::line_index::LineIndex`] instead,
+/// which precomputes the mapping for O(1) lookups.
+#[allow(dead_code)]
 pub(crate) fn byte_offset_to_utf16(s: &str, byte_offset: usize) -> u32 {
     s[..byte_offset]
         .chars()
@@ -55,8 +61,13 @@ pub(crate) fn utf16_len(s: &str) -> u32 {
     s.chars().map(|c| c.len_utf16()).sum::<usize>() as u32
 }
 
-/// Convert a UTF-16 code unit offset to a UTF-8 byte offset
-/// This is required because LSP uses UTF-16 positions, but Rust strings are UTF-8
+/// Convert a UTF-16 code unit offset to a UTF-8 byte offset.
+///
+/// This is required because LSP uses UTF-16 positions, but Rust strings are UTF-8.
+///
+/// **Performance note:** This is O(n) per call. If you need to convert many offsets
+/// within the same string, use [`crate::utils::line_index::LineIndex`] instead,
+/// which precomputes the mapping for O(1) lookups.
 pub(crate) fn utf16_to_byte_offset(s: &str, utf16_offset: usize) -> usize {
     let mut byte_offset = 0;
     let mut utf16_so_far = 0;

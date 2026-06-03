@@ -2,6 +2,12 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
+## [v0.15.2] - 2026-06-04
+
+### 🔧 Changed
+
+- **Optimized localization string offset calculation.**
+
 ## [v0.15.1] - 2026-06-04
 
 ### 🔧 Changed

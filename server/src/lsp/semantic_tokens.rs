@@ -1,5 +1,5 @@
-use crate::byte_offset_to_utf16;
 use crate::data::entity_lookup::EntityKind;
+use crate::utils::line_index::LineIndex;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
@@ -364,10 +364,14 @@ pub fn loc_semantic_tokens(content: &str) -> SemanticTokensResult {
                     // uses UTF-16 (§ is 2 bytes but 1 code unit, etc.).
                     let value_content = &line[value_start_byte..value_end_byte];
 
+                    // Precompute a byte→UTF-16 index for the full line so that
+                    // the many conversions below are O(1) each instead of O(N).
+                    let line_idx = LineIndex::new(line);
+
                     // Convert a byte offset within value_content to a
                     // UTF-16 column in the full line.
                     let byte_to_col = |rel_byte: usize| -> u32 {
-                        byte_offset_to_utf16(line, value_start_byte + rel_byte)
+                        line_idx.byte_to_utf16(value_start_byte + rel_byte)
                     };
 
                     // Collect all interesting ranges (color codes, scopes, nested keys)
@@ -443,7 +447,7 @@ pub fn loc_semantic_tokens(content: &str) -> SemanticTokensResult {
                     // Closing quote
                     tokens.push(RawToken {
                         line: line_u32,
-                        start: byte_offset_to_utf16(line, value_end_byte),
+                        start: line_idx.byte_to_utf16(value_end_byte),
                         length: 1,
                         token_type: TokenType::String as u32,
                     });
