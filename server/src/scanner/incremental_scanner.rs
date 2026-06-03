@@ -958,7 +958,11 @@ pub fn remove_path_from_scanner_data(scanner_data: &ScannerData, path_str: &str)
                 );
             }
             FileCategory::Events => {
-                remove_path!(scanner_data.events, scanner_data.events_file_index, path_str);
+                remove_path!(
+                    scanner_data.events,
+                    scanner_data.events_file_index,
+                    path_str
+                );
             }
             FileCategory::ScriptedTriggers => {
                 remove_path!(
@@ -1018,7 +1022,11 @@ pub fn remove_path_from_scanner_data(scanner_data: &ScannerData, path_str: &str)
             FileCategory::UnitLeaderTraits
             | FileCategory::CountryLeaderTraits
             | FileCategory::Traits => {
-                remove_path!(scanner_data.traits, scanner_data.traits_file_index, path_str);
+                remove_path!(
+                    scanner_data.traits,
+                    scanner_data.traits_file_index,
+                    path_str
+                );
             }
             FileCategory::Ideas => {
                 remove_path!(scanner_data.ideas, scanner_data.ideas_file_index, path_str);
@@ -1052,7 +1060,11 @@ pub fn remove_path_from_scanner_data(scanner_data: &ScannerData, path_str: &str)
                 );
             }
             FileCategory::AiAreas => {
-                remove_path!(scanner_data.ai_areas, scanner_data.ai_areas_file_index, path_str);
+                remove_path!(
+                    scanner_data.ai_areas,
+                    scanner_data.ai_areas_file_index,
+                    path_str
+                );
             }
             FileCategory::Countries => {
                 remove_path!(
@@ -1091,13 +1103,21 @@ pub fn remove_path_from_scanner_data(scanner_data: &ScannerData, path_str: &str)
                 }
             }
             FileCategory::Sounds => {
-                remove_path!(scanner_data.sounds, scanner_data.sounds_file_index, path_str);
+                remove_path!(
+                    scanner_data.sounds,
+                    scanner_data.sounds_file_index,
+                    path_str
+                );
                 remove_path!(
                     scanner_data.sound_effects,
                     scanner_data.sound_effects_file_index,
                     path_str
                 );
-                remove_path!(scanner_data.falloffs, scanner_data.falloffs_file_index, path_str);
+                remove_path!(
+                    scanner_data.falloffs,
+                    scanner_data.falloffs_file_index,
+                    path_str
+                );
                 remove_path!(
                     scanner_data.sound_categories,
                     scanner_data.sound_categories_file_index,
@@ -1112,7 +1132,11 @@ pub fn remove_path_from_scanner_data(scanner_data: &ScannerData, path_str: &str)
                 );
             }
             FileCategory::Sprites => {
-                remove_path!(scanner_data.sprites, scanner_data.sprites_file_index, path_str);
+                remove_path!(
+                    scanner_data.sprites,
+                    scanner_data.sprites_file_index,
+                    path_str
+                );
             }
             FileCategory::StrategicRegions => {
                 let p: &str = path_str;

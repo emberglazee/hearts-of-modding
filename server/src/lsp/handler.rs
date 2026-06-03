@@ -216,12 +216,10 @@ impl LanguageServer for Backend {
         // Register file watchers so did_change_watched_files fires for
         // external file operations (Git branch switch, rename/delete via
         // VS Code file explorer, etc.)
-        let watchers = vec![
-            FileSystemWatcher {
-                glob_pattern: GlobPattern::String("**/*.{txt,yml,asset,gfx,gui,csv,lua,mod}".into()),
-                kind: Some(WatchKind::Create | WatchKind::Change | WatchKind::Delete),
-            },
-        ];
+        let watchers = vec![FileSystemWatcher {
+            glob_pattern: GlobPattern::String("**/*.{txt,yml,asset,gfx,gui,csv,lua,mod}".into()),
+            kind: Some(WatchKind::Create | WatchKind::Change | WatchKind::Delete),
+        }];
         let registration = Registration {
             id: "hoi4-watched-files".to_string(),
             method: "workspace/didChangeWatchedFiles".to_string(),
@@ -230,11 +228,7 @@ impl LanguageServer for Backend {
                     .unwrap_or_default(),
             ),
         };
-        if let Err(e) = self
-            .client
-            .register_capability(vec![registration])
-            .await
-        {
+        if let Err(e) = self.client.register_capability(vec![registration]).await {
             self.client
                 .log_message(
                     MessageType::WARNING,
