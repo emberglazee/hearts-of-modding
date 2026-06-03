@@ -41,14 +41,16 @@ pub async fn prepare_call_hierarchy(
     position: LspPosition,
     data: &crate::ScannerData,
 ) -> Option<CallHierarchyItem> {
-    let path = uri.trim_start_matches("file://");
+    let parsed_uri = uri.parse::<Uri>().ok()?;
+    let path = parsed_uri.to_file_path()?;
+    let path = path.to_string_lossy();
 
     // Check if position is on an event
     let events = &data.events;
     for entry in events.iter() {
         let id = entry.key();
         let event = entry.value();
-        if &*event.path == path && position_in_range(&position, &event.range) {
+        if &*event.path == path.as_ref() && position_in_range(&position, &event.range) {
             return Some(CallHierarchyItem {
                 name: id.to_string(),
                 kind: SymbolKind::EVENT,
@@ -67,7 +69,7 @@ pub async fn prepare_call_hierarchy(
     for entry in triggers.iter() {
         let name = entry.key();
         let trigger = entry.value();
-        if &*trigger.path == path && position_in_range(&position, &trigger.range) {
+        if &*trigger.path == path.as_ref() && position_in_range(&position, &trigger.range) {
             return Some(CallHierarchyItem {
                 name: name.to_string(),
                 kind: SymbolKind::FUNCTION,
@@ -86,7 +88,7 @@ pub async fn prepare_call_hierarchy(
     for entry in effects.iter() {
         let name = entry.key();
         let effect = entry.value();
-        if &*effect.path == path && position_in_range(&position, &effect.range) {
+        if &*effect.path == path.as_ref() && position_in_range(&position, &effect.range) {
             return Some(CallHierarchyItem {
                 name: name.to_string(),
                 kind: SymbolKind::FUNCTION,
@@ -295,14 +297,16 @@ async fn find_container_symbol(
     range: &Range,
     data: &crate::ScannerData,
 ) -> Option<CallHierarchyItem> {
-    let path = uri.trim_start_matches("file://");
+    let parsed_uri = uri.parse::<Uri>().ok()?;
+    let path = parsed_uri.to_file_path()?;
+    let path = path.to_string_lossy();
 
     // Check events
     let events = &data.events;
     for entry in events.iter() {
         let id = entry.key();
         let event = entry.value();
-        if &*event.path == path && range_contains(&event.range, range) {
+        if &*event.path == path.as_ref() && range_contains(&event.range, range) {
             return Some(CallHierarchyItem {
                 name: id.to_string(),
                 kind: SymbolKind::EVENT,
@@ -321,7 +325,7 @@ async fn find_container_symbol(
     for entry in triggers.iter() {
         let name = entry.key();
         let trigger = entry.value();
-        if &*trigger.path == path && range_contains(&trigger.range, range) {
+        if &*trigger.path == path.as_ref() && range_contains(&trigger.range, range) {
             return Some(CallHierarchyItem {
                 name: name.to_string(),
                 kind: SymbolKind::FUNCTION,
@@ -340,7 +344,7 @@ async fn find_container_symbol(
     for entry in effects.iter() {
         let name = entry.key();
         let effect = entry.value();
-        if &*effect.path == path && range_contains(&effect.range, range) {
+        if &*effect.path == path.as_ref() && range_contains(&effect.range, range) {
             return Some(CallHierarchyItem {
                 name: name.to_string(),
                 kind: SymbolKind::FUNCTION,

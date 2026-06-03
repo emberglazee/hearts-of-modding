@@ -26,9 +26,11 @@ pub async fn prepare_rename(
     position: LspPosition,
     data: &crate::ScannerData,
 ) -> Option<PrepareRenameResponse> {
-    let path = uri.trim_start_matches("file://");
+    let parsed_uri = uri.parse::<Uri>().ok()?;
+    let path = parsed_uri.to_file_path()?;
+    let path_str = path.to_string_lossy();
     let lookup = crate::data::entity_lookup::EntityLookup::new(data);
-    if let Some((_, range, _)) = lookup.entity_at(path, position) {
+    if let Some((_, range, _)) = lookup.entity_at(&path_str, position) {
         return Some(PrepareRenameResponse::Range(range_to_lsp(&range)));
     }
     None
@@ -50,10 +52,12 @@ pub async fn rename_symbol(
     >,
     workspace_files: &DashSet<InternedStr>,
 ) -> Option<WorkspaceEdit> {
-    let path = uri.trim_start_matches("file://");
+    let parsed_uri = uri.parse::<Uri>().ok()?;
+    let path = parsed_uri.to_file_path()?;
+    let path_str = path.to_string_lossy();
 
     // Find what symbol we're renaming
-    let symbol = find_symbol_at_position(path, &position, data).await?;
+    let symbol = find_symbol_at_position(&path_str, &position, data).await?;
 
     // Find all references to this symbol
     let mut changes: HashMap<Uri, Vec<TextEdit>> = HashMap::new();
