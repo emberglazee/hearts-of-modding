@@ -16,6 +16,10 @@ pub enum Scope {
     Achievement,
     Ribbon,
     Idea,
+    /// The `hidden_ideas` category inside `ideas = { }`. Works like
+    /// `country` as a category keyword, except ideas defined within it
+    /// don't show up in the spirit container and don't need a `picture`.
+    HiddenIdeaCategory,
     Unknown,
 }
 
@@ -32,6 +36,7 @@ impl Scope {
             Scope::Achievement => "Achievement",
             Scope::Ribbon => "Ribbon",
             Scope::Idea => "Idea",
+            Scope::HiddenIdeaCategory => "Hidden Idea Category",
             Scope::Unknown => "Unknown",
         }
     }
@@ -43,6 +48,7 @@ impl Scope {
             "music" => Scope::MusicTrack,
             "state" => Scope::State,
             "ideas" => Scope::Idea,
+            "hidden_ideas" => Scope::HiddenIdeaCategory,
             "country"
             | "ger"
             | "eng"

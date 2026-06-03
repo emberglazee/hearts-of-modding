@@ -55,6 +55,11 @@ impl ValidationRule for IdeaRule {
         // not a sub-block like modifier/on_add), excluding structural
         // keywords like `ideas`, `hidden_ideas`, `designer`, `law`.
         if pushed_scope && scope.current() == Scope::Idea && !is_idea_structure_key(&ass.key) {
+            // Skip picture check for ideas within `hidden_ideas` — they
+            // are never displayed in the UI so a picture is unnecessary.
+            if scope.stack().contains(&Scope::HiddenIdeaCategory) {
+                return;
+            }
             if let ast::Value::Block(entries) | ast::Value::TaggedBlock(_, entries, _) =
                 &ass.value.value
             {

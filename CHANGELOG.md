@@ -8,6 +8,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Asynchronous AST updates** to reduce stutter while actively editing a file.
 
+- **Hidden ideas are no longer expected to have a picture.**
+
 ### 🩹 Fixed
 
 - **Fixed an idea picture validation bug which caused the LSP to check for a picture in the wrong (idea category) scope.**
