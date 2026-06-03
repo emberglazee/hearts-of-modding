@@ -251,7 +251,12 @@ impl Backend {
         } else if uri.as_str().contains("/common/strategic_regions/")
             && uri.as_str().ends_with(".txt")
         {
-            if let Some((script, parse_errors)) = self.ensure_ast_cached(uri.as_str()) {
+            // Fall back to direct parsing for files not in the open-document cache
+            // (e.g. workspace scan reads from disk — the file isn't open in the editor)
+            if let Some((script, parse_errors)) = self
+                .ensure_ast_cached(uri.as_str())
+                .or_else(|| Some(self.cache_ast(uri.as_str(), content)))
+            {
                 for (msg, range) in &parse_errors {
                     diagnostics.push(Diagnostic {
                         range: ast_range_to_lsp(range),
@@ -273,7 +278,12 @@ impl Backend {
         } else if uri.as_str().ends_with(".csv") {
             // Do not parse other CSV files as clausewitz scripts
         } else {
-            if let Some((script, parse_errors)) = self.ensure_ast_cached(uri.as_str()) {
+            // Fall back to direct parsing for files not in the open-document cache
+            // (e.g. workspace scan reads from disk — the file isn't open in the editor)
+            if let Some((script, parse_errors)) = self
+                .ensure_ast_cached(uri.as_str())
+                .or_else(|| Some(self.cache_ast(uri.as_str(), content)))
+            {
                 for (msg, range) in &parse_errors {
                     diagnostics.push(Diagnostic {
                         range: ast_range_to_lsp(range),

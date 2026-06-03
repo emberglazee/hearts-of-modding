@@ -14,6 +14,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Fixed the `styling_assignment_space` diagnostic not being emitted.**
 
+- **Fixed workspace scan diagnostics being broken for AST-dependent checks.**
+
 ## [v0.15.1] - 2026-06-04
 
 ### 🔧 Changed
