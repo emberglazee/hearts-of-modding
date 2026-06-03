@@ -147,6 +147,13 @@ export async function activate(context: ExtensionContext) {
                 }
             })
         }
+        if (e.affectsConfiguration('hoi4.modPaths')) {
+            window.showInformationMessage('HOI4 dependency mod paths changed. Reload window to re-index.', 'Reload').then(selection => {
+                if (selection === 'Reload') {
+                    commands.executeCommand('workbench.action.reloadWindow')
+                }
+            })
+        }
         if (e.affectsConfiguration('hoi4.validator.ignoreLocalization')) {
             const newValue = workspace.getConfiguration('hoi4.validator').get('ignoreLocalization')
             client.sendNotification('workspace/didChangeConfiguration', {
@@ -305,6 +312,8 @@ async function startServer(context: ExtensionContext, statusBarItem: StatusBarIt
         outputChannel: outputChannel,
         initializationOptions: {
             gamePath: workspace.getConfiguration('hoi4').get('gamePath'),
+            dependencyModPaths: workspace.getConfiguration('hoi4').get('modPaths'),
+            modRegistryPath: workspace.getConfiguration('hoi4').get('modRegistryPath'),
             ignoreLocalization: workspace.getConfiguration('hoi4.validator').get('ignoreLocalization'),
             ignoreFiles: workspace.getConfiguration('hoi4.validator').get('ignoreFiles'),
             workspaceScanEnabled: workspace.getConfiguration('hoi4.validator.workspaceScan').get('enabled'),

@@ -6,17 +6,21 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### ✨ Added
 
+- ⭐ ***Experimental submod support:*** Introduced a mod discovery system (only activates if the base game path is set) that allows the extension to mimic how HoI4 handles mod dependencies (submods).
+
 - **Balance of Power scanner:** Parsing and highlighting for `common/bop/*.txt` files.
 
 - **Terrain scanner:** Parsing, highlighting, and validation for `common/terrain/*.txt` terrain definitions and their uses for strategic region naval terrain and `definition.csv` province terrain.
 
 - **Centralized AST Visitor:** File edit performance optimization by introducing a centralized AST visitor.
 
-- **Workspace file watcher to properly track file creations, changes, and deletions.**
-
 ### 🔧 Changed
 
-- **VFS refactor:** Refactored the Virtual File System and how it overrides vanilla game files to make it more reliable.
+- **Refactored workspace file watcher** to properly track file creations, changes, and deletions.
+
+- **VFS refactor:** Refactored the Virtual File System and how it overrides existant vanilla files to make it more reliable and allow submod support.
+
+- **Rewrote `README.md`** to better describe the current functionality of the extension.
 
 ### 🩹 Fixed
 

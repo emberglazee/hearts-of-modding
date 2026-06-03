@@ -73,6 +73,24 @@ impl LanguageServer for Backend {
                 self.config.set_cosmetic_loc_indent(enabled);
                 let _ci = self.config.cosmetic_loc_indent();
             }
+            if let Some(dep_paths) = options.get("dependencyModPaths").and_then(|v| v.as_array()) {
+                let mut paths = Vec::new();
+                for val in dep_paths {
+                    if let Some(s) = val.as_str() {
+                        if !s.is_empty() {
+                            paths.push(s.to_string());
+                        }
+                    }
+                }
+                self.config.set_dependency_mod_paths(paths);
+                let _dp = self.config.dependency_mod_paths();
+            }
+            if let Some(path) = options.get("modRegistryPath").and_then(|v| v.as_str()) {
+                if !path.is_empty() {
+                    self.config.set_mod_registry_path(Some(path.to_string()));
+                    let _mrp = self.config.mod_registry_path();
+                }
+            }
         }
         Ok(InitializeResult {
             capabilities: ServerCapabilities {
@@ -148,14 +166,171 @@ impl LanguageServer for Backend {
             .log_message(MessageType::INFO, "server initialized!")
             .await;
 
-        let mut roots = vec![std::path::PathBuf::from(".")];
+        // Build the VFS root stack: game path (lowest priority) → dependency
+        // mods → workspace (highest priority). The scan_dashmap_layered! macro
+        // iterates roots in order, pushing each root's entries into LayeredValue
+        // so that later roots override earlier ones.
+        let mut roots: Vec<std::path::PathBuf> = Vec::new();
+
+        // 1. Game path (vanilla files, lowest priority)
         let gp = self.config.game_path();
+        let game_path_configured = gp.is_some();
         if let Some(ref path) = gp {
-            roots.insert(0, std::path::PathBuf::from(path));
+            roots.push(std::path::PathBuf::from(path));
             self.client
                 .log_message(MessageType::INFO, format!("Using HOI4 game path: {}", path))
                 .await;
         }
+
+        // 2. Auto-discover dependency mods via the Paradox mod registry.
+        //
+        //    Only engages when the user has configured `hoi4.gamePath` — no
+        //    game path means no vanilla HOI4 reference, so dependency mods
+        //    wouldn't be meaningful either.
+        //
+        //    Registry path resolution order:
+        //      a) User-configured `hoi4.modRegistryPath` setting
+        //      b) OS default (`~/.local/share/...`, `~/Documents/...`)
+        //      c) None → no auto-discovery
+        //
+        //    If the registry exists we parse `descriptor.mod` from the workspace
+        //    for `dependencies = { ... }`, then resolve each dependency name
+        //    to a mod directory via `.mod` files in the registry.
+        //
+        // 3. Explicit `hoi4.modPaths` paths — these are inserted AFTER the
+        //    auto-discovered ones, so they take higher priority (but the
+        //    workspace root always wins).
+        // -----------------------------------------------------------------
+
+        if !game_path_configured {
+            self.client
+                .log_message(
+                    MessageType::LOG,
+                    "Game path not configured — skipping auto-discovery of dependency mods",
+                )
+                .await;
+        }
+
+        if game_path_configured {
+            let registry_path = self
+                .config
+                .mod_registry_path()
+                .or_else(|| {
+                    crate::utils::mod_registry::default_mod_registry_path()
+                        .map(|p| p.to_string_lossy().to_string())
+                });
+
+            match registry_path {
+                Some(ref reg) => {
+                    let reg_path = std::path::Path::new(reg);
+                    self.client
+                        .log_message(
+                            MessageType::INFO,
+                            format!("Using Paradox mod registry: {}", reg),
+                        )
+                        .await;
+
+                    // Read the workspace descriptor.mod to find declared dependencies
+                    let descriptor_path = std::path::Path::new("descriptor.mod");
+                    if descriptor_path.exists() {
+                        match std::fs::read_to_string(descriptor_path) {
+                            Ok(content) => {
+                                let dep_names =
+                                    crate::utils::mod_registry::parse_dependencies(&content);
+                                if !dep_names.is_empty() {
+                                    let resolved =
+                                        crate::utils::mod_registry::resolve_dependency_paths(
+                                            reg_path,
+                                            &dep_names,
+                                        );
+                                    for resolved_path in &resolved {
+                                        roots.push(resolved_path.clone());
+                                        self.client
+                                            .log_message(
+                                                MessageType::INFO,
+                                                format!(
+                                                    "Resolved dependency mod: {}",
+                                                    resolved_path.display()
+                                                ),
+                                            )
+                                            .await;
+                                    }
+                                    self.client
+                                        .log_message(
+                                            MessageType::INFO,
+                                            format!(
+                                                "Resolved {}/{} dependency mods from workspace descriptor.mod",
+                                                resolved.len(),
+                                                dep_names.len(),
+                                            ),
+                                        )
+                                        .await;
+                                } else {
+                                    self.client
+                                        .log_message(
+                                            MessageType::INFO,
+                                            "No dependencies found in workspace descriptor.mod",
+                                        )
+                                        .await;
+                                }
+                            }
+                            Err(e) => {
+                                self.client
+                                    .log_message(
+                                        MessageType::WARNING,
+                                        format!("Failed to read descriptor.mod: {}", e),
+                                    )
+                                    .await;
+                            }
+                        }
+                    } else {
+                        self.client
+                            .log_message(
+                                MessageType::LOG,
+                                "No descriptor.mod found in workspace — skipping dependency resolution",
+                            )
+                            .await;
+                    }
+                }
+                None => {
+                    // Game path is configured but we couldn't find a mod registry
+                    self.client
+                        .show_message(
+                            MessageType::WARNING,
+                            "Hearts of Modding: could not find the Paradox Interactive mod registry folder. \
+                             Dependency mods from descriptor.mod won't be resolved. \
+                             Set hoi4.modRegistryPath in settings to point to the correct location, \
+                             or add paths manually via hoi4.modPaths."
+                        )
+                        .await;
+                    self.client
+                        .log_message(
+                            MessageType::WARNING,
+                            "Mod registry not found. Set hoi4.modRegistryPath or add paths via hoi4.modPaths.",
+                        )
+                        .await;
+                }
+            }
+        }
+
+        // 4. Explicit dependency mod paths (higher priority than auto-discovered)
+        let dep_paths = self.config.dependency_mod_paths();
+        for dep_path in dep_paths {
+            let path_buf = std::path::PathBuf::from(&dep_path);
+            if path_buf.exists() {
+                roots.push(path_buf);
+                self.client
+                    .log_message(MessageType::INFO, format!("Using explicit dependency mod path: {}", dep_path))
+                    .await;
+            } else {
+                self.client
+                    .log_message(MessageType::WARNING, format!("Explicit dependency mod path does not exist: {}", dep_path))
+                    .await;
+            }
+        }
+
+        // 5. Workspace root (active mod, highest priority)
+        roots.push(std::path::PathBuf::from("."));
 
         tokio::join!(
             self.scan_localization(&roots),
@@ -198,8 +373,10 @@ impl LanguageServer for Backend {
         self.scanner_data.rebuild_all_file_indices();
 
         // Collect workspace file paths for rename operations
-        // Only scan the mod workspace (first root), not the game path
-        self.collect_workspace_files(&roots[..1]).await;
+        // Use the workspace root (last element) — not the game path
+        if let Some(workspace_root) = roots.last() {
+            self.collect_workspace_files(std::slice::from_ref(workspace_root)).await;
+        }
 
         // Re-validate all open documents now that we have all data
         for entry in self.documents.iter() {

@@ -35,6 +35,8 @@ pub(crate) struct Config {
     styling_enabled_field: AtomicBool,
     cosmetic_loc_indent_field: AtomicBool,
     game_path_field: Arc<arc_swap::ArcSwap<Option<String>>>,
+    dependency_mod_paths_field: Arc<arc_swap::ArcSwap<Vec<String>>>,
+    mod_registry_path_field: Arc<arc_swap::ArcSwap<Option<String>>>,
 }
 
 impl Config {
@@ -46,6 +48,8 @@ impl Config {
             styling_enabled_field: AtomicBool::new(true),
             cosmetic_loc_indent_field: AtomicBool::new(false),
             game_path_field: Arc::new(arc_swap::ArcSwap::from_pointee(None)),
+            dependency_mod_paths_field: Arc::new(arc_swap::ArcSwap::from_pointee(Vec::new())),
+            mod_registry_path_field: Arc::new(arc_swap::ArcSwap::from_pointee(None)),
         }
     }
 
@@ -78,4 +82,8 @@ impl Config {
     }
 
     config_field_deref!(game_path, Option<String>, Option<String>);
+
+    config_field_deref!(dependency_mod_paths, Vec<String>, Vec<String>);
+
+    config_field_deref!(mod_registry_path, Option<String>, Option<String>);
 }

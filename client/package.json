@@ -32,6 +32,19 @@
                     "default": "",
                     "description": "The absolute path to your Hearts of Iron IV installation directory."
                 },
+                "hoi4.modPaths": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [],
+                    "description": "Extra dependency mod paths (absolute). These are resolved AFTER auto-discovered dependencies from the mod registry, so they take higher priority. Use this to override or add dependencies not declared in your descriptor.mod. Workspace always wins."
+                },
+                "hoi4.modRegistryPath": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Optional: absolute path to the Paradox mod registry folder (e.g. ~/.local/share/Paradox Interactive/Hearts of Iron IV/mod on Linux). If unset, the extension auto-detects the path based on your OS. Set this to override auto-detection for non-standard Steam library setups."
+                },
                 "hoi4.validator.ignoreLocalization": {
                     "type": "array",
                     "items": {
