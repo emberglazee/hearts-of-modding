@@ -2,6 +2,12 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
+## [v0.15.1] - 2026-06-04
+
+### 🔧 Changed
+
+- **Asynchronous AST updates** to reduce stutter while actively editing a file.
+
 ## [v0.15.0] - 2026-06-03
 
 ### ✨ Added

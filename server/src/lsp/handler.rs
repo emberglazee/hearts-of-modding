@@ -12,6 +12,7 @@ use crate::lsp::document_symbols;
 use crate::lsp::rename;
 use crate::lsp::semantic_tokens;
 use crate::lsp::workspace_symbols;
+use crate::parser::ast;
 use crate::parser::csv_parser;
 use crate::parser::loc_parser;
 use crate::parser::parser;
@@ -488,7 +489,19 @@ impl LanguageServer for Backend {
         let uri = params.text_document.uri.as_str().to_string();
         let text = params.text_document.text;
         self.documents.insert(uri.clone(), text.clone());
-        self.cache_ast(&uri, &text);
+
+        // Parse on a blocking thread to avoid blocking the LSP event loop.
+        let result = tokio::task::spawn_blocking(move || {
+            let (script, errors) = parser::parse_script(&text);
+            (Arc::new(script), errors)
+        })
+        .await
+        .unwrap_or_else(|e| {
+            eprintln!("[hoi4] Parse task panicked: {e}");
+            (Arc::new(ast::Script { entries: vec![] }), vec![])
+        });
+
+        self.document_asts.insert(uri, result);
         self.validate_document(params.text_document.uri).await;
     }
 
@@ -496,7 +509,21 @@ impl LanguageServer for Backend {
         let uri = params.text_document.uri.as_str().to_string();
         let text = params.content_changes[0].text.clone();
         self.documents.insert(uri.clone(), text.clone());
-        let (script, _) = self.cache_ast(&uri, &text);
+
+        // Parse on a blocking thread to avoid blocking the LSP event loop.
+        let result = tokio::task::spawn_blocking(move || {
+            let (script, errors) = parser::parse_script(&text);
+            (Arc::new(script), errors)
+        })
+        .await
+        .unwrap_or_else(|e| {
+            eprintln!("[hoi4] Parse task panicked: {e}");
+            (Arc::new(ast::Script { entries: vec![] }), vec![])
+        });
+
+        let (script, errors) = result;
+        let script_for_scanner = script.clone();
+        self.document_asts.insert(uri.clone(), (script, errors));
 
         // Live-update scanner data from cached AST (no re-parse needed)
         if let Some(file_path) = params.text_document.uri.to_file_path() {
@@ -504,7 +531,7 @@ impl LanguageServer for Backend {
             crate::scanner::incremental_scanner::update_scanner_data_from_ast(
                 &self.scanner_data,
                 &path_str,
-                &script,
+                &script_for_scanner,
             );
         }
 
@@ -524,7 +551,7 @@ impl LanguageServer for Backend {
             return;
         };
 
-        // Convert URI to a file path string for the incremental scanner
+        // Update scanner data for changed file (fast DashMap ops, safe on event loop)
         if let Some(file_path) = uri.to_file_path() {
             let path_str = file_path.to_string_lossy().to_string();
             crate::scanner::incremental_scanner::update_scanner_data_for_file(
@@ -534,7 +561,18 @@ impl LanguageServer for Backend {
             );
         }
 
-        self.cache_ast(&uri_str, &content);
+        // Parse on a blocking thread to avoid blocking the LSP event loop.
+        let result = tokio::task::spawn_blocking(move || {
+            let (script, errors) = parser::parse_script(&content);
+            (Arc::new(script), errors)
+        })
+        .await
+        .unwrap_or_else(|e| {
+            eprintln!("[hoi4] Parse task panicked: {e}");
+            (Arc::new(ast::Script { entries: vec![] }), vec![])
+        });
+
+        self.document_asts.insert(uri_str, result);
         self.validate_document(uri).await;
     }
 
