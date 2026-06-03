@@ -489,6 +489,7 @@ impl LanguageServer for Backend {
         let uri = params.text_document.uri.as_str().to_string();
         let text = params.text_document.text;
         self.documents.insert(uri.clone(), text.clone());
+        self.document_versions.insert(uri.clone(), 0);
 
         // Parse on a blocking thread to avoid blocking the LSP event loop.
         let result = tokio::task::spawn_blocking(move || {
@@ -510,7 +511,30 @@ impl LanguageServer for Backend {
         let text = params.content_changes[0].text.clone();
         self.documents.insert(uri.clone(), text.clone());
 
-        // Parse on a blocking thread to avoid blocking the LSP event loop.
+        // Increment document version — only the latest version's parse survives.
+        let mut entry = self.document_versions.entry(uri.clone()).or_insert(0);
+        *entry += 1;
+        let my_version = *entry;
+        drop(entry);
+
+        // Debounce: yield to the runtime for 80ms so rapid keystrokes coalesce.
+        // Multiple concurrent did_change futures for the same document will all
+        // sleep here, but only the one with the latest version proceeds past the gate.
+        tokio::time::sleep(std::time::Duration::from_millis(80)).await;
+
+        // Gate 1: if the version advanced during sleep, a newer change is already
+        // queued — discard this stale parse before it even starts.
+        if self.document_versions.get(&uri).as_deref() != Some(&my_version) {
+            return;
+        }
+
+        // Re-read the latest text (may have been updated multiple times during sleep)
+        let text = match self.documents.get(&uri) {
+            Some(t) => t.clone(),
+            None => return,
+        };
+
+        // Parse on a blocking thread (CPU-bound work, off the event loop).
         let result = tokio::task::spawn_blocking(move || {
             let (script, errors) = parser::parse_script(&text);
             (Arc::new(script), errors)
@@ -520,6 +544,12 @@ impl LanguageServer for Backend {
             eprintln!("[hoi4] Parse task panicked: {e}");
             (Arc::new(ast::Script { entries: vec![] }), vec![])
         });
+
+        // Gate 2: re-check after parse — another keystroke may have arrived
+        // while we were parsing. If so, discard and let the newer change win.
+        if self.document_versions.get(&uri).as_deref() != Some(&my_version) {
+            return;
+        }
 
         let (script, errors) = result;
         let script_for_scanner = script.clone();
@@ -580,6 +610,7 @@ impl LanguageServer for Backend {
         let uri = params.text_document.uri.as_str().to_string();
         self.documents.remove(&uri);
         self.document_asts.remove(&uri);
+        self.document_versions.remove(&uri);
     }
 
     async fn did_change_watched_files(&self, params: DidChangeWatchedFilesParams) {

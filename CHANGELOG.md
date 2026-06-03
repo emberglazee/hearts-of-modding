@@ -8,6 +8,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Optimized localization string offset calculation.**
 
+- **Debounce AST parsing and cancel ongoing stale AST parsing** while actively editing a file to further decrease stutter and wasted processing.
+
 ### 🩹 Fixed
 
 - **Fixed the `styling_assignment_space` diagnostic not being emitted.**

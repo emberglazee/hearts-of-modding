@@ -22,6 +22,7 @@ pub(crate) struct Backend {
     pub(crate) client: Client,
     pub(crate) documents: DashMap<String, String>,
     pub(crate) document_asts: DashMap<String, (Arc<ast::Script>, Vec<(String, ast::Range)>)>,
+    pub(crate) document_versions: DashMap<String, u64>,
     pub(crate) scanner_data: ScannerData,
     pub(crate) config: Config,
     pub(crate) system_info: Mutex<sysinfo::System>,
