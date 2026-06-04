@@ -123,7 +123,7 @@ Vanilla game files  ←  Dependency mods  ←  Your workspace
 
 1. **Install** the extension from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=emberglaze.hearts-of-modding).
 2. **Set your Game Path** (`hoi4.gamePath`): Open VS Code settings (`Ctrl+,`), search for `hoi4.gamePath`, and point it to your HOI4 installation (e.g. `C:\Program Files (x86)\Steam\steamapps\common\Hearts of Iron IV` or `~/.steam/steam/steamapps/common/Hearts of Iron IV`). This is **required** for VFS features, vanilla game data, and submod auto-discovery.
-3. **Open your Mod**: Open your mod folder in VS Code. If the workspace contains a `descriptor.mod`, the extension activates automatically.
+3. **Open your Mod**: Open your mod folder in VS Code. If `descriptor.mod` exists at the workspace root, the extension activates and the LSP starts automatically — no prompt, no config needed. The status bar shows HoM RAM usage once ready.
 4. **(Optional) Configure Submod Discovery**: If your mod has `dependencies = { ... }` in its `descriptor.mod`, the extension will automatically resolve and stack them. Override auto-discovery with `hoi4.modRegistryPath` and add extra dependency paths with `hoi4.modPaths`.
 
 ---
@@ -132,7 +132,8 @@ Vanilla game files  ←  Dependency mods  ←  Your workspace
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `hoi4.enabled` | — | Enable HoM for this workspace. Prompts on `descriptor.mod` discovery if unset. |
+| `hoi4.lsp.enabled` | `true` | Start the language server automatically on workspace open. If disabled, prompts to re-enable. |
+| `hoi4.lsp.suppressDisabledPrompt` | `false` | Suppress the LSP disabled prompt on workspace open. |
 | `hoi4.gamePath` | `""` | Absolute path to your HOI4 installation. Required for VFS and submod support. |
 | `hoi4.modRegistryPath` | `""` | Override the auto-detected Paradox mod registry folder. |
 | `hoi4.modPaths` | `[]` | Extra dependency mod paths (absolute). Resolved after auto-discovered dependencies, before workspace. |
@@ -152,7 +153,7 @@ All commands are prefixed with **Hearts of Modding:** in the command palette.
 
 | Command | Description |
 |---------|-------------|
-| `Activate Extension` | Manually start the LSP server. |
+| `Toggle LSP` | Start or stop the language server. |
 | `Set Game Path` | Quickly update the HOI4 game path for VFS merging. |
 | `Toggle Styling Checks` | Enable or disable cosmetic casing/whitespace diagnostics. |
 | `Toggle Workspace Scan` | Enable or disable automatic workspace-wide diagnostic scanning. |

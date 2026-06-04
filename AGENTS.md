@@ -134,8 +134,8 @@ server/src/
 
 - **Version:** `0.15.1` — `client/package.json` is the single source of truth; `server/Cargo.toml` is kept in sync.
 - **Allocator:** `tikv-jemallocator` (see fork at `emberglazee/jemallocator` fix-windows-msvc-spaces for Windows CI compat).
-- **Activation:** `workspaceContains:descriptor.mod` — no per-directory registration needed.
-- **Key settings:** `hoi4.gamePath` (required for VFS base game files), `hoi4.modPaths` (extra dependency mod paths), `hoi4.modRegistryPath` (override auto-detected mod registry), `hoi4.validator.workspaceScan.enabled` (off by default), `hoi4.styling.enabled`, `hoi4.styling.cosmeticLocalizationIndentation`, `hoi4.validator.ignoreFiles`, `hoi4.validator.ignoreLocalization`, `hoi4.showMemoryUsage.enabled`, `hoi4.themePromptDismissed`.
+- **Activation:** `workspaceContains:./descriptor.mod` — root-only glob. LSP auto-starts unless `hoi4.lsp.enabled` is false. Toggle with `Hearts of Modding: Toggle LSP` command.
+- **Key settings:** `hoi4.lsp.enabled`, `hoi4.lsp.suppressDisabledPrompt`, `hoi4.gamePath`, `hoi4.modPaths`, `hoi4.modRegistryPath`, `hoi4.validator.workspaceScan.enabled`, `hoi4.styling.enabled`, `hoi4.styling.cosmeticLocalizationIndentation`, `hoi4.validator.ignoreFiles`, `hoi4.validator.ignoreLocalization`, `hoi4.showMemoryUsage.enabled`, `hoi4.themePromptDismissed`.
 
 ## Gotchas
 

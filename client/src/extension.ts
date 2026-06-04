@@ -72,15 +72,21 @@ export async function activate(context: ExtensionContext) {
         window.showInformationMessage(`Workspace Diagnostic Scan: ${!currentState ? 'Enabled (Re-indexing...)' : 'Disabled'}`)
     }))
 
-    context.subscriptions.push(commands.registerCommand('hearts-of-modding.activate', async () => {
+    context.subscriptions.push(commands.registerCommand('hearts-of-modding.toggleLsp', async () => {
         if (client && client.isRunning()) {
-            outputChannel.show()
-            window.showInformationMessage('Hearts of Modding is already active!')
-            return
+            if (memoryInterval) {
+                clearInterval(memoryInterval)
+                memoryInterval = undefined
+            }
+            await client.stop()
+            await workspace.getConfiguration('hoi4.lsp').update('enabled', false, ConfigurationTarget.Workspace)
+            outputChannel.appendLine('Hearts of Modding LSP stopped.')
+            window.showInformationMessage('Hearts of Modding LSP stopped. Toggle again to restart.')
+        } else {
+            await workspace.getConfiguration('hoi4.lsp').update('enabled', true, ConfigurationTarget.Workspace)
+            await startServer(context, statusBarItem)
+            window.showInformationMessage('Hearts of Modding LSP started!')
         }
-        await workspace.getConfiguration('hoi4').update('enabled', true, ConfigurationTarget.Workspace)
-        await promptForTheme()
-        await startServer(context, statusBarItem)
     }))
 
     context.subscriptions.push(commands.registerCommand('hearts-of-modding.setGamePath', async () => {
@@ -106,42 +112,28 @@ export async function activate(context: ExtensionContext) {
         window.showInformationMessage(`HOI4 Styling Checks: ${!currentState ? 'Enabled' : 'Disabled'}`)
     }))
 
-    const config = workspace.getConfiguration('hoi4')
-    let enabled = config.get<boolean | null>('enabled')
+    // ── LSP auto-start (or prompt if disabled) ──
+    const lspConfig = workspace.getConfiguration('hoi4.lsp')
+    const lspEnabled = lspConfig.get<boolean>('enabled', true)
 
-    if (enabled === false) {
-        outputChannel.appendLine('Hearts of Modding is disabled for this workspace.')
-        return
-    }
-
-    if (enabled === undefined || enabled === null) {
-        const descriptorFiles = await workspace.findFiles('descriptor.mod', null, 1)
-        if (descriptorFiles.length > 0) {
-            const result = await window.showInformationMessage(
-                'This workspace looks like a Hearts of Iron IV mod. Enable Hearts of Modding features?',
-                'Yes', 'No'
-            )
-            if (result === 'Yes') {
-                await config.update('enabled', true, ConfigurationTarget.Workspace)
-                enabled = true
-            } else if (result === 'No') {
-                await config.update('enabled', false, ConfigurationTarget.Workspace)
-                outputChannel.appendLine('Hearts of Modding was declined for this workspace.')
-                return
-            } else {
-                // User dismissed the message
-                return
-            }
-        } else {
-            // Not a mod, and not explicitly enabled
-            return
-        }
-    }
-
-    if (enabled === true) {
-        // Ask about HoM workspace theme once (only if not already using it)
+    if (lspEnabled) {
         await promptForTheme()
         await startServer(context, statusBarItem)
+    } else {
+        const suppressed = lspConfig.get<boolean>('suppressDisabledPrompt', false)
+        if (!suppressed) {
+            const result = await window.showInformationMessage(
+                'Hearts of Modding LSP is disabled for this workspace. Language features will not be available.',
+                'Enable', 'Stop reminding'
+            )
+            if (result === 'Enable') {
+                await lspConfig.update('enabled', true, ConfigurationTarget.Workspace)
+                await promptForTheme()
+                await startServer(context, statusBarItem)
+            } else if (result === 'Stop reminding') {
+                await lspConfig.update('suppressDisabledPrompt', true, ConfigurationTarget.Workspace)
+            }
+        }
     }
 
     context.subscriptions.push(workspace.onDidChangeConfiguration(e => {

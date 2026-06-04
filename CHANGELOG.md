@@ -10,6 +10,18 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Bracket-matching error recovery:** Missing brackets should no longer cause as many cascading parse failures through the rest of the file.
 
+### 🔧 Changed
+
+- ‼️ **Extension activation behavior** has been changed and clarified:
+
+  - **"Extension activation" now only means when VSCode runs the extension code.**
+
+  - **Command `Hearts of Modding: Activate Extension` is replaced with `Hearts of Modding: Toggle LSP`:** controls the setting to either enable or disable the LSP on extension activation.
+
+    - **Users get reminded when they have the LSP off and get prompted to enable it. That prompt can be supressed.**
+
+  - **VSCode now should only automatically activate the extension if it sees `descriptor.mod` in the workspace root directory (`./descriptor.mod`).**
+
 ### 🩹 Fixed
 
 - **String interner memory leak:** The interner stored every interned string forever. Implemented a garbage collector to solve this.

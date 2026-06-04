@@ -15,7 +15,7 @@
         "Programming Languages"
     ],
     "activationEvents": [
-        "workspaceContains:descriptor.mod"
+        "workspaceContains:./descriptor.mod"
     ],
     "main": "./out/extension.js",
     "contributes": {
@@ -23,9 +23,15 @@
             "type": "object",
             "title": "Hearts of Modding",
             "properties": {
-                "hoi4.enabled": {
+                "hoi4.lsp.enabled": {
                     "type": "boolean",
-                    "description": "Enable Hearts of Modding for this workspace. If unset, the extension will prompt to enable when a descriptor.mod file is found."
+                    "default": true,
+                    "description": "Start the language server automatically on workspace open."
+                },
+                "hoi4.lsp.suppressDisabledPrompt": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Suppress the notification when the LSP is disabled on workspace open."
                 },
                 "hoi4.gamePath": {
                     "type": "string",
@@ -91,8 +97,8 @@
         },
         "commands": [
             {
-                "command": "hearts-of-modding.activate",
-                "title": "Activate Extension",
+                "command": "hearts-of-modding.toggleLsp",
+                "title": "Toggle LSP",
                 "category": "Hearts of Modding"
             },
             {
