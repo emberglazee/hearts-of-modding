@@ -557,6 +557,7 @@ dependencies = [
  "sysinfo",
  "tikv-jemallocator",
  "tokio",
+ "tokio-util",
  "tower-lsp-server",
 ]
 

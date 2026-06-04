@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 use std::sync::Arc;
 
+use tokio_util::sync::CancellationToken;
 use tower_lsp_server::LanguageServer;
 use tower_lsp_server::jsonrpc::Result;
 use tower_lsp_server::ls_types::*;
@@ -489,7 +490,6 @@ impl LanguageServer for Backend {
         let uri = params.text_document.uri.as_str().to_string();
         let text = params.text_document.text;
         self.documents.insert(uri.clone(), text.clone());
-        self.document_versions.insert(uri.clone(), 0);
 
         // Parse on a blocking thread to avoid blocking the LSP event loop.
         let result = tokio::task::spawn_blocking(move || {
@@ -517,20 +517,29 @@ impl LanguageServer for Backend {
         let text = params.content_changes[0].text.clone();
         self.documents.insert(uri.clone(), text.clone());
 
-        // Increment document version — only the latest version's parse survives.
-        let mut entry = self.document_versions.entry(uri.clone()).or_insert(0);
-        *entry += 1;
-        let my_version = *entry;
-        drop(entry);
+        // Cancel any previous in-flight parse for this document.
+        // Rapid keystrokes cancel each other, preventing CPU spiking.
+        if let Some(token) = self.document_cancellation_tokens.get(&uri) {
+            token.cancel();
+        }
 
-        // Debounce: yield to the runtime for 80ms so rapid keystrokes coalesce.
-        // Multiple concurrent did_change futures for the same document will all
-        // sleep here, but only the one with the latest version proceeds past the gate.
-        tokio::time::sleep(std::time::Duration::from_millis(80)).await;
+        // Create a fresh cancellation token for this parse attempt.
+        let cancellation_token = CancellationToken::new();
+        self.document_cancellation_tokens
+            .insert(uri.clone(), cancellation_token.clone());
 
-        // Gate 1: if the version advanced during sleep, a newer change is already
-        // queued — discard this stale parse before it even starts.
-        if self.document_versions.get(&uri).as_deref() != Some(&my_version) {
+        // Debounce: sleep for 80ms, but wake immediately if cancelled.
+        // Unlike the old version-query approach, select! ensures we don't
+        // accumulate sleeping futures — cancelled ones return instantly.
+        tokio::select! {
+            _ = tokio::time::sleep(std::time::Duration::from_millis(80)) => {},
+            _ = cancellation_token.cancelled() => {
+                return;
+            }
+        }
+
+        // Gate 1: if cancelled during the sleep window, bail.
+        if cancellation_token.is_cancelled() {
             return;
         }
 
@@ -557,9 +566,8 @@ impl LanguageServer for Backend {
             )
         });
 
-        // Gate 2: re-check after parse — another keystroke may have arrived
-        // while we were parsing. If so, discard and let the newer change win.
-        if self.document_versions.get(&uri).as_deref() != Some(&my_version) {
+        // Gate 2: if cancelled during spawn_blocking, discard.
+        if cancellation_token.is_cancelled() {
             return;
         }
 
@@ -626,9 +634,13 @@ impl LanguageServer for Backend {
 
     async fn did_close(&self, params: DidCloseTextDocumentParams) {
         let uri = params.text_document.uri.as_str().to_string();
+        // Cancel any in-flight parse for this document
+        if let Some(token) = self.document_cancellation_tokens.get(&uri) {
+            token.cancel();
+        }
+        self.document_cancellation_tokens.remove(&uri);
         self.documents.remove(&uri);
         self.document_asts.remove(&uri);
-        self.document_versions.remove(&uri);
     }
 
     async fn did_change_watched_files(&self, params: DidChangeWatchedFilesParams) {

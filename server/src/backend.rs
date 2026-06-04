@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
 use dashmap::DashMap;
+use tokio_util::sync::CancellationToken;
 use tower_lsp_server::Client;
 use tower_lsp_server::ls_types::*;
 
@@ -22,7 +23,7 @@ pub(crate) struct Backend {
     pub(crate) client: Client,
     pub(crate) documents: DashMap<String, String>,
     pub(crate) document_asts: DashMap<String, (Arc<ast::Script>, Vec<(String, ast::Range)>)>,
-    pub(crate) document_versions: DashMap<String, u64>,
+    pub(crate) document_cancellation_tokens: DashMap<String, CancellationToken>,
     pub(crate) scanner_data: ScannerData,
     pub(crate) config: Config,
     pub(crate) system_info: Mutex<sysinfo::System>,
