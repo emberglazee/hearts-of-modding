@@ -642,6 +642,9 @@ impl LanguageServer for Backend {
         self.document_cancellation_tokens.remove(&uri);
         self.documents.remove(&uri);
         self.document_asts.remove(&uri);
+        // Run interner GC: the dropped AST may free interned strings
+        // that were only referenced by this document's parse tree.
+        self.scanner_data.interner.gc();
     }
 
     async fn did_change_watched_files(&self, params: DidChangeWatchedFilesParams) {

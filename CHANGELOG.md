@@ -8,6 +8,10 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - ⭐ **VSCode decorators for localization text:** Shows the color the text will be right in the editor. Supports custom color codes.
 
+### 🩹 Fixed
+
+- **String interner memory leak:** The interner stored every interned string forever. Implemented a garbage collector to solve this.
+
 ## [v0.16.1] - 2026-06-04
 
 ### 🩹 Fixed

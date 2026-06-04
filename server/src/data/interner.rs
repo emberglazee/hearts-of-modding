@@ -49,6 +49,16 @@ impl Interner {
         self.map.clear();
     }
 
+    /// Run garbage collection: remove any interned strings whose
+    /// `Arc<str>` is held only by this interner (strong_count == 1).
+    ///
+    /// Call this when files are closed or during idle periods to
+    /// prevent unbounded memory growth from discarded intermediate
+    /// strings that are no longer referenced by AST or scanner data.
+    pub fn gc(&self) {
+        self.map.retain(|_, v| Arc::strong_count(v) > 1);
+    }
+
     /// Number of unique interned strings.
     #[allow(dead_code)]
     pub fn len(&self) -> usize {
