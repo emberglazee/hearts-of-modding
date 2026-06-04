@@ -2,6 +2,12 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
+## [v0.16.1] - 2026-06-04
+
+### 🩹 Fixed
+
+- **Fixed sprite scanner not detecting other sprite types.**
+
 ## [v0.16.0] - 2026-06-04
 
 Mostly addressing some long-time deeply rooted issues within the extension.

@@ -45,11 +45,15 @@ pub(crate) fn find_sprites_in_entries(
         match entry {
             ast::Entry::Assignment(ass) => {
                 let key_lower = ass.key_text(source).to_ascii_lowercase();
+                // Match sprite type container (spriteTypes = { ... })
                 if key_lower == "spritetypes" {
                     if let ast::Value::Block(inner_entries) = &ass.value.value {
                         find_sprites_in_entries(inner_entries, source, file_path, map);
                     }
-                } else if key_lower == "spritetype" {
+                }
+                // Match any key ending with "spritetype" — handles spriteType,
+                // frameAnimatedSpriteType, corneredTileSpriteType, etc.
+                else if key_lower.ends_with("spritetype") {
                     parse_sprite_node(ass, source, file_path, map);
                 } else {
                     // Recurse into other blocks just in case
@@ -107,5 +111,107 @@ fn parse_sprite_node(
                 },
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::parser::parser;
+
+    fn scan_gfx_content(content: &str) -> HashMap<String, Sprite> {
+        let (script, _errors) = parser::parse_script(content);
+        let mut map = HashMap::new();
+        find_sprites_in_entries(&script.entries, &script.source, "test.gfx", &mut map);
+        map
+    }
+
+    #[test]
+    fn test_sprite_type() {
+        let map = scan_gfx_content(
+            "spriteTypes = {\n\
+            \tspriteType = {\n\
+            \t\tname = \"GFX_test_sprite\"\n\
+            \t\ttexturefile = \"gfx/test.dds\"\n\
+            \t}\n\
+            }",
+        );
+        assert!(map.contains_key("GFX_test_sprite"));
+        assert_eq!(map["GFX_test_sprite"].texture_file, "gfx/test.dds");
+    }
+
+    #[test]
+    fn test_frame_animated_sprite_type() {
+        let map = scan_gfx_content(
+            "spriteTypes = {\n\
+            \tframeAnimatedSpriteType = {\n\
+            \t\tname = \"GFX_SK_skulk\"\n\
+            \t\ttexturefile = \"gfx/leaders/SK/SK_skulk_mind.dds\"\n\
+            \t\tnoOfFrames = 20\n\
+            \t\tanimation_rate_fps = 5\n\
+            \t}\n\
+            }",
+        );
+        assert!(
+            map.contains_key("GFX_SK_skulk"),
+            "frameAnimatedSpriteType should be detected"
+        );
+        assert_eq!(
+            map["GFX_SK_skulk"].texture_file,
+            "gfx/leaders/SK/SK_skulk_mind.dds"
+        );
+    }
+
+    /// corneredTileSpriteType is a tiled-background sprite variant that still
+    /// uses the same name + texturefile structure as spriteType.
+    #[test]
+    fn test_cornered_tile_sprite_type() {
+        let map = scan_gfx_content(
+            "spriteTypes = {\n\
+            \tcorneredTileSpriteType = {\n\
+            \t\tname = \"GFX_tiled_sprite\"\n\
+            \t\ttexturefile = \"gfx/tiles/tiled.dds\"\n\
+            \t}\n\
+            }",
+        );
+        assert!(
+            map.contains_key("GFX_tiled_sprite"),
+            "corneredTileSpriteType should still be detected as a valid sprite"
+        );
+    }
+
+    #[test]
+    fn test_multiple_sprite_types() {
+        let map = scan_gfx_content(
+            "spriteTypes = {\n\
+            \tspriteType = {\n\
+            \t\tname = \"GFX_normal\"\n\
+            \t\ttexturefile = \"gfx/normal.dds\"\n\
+            \t}\n\
+            \tframeAnimatedSpriteType = {\n\
+            \t\tname = \"GFX_animated\"\n\
+            \t\ttexturefile = \"gfx/animated.dds\"\n\
+            \t}\n\
+            \tcorneredTileSpriteType = {\n\
+            \t\tname = \"GFX_tiled\"\n\
+            \t\ttexturefile = \"gfx/tiled.dds\"\n\
+            \t}\n\
+            }",
+        );
+        assert!(map.contains_key("GFX_normal"));
+        assert!(map.contains_key("GFX_animated"));
+        assert!(map.contains_key("GFX_tiled"));
+    }
+
+    #[test]
+    fn test_sprite_without_texturefile_not_added() {
+        let map = scan_gfx_content(
+            "spriteTypes = {\n\
+            \tspriteType = {\n\
+            \t\tname = \"GFX_incomplete\"\n\
+            \t}\n\
+            }",
+        );
+        assert!(!map.contains_key("GFX_incomplete"));
     }
 }
