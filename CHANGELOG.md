@@ -24,6 +24,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Fixed the ability scanner.**
 
+- **Correct the army/naval leader max skill levels:** Skill level 9 (hardcap), and sub-skill level 10 (practical cap).
+
 ## [v0.15.1] - 2026-06-04
 
 ### 🔧 Changed

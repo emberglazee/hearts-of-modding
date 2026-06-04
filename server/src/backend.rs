@@ -1646,7 +1646,6 @@ impl Backend {
         let buildings = &self.scanner_data.buildings;
         let resources = &self.scanner_data.resources;
         let state_categories = &self.scanner_data.state_categories;
-        let defines = self.scanner_data.defines();
         let s_effects = &self.scanner_data.sound_effects;
         let ct = &self.scanner_data.country_tags;
 
@@ -1687,7 +1686,6 @@ impl Backend {
             buildings,
             resources,
             state_categories,
-            defines: &defines,
             continents: &self.scanner_data.continents,
             strategic_regions: &self.scanner_data.strategic_regions,
             terrain_categories: &self.scanner_data.terrain_categories,

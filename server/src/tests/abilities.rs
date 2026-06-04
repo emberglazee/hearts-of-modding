@@ -1,4 +1,3 @@
-use crate::parser::defines_parser::GameDefines;
 use crate::parser::parser;
 use crate::rules::abilities::AbilityRule;
 use crate::rules::visitor::{AstVisitor, walk_script};
@@ -36,7 +35,6 @@ fn run_ability_visitor(input: &str, uri: &str) -> Vec<Diagnostic> {
     let strategic_regions = DashMap::new();
     let terrain_categories = DashMap::new();
     let abilities = DashMap::new();
-    let defines = GameDefines::default();
 
     let ctx = ValidationContext {
         uri,
@@ -58,7 +56,6 @@ fn run_ability_visitor(input: &str, uri: &str) -> Vec<Diagnostic> {
         buildings: &buildings,
         resources: &resources,
         state_categories: &state_categories,
-        defines: &defines,
         continents: &continents,
         strategic_regions: &strategic_regions,
         terrain_categories: &terrain_categories,

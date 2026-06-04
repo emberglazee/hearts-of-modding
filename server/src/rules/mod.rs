@@ -1,7 +1,6 @@
 use crate::data::interner::InternedStr;
 use crate::data::layered_value::LayeredValue;
 use crate::parser::ast;
-use crate::parser::defines_parser;
 use crate::scanner::building_scanner;
 use crate::scope::scope;
 use dashmap::DashMap;
@@ -68,7 +67,6 @@ pub(crate) struct ValidationContext<'a> {
         InternedStr,
         LayeredValue<crate::scanner::state_category_scanner::StateCategory>,
     >,
-    pub(crate) defines: &'a defines_parser::GameDefines,
     pub(crate) continents:
         &'a DashMap<InternedStr, LayeredValue<crate::scanner::continent_scanner::Continent>>,
     pub(crate) strategic_regions:

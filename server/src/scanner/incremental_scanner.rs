@@ -800,13 +800,10 @@ fn update_ai_areas(scanner_data: &ScannerData, path_str: &str, script: &ast::Scr
 }
 
 fn update_defines(scanner_data: &ScannerData, content: &str) {
-    let mut new_defines = defines_parser::GameDefines::new();
+    let mut new_defines = defines_parser::GameDefines::default();
     defines_parser::parse_defines_lua(content, &mut new_defines);
 
     let mut defines = (*scanner_data.defines()).clone();
-    defines
-        .max_skill_levels
-        .extend(new_defines.max_skill_levels);
     defines.defines.extend(new_defines.defines);
     scanner_data.set_defines(defines);
 }

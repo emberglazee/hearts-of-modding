@@ -249,7 +249,7 @@ impl ScannerData {
             duplicated_loc_keys: DashSet::new(),
             game_loc_keys: DashSet::new(),
             workspace_files: DashSet::new(),
-            defines_field: Arc::new(ArcSwap::from_pointee(defines_parser::GameDefines::new())),
+            defines_field: Arc::new(ArcSwap::from_pointee(defines_parser::GameDefines::default())),
             supply_nodes_field: Arc::new(ArcSwap::from_pointee(Vec::new())),
             railways_field: Arc::new(ArcSwap::from_pointee(Vec::new())),
             map_buildings_field: Arc::new(ArcSwap::from_pointee(Vec::new())),
