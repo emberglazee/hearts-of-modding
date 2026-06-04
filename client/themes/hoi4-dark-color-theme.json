@@ -99,7 +99,8 @@
         "enumMember": "#c9a8ff",
         "struct": "#56c8a4",
         "class": "#3db8c8",
-        "property": "#78dba8"
+        "property": "#78dba8",
+        "escapeCharacter": "#e2c15a"
     },
     "tokenColors": [
         {
@@ -113,6 +114,10 @@
         {
             "scope": "string.quoted.double.hoi4-loc",
             "settings": { "foreground": "#e6edf3" }
+        },
+        {
+            "scope": "constant.character.escape.hoi4-loc",
+            "settings": { "foreground": "#e2c15a" }
         },
         {
             "scope": "constant.numeric.hoi4",

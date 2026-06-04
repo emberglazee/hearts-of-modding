@@ -8,6 +8,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - ⭐ **VSCode decorators for localization text:** Shows the color the text will be right in the editor. Supports custom color codes.
 
+- **Highlight newline (`\n`) and escaped double quotes (`\"`) in localization text.**
+
 - **Bracket-matching error recovery:** Missing brackets should no longer cause as many cascading parse failures through the rest of the file.
 
 ### 🔧 Changed

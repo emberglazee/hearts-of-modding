@@ -121,6 +121,7 @@ impl LanguageServer for Backend {
                                     SemanticTokenType::STRUCT,
                                     SemanticTokenType::CLASS,
                                     SemanticTokenType::PROPERTY,
+                                    SemanticTokenType::from("escapeCharacter"),
                                 ],
                                 token_modifiers: vec![],
                             },

@@ -23,6 +23,7 @@ enum TokenType {
     Struct = 11,
     Class = 12,
     Property = 13,
+    EscapeCharacter = 14,
 }
 
 /// Fields whose values are always localization keys, not entity references.
@@ -211,7 +212,9 @@ static LOC_COLOR_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"§[a-zA-Z0-9!]").un
 /// Matches scope references: [ROOT.GetName], [From.GetTag], etc.
 static LOC_SCOPE_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"\[([^\]]+)\]").unwrap());
 /// Matches nested key references: $SOME_KEY$, $OTHER_KEY$, etc.
-static LOC_NESTED_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"\$([^$\n]+)\$").unwrap());
+static LOC_NESTED_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r#"\$([^$\n]+)\$"#).unwrap());
+/// Matches HOI4 escape sequences in localization: \n and \"
+static LOC_ESCAPE_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r#"\\[n"]"#).unwrap());
 
 /// Valid language header prefixes in HOI4 localization files.
 const LOC_LANGUAGE_PREFIXES: [&str; 10] = [
@@ -237,9 +240,10 @@ const LOC_LANGUAGE_PREFIXES: [&str; 10] = [
 /// - Colons and delimiters → Operator
 /// - Quote characters → String
 /// - Plain text values → String
-/// - Color codes (§G, §R, §! etc.) → EnumMember
+/// - Color codes (§G, §R, §! etc.) → Operator (rendered by decorations)
 /// - Scope references ([ROOT.GetName]) → Function
 /// - Nested key refs ($key$) → Variable
+/// - Escape sequences (\n, \") → EscapeCharacter
 pub fn loc_semantic_tokens(content: &str) -> SemanticTokensResult {
     let mut tokens = Vec::new();
 
@@ -448,6 +452,11 @@ pub fn loc_semantic_tokens(content: &str) -> SemanticTokensResult {
                         }
                         // Closing $
                         ranges.push((e - 1, e, TokenType::Operator as u32));
+                    }
+
+                    // Escape sequences (\n, \") → EscapeCharacter
+                    for m in LOC_ESCAPE_RE.find_iter(value_content) {
+                        ranges.push((m.start(), m.end(), TokenType::EscapeCharacter as u32));
                     }
 
                     // Sort by start position
