@@ -67,23 +67,14 @@ struct AbilityDefState {
 }
 
 /// Visitor state: tracks `ability = { ... }` blocks and their definitions.
-///
-/// Structure:
-/// ```hoi4
-/// ability = {                    ← in_ability_section increments
-///     my_ability = {             ← AbilityDefState pushed
-///         name = "LOC_KEY"       ← sets flags, checks loc
-///         desc = "LOC_KEY"
-///         cost = 50
-///         duration = 30
-///         type = "targeted"
-///         ai_will_do = { ... }
-///     }                          ← AbilityDefState popped, checked
-/// }                              ← in_ability_section decrements
-/// ```
 struct AbilityVisitor {
-    /// Depth inside `ability = { ... }` blocks (supports nesting)
-    in_ability_section: u32,
+    /// True when inside `ability = { ... }` container, tracking definitions
+    inside_ability_container: bool,
+    /// Block nesting depth inside the current definition:
+    ///   0 = at definition level (ready to accept a new ability def)
+    ///   1 = inside a definition body (tracking properties)
+    ///  >1 = inside nested property blocks (e.g. allowed, modifier, ai_will_do, etc.)
+    block_depth: u32,
     /// Stack of ability definitions being tracked
     ability_stack: Vec<AbilityDefState>,
 }
@@ -91,7 +82,8 @@ struct AbilityVisitor {
 impl AbilityVisitor {
     fn new() -> Self {
         Self {
-            in_ability_section: 0,
+            inside_ability_container: false,
+            block_depth: 0,
             ability_stack: Vec::new(),
         }
     }
@@ -105,34 +97,45 @@ impl AstVisitor for AbilityVisitor {
         _scope: &ScopeStack,
         diags: &mut Vec<Diagnostic>,
     ) {
-        // Track entry into `ability = { ... }` section
+        // Track entry into `ability = { ... }` container
         if ass.key_text(ctx.source).eq_ignore_ascii_case("ability") {
             if matches!(&ass.value.value, ast::Value::Block(_)) {
-                self.in_ability_section += 1;
+                self.inside_ability_container = true;
             }
             return; // 'ability' itself is not a definition or property
         }
 
-        if self.in_ability_section > 0 {
-            // If the value is a Block, this is a new ability definition
+        if self.inside_ability_container {
             if matches!(
                 &ass.value.value,
                 ast::Value::Block(_) | ast::Value::TaggedBlock(..)
             ) {
-                self.ability_stack.push(AbilityDefState {
-                    name: ass.key_text(ctx.source).to_string(),
-                    key_range: ass.key_range.clone(),
-                    has_name: false,
-                    has_desc: false,
-                    has_cost: false,
-                    has_duration: false,
-                    has_type: false,
-                    has_ai_will_do: false,
-                });
+                if self.block_depth == 0 {
+                    // Direct child of `ability = {}` → this IS an ability definition
+                    self.ability_stack.push(AbilityDefState {
+                        name: ass.key_text(ctx.source).to_string(),
+                        key_range: ass.key_range.clone(),
+                        has_name: false,
+                        has_desc: false,
+                        has_cost: false,
+                        has_duration: false,
+                        has_type: false,
+                        has_ai_will_do: false,
+                    });
+                    self.block_depth = 1;
+                } else {
+                    // Nested block inside a definition → could be a tracked property
+                    if ass.key_text(ctx.source).eq_ignore_ascii_case("ai_will_do") {
+                        if let Some(state) = self.ability_stack.last_mut() {
+                            state.has_ai_will_do = true;
+                        }
+                    }
+                    self.block_depth += 1;
+                }
                 return;
             }
 
-            // Otherwise, this is a property of the current ability
+            // Otherwise, this is a scalar property of the current ability
             if let Some(state) = self.ability_stack.last_mut() {
                 let p_key = ass.key_text(ctx.source);
                 if p_key.eq_ignore_ascii_case("name") {
@@ -195,117 +198,122 @@ impl AstVisitor for AbilityVisitor {
         _scope: &ScopeStack,
         diags: &mut Vec<Diagnostic>,
     ) {
-        // Track exit from `ability = { ... }` section
+        // Track exit from `ability = { ... }` container
         if ass.key_text(ctx.source).eq_ignore_ascii_case("ability") {
             if matches!(&ass.value.value, ast::Value::Block(_)) {
-                self.in_ability_section = self.in_ability_section.saturating_sub(1);
+                self.inside_ability_container = false;
             }
             return;
         }
 
-        if self.in_ability_section > 0 {
-            // If this was an ability definition (Block value), pop and check
+        if self.inside_ability_container {
             if matches!(
                 &ass.value.value,
                 ast::Value::Block(_) | ast::Value::TaggedBlock(..)
             ) {
-                if let Some(state) = self.ability_stack.pop() {
-                    if !state.has_name {
-                        diags.push(Diagnostic {
-                            range: ast_range_to_lsp(&state.key_range),
-                            severity: Some(DiagnosticSeverity::WARNING),
-                            message: format!(
-                                "Ability '{}' is missing required 'name' field",
-                                state.name
-                            ),
-                            code: Some(NumberOrString::String(
-                                crate::validation::advanced_validation::ABILITY_MISSING_REQUIRED_FIELD
-                                    .to_string(),
-                            )),
-                            source: Some("Hearts of Modding".to_string()),
-                            ..Default::default()
-                        });
+                if self.block_depth == 1 {
+                    // Exiting a definition block → pop, validate, reset depth
+                    if let Some(state) = self.ability_stack.pop() {
+                        if !state.has_name {
+                            diags.push(Diagnostic {
+                                range: ast_range_to_lsp(&state.key_range),
+                                severity: Some(DiagnosticSeverity::WARNING),
+                                message: format!(
+                                    "Ability '{}' is missing required 'name' field",
+                                    state.name
+                                ),
+                                code: Some(NumberOrString::String(
+                                    crate::validation::advanced_validation::ABILITY_MISSING_REQUIRED_FIELD
+                                        .to_string(),
+                                )),
+                                source: Some("Hearts of Modding".to_string()),
+                                ..Default::default()
+                            });
+                        }
+                        if !state.has_desc {
+                            diags.push(Diagnostic {
+                                range: ast_range_to_lsp(&state.key_range),
+                                severity: Some(DiagnosticSeverity::WARNING),
+                                message: format!(
+                                    "Ability '{}' is missing required 'desc' field",
+                                    state.name
+                                ),
+                                code: Some(NumberOrString::String(
+                                    crate::validation::advanced_validation::ABILITY_MISSING_REQUIRED_FIELD
+                                        .to_string(),
+                                )),
+                                source: Some("Hearts of Modding".to_string()),
+                                ..Default::default()
+                            });
+                        }
+                        if !state.has_cost {
+                            diags.push(Diagnostic {
+                                range: ast_range_to_lsp(&state.key_range),
+                                severity: Some(DiagnosticSeverity::WARNING),
+                                message: format!(
+                                    "Ability '{}' is missing required 'cost' field",
+                                    state.name
+                                ),
+                                code: Some(NumberOrString::String(
+                                    crate::validation::advanced_validation::ABILITY_MISSING_REQUIRED_FIELD
+                                        .to_string(),
+                                )),
+                                source: Some("Hearts of Modding".to_string()),
+                                ..Default::default()
+                            });
+                        }
+                        if !state.has_duration {
+                            diags.push(Diagnostic {
+                                range: ast_range_to_lsp(&state.key_range),
+                                severity: Some(DiagnosticSeverity::INFORMATION),
+                                message: format!(
+                                    "Ability '{}' is missing 'duration' field (ability will use indefinite duration)",
+                                    state.name
+                                ),
+                                code: Some(NumberOrString::String(
+                                    crate::validation::advanced_validation::ABILITY_MISSING_REQUIRED_FIELD
+                                        .to_string(),
+                                )),
+                                source: Some("Hearts of Modding".to_string()),
+                                ..Default::default()
+                            });
+                        }
+                        if !state.has_type {
+                            diags.push(Diagnostic {
+                                range: ast_range_to_lsp(&state.key_range),
+                                severity: Some(DiagnosticSeverity::INFORMATION),
+                                message: format!(
+                                    "Ability '{}' is missing 'type' field (defaults may apply)",
+                                    state.name
+                                ),
+                                code: Some(NumberOrString::String(
+                                    crate::validation::advanced_validation::ABILITY_MISSING_REQUIRED_FIELD
+                                        .to_string(),
+                                )),
+                                source: Some("Hearts of Modding".to_string()),
+                                ..Default::default()
+                            });
+                        }
+                        if !state.has_ai_will_do {
+                            diags.push(Diagnostic {
+                                range: ast_range_to_lsp(&state.key_range),
+                                severity: Some(DiagnosticSeverity::INFORMATION),
+                                message: format!(
+                                    "Ability '{}' is missing 'ai_will_do' block (AI will never use this ability)",
+                                    state.name
+                                ),
+                                code: Some(NumberOrString::String(
+                                    crate::validation::advanced_validation::ABILITY_MISSING_AI_LOGIC
+                                        .to_string(),
+                                )),
+                                source: Some("Hearts of Modding".to_string()),
+                                ..Default::default()
+                            });
+                        }
                     }
-                    if !state.has_desc {
-                        diags.push(Diagnostic {
-                            range: ast_range_to_lsp(&state.key_range),
-                            severity: Some(DiagnosticSeverity::WARNING),
-                            message: format!(
-                                "Ability '{}' is missing required 'desc' field",
-                                state.name
-                            ),
-                            code: Some(NumberOrString::String(
-                                crate::validation::advanced_validation::ABILITY_MISSING_REQUIRED_FIELD
-                                    .to_string(),
-                            )),
-                            source: Some("Hearts of Modding".to_string()),
-                            ..Default::default()
-                        });
-                    }
-                    if !state.has_cost {
-                        diags.push(Diagnostic {
-                            range: ast_range_to_lsp(&state.key_range),
-                            severity: Some(DiagnosticSeverity::WARNING),
-                            message: format!(
-                                "Ability '{}' is missing required 'cost' field",
-                                state.name
-                            ),
-                            code: Some(NumberOrString::String(
-                                crate::validation::advanced_validation::ABILITY_MISSING_REQUIRED_FIELD
-                                    .to_string(),
-                            )),
-                            source: Some("Hearts of Modding".to_string()),
-                            ..Default::default()
-                        });
-                    }
-                    if !state.has_duration {
-                        diags.push(Diagnostic {
-                            range: ast_range_to_lsp(&state.key_range),
-                            severity: Some(DiagnosticSeverity::INFORMATION),
-                            message: format!(
-                                "Ability '{}' is missing 'duration' field (ability will use indefinite duration)",
-                                state.name
-                            ),
-                            code: Some(NumberOrString::String(
-                                crate::validation::advanced_validation::ABILITY_MISSING_REQUIRED_FIELD
-                                    .to_string(),
-                            )),
-                            source: Some("Hearts of Modding".to_string()),
-                            ..Default::default()
-                        });
-                    }
-                    if !state.has_type {
-                        diags.push(Diagnostic {
-                            range: ast_range_to_lsp(&state.key_range),
-                            severity: Some(DiagnosticSeverity::INFORMATION),
-                            message: format!(
-                                "Ability '{}' is missing 'type' field (defaults may apply)",
-                                state.name
-                            ),
-                            code: Some(NumberOrString::String(
-                                crate::validation::advanced_validation::ABILITY_MISSING_REQUIRED_FIELD
-                                    .to_string(),
-                            )),
-                            source: Some("Hearts of Modding".to_string()),
-                            ..Default::default()
-                        });
-                    }
-                    if !state.has_ai_will_do {
-                        diags.push(Diagnostic {
-                            range: ast_range_to_lsp(&state.key_range),
-                            severity: Some(DiagnosticSeverity::INFORMATION),
-                            message: format!(
-                                "Ability '{}' is missing 'ai_will_do' block (AI will never use this ability)",
-                                state.name
-                            ),
-                            code: Some(NumberOrString::String(
-                                crate::validation::advanced_validation::ABILITY_MISSING_AI_LOGIC
-                                    .to_string(),
-                            )),
-                            source: Some("Hearts of Modding".to_string()),
-                            ..Default::default()
-                        });
-                    }
+                    self.block_depth = 0;
+                } else if self.block_depth > 1 {
+                    self.block_depth -= 1;
                 }
             }
         }
