@@ -149,12 +149,22 @@ export class LocColorDecorator {
             const code = match[1]
             const markerEnd = match.index + 2  // offset right after the 2-byte §X
 
-            // Emit coloured range up to this marker
+            // Emit coloured range up to this marker.
+            // Clamp to the end of the current value string (closing `"`) to
+            // prevent colour from spilling across localisation lines.
             if (activeColor && rangeStart !== null && rangeStart < match.index) {
-                this.addRange(colorRanges, activeColor, new vscode.Range(
-                    editor.document.positionAt(rangeStart),
-                    editor.document.positionAt(match.index)
-                ))
+                const stringEnd = this.findStringEnd(text, rangeStart)
+                const rangeEnd = Math.min(match.index, stringEnd)
+                if (rangeStart < rangeEnd) {
+                    this.addRange(colorRanges, activeColor, new vscode.Range(
+                        editor.document.positionAt(rangeStart),
+                        editor.document.positionAt(rangeEnd)
+                    ))
+                }
+
+                // If the current string ended before the next colour marker,
+                // the colour is orphaned — the code below will reset or
+                // start a new colour fresh for the current marker.
             }
 
             if (code === '!') {
@@ -172,11 +182,16 @@ export class LocColorDecorator {
         }
 
         // Handle trailing coloured text with no closing §!
+        // We must stop at the closing quote of the current value string to
+        // prevent colour from spilling across subsequent localisation lines.
         if (activeColor && rangeStart !== null && rangeStart < text.length) {
-            this.addRange(colorRanges, activeColor, new vscode.Range(
-                editor.document.positionAt(rangeStart),
-                editor.document.positionAt(text.length)
-            ))
+            const endPos = this.findStringEnd(text, rangeStart)
+            if (rangeStart < endPos) {
+                this.addRange(colorRanges, activeColor, new vscode.Range(
+                    editor.document.positionAt(rangeStart),
+                    editor.document.positionAt(endPos)
+                ))
+            }
         }
 
         // Apply decorations
@@ -190,6 +205,40 @@ export class LocColorDecorator {
                 editor.setDecorations(this.getDecorationType(color), [])
             }
         }
+    }
+
+    /**
+     * Find the end of the current localisation value string starting from
+     * a given position. Searches for either:
+     *   - An unescaped double-quote `"` (standard closing delimiter)
+     *   - A newline character (HOI4 values are single-line; if no closing `"`
+     *     is found before the line ends, the value terminates at the newline)
+     *
+     * Returns the offset of the closing `"` or the newline, or `text.length`
+     * if neither is found.
+     */
+    private findStringEnd(text: string, fromPos: number): number {
+        let pos = fromPos
+        while (pos < text.length) {
+            // Find the next double-quote OR newline, whichever comes first
+            const quoteIdx = text.indexOf('"', pos)
+            const newlineIdx = text.indexOf('\n', pos)
+
+            // Newline before quote (or no quote found) → value ends at line end
+            if (newlineIdx !== -1 && (quoteIdx === -1 || newlineIdx < quoteIdx)) {
+                return newlineIdx
+            }
+
+            // Quote before newline (or no newline found) → check if escaped
+            if (quoteIdx === -1) return text.length  // neither found
+            if (quoteIdx > 0 && text[quoteIdx - 1] === '\\') {
+                // Escaped quote — skip and continue
+                pos = quoteIdx + 1
+                continue
+            }
+            return quoteIdx
+        }
+        return text.length
     }
 
     /**
