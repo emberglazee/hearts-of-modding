@@ -4,6 +4,10 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ## [v0.16.0] - 2026-06-04
 
+### ✨ Added
+
+- **Implemented range-based semantic token request support**, reducing the CPU usage in huge files.
+
 ### 🔧 Changed
 
 - **Optimized localization string offset calculation.**

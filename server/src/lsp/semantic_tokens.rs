@@ -117,6 +117,45 @@ pub fn get_semantic_tokens(script: &Script, ctx: &SemanticTokenContext) -> Seman
     tokens_to_lsp(tokens)
 }
 
+/// Check whether an AST line/col range overlaps with an LSP range (line-only check).
+/// Uses line comparison only — the client is typically requesting viewport-sized ranges
+/// and columns would add complexity for negligible extra filtering.
+fn ast_range_overlaps_lsp(
+    ast_range: &Range,
+    lsp_range: &tower_lsp_server::ls_types::Range,
+) -> bool {
+    !(ast_range.end_line < lsp_range.start.line || ast_range.start_line > lsp_range.end.line)
+}
+
+/// Get semantic tokens only for top-level entries that intersect with the requested range.
+/// Non-overlapping entries are skipped entirely, avoiding unnecessary AST traversal.
+/// This is the key optimization when VS Code requests tokens for the visible viewport
+/// in a large file (e.g., 20,000-line events.txt).
+pub fn get_semantic_tokens_range(
+    script: &Script,
+    ctx: &SemanticTokenContext,
+    range: &tower_lsp_server::ls_types::Range,
+) -> SemanticTokensResult {
+    let mut tokens = Vec::new();
+    for entry in &script.entries {
+        // Determine the full range of the entry (key + value tree)
+        let entry_range = match entry {
+            Entry::Assignment(ass) => &ass.value.range,
+            Entry::Value(val) => &val.range,
+            Entry::Comment(_, cr) => cr,
+        };
+
+        // Skip entries entirely outside the requested range
+        if !ast_range_overlaps_lsp(entry_range, range) {
+            continue;
+        }
+
+        push_entry_tokens(entry, &mut tokens, ctx, &script.source, None);
+    }
+
+    tokens_to_lsp(tokens)
+}
+
 /// Convert a sorted Vec<RawToken> into the LSP delta-encoded format.
 fn tokens_to_lsp(tokens: Vec<RawToken>) -> SemanticTokensResult {
     if tokens.is_empty() {
