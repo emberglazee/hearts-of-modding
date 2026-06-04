@@ -8,6 +8,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - ⭐ **VSCode decorators for localization text:** Shows the color the text will be right in the editor. Supports custom color codes.
 
+- **Bracket-matching error recovery:** Missing brackets should no longer cause as many cascading parse failures through the rest of the file.
+
 ### 🩹 Fixed
 
 - **String interner memory leak:** The interner stored every interned string forever. Implemented a garbage collector to solve this.

@@ -292,6 +292,77 @@ fn parse_entry(input: Span) -> IResult<Span, ast::Entry> {
     .parse(input)
 }
 
+/// Scan forward from the given span to find a brace that resynchronizes block depth.
+///
+/// Skips comments (`#` to EOL) and quoted strings (`"..."` with escape handling)
+/// to avoid false matches.
+///
+/// `start_depth` represents how many unmatched `{` we already owe:
+/// - `0` for callers NOT inside a block (parse_script main loop)
+/// - `-1` for callers that owe one `}` (parse_block — opening `{` already consumed)
+///
+/// When a `}` makes `depth < start_depth`, that's the resync point — the caller
+/// should consume up to and including that byte and resume parsing.
+///
+/// Returns the number of bytes to advance for resync, or `None` if no resync
+/// point is found before end of input.
+///
+/// Uses byte-level scanning which is safe for UTF-8 because we only match
+/// single-byte ASCII characters (`#`, `"`, `{`, `}`, `\n`).
+fn find_resync_point(span: Span, start_depth: i32) -> Option<usize> {
+    let fragment = span.fragment();
+    let bytes = fragment.as_bytes();
+    let len = bytes.len();
+    let mut depth = start_depth;
+    let mut i = 0;
+
+    while i < len {
+        match bytes[i] {
+            b'#' => {
+                // Skip comment to end of line
+                while i < len && bytes[i] != b'\n' {
+                    i += 1;
+                }
+                // Consume the newline if present
+                if i < len {
+                    i += 1;
+                }
+            }
+            b'"' => {
+                // Skip quoted string content (handling escape sequences)
+                i += 1; // skip opening quote
+                while i < len {
+                    if bytes[i] == b'\\' {
+                        i += 2; // skip escaped character
+                        continue;
+                    }
+                    if bytes[i] == b'"' {
+                        i += 1; // skip closing quote
+                        break;
+                    }
+                    i += 1;
+                }
+            }
+            b'{' => {
+                depth += 1;
+                i += 1;
+            }
+            b'}' => {
+                depth -= 1;
+                i += 1;
+                if depth < start_depth {
+                    return Some(i); // consume up to and including this '}'
+                }
+            }
+            _ => {
+                i += 1;
+            }
+        }
+    }
+
+    None // no resync point found
+}
+
 fn to_error_range(span: Span) -> Range {
     let start_line = span.location_line() - 1;
     let start_col = span.get_column() as u32 - 1;
@@ -360,13 +431,26 @@ pub fn parse_script(input: &str) -> (ast::Script, Vec<(String, Range)>) {
 
                 errors.push((format!("Parsing error near: '{}'", snippet), range));
 
-                // Recovery: skip to the next line and try again.
+                // Recovery: try bracket-matching depth resynchronization first.
+                // This handles stray `}` at the wrong depth (most common error in
+                // Clausewitz scripting — missing closing brace).  We scan forward
+                // tracking `{`/`}` depth, skipping comments and quoted strings.
+                // When a `}` makes depth negative, we've found a resync point:
+                // consume up to and including that `}` to restore block balance.
+                // Falls back to line-skip if no brace resync is found.
                 // CRITICAL: use `take` to consume bytes through nom, preserving
                 // LocatedSpan's offset tracking.  Span::new(subslice) would reset
                 // location_offset() to 0, making future ByteSpan offsets relative
                 // to the subslice instead of the original source — causing
-                // &source[start..end] to land inside multi-byte characters.
-                if let Some(pos) = span.fragment().find('\n') {
+                // &source[bad_start..] to land inside multi-byte characters.
+                if let Some(advance) = find_resync_point(span, 0) {
+                    if let Ok((remaining, _)) = take::<_, _, nom::error::Error<Span>>(advance)(span)
+                    {
+                        span = remaining;
+                    } else {
+                        break;
+                    }
+                } else if let Some(pos) = span.fragment().find('\n') {
                     if let Ok((remaining, _)) = take::<_, _, nom::error::Error<Span>>(pos + 1)(span)
                     {
                         span = remaining;
@@ -675,5 +759,213 @@ mod tests {
         if let Some(ast::Entry::Assignment(ass)) = cafe_entry {
             assert_eq!(ass.value.value.as_str(&script.source), Some("third"));
         }
+    }
+
+    #[test]
+    fn test_find_resync_point_stray_close_brace() {
+        // A solitary stray `}` at top level should be consumed as a resync point.
+        let input = Span::new("}");
+        assert_eq!(find_resync_point(input, 0), Some(1));
+    }
+
+    #[test]
+    fn test_find_resync_point_no_resync() {
+        // No `}` at all, no resync possible.
+        let input = Span::new("garbage content without braces");
+        assert_eq!(find_resync_point(input, 0), None);
+    }
+
+    #[test]
+    fn test_find_resync_point_balanced_braces_skipped() {
+        // Balanced `{ ... }` before a stray `}` — the balaced pair should be
+        // tracked internally, and only the final stray `}` triggers resync.
+        let input = Span::new("{ balanced }}");
+        // bytes: { =1, space=1, balanced=8, space=1, }=1, }=1 → resync at byte 13
+        assert_eq!(find_resync_point(input, 0), Some(13));
+    }
+
+    #[test]
+    fn test_find_resync_point_nested_braces() {
+        // Nested braces properly counted, only outermost stray `}` triggers resync.
+        let input = Span::new("{ { { } } }}");
+        // depths: {→1, {→2, {→3, }→2, }→1, }→0, }→-1 → resync at byte 12
+        assert_eq!(find_resync_point(input, 0), Some(12));
+    }
+
+    #[test]
+    fn test_find_resync_point_start_depth_neg_one() {
+        // With start_depth=-1 (caller owes one `}`): first `}` making depth < -1
+        // triggers resync.
+        let input = Span::new("stuff { inner } stuff }");
+        // start_depth=-1, {→0, }→-1 (keep going), }→-2 (< -1) → resync at byte 23
+        assert_eq!(find_resync_point(input, -1), Some(23));
+    }
+
+    #[test]
+    fn test_find_resync_point_skips_comments() {
+        // Comments containing braces should not affect depth tracking.
+        let input = Span::new("# this has a { and a } in it\n}");
+        let result = find_resync_point(input, 0);
+        assert!(result.is_some(), "Should find resync after comment");
+        // Comment "# this has a { and a } in it\n}" = 30 bytes total, resync after '}'
+        assert_eq!(
+            result,
+            Some(30),
+            "Should consume comment + newline + stray brace"
+        );
+    }
+
+    #[test]
+    fn test_find_resync_point_skips_quoted_strings() {
+        // Quoted strings containing braces should not affect depth tracking.
+        let input = Span::new("\"quote with { braces }\" }");
+        let result = find_resync_point(input, 0);
+        assert!(result.is_some(), "Should find resync after quoted string");
+        assert_eq!(result, Some(25));
+    }
+
+    #[test]
+    fn test_find_resync_point_skips_quoted_with_escapes() {
+        // Escaped quotes inside string should not break the string skip.
+        let input = Span::new("\"escaped \\\" quote\" }");
+        let result = find_resync_point(input, 0);
+        assert!(result.is_some(), "Should find resync after escaped quote");
+    }
+
+    #[test]
+    fn test_error_recovery_stray_close_brace() {
+        // Stray `}` at top level after valid content should be consumed as resync.
+        let input = "key = value\n}";
+        let (script, errors) = parse_script(input);
+        assert_eq!(script.entries.len(), 1, "Should have one entry");
+        assert!(!errors.is_empty(), "Should report parse error");
+        if let ast::Entry::Assignment(ass) = &script.entries[0] {
+            assert_eq!(ass.key_text(&script.source), "key");
+        }
+    }
+
+    #[test]
+    fn test_error_recovery_content_after_stray_brace() {
+        // Stray `}` at top level, then valid content — second entry should parse.
+        let input = "first = one\n}\nsecond = two";
+        let (script, errors) = parse_script(input);
+        assert_eq!(
+            script.entries.len(),
+            2,
+            "Should have two entries, got {:?}",
+            script
+                .entries
+                .iter()
+                .map(|e| format!("{:?}", e))
+                .collect::<Vec<_>>()
+        );
+        if let ast::Entry::Assignment(ass) = &script.entries[0] {
+            assert_eq!(ass.key_text(&script.source), "first");
+            assert_eq!(ass.value.value.as_str(&script.source), Some("one"));
+        }
+        if let ast::Entry::Assignment(ass) = &script.entries[1] {
+            assert_eq!(ass.key_text(&script.source), "second");
+            assert_eq!(ass.value.value.as_str(&script.source), Some("two"));
+        }
+        assert!(
+            !errors.is_empty(),
+            "Should report parse error for stray brace"
+        );
+    }
+    #[test]
+    fn test_error_recovery_balanced_braces_then_stray() {
+        // Anonymous block { ... } followed by stray }, then valid content.
+        // Use a quoted value to force assignment completion so `{ ... }` is
+        // not consumed as part of a TaggedBlock.
+        let input = "first = \"value\"\n{ inner = val }\n}\nsecond = two";
+        let (script, errors) = parse_script(input);
+        // first = "value" (assignment), { inner = val } (anonymous block),
+        // stray } consumed, second = two (assignment)
+        assert_eq!(
+            script.entries.len(),
+            3,
+            "Should have three entries: assignment, block, assignment, got {:?}",
+            script
+                .entries
+                .iter()
+                .map(|e| format!("{:?}", e))
+                .collect::<Vec<_>>()
+        );
+        assert!(
+            !errors.is_empty(),
+            "Should report parse error for stray brace"
+        );
+    }
+
+    #[test]
+    fn test_error_recovery_garbage_no_braces() {
+        // Garbage without braces falls through to line-skip.
+        let input = "first = one\n~~~~\nsecond = two";
+        let (script, errors) = parse_script(input);
+        assert_eq!(script.entries.len(), 2);
+        assert!(!errors.is_empty(), "Should report parse error for garbage");
+        let last = script
+            .entries
+            .iter()
+            .find(|e| matches!(e, ast::Entry::Assignment(ass) if ass.key_text(&script.source) == "second"));
+        assert!(last.is_some(), "Should have 'second' entry");
+    }
+
+    #[test]
+    fn test_error_recovery_comment_with_braces() {
+        // Braces inside comments should not confuse the depth tracking.
+        let input = "key = val\n# stray } in comment\nsecond = two";
+        let (script, errors) = parse_script(input);
+        assert_eq!(
+            script.entries.len(),
+            3,
+            "Should have 3 entries: assignment, comment, assignment"
+        );
+        assert!(
+            errors.is_empty(),
+            "Braces inside comments should not trigger parse errors"
+        );
+    }
+
+    #[test]
+    fn test_error_recovery_multiple_stray_braces() {
+        // Multiple stray braces consumed one by one, then valid content.
+        let input = "first = one\n}\n}\nsecond = two";
+        let (script, errors) = parse_script(input);
+        assert_eq!(
+            script.entries.len(),
+            2,
+            "Should have two entries (stray braces consumed)"
+        );
+        assert_eq!(errors.len(), 2, "Should report two parse errors");
+    }
+
+    #[test]
+    fn test_error_recovery_line_skip_fallback() {
+        // Non-brace garbage falls through to line-skip correctly.
+        // Use non-boolean values to avoid boolean parsing.
+        let input = "valid = yes\n~~~\nstill_valid = working";
+        let (script, errors) = parse_script(input);
+        assert_eq!(script.entries.len(), 2);
+        assert!(!errors.is_empty(), "Should report parse error for garbage");
+        if let ast::Entry::Assignment(ass) = &script.entries[1] {
+            assert_eq!(ass.key_text(&script.source), "still_valid");
+            assert_eq!(ass.value.value.as_str(&script.source), Some("working"));
+        }
+    }
+
+    #[test]
+    fn test_error_recovery_missing_block_close() {
+        // A block with a missing closing brace at EOF — error reported,
+        // no crash. Entries parsed inside the block are dropped rather
+        // than corrupting the AST (parse_block never returned Ok).
+        let input = "outer = {\n    inner = val\n    missing_brace = yes\n";
+        let (script, errors) = parse_script(input);
+        assert!(!errors.is_empty(), "Missing brace should produce error");
+        println!(
+            "Missing block close test — {} entries, {} errors",
+            script.entries.len(),
+            errors.len()
+        );
     }
 }
