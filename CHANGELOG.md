@@ -8,6 +8,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Fixed sprite scanner not detecting other sprite types.**
 
+- **Fixed false "Texture file not found" warnings** caused by looking for texture files in the wrong directory.
+
 ## [v0.16.0] - 2026-06-04
 
 Mostly addressing some long-time deeply rooted issues within the extension.

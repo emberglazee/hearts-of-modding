@@ -62,6 +62,7 @@ fn run_ability_visitor(input: &str, uri: &str) -> Vec<Diagnostic> {
         abilities: &abilities,
         game_path: None,
         styling_enabled: false,
+        workspace_roots: &[],
     };
 
     let mut visitors: Vec<Box<dyn AstVisitor>> = vec![AbilityRule::visitor()];

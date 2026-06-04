@@ -333,6 +333,9 @@ impl LanguageServer for Backend {
         // 5. Workspace root (active mod, highest priority)
         roots.push(std::path::PathBuf::from("."));
 
+        // Store roots for texture file path resolution and other validation
+        *self.workspace_roots.lock().unwrap() = roots.clone();
+
         tokio::join!(
             self.scan_localization(&roots),
             self.load_assets(),

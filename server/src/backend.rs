@@ -30,6 +30,7 @@ pub(crate) struct Backend {
     pub(crate) scanner_data: ScannerData,
     pub(crate) config: Config,
     pub(crate) system_info: Mutex<sysinfo::System>,
+    pub(crate) workspace_roots: Mutex<Vec<std::path::PathBuf>>,
 }
 
 impl Backend {
@@ -1665,6 +1666,9 @@ impl Backend {
 
         let game_path = self.config.game_path();
 
+        // Lock workspace roots for texture path resolution
+        let workspace_roots = self.workspace_roots.lock().unwrap();
+
         // Build validation context
         let ctx = ValidationContext {
             uri,
@@ -1692,6 +1696,7 @@ impl Backend {
             abilities: &self.scanner_data.abilities,
             game_path,
             styling_enabled,
+            workspace_roots: &workspace_roots,
         };
 
         // ── AST visitors (single traversal, replaces per-rule recursion) ──

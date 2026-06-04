@@ -94,6 +94,7 @@ async fn main() {
         scanner_data: ScannerData::new(),
         config: Config::new(),
         system_info: Mutex::new(sysinfo::System::new()),
+        workspace_roots: Mutex::new(Vec::new()),
     });
     Server::new(stdin, stdout, socket).serve(service).await;
 }

@@ -77,6 +77,7 @@ pub(crate) struct ValidationContext<'a> {
         &'a DashMap<InternedStr, LayeredValue<crate::scanner::ability_scanner::Ability>>,
     pub(crate) game_path: Option<String>,
     pub(crate) styling_enabled: bool,
+    pub(crate) workspace_roots: &'a [std::path::PathBuf],
 }
 
 /// A validation rule for HOI4 script semantics.
