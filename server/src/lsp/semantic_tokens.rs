@@ -417,9 +417,9 @@ pub fn loc_semantic_tokens(content: &str) -> SemanticTokensResult {
                     // sorted by start position
                     let mut ranges: Vec<(usize, usize, u32)> = Vec::new();
 
-                    // Color codes → EnumMember
+                    // Color codes → Operator (structural markers, text coloring handled by decorations)
                     for m in LOC_COLOR_RE.find_iter(value_content) {
-                        ranges.push((m.start(), m.end(), TokenType::EnumMember as u32));
+                        ranges.push((m.start(), m.end(), TokenType::Operator as u32));
                     }
 
                     // Scope references [...] → Operator for brackets, Function for content
@@ -918,15 +918,27 @@ mod tests {
     fn test_loc_color_codes() {
         let content = "l_english:\n KEY:0 \"Hello §Gworld§!\"\n";
         let tokens = collect_loc_tokens(content);
-        // Check that §G and §! are enum_member, not plain string
-        let enum_members: Vec<&(u32, u32, u32, String)> =
-            tokens.iter().filter(|t| t.3 == "enum_member").collect();
-        assert_eq!(enum_members.len(), 2, "should highlight §G and §!");
+        // Check that §G and §! are operator (color codes changed from enum_member)
+        let operators: Vec<&(u32, u32, u32, String)> =
+            tokens.iter().filter(|t| t.3 == "operator").collect();
         // line: " KEY:0 \"Hello §Gworld§!\""
-        // pos:   KEY:0 "Hello §Gworld§!"
-        // 0: space, 1:K, 2:E, 3:Y, 4::, 5:0, 6:space, 7:", 8:H, 9:e, 10:l, 11:l, 12:o, 13:space, 14:§, 15:G, 16:w, 17:o, 18:r, 19:l, 20:d, 21:§, 22:!, 23:"
-        assert_eq!(enum_members[0].1, 14, "§G start col at UTF-16 14");
-        assert_eq!(enum_members[1].1, 21, "§! start col at UTF-16 21");
+        // pos:   KEY:0 \"Hello §Gworld§!\"
+        // 0: space, 1:K, 2:E, 3:Y, 4::, 5:0, 6:space, 7:\", 8:H, 9:e, 10:l, 11:l, 12:o, 13:space, 14:§, 15:G, 16:w, 17:o, 18:r, 19:l, 20:d, 21:§, 22:!, 23:\"
+        let color_ops: Vec<&&(u32, u32, u32, String)> =
+            operators.iter().filter(|t| t.2 == 2).collect();
+        assert_eq!(
+            color_ops.len(),
+            2,
+            "§G and §! are operator tokens of length 2"
+        );
+        assert!(
+            operators.iter().any(|t| t.1 == 14 && t.2 == 2),
+            "§G at col 14"
+        );
+        assert!(
+            operators.iter().any(|t| t.1 == 21 && t.2 == 2),
+            "§! at col 21"
+        );
     }
 
     #[test]
@@ -996,13 +1008,17 @@ mod tests {
     fn test_loc_mixed_content() {
         let content = "l_english:\n MY_KEY:0 \"§GHello§! from [ROOT.GetName] with $NESTED$\"\n";
         let tokens = collect_loc_tokens(content);
-        let enum_members: Vec<&(u32, u32, u32, String)> =
-            tokens.iter().filter(|t| t.3 == "enum_member").collect();
+        let operators: Vec<&(u32, u32, u32, String)> =
+            tokens.iter().filter(|t| t.3 == "operator").collect();
         let functions: Vec<&(u32, u32, u32, String)> =
             tokens.iter().filter(|t| t.3 == "function").collect();
         let variables: Vec<&(u32, u32, u32, String)> =
             tokens.iter().filter(|t| t.3 == "variable").collect();
-        assert_eq!(enum_members.len(), 2, "§G and §!");
+        let color_ops: Vec<&&(u32, u32, u32, String)> = operators
+            .iter()
+            .filter(|t| t.2 == 2 && (t.1 == 11 || t.1 == 18))
+            .collect();
+        assert_eq!(color_ops.len(), 2, "§G and §! as operator");
         assert_eq!(functions.len(), 1, "one scope ref");
         assert_eq!(variables.len(), 1, "one nested key");
     }

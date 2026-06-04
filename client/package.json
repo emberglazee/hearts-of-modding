@@ -228,7 +228,8 @@
         "cargo:test": "cd ../server && cargo test",
         "cargo:check": "cd ../server && cargo check",
         "cargo:fmt": "cd ../server && cargo fmt",
-        "cargo:clippy": "cd ../server && cargo clippy"
+        "cargo:clippy": "cd ../server && cargo clippy",
+        "check-all": "npm run lint:fix && npm run cargo:fmt && npm run cargo:check && npm run cargo:clippy && npm run cargo:test"
     },
     "dependencies": {
         "vscode-languageclient": "9.0.1"

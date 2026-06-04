@@ -5,7 +5,6 @@ use std::path::Path;
 
 #[derive(Debug, Clone)]
 pub struct ColorCode {
-    #[allow(dead_code)]
     pub symbol: String,
     pub rgb: (u8, u8, u8),
     pub path: InternedStr,

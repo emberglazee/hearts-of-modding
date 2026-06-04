@@ -2,6 +2,12 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
+## [v0.17.0] - 2026-06-04
+
+### ✨ Added
+
+- ⭐ **VSCode decorators for localization text:** Shows the color the text will be right in the editor. Supports custom color codes.
+
 ## [v0.16.1] - 2026-06-04
 
 ### 🩹 Fixed

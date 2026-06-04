@@ -9,9 +9,12 @@ import {
     TransportKind
 } from 'vscode-languageclient/node'
 
+import { LocColorDecorator } from './locColorDecorator'
+
 let client: LanguageClient
 let outputChannel: OutputChannel
 let memoryInterval: NodeJS.Timeout | undefined
+let locColorDecorator: LocColorDecorator
 
 function formatBytes(bytes: number): string {
     if (!Number.isFinite(bytes) || bytes <= 0) {
@@ -30,6 +33,11 @@ export async function activate(context: ExtensionContext) {
 
     const statusBarItem = window.createStatusBarItem(StatusBarAlignment.Right, 100)
     context.subscriptions.push(statusBarItem)
+
+    // ── Initialise localisation colour decorator ──
+    locColorDecorator = new LocColorDecorator()
+    locColorDecorator.activate()
+    context.subscriptions.push(locColorDecorator)
 
     context.subscriptions.push(commands.registerCommand('hearts-of-modding.showMemoryUsage', async () => {
         const config = workspace.getConfiguration('hoi4.showMemoryUsage')
@@ -332,6 +340,22 @@ async function startServer(context: ExtensionContext, statusBarItem: StatusBarIt
 
     // Start the client. This will also launch the server
     await client.start()
+
+    // ── Request scanned colour codes from the LSP ──
+    try {
+        const colorData: Record<string, string> | undefined = await client.sendRequest('workspace/executeCommand', {
+            command: 'hoi4/getColorCodes',
+            arguments: []
+        }) as Record<string, string> | undefined
+        if (colorData && Object.keys(colorData).length > 0) {
+            locColorDecorator.updateColors(colorData)
+            outputChannel.appendLine(`HoM colour decorator: loaded ${Object.keys(colorData).length} colour codes from LSP`)
+        }
+    } catch (err) {
+        // LSP may not support this command yet (e.g. during development)
+        // Decorator will use wiki defaults
+        outputChannel.appendLine(`HoM colour decorator: LSP colour query failed (${err}), using wiki defaults`)
+    }
 
     const updateMemoryUsage = async () => {
         const enabled = workspace.getConfiguration('hoi4.showMemoryUsage').get('enabled')

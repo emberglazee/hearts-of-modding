@@ -43,7 +43,7 @@
                     "endCaptures": {
                         "0": { "name": "punctuation.definition.string.end.hoi4-loc" }
                     },
-                    "contentName": "string.quoted.double",
+                    "contentName": "string.quoted.double.hoi4-loc",
                     "patterns": [
                         {
                             "include": "#color_codes"

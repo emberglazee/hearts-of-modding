@@ -87,7 +87,8 @@
     "semanticTokenColors": {
         "keyword": "#f5c542",
         "variable": "#f57db8",
-        "string": "#e2c15a",
+        "string": "#e6edf3",
+        "string:hoi4-localisation": "#e6edf3",
         "number": "#d96c8c",
         "operator": "#8a8a9e",
         "comment": { "foreground": "#8a8a9e", "fontStyle": "italic" },
@@ -108,6 +109,10 @@
         {
             "scope": "string.quoted.double.hoi4",
             "settings": { "foreground": "#e2c15a" }
+        },
+        {
+            "scope": "string.quoted.double.hoi4-loc",
+            "settings": { "foreground": "#e6edf3" }
         },
         {
             "scope": "constant.numeric.hoi4",

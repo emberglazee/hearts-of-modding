@@ -144,6 +144,7 @@ impl LanguageServer for Backend {
                     commands: vec![
                         "hoi4/getEventGraph".to_string(),
                         "hoi4/getMemoryUsage".to_string(),
+                        "hoi4/getColorCodes".to_string(),
                     ],
                     ..Default::default()
                 }),
@@ -958,6 +959,19 @@ impl LanguageServer for Backend {
                 }
             }
             return Ok(None);
+        } else if params.command == "hoi4/getColorCodes" {
+            let color_codes: std::collections::HashMap<String, String> = self
+                .scanner_data
+                .color_codes
+                .iter()
+                .map(|entry| {
+                    let cc = entry.value().resolve();
+                    let hex = format!("#{:02X}{:02X}{:02X}", cc.rgb.0, cc.rgb.1, cc.rgb.2);
+                    (cc.symbol.clone(), hex)
+                })
+                .collect();
+            let json = serde_json::to_value(&color_codes).unwrap();
+            return Ok(Some(json));
         }
         Ok(None)
     }
