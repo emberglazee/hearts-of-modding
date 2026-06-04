@@ -224,7 +224,11 @@ mod tests {
         }"#;
 
         let diags = validate_texture_file(content, &gfx_file, &[tmp.clone()], None, false);
-        assert_eq!(diags.len(), 1, "Should emit one diagnostic for missing texture");
+        assert_eq!(
+            diags.len(),
+            1,
+            "Should emit one diagnostic for missing texture"
+        );
         assert!(
             diags[0].message.contains("Texture file not found"),
             "Message should indicate file not found"
@@ -284,13 +288,9 @@ mod tests {
             }
         }"#;
 
-        let diags = validate_texture_file(
-            content, &gfx_file, &[], Some(&tmp.to_string_lossy()), false
-        );
-        assert!(
-            diags.is_empty(),
-            "Texture in game path should be found"
-        );
+        let diags =
+            validate_texture_file(content, &gfx_file, &[], Some(&tmp.to_string_lossy()), false);
+        assert!(diags.is_empty(), "Texture in game path should be found");
 
         let _ = fs::remove_dir_all(&tmp);
     }
@@ -352,7 +352,10 @@ mod tests {
         let styling_diags: Vec<_> = diags.iter().filter(|d| {
             matches!(&d.code, Some(tower_lsp_server::ls_types::NumberOrString::String(s)) if s == "styling_path_separator")
         }).collect();
-        let not_found_diags: Vec<_> = diags.iter().filter(|d| d.message.contains("not found")).collect();
+        let not_found_diags: Vec<_> = diags
+            .iter()
+            .filter(|d| d.message.contains("not found"))
+            .collect();
 
         assert_eq!(
             styling_diags.len(),
