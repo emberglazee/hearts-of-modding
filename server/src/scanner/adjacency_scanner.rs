@@ -140,8 +140,8 @@ where
 /// Determines the parsing strategy by filename:
 /// - The adjacencies CSV file (configurable name, matched by `map_config.adjacencies`) → `Adjacency` entries
 /// - `adjacency_rules.txt` → `AdjacencyRule` entries
-/// Note: Because the adjacencies CSV filename is mod-configurable, this variant uses the
-/// file's extension (`.csv`) and adjacency rules by fixed filename (`adjacency_rules.txt`).
+///   Note: Because the adjacencies CSV filename is mod-configurable, this variant uses the
+///   file's extension (`.csv`) and adjacency rules by fixed filename (`adjacency_rules.txt`).
 pub fn scan_adjacency_files<F>(files: &[PathBuf], filter: &F) -> AdjacencyScanResult
 where
     F: Fn(&std::path::Path) -> bool,

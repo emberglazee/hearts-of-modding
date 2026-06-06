@@ -42,7 +42,7 @@ where
     let mut states = HashMap::new();
     crate::utils::fs_util::parse_winning_files(files, filter, |path, content| {
         let (script, _) = parser::parse_script(&content);
-        extract_state(&script.entries, &script.source, &path, &mut states);
+        extract_state(&script.entries, &script.source, path, &mut states);
     });
     states
 }

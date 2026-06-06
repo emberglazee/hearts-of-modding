@@ -48,7 +48,7 @@ where
     let mut regions = HashMap::new();
     crate::utils::fs_util::parse_winning_files(files, filter, |path, content| {
         let (script, _) = parser::parse_script(&content);
-        extract_strategic_region(&script.entries, &script.source, &path, &mut regions);
+        extract_strategic_region(&script.entries, &script.source, path, &mut regions);
     });
     regions
 }
