@@ -256,56 +256,62 @@ impl Backend {
         } else if uri.as_str().contains("/common/strategic_regions/")
             && uri.as_str().ends_with(".txt")
         {
-            // Fall back to direct parsing for files not in the open-document cache
-            // (e.g. workspace scan reads from disk — the file isn't open in the editor)
-            if let Some((script, parse_errors)) = self
-                .ensure_ast_cached(uri.as_str())
-                .or_else(|| Some(self.cache_ast(uri.as_str(), content)))
-            {
-                for (msg, range) in &parse_errors {
-                    diagnostics.push(Diagnostic {
-                        range: ast_range_to_lsp(range),
-                        severity: Some(DiagnosticSeverity::ERROR),
-                        message: msg.clone(),
-                        code: Some(NumberOrString::String(
-                            advanced_validation::PARSE_ERROR.to_string(),
-                        )),
-                        source: Some("Hearts of Modding".to_string()),
-                        ..Default::default()
-                    });
-                }
-                self.validate_strategic_region_content(&script, &mut diagnostics)
-                    .await;
-                self.check_semantic(&script, &mut diagnostics, styling_enabled, uri.as_str())
-                    .await;
-                script_opt = Some(script);
+            // Only cache the AST if the document is actively open in the editor.
+            // Workspace-scanned files are parsed but NOT cached — they'd leak RAM
+            // since VS Code never sends did_close for them.
+            let (script, parse_errors) = if self.documents.contains_key(uri.as_str()) {
+                self.ensure_ast_cached(uri.as_str())
+                    .unwrap_or_else(|| self.cache_ast(uri.as_str(), content))
+            } else {
+                let (s, e) = parser::parse_script(content);
+                (Arc::new(s), e)
+            };
+            for (msg, range) in &parse_errors {
+                diagnostics.push(Diagnostic {
+                    range: ast_range_to_lsp(range),
+                    severity: Some(DiagnosticSeverity::ERROR),
+                    message: msg.clone(),
+                    code: Some(NumberOrString::String(
+                        advanced_validation::PARSE_ERROR.to_string(),
+                    )),
+                    source: Some("Hearts of Modding".to_string()),
+                    ..Default::default()
+                });
             }
+            self.validate_strategic_region_content(&script, &mut diagnostics)
+                .await;
+            self.check_semantic(&script, &mut diagnostics, styling_enabled, uri.as_str())
+                .await;
+            script_opt = Some(script);
         } else if uri.as_str().ends_with(".csv") {
             // Do not parse other CSV files as clausewitz scripts
         } else {
-            // Fall back to direct parsing for files not in the open-document cache
-            // (e.g. workspace scan reads from disk — the file isn't open in the editor)
-            if let Some((script, parse_errors)) = self
-                .ensure_ast_cached(uri.as_str())
-                .or_else(|| Some(self.cache_ast(uri.as_str(), content)))
-            {
-                for (msg, range) in &parse_errors {
-                    diagnostics.push(Diagnostic {
-                        range: ast_range_to_lsp(range),
-                        severity: Some(DiagnosticSeverity::ERROR),
-                        message: msg.clone(),
-                        code: Some(NumberOrString::String(
-                            advanced_validation::PARSE_ERROR.to_string(),
-                        )),
-                        source: Some("Hearts of Modding".to_string()),
-                        ..Default::default()
-                    });
-                }
-                // Semantic validation
-                self.check_semantic(&script, &mut diagnostics, styling_enabled, uri.as_str())
-                    .await;
-                script_opt = Some(script);
+            // Only cache the AST if the document is actively open in the editor.
+            // Workspace-scanned files are parsed but NOT cached — they'd leak RAM
+            // since VS Code never sends did_close for them.
+            let (script, parse_errors) = if self.documents.contains_key(uri.as_str()) {
+                self.ensure_ast_cached(uri.as_str())
+                    .unwrap_or_else(|| self.cache_ast(uri.as_str(), content))
+            } else {
+                let (s, e) = parser::parse_script(content);
+                (Arc::new(s), e)
+            };
+            for (msg, range) in &parse_errors {
+                diagnostics.push(Diagnostic {
+                    range: ast_range_to_lsp(range),
+                    severity: Some(DiagnosticSeverity::ERROR),
+                    message: msg.clone(),
+                    code: Some(NumberOrString::String(
+                        advanced_validation::PARSE_ERROR.to_string(),
+                    )),
+                    source: Some("Hearts of Modding".to_string()),
+                    ..Default::default()
+                });
             }
+            // Semantic validation
+            self.check_semantic(&script, &mut diagnostics, styling_enabled, uri.as_str())
+                .await;
+            script_opt = Some(script);
         }
 
         if styling_enabled {
