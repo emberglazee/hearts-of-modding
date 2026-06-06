@@ -554,6 +554,7 @@ dependencies = [
  "regex",
  "serde",
  "serde_json",
+ "smallvec",
  "sysinfo",
  "tikv-jemallocator",
  "tokio",

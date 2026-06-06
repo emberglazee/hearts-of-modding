@@ -34,6 +34,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Optimized quoted string parsing.**
 
+- **...and other optimizations.**
+
 ### 🩹 Fixed
 
 - **String interner memory leak:** The interner stored every interned string forever. Implemented a garbage collector to solve this.

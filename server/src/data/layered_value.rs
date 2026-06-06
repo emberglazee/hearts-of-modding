@@ -1,3 +1,4 @@
+use smallvec::SmallVec;
 use std::ops::Deref;
 
 /// A priority-ordered stack of entity definitions for VFS-style overlay.
@@ -28,9 +29,15 @@ use std::ops::Deref;
 /// A `LayeredValue` with zero layers is considered dead and should be removed
 /// from its containing map. `remove_by` callers check `is_empty()` afterward
 /// and delete the map entry if needed.
+///
+/// # Performance
+///
+/// Uses `SmallVec<[V; 1]>` instead of `Vec<V>` because 95%+ of HOI4 entities
+/// exist in exactly one layer (either base game or a mod). This avoids a 24-byte
+/// heap allocation for every entry, storing the first element inline on the stack.
 #[derive(Debug, Clone)]
 pub struct LayeredValue<V> {
-    layers: Vec<V>,
+    layers: SmallVec<[V; 1]>,
 }
 
 #[allow(dead_code)]
@@ -38,7 +45,7 @@ impl<V> LayeredValue<V> {
     /// Create a new layered value with a single (initial) entry.
     pub fn new(value: V) -> Self {
         LayeredValue {
-            layers: vec![value],
+            layers: smallvec::smallvec![value],
         }
     }
 
@@ -64,7 +71,7 @@ impl<V> LayeredValue<V> {
     }
 
     /// Mutable access to all layers.
-    pub fn layers_mut(&mut self) -> &mut Vec<V> {
+    pub fn layers_mut(&mut self) -> &mut SmallVec<[V; 1]> {
         &mut self.layers
     }
 
