@@ -38,7 +38,7 @@ jobs:
       - name: Install Dependencies
         run: |
           cd client
-          npm install
+          npm ci
 
       - name: Lint
         run: |
@@ -64,7 +64,7 @@ jobs:
       - name: Install Node Dependencies
         run: |
           cd client
-          npm install
+          npm ci
 
       - name: Bump Version
         id: bump
@@ -80,9 +80,14 @@ jobs:
           if [ "${{ inputs.bump }}" != "none" ]; then
             sed -i "0,/^version = .*/s//version = \"$VERSION\"/" ../server/Cargo.toml
 
+            # Regenerate Cargo.lock to reflect the new version
+            cd ../server
+            cargo generate-lockfile
+            cd ../client
+
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add package.json package-lock.json ../server/Cargo.toml
+            git add package.json package-lock.json ../server/Cargo.toml ../server/Cargo.lock
             git commit -m "chore: bump version to $VERSION"
             git push
           fi
