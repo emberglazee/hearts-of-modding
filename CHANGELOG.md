@@ -28,6 +28,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Improved variable scanning.**
 
+- **Slightly optimized the algorithm that checks for unescaped quotes in localization.**
+
 ### 🩹 Fixed
 
 - **String interner memory leak:** The interner stored every interned string forever. Implemented a garbage collector to solve this.

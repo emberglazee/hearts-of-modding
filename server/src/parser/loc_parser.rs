@@ -62,14 +62,12 @@ pub fn validate_unescaped_quotes_in_file(input: &str) -> Vec<LocDiagnostic> {
         let line_no_comment = &line[..comment_start];
 
         let mut unescaped_quote_indices = Vec::new();
-        let chars: Vec<char> = line_no_comment.chars().collect();
-        for i in 0..chars.len() {
-            if chars[i] == '"' {
-                let is_escaped = i > 0 && chars[i - 1] == '\\';
-                if !is_escaped {
-                    unescaped_quote_indices.push(i);
-                }
+        let mut prev_char = '\0';
+        for (i, c) in line_no_comment.char_indices() {
+            if c == '"' && prev_char != '\\' {
+                unescaped_quote_indices.push(i);
             }
+            prev_char = c;
         }
 
         // In HOI4 loc, we expect exactly 2 unescaped quotes (start and end)
