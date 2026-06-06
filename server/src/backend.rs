@@ -2108,6 +2108,41 @@ impl Backend {
         keywords.insert("set_from".to_string());
         keywords.insert("set_from_from".to_string());
 
+        // OOB (Order of Battle) keywords (history/units/*.txt)
+        keywords.insert("division_template".to_string());
+        keywords.insert("units".to_string());
+        keywords.insert("air_wings".to_string());
+        keywords.insert("instant_effect".to_string());
+        keywords.insert("regiments".to_string());
+        keywords.insert("support".to_string());
+        keywords.insert("division_names_group".to_string());
+        keywords.insert("is_locked".to_string());
+        keywords.insert("force_allow_recruiting".to_string());
+        keywords.insert("division_cap".to_string());
+        keywords.insert("template_counter".to_string());
+        keywords.insert("override_model".to_string());
+        keywords.insert("division_name".to_string());
+        keywords.insert("is_name_ordered".to_string());
+        keywords.insert("name_order".to_string());
+        keywords.insert("start_experience_factor".to_string());
+        keywords.insert("start_equipment_factor".to_string());
+        keywords.insert("start_manpower_factor".to_string());
+        keywords.insert("force_equipment_variants".to_string());
+        keywords.insert("officer".to_string());
+        keywords.insert("division".to_string());
+        keywords.insert("location".to_string());
+        keywords.insert("fleet".to_string());
+        keywords.insert("naval_base".to_string());
+        keywords.insert("task_force".to_string());
+        keywords.insert("pride_of_the_fleet".to_string());
+        keywords.insert("ship".to_string());
+        keywords.insert("definition".to_string());
+        keywords.insert("add_equipment_production".to_string());
+        keywords.insert("requested_factories".to_string());
+        keywords.insert("efficiency".to_string());
+        keywords.insert("version_name".to_string());
+        keywords.insert("creator".to_string());
+
         let lookup = entity_lookup::EntityLookup::new(&self.scanner_data);
         let all_names = lookup.entity_names();
 

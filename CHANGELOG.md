@@ -2,6 +2,12 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
+## [v0.18.0] - 2026-06-07
+
+### ✨ Added
+
+- **Order of Battle (`history/units/*.txt`) scanner.**
+
 ## [v0.17.0] - 2026-06-07
 
 ### ✨ Added

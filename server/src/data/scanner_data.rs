@@ -23,6 +23,7 @@ use crate::scanner::logistics_scanner;
 use crate::scanner::map_object_scanner;
 use crate::scanner::modifier_scanner;
 use crate::scanner::music_scanner;
+use crate::scanner::oob_scanner;
 use crate::scanner::portrait_scanner;
 use crate::scanner::province_scanner;
 use crate::scanner::resource_scanner;
@@ -116,6 +117,9 @@ pub(crate) struct ScannerData {
     pub color_codes: DashMap<InternedStr, LayeredValue<gfx_scanner::ColorCode>>,
     pub country_tags: DashMap<InternedStr, LayeredValue<country_scanner::CountryTag>>,
     pub states: DashMap<u32, state_scanner::State>,
+    pub oob_division_templates:
+        DashMap<InternedStr, LayeredValue<oob_scanner::OobDivisionTemplate>>,
+    pub oob_fleets: DashMap<InternedStr, LayeredValue<oob_scanner::OobFleet>>,
 
     // ── Reverse file-path indices for O(K) incremental updates ──
     // Maps file path -> Vec of keys defined in that file.
@@ -153,6 +157,8 @@ pub(crate) struct ScannerData {
     pub strategic_regions_file_index: DashMap<InternedStr, Vec<u32>>,
     pub terrain_categories_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub balance_of_powers_file_index: DashMap<InternedStr, Vec<InternedStr>>,
+    pub oob_division_templates_file_index: DashMap<InternedStr, Vec<InternedStr>>,
+    pub oob_fleets_file_index: DashMap<InternedStr, Vec<InternedStr>>,
 
     // ── DashSet registries ──
     pub duplicated_loc_keys: DashSet<(InternedStr, InternedStr)>,
@@ -214,6 +220,8 @@ impl ScannerData {
             color_codes: DashMap::new(),
             country_tags: DashMap::new(),
             states: DashMap::new(),
+            oob_division_templates: DashMap::new(),
+            oob_fleets: DashMap::new(),
             localization_file_index: DashMap::new(),
             scripted_triggers_file_index: DashMap::new(),
             scripted_effects_file_index: DashMap::new(),
@@ -246,6 +254,8 @@ impl ScannerData {
             strategic_regions_file_index: DashMap::new(),
             terrain_categories_file_index: DashMap::new(),
             balance_of_powers_file_index: DashMap::new(),
+            oob_division_templates_file_index: DashMap::new(),
+            oob_fleets_file_index: DashMap::new(),
             duplicated_loc_keys: DashSet::new(),
             game_loc_keys: DashSet::new(),
             workspace_files: DashSet::new(),
@@ -335,5 +345,10 @@ impl ScannerData {
         rebuild_index_flat!(self.strategic_regions, self.strategic_regions_file_index);
         rebuild_index!(self.terrain_categories, self.terrain_categories_file_index);
         rebuild_index!(self.balance_of_powers, self.balance_of_powers_file_index);
+        rebuild_index!(
+            self.oob_division_templates,
+            self.oob_division_templates_file_index
+        );
+        rebuild_index!(self.oob_fleets, self.oob_fleets_file_index);
     }
 }

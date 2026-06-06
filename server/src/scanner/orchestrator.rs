@@ -23,6 +23,7 @@ use crate::scanner::logistics_scanner;
 use crate::scanner::map_object_scanner;
 use crate::scanner::modifier_scanner;
 use crate::scanner::music_scanner;
+use crate::scanner::oob_scanner;
 use crate::scanner::portrait_scanner;
 use crate::scanner::province_scanner;
 use crate::scanner::resource_scanner;
@@ -1057,5 +1058,40 @@ impl Backend {
                 }
             }
         }
+    }
+
+    pub(crate) async fn scan_oobs(&self, overlay: &crate::scanner::file_overlay::FileOverlay) {
+        let filter = self.get_sync_filter();
+        let files: Vec<std::path::PathBuf> = overlay
+            .winning_files_in("history/units")
+            .into_iter()
+            .filter(|p| p.extension().is_some_and(|ext| ext == "txt"))
+            .collect();
+        let result =
+            tokio::task::spawn_blocking(move || oob_scanner::scan_oob_files(&files, &filter))
+                .await
+                .unwrap();
+        self.scanner_data.oob_division_templates.clear();
+        self.scanner_data.oob_fleets.clear();
+        for (k, v) in result.division_templates {
+            self.scanner_data
+                .oob_division_templates
+                .insert(k.into(), crate::data::layered_value::LayeredValue::new(v));
+        }
+        for (k, v) in result.fleets {
+            self.scanner_data
+                .oob_fleets
+                .insert(k.into(), crate::data::layered_value::LayeredValue::new(v));
+        }
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!(
+                    "Total: Loaded {} OOB division templates and {} fleets",
+                    self.scanner_data.oob_division_templates.len(),
+                    self.scanner_data.oob_fleets.len()
+                ),
+            )
+            .await;
     }
 }

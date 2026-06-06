@@ -18,6 +18,7 @@ use crate::scanner::idea_scanner;
 use crate::scanner::ideology_scanner;
 use crate::scanner::modifier_scanner;
 use crate::scanner::music_scanner;
+use crate::scanner::oob_scanner;
 use crate::scanner::portrait_scanner;
 use crate::scanner::resource_scanner;
 use crate::scanner::scripted_loc_scanner;
@@ -227,6 +228,8 @@ impl_has_path!(strategic_region_scanner::StrategicRegion);
 impl_has_path!(terrain_scanner::TerrainCategory);
 impl_has_path!(country_scanner::CountryTag);
 impl_has_path!(bop_scanner::BalanceOfPower);
+impl_has_path!(oob_scanner::OobDivisionTemplate);
+impl_has_path!(oob_scanner::OobFleet);
 
 /// Determines which scanner categories apply to a given file path.
 fn classify_file(path: &str) -> Vec<FileCategory> {
@@ -317,6 +320,11 @@ fn classify_file(path: &str) -> Vec<FileCategory> {
             cats.push(FileCategory::BalanceOfPower);
         }
 
+        // OOB (order of battle)
+        if lower.contains("/history/units/") {
+            cats.push(FileCategory::Oob);
+        }
+
         // Terrain definitions
         if lower.contains("/common/terrain/") {
             cats.push(FileCategory::Terrains);
@@ -379,6 +387,7 @@ enum FileCategory {
     StrategicRegions,
     Terrains,
     BalanceOfPower,
+    Oob,
 }
 
 /// Update `ScannerData` with fresh entities extracted from a single saved file.
@@ -456,6 +465,7 @@ fn update_from_ast(
         FileCategory::StrategicRegions => update_strategic_regions(scanner_data, path_str, script),
         FileCategory::Terrains => update_terrains(scanner_data, path_str, script),
         FileCategory::BalanceOfPower => update_balance_of_powers(scanner_data, path_str, script),
+        FileCategory::Oob => update_oobs(scanner_data, path_str, script),
         FileCategory::Localization | FileCategory::Defines | FileCategory::Countries => {
             // Handled directly in update_scanner_data_for_file, unreachable here
         }
@@ -1103,6 +1113,27 @@ fn update_balance_of_powers(scanner_data: &ScannerData, path_str: &str, script: 
     );
 }
 
+fn update_oobs(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
+    let mut result = oob_scanner::OobScanResult {
+        division_templates: std::collections::HashMap::new(),
+        divisions: std::collections::HashMap::new(),
+        fleets: std::collections::HashMap::new(),
+    };
+    oob_scanner::extract_oob_entities(&script.entries, &script.source, path_str, &mut result);
+    retain_path!(
+        scanner_data.oob_division_templates,
+        scanner_data.oob_division_templates_file_index,
+        path_str,
+        result.division_templates
+    );
+    retain_path!(
+        scanner_data.oob_fleets,
+        scanner_data.oob_fleets_file_index,
+        path_str,
+        result.fleets
+    );
+}
+
 /// Remove all scanner data entries originating from a given file path.
 /// Used by `did_change_watched_files` when a file is deleted externally
 /// (Git branch switch, file explorer rename, etc.).
@@ -1334,6 +1365,18 @@ pub fn remove_path_from_scanner_data(scanner_data: &ScannerData, path_str: &str)
                 remove_path!(
                     scanner_data.balance_of_powers,
                     scanner_data.balance_of_powers_file_index,
+                    path_str
+                );
+            }
+            FileCategory::Oob => {
+                remove_path!(
+                    scanner_data.oob_division_templates,
+                    scanner_data.oob_division_templates_file_index,
+                    path_str
+                );
+                remove_path!(
+                    scanner_data.oob_fleets,
+                    scanner_data.oob_fleets_file_index,
                     path_str
                 );
             }

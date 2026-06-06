@@ -54,6 +54,8 @@ pub enum EntityKind {
     ColorCode,
     Resource,
     StateCategory,
+    OobDivisionTemplate,
+    OobFleet,
 }
 
 impl EntityKind {
@@ -103,6 +105,8 @@ impl EntityKind {
             EntityKind::ColorCode => SymbolKind::CONSTANT,
             EntityKind::Resource => SymbolKind::PROPERTY,
             EntityKind::StateCategory => SymbolKind::ENUM,
+            EntityKind::OobDivisionTemplate => SymbolKind::STRUCT,
+            EntityKind::OobFleet => SymbolKind::OBJECT,
         }
     }
 }
@@ -230,6 +234,8 @@ impl<'a> EntityLookup<'a> {
         try_lookup!(Resource, resources);
         try_lookup!(StateCategory, state_categories);
         try_lookup!(AiStrategyPlan, ai_strategy_plans);
+        try_lookup!(OobDivisionTemplate, oob_division_templates);
+        try_lookup!(OobFleet, oob_fleets);
 
         {
             let map = &self.data.modifier_mappings;
@@ -357,6 +363,8 @@ impl<'a> EntityLookup<'a> {
         collect_names!(TerrainCategory, terrain_categories);
         collect_names!(CountryTag, country_tags);
         collect_names!(ColorCode, color_codes);
+        collect_names!(OobDivisionTemplate, oob_division_templates);
+        collect_names!(OobFleet, oob_fleets);
 
         names
     }

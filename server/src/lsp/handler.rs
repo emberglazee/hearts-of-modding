@@ -387,6 +387,7 @@ impl LanguageServer for Backend {
             self.scan_portraits(&overlay),
             self.scan_countries(&overlay),
             self.scan_gfx(&overlay),
+            self.scan_oobs(&overlay),
         );
 
         // Rebuild reverse file-path indices so incremental updates are O(K) not O(N)

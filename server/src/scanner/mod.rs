@@ -19,6 +19,7 @@ pub mod logistics_scanner;
 pub mod map_object_scanner;
 pub mod modifier_scanner;
 pub mod music_scanner;
+pub mod oob_scanner;
 pub mod orchestrator;
 pub mod portrait_scanner;
 pub mod province_scanner;
