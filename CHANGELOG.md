@@ -12,6 +12,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Bracket-matching error recovery:** Missing brackets should no longer cause as many cascading parse failures through the rest of the file.
 
+- **Added some more missing keywords.**
+
 ### 🔧 Changed
 
 - ‼️ **Extension activation behavior** has been changed and clarified:

@@ -1869,6 +1869,13 @@ impl Backend {
         keywords.insert("volume".to_string());
         keywords.insert("file".to_string());
 
+        // Structural block keywords (scope filter, conditional, option blocks)
+        keywords.insert("limit".to_string());
+        keywords.insert("else".to_string());
+        keywords.insert("else_if".to_string());
+        keywords.insert("option".to_string());
+        keywords.insert("trigger".to_string());
+
         // Ideology definition keywords
         keywords.insert("types".to_string());
         keywords.insert("dynamic_faction_names".to_string());
