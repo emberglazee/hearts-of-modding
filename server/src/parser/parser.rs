@@ -199,16 +199,21 @@ fn parse_identifier_value(input: Span) -> IResult<Span, ast::NodeedValue> {
     let byte_span = to_byte_span(raw);
     let text = raw.fragment();
 
-    // Check if it's a finite float (e.g. "15.0", "42")
-    if let Ok(n) = text.parse::<f64>() {
-        if n.is_finite() {
-            return Ok((
-                input,
-                ast::NodeedValue {
-                    value: Value::Number(n),
-                    range,
-                },
-            ));
+    // Fast-path: only try f64 parsing if the string starts with a digit, '-', or '+'
+    // This avoids the expensive str::parse::<f64> call on every identifier.
+    if let Some(first_byte) = text.as_bytes().first() {
+        if first_byte.is_ascii_digit() || *first_byte == b'-' || *first_byte == b'+' {
+            if let Ok(n) = text.parse::<f64>() {
+                if n.is_finite() {
+                    return Ok((
+                        input,
+                        ast::NodeedValue {
+                            value: Value::Number(n),
+                            range,
+                        },
+                    ));
+                }
+            }
         }
     }
 

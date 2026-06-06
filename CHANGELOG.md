@@ -30,6 +30,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Slightly optimized the algorithm that checks for unescaped quotes in localization.**
 
+- **Fast-path check for `parse_identifier_value` to avoid unnecessary CPU-heavy 64-bit float parsing.**
+
 ### 🩹 Fixed
 
 - **String interner memory leak:** The interner stored every interned string forever. Implemented a garbage collector to solve this.
