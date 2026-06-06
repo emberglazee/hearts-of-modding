@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use crate::parser::parser;
@@ -33,6 +34,20 @@ where
             },
         );
     }
+
+    resources
+}
+
+pub fn scan_resource_files<F>(files: &[PathBuf], filter: &F) -> HashMap<String, Resource>
+where
+    F: Fn(&std::path::Path) -> bool,
+{
+    let mut resources = HashMap::new();
+
+    crate::utils::fs_util::parse_winning_files(files, filter, |path, content| {
+        let (script, _) = parser::parse_script(&content);
+        extract_resources(&script.entries, &script.source, path, &mut resources);
+    });
 
     resources
 }

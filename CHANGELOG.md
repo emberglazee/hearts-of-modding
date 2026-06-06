@@ -26,6 +26,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
   - **VSCode now should only automatically activate the extension if it sees `descriptor.mod` in the workspace root directory (`./descriptor.mod`).**
 
+- ⭐ **Massive virtual filesystem refactor:** Overhauled the VFS to more closely resemble the HOI4 mod loading behavior.
+
 - **Improved variable scanning.**
 
 - **Slightly optimized the algorithm that checks for unescaped quotes in localization.**

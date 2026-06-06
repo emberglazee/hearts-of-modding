@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use crate::parser::parser;
@@ -34,6 +35,21 @@ where
         );
     }
 
+    regions
+}
+
+pub fn scan_strategic_region_files<F>(
+    files: &[PathBuf],
+    filter: &F,
+) -> HashMap<u32, StrategicRegion>
+where
+    F: Fn(&Path) -> bool,
+{
+    let mut regions = HashMap::new();
+    crate::utils::fs_util::parse_winning_files(files, filter, |path, content| {
+        let (script, _) = parser::parse_script(&content);
+        extract_strategic_region(&script.entries, &script.source, &path, &mut regions);
+    });
     regions
 }
 

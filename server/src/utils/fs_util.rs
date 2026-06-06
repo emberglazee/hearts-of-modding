@@ -82,6 +82,28 @@ pub fn walk_and_parse_files<F, P>(
     }
 }
 
+/// Parse a pre-determined list of winning files (from FileOverlay) without
+/// walking a directory. Each file is read and passed to the processor only
+/// if it passes the ignore filter.
+///
+/// This is the file-level-overlay counterpart to `walk_and_parse_files` —
+/// instead of discovering files by walking a directory, the caller provides
+/// the exact list of files to process (the ones that "won" the overlay).
+pub fn parse_winning_files<F, P>(files: &[PathBuf], ignore_filter: &F, mut processor: P)
+where
+    F: Fn(&Path) -> bool,
+    P: FnMut(&Path, String),
+{
+    for path in files {
+        if ignore_filter(path) {
+            continue;
+        }
+        if let Ok(content) = std::fs::read_to_string(path) {
+            processor(path, content);
+        }
+    }
+}
+
 /// Check whether a path matches any of the provided ignore regex patterns.
 pub fn is_path_ignored(path: &Path, ignored: &[regex::Regex]) -> bool {
     let path_str = path.to_string_lossy();

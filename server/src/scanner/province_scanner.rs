@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
@@ -70,6 +71,58 @@ where
             }
         }
     }
+
+    provinces
+}
+
+pub fn scan_province_files<F>(files: &[PathBuf], filter: &F) -> HashMap<u32, Province>
+where
+    F: Fn(&std::path::Path) -> bool,
+{
+    let mut provinces = HashMap::new();
+
+    crate::utils::fs_util::parse_winning_files(files, filter, |_path, content| {
+        for line in content.lines() {
+            let parts: Vec<&str> = line.split(';').collect();
+            if parts.len() >= 8
+                && let Ok(id) = parts[0].parse::<u32>()
+            {
+                let r = parts[1].parse::<u8>().unwrap_or(0);
+                let g = parts[2].parse::<u8>().unwrap_or(0);
+                let b = parts[3].parse::<u8>().unwrap_or(0);
+                let terrain = parts[4].to_string();
+                let is_coastal = parts[5].eq_ignore_ascii_case("true");
+                let prov_type = parts[6].to_string();
+                let continent = parts[7].parse::<u32>().unwrap_or(0);
+
+                provinces.insert(
+                    id,
+                    Province {
+                        id,
+                        rgb: (r, g, b),
+                        terrain,
+                        is_coastal,
+                        prov_type,
+                        continent,
+                    },
+                );
+            } else if let Some(id_str) = parts.first() {
+                if let Ok(id) = id_str.parse::<u32>() {
+                    provinces.insert(
+                        id,
+                        Province {
+                            id,
+                            rgb: (0, 0, 0),
+                            terrain: String::new(),
+                            is_coastal: false,
+                            prov_type: String::new(),
+                            continent: 0,
+                        },
+                    );
+                }
+            }
+        }
+    });
 
     provinces
 }

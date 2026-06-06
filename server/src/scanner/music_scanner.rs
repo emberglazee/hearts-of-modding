@@ -1,7 +1,9 @@
+#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use crate::parser::parser;
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 #[derive(Debug, Clone)]
 pub struct MusicAsset {
@@ -67,6 +69,43 @@ where
             },
         );
     }
+
+    MusicScanResult {
+        assets,
+        stations,
+        songs,
+    }
+}
+
+pub fn scan_music_files<F>(files: &[PathBuf], filter: &F) -> MusicScanResult
+where
+    F: Fn(&std::path::Path) -> bool,
+{
+    let mut assets = HashMap::new();
+    let mut stations = HashMap::new();
+    let mut songs = HashMap::new();
+
+    crate::utils::fs_util::parse_winning_files(files, filter, |path, content| {
+        let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
+        if ext == "asset" {
+            let (script, _) = parser::parse_script(&content);
+            find_assets_in_entries(
+                &script.entries,
+                &script.source,
+                &path.to_string_lossy(),
+                &mut assets,
+            );
+        } else if ext == "txt" {
+            let (script, _) = parser::parse_script(&content);
+            find_stations_and_songs_in_entries(
+                &script.entries,
+                &script.source,
+                &path.to_string_lossy(),
+                &mut stations,
+                &mut songs,
+            );
+        }
+    });
 
     MusicScanResult {
         assets,

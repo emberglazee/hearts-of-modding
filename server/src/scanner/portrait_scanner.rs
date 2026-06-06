@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use crate::parser::parser;
@@ -50,6 +51,18 @@ where
         );
     }
 
+    portraits
+}
+
+pub fn scan_portrait_files<F>(files: &[PathBuf], filter: &F) -> HashMap<String, Portrait>
+where
+    F: Fn(&std::path::Path) -> bool,
+{
+    let mut portraits = HashMap::new();
+    crate::utils::fs_util::parse_winning_files(files, filter, |path, content| {
+        let (script, _) = parser::parse_script(&content);
+        extract_portraits(&script.entries, &script.source, path, &mut portraits);
+    });
     portraits
 }
 

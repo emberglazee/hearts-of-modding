@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use crate::parser::parser;
@@ -124,6 +125,34 @@ where
             }
         }
     }
+
+    SoundScanResult {
+        sounds,
+        sound_effects,
+        falloffs,
+        categories,
+    }
+}
+
+pub fn scan_sound_files<F>(files: &[PathBuf], filter: &F) -> SoundScanResult
+where
+    F: Fn(&std::path::Path) -> bool,
+{
+    let mut sounds = HashMap::new();
+    let mut sound_effects = HashMap::new();
+    let mut falloffs = HashMap::new();
+    let mut categories = HashMap::new();
+
+    crate::utils::fs_util::parse_winning_files(files, filter, |path, content| {
+        process_sound_file(
+            path,
+            content,
+            &mut sounds,
+            &mut sound_effects,
+            &mut falloffs,
+            &mut categories,
+        );
+    });
 
     SoundScanResult {
         sounds,

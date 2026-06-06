@@ -1,8 +1,9 @@
+#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use crate::parser::parser;
 use std::collections::HashMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 /// Vanilla ability names used as fallback when no ability files are found in workspace
 pub const VANILLA_ABILITY_NAMES: &[&str] = &[
@@ -60,6 +61,57 @@ where
             },
         );
     }
+
+    // Fallback: if no abilities were scanned, seed with vanilla names for completions
+    if map.is_empty() {
+        for name in VANILLA_ABILITY_NAMES {
+            map.insert(
+                name.to_string(),
+                Ability {
+                    key: name.to_string(),
+                    name_loc: None,
+                    desc_loc: None,
+                    cost: None,
+                    duration: None,
+                    sound_effect: None,
+                    type_name: Some("army_leader".to_string()),
+                    cancelable: None,
+                    cooldown: None,
+                    icon: None,
+                    has_allowed: false,
+                    has_one_time_effect: false,
+                    has_unit_modifiers: false,
+                    has_ai_will_do: false,
+                    path: std::sync::Arc::from(""),
+                    range: ast::Range {
+                        start_line: 0,
+                        start_col: 0,
+                        end_line: 0,
+                        end_col: 0,
+                    },
+                },
+            );
+        }
+    }
+
+    map
+}
+
+pub fn scan_ability_files<F>(files: &[PathBuf], filter: &F) -> HashMap<String, Ability>
+where
+    F: Fn(&Path) -> bool,
+{
+    let mut map = HashMap::new();
+
+    crate::utils::fs_util::parse_winning_files(files, filter, |path, content| {
+        let (script, _) = parser::parse_script(&content);
+        find_abilities_in_entries(
+            &script.entries,
+            &script.source,
+            &path.to_string_lossy(),
+            &mut map,
+        );
+    });
 
     // Fallback: if no abilities were scanned, seed with vanilla names for completions
     if map.is_empty() {

@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use std::fs;
 use std::path::PathBuf;
@@ -83,6 +84,66 @@ where
             }
         }
     }
+
+    LogisticsScanResult {
+        supply_nodes,
+        railways,
+    }
+}
+
+/// Scan a pre-determined list of logistics files.
+/// Determines parsing strategy by filename:
+/// - `supply_nodes.txt` → `SupplyNode` entries
+/// - `railways.txt` → `Railway` entries
+pub fn scan_logistics_files<F>(files: &[PathBuf], filter: &F) -> LogisticsScanResult
+where
+    F: Fn(&std::path::Path) -> bool,
+{
+    let mut supply_nodes = Vec::new();
+    let mut railways = Vec::new();
+
+    crate::utils::fs_util::parse_winning_files(files, filter, |path, content| {
+        let fname = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+
+        if fname.eq_ignore_ascii_case("supply_nodes.txt") {
+            for (line_idx, line) in content.lines().enumerate() {
+                let parts: Vec<&str> = line.split_whitespace().collect();
+                if parts.len() >= 2
+                    && let (Ok(level), Ok(province_id)) =
+                        (parts[0].parse::<u32>(), parts[1].parse::<u32>())
+                {
+                    supply_nodes.push(SupplyNode {
+                        level,
+                        province_id,
+                        path: std::sync::Arc::from(path.to_string_lossy().as_ref()),
+                        start_line: line_idx as u32,
+                    });
+                }
+            }
+        } else if fname.eq_ignore_ascii_case("railways.txt") {
+            for (line_idx, line) in content.lines().enumerate() {
+                let parts: Vec<&str> = line.split_whitespace().collect();
+                if parts.len() >= 2
+                    && let (Ok(level), Ok(num_provs)) =
+                        (parts[0].parse::<u32>(), parts[1].parse::<usize>())
+                    && parts.len() >= 2 + num_provs
+                {
+                    let mut provs = Vec::new();
+                    for i in 0..num_provs {
+                        if let Ok(prov_id) = parts[2 + i].parse::<u32>() {
+                            provs.push(prov_id);
+                        }
+                    }
+                    railways.push(Railway {
+                        level,
+                        provinces: provs,
+                        path: std::sync::Arc::from(path.to_string_lossy().as_ref()),
+                        start_line: line_idx as u32,
+                    });
+                }
+            }
+        }
+    });
 
     LogisticsScanResult {
         supply_nodes,

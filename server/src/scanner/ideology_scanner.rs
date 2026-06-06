@@ -1,8 +1,9 @@
+#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use crate::parser::parser;
 use std::collections::HashMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone)]
 pub struct Ideology {
@@ -19,6 +20,23 @@ where
 {
     let mut map = HashMap::new();
     crate::utils::fs_util::walk_and_parse_files(dir_path, &["txt"], filter, |path, content| {
+        let (script, _) = parser::parse_script(&content);
+        find_ideologies_in_entries(
+            &script.entries,
+            &script.source,
+            &path.to_string_lossy(),
+            &mut map,
+        );
+    });
+    map
+}
+
+pub fn scan_ideology_files<F>(files: &[PathBuf], filter: &F) -> HashMap<String, Ideology>
+where
+    F: Fn(&Path) -> bool,
+{
+    let mut map = HashMap::new();
+    crate::utils::fs_util::parse_winning_files(files, filter, |path, content| {
         let (script, _) = parser::parse_script(&content);
         find_ideologies_in_entries(
             &script.entries,

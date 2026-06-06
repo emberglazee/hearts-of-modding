@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use std::collections::HashMap;
 use std::fs;
@@ -171,6 +172,84 @@ where
             }
         }
     }
+
+    tags
+}
+
+/// Scan a pre-determined list of country tag files.
+/// Determines parsing strategy by the file's path:
+/// - Files under "common/country_tags" are parsed as `TAG = "path"` line format.
+/// - Files under "common/countries" or "history/countries" are parsed by filename (`TAG - Name.txt`).
+pub fn scan_country_tag_files<F>(files: &[PathBuf], filter: &F) -> HashMap<String, CountryTag>
+where
+    F: Fn(&std::path::Path) -> bool,
+{
+    let mut tags = HashMap::new();
+
+    crate::utils::fs_util::parse_winning_files(files, filter, |path, content| {
+        let path_str = path.to_string_lossy();
+        let path_lower = path_str.to_ascii_lowercase();
+
+        if path_lower.contains("common/country_tags") {
+            // Source 1: TAG = "countries/TAG - Name.txt" format
+            let mut dynamic_mode = false;
+            for (line_idx, line) in content.lines().enumerate() {
+                let line = line.trim();
+                if line.is_empty() || line.starts_with('#') {
+                    continue;
+                }
+                if line.to_ascii_lowercase().starts_with("dynamic_tags") {
+                    dynamic_mode = line.to_ascii_lowercase().contains("= yes");
+                    continue;
+                }
+                if let Some(eq_pos) = line.find('=') {
+                    let tag = line[..eq_pos].trim().to_uppercase();
+                    if is_valid_tag(&tag) {
+                        let rest = line[eq_pos + 1..].trim().trim_matches('"');
+                        let name = extract_country_name(rest);
+                        let line_no = line_idx as u32;
+                        tags.entry(tag.clone()).or_insert_with(|| CountryTag {
+                            tag,
+                            name,
+                            path: path_str.to_string().into(),
+                            range: ast::Range {
+                                start_line: line_no,
+                                start_col: 0,
+                                end_line: line_no,
+                                end_col: 0,
+                            },
+                            dynamic: dynamic_mode,
+                        });
+                    }
+                }
+            }
+        } else if path_lower.contains("common/countries")
+            || path_lower.contains("history/countries")
+        {
+            // Source 2/3: filename format "TAG - Name.txt"
+            if let Some(stem) = path.file_stem() {
+                let stem = stem.to_string_lossy();
+                if stem.len() >= 4 && stem.as_bytes()[3] == b'-' {
+                    let tag = stem[..3].to_uppercase();
+                    if is_valid_tag(&tag) {
+                        let name = stem[4..].trim().to_string();
+                        tags.entry(tag.clone()).or_insert_with(|| CountryTag {
+                            tag,
+                            name,
+                            path: path_str.to_string().into(),
+                            range: ast::Range {
+                                start_line: 0,
+                                start_col: 0,
+                                end_line: 0,
+                                end_col: 0,
+                            },
+                            dynamic: false,
+                        });
+                    }
+                }
+            }
+        }
+    });
 
     tags
 }

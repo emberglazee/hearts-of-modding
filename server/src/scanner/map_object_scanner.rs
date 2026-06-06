@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use std::fs;
 use std::path::PathBuf;
@@ -149,6 +150,106 @@ where
             }
         }
     }
+
+    MapObjectScanResult {
+        buildings,
+        unitstacks,
+        weather_positions,
+    }
+}
+
+/// Scan a pre-determined list of map object files.
+/// Determines which map object type a file contains by its filename:
+/// - `buildings.txt` → `MapBuilding` entries
+/// - `unitstacks.txt` → `UnitStack` entries
+/// - `weatherpositions.txt` → `WeatherPosition` entries
+pub fn scan_map_object_files<F>(files: &[PathBuf], filter: &F) -> MapObjectScanResult
+where
+    F: Fn(&std::path::Path) -> bool,
+{
+    let mut buildings = Vec::new();
+    let mut unitstacks = Vec::new();
+    let mut weather_positions = Vec::new();
+
+    crate::utils::fs_util::parse_winning_files(files, filter, |path, content| {
+        let fname = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+
+        if fname.eq_ignore_ascii_case("buildings.txt") {
+            for (line_idx, line) in content.lines().enumerate() {
+                let parts: Vec<&str> = line.split(';').collect();
+                if parts.len() >= 7
+                    && let Ok(state_id) = parts[0].parse::<u32>()
+                {
+                    let building_id = parts[1].to_string();
+                    let x = parts[2].parse::<f64>().unwrap_or(0.0);
+                    let y = parts[3].parse::<f64>().unwrap_or(0.0);
+                    let z = parts[4].parse::<f64>().unwrap_or(0.0);
+                    let rotation = parts[5].parse::<f64>().unwrap_or(0.0);
+                    let sea_province = parts[6].parse::<u32>().unwrap_or(0);
+
+                    buildings.push(MapBuilding {
+                        state_id,
+                        building_id,
+                        x,
+                        y,
+                        z,
+                        rotation,
+                        sea_province,
+                        path: std::sync::Arc::from(path.to_string_lossy().as_ref()),
+                        start_line: line_idx as u32,
+                    });
+                }
+            }
+        } else if fname.eq_ignore_ascii_case("unitstacks.txt") {
+            for (line_idx, line) in content.lines().enumerate() {
+                let parts: Vec<&str> = line.split(';').collect();
+                if parts.len() >= 7
+                    && let Ok(province_id) = parts[0].parse::<u32>()
+                {
+                    let stack_type = parts[1].parse::<u32>().unwrap_or(0);
+                    let x = parts[2].parse::<f64>().unwrap_or(0.0);
+                    let y = parts[3].parse::<f64>().unwrap_or(0.0);
+                    let z = parts[4].parse::<f64>().unwrap_or(0.0);
+                    let rotation = parts[5].parse::<f64>().unwrap_or(0.0);
+                    let offset = parts[6].parse::<f64>().unwrap_or(0.0);
+
+                    unitstacks.push(UnitStack {
+                        province_id,
+                        stack_type,
+                        x,
+                        y,
+                        z,
+                        rotation,
+                        offset,
+                        path: std::sync::Arc::from(path.to_string_lossy().as_ref()),
+                        start_line: line_idx as u32,
+                    });
+                }
+            }
+        } else if fname.eq_ignore_ascii_case("weatherpositions.txt") {
+            for (line_idx, line) in content.lines().enumerate() {
+                let parts: Vec<&str> = line.split(';').collect();
+                if parts.len() >= 5
+                    && let Ok(region_id) = parts[0].parse::<u32>()
+                {
+                    let x = parts[1].parse::<f64>().unwrap_or(0.0);
+                    let y = parts[2].parse::<f64>().unwrap_or(0.0);
+                    let z = parts[3].parse::<f64>().unwrap_or(0.0);
+                    let size = parts[4].to_string();
+
+                    weather_positions.push(WeatherPosition {
+                        region_id,
+                        x,
+                        y,
+                        z,
+                        size,
+                        path: std::sync::Arc::from(path.to_string_lossy().as_ref()),
+                        start_line: line_idx as u32,
+                    });
+                }
+            }
+        }
+    });
 
     MapObjectScanResult {
         buildings,

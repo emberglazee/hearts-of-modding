@@ -338,41 +338,51 @@ impl LanguageServer for Backend {
         // Store roots for texture file path resolution and other validation
         *self.workspace_roots.lock().unwrap() = roots.clone();
 
+        // Build file-level overlay for path-priority-based scanning.
+        // Script files (events, ideas, focuses, etc.) use file-path-level override:
+        // a mod file at the same relative path completely replaces the vanilla file.
+        // Localization and defines still use key-level merge (LayeredValue).
+        let overlay = crate::scanner::file_overlay::FileOverlay::build_script_only(
+            &roots,
+            &["txt", "yml", "asset", "gfx", "gui", "csv", "lua"],
+            self.get_sync_filter(),
+        );
+
         tokio::join!(
-            self.scan_localization(&roots),
-            self.load_assets(),
-            self.scan_scripted(&roots),
-            self.scan_ideologies(&roots),
-            self.scan_traits(&roots),
-            self.scan_sprites(&roots),
-            self.scan_ideas(&roots),
-            self.scan_characters(&roots),
-            self.scan_variables(&roots),
-            self.scan_provinces(&roots),
-            self.scan_states(&roots),
-            self.scan_logistics(&roots),
-            self.scan_map_objects(&roots),
-            self.scan_adjacencies(&roots),
-            self.scan_strategic_regions(&roots),
-            self.scan_terrains(&roots),
-            self.scan_modifiers(&roots),
-            self.scan_buildings(&roots),
-            self.scan_resources(&roots),
-            self.scan_state_categories(&roots),
-            self.scan_achievements(&roots),
-            self.scan_balance_of_powers(&roots),
+            self.scan_localization(&roots), // merges by key — keeps root-based scanning
+            self.load_assets(),             // no roots needed
+            self.scan_scripted(&overlay),
+            self.scan_ideologies(&overlay),
+            self.scan_traits(&overlay),
+            self.scan_sprites(&overlay),
+            self.scan_ideas(&overlay),
+            self.scan_characters(&overlay),
+            self.scan_variables(&overlay),
+            self.scan_provinces(&overlay),
+            self.scan_states(&overlay),
+            self.scan_logistics(&overlay),
+            self.scan_map_objects(&overlay),
+            self.scan_adjacencies(&overlay),
+            self.scan_strategic_regions(&overlay),
+            self.scan_terrains(&overlay),
+            self.scan_modifiers(&overlay),
+            self.scan_buildings(&overlay),
+            self.scan_resources(&overlay),
+            self.scan_state_categories(&overlay),
+            self.scan_achievements(&overlay),
+            self.scan_balance_of_powers(&overlay),
             self.scan_defines(&roots),
-            self.scan_events(&roots),
-            self.scan_focuses(&roots),
-            self.scan_music(&roots),
-            self.scan_sounds(&roots),
-            self.scan_abilities(&roots),
-            self.scan_ai_strategy_plans(&roots),
-            self.scan_ai_areas(&roots),
-            self.scan_continents(&roots),
-            self.scan_portraits(&roots),
-            self.scan_countries(&roots),
-            self.scan_gfx(&roots),
+            self.scan_events(&overlay),
+            self.scan_focuses(&overlay),
+            self.scan_music(&overlay),
+            self.scan_sounds(&overlay),
+            self.scan_abilities(&overlay),
+            self.scan_ai_strategy_plans(&overlay),
+            self.scan_ai_areas(&overlay),
+            self.scan_continents(&overlay),
+            self.scan_portraits(&overlay),
+            self.scan_countries(&overlay),
+            self.scan_gfx(&overlay),
         );
 
         // Rebuild reverse file-path indices so incremental updates are O(K) not O(N)
@@ -463,6 +473,10 @@ impl LanguageServer for Backend {
                     {
                         self.config.set_workspace_scan_enabled(enabled);
                         let _ws = self.config.workspace_scan_enabled();
+                        // If the user just enabled the workspace scan, trigger it now
+                        if enabled {
+                            self.validate_workspace(std::path::Path::new(".")).await;
+                        }
                     }
                 }
                 if let Some(styling) = hoi4.get("styling").and_then(|v| v.as_object()) {

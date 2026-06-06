@@ -1,8 +1,10 @@
+#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use crate::parser::parser;
 use std::collections::HashMap;
 use std::fs;
+use std::path::PathBuf;
 #[derive(Debug, Clone)]
 pub struct Variable {
     #[allow(dead_code)]
@@ -77,6 +79,30 @@ where
             }
         }
     }
+
+    ScanResult {
+        variables,
+        event_targets,
+    }
+}
+
+pub fn scan_variable_files<F>(files: &[PathBuf], filter: &F) -> ScanResult
+where
+    F: Fn(&std::path::Path) -> bool,
+{
+    let mut variables: HashMap<String, Vec<Variable>> = HashMap::new();
+    let mut event_targets: HashMap<String, Vec<EventTarget>> = HashMap::new();
+
+    crate::utils::fs_util::parse_winning_files(files, filter, |path, content| {
+        let (script, _) = parser::parse_script(&content);
+        scan_entries(
+            &script.entries,
+            &script.source,
+            &path.to_string_lossy(),
+            &mut variables,
+            &mut event_targets,
+        );
+    });
 
     ScanResult {
         variables,

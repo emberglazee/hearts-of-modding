@@ -1,6 +1,7 @@
 use crate::Backend;
 use crate::data::interner::InternedStr;
 use crate::data::layered_value::LayeredValue;
+use crate::parser::ast;
 use crate::parser::defines_parser;
 use crate::parser::loc_parser;
 use crate::scanner::ability_scanner;
@@ -38,60 +39,35 @@ use crate::scanner::variable_scanner;
 use std::collections::{HashMap, HashSet};
 use tower_lsp_server::ls_types::MessageType;
 
-/// Spawn a blocking scan that returns `HashMap<K, V>`, then clear and
-/// re-insert results into the named DashMap field on `ScannerData`.
-macro_rules! scan_dashmap {
-    ($self:ident, $roots:expr, $scanner_fn:expr, $field:ident, $msg:literal) => {{
+/// File-overlay variant: builds a flat list of winning files from the
+/// pre-computed FileOverlay, then calls the scanner function once with
+/// only those files. Results are inserted as single-layer (no merging)
+/// because the overlay already resolved which files win.
+///
+/// `$prefix` is the relative directory prefix for this scanner
+/// (e.g., "common/ideas"). `$extensions` filters file extensions.
+/// `$scanner_fn` must be `fn(&[PathBuf], &Filter) -> HashMap<String, T>`.
+macro_rules! scan_dashmap_overlay {
+    ($self:ident, $overlay:expr, $prefix:expr, $scanner_fn:expr, $field:ident, $extensions:expr, $msg:literal) => {{
         let filter = $self.get_sync_filter();
-        let roots_owned = $roots.to_vec();
-        let result = tokio::task::spawn_blocking(move || $scanner_fn(&roots_owned, &filter))
+        let all_files: Vec<std::path::PathBuf> = $overlay.winning_files_in($prefix);
+        let filtered: Vec<std::path::PathBuf> = all_files
+            .into_iter()
+            .filter(|p| {
+                p.extension()
+                    .and_then(|e| e.to_str())
+                    .is_some_and(|e| $extensions.contains(&e))
+            })
+            .collect();
+        let result = tokio::task::spawn_blocking(move || $scanner_fn(&filtered, &filter))
             .await
             .unwrap();
         $self.scanner_data.$field.clear();
         for (k, v) in result {
-            $self.scanner_data.$field.insert(k.into(), v);
-        }
-        let count = $self.scanner_data.$field.len();
-        $self
-            .client
-            .log_message(MessageType::INFO, format!($msg, count))
-            .await;
-    }};
-}
-
-/// Layered variant: scans each root separately and pushes into `LayeredValue`,
-/// preserving the VFS layering (later roots = higher priority = last in vec).
-macro_rules! scan_dashmap_layered {
-    ($self:ident, $roots:expr, $scanner_fn:expr, $field:ident, $msg:literal) => {{
-        let filter = $self.get_sync_filter();
-        let roots_owned = $roots.to_vec();
-        let per_root = tokio::task::spawn_blocking(move || {
-            let mut results: Vec<HashMap<String, _>> = Vec::new();
-            for root in &roots_owned {
-                let result = $scanner_fn(std::slice::from_ref(root), &filter);
-                results.push(result);
-            }
-            results
-        })
-        .await
-        .unwrap();
-
-        $self.scanner_data.$field.clear();
-        for root_results in per_root {
-            for (k, v) in root_results {
-                let ik: InternedStr = std::sync::Arc::from(k);
-                match $self.scanner_data.$field.get_mut(&ik) {
-                    Some(mut existing) => {
-                        existing.push(v);
-                    }
-                    None => {
-                        $self
-                            .scanner_data
-                            .$field
-                            .insert(ik, crate::data::layered_value::LayeredValue::new(v));
-                    }
-                }
-            }
+            $self
+                .scanner_data
+                .$field
+                .insert(k.into(), crate::data::layered_value::LayeredValue::new(v));
         }
         let count = $self.scanner_data.$field.len();
         $self
@@ -104,213 +80,288 @@ macro_rules! scan_dashmap_layered {
 // ── Scan methods ────────────────────────────────────────────────────
 
 impl Backend {
-    pub(crate) async fn scan_provinces(&self, roots: &[std::path::PathBuf]) {
-        scan_dashmap!(
-            self,
-            roots,
-            province_scanner::scan_provinces,
-            provinces,
-            "Total: Loaded {} province definitions"
-        );
-    }
+    // ═══════════════════════════════════════════════════════════════════
+    // File-level overlay scanners — only winning files are parsed
+    // ═══════════════════════════════════════════════════════════════════
 
-    pub(crate) async fn scan_states(&self, roots: &[std::path::PathBuf]) {
-        scan_dashmap!(
-            self,
-            roots,
-            state_scanner::scan_states,
-            states,
-            "Loaded {} states"
-        );
-    }
-
-    pub(crate) async fn scan_logistics(&self, roots: &[std::path::PathBuf]) {
+    pub(crate) async fn scan_provinces(&self, overlay: &crate::scanner::file_overlay::FileOverlay) {
         let filter = self.get_sync_filter();
-        let roots_owned = roots.to_vec();
+        let all_files: Vec<std::path::PathBuf> = overlay.winning_files_in("map");
+        let filtered: Vec<std::path::PathBuf> = all_files
+            .into_iter()
+            .filter(|p| {
+                p.extension()
+                    .and_then(|e| e.to_str())
+                    .map(|e| e == "csv")
+                    .unwrap_or(false)
+            })
+            .collect();
         let result = tokio::task::spawn_blocking(move || {
-            logistics_scanner::scan_logistics(&roots_owned, &filter)
+            province_scanner::scan_province_files(&filtered, &filter)
         })
         .await
         .unwrap();
-
-        self.scanner_data.set_supply_nodes(result.supply_nodes);
-        let sn = self.scanner_data.supply_nodes();
-
-        self.scanner_data.set_railways(result.railways);
-        let rw = self.scanner_data.railways();
-
+        self.scanner_data.provinces.clear();
+        for (k, v) in result {
+            self.scanner_data.provinces.insert(k, v);
+        }
+        let count = self.scanner_data.provinces.len();
         self.client
             .log_message(
                 MessageType::INFO,
-                format!("Loaded {} supply nodes, {} railways", sn.len(), rw.len()),
+                format!("Total: Loaded {} province definitions", count),
             )
             .await;
     }
 
-    pub(crate) async fn scan_map_objects(&self, roots: &[std::path::PathBuf]) {
+    pub(crate) async fn scan_states(&self, overlay: &crate::scanner::file_overlay::FileOverlay) {
         let filter = self.get_sync_filter();
-        let roots_owned = roots.to_vec();
+        let all_files: Vec<std::path::PathBuf> = overlay.winning_files_in("history/states");
+        let filtered: Vec<std::path::PathBuf> = all_files
+            .into_iter()
+            .filter(|p| {
+                p.extension()
+                    .and_then(|e| e.to_str())
+                    .map(|e| e == "txt")
+                    .unwrap_or(false)
+            })
+            .collect();
         let result = tokio::task::spawn_blocking(move || {
-            map_object_scanner::scan_map_objects(&roots_owned, &filter)
+            state_scanner::scan_state_files(&filtered, &filter)
         })
         .await
         .unwrap();
+        self.scanner_data.states.clear();
+        for (k, v) in result {
+            self.scanner_data.states.insert(k, v);
+        }
+        let count = self.scanner_data.states.len();
+        self.client
+            .log_message(MessageType::INFO, format!("Loaded {} states", count))
+            .await;
+    }
 
-        self.scanner_data.set_map_buildings(result.buildings);
-        let mb = self.scanner_data.map_buildings();
-
-        self.scanner_data.set_unitstacks(result.unitstacks);
-        let us = self.scanner_data.unitstacks();
-
-        self.scanner_data
-            .set_weather_positions(result.weather_positions);
-        let wp = self.scanner_data.weather_positions();
-
+    pub(crate) async fn scan_logistics(&self, overlay: &crate::scanner::file_overlay::FileOverlay) {
+        let filter = self.get_sync_filter();
+        let files: Vec<std::path::PathBuf> = overlay.winning_files_in("map");
+        let result = tokio::task::spawn_blocking(move || {
+            logistics_scanner::scan_logistics_files(&files, &filter)
+        })
+        .await
+        .unwrap();
+        self.scanner_data.set_supply_nodes(result.supply_nodes);
+        self.scanner_data.set_railways(result.railways);
         self.client
             .log_message(
                 MessageType::INFO,
                 format!(
-                    "Loaded {} map buildings, {} unit stacks, {} weather positions",
-                    mb.len(),
-                    us.len(),
-                    wp.len()
+                    "Loaded {} supply nodes, {} railways",
+                    self.scanner_data.supply_nodes().len(),
+                    self.scanner_data.railways().len()
                 ),
             )
             .await;
     }
 
-    pub(crate) async fn scan_adjacencies(&self, roots: &[std::path::PathBuf]) {
+    pub(crate) async fn scan_map_objects(
+        &self,
+        overlay: &crate::scanner::file_overlay::FileOverlay,
+    ) {
         let filter = self.get_sync_filter();
-        let roots_owned = roots.to_vec();
+        let files: Vec<std::path::PathBuf> = overlay.winning_files_in("map");
         let result = tokio::task::spawn_blocking(move || {
-            adjacency_scanner::scan_adjacencies(&roots_owned, &filter)
+            map_object_scanner::scan_map_object_files(&files, &filter)
         })
         .await
         .unwrap();
+        self.scanner_data.set_map_buildings(result.buildings);
+        self.scanner_data.set_unitstacks(result.unitstacks);
+        self.scanner_data
+            .set_weather_positions(result.weather_positions);
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!(
+                    "Loaded {} map buildings, {} unit stacks, {} weather positions",
+                    self.scanner_data.map_buildings().len(),
+                    self.scanner_data.unitstacks().len(),
+                    self.scanner_data.weather_positions().len()
+                ),
+            )
+            .await;
+    }
 
+    pub(crate) async fn scan_adjacencies(
+        &self,
+        overlay: &crate::scanner::file_overlay::FileOverlay,
+    ) {
+        let filter = self.get_sync_filter();
+        let files: Vec<std::path::PathBuf> = overlay.winning_files_in("map");
+        let result = tokio::task::spawn_blocking(move || {
+            adjacency_scanner::scan_adjacency_files(&files, &filter)
+        })
+        .await
+        .unwrap();
         self.scanner_data.set_adjacencies(result.adjacencies);
-        let adj = self.scanner_data.adjacencies();
-
         self.scanner_data.adjacency_rules.clear();
         for (k, v) in result.rules {
             self.scanner_data
                 .adjacency_rules
                 .insert(k.into(), LayeredValue::new(v));
         }
-        let rules = &self.scanner_data.adjacency_rules;
-
         self.client
             .log_message(
                 MessageType::INFO,
                 format!(
                     "Loaded {} adjacencies, {} adjacency rules",
-                    adj.len(),
-                    rules.len()
+                    self.scanner_data.adjacencies().len(),
+                    self.scanner_data.adjacency_rules.len()
                 ),
             )
             .await;
     }
 
-    pub(crate) async fn scan_strategic_regions(&self, roots: &[std::path::PathBuf]) {
-        scan_dashmap!(
-            self,
-            roots,
-            strategic_region_scanner::scan_strategic_regions,
-            strategic_regions,
-            "Loaded {} strategic regions"
-        );
+    pub(crate) async fn scan_strategic_regions(
+        &self,
+        overlay: &crate::scanner::file_overlay::FileOverlay,
+    ) {
+        let filter = self.get_sync_filter();
+        let all_files: Vec<std::path::PathBuf> = overlay.winning_files_in("map/strategicregions");
+        let filtered: Vec<std::path::PathBuf> = all_files
+            .into_iter()
+            .filter(|p| {
+                p.extension()
+                    .and_then(|e| e.to_str())
+                    .map(|e| e == "txt")
+                    .unwrap_or(false)
+            })
+            .collect();
+        let result = tokio::task::spawn_blocking(move || {
+            strategic_region_scanner::scan_strategic_region_files(&filtered, &filter)
+        })
+        .await
+        .unwrap();
+        self.scanner_data.strategic_regions.clear();
+        for (k, v) in result {
+            self.scanner_data.strategic_regions.insert(k, v);
+        }
+        let count = self.scanner_data.strategic_regions.len();
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!("Loaded {} strategic regions", count),
+            )
+            .await;
     }
 
-    pub(crate) async fn scan_terrains(&self, roots: &[std::path::PathBuf]) {
-        scan_dashmap_layered!(
+    pub(crate) async fn scan_terrains(&self, overlay: &crate::scanner::file_overlay::FileOverlay) {
+        scan_dashmap_overlay!(
             self,
-            roots,
-            terrain_scanner::scan_terrains,
+            overlay,
+            "common/terrain",
+            terrain_scanner::scan_terrain_files,
             terrain_categories,
+            &["txt"],
             "Loaded {} terrain categories"
         );
     }
 
-    pub(crate) async fn scan_events(&self, roots: &[std::path::PathBuf]) {
-        scan_dashmap_layered!(
-            self,
-            roots,
-            event_scanner::scan_events,
-            events,
-            "Total: Loaded {} event definitions"
-        );
+    pub(crate) async fn scan_events(&self, overlay: &crate::scanner::file_overlay::FileOverlay) {
+        let filter = self.get_sync_filter();
+        let mut files: Vec<std::path::PathBuf> = overlay.winning_files_in("events");
+        // Also scan common/ for event trigger relationships (old scan_for_triggers walked common/ + events/)
+        files.extend(overlay.winning_files_in("common"));
+        files.retain(|p| p.extension().is_some_and(|ext| ext == "txt"));
+        let result =
+            tokio::task::spawn_blocking(move || event_scanner::scan_event_files(&files, &filter))
+                .await
+                .unwrap();
+        self.scanner_data.events.clear();
+        for (k, v) in result {
+            self.scanner_data
+                .events
+                .insert(k.into(), crate::data::layered_value::LayeredValue::new(v));
+        }
+        let count = self.scanner_data.events.len();
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!("Total: Loaded {} event definitions", count),
+            )
+            .await;
     }
 
-    pub(crate) async fn scan_focuses(&self, roots: &[std::path::PathBuf]) {
-        scan_dashmap_layered!(
+    pub(crate) async fn scan_focuses(&self, overlay: &crate::scanner::file_overlay::FileOverlay) {
+        scan_dashmap_overlay!(
             self,
-            roots,
-            focus_scanner::scan_focuses,
+            overlay,
+            "common/national_focus",
+            focus_scanner::scan_focus_files,
             focuses,
+            &["txt"],
             "Total: Loaded {} national focus definitions"
         );
     }
 
-    pub(crate) async fn scan_abilities(&self, roots: &[std::path::PathBuf]) {
-        scan_dashmap_layered!(
+    pub(crate) async fn scan_abilities(&self, overlay: &crate::scanner::file_overlay::FileOverlay) {
+        scan_dashmap_overlay!(
             self,
-            roots,
-            ability_scanner::scan_abilities,
+            overlay,
+            "common/abilities",
+            ability_scanner::scan_ability_files,
             abilities,
+            &["txt"],
             "Total: Loaded {} abilities"
         );
     }
 
-    pub(crate) async fn scan_ai_strategy_plans(&self, roots: &[std::path::PathBuf]) {
-        scan_dashmap_layered!(
+    pub(crate) async fn scan_ai_strategy_plans(
+        &self,
+        overlay: &crate::scanner::file_overlay::FileOverlay,
+    ) {
+        scan_dashmap_overlay!(
             self,
-            roots,
-            ai_strategy_plan_scanner::scan_ai_strategy_plans,
+            overlay,
+            "common/ai_strategy_plans",
+            ai_strategy_plan_scanner::scan_ai_strategy_plan_files,
             ai_strategy_plans,
+            &["txt"],
             "Total: Loaded {} AI strategy plans"
         );
     }
 
-    pub(crate) async fn scan_ai_areas(&self, roots: &[std::path::PathBuf]) {
-        scan_dashmap_layered!(
+    pub(crate) async fn scan_ai_areas(&self, overlay: &crate::scanner::file_overlay::FileOverlay) {
+        scan_dashmap_overlay!(
             self,
-            roots,
-            ai_area_scanner::scan_ai_areas,
+            overlay,
+            "common/ai_areas",
+            ai_area_scanner::scan_ai_area_files,
             ai_areas,
+            &["txt"],
             "Total: Loaded {} AI areas"
         );
     }
 
-    pub(crate) async fn scan_continents(&self, roots: &[std::path::PathBuf]) {
-        let _filter = self.get_sync_filter();
-        let roots_owned = roots.to_vec();
-
-        let per_root = tokio::task::spawn_blocking(move || {
-            let mut results: Vec<HashMap<String, _>> = Vec::new();
-            for root in &roots_owned {
-                results.push(continent_scanner::scan_continents(root));
-            }
-            results
-        })
-        .await
-        .unwrap();
-
+    pub(crate) async fn scan_continents(
+        &self,
+        overlay: &crate::scanner::file_overlay::FileOverlay,
+    ) {
+        let files: Vec<std::path::PathBuf> = overlay
+            .winning_files_in("map")
+            .into_iter()
+            .filter(|p| p.to_string_lossy().ends_with("continent.txt"))
+            .collect();
+        let result =
+            tokio::task::spawn_blocking(move || continent_scanner::scan_continent_files(&files))
+                .await
+                .unwrap();
         self.scanner_data.continents.clear();
-        for root_results in per_root {
-            for (k, v) in root_results {
-                let ik: InternedStr = std::sync::Arc::from(k);
-                match self.scanner_data.continents.get_mut(&ik) {
-                    Some(mut existing) => existing.push(v),
-                    None => {
-                        self.scanner_data
-                            .continents
-                            .insert(ik, LayeredValue::new(v));
-                    }
-                }
-            }
+        for (k, v) in result {
+            self.scanner_data
+                .continents
+                .insert(k.into(), LayeredValue::new(v));
         }
         let c = &self.scanner_data.continents;
-
         self.client
             .log_message(
                 MessageType::INFO,
@@ -319,269 +370,220 @@ impl Backend {
             .await;
     }
 
-    pub(crate) async fn scan_portraits(&self, roots: &[std::path::PathBuf]) {
-        scan_dashmap_layered!(
+    pub(crate) async fn scan_portraits(&self, overlay: &crate::scanner::file_overlay::FileOverlay) {
+        scan_dashmap_overlay!(
             self,
-            roots,
-            portrait_scanner::scan_portraits,
+            overlay,
+            "gfx/portraits",
+            portrait_scanner::scan_portrait_files,
             portraits,
+            &["txt"],
             "Total: Loaded {} portrait definitions"
         );
     }
 
-    pub(crate) async fn scan_music(&self, roots: &[std::path::PathBuf]) {
+    pub(crate) async fn scan_music(&self, overlay: &crate::scanner::file_overlay::FileOverlay) {
         let filter = self.get_sync_filter();
-        let roots_owned = roots.to_vec();
-
-        let per_root = tokio::task::spawn_blocking(move || {
-            let mut results: Vec<music_scanner::MusicScanResult> = Vec::new();
-            for root in &roots_owned {
-                let result = music_scanner::scan_music(std::slice::from_ref(root), &filter);
-                results.push(result);
-            }
-            results
-        })
-        .await
-        .unwrap();
-
+        let files: Vec<std::path::PathBuf> = overlay.winning_files_in("music");
+        let result =
+            tokio::task::spawn_blocking(move || music_scanner::scan_music_files(&files, &filter))
+                .await
+                .unwrap();
         self.scanner_data.music_assets.clear();
         self.scanner_data.music_stations.clear();
         self.scanner_data.songs.clear();
-
-        for result in per_root {
-            for (k, v) in result.assets {
-                let ik: InternedStr = std::sync::Arc::from(k);
-                match self.scanner_data.music_assets.get_mut(&ik) {
-                    Some(mut existing) => existing.push(v),
-                    None => {
-                        self.scanner_data
-                            .music_assets
-                            .insert(ik, LayeredValue::new(v));
-                    }
-                }
-            }
-            for (k, v) in result.stations {
-                let ik: InternedStr = std::sync::Arc::from(k);
-                match self.scanner_data.music_stations.get_mut(&ik) {
-                    Some(mut existing) => existing.push(v),
-                    None => {
-                        self.scanner_data
-                            .music_stations
-                            .insert(ik, LayeredValue::new(v));
-                    }
-                }
-            }
-            for (k, v) in result.songs {
-                let ik: InternedStr = std::sync::Arc::from(k);
-                match self.scanner_data.songs.get_mut(&ik) {
-                    Some(mut existing) => existing.push(v),
-                    None => {
-                        self.scanner_data.songs.insert(ik, LayeredValue::new(v));
-                    }
-                }
-            }
+        for (k, v) in result.assets {
+            self.scanner_data
+                .music_assets
+                .insert(k.into(), LayeredValue::new(v));
         }
-
-        let assets = &self.scanner_data.music_assets;
-        let stations = &self.scanner_data.music_stations;
-        let songs = &self.scanner_data.songs;
-
+        for (k, v) in result.stations {
+            self.scanner_data
+                .music_stations
+                .insert(k.into(), LayeredValue::new(v));
+        }
+        for (k, v) in result.songs {
+            self.scanner_data
+                .songs
+                .insert(k.into(), LayeredValue::new(v));
+        }
         self.client
             .log_message(
                 MessageType::INFO,
                 format!(
                     "Total: Loaded {} music assets, {} stations, and {} songs",
-                    assets.len(),
-                    stations.len(),
-                    songs.len()
+                    self.scanner_data.music_assets.len(),
+                    self.scanner_data.music_stations.len(),
+                    self.scanner_data.songs.len()
                 ),
             )
             .await;
     }
 
-    pub(crate) async fn scan_sounds(&self, roots: &[std::path::PathBuf]) {
+    pub(crate) async fn scan_sounds(&self, overlay: &crate::scanner::file_overlay::FileOverlay) {
         let filter = self.get_sync_filter();
-        let roots_owned = roots.to_vec();
-
-        let per_root = tokio::task::spawn_blocking(move || {
-            let mut results: Vec<sound_scanner::SoundScanResult> = Vec::new();
-            for root in &roots_owned {
-                let result = sound_scanner::scan_sounds(std::slice::from_ref(root), &filter);
-                results.push(result);
-            }
-            results
-        })
-        .await
-        .unwrap();
-
+        let mut files: Vec<std::path::PathBuf> = overlay.winning_files_in("sound");
+        // Also include DLC and integrated DLC sound directories
+        for dlc_prefix in ["dlc", "integrated_dlc"] {
+            files.extend(
+                overlay
+                    .winning_files_in(dlc_prefix)
+                    .into_iter()
+                    .filter(|p| {
+                        let s = p.to_string_lossy();
+                        s.contains("/sound/")
+                    }),
+            );
+        }
+        // Only .asset files contain sound definitions
+        files.retain(|p| p.extension().is_some_and(|ext| ext == "asset"));
+        let result =
+            tokio::task::spawn_blocking(move || sound_scanner::scan_sound_files(&files, &filter))
+                .await
+                .unwrap();
         self.scanner_data.sounds.clear();
         self.scanner_data.sound_effects.clear();
         self.scanner_data.falloffs.clear();
         self.scanner_data.sound_categories.clear();
-
-        for result in per_root {
-            for (k, v) in result.sounds {
-                let ik: InternedStr = std::sync::Arc::from(k);
-                match self.scanner_data.sounds.get_mut(&ik) {
-                    Some(mut existing) => existing.push(v),
-                    None => {
-                        self.scanner_data.sounds.insert(ik, LayeredValue::new(v));
-                    }
-                }
-            }
-            for (k, v) in result.sound_effects {
-                let ik: InternedStr = std::sync::Arc::from(k);
-                match self.scanner_data.sound_effects.get_mut(&ik) {
-                    Some(mut existing) => existing.push(v),
-                    None => {
-                        self.scanner_data
-                            .sound_effects
-                            .insert(ik, LayeredValue::new(v));
-                    }
-                }
-            }
-            for (k, v) in result.falloffs {
-                let ik: InternedStr = std::sync::Arc::from(k);
-                match self.scanner_data.falloffs.get_mut(&ik) {
-                    Some(mut existing) => existing.push(v),
-                    None => {
-                        self.scanner_data.falloffs.insert(ik, LayeredValue::new(v));
-                    }
-                }
-            }
-            for (k, v) in result.categories {
-                let ik: InternedStr = std::sync::Arc::from(k);
-                match self.scanner_data.sound_categories.get_mut(&ik) {
-                    Some(mut existing) => existing.push(v),
-                    None => {
-                        self.scanner_data
-                            .sound_categories
-                            .insert(ik, LayeredValue::new(v));
-                    }
-                }
-            }
+        for (k, v) in result.sounds {
+            self.scanner_data
+                .sounds
+                .insert(k.into(), LayeredValue::new(v));
         }
-
-        let sounds = &self.scanner_data.sounds;
-        let effects = &self.scanner_data.sound_effects;
-        let falloffs = &self.scanner_data.falloffs;
-        let categories = &self.scanner_data.sound_categories;
-
+        for (k, v) in result.sound_effects {
+            self.scanner_data
+                .sound_effects
+                .insert(k.into(), LayeredValue::new(v));
+        }
+        for (k, v) in result.falloffs {
+            self.scanner_data
+                .falloffs
+                .insert(k.into(), LayeredValue::new(v));
+        }
+        for (k, v) in result.categories {
+            self.scanner_data
+                .sound_categories
+                .insert(k.into(), LayeredValue::new(v));
+        }
         self.client
             .log_message(
                 MessageType::INFO,
                 format!(
                     "Total: Loaded {} sounds, {} sound effects, {} falloffs, and {} categories",
-                    sounds.len(),
-                    effects.len(),
-                    falloffs.len(),
-                    categories.len()
+                    self.scanner_data.sounds.len(),
+                    self.scanner_data.sound_effects.len(),
+                    self.scanner_data.falloffs.len(),
+                    self.scanner_data.sound_categories.len()
                 ),
             )
             .await;
     }
 
-    pub(crate) async fn scan_modifiers(&self, roots: &[std::path::PathBuf]) {
+    pub(crate) async fn scan_modifiers(&self, overlay: &crate::scanner::file_overlay::FileOverlay) {
         let filter = self.get_sync_filter();
-        let roots_owned = roots.to_vec();
-
-        let per_root = tokio::task::spawn_blocking(move || {
-            let mut results: Vec<modifier_scanner::ModifierResult> = Vec::new();
-            for root in &roots_owned {
-                let result = modifier_scanner::scan_modifiers(std::slice::from_ref(root), &filter);
-                results.push(result);
-            }
-            results
+        let mut files: Vec<std::path::PathBuf> = Vec::new();
+        files.extend(overlay.winning_files_in("common/modifiers"));
+        files.extend(overlay.winning_files_in("common/dynamic_modifiers"));
+        // Only .txt files contain modifier definitions
+        files.retain(|p| p.extension().is_some_and(|ext| ext == "txt"));
+        let result = tokio::task::spawn_blocking(move || {
+            modifier_scanner::scan_modifier_files(&files, &filter)
         })
         .await
         .unwrap();
-
         self.scanner_data.custom_modifiers.clear();
         self.scanner_data.modifier_mappings.clear();
-
-        for result in per_root {
-            for (k, v) in result.custom_modifiers {
-                let ik: InternedStr = std::sync::Arc::from(k);
-                match self.scanner_data.custom_modifiers.get_mut(&ik) {
-                    Some(mut existing) => existing.push(v),
-                    None => {
-                        self.scanner_data
-                            .custom_modifiers
-                            .insert(ik, LayeredValue::new(v));
-                    }
-                }
-            }
-            for (k, v) in result.builtin_mappings {
-                self.scanner_data.modifier_mappings.insert(k.into(), v);
-            }
+        for (k, v) in result.custom_modifiers {
+            self.scanner_data
+                .custom_modifiers
+                .insert(k.into(), LayeredValue::new(v));
         }
-
-        let custom = &self.scanner_data.custom_modifiers;
-        let mappings = &self.scanner_data.modifier_mappings;
-
+        for (k, v) in result.builtin_mappings {
+            self.scanner_data.modifier_mappings.insert(k.into(), v);
+        }
         self.client
             .log_message(
                 MessageType::INFO,
                 format!(
                     "Total: Loaded {} custom modifiers and {} builtin mappings",
-                    custom.len(),
-                    mappings.len()
+                    self.scanner_data.custom_modifiers.len(),
+                    self.scanner_data.modifier_mappings.len()
                 ),
             )
             .await;
     }
 
-    pub(crate) async fn scan_buildings(&self, roots: &[std::path::PathBuf]) {
-        scan_dashmap_layered!(
+    pub(crate) async fn scan_buildings(&self, overlay: &crate::scanner::file_overlay::FileOverlay) {
+        scan_dashmap_overlay!(
             self,
-            roots,
-            building_scanner::scan_buildings,
+            overlay,
+            "common/buildings",
+            building_scanner::scan_building_files,
             buildings,
+            &["txt"],
             "Total: Loaded {} buildings"
         );
     }
 
-    pub(crate) async fn scan_resources(&self, roots: &[std::path::PathBuf]) {
-        scan_dashmap_layered!(
+    pub(crate) async fn scan_resources(&self, overlay: &crate::scanner::file_overlay::FileOverlay) {
+        scan_dashmap_overlay!(
             self,
-            roots,
-            resource_scanner::scan_resources,
+            overlay,
+            "common/resources",
+            resource_scanner::scan_resource_files,
             resources,
+            &["txt"],
             "Total: Loaded {} resources"
         );
     }
 
-    pub(crate) async fn scan_state_categories(&self, roots: &[std::path::PathBuf]) {
-        scan_dashmap_layered!(
+    pub(crate) async fn scan_state_categories(
+        &self,
+        overlay: &crate::scanner::file_overlay::FileOverlay,
+    ) {
+        scan_dashmap_overlay!(
             self,
-            roots,
-            state_category_scanner::scan_state_categories,
+            overlay,
+            "common/state_category",
+            state_category_scanner::scan_state_category_files,
             state_categories,
+            &["txt"],
             "Total: Loaded {} state categories"
         );
     }
 
-    pub(crate) async fn scan_achievements(&self, roots: &[std::path::PathBuf]) {
-        scan_dashmap_layered!(
+    pub(crate) async fn scan_achievements(
+        &self,
+        overlay: &crate::scanner::file_overlay::FileOverlay,
+    ) {
+        scan_dashmap_overlay!(
             self,
-            roots,
-            achievement_scanner::scan_achievements,
+            overlay,
+            "common/achievements",
+            achievement_scanner::scan_achievement_files,
             achievements,
+            &["txt"],
             "Total: Loaded {} achievements"
         );
     }
 
-    pub(crate) async fn scan_balance_of_powers(&self, roots: &[std::path::PathBuf]) {
-        scan_dashmap_layered!(
+    pub(crate) async fn scan_balance_of_powers(
+        &self,
+        overlay: &crate::scanner::file_overlay::FileOverlay,
+    ) {
+        scan_dashmap_overlay!(
             self,
-            roots,
-            bop_scanner::scan_balance_of_powers,
+            overlay,
+            "common/balance_of_power",
+            bop_scanner::scan_balance_of_power_files,
             balance_of_powers,
+            &["txt"],
             "Total: Loaded {} balance of power definitions"
         );
     }
 
     pub(crate) async fn scan_defines(&self, roots: &[std::path::PathBuf]) {
+        // Defines merge by key — keep the old per-root approach
         let filter = self.get_sync_filter();
         let roots_owned = roots.to_vec();
         let defines = tokio::task::spawn_blocking(move || {
@@ -598,11 +600,26 @@ impl Backend {
             .await;
     }
 
-    pub(crate) async fn scan_variables(&self, roots: &[std::path::PathBuf]) {
+    pub(crate) async fn scan_variables(&self, overlay: &crate::scanner::file_overlay::FileOverlay) {
         let filter = self.get_sync_filter();
-        let roots_owned = roots.to_vec();
+        let files: Vec<std::path::PathBuf> = overlay
+            .winning_files_in("")
+            .into_iter()
+            .filter(|p| {
+                // Only process .txt files (skip .yml, .gui, .asset, .csv, .lua, .mod)
+                p.extension().is_some_and(|ext| ext == "txt")
+            })
+            .filter(|p| {
+                // Skip non-script directories (mirrors old scan_roots logic)
+                let s = p.to_string_lossy();
+                !s.contains("/map/")
+                    && !s.contains("/interface/")
+                    && !s.contains("/gfx/")
+                    && !s.contains("/localisation/")
+            })
+            .collect();
         let result = tokio::task::spawn_blocking(move || {
-            variable_scanner::scan_roots(&roots_owned, &filter)
+            variable_scanner::scan_variable_files(&files, &filter)
         })
         .await
         .unwrap();
@@ -611,27 +628,26 @@ impl Backend {
         for (k, v) in result.variables {
             self.scanner_data.variables.insert(k.into(), v);
         }
-        let vars = &self.scanner_data.variables;
 
         self.scanner_data.event_targets.clear();
         for (k, v) in result.event_targets {
             self.scanner_data.event_targets.insert(k.into(), v);
         }
-        let targets = &self.scanner_data.event_targets;
 
         self.client
             .log_message(
                 MessageType::INFO,
                 format!(
                     "Total: Loaded {} variables and {} event targets",
-                    vars.len(),
-                    targets.len()
+                    self.scanner_data.variables.len(),
+                    self.scanner_data.event_targets.len()
                 ),
             )
             .await;
     }
 
     pub(crate) async fn scan_localization(&self, roots: &[std::path::PathBuf]) {
+        // Localization merges by key — keep the old per-root approach
         self.client
             .log_message(
                 MessageType::INFO,
@@ -736,7 +752,6 @@ impl Backend {
                 .duplicated_loc_keys
                 .insert((x.0.into(), x.1));
         }
-        let _d_map = &self.scanner_data.duplicated_loc_keys;
 
         self.scanner_data.game_loc_keys.clear();
         for x in game_keys {
@@ -747,7 +762,8 @@ impl Backend {
         self.scanner_data.localization.clear();
         for root_locs in per_root_locs {
             for (k, v) in root_locs {
-                match self.scanner_data.localization.get_mut(&k) {
+                let ik: InternedStr = k.clone();
+                match self.scanner_data.localization.get_mut(&ik) {
                     Some(mut existing) => existing.push(v),
                     None => {
                         self.scanner_data
@@ -770,34 +786,20 @@ impl Backend {
             .await;
     }
 
-    pub(crate) async fn scan_scripted(&self, roots: &[std::path::PathBuf]) {
+    pub(crate) async fn scan_scripted(&self, overlay: &crate::scanner::file_overlay::FileOverlay) {
         let filter = self.get_sync_filter();
-        let roots_owned = roots.to_vec();
-
-        let per_root = tokio::task::spawn_blocking(move || {
-            let mut results: Vec<(HashMap<String, _>, HashMap<String, _>, HashMap<String, _>)> =
-                Vec::new();
-            for root in &roots_owned {
-                let mut triggers = HashMap::new();
-                let mut effects = HashMap::new();
-                let mut locs = HashMap::new();
-
-                let triggers_dir = root.join("common/scripted_triggers");
-                let effects_dir = root.join("common/scripted_effects");
-                let locs_dir = root.join("common/scripted_localisation");
-
-                if triggers_dir.exists() {
-                    triggers = scripted_scanner::scan_directory(&triggers_dir, &filter);
-                }
-                if effects_dir.exists() {
-                    effects = scripted_scanner::scan_directory(&effects_dir, &filter);
-                }
-                if locs_dir.exists() {
-                    locs = scripted_loc_scanner::scan_directory(&locs_dir, &filter);
-                }
-                results.push((triggers, effects, locs));
-            }
-            results
+        let trig_files: Vec<std::path::PathBuf> =
+            overlay.winning_files_in("common/scripted_triggers");
+        let eff_files: Vec<std::path::PathBuf> =
+            overlay.winning_files_in("common/scripted_effects");
+        let loc_files: Vec<std::path::PathBuf> =
+            overlay.winning_files_in("common/scripted_localisation");
+        let result = tokio::task::spawn_blocking(move || {
+            (
+                scripted_scanner::scan_scripted_files(&trig_files, &filter),
+                scripted_scanner::scan_scripted_files(&eff_files, &filter),
+                scripted_loc_scanner::scan_scripted_loc_files(&loc_files, &filter),
+            )
         })
         .await
         .unwrap();
@@ -806,84 +808,57 @@ impl Backend {
         self.scanner_data.scripted_effects.clear();
         self.scanner_data.scripted_locs.clear();
 
-        for (triggers, effects, locs) in per_root {
-            for (k, v) in triggers {
-                let ik: InternedStr = std::sync::Arc::from(k);
-                match self.scanner_data.scripted_triggers.get_mut(&ik) {
-                    Some(mut existing) => existing.push(v),
-                    None => {
-                        self.scanner_data
-                            .scripted_triggers
-                            .insert(ik, LayeredValue::new(v));
-                    }
-                }
-            }
-            for (k, v) in effects {
-                let ik: InternedStr = std::sync::Arc::from(k);
-                match self.scanner_data.scripted_effects.get_mut(&ik) {
-                    Some(mut existing) => existing.push(v),
-                    None => {
-                        self.scanner_data
-                            .scripted_effects
-                            .insert(ik, LayeredValue::new(v));
-                    }
-                }
-            }
-            for (k, v) in locs {
-                let ik: InternedStr = std::sync::Arc::from(k);
-                match self.scanner_data.scripted_locs.get_mut(&ik) {
-                    Some(mut existing) => existing.push(v),
-                    None => {
-                        self.scanner_data
-                            .scripted_locs
-                            .insert(ik, LayeredValue::new(v));
-                    }
-                }
-            }
+        for (k, v) in result.0 {
+            self.scanner_data
+                .scripted_triggers
+                .insert(k.into(), LayeredValue::new(v));
         }
-
-        let t_map = &self.scanner_data.scripted_triggers;
-        let e_map = &self.scanner_data.scripted_effects;
-        let l_map = &self.scanner_data.scripted_locs;
+        for (k, v) in result.1 {
+            self.scanner_data
+                .scripted_effects
+                .insert(k.into(), LayeredValue::new(v));
+        }
+        for (k, v) in result.2 {
+            self.scanner_data
+                .scripted_locs
+                .insert(k.into(), LayeredValue::new(v));
+        }
 
         self.client
             .log_message(
                 MessageType::INFO,
                 format!(
                     "Total: Loaded {} scripted triggers, {} scripted effects, {} scripted locs",
-                    t_map.len(),
-                    e_map.len(),
-                    l_map.len()
+                    self.scanner_data.scripted_triggers.len(),
+                    self.scanner_data.scripted_effects.len(),
+                    self.scanner_data.scripted_locs.len()
                 ),
             )
             .await;
     }
 
-    pub(crate) async fn scan_ideologies(&self, roots: &[std::path::PathBuf]) {
+    pub(crate) async fn scan_ideologies(
+        &self,
+        overlay: &crate::scanner::file_overlay::FileOverlay,
+    ) {
         let filter = self.get_sync_filter();
-        let roots_owned = roots.to_vec();
-
-        let per_root = tokio::task::spawn_blocking(move || {
-            let mut results: Vec<(HashMap<String, _>, HashMap<String, _>)> = Vec::new();
-            for root in &roots_owned {
-                let dir = root.join("common/ideologies");
-                if dir.exists() {
-                    let ideologies = ideology_scanner::scan_ideologies(&dir, &filter);
-                    let mut sub_map = HashMap::new();
-                    for ideology in ideologies.values() {
-                        for (sub, range) in &ideology.sub_ideology_ranges {
-                            sub_map.insert(
-                                sub.clone(),
-                                (ideology.name.clone(), range.clone(), ideology.path.clone()),
-                            );
-                        }
-                    }
-                    results.push((ideologies, sub_map));
-                } else {
-                    results.push((HashMap::new(), HashMap::new()));
+        let files: Vec<std::path::PathBuf> = overlay.winning_files_in("common/ideologies");
+        let result = tokio::task::spawn_blocking(move || {
+            let ideologies = ideology_scanner::scan_ideology_files(&files, &filter);
+            let mut sub_map: HashMap<String, (String, ast::Range, String)> = HashMap::new();
+            for ideology in ideologies.values() {
+                for (sub, range) in &ideology.sub_ideology_ranges {
+                    sub_map.insert(
+                        sub.clone(),
+                        (
+                            ideology.name.clone(),
+                            range.clone(),
+                            ideology.path.to_string(),
+                        ),
+                    );
                 }
             }
-            results
+            (ideologies, sub_map)
         })
         .await
         .unwrap();
@@ -891,216 +866,138 @@ impl Backend {
         self.scanner_data.ideologies.clear();
         self.scanner_data.sub_ideologies.clear();
 
-        for (ideologies, sub_map) in per_root {
-            for (k, v) in ideologies {
-                let ik: InternedStr = std::sync::Arc::from(k);
-                match self.scanner_data.ideologies.get_mut(&ik) {
-                    Some(mut existing) => existing.push(v),
-                    None => {
-                        self.scanner_data
-                            .ideologies
-                            .insert(ik, LayeredValue::new(v));
-                    }
-                }
-            }
-            for (k, v) in sub_map {
-                let ik: InternedStr = std::sync::Arc::from(k);
-                let wrapped = (InternedStr::from(v.0), v.1, InternedStr::from(v.2));
-                match self.scanner_data.sub_ideologies.get_mut(&ik) {
-                    Some(mut existing) => existing.push(wrapped),
-                    None => {
-                        self.scanner_data
-                            .sub_ideologies
-                            .insert(ik, LayeredValue::new(wrapped));
-                    }
-                }
-            }
+        for (k, v) in result.0 {
+            self.scanner_data
+                .ideologies
+                .insert(k.into(), LayeredValue::new(v));
         }
-
-        let i_map = &self.scanner_data.ideologies;
-        let s_map = &self.scanner_data.sub_ideologies;
+        for (k, v) in result.1 {
+            let wrapped = (InternedStr::from(v.0), v.1, InternedStr::from(v.2));
+            self.scanner_data
+                .sub_ideologies
+                .insert(k.into(), LayeredValue::new(wrapped));
+        }
 
         self.client
             .log_message(
                 MessageType::INFO,
                 format!(
                     "Total: Loaded {} ideologies and {} sub-ideologies",
-                    i_map.len(),
-                    s_map.len()
+                    self.scanner_data.ideologies.len(),
+                    self.scanner_data.sub_ideologies.len()
                 ),
             )
             .await;
     }
 
-    pub(crate) async fn scan_traits(&self, roots: &[std::path::PathBuf]) {
+    pub(crate) async fn scan_traits(&self, overlay: &crate::scanner::file_overlay::FileOverlay) {
         let filter = self.get_sync_filter();
-        let roots_owned = roots.to_vec();
-
-        let per_root = tokio::task::spawn_blocking(move || {
-            let mut results: Vec<HashMap<String, _>> = Vec::new();
-            for root in &roots_owned {
-                let mut root_traits = HashMap::new();
-                let unit_leader_dir = root.join("common/unit_leader");
-                if unit_leader_dir.exists() {
-                    let found =
-                        trait_scanner::scan_traits(&unit_leader_dir, "Unit Leader Trait", &filter);
-                    root_traits.extend(found);
-                }
-
-                let country_leader_dir = root.join("common/country_leader");
-                if country_leader_dir.exists() {
-                    let found = trait_scanner::scan_traits(
-                        &country_leader_dir,
-                        "Country Leader Trait",
-                        &filter,
-                    );
-                    root_traits.extend(found);
-                }
-
-                let trait_dir = root.join("common/traits");
-                if trait_dir.exists() {
-                    let found = trait_scanner::scan_traits(&trait_dir, "Trait", &filter);
-                    root_traits.extend(found);
-                }
-                results.push(root_traits);
+        let ul_files: Vec<std::path::PathBuf> = overlay.winning_files_in("common/unit_leader");
+        let cl_files: Vec<std::path::PathBuf> = overlay.winning_files_in("common/country_leader");
+        let tr_files: Vec<std::path::PathBuf> = overlay.winning_files_in("common/traits");
+        let result = tokio::task::spawn_blocking(move || {
+            let mut map = HashMap::new();
+            for (files, trait_type) in [
+                (&ul_files as &[std::path::PathBuf], "Unit Leader Trait"),
+                (&cl_files, "Country Leader Trait"),
+                (&tr_files, "Trait"),
+            ] {
+                map.extend(trait_scanner::scan_trait_files(files, trait_type, &filter));
             }
-            results
+            map
         })
         .await
         .unwrap();
 
         self.scanner_data.traits.clear();
-        for root_results in per_root {
-            for (k, v) in root_results {
-                let ik: InternedStr = std::sync::Arc::from(k);
-                match self.scanner_data.traits.get_mut(&ik) {
-                    Some(mut existing) => existing.push(v),
-                    None => {
-                        self.scanner_data.traits.insert(ik, LayeredValue::new(v));
-                    }
-                }
-            }
+        for (k, v) in result {
+            self.scanner_data
+                .traits
+                .insert(k.into(), LayeredValue::new(v));
         }
-        let t_map = &self.scanner_data.traits;
 
         self.client
             .log_message(
                 MessageType::INFO,
-                format!("Total: Loaded {} traits", t_map.len()),
+                format!("Total: Loaded {} traits", self.scanner_data.traits.len()),
             )
             .await;
     }
 
-    pub(crate) async fn scan_sprites(&self, roots: &[std::path::PathBuf]) {
-        let filter = self.get_sync_filter();
-        let roots_owned = roots.to_vec();
-
-        let per_root = tokio::task::spawn_blocking(move || {
-            let mut results: Vec<HashMap<String, _>> = Vec::new();
-            for root in &roots_owned {
-                let interface_dir = root.join("interface");
-                if interface_dir.exists() {
-                    results.push(sprite_scanner::scan_sprites(&interface_dir, &filter));
-                } else {
-                    results.push(HashMap::new());
-                }
-            }
-            results
-        })
-        .await
-        .unwrap();
-
-        self.scanner_data.sprites.clear();
-        for root_results in per_root {
-            for (k, v) in root_results {
-                let ik: InternedStr = std::sync::Arc::from(k);
-                match self.scanner_data.sprites.get_mut(&ik) {
-                    Some(mut existing) => existing.push(v),
-                    None => {
-                        self.scanner_data.sprites.insert(ik, LayeredValue::new(v));
-                    }
-                }
-            }
-        }
-        let s_map = &self.scanner_data.sprites;
-
-        self.client
-            .log_message(
-                MessageType::INFO,
-                format!("Total: Loaded {} sprite definitions", s_map.len()),
-            )
-            .await;
-    }
-
-    pub(crate) async fn scan_characters(&self, roots: &[std::path::PathBuf]) {
-        scan_dashmap_layered!(
+    pub(crate) async fn scan_sprites(&self, overlay: &crate::scanner::file_overlay::FileOverlay) {
+        scan_dashmap_overlay!(
             self,
-            roots,
-            character_scanner::scan_characters,
+            overlay,
+            "interface",
+            sprite_scanner::scan_sprite_files,
+            sprites,
+            &["gfx", "gui"],
+            "Total: Loaded {} sprite definitions"
+        );
+    }
+
+    pub(crate) async fn scan_characters(
+        &self,
+        overlay: &crate::scanner::file_overlay::FileOverlay,
+    ) {
+        scan_dashmap_overlay!(
+            self,
+            overlay,
+            "common/characters",
+            character_scanner::scan_character_files,
             characters,
+            &["txt"],
             "Total: Loaded {} characters"
         );
     }
 
-    pub(crate) async fn scan_ideas(&self, roots: &[std::path::PathBuf]) {
-        let filter = self.get_sync_filter();
-        let roots_owned = roots.to_vec();
-
-        let per_root = tokio::task::spawn_blocking(move || {
-            let mut results: Vec<HashMap<String, _>> = Vec::new();
-            for root in &roots_owned {
-                let ideas_dir = root.join("common/ideas");
-                if ideas_dir.exists() {
-                    results.push(idea_scanner::scan_ideas(&ideas_dir, &filter));
-                } else {
-                    results.push(HashMap::new());
-                }
-            }
-            results
-        })
-        .await
-        .unwrap();
-
-        self.scanner_data.ideas.clear();
-        for root_results in per_root {
-            for (k, v) in root_results {
-                let ik: InternedStr = std::sync::Arc::from(k);
-                match self.scanner_data.ideas.get_mut(&ik) {
-                    Some(mut existing) => existing.push(v),
-                    None => {
-                        self.scanner_data.ideas.insert(ik, LayeredValue::new(v));
-                    }
-                }
-            }
-        }
-        let i_map = &self.scanner_data.ideas;
-
-        self.client
-            .log_message(
-                MessageType::INFO,
-                format!("Total: Loaded {} ideas", i_map.len()),
-            )
-            .await;
+    pub(crate) async fn scan_ideas(&self, overlay: &crate::scanner::file_overlay::FileOverlay) {
+        scan_dashmap_overlay!(
+            self,
+            overlay,
+            "common/ideas",
+            idea_scanner::scan_idea_files,
+            ideas,
+            &["txt"],
+            "Total: Loaded {} ideas"
+        );
     }
 
-    pub(crate) async fn scan_gfx(&self, roots: &[std::path::PathBuf]) {
-        scan_dashmap_layered!(
+    pub(crate) async fn scan_gfx(&self, overlay: &crate::scanner::file_overlay::FileOverlay) {
+        scan_dashmap_overlay!(
             self,
-            roots,
-            gfx_scanner::scan_color_codes,
+            overlay,
+            "interface",
+            gfx_scanner::scan_color_code_files,
             color_codes,
+            &["gfx"],
             "Total: Loaded {} color codes from interface/*.gfx"
         );
     }
 
-    pub(crate) async fn scan_countries(&self, roots: &[std::path::PathBuf]) {
-        scan_dashmap_layered!(
-            self,
-            roots,
-            country_scanner::scan_country_tags,
-            country_tags,
-            "Loaded {} country tags"
-        );
+    pub(crate) async fn scan_countries(&self, overlay: &crate::scanner::file_overlay::FileOverlay) {
+        let filter = self.get_sync_filter();
+        let mut files: Vec<std::path::PathBuf> = Vec::new();
+        files.extend(overlay.winning_files_in("common/country_tags"));
+        files.extend(overlay.winning_files_in("common/countries"));
+        files.extend(overlay.winning_files_in("history/countries"));
+        // Only .txt files contain country tag definitions
+        files.retain(|p| p.extension().is_some_and(|ext| ext == "txt"));
+        let result = tokio::task::spawn_blocking(move || {
+            country_scanner::scan_country_tag_files(&files, &filter)
+        })
+        .await
+        .unwrap();
+        self.scanner_data.country_tags.clear();
+        for (k, v) in result {
+            self.scanner_data
+                .country_tags
+                .insert(k.into(), crate::data::layered_value::LayeredValue::new(v));
+        }
+        let count = self.scanner_data.country_tags.len();
+        self.client
+            .log_message(MessageType::INFO, format!("Loaded {} country tags", count))
+            .await;
     }
 
     pub(crate) async fn load_assets(&self) {

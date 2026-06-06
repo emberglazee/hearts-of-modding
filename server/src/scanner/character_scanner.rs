@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use crate::parser::parser;
@@ -53,6 +54,23 @@ where
         );
     }
 
+    map
+}
+
+pub fn scan_character_files<F>(files: &[PathBuf], filter: &F) -> HashMap<String, Character>
+where
+    F: Fn(&std::path::Path) -> bool,
+{
+    let mut map = HashMap::new();
+    crate::utils::fs_util::parse_winning_files(files, filter, |path, content| {
+        let (script, _) = parser::parse_script(&content);
+        find_characters_in_entries(
+            &script.entries,
+            &script.source,
+            &path.to_string_lossy(),
+            &mut map,
+        );
+    });
     map
 }
 

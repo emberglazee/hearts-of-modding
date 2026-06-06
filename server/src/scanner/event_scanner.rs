@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use crate::parser::parser;
@@ -216,4 +217,30 @@ fn find_triggers_recursive(
             _ => {}
         }
     }
+}
+
+pub fn scan_event_files<F>(files: &[PathBuf], filter: &F) -> HashMap<String, Event>
+where
+    F: Fn(&Path) -> bool,
+{
+    let mut events = HashMap::new();
+
+    // Pass 1: Find event definitions in the provided files
+    crate::utils::fs_util::parse_winning_files(files, filter, |path, content| {
+        let (script, _) = parser::parse_script(&content);
+        find_event_definitions(
+            &script.entries,
+            &script.source,
+            &path.to_string_lossy(),
+            &mut events,
+        );
+    });
+
+    // Pass 2: Find trigger relationships in the provided files
+    crate::utils::fs_util::parse_winning_files(files, filter, |_path, content| {
+        let (script, _) = parser::parse_script(&content);
+        find_triggers_in_script(&script.entries, &script.source, &mut events);
+    });
+
+    events
 }

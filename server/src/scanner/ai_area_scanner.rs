@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use crate::parser::parser;
@@ -35,6 +36,20 @@ where
             },
         );
     }
+
+    areas
+}
+
+pub fn scan_ai_area_files<F>(files: &[PathBuf], filter: &F) -> HashMap<String, AiArea>
+where
+    F: Fn(&std::path::Path) -> bool,
+{
+    let mut areas = HashMap::new();
+
+    crate::utils::fs_util::parse_winning_files(files, filter, |path, content| {
+        let (script, _) = parser::parse_script(&content);
+        extract_areas(&script.entries, &script.source, path, &mut areas);
+    });
 
     areas
 }
