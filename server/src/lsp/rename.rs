@@ -723,30 +723,76 @@ fn find_variable_references_in_entries(
 ) {
     for entry in entries {
         if let Entry::Assignment(ass) = entry {
-            // Check for set_variable, check_variable, etc.
-            if ass.key_text(source) == "set_variable"
-                || ass.key_text(source) == "check_variable"
-                || ass.key_text(source) == "add_to_variable"
-                || ass.key_text(source) == "subtract_from_variable"
-                || ass.key_text(source) == "multiply_variable"
-                || ass.key_text(source) == "divide_variable"
-                || ass.key_text(source) == "modulo_variable"
-                || ass.key_text(source) == "clamp_variable"
-            {
-                if let Value::Block(children) = &ass.value.value {
-                    for child in children {
-                        if let Entry::Assignment(child_ass) = child {
-                            if child_ass.key_text(source) == "var"
-                                || child_ass.key_text(source) == "variable"
-                            {
-                                if let Some(var_name) = child_ass.value.value.as_str(source) {
-                                    if var_name == old_name {
-                                        edits.push(TextEdit {
-                                            range: range_to_lsp(&child_ass.value.range),
-                                            new_text: format!("\"{}\"", new_name),
-                                        });
+            // Check for variable operations (set_variable, add_to_variable, etc.)
+            let var_key = ass.key_text(source);
+            let is_var_op = matches!(
+                var_key,
+                "set_variable"
+                    | "set_temp_variable"
+                    | "set_variable_to_random"
+                    | "set_temp_variable_to_random"
+                    | "check_variable"
+                    | "add_to_variable"
+                    | "add_to_temp_variable"
+                    | "subtract_from_variable"
+                    | "subtract_from_temp_variable"
+                    | "multiply_variable"
+                    | "multiply_temp_variable"
+                    | "divide_variable"
+                    | "divide_temp_variable"
+                    | "modulo_variable"
+                    | "modulo_temp_variable"
+                    | "clamp_variable"
+                    | "clamp_temp_variable"
+                    | "round_variable"
+                    | "round_temp_variable"
+                    | "clear_variable"
+                    | "has_variable"
+            );
+            if is_var_op {
+                match &ass.value.value {
+                    Value::Block(children) => {
+                        let mut found = false;
+                        for child in children {
+                            if let Entry::Assignment(child_ass) = child {
+                                let child_key = child_ass.key_text(source);
+                                if child_key == "var"
+                                    || child_key == "variable"
+                                    || child_key == "name"
+                                    || child_key == "temp_var"
+                                {
+                                    if let Some(var_name) = child_ass.value.value.as_str(source) {
+                                        if var_name == old_name {
+                                            edits.push(TextEdit {
+                                                range: range_to_lsp(&child_ass.value.range),
+                                                new_text: format!("\"{}\"", new_name),
+                                            });
+                                            found = true;
+                                        }
                                     }
                                 }
+                            }
+                        }
+                        // Shorthand form: single entry with no explicit var/temp_var, key IS variable name
+                        if !found && children.len() == 1 {
+                            if let Entry::Assignment(child_ass) = &children[0] {
+                                if child_ass.key_text(source) == old_name {
+                                    edits.push(TextEdit {
+                                        range: range_to_lsp(&child_ass.key_range),
+                                        new_text: format!("\"{}\"", new_name),
+                                    });
+                                }
+                            }
+                        }
+                    }
+                    _ => {
+                        // String form: clear_variable = my_var, set_variable_to_random = my_var, etc.
+                        if let Some(var_name) = ass.value.value.as_str(source) {
+                            if var_name == old_name {
+                                edits.push(TextEdit {
+                                    range: range_to_lsp(&ass.value.range),
+                                    new_text: format!("\"{}\"", new_name),
+                                });
                             }
                         }
                     }

@@ -24,6 +24,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
   - **VSCode now should only automatically activate the extension if it sees `descriptor.mod` in the workspace root directory (`./descriptor.mod`).**
 
+- **Improved variable scanning.**
+
 ### 🩹 Fixed
 
 - **String interner memory leak:** The interner stored every interned string forever. Implemented a garbage collector to solve this.

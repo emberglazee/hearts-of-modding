@@ -100,14 +100,24 @@ pub(crate) fn scan_entries(
                     | "set_local_variable"
                     | "change_variable"
                     | "multiply_variable"
+                    | "multiply_temp_variable"
                     | "divide_variable"
+                    | "divide_temp_variable"
                     | "add_to_variable"
+                    | "add_to_temp_variable"
                     | "subtract_from_variable"
+                    | "subtract_from_temp_variable"
                     | "clamp_variable"
+                    | "clamp_temp_variable"
                     | "round_variable"
+                    | "round_temp_variable"
+                    | "modulo_variable"
+                    | "modulo_temp_variable"
                     | "clear_variable"
                     | "has_variable"
-                    | "check_variable" => {
+                    | "check_variable"
+                    | "set_variable_to_random"
+                    | "set_temp_variable_to_random" => {
                         handle_variable_assignment(ass, source, path, variables);
                     }
                     "save_event_target_as" | "save_global_event_target_as" => {
@@ -153,14 +163,24 @@ fn handle_variable_assignment(
             add_variable(variables, name, path, &ass.value.range);
         }
         ast::Value::Block(inner) => {
-            // Find 'name = xxx' inside the block
+            let mut found_var = false;
             for entry in inner {
                 if let ast::Entry::Assignment(inner_ass) = entry {
-                    if inner_ass.key_text(source) == "name" {
+                    let key = inner_ass.key_text(source);
+                    // Long form: var = xxx, variable = xxx, name = xxx, temp_var = xxx
+                    if key == "var" || key == "variable" || key == "name" || key == "temp_var" {
                         if let Some(name) = inner_ass.value.value.as_str(source) {
                             add_variable(variables, name.to_string(), path, &inner_ass.value.range);
+                            found_var = true;
                         }
                     }
+                }
+            }
+            // Shorthand form: no explicit var/temp_var found, treat single-entry key as variable name
+            if !found_var && inner.len() == 1 {
+                if let ast::Entry::Assignment(inner_ass) = &inner[0] {
+                    let var_name = inner_ass.key_text(source).to_string();
+                    add_variable(variables, var_name, path, &inner_ass.key_range);
                 }
             }
         }
