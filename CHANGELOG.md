@@ -34,7 +34,7 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Optimized quoted string parsing.**
 
-- **...and other optimizations.**
+- **...and many other optimizations.**
 
 ### 🩹 Fixed
 

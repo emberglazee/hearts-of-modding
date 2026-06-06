@@ -1,5 +1,6 @@
 use crate::data::entity_lookup::EntityKind;
-use crate::utils::line_index::LineIndex;
+// Note: LineIndex is not used here — per-line byte→UTF-16 conversion
+// uses a zero-allocation char walk instead (see byte_to_col closure).
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
@@ -407,14 +408,16 @@ pub fn loc_semantic_tokens(content: &str) -> SemanticTokensResult {
                     // uses UTF-16 (§ is 2 bytes but 1 code unit, etc.).
                     let value_content = &line[value_start_byte..value_end_byte];
 
-                    // Precompute a byte→UTF-16 index for the full line so that
-                    // the many conversions below are O(1) each instead of O(N).
-                    let line_idx = LineIndex::new(line);
-
                     // Convert a byte offset within value_content to a
-                    // UTF-16 column in the full line.
+                    // UTF-16 column in the full line via a zero-allocation
+                    // char walk.  Lines in localisation files are short, and
+                    // this avoids allocating a Vec<u32> per line (10,000 Vecs
+                    // in a 10K-line file on every keystroke).
                     let byte_to_col = |rel_byte: usize| -> u32 {
-                        line_idx.byte_to_utf16(value_start_byte + rel_byte)
+                        line[..(value_start_byte + rel_byte)]
+                            .chars()
+                            .map(|c| c.len_utf16() as u32)
+                            .sum()
                     };
 
                     // Collect all interesting ranges (color codes, scopes, nested keys)
@@ -492,10 +495,10 @@ pub fn loc_semantic_tokens(content: &str) -> SemanticTokensResult {
                         });
                     }
 
-                    // Closing quote
+                    // Closing quote (byte_to_col handles the UTF-16 conversion)
                     tokens.push(RawToken {
                         line: line_u32,
-                        start: line_idx.byte_to_utf16(value_end_byte),
+                        start: byte_to_col(value_content.len()),
                         length: 1,
                         token_type: TokenType::String as u32,
                     });
