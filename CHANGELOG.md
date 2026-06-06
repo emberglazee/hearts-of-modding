@@ -32,6 +32,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Fast-path check for `parse_identifier_value` to avoid unnecessary CPU-heavy 64-bit float parsing.**
 
+- **Optimized quoted string parsing.**
+
 ### 🩹 Fixed
 
 - **String interner memory leak:** The interner stored every interned string forever. Implemented a garbage collector to solve this.

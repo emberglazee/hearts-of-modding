@@ -81,31 +81,43 @@ fn ident(input: Span) -> IResult<Span, (ByteSpan, Range)> {
 /// Parse a quoted string and return (resolved_content, ByteSpan_of_full_match, Range).
 /// The ByteSpan covers the entire match including the surrounding quotes.
 fn quoted_string(input: Span) -> IResult<Span, (String, ByteSpan, Range)> {
-    let (input, start) = recognize(char('\"')).parse(input)?;
+    let (input, opening) = recognize(char('\"')).parse(input)?;
+    let opening_offset = opening.location_offset();
+    let opening_line = opening.location_line();
+    let opening_col = opening.get_column();
+
     let mut s = String::new();
     let mut current = input;
+
     loop {
-        let (next, c) = anychar(current)?;
-        if c == '\"' {
+        // Take all characters until we hit a closing quote or backslash escape.
+        // For the common case (no escapes), this grabs the entire string content
+        // in one go — a single `push_str` instead of N per-char pushes.
+        let (next, content) = take_while(|c: char| c != '"' && c != '\\')(current)?;
+        s.push_str(content.fragment());
+        current = next;
+
+        // Try to match the closing quote (opt + ? lets the error type be inferred)
+        let (next, maybe_quote) = opt(char('"')).parse(current)?;
+        if maybe_quote.is_some() {
             let range = Range {
-                start_line: start.location_line() - 1,
-                start_col: start.get_column() as u32 - 1,
+                start_line: opening_line - 1,
+                start_col: opening_col as u32 - 1,
                 end_line: next.location_line() - 1,
                 end_col: next.get_column() as u32 - 1,
             };
             let full_span = ByteSpan {
-                start: start.location_offset(),
+                start: opening_offset,
                 end: next.location_offset(),
             };
             return Ok((next, (s, full_span, range)));
-        } else if c == '\\' {
-            let (next2, escaped) = anychar(next)?;
-            s.push(escaped);
-            current = next2;
-        } else {
-            s.push(c);
-            current = next;
         }
+
+        // Not a closing quote — must be an escape sequence
+        let (next, _) = char('\\').parse(current)?;
+        let (next, escaped) = anychar(next)?;
+        s.push(escaped);
+        current = next;
     }
 }
 
