@@ -28,7 +28,15 @@ impl Interner {
     /// If the string has been interned before, returns the existing handle
     /// (cheap `Arc::clone`). Otherwise, allocates a new `Arc<str>` and
     /// stores it for future lookups.
+    ///
+    /// Fast path uses a read-only `.get()` check to avoid allocating a
+    /// `String` on every call (the `entry()` API requires an owned key).
     pub fn intern(&self, s: &str) -> InternedStr {
+        // Fast path: no allocation if it already exists
+        if let Some(existing) = self.map.get(s) {
+            return existing.clone();
+        }
+        // Slow path: allocate and insert
         self.map
             .entry(s.to_string())
             .or_insert_with(|| Arc::from(s))
