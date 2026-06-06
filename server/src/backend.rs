@@ -1,6 +1,8 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
+use rustc_hash::FxHashMap;
+
 use dashmap::DashMap;
 use tokio_util::sync::CancellationToken;
 use tower_lsp_server::Client;
@@ -2116,11 +2118,11 @@ impl Backend {
 /// Check for duplicate modifier keys within a block of entries.
 /// This was previously a method on `Backend`, now a free function called
 /// by the centralized AST walker for every block entry.
-pub(crate) fn check_duplicate_keys(
+pub(crate) fn check_duplicate_keys<'a>(
     entries: &[ast::Entry],
     diagnostics: &mut Vec<Diagnostic>,
     mod_maps: &DashMap<InternedStr, String>,
-    source: &str,
+    source: &'a str,
 ) {
     // Currently only checks keys that are in `mod_maps` (modifier names) plus a small
     // hardcoded set of common structural keys (`name`, `id`, `icon`). All other keys
@@ -2129,7 +2131,7 @@ pub(crate) fn check_duplicate_keys(
     // set of key patterns.
     const COMMON_KEYS: [&str; 3] = ["name", "id", "icon"];
 
-    let mut seen_keys: HashMap<String, ast::Range> = HashMap::new();
+    let mut seen_keys: FxHashMap<&'a str, ast::Range> = FxHashMap::default();
 
     for entry in entries {
         if let ast::Entry::Assignment(ass) = entry {
@@ -2137,7 +2139,7 @@ pub(crate) fn check_duplicate_keys(
             // Some Paradox keys (like 'modifier = { ... }' or 'option = { ... }') are intended to be duplicates.
             // But specific engine modifiers (like 'stability_factor') should NEVER be duplicated.
 
-            let key = ass.key_text(source);
+            let key: &'a str = ass.key_text(source);
             let is_modifier = mod_maps.contains_key(key) || COMMON_KEYS.contains(&key);
 
             // Exceptions: Some effects/triggers are specifically designed to be used multiple times
@@ -2167,7 +2169,7 @@ pub(crate) fn check_duplicate_keys(
                     end_line: ass.value.range.end_line,
                     end_col: ass.value.range.end_col,
                 };
-                seen_keys.insert(key.to_string(), full_range);
+                seen_keys.insert(key, full_range);
             }
         }
     }
