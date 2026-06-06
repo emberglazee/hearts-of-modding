@@ -1,5 +1,6 @@
 pub mod abilities;
 pub mod formatting;
+pub mod ideas;
 pub mod loc_columns;
 pub mod loc_dups;
 pub mod loc_empty;

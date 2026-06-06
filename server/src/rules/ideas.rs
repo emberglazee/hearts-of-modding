@@ -4,15 +4,74 @@ use crate::scope::scope::{Scope, ScopeStack};
 use crate::utils::lsp_convert::ast_range_to_lsp;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity};
 
-/// Known idea structure keywords that should not have picture validation.
-/// These are the top-level `ideas = { ... }` wrapper and built-in category
-/// names. `country` is handled implicitly because it resolves to
-/// `Scope::Country`, so the picture check doesn't fire for it.
+/// Keywords that should never have picture validation in an idea context.
+/// Covers category structure keys, category attributes, and idea sub-block
+/// properties. Keys that resolve to a non-Idea scope (e.g. `modifier`,
+/// `allowed`, `available` → Scope::Country) are handled implicitly — they
+/// won't be at `scope.current() == Scope::Idea` when the check fires.
+/// This list catches the rest that would otherwise hit Scope::Unknown and
+/// trip the picture validation.
 fn is_idea_structure_key(key: &str) -> bool {
     matches!(
         key.to_ascii_lowercase().as_str(),
-        "ideas" | "hidden_ideas" | "designer" | "law"
+        // Category structure & attributes
+        "ideas"
+        | "hidden_ideas"
+        | "designer"
+        | "law"
+        | "use_list_view"
+        | "slot_ledgers"
+        | "slot"
+        | "character_slot"
+        // Idea sub-block properties
+        | "picture"
+        | "targeted_modifier"
+        | "research_bonus"
+        | "equipment_bonus"
+        | "rule"
+        | "traits"
+        | "on_add"
+        | "on_remove"
+        | "cancel"
+        | "allowed_civil_war"
+        | "do_effect"
+        | "visible"
+        | "allowed_to_remove"
+        | "removal_cost"
+        | "level"
+        | "ledger"
+        | "hidden"
+        | "politics_tab"
     )
+}
+
+/// Check if an assignment is an idea category container rather than an actual idea.
+/// Category containers (e.g. `economy = { law = yes skulk_economy = { ... } }`)
+/// have children that are sub-idea definitions — block-valued assignments whose
+/// keys are both scope-unknown AND not recognised idea sub-block keywords.
+/// Actual ideas have only sub-blocks (modifier, on_add, cancel, etc.) which
+/// either resolve to a known scope or are in the structure key list.
+fn is_idea_category_block(ass: &ast::Assignment, ctx: &ValidationContext) -> bool {
+    match &ass.value.value {
+        ast::Value::Block(entries) | ast::Value::TaggedBlock(_, entries, _) => {
+            entries.iter().any(|e| {
+                if let ast::Entry::Assignment(a) = e {
+                    if matches!(
+                        &a.value.value,
+                        ast::Value::Block(_) | ast::Value::TaggedBlock(_, _, _)
+                    ) {
+                        let key = a.key_text(ctx.source);
+                        Scope::from_str(key) == Scope::Unknown && !is_idea_structure_key(key)
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                }
+            })
+        }
+        _ => false,
+    }
 }
 
 /// Validates idea references and default picture coverage.
@@ -57,6 +116,7 @@ impl ValidationRule for IdeaRule {
         if pushed_scope
             && scope.current() == Scope::Idea
             && !is_idea_structure_key(ass.key_text(ctx.source))
+            && !is_idea_category_block(ass, ctx)
         {
             // Skip picture check for ideas within `hidden_ideas` — they
             // are never displayed in the UI so a picture is unnecessary.
@@ -96,5 +156,86 @@ impl ValidationRule for IdeaRule {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_idea_structure_key;
+
+    #[test]
+    fn test_idea_structure_keys_are_excluded() {
+        let excluded = [
+            "ideas",
+            "hidden_ideas",
+            "designer",
+            "law",
+            "use_list_view",
+            "slot_ledgers",
+            "slot",
+            "character_slot",
+            "picture",
+            "targeted_modifier",
+            "research_bonus",
+            "equipment_bonus",
+            "rule",
+            "traits",
+            "on_add",
+            "on_remove",
+            "cancel",
+            "allowed_civil_war",
+            "do_effect",
+            "visible",
+            "allowed_to_remove",
+            "removal_cost",
+            "level",
+            "ledger",
+            "hidden",
+            "politics_tab",
+        ];
+        for key in &excluded {
+            assert!(
+                is_idea_structure_key(key),
+                "'{}' should be recognised as a structure key",
+                key,
+            );
+        }
+    }
+
+    #[test]
+    fn test_idea_names_are_not_excluded() {
+        let names = [
+            "my_idea",
+            "red_political_purge",
+            "red_corrupt_guilds_4",
+            "generic_foreign_capital",
+            "idea_123",
+            "ZZZ_custom_idea",
+            "china_designer",
+        ];
+        for name in &names {
+            assert!(
+                !is_idea_structure_key(name),
+                "'{}' should NOT be a structure key",
+                name,
+            );
+        }
+    }
+
+    #[test]
+    fn test_idea_structure_key_case_insensitive() {
+        assert!(is_idea_structure_key("ON_ADD"));
+        assert!(is_idea_structure_key("On_Add"));
+        assert!(is_idea_structure_key("on_ADD"));
+        assert!(is_idea_structure_key("CANCEL"));
+        assert!(is_idea_structure_key("On_Remove"));
+        assert!(is_idea_structure_key("DO_EFFECT"));
+        assert!(is_idea_structure_key("ALLOWED_CIVIL_WAR"));
+    }
+
+    #[test]
+    fn test_picture_excluded() {
+        // picture = value (not block), but still shouldn't trigger
+        assert!(is_idea_structure_key("picture"));
     }
 }

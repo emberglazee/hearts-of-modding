@@ -3,6 +3,44 @@ use crate::rules::{ValidationContext, ValidationRule};
 use crate::scope::scope::{Scope, ScopeStack};
 use tower_lsp_server::ls_types::Diagnostic;
 
+/// Idea-adjacent keywords that should never be promoted to `Scope::Idea`.
+/// Mirrors the list in [`crate::rules::ideas::is_idea_structure_key`].
+/// Kept separate to avoid circular module deps between rules::visitor and
+/// rules::ideas.
+fn is_idea_structure_key(key: &str) -> bool {
+    matches!(
+        key.to_ascii_lowercase().as_str(),
+        // Category structure & attributes
+        "ideas"
+        | "hidden_ideas"
+        | "designer"
+        | "law"
+        | "use_list_view"
+        | "slot_ledgers"
+        | "slot"
+        | "character_slot"
+        // Idea sub-block properties
+        | "picture"
+        | "targeted_modifier"
+        | "research_bonus"
+        | "equipment_bonus"
+        | "rule"
+        | "traits"
+        | "on_add"
+        | "on_remove"
+        | "cancel"
+        | "allowed_civil_war"
+        | "do_effect"
+        | "visible"
+        | "allowed_to_remove"
+        | "removal_cost"
+        | "level"
+        | "ledger"
+        | "hidden"
+        | "politics_tab"
+    )
+}
+
 /// A visitor that receives AST events during a single centralized traversal.
 ///
 /// Implement this trait instead of `ValidationRule::check_block` when your
@@ -101,12 +139,18 @@ fn walk_entries(
                 let mut s = Scope::from_str(ass.key_text(ctx.source));
 
                 // Internal 'idea' definition block context
+                // Unknown keys with block values at depth 2-3 inside an Idea
+                // scope are likely idea names (e.g. `my_idea = { ... }` inside
+                // `country = { ... }`). Promote them to Scope::Idea.
+                // EXCLUDE known idea structure/sub-block keywords — those are
+                // never valid idea names even if placed at the category level.
                 if s == Scope::Unknown {
                     let stack = scope_stack.stack();
-                    if stack.contains(&Scope::Idea) {
-                        if stack.len() == 2 || stack.len() == 3 {
-                            s = Scope::Idea;
-                        }
+                    if stack.contains(&Scope::Idea)
+                        && (stack.len() == 2 || stack.len() == 3)
+                        && !is_idea_structure_key(ass.key_text(ctx.source))
+                    {
+                        s = Scope::Idea;
                     }
                 }
 
