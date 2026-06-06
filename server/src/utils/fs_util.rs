@@ -104,6 +104,23 @@ where
     }
 }
 
+/// Escape only the regex metacharacters that commonly appear literally in filenames:
+/// `(`, `)`, `[`, `]`, `{`, `}`. Unlike `regex::escape()`, this leaves `.*+?^$|\\`
+/// untouched so existing regex patterns like `./directory/*` or `.*\.txt$` keep working.
+pub fn escape_filename_chars(s: &str) -> String {
+    let mut result = String::with_capacity(s.len());
+    for c in s.chars() {
+        match c {
+            '(' | ')' | '[' | ']' | '{' | '}' => {
+                result.push('\\');
+                result.push(c);
+            }
+            _ => result.push(c),
+        }
+    }
+    result
+}
+
 /// Check whether a path matches any of the provided ignore regex patterns.
 pub fn is_path_ignored(path: &Path, ignored: &[regex::Regex]) -> bool {
     let path_str = path.to_string_lossy();
@@ -163,5 +180,72 @@ mod tests {
     fn test_fuzzy_match_case_insensitive() {
         assert!(fuzzy_match("test", "TEST"));
         assert!(fuzzy_match("test", "MyTestEvent"));
+    }
+
+    #[test]
+    fn test_is_path_ignored_with_parentheses() {
+        // Patterns come from config, pre-processed via escape_filename_chars()
+        // e.g., user writes "event (copy)" → compiled as "event \(copy\)"
+        let escaped_pattern = regex::Regex::new(r"event \(copy\)").unwrap();
+        let escaped_patterns = vec![escaped_pattern];
+
+        // Path with literal parentheses should be ignored
+        let path_with_parens = std::path::Path::new("/mod/events/event (copy).txt");
+        assert!(
+            is_path_ignored(path_with_parens, &escaped_patterns),
+            "escaped pattern should match path with literal parentheses"
+        );
+
+        // Path without parentheses should NOT be matched
+        let path_without_parens = std::path::Path::new("/mod/events/event copy.txt");
+        assert!(
+            !is_path_ignored(path_without_parens, &escaped_patterns),
+            "escaped pattern should NOT match path without parentheses"
+        );
+
+        // Verify old behavior (unescaped) would FAIL with parens
+        let unescaped_pattern = regex::Regex::new(r"event (copy)").unwrap();
+        let unescaped_patterns = vec![unescaped_pattern];
+        assert!(
+            !is_path_ignored(path_with_parens, &unescaped_patterns),
+            "unescaped regex treats ( ) as group metacharacters, missing literal parens"
+        );
+        // But unescaped matches path without parens
+        assert!(
+            is_path_ignored(path_without_parens, &unescaped_patterns),
+            "unescaped regex matches path without literal parens"
+        );
+    }
+
+    #[test]
+    fn test_escape_filename_chars() {
+        // Parens/brackets/braces get escaped
+        assert_eq!(escape_filename_chars("event (copy)"), r"event \(copy\)");
+        assert_eq!(escape_filename_chars("[debug] v2"), r"\[debug\] v2");
+        assert_eq!(escape_filename_chars("{test}"), r"\{test\}");
+
+        // Common regex patterns are LEFT UNTOUCHED
+        assert_eq!(escape_filename_chars("./directory/*"), "./directory/*");
+        assert_eq!(escape_filename_chars(r".*\.txt$"), r".*\.txt$");
+        assert_eq!(escape_filename_chars("^events/test_.*"), "^events/test_.*");
+        assert_eq!(escape_filename_chars("debug_v\\d+"), "debug_v\\d+");
+
+        // Empty string stays empty
+        assert_eq!(escape_filename_chars(""), "");
+
+        // No special chars stays unchanged
+        assert_eq!(escape_filename_chars("simple_path"), "simple_path");
+    }
+
+    #[test]
+    fn test_is_path_ignored_with_globs_unchanged() {
+        // Verify patterns like "./directory/*" still work as regex
+        let pattern = regex::Regex::new(r"./directory/*").unwrap();
+        let patterns = vec![pattern];
+        // This matches the literal path portion (the * matches zero or more /)
+        assert!(is_path_ignored(
+            std::path::Path::new("./directory/"),
+            &patterns
+        ));
     }
 }

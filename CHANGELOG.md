@@ -38,6 +38,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **...and many other optimizations.**
 
+- **Better handle parsing the ignored files list (`hoi4.validator.ignoreFiles`).**
+
 ### 🩹 Fixed
 
 - **String interner memory leak:** The interner stored every interned string forever. Implemented a garbage collector to solve this.

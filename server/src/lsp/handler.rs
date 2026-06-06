@@ -37,7 +37,9 @@ impl LanguageServer for Backend {
                 let mut patterns = Vec::new();
                 for val in ignore_list {
                     if let Some(s) = val.as_str() {
-                        if let Ok(re) = regex::Regex::new(s) {
+                        if let Ok(re) =
+                            regex::Regex::new(&crate::utils::fs_util::escape_filename_chars(s))
+                        {
                             patterns.push(re);
                         }
                     }
@@ -49,7 +51,9 @@ impl LanguageServer for Backend {
                 let mut patterns = Vec::new();
                 for val in ignore_list {
                     if let Some(s) = val.as_str() {
-                        if let Ok(re) = regex::Regex::new(s) {
+                        if let Ok(re) =
+                            regex::Regex::new(&crate::utils::fs_util::escape_filename_chars(s))
+                        {
                             patterns.push(re);
                         }
                     }
