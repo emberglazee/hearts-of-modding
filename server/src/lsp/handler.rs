@@ -217,6 +217,11 @@ impl LanguageServer for Backend {
                 .await;
         }
 
+        // Parse replace_path directives from the workspace descriptor.mod.
+        // Total-conversion mods declare replace_path to wipe entire subdirectories
+        // from lower-priority layers (vanilla game path and dependency mods).
+        let mut replace_paths: Vec<String> = Vec::new();
+
         if game_path_configured {
             let registry_path = self.config.mod_registry_path().or_else(|| {
                 crate::utils::mod_registry::default_mod_registry_path()
@@ -234,10 +239,28 @@ impl LanguageServer for Backend {
                         .await;
 
                     // Read the workspace descriptor.mod to find declared dependencies
+                    // and replace_path directives.
                     let descriptor_path = std::path::Path::new("descriptor.mod");
                     if descriptor_path.exists() {
                         match std::fs::read_to_string(descriptor_path) {
                             Ok(content) => {
+                                // Parse replace_path declarations first — these must be
+                                // available when the overlay is built, regardless of
+                                // whether any dependencies were found.
+                                replace_paths =
+                                    crate::utils::mod_registry::parse_replace_paths(&content);
+                                if !replace_paths.is_empty() {
+                                    self.client
+                                        .log_message(
+                                            MessageType::INFO,
+                                            format!(
+                                                "Workspace mod declares replace_path: {:?}",
+                                                replace_paths
+                                            ),
+                                        )
+                                        .await;
+                                }
+
                                 let dep_names =
                                     crate::utils::mod_registry::parse_dependencies(&content);
                                 if !dep_names.is_empty() {
@@ -351,6 +374,7 @@ impl LanguageServer for Backend {
             &roots,
             &["txt", "yml", "asset", "gfx", "gui", "csv", "lua"],
             self.get_sync_filter(),
+            &replace_paths,
         );
 
         tokio::join!(
@@ -714,6 +738,15 @@ impl LanguageServer for Backend {
                     self.scanner_data.workspace_files.remove(path_str.as_str());
                 }
                 _ => {}
+            }
+        }
+
+        // Re-validate all open documents so their diagnostics reflect the
+        // updated scanner data (e.g. sprite name changes in .gfx files
+        // should update idea "picture" validity warnings immediately).
+        for entry in self.documents.iter() {
+            if let Ok(uri) = entry.key().parse::<Uri>() {
+                self.validate_document(uri).await;
             }
         }
     }

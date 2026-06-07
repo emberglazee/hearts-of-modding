@@ -87,6 +87,37 @@ fn extract_mod_path(content: &str, registry_dir: &Path) -> Option<PathBuf> {
     None
 }
 
+/// Extract `replace_path` entries from a `.mod` descriptor file content.
+///
+/// Format (one per line):
+/// ```text
+/// replace_path = "common/national_focus"
+/// replace_path = "common/ideas"
+/// ```
+/// Returns a list of relative directory paths (without trailing slashes).
+pub(crate) fn parse_replace_paths(content: &str) -> Vec<String> {
+    let mut paths = Vec::new();
+    for line in content.lines() {
+        let trimmed = line.trim();
+        // Comments start with '#'
+        if trimmed.starts_with('#') {
+            continue;
+        }
+        if let Some(equals_pos) = trimmed.find('=') {
+            let key = trimmed[..equals_pos].trim();
+            if key.eq_ignore_ascii_case("replace_path") {
+                let raw = trimmed[equals_pos + 1..].trim().trim_matches('"').trim();
+                if !raw.is_empty() {
+                    // Normalize forward slashes (even on Windows, mod paths use /)
+                    let normalized = raw.replace('\\', "/");
+                    paths.push(normalized);
+                }
+            }
+        }
+    }
+    paths
+}
+
 /// Extract the `dependencies` block from a `descriptor.mod` content string.
 ///
 /// Format: `dependencies = { "Mod Name 1" "Mod Name 2" }`
@@ -288,5 +319,62 @@ dependencies = { "Dep A" }
 supported_version = "1.15.*""#;
         let deps = parse_dependencies(content);
         assert_eq!(deps, vec!["Dep A"]);
+    }
+
+    #[test]
+    fn test_parse_replace_paths_empty() {
+        let content = r#"name = "My Mod"
+supported_version = "1.15.*""#;
+        assert!(parse_replace_paths(content).is_empty());
+    }
+
+    #[test]
+    fn test_parse_replace_paths_single() {
+        let content = r#"name = "My Mod"
+replace_path = "common/national_focus"
+supported_version = "1.15.*""#;
+        assert_eq!(parse_replace_paths(content), vec!["common/national_focus"]);
+    }
+
+    #[test]
+    fn test_parse_replace_paths_multiple() {
+        let content = r#"name = "My Mod"
+replace_path = "common/national_focus"
+replace_path = "common/ideas"
+replace_path = "common/decisions"
+supported_version = "1.15.*""#;
+        let paths = parse_replace_paths(content);
+        assert_eq!(paths.len(), 3);
+        assert!(paths.contains(&"common/national_focus".to_string()));
+        assert!(paths.contains(&"common/ideas".to_string()));
+        assert!(paths.contains(&"common/decisions".to_string()));
+    }
+
+    #[test]
+    fn test_parse_replace_paths_no_space() {
+        let content = r#"replace_path="common/national_focus""#;
+        assert_eq!(parse_replace_paths(content), vec!["common/national_focus"]);
+    }
+
+    #[test]
+    fn test_parse_replace_paths_ignores_comment() {
+        let content = r#"name = "My Mod"
+# replace_path = "common/ideas"
+replace_path = "common/national_focus""#;
+        let paths = parse_replace_paths(content);
+        assert_eq!(paths, vec!["common/national_focus"]);
+    }
+
+    #[test]
+    fn test_parse_replace_paths_with_dependencies() {
+        let content = r#"name = "TC Mod"
+replace_path = "common/national_focus"
+replace_path = "common/ideas"
+dependencies = { "Base Mod" }
+supported_version = "1.15.*""#;
+        let paths = parse_replace_paths(content);
+        assert_eq!(paths, vec!["common/national_focus", "common/ideas"]);
+        let deps = parse_dependencies(content);
+        assert_eq!(deps, vec!["Base Mod"]);
     }
 }
