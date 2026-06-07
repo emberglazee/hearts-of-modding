@@ -33,4 +33,5 @@ pub mod state_scanner;
 pub mod strategic_region_scanner;
 pub mod terrain_scanner;
 pub mod trait_scanner;
+pub mod unit_scanner;
 pub mod variable_scanner;

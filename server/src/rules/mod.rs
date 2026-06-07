@@ -18,6 +18,7 @@ pub(crate) mod gfx_textures;
 pub(crate) mod ideas;
 pub(crate) mod ideologies;
 pub(crate) mod localization;
+pub(crate) mod oob_regiments;
 pub(crate) mod portraits;
 pub(crate) mod provinces;
 pub(crate) mod sounds;
@@ -78,6 +79,8 @@ pub(crate) struct ValidationContext<'a> {
     pub(crate) game_path: Option<String>,
     pub(crate) styling_enabled: bool,
     pub(crate) workspace_roots: &'a [std::path::PathBuf],
+    pub(crate) unit_types:
+        &'a DashMap<InternedStr, LayeredValue<crate::scanner::unit_scanner::UnitType>>,
 }
 
 /// A validation rule for HOI4 script semantics.

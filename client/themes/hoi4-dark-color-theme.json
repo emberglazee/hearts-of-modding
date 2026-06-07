@@ -100,7 +100,8 @@
         "struct": "#56c8a4",
         "class": "#3db8c8",
         "property": "#78dba8",
-        "escapeCharacter": "#e2c15a"
+        "escapeCharacter": "#e2c15a",
+        "parameter": "#8b5cf6"
     },
     "tokenColors": [
         {

@@ -21,6 +21,7 @@ impl Backend {
 
         let mut has_eof_newline_diagnostic = false;
         let mut has_path_separator_diagnostic = false;
+        let mut has_unit_type_casing_diagnostic = false;
 
         for diagnostic in &params.context.diagnostics {
             if let Some(target_casing) = diagnostic.data.as_ref().and_then(|v| v.as_str()) {
@@ -68,6 +69,28 @@ impl Backend {
 
                         actions.push(CodeActionOrCommand::CodeAction(CodeAction {
                             title: format!("Use single forward slashes: '{}'", target_casing),
+                            kind: Some(CodeActionKind::QUICKFIX),
+                            edit: Some(WorkspaceEdit {
+                                changes: Some(changes),
+                                ..Default::default()
+                            }),
+                            diagnostics: Some(vec![diagnostic.clone()]),
+                            is_preferred: Some(true),
+                            ..Default::default()
+                        }));
+                    } else if code == "HOM3007" {
+                        has_unit_type_casing_diagnostic = true;
+                        let mut changes = HashMap::new();
+                        changes.insert(
+                            params.text_document.uri.clone(),
+                            vec![TextEdit {
+                                range: diagnostic.range,
+                                new_text: target_casing.to_string(),
+                            }],
+                        );
+
+                        actions.push(CodeActionOrCommand::CodeAction(CodeAction {
+                            title: format!("Change to canonical casing: '{}'", target_casing),
                             kind: Some(CodeActionKind::QUICKFIX),
                             edit: Some(WorkspaceEdit {
                                 changes: Some(changes),
@@ -798,6 +821,96 @@ impl Backend {
                             ..Default::default()
                         }));
                     }
+                }
+            }
+        }
+
+        // Add "Fix all unit type casing" actions if any HOM3007 diagnostic is present.
+        // Generates two kinds of bulk fixes:
+        //   1. Per canonical type: "Fix all 'infantry' → 'infantry' in this file"
+        //   2. All types: "Fix all unit type casing in this file"
+        if has_unit_type_casing_diagnostic {
+            // Collect unique canonical types from diagnostics
+            let mut seen_types: std::collections::HashSet<String> =
+                std::collections::HashSet::new();
+            for diagnostic in &params.context.diagnostics {
+                if let Some(NumberOrString::String(code)) = &diagnostic.code {
+                    if code == "HOM3007" {
+                        if let Some(canonical) = diagnostic.data.as_ref().and_then(|v| v.as_str()) {
+                            seen_types.insert(canonical.to_string());
+                        }
+                    }
+                }
+            }
+
+            let uri_str = params.text_document.uri.as_str();
+            if let Some((script, _)) = self.ensure_ast_cached(uri_str) {
+                // ── Per-type bulk actions ─────────────────────────────
+                for canonical in &seen_types {
+                    let mut fixes = Vec::new();
+                    self.collect_unit_type_casing_fixes(
+                        &script.entries,
+                        &mut fixes,
+                        &script.source,
+                        Some(canonical.as_str()),
+                    );
+
+                    if !fixes.is_empty() {
+                        let mut changes = std::collections::HashMap::new();
+                        let edits: Vec<TextEdit> = fixes
+                            .into_iter()
+                            .map(|(range, text)| TextEdit {
+                                range: ast_range_to_lsp(&range),
+                                new_text: text,
+                            })
+                            .collect();
+
+                        changes.insert(params.text_document.uri.clone(), edits);
+
+                        actions.push(CodeActionOrCommand::CodeAction(CodeAction {
+                            title: format!("Fix all '{}' in this file", canonical),
+                            kind: Some(CodeActionKind::QUICKFIX),
+                            edit: Some(WorkspaceEdit {
+                                changes: Some(changes),
+                                ..Default::default()
+                            }),
+                            is_preferred: Some(false),
+                            ..Default::default()
+                        }));
+                    }
+                }
+
+                // ── All-types bulk action ────────────────────────────
+                let mut all_fixes = Vec::new();
+                self.collect_unit_type_casing_fixes(
+                    &script.entries,
+                    &mut all_fixes,
+                    &script.source,
+                    None,
+                );
+
+                if !all_fixes.is_empty() {
+                    let mut changes = std::collections::HashMap::new();
+                    let edits: Vec<TextEdit> = all_fixes
+                        .into_iter()
+                        .map(|(range, text)| TextEdit {
+                            range: ast_range_to_lsp(&range),
+                            new_text: text,
+                        })
+                        .collect();
+
+                    changes.insert(params.text_document.uri.clone(), edits);
+
+                    actions.push(CodeActionOrCommand::CodeAction(CodeAction {
+                        title: "Fix all unit type casing in this file".to_string(),
+                        kind: Some(CodeActionKind::QUICKFIX),
+                        edit: Some(WorkspaceEdit {
+                            changes: Some(changes),
+                            ..Default::default()
+                        }),
+                        is_preferred: Some(false),
+                        ..Default::default()
+                    }));
                 }
             }
         }

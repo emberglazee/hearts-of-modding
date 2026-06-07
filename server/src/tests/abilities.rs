@@ -63,6 +63,7 @@ fn run_ability_visitor(input: &str, uri: &str) -> Vec<Diagnostic> {
         game_path: None,
         styling_enabled: false,
         workspace_roots: &[],
+        unit_types: &DashMap::new(),
     };
 
     let mut visitors: Vec<Box<dyn AstVisitor>> = vec![AbilityRule::visitor()];
@@ -76,6 +77,7 @@ fn run_ability_visitor(input: &str, uri: &str) -> Vec<Diagnostic> {
         &ctx,
         &mut diags,
         Scope::Character,
+        false,
     );
 
     diags

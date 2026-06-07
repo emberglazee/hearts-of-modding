@@ -23,6 +23,7 @@ enum TokenType {
     Class = 12,
     Property = 13,
     EscapeCharacter = 14,
+    Parameter = 15,
 }
 
 /// Fields whose values are always localization keys, not entity references.
@@ -102,6 +103,11 @@ fn entity_kind_to_token_type(kind: EntityKind) -> u32 {
 
         // Localization entries → String
         EntityKind::Localization => TokenType::String as u32,
+
+        // Unit type names (infantry, engineer, etc.) → Type (teal/green)
+        EntityKind::OobDivisionTemplate | EntityKind::OobFleet | EntityKind::UnitType => {
+            TokenType::Type as u32
+        }
 
         // Fallback for any unexpected kind
         _ => TokenType::Type as u32,
@@ -605,6 +611,15 @@ fn push_entry_tokens(
                         start: ass.key_range.start_col,
                         length: ass.key_range.end_col - ass.key_range.start_col,
                         token_type: TokenType::Keyword as u32,
+                    });
+                } else if matches!(key_text, "x" | "y") {
+                    // Coordinate/position parameters used in division templates,
+                    // .gui, .gfx, and other placement contexts
+                    tokens.push(RawToken {
+                        line: ass.key_range.start_line,
+                        start: ass.key_range.start_col,
+                        length: ass.key_range.end_col - ass.key_range.start_col,
+                        token_type: TokenType::Parameter as u32,
                     });
                 }
             }

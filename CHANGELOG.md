@@ -6,7 +6,15 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### ✨ Added
 
-- **Order of Battle (`history/units/*.txt`) scanner.**
+- **Order of Battle (`history/units/*.txt`) scanner.** Self-validates division templates.
+
+- **Unit (`common/units/*.txt`) scanner.** Units are validated within OOBs.
+
+- `x` and `y` (in `.gui`s, OOBs, etc) are now semantically highlighted in a distinctive color.
+
+### 🩹 Fixed
+
+- **Fixed an air wings OOB edge-case where HoM was emitting a `duplicate_key` warning for multiple `name` keys being under the same state scope under respective equipment types (planes).** This is *required* to name air wings when there are more than one of them in the same state/airfield.
 
 ## [v0.17.0] - 2026-06-07
 

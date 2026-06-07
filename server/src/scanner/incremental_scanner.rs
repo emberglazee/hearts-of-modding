@@ -29,6 +29,7 @@ use crate::scanner::state_category_scanner;
 use crate::scanner::strategic_region_scanner;
 use crate::scanner::terrain_scanner;
 use crate::scanner::trait_scanner;
+use crate::scanner::unit_scanner;
 use crate::scanner::variable_scanner;
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
@@ -230,6 +231,7 @@ impl_has_path!(country_scanner::CountryTag);
 impl_has_path!(bop_scanner::BalanceOfPower);
 impl_has_path!(oob_scanner::OobDivisionTemplate);
 impl_has_path!(oob_scanner::OobFleet);
+impl_has_path!(unit_scanner::UnitType);
 
 /// Determines which scanner categories apply to a given file path.
 fn classify_file(path: &str) -> Vec<FileCategory> {
@@ -320,6 +322,11 @@ fn classify_file(path: &str) -> Vec<FileCategory> {
             cats.push(FileCategory::BalanceOfPower);
         }
 
+        // Unit type definitions (common/units/*.txt)
+        if lower.contains("/common/units/") {
+            cats.push(FileCategory::Units);
+        }
+
         // OOB (order of battle)
         if lower.contains("/history/units/") {
             cats.push(FileCategory::Oob);
@@ -388,6 +395,7 @@ enum FileCategory {
     Terrains,
     BalanceOfPower,
     Oob,
+    Units,
 }
 
 /// Update `ScannerData` with fresh entities extracted from a single saved file.
@@ -466,6 +474,7 @@ fn update_from_ast(
         FileCategory::Terrains => update_terrains(scanner_data, path_str, script),
         FileCategory::BalanceOfPower => update_balance_of_powers(scanner_data, path_str, script),
         FileCategory::Oob => update_oobs(scanner_data, path_str, script),
+        FileCategory::Units => update_units(scanner_data, path_str, script),
         FileCategory::Localization | FileCategory::Defines | FileCategory::Countries => {
             // Handled directly in update_scanner_data_for_file, unreachable here
         }
@@ -1134,6 +1143,17 @@ fn update_oobs(scanner_data: &ScannerData, path_str: &str, script: &ast::Script)
     );
 }
 
+fn update_units(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
+    let mut new_entries = std::collections::HashMap::new();
+    unit_scanner::extract_unit_types(&script.entries, &script.source, path_str, &mut new_entries);
+    retain_path!(
+        scanner_data.unit_types,
+        scanner_data.unit_types_file_index,
+        path_str,
+        new_entries
+    );
+}
+
 /// Remove all scanner data entries originating from a given file path.
 /// Used by `did_change_watched_files` when a file is deleted externally
 /// (Git branch switch, file explorer rename, etc.).
@@ -1377,6 +1397,13 @@ pub fn remove_path_from_scanner_data(scanner_data: &ScannerData, path_str: &str)
                 remove_path!(
                     scanner_data.oob_fleets,
                     scanner_data.oob_fleets_file_index,
+                    path_str
+                );
+            }
+            FileCategory::Units => {
+                remove_path!(
+                    scanner_data.unit_types,
+                    scanner_data.unit_types_file_index,
                     path_str
                 );
             }

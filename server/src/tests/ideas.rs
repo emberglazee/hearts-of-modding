@@ -41,6 +41,7 @@ mod tests {
             game_path: None,
             styling_enabled: false,
             workspace_roots: &[] as &[std::path::PathBuf],
+            unit_types: leak_map(),
         }
     }
 
@@ -65,6 +66,7 @@ mod tests {
             &ctx,
             &mut diags,
             Scope::Global,
+            false,
         );
 
         diags

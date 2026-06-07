@@ -36,6 +36,7 @@ use crate::scanner::state_scanner;
 use crate::scanner::strategic_region_scanner;
 use crate::scanner::terrain_scanner;
 use crate::scanner::trait_scanner;
+use crate::scanner::unit_scanner;
 use crate::scanner::variable_scanner;
 use arc_swap::ArcSwap;
 use dashmap::{DashMap, DashSet};
@@ -75,6 +76,7 @@ pub(crate) struct ScannerData {
     // ── DashMap registries (VFS-layered: vanilla → mod) ──
     // These use LayeredValue to preserve lower-priority layers when
     // a higher-priority file is deleted.
+    pub unit_types: DashMap<InternedStr, LayeredValue<unit_scanner::UnitType>>,
     pub localization: DashMap<InternedStr, LayeredValue<loc_parser::LocEntry>>,
     pub scripted_triggers: DashMap<InternedStr, LayeredValue<scripted_scanner::ScriptedEntity>>,
     pub scripted_effects: DashMap<InternedStr, LayeredValue<scripted_scanner::ScriptedEntity>>,
@@ -126,6 +128,7 @@ pub(crate) struct ScannerData {
     // Populated once after initial scan, used by retain_path! in incremental_scanner
     // to avoid O(N) DashMap::retain on every keystroke.
     pub localization_file_index: DashMap<InternedStr, Vec<InternedStr>>,
+    pub unit_types_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub scripted_triggers_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub scripted_effects_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub ideologies_file_index: DashMap<InternedStr, Vec<InternedStr>>,
@@ -179,6 +182,7 @@ impl ScannerData {
     pub fn new() -> Self {
         ScannerData {
             interner: Interner::new(),
+            unit_types: DashMap::new(),
             localization: DashMap::new(),
             scripted_triggers: DashMap::new(),
             scripted_effects: DashMap::new(),
@@ -223,6 +227,7 @@ impl ScannerData {
             oob_division_templates: DashMap::new(),
             oob_fleets: DashMap::new(),
             localization_file_index: DashMap::new(),
+            unit_types_file_index: DashMap::new(),
             scripted_triggers_file_index: DashMap::new(),
             scripted_effects_file_index: DashMap::new(),
             ideologies_file_index: DashMap::new(),
@@ -306,6 +311,7 @@ impl ScannerData {
         }
 
         rebuild_index!(self.localization, self.localization_file_index);
+        rebuild_index!(self.unit_types, self.unit_types_file_index);
         rebuild_index!(self.scripted_triggers, self.scripted_triggers_file_index);
         rebuild_index!(self.scripted_effects, self.scripted_effects_file_index);
         rebuild_index!(self.ideologies, self.ideologies_file_index);

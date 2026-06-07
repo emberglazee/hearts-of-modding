@@ -56,6 +56,7 @@ pub enum EntityKind {
     StateCategory,
     OobDivisionTemplate,
     OobFleet,
+    UnitType,
 }
 
 impl EntityKind {
@@ -107,6 +108,7 @@ impl EntityKind {
             EntityKind::StateCategory => SymbolKind::ENUM,
             EntityKind::OobDivisionTemplate => SymbolKind::STRUCT,
             EntityKind::OobFleet => SymbolKind::OBJECT,
+            EntityKind::UnitType => SymbolKind::CLASS,
         }
     }
 }
@@ -236,6 +238,7 @@ impl<'a> EntityLookup<'a> {
         try_lookup!(AiStrategyPlan, ai_strategy_plans);
         try_lookup!(OobDivisionTemplate, oob_division_templates);
         try_lookup!(OobFleet, oob_fleets);
+        try_lookup!(UnitType, unit_types);
 
         {
             let map = &self.data.modifier_mappings;
@@ -365,6 +368,7 @@ impl<'a> EntityLookup<'a> {
         collect_names!(ColorCode, color_codes);
         collect_names!(OobDivisionTemplate, oob_division_templates);
         collect_names!(OobFleet, oob_fleets);
+        collect_names!(UnitType, unit_types);
 
         names
     }

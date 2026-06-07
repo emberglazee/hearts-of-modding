@@ -112,9 +112,18 @@ pub fn walk_script(
     ctx: &ValidationContext,
     diags: &mut Vec<Diagnostic>,
     initial_scope: Scope,
+    in_air_wings: bool,
 ) {
     let mut scope_stack = ScopeStack::new(initial_scope);
-    walk_entries(entries, visitors, rules, ctx, diags, &mut scope_stack);
+    walk_entries(
+        entries,
+        visitors,
+        rules,
+        ctx,
+        diags,
+        &mut scope_stack,
+        in_air_wings,
+    );
 
     // Post-walk hook for cross-reference checks
     for visitor in visitors.iter_mut() {
@@ -129,6 +138,7 @@ fn walk_entries(
     ctx: &ValidationContext,
     diags: &mut Vec<Diagnostic>,
     scope_stack: &mut ScopeStack,
+    in_air_wings: bool,
 ) {
     for entry in entries {
         match entry {
@@ -180,13 +190,24 @@ fn walk_entries(
                 // 3) Check for duplicate keys, then recurse into children
                 match &ass.value.value {
                     ast::Value::Block(inner) | ast::Value::TaggedBlock(_, inner, _) => {
+                        let key = ass.key_text(ctx.source);
+                        let new_in_air_wings = in_air_wings || key == "air_wings";
                         crate::backend::check_duplicate_keys(
                             inner,
                             diags,
                             ctx.modifier_mappings,
                             ctx.source,
+                            new_in_air_wings,
                         );
-                        walk_entries(inner, visitors, rules, ctx, diags, scope_stack);
+                        walk_entries(
+                            inner,
+                            visitors,
+                            rules,
+                            ctx,
+                            diags,
+                            scope_stack,
+                            new_in_air_wings,
+                        );
                     }
                     _ => {}
                 }
@@ -207,8 +228,17 @@ fn walk_entries(
                         diags,
                         ctx.modifier_mappings,
                         ctx.source,
+                        in_air_wings,
                     );
-                    walk_entries(inner, visitors, rules, ctx, diags, scope_stack);
+                    walk_entries(
+                        inner,
+                        visitors,
+                        rules,
+                        ctx,
+                        diags,
+                        scope_stack,
+                        in_air_wings,
+                    );
                 }
                 _ => {}
             },

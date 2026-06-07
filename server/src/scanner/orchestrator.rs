@@ -36,6 +36,7 @@ use crate::scanner::state_scanner;
 use crate::scanner::strategic_region_scanner;
 use crate::scanner::terrain_scanner;
 use crate::scanner::trait_scanner;
+use crate::scanner::unit_scanner;
 use crate::scanner::variable_scanner;
 use std::collections::{HashMap, HashSet};
 use tower_lsp_server::ls_types::MessageType;
@@ -1090,6 +1091,34 @@ impl Backend {
                     "Total: Loaded {} OOB division templates and {} fleets",
                     self.scanner_data.oob_division_templates.len(),
                     self.scanner_data.oob_fleets.len()
+                ),
+            )
+            .await;
+    }
+
+    pub(crate) async fn scan_units(&self, overlay: &crate::scanner::file_overlay::FileOverlay) {
+        let filter = self.get_sync_filter();
+        let files: Vec<std::path::PathBuf> = overlay
+            .winning_files_in("common/units")
+            .into_iter()
+            .filter(|p| p.extension().is_some_and(|ext| ext == "txt"))
+            .collect();
+        let result =
+            tokio::task::spawn_blocking(move || unit_scanner::scan_unit_files(&files, &filter))
+                .await
+                .unwrap();
+        self.scanner_data.unit_types.clear();
+        for (k, v) in result {
+            self.scanner_data
+                .unit_types
+                .insert(k.into(), crate::data::layered_value::LayeredValue::new(v));
+        }
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!(
+                    "Total: Loaded {} unit types from common/units",
+                    self.scanner_data.unit_types.len()
                 ),
             )
             .await;

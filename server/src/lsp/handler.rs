@@ -126,6 +126,7 @@ impl LanguageServer for Backend {
                                     SemanticTokenType::CLASS,
                                     SemanticTokenType::PROPERTY,
                                     SemanticTokenType::from("escapeCharacter"),
+                                    SemanticTokenType::from("parameter"),
                                 ],
                                 token_modifiers: vec![],
                             },
@@ -388,6 +389,7 @@ impl LanguageServer for Backend {
             self.scan_countries(&overlay),
             self.scan_gfx(&overlay),
             self.scan_oobs(&overlay),
+            self.scan_units(&overlay),
         );
 
         // Rebuild reverse file-path indices so incremental updates are O(K) not O(N)

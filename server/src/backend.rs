@@ -11,6 +11,7 @@ use tower_lsp_server::ls_types::*;
 use crate::config::Config;
 use crate::data::entity_lookup;
 use crate::data::interner::InternedStr;
+use crate::data::layered_value::LayeredValue;
 use crate::data::scanner_data::ScannerData;
 use crate::lsp::semantic_tokens;
 use crate::parser::ast;
@@ -1705,6 +1706,7 @@ impl Backend {
             game_path,
             styling_enabled,
             workspace_roots: &workspace_roots,
+            unit_types: &self.scanner_data.unit_types,
         };
 
         // ── AST visitors (single traversal, replaces per-rule recursion) ──
@@ -1715,6 +1717,7 @@ impl Backend {
             rules::abilities::AbilityRule::visitor(),
             rules::ai_areas::AiAreaRule::visitor(uri),
             rules::provinces::ProvinceRule::vp_visitor(),
+            rules::oob_regiments::OobRegimentVisitor::visitor(),
         ];
 
         // Rules that still use check_assignment / check_block
@@ -1755,6 +1758,7 @@ impl Backend {
             &ctx,
             diagnostics,
             initial_scope,
+            false,
         );
 
         // Texture file path validation for .gfx and .gui files
@@ -2112,6 +2116,7 @@ impl Backend {
         keywords.insert("division_template".to_string());
         keywords.insert("units".to_string());
         keywords.insert("air_wings".to_string());
+        keywords.insert("amount".to_string());
         keywords.insert("instant_effect".to_string());
         keywords.insert("regiments".to_string());
         keywords.insert("support".to_string());
@@ -2143,6 +2148,9 @@ impl Backend {
         keywords.insert("version_name".to_string());
         keywords.insert("creator".to_string());
 
+        // Add unit type names to entity context for distinct highlighting
+        // (removed from keywords above — entity_names takes lower priority but
+        //  maps to a different token type via entity_kind_to_token_type)
         let lookup = entity_lookup::EntityLookup::new(&self.scanner_data);
         let all_names = lookup.entity_names();
 
@@ -2158,6 +2166,7 @@ pub(crate) fn check_duplicate_keys<'a>(
     diagnostics: &mut Vec<Diagnostic>,
     mod_maps: &DashMap<InternedStr, String>,
     source: &'a str,
+    in_air_wings: bool,
 ) {
     // Currently only checks keys that are in `mod_maps` (modifier names) plus a small
     // hardcoded set of common structural keys (`name`, `id`, `icon`). All other keys
@@ -2178,13 +2187,16 @@ pub(crate) fn check_duplicate_keys<'a>(
             let is_modifier = mod_maps.contains_key(key) || COMMON_KEYS.contains(&key);
 
             // Exceptions: Some effects/triggers are specifically designed to be used multiple times
+            // In air_wings province blocks, 'name' keys are used to label each preceding
+            // equipment type block, so duplicates are valid.
             let is_exception = key == "modifier"
                 || key == "option"
                 || key == "limit"
                 || key == "if"
                 || key == "else"
                 || key == "else_if"
-                || key == "variable_name";
+                || key == "variable_name"
+                || (in_air_wings && key == "name");
 
             if is_modifier && !is_exception {
                 if let Some(prev_range) = seen_keys.get(key) {
@@ -2246,6 +2258,125 @@ pub(crate) fn check_province_terrain_csv(
     } else {
         None
     }
+}
+
+/// Collect all unit type casing mismatches in the AST for bulk-fix code actions.
+///
+/// Walks the AST looking for `regiments = { ... }` and `support = { ... }` blocks,
+/// then checks each child entry's key against the known `unit_types` DashMap.
+/// When a key exists case-insensitively but with different casing, the fix
+/// (key range + canonical text) is collected.
+///
+/// When `specific_type` is `Some(key)`, only fixes for that specific canonical
+/// unit type are collected (for per-unit-type bulk fixes). When `None`, all
+/// mismatches are collected.
+impl Backend {
+    pub(crate) fn collect_unit_type_casing_fixes(
+        &self,
+        entries: &[ast::Entry],
+        fixes: &mut Vec<(ast::Range, String)>,
+        source: &str,
+        specific_type: Option<&str>,
+    ) {
+        for entry in entries {
+            match entry {
+                ast::Entry::Assignment(ass) => {
+                    let key_lower = ass.key_text(source).to_ascii_lowercase();
+
+                    // Track when we're inside regiments/support blocks
+                    let in_slot = matches!(key_lower.as_str(), "regiments" | "support")
+                        && matches!(
+                            &ass.value.value,
+                            ast::Value::Block(_) | ast::Value::TaggedBlock(..)
+                        );
+
+                    // When inside a slot block, check each child with a Block
+                    // value as a unit type reference
+                    if in_slot {
+                        if let ast::Value::Block(inner) = &ass.value.value {
+                            for child in inner {
+                                if let ast::Entry::Assignment(child_ass) = child {
+                                    if matches!(
+                                        &child_ass.value.value,
+                                        ast::Value::Block(_) | ast::Value::TaggedBlock(..)
+                                    ) {
+                                        let child_key = child_ass.key_text(source);
+
+                                        // Tier 1: exact match → skip
+                                        if self.scanner_data.unit_types.contains_key(child_key) {
+                                            continue;
+                                        }
+
+                                        // Tier 2: case-insensitive match → fix
+                                        if let Some(canonical) = find_canonical_unit_type(
+                                            &self.scanner_data.unit_types,
+                                            child_key,
+                                        ) {
+                                            let matches_specific = specific_type
+                                                .map(|s| s == canonical.as_str())
+                                                .unwrap_or(true);
+                                            if matches_specific {
+                                                fixes
+                                                    .push((child_ass.key_range.clone(), canonical));
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Recurse into child blocks
+                    match &ass.value.value {
+                        ast::Value::Block(inner) => {
+                            self.collect_unit_type_casing_fixes(
+                                inner,
+                                fixes,
+                                source,
+                                specific_type,
+                            );
+                        }
+                        ast::Value::TaggedBlock(_, inner, _) => {
+                            self.collect_unit_type_casing_fixes(
+                                inner,
+                                fixes,
+                                source,
+                                specific_type,
+                            );
+                        }
+                        _ => {}
+                    }
+                }
+                ast::Entry::Value(val) => match &val.value {
+                    ast::Value::Block(inner) => {
+                        self.collect_unit_type_casing_fixes(inner, fixes, source, specific_type);
+                    }
+                    ast::Value::TaggedBlock(_, inner, _) => {
+                        self.collect_unit_type_casing_fixes(inner, fixes, source, specific_type);
+                    }
+                    _ => {}
+                },
+                _ => {}
+            }
+        }
+    }
+}
+
+/// Find the canonical (as-defined) casing for a unit type key.
+/// Returns `None` if no unit type matches case-insensitively.
+/// Duplicated from rules/oob_regiments.rs because this file
+/// is a separate compilation unit and can't easily share the helper.
+fn find_canonical_unit_type(
+    unit_types: &DashMap<InternedStr, LayeredValue<crate::scanner::unit_scanner::UnitType>>,
+    key: &str,
+) -> Option<String> {
+    let key_lower = key.to_ascii_lowercase();
+    for entry in unit_types.iter() {
+        if entry.key().to_ascii_lowercase() == key_lower {
+            return Some(entry.key().to_string());
+        }
+    }
+    None
 }
 
 #[cfg(test)]
