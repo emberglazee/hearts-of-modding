@@ -668,6 +668,16 @@ fn push_value_tokens(
                     length: val.range.end_col - val.range.start_col,
                     token_type: TokenType::Keyword as u32,
                 });
+            } else if parent_key == Some("date") {
+                // Date values like "1936.1.1.12" or "1937.1.1" are stored as
+                // strings (f64 can't handle multiple dots), but should be
+                // highlighted as numbers like any other date/time literal.
+                tokens.push(RawToken {
+                    line: val.range.start_line,
+                    start: val.range.start_col,
+                    length: val.range.end_col - val.range.start_col,
+                    token_type: TokenType::Number as u32,
+                });
             } else if !is_localization_value {
                 if let Some(kind) = ctx.entity_names.get(s) {
                     tokens.push(RawToken {

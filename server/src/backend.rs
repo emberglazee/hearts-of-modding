@@ -2112,6 +2112,27 @@ impl Backend {
         keywords.insert("set_from".to_string());
         keywords.insert("set_from_from".to_string());
 
+        // Bookmark definition keywords (common/bookmarks/*.txt)
+        keywords.insert("bookmarks".to_string());
+        keywords.insert("bookmark".to_string());
+        keywords.insert("default_country".to_string());
+        keywords.insert("effect".to_string());
+        keywords.insert("minor".to_string());
+        keywords.insert("ideas".to_string());
+        keywords.insert("focuses".to_string());
+
+        // Game rule keywords (common/game_rules/*.txt)
+        keywords.insert("group".to_string());
+        keywords.insert("required_dlc".to_string());
+        keywords.insert("exclude_dlc".to_string());
+        keywords.insert("allow_achievements".to_string());
+
+        // Difficulty setting keywords (common/difficulty_settings/*.txt)
+        keywords.insert("difficulty_settings".to_string());
+        keywords.insert("difficulty_setting".to_string());
+        keywords.insert("countries".to_string());
+        keywords.insert("multiplier".to_string());
+
         // OOB (Order of Battle) keywords (history/units/*.txt)
         keywords.insert("division_template".to_string());
         keywords.insert("units".to_string());
