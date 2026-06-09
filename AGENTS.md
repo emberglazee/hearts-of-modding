@@ -83,7 +83,8 @@ server/src/
 │   ├── scripted_loc_scanner, scripted_scanner, sound_scanner
 │   ├── sprite_scanner, state_category_scanner, state_scanner
 │   ├── strategic_region_scanner, terrain_scanner, trait_scanner
-│   └── variable_scanner
+│   ├── unit_scanner, variable_scanner
+│   └── oob_scanner
 ├── scope/                 # Scope inference
 │   ├── mod.rs
 │   ├── scope.rs           # Scope stack engine / resolve_key_scope
@@ -94,7 +95,7 @@ server/src/
 │   ├── abilities.rs, achievements.rs, ai_areas.rs, buildings.rs
 │   ├── characters.rs, country_metadata.rs, country_tags.rs
 │   ├── gfx_textures.rs, ideas.rs, ideologies.rs
-│   ├── localization.rs, portraits.rs, provinces.rs
+│   ├── localization.rs, oob_regiments.rs, portraits.rs, provinces.rs
 │   ├── sounds.rs, sprites.rs, state_definitions.rs, terrains.rs, traits.rs
 ├── validation/            # Formatting & semantic validation
 │   ├── mod.rs
@@ -113,10 +114,11 @@ server/src/
 │   ├── modifier_display.rs # Modifier display formatting
 │   ├── mod_registry.rs    # Paradox mod registry path detection + submod resolution
 │   └── symbol_search.rs   # Symbol search utilities
-└── tests/                 # ~197 tests across 11 modules
+└── tests/                 # 219 tests across 11 modules
     ├── mod.rs
     ├── abilities.rs, formatting.rs, ideas.rs
     ├── loc_columns.rs, loc_dups.rs, loc_empty.rs, loc_version.rs
+    ├── oob_regiments.rs
     ├── parser_skip.rs, scripted_loc.rs, utf16_conversion.rs
 ```
 
@@ -133,7 +135,7 @@ server/src/
 
 ## Extension
 
-- **Version:** `0.16.1` (dev: `0.17.0` in CHANGELOG) — `client/package.json` is the single source of truth; `server/Cargo.toml` is kept in sync.
+- **Version:** `0.18.0` — `client/package.json` is the single source of truth; `server/Cargo.toml` is kept in sync.
 - **Edition:** Rust 2024 (server/Cargo.toml).
 - **Allocator:** `tikv-jemallocator` (see fork at `emberglazee/jemallocator` fix-windows-msvc-spaces for Windows CI compat).
 - **Activation:** `workspaceContains:./descriptor.mod` — root-only glob. Extension activates on detection; LSP then auto-starts unless `hoi4.lsp.enabled` is false (user gets a prompt on first open if disabled). Toggle with `Hearts of Modding: Toggle LSP` command.
@@ -153,7 +155,7 @@ server/src/
 - **Validation system:** Uses a `ValidationRule` trait with `check_assignment` / `check_block` hooks, plus a newer `AstVisitor` trait with `enter_assignment` / `exit_assignment` / `after_walk` hooks. Both share one centralized AST traversal via `rules::visitor::walk_script()`. Rules are registered in `Backend::check_semantic` and receive a `ValidationContext` with all scanner data refs. Diagnostic codes prefixed HOM (HOM001–HOM5005) defined in `validation/advanced_validation.rs`.
 - **AST caching:** `Backend` keeps a `document_asts: DashMap<String, (Arc<ast::Script>, Vec<(String, ast::Range)>)>` — parsed ASTs are cached per URI. Each document also gets a `CancellationToken` in `document_cancellation_tokens` so that stale AST parses (from rapid editing) are cancelled. For unopened workspace files, ASTs are parsed on demand and not cached (commit `e1a7e65`). `did_change` is debounced to avoid parse storms.
 - **ByteSpan AST nodes:** AST nodes (`ast.rs`) store `start..end` byte offsets instead of owned strings, reducing memory and parsing time. Actual text is resolved against the source on demand.
-- **Test suite:** ~197 `#[test]` functions across 11 modules (abilities, formatting, ideas, loc_columns, loc_dups, loc_empty, loc_version, parser_skip, scripted_loc, utf16_conversion). Run `cargo test` from `server/`.
+- **Test suite:** 219 `#[test]` functions across 11 modules (abilities, formatting, ideas, loc_columns, loc_dups, loc_empty, loc_version, oob_regiments, parser_skip, scripted_loc, utf16_conversion). Run `cargo test` from `server/`.
 - **did_change_watched_files:** Dynamic file watcher registration (`**/*.{txt,yml,asset,gfx,gui,csv,lua,mod}`). External file ops (Git branch switch, file explorer rename, etc.) trigger incremental rescans or `remove_path_from_scanner_data()` — no full re-scan needed.
 - **Locale decorators (VS Code):** `vscode_highlighting.rs` (client-side) provides editor decorations for localization `§X` color codes and escaped `\n`/`\"`, showing rendered colour and escaped characters directly in the editor.
 - **Bracket-matching error recovery:** The parser recovers from missing brackets rather than cascading parse failures through the rest of the file.
