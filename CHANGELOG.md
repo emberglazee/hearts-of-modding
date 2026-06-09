@@ -2,6 +2,10 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
+## [v0.18.1] - 2026-06-10
+
+- Address minor `cargo clippy --all-targets` warnings and update client dev dependencies.
+
 ## [v0.18.0] - 2026-06-07
 
 ### ✨ Added
