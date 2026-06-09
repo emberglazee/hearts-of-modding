@@ -127,7 +127,7 @@ mod tests {
     use crate::parser::parser;
     use dashmap::DashMap;
     use std::fs;
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
 
     /// Parse HOI4 script content and run GfxTextureRule validation with
     /// the given workspace root, game path, and file path.
@@ -135,7 +135,7 @@ mod tests {
     /// + styling_enabled + workspace_roots from the context.
     fn validate_texture_file(
         gfx_content: &str,
-        gfx_file_path: &PathBuf,
+        gfx_file_path: &Path,
         workspace_roots: &[PathBuf],
         game_path: Option<&str>,
         styling_enabled: bool,
@@ -200,7 +200,8 @@ mod tests {
             }
         }"#;
 
-        let diags = validate_texture_file(content, &gfx_file, &[tmp.clone()], None, false);
+        let diags =
+            validate_texture_file(content, &gfx_file, std::slice::from_ref(&tmp), None, false);
         assert!(
             diags.is_empty(),
             "Texture in workspace root should be found, got: {:?}",
@@ -224,7 +225,8 @@ mod tests {
             }
         }"#;
 
-        let diags = validate_texture_file(content, &gfx_file, &[tmp.clone()], None, false);
+        let diags =
+            validate_texture_file(content, &gfx_file, std::slice::from_ref(&tmp), None, false);
         assert_eq!(
             diags.len(),
             1,
@@ -262,7 +264,8 @@ mod tests {
             }
         }"#;
 
-        let diags = validate_texture_file(content, &gfx_file, &[tmp.clone()], None, false);
+        let diags =
+            validate_texture_file(content, &gfx_file, std::slice::from_ref(&tmp), None, false);
         assert!(
             diags.is_empty(),
             "Texture found via .gfx file directory fallback should report no diagnostic"
@@ -318,7 +321,8 @@ mod tests {
             }
         }"#;
 
-        let diags = validate_texture_file(content, &gfx_file, &[tmp.clone()], None, false);
+        let diags =
+            validate_texture_file(content, &gfx_file, std::slice::from_ref(&tmp), None, false);
         assert!(
             diags.is_empty(),
             "Texture found via workspace root should resolve regardless of .gfx file depth"
@@ -347,7 +351,8 @@ mod tests {
             }
         }"#;
 
-        let diags = validate_texture_file(content, &gfx_file, &[tmp.clone()], None, true);
+        let diags =
+            validate_texture_file(content, &gfx_file, std::slice::from_ref(&tmp), None, true);
         // Should have a styling diagnostic (backslash fix suggestion) AND
         // no "not found" diagnostic — backslashes are normalized before lookup
         let styling_diags: Vec<_> = diags.iter().filter(|d| {
