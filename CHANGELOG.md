@@ -2,6 +2,14 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
+## [v0.19.1] - 2026-06-10
+
+### 🩹 Fixed
+
+- **Fixed handling of Windows paths in the `FileOverlay` introduced in v0.17.0 as part of the VFS refactor.** Addresses [issue #5](https://github.com/emberglazee/hearts-of-modding/issues/5).
+
+  > the joys of developing on and testing only for linux.
+
 ## [v0.19.0] - 2026-06-10
 
 ### ✨ Added

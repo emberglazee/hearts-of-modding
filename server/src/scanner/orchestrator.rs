@@ -432,11 +432,12 @@ impl Backend {
                     .winning_files_in(dlc_prefix)
                     .into_iter()
                     .filter(|p| {
-                        let s = p.to_string_lossy();
+                        let s = p.to_string_lossy().replace('\\', "/");
                         s.contains("/sound/")
                     }),
             );
         }
+
         // Only .asset files contain sound definitions
         files.retain(|p| p.extension().is_some_and(|ext| ext == "asset"));
         let result =
@@ -613,7 +614,7 @@ impl Backend {
             })
             .filter(|p| {
                 // Skip non-script directories (mirrors old scan_roots logic)
-                let s = p.to_string_lossy();
+                let s = p.to_string_lossy().replace('\\', "/");
                 !s.contains("/map/")
                     && !s.contains("/interface/")
                     && !s.contains("/gfx/")

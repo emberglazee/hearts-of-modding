@@ -69,6 +69,11 @@ jobs:
           cd server
           cargo build --release --target ${{ matrix.target }}
 
+      - name: Run Tests
+        run: |
+          cd server
+          cargo test
+
       - name: Upload Binary
         uses: actions/upload-artifact@v7
         with:

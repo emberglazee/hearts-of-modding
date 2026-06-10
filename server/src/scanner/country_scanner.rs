@@ -188,7 +188,7 @@ where
 
     crate::utils::fs_util::parse_winning_files(files, filter, |path, content| {
         let path_str = path.to_string_lossy();
-        let path_lower = path_str.to_ascii_lowercase();
+        let path_lower = path_str.to_ascii_lowercase().replace('\\', "/");
 
         if path_lower.contains("common/country_tags") {
             // Source 1: TAG = "countries/TAG - Name.txt" format

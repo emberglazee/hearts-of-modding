@@ -203,7 +203,11 @@ impl FileOverlay {
                             }
                             // Compute the relative path from the root
                             if let Ok(rel_path) = path.strip_prefix(root) {
-                                let rel_str = rel_path.to_string_lossy().to_string();
+                                // Normalize to forward slashes for cross-platform consistency:
+                                // `winning_files_in` and all scanner path checks use `/` as
+                                // the separator. On Windows, `strip_prefix` yields paths with
+                                // backslashes (`\`) which would never match those checks.
+                                let rel_str = rel_path.to_string_lossy().replace('\\', "/");
                                 // Later (higher priority) roots overwrite lower ones
                                 entries.insert(rel_str, path);
                             }
@@ -467,6 +471,59 @@ mod tests {
         // (they're resolved by key-level merge, not file-level overlay)
         assert!(!entries.contains_key("localisation/english.yml"));
         assert!(!entries.contains_key("common/defines/00_defines.txt"));
+
+        fs::remove_dir_all(&root).ok();
+    }
+
+    /// Verify that the overlay normalises relative paths to forward slashes.
+    /// On Windows, `Path::strip_prefix` yields `\`-separated paths. The
+    /// overlay must convert those to `/` so that `winning_files_in` prefix
+    /// checks (which use `/`) actually match the stored keys.
+    #[cfg(windows)]
+    #[test]
+    fn test_windows_path_normalization() {
+        let root = temp_dir();
+        let vanilla = root.join("vanilla");
+        let mod_root = root.join("mod");
+
+        // Path::join uses `\` on Windows — this is the exact scenario that
+        // was broken: file paths stored with backslashes never matched the
+        // forward-slash prefix checks in `winning_files_in`.
+        create_file(&vanilla.join("common/ideas/usa.txt"));
+        create_file(&vanilla.join("common/national_focus/ger.txt"));
+        create_file(&mod_root.join("common/ideas/usa.txt"));
+
+        let roots = vec![vanilla.clone(), mod_root.clone()];
+        let overlay = FileOverlay::build(&roots, &["txt"], pass_all, &[]);
+
+        let entries = overlay.all_entries();
+
+        // Every entry key MUST use forward slashes — no backslashes anywhere
+        assert!(
+            entries.keys().all(|k| !k.contains('\\')),
+            "All overlay entry keys must use forward slashes, got: {:?}",
+            entries.keys().collect::<Vec<_>>()
+        );
+
+        // `winning_files_in` must find the mod's usa.txt (higher priority wins)
+        let ideas_files = overlay.winning_files_in("common/ideas");
+        assert_eq!(ideas_files.len(), 1, "Should find 1 file under common/ideas");
+        let winner = &ideas_files[0];
+        assert!(
+            winner.to_string_lossy().contains("mod"),
+            "Mod file should win, got: {:?}",
+            winner
+        );
+
+        // Focus file from vanilla must be discoverable (not replaced)
+        let focus_files = overlay.winning_files_in("common/national_focus");
+        assert_eq!(focus_files.len(), 1, "Should find 1 file under common/national_focus");
+        let focus_winner = &focus_files[0];
+        assert!(
+            focus_winner.to_string_lossy().contains("vanilla"),
+            "Vanilla file should be found, got: {:?}",
+            focus_winner
+        );
 
         fs::remove_dir_all(&root).ok();
     }
