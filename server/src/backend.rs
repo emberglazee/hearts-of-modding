@@ -84,6 +84,40 @@ impl Backend {
             .map(|content| self.cache_ast(uri, &content))
     }
 
+    /// Get an AST that is guaranteed to match the current document content.
+    ///
+    /// If the cached AST is stale (document was edited after the last parse),
+    /// re-parses immediately on a blocking thread and updates the cache.
+    /// This prevents semantic token highlighting from lagging behind the editor
+    /// during the `did_change` debounce window (where `self.documents` has been
+    /// updated but `self.document_asts` hasn't been re-parsed yet).
+    pub(crate) async fn get_or_parse_ast(
+        &self,
+        uri: &str,
+    ) -> Option<(Arc<ast::Script>, Vec<(String, ast::Range)>)> {
+        // Fast path: check if cached AST is fresh by comparing source text
+        // with current document content (BOM-stripped, since the parser strips it).
+        if let Some(cached) = self.document_asts.get(uri) {
+            let is_fresh = self.documents.get(uri).is_some_and(|content| {
+                let content_clean = content.strip_prefix('\u{feff}').unwrap_or(&content);
+                &*cached.0.source == content_clean
+            });
+            if is_fresh {
+                return Some((cached.0.clone(), cached.1.clone()));
+            }
+        }
+
+        // Stale or no cache — re-parse from current document content.
+        let content = self.documents.get(uri)?.clone();
+        let (script, errors) = tokio::task::spawn_blocking(move || parser::parse_script(&content))
+            .await
+            .ok()?;
+        let script = Arc::new(script);
+        let result = (script.clone(), errors.clone());
+        self.document_asts.insert(uri.to_string(), (script, errors));
+        Some(result)
+    }
+
     pub(crate) async fn find_references_in_root(
         &self,
         root: &std::path::Path,

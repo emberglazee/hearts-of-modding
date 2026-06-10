@@ -2,17 +2,21 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
-## [v0.18.1] - 2026-06-10
+## [v0.19.0] - 2026-06-10
+
+### ✨ Added
+
+- **Ignore known non-script vanilla files when parsing.**
 
 ### 🔧 Changed
-
-- **Address minor `cargo clippy --all-targets` warnings.**
 
 - **Updated dependencies.**
 
 - **Minor refactors.**
 
-- **Ignore known non-script vanilla files when parsing.**
+### 🩹 Fixed
+
+- **Fix buggy semantic highlighting when adding or removing lines from a document.**
 
 ## [v0.18.0] - 2026-06-07
 

@@ -780,7 +780,10 @@ impl LanguageServer for Backend {
             };
         }
 
-        match self.ensure_ast_cached(&uri) {
+        // Script files — use a fresh AST that matches the current document
+        // content, not a cached one that might be stale during the did_change
+        // debounce window.
+        match self.get_or_parse_ast(&uri).await {
             Some((script, _)) => {
                 let ctx = self.build_semantic_token_context();
 
@@ -819,8 +822,8 @@ impl LanguageServer for Backend {
             };
         }
 
-        // Script files - use range-aware AST walking
-        match self.ensure_ast_cached(&uri) {
+        // Script files — use range-aware AST walking with a fresh AST
+        match self.get_or_parse_ast(&uri).await {
             Some((script, _)) => {
                 let ctx = self.build_semantic_token_context();
                 let result = semantic_tokens::get_semantic_tokens_range(&script, &ctx, &range);
