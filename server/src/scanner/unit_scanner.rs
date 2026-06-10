@@ -1,7 +1,9 @@
 #![allow(dead_code)]
 use crate::data::interner::InternedStr;
+use crate::data::layered_value::LayeredValue;
 use crate::parser::ast;
 use crate::parser::parser;
+use dashmap::DashMap;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -191,4 +193,19 @@ fn extract_single_unit(
         path: std::sync::Arc::from(file_path.to_string()),
         range: range.clone(),
     })
+}
+
+/// Find the canonical (as-defined) casing for a unit type key.
+/// Returns `None` if no unit type matches case-insensitively.
+pub fn find_canonical_unit_type(
+    unit_types: &DashMap<InternedStr, LayeredValue<UnitType>>,
+    key: &str,
+) -> Option<String> {
+    let key_lower = key.to_ascii_lowercase();
+    for entry in unit_types.iter() {
+        if entry.key().to_ascii_lowercase() == key_lower {
+            return Some(entry.key().to_string());
+        }
+    }
+    None
 }

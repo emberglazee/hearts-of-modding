@@ -11,7 +11,6 @@ use tower_lsp_server::ls_types::*;
 use crate::config::Config;
 use crate::data::entity_lookup;
 use crate::data::interner::InternedStr;
-use crate::data::layered_value::LayeredValue;
 use crate::data::scanner_data::ScannerData;
 use crate::lsp::semantic_tokens;
 use crate::parser::ast;
@@ -2329,10 +2328,12 @@ impl Backend {
                                         }
 
                                         // Tier 2: case-insensitive match → fix
-                                        if let Some(canonical) = find_canonical_unit_type(
-                                            &self.scanner_data.unit_types,
-                                            child_key,
-                                        ) {
+                                        if let Some(canonical) =
+                                            crate::scanner::unit_scanner::find_canonical_unit_type(
+                                                &self.scanner_data.unit_types,
+                                                child_key,
+                                            )
+                                        {
                                             let matches_specific = specific_type
                                                 .map(|s| s == canonical.as_str())
                                                 .unwrap_or(true);
@@ -2381,23 +2382,6 @@ impl Backend {
             }
         }
     }
-}
-
-/// Find the canonical (as-defined) casing for a unit type key.
-/// Returns `None` if no unit type matches case-insensitively.
-/// Duplicated from rules/oob_regiments.rs because this file
-/// is a separate compilation unit and can't easily share the helper.
-fn find_canonical_unit_type(
-    unit_types: &DashMap<InternedStr, LayeredValue<crate::scanner::unit_scanner::UnitType>>,
-    key: &str,
-) -> Option<String> {
-    let key_lower = key.to_ascii_lowercase();
-    for entry in unit_types.iter() {
-        if entry.key().to_ascii_lowercase() == key_lower {
-            return Some(entry.key().to_string());
-        }
-    }
-    None
 }
 
 #[cfg(test)]

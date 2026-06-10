@@ -1,12 +1,9 @@
-use crate::data::interner::InternedStr;
-use crate::data::layered_value::LayeredValue;
 use crate::parser::ast;
 use crate::rules::ValidationContext;
 use crate::rules::visitor::AstVisitor;
-use crate::scanner::unit_scanner::UnitType;
+use crate::scanner::unit_scanner;
 use crate::scope::scope::ScopeStack;
 use crate::utils::lsp_convert::ast_range_to_lsp;
-use dashmap::DashMap;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
 /// Validates that:
@@ -52,21 +49,6 @@ impl OobRegimentVisitor {
     pub fn visitor() -> Box<dyn AstVisitor> {
         Box::new(Self::new())
     }
-}
-
-/// Find the canonical (as-defined) casing for a unit type key.
-/// Returns `None` if no unit type matches case-insensitively.
-fn find_canonical_unit_type(
-    unit_types: &DashMap<InternedStr, LayeredValue<UnitType>>,
-    key: &str,
-) -> Option<String> {
-    let key_lower = key.to_ascii_lowercase();
-    for entry in unit_types.iter() {
-        if entry.key().to_ascii_lowercase() == key_lower {
-            return Some(entry.key().to_string());
-        }
-    }
-    None
 }
 
 impl AstVisitor for OobRegimentVisitor {
@@ -163,7 +145,9 @@ impl AstVisitor for OobRegimentVisitor {
                 //   Tier 3 (no match) → completely unknown unit type → WARNING
                 if ctx.unit_types.contains_key(unit_key) {
                     // Tier 1: exact match → all good
-                } else if let Some(canonical) = find_canonical_unit_type(ctx.unit_types, unit_key) {
+                } else if let Some(canonical) =
+                    unit_scanner::find_canonical_unit_type(ctx.unit_types, unit_key)
+                {
                     // Tier 2: exists with different casing
                     diags.push(Diagnostic {
                         range: ast_range_to_lsp(&ass.key_range),
