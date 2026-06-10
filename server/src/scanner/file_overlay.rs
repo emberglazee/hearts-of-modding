@@ -287,7 +287,11 @@ mod tests {
         let entries = overlay.all_entries();
         assert_eq!(entries.len(), 1);
         let winner = entries.get("common/ideas/usa.txt").unwrap();
-        assert!(winner.to_string_lossy().contains("/b/"));
+        let winner_str = winner.to_string_lossy().replace('\\', "/");
+        assert!(
+            winner_str.contains("/b/"),
+            "expected winner path to contain '/b/', got: {winner:?}"
+        );
 
         fs::remove_dir_all(&root).ok();
     }
@@ -338,9 +342,10 @@ mod tests {
             "ideas file should be present"
         );
         let ideas_winner = entries.get("common/ideas/usa.txt").unwrap();
+        let ideas_winner_str = ideas_winner.to_string_lossy().replace('\\', "/");
         assert!(
-            ideas_winner.to_string_lossy().contains("/mod/"),
-            "ideas should be won by mod root"
+            ideas_winner_str.contains("/mod/"),
+            "ideas should be won by mod root, got: {ideas_winner:?}"
         );
 
         fs::remove_dir_all(&root).ok();
@@ -385,7 +390,11 @@ mod tests {
         // Non-replaced dir: both layers present, mod wins
         assert!(entries.contains_key("common/ai_areas/normal.txt"));
         let winner = entries.get("common/ai_areas/normal.txt").unwrap();
-        assert!(winner.to_string_lossy().contains("/mod/"));
+        let winner_str = winner.to_string_lossy().replace('\\', "/");
+        assert!(
+            winner_str.contains("/mod/"),
+            "mod should win non-replaced dir, got: {winner:?}"
+        );
 
         fs::remove_dir_all(&root).ok();
     }
