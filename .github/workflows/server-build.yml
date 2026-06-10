@@ -69,11 +69,6 @@ jobs:
           cd server
           cargo build --release --target ${{ matrix.target }}
 
-      - name: Run Tests
-        run: |
-          cd server
-          cargo test
-
       - name: Upload Binary
         uses: actions/upload-artifact@v7
         with:
@@ -82,3 +77,28 @@ jobs:
             server/target/${{ matrix.target }}/release/server
             server/target/${{ matrix.target }}/release/server.exe
           if-no-files-found: ignore
+
+  test:
+    name: Test (${{ matrix.os }})
+    needs: check
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - windows-latest
+          - macos-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: server -> target
+
+      - name: Run Tests
+        run: |
+          cd server
+          cargo test
