@@ -6,11 +6,13 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### 🔧 Changed
 
-- Address minor `cargo clippy --all-targets` warnings.
+- **Address minor `cargo clippy --all-targets` warnings.**
 
-- Updated dependencies.
+- **Updated dependencies.**
 
-- Minor refactors.
+- **Minor refactors.**
+
+- **Ignore known non-script vanilla files when parsing.**
 
 ## [v0.18.0] - 2026-06-07
 

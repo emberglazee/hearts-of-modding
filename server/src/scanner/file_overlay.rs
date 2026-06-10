@@ -97,6 +97,9 @@ impl FileOverlay {
                 || path_str.contains("localisation")
                 || path_str.contains("common/defines")
                 || path_str.contains("common\\defines")
+                // Skip gfx/fonts/ — .txt files here are font credits, not script
+                || path_str.contains("/gfx/fonts/")
+                || path_str.contains("\\gfx\\fonts\\")
             {
                 return true;
             }

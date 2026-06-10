@@ -1,5 +1,57 @@
 use std::path::{Path, PathBuf};
 
+/// Known files that are never valid HOI4 script (internal Paradox data).
+/// These files are skipped by both the scanners and the document validator.
+const KNOWN_IGNORED_FILES: &[&str] = &[
+    "buildings_nudger_markers.txt",
+    "unit_nudger_markers.txt",
+    "console_history.txt",
+    "fake.txt",
+    "fake2.txt",
+    "fakegfx.txt",
+    "fakegfx2.txt",
+    "licenses.txt",
+];
+
+/// Check whether a file path matches known-ignored patterns that should never
+/// be parsed as HOI4 script.
+///
+/// Two categories:
+/// 1. Filename-based: specific files known to be internal Paradox data
+///    (e.g. `buildings_nudger_markers.txt`, `console_history.txt`).
+/// 2. Directory-based: entire subtrees that are never valid script
+///    (e.g. `gfx/fonts/` — font credits with `.txt` extension, not script).
+///
+/// The `gfx/fonts/` check uses a path-segment-aware comparison rather than a
+/// simple substring to avoid false matches on paths like `my_gfx/fonts_stuff`.
+pub fn is_known_ignored_file(path: &Path) -> bool {
+    let path_str = path.to_string_lossy();
+    let path_lower = path_str.to_ascii_lowercase();
+
+    // 1. Filename-based check
+    if let Some(filename) = path.file_name().and_then(|n| n.to_str()) {
+        if KNOWN_IGNORED_FILES.contains(&filename) {
+            return true;
+        }
+    }
+
+    // 2. Directory-based check: gfx/fonts/ subtrees — only .txt files there
+    //    are font credits, not HOI4 script. .dds and .fnt files are binary
+    //    and already harmless, but scope the exclusion precisely.
+    //    Check with both forward and backslash normalisation.
+    let is_txt = path
+        .extension()
+        .is_some_and(|e| e.eq_ignore_ascii_case("txt"));
+    if is_txt {
+        let normalized = path_lower.replace('\\', "/");
+        if normalized.contains("/gfx/fonts/") || normalized.ends_with("/gfx/fonts") {
+            return true;
+        }
+    }
+
+    false
+}
+
 /// Recursively walk a directory, collecting files whose extension matches
 /// one of `extensions` and for which `ignore_filter` returns `false`.
 /// If `skip_git` is `true`, `.git` directories are not descended into.
@@ -121,8 +173,12 @@ pub fn escape_filename_chars(s: &str) -> String {
     result
 }
 
-/// Check whether a path matches any of the provided ignore regex patterns.
+/// Check whether a path matches any of the provided ignore regex patterns,
+/// or is a known-ignored file (internal Paradox data, gfx/fonts credits, etc.).
 pub fn is_path_ignored(path: &Path, ignored: &[regex::Regex]) -> bool {
+    if is_known_ignored_file(path) {
+        return true;
+    }
     let path_str = path.to_string_lossy();
     ignored.iter().any(|re| re.is_match(&path_str))
 }

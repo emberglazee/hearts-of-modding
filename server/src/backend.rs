@@ -223,6 +223,13 @@ impl Backend {
     async fn validate_content(&self, uri: &Uri, content: &str) -> Vec<Diagnostic> {
         let mut diagnostics = Vec::new();
 
+        // Skip known-ignored files: internal Paradox data, gfx/fonts credits, etc.
+        if let Some(path) = uri.to_file_path() {
+            if crate::utils::fs_util::is_known_ignored_file(&path) {
+                return diagnostics;
+            }
+        }
+
         let styling_enabled = self.config.styling_enabled();
         let mut script_opt: Option<Arc<ast::Script>> = None;
         let map_config = crate::utils::map_config::get_map_config(std::path::Path::new("."));

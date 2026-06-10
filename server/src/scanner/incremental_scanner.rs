@@ -236,6 +236,7 @@ impl_has_path!(unit_scanner::UnitType);
 /// Determines which scanner categories apply to a given file path.
 fn classify_file(path: &str) -> Vec<FileCategory> {
     let lower = path.to_ascii_lowercase();
+
     let mut cats = Vec::new();
 
     if lower.ends_with(".yml") && lower.contains("localisation") {
@@ -243,6 +244,12 @@ fn classify_file(path: &str) -> Vec<FileCategory> {
     }
 
     if lower.ends_with(".txt") {
+        // Skip gfx/fonts/ .txt files — they're font credits, not HOI4 script.
+        let normalized = lower.replace('\\', "/");
+        if normalized.contains("/gfx/fonts/") || normalized.ends_with("/gfx/fonts") {
+            return cats;
+        }
+
         // Order matters: more specific paths should match before "any .txt" fallbacks
         if lower.contains("/events/") {
             cats.push(FileCategory::Events);
