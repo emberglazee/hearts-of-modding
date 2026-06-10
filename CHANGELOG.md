@@ -10,6 +10,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - Updated dependencies.
 
+- Minor refactors.
+
 ## [v0.18.0] - 2026-06-07
 
 ### ✨ Added

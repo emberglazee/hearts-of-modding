@@ -418,6 +418,8 @@ impl LanguageServer for Backend {
 
         // Rebuild reverse file-path indices so incremental updates are O(K) not O(N)
         self.scanner_data.rebuild_all_file_indices();
+        // Update entity token context so semantic tokens reflect the freshly scanned entities
+        self.update_entity_token_context();
 
         // Collect workspace file paths for rename operations
         // Use the workspace root (last element) — not the game path
@@ -749,6 +751,9 @@ impl LanguageServer for Backend {
                 self.validate_document(uri).await;
             }
         }
+        // Update entity token context since scanner data may have changed,
+        // so semantic tokens reflect the updated entity names on the next request.
+        self.update_entity_token_context();
     }
 
     async fn semantic_tokens_full(

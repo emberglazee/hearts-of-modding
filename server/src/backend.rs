@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
+use arc_swap::ArcSwap;
 use rustc_hash::FxHashMap;
 
 use dashmap::DashMap;
@@ -33,6 +34,14 @@ pub(crate) struct Backend {
     pub(crate) config: Config,
     pub(crate) system_info: Mutex<sysinfo::System>,
     pub(crate) workspace_roots: Mutex<Vec<std::path::PathBuf>>,
+    /// Static token keywords — computed once from TRIGGERS, EFFECTS, MODIFIERS, SCOPES,
+    /// and the hardcoded keyword list. Never changes at runtime, so stored as Arc for
+    /// cheap cloning on every semantic token request.
+    pub(crate) static_token_keywords: Arc<HashSet<String>>,
+    /// Entity names from scanner data — changes when the workspace is rescanned.
+    /// Stored in ArcSwap so semantic tokens rebuilds are cheap (Arc::clone + HashMap::clone
+    /// of the inner value) without iterating all scanner DashMaps on every keystroke.
+    pub(crate) entity_token_context: ArcSwap<HashMap<String, entity_lookup::EntityKind>>,
 }
 
 impl Backend {
@@ -1772,410 +1781,436 @@ impl Backend {
     }
 
     /// Build the keyword + entity context used for semantic token resolution.
-    /// Shared by `semantic_tokens_full` and `semantic_tokens_range` to avoid
-    /// duplicating ~260 lines of keyword registration.
+    ///
+    /// Uses pre-computed static keywords (computed once at startup) merged with
+    /// the current scanner entity map (updated on rescans via
+    /// [`update_entity_token_context()`]).
+    ///
+    /// This used to rebuild the entire keyword set from scratch on every semantic
+    /// token request, iterating all DashMaps — now it's just two cheap clones.
     pub(crate) fn build_semantic_token_context(&self) -> semantic_tokens::SemanticTokenContext {
-        let mut keywords = HashSet::new();
-
-        for k in TRIGGERS.keys() {
-            keywords.insert(k.to_string());
-        }
-        for k in EFFECTS.keys() {
-            keywords.insert(k.to_string());
-        }
-        for k in MODIFIERS.keys() {
-            keywords.insert(k.to_string());
-        }
-        for k in SCOPES.iter() {
-            keywords.insert(k.to_string());
-            keywords.insert(k.to_ascii_lowercase());
-        }
-
-        // Add hardcoded achievement keywords
-        keywords.insert("unique_id".to_string());
-        keywords.insert("possible".to_string());
-        keywords.insert("happened".to_string());
-        keywords.insert("ribbon".to_string());
-        keywords.insert("frames".to_string());
-        keywords.insert("colors".to_string());
-        keywords.insert("custom_achievement".to_string());
-        keywords.insert("custom_ribbon".to_string());
-        keywords.insert("key".to_string());
-
-        // Character keywords
-        keywords.insert("characters".to_string());
-        keywords.insert("advisor".to_string());
-        keywords.insert("country_leader".to_string());
-        keywords.insert("corps_commander".to_string());
-        keywords.insert("field_marshal".to_string());
-        keywords.insert("navy_leader".to_string());
-        keywords.insert("scientist".to_string());
-        keywords.insert("portraits".to_string());
-        keywords.insert("traits".to_string());
-        keywords.insert("skill".to_string());
-        keywords.insert("gender".to_string());
-        keywords.insert("instance".to_string());
-        keywords.insert("idea_token".to_string());
-        keywords.insert("legacy_id".to_string());
-        keywords.insert("expire".to_string());
-        keywords.insert("recruit_character".to_string());
-        keywords.insert("ideology".to_string());
-        // Unit leader skill properties
-        keywords.insert("attack_skill".to_string());
-        keywords.insert("defense_skill".to_string());
-        keywords.insert("planning_skill".to_string());
-        keywords.insert("logistics_skill".to_string());
-        keywords.insert("maneuvering_skill".to_string());
-        keywords.insert("coordination_skill".to_string());
-        // Scientist specialization block
-        keywords.insert("skills".to_string());
-        // Advisor-only property
-        keywords.insert("can_be_fired".to_string());
-
-        // Custom advancement field keywords
-        keywords.insert("achievement".to_string());
-
-        // Ability keywords
-        keywords.insert("ability".to_string());
-        keywords.insert("name".to_string());
-        keywords.insert("desc".to_string());
-        keywords.insert("type".to_string());
-        keywords.insert("cost".to_string());
-        keywords.insert("duration".to_string());
-        keywords.insert("cooldown".to_string());
-        keywords.insert("icon".to_string());
-        keywords.insert("sound_effect".to_string());
-        keywords.insert("cancelable".to_string());
-        keywords.insert("allowed".to_string());
-        keywords.insert("one_time_effect".to_string());
-        keywords.insert("unit_modifiers".to_string());
-        keywords.insert("ai_will_do".to_string());
-        keywords.insert("has_ability".to_string());
-        keywords.insert("add_ability".to_string());
-        keywords.insert("remove_ability".to_string());
-
-        // AI strategy plan keywords
-        keywords.insert("enable".to_string());
-        keywords.insert("abort".to_string());
-        keywords.insert("ai_national_focuses".to_string());
-        keywords.insert("focus_factors".to_string());
-        keywords.insert("research".to_string());
-        keywords.insert("weight".to_string());
-        keywords.insert("planned_production".to_string());
-        keywords.insert("technologies".to_string());
-
-        // AI area keywords
-        keywords.insert("continents".to_string());
-        keywords.insert("strategic_regions".to_string());
-
-        // Music keywords
-        keywords.insert("music".to_string());
-        keywords.insert("music_station".to_string());
-        keywords.insert("song".to_string());
-        keywords.insert("chance".to_string());
-        keywords.insert("base".to_string());
-        keywords.insert("factor".to_string());
-        keywords.insert("add".to_string());
-        keywords.insert("modifier".to_string());
-        keywords.insert("volume".to_string());
-        keywords.insert("file".to_string());
-
-        // Structural block keywords (scope filter, conditional, option blocks)
-        keywords.insert("limit".to_string());
-        keywords.insert("else".to_string());
-        keywords.insert("else_if".to_string());
-        keywords.insert("option".to_string());
-        keywords.insert("trigger".to_string());
-
-        // Ideology definition keywords
-        keywords.insert("types".to_string());
-        keywords.insert("dynamic_faction_names".to_string());
-        keywords.insert("rules".to_string());
-        keywords.insert("can_host_government_in_exile".to_string());
-        keywords.insert("war_impact_on_world_tension".to_string());
-        keywords.insert("faction_impact_on_world_tension".to_string());
-        keywords.insert("can_be_boosted".to_string());
-        keywords.insert("can_collaborate".to_string());
-        keywords.insert("modifiers".to_string());
-        keywords.insert("faction_modifiers".to_string());
-        keywords.insert("can_create_collaboration_government".to_string());
-        keywords.insert("can_declare_war_on_same_ideology".to_string());
-        keywords.insert("can_force_government".to_string());
-
-        // Known idea category names (game-defined, not user types)
-        keywords.insert("country".to_string());
-        keywords.insert("slot_ledgers".to_string());
-        keywords.insert("slot".to_string());
-        keywords.insert("character_slot".to_string());
-        keywords.insert("designer".to_string());
-        keywords.insert("use_list_view".to_string());
-        keywords.insert("law".to_string());
-        keywords.insert("picture".to_string());
-        keywords.insert("targeted_modifier".to_string());
-        keywords.insert("research_bonus".to_string());
-        keywords.insert("equipment_bonus".to_string());
-        keywords.insert("rule".to_string());
-        keywords.insert("on_add".to_string());
-        keywords.insert("on_remove".to_string());
-        keywords.insert("cancel".to_string());
-        keywords.insert("allowed_civil_war".to_string());
-        keywords.insert("do_effect".to_string());
-        keywords.insert("allowed_to_remove".to_string());
-        keywords.insert("visible".to_string());
-        keywords.insert("available".to_string());
-        keywords.insert("removal_cost".to_string());
-        keywords.insert("level".to_string());
-        keywords.insert("ledger".to_string());
-        keywords.insert("hidden".to_string());
-        keywords.insert("politics_tab".to_string());
-
-        // National focus tree structure keywords
-        keywords.insert("focus_tree".to_string());
-        keywords.insert("focus".to_string());
-        keywords.insert("shared_focus".to_string());
-        keywords.insert("joint_focus".to_string());
-        keywords.insert("continuous_focus_palette".to_string());
-        keywords.insert("continuous_focus_position".to_string());
-        keywords.insert("initial_show_position".to_string());
-        keywords.insert("shortcut".to_string());
-        keywords.insert("inlay_window".to_string());
-        keywords.insert("style".to_string());
-        keywords.insert("search_filter_prios".to_string());
-
-        // National focus property keywords
-        keywords.insert("prerequisite".to_string());
-        keywords.insert("mutually_exclusive".to_string());
-        keywords.insert("bypass".to_string());
-        keywords.insert("bypass_if_unavailable".to_string());
-        keywords.insert("enable_automatic_bypass".to_string());
-        keywords.insert("allow_branch".to_string());
-        keywords.insert("available_if_capitulated".to_string());
-        keywords.insert("cancel_if_invalid".to_string());
-        keywords.insert("continue_if_invalid".to_string());
-        keywords.insert("historical_ai".to_string());
-        keywords.insert("completion_reward".to_string());
-        keywords.insert("complete_tooltip".to_string());
-        keywords.insert("select_effect".to_string());
-        keywords.insert("bypass_effect".to_string());
-        keywords.insert("search_filters".to_string());
-        keywords.insert("text_icon".to_string());
-        keywords.insert("will_lead_to_war_with".to_string());
-        keywords.insert("dynamic".to_string());
-        keywords.insert("offset".to_string());
-        keywords.insert("relative_position_id".to_string());
-        keywords.insert("id".to_string());
-        keywords.insert("cost".to_string());
-        keywords.insert("icon".to_string());
-        keywords.insert("default".to_string());
-        keywords.insert("reset_on_civilwar".to_string());
-        keywords.insert("target".to_string());
-        keywords.insert("scroll_wheel_factor".to_string());
-
-        // Continuous focus keywords
-        keywords.insert("daily_cost".to_string());
-        keywords.insert("supports_ai_strategy".to_string());
-        keywords.insert("cancel_effect".to_string());
-
-        // Joint focus keywords
-        keywords.insert("joint_trigger".to_string());
-        keywords.insert("completion_reward_joint_originator".to_string());
-        keywords.insert("completion_reward_joint_member".to_string());
-
-        // Focus inlay window keywords
-        keywords.insert("window_name".to_string());
-        keywords.insert("internal".to_string());
-        keywords.insert("scripted_buttons".to_string());
-        keywords.insert("scripted_images".to_string());
-        keywords.insert("click_effect".to_string());
-
-        // Style definition keywords
-        keywords.insert("unavailable".to_string());
-        keywords.insert("current".to_string());
-
-        // AI strategy plan keywords
-        keywords.insert("ai_strategy".to_string());
-
-        // State definition keywords (history/states/*.txt)
-        keywords.insert("state".to_string());
-        keywords.insert("id".to_string());
-        keywords.insert("manpower".to_string());
-        keywords.insert("state_category".to_string());
-        keywords.insert("impassable".to_string());
-        keywords.insert("resources".to_string());
-        keywords.insert("local_supplies".to_string());
-        keywords.insert("buildings_max_level_factor".to_string());
-        keywords.insert("history".to_string());
-        keywords.insert("provinces".to_string());
-
-        // State history sub-keywords
-        keywords.insert("owner".to_string());
-        keywords.insert("controller".to_string());
-        keywords.insert("victory_points".to_string());
-        keywords.insert("buildings".to_string());
-        keywords.insert("add_core_of".to_string());
-        keywords.insert("add_claim_by".to_string());
-        keywords.insert("set_state_name".to_string());
-
-        // Strategic region definition keywords (map/strategicregions/*.txt)
-        keywords.insert("strategic_region".to_string());
-        keywords.insert("weather".to_string());
-        keywords.insert("period".to_string());
-        keywords.insert("between".to_string());
-        keywords.insert("temperature".to_string());
-        keywords.insert("no_phenomenon".to_string());
-        keywords.insert("rain_light".to_string());
-        keywords.insert("rain_heavy".to_string());
-        keywords.insert("snow".to_string());
-        keywords.insert("blizzard".to_string());
-        keywords.insert("mud".to_string());
-        keywords.insert("sandstorm".to_string());
-        keywords.insert("arctic_water".to_string());
-        keywords.insert("min_snow_level".to_string());
-        keywords.insert("naval_terrain".to_string());
-
-        // Terrain definition keywords (common/terrain/*.txt)
-        keywords.insert("categories".to_string());
-        keywords.insert("color".to_string());
-        keywords.insert("terrain".to_string());
-        keywords.insert("movement_cost".to_string());
-        keywords.insert("is_water".to_string());
-        keywords.insert("sound_type".to_string());
-        keywords.insert("minimum_seazone_dominance".to_string());
-        keywords.insert("combat_width".to_string());
-        keywords.insert("combat_support_width".to_string());
-        keywords.insert("ai_terrain_importance_factor".to_string());
-        keywords.insert("match_value".to_string());
-        keywords.insert("buildings_max_level".to_string());
-        keywords.insert("supply_flow_penalty_factor".to_string());
-        keywords.insert("truck_attrition_factor".to_string());
-        keywords.insert("navy_fuel_consumption_factor".to_string());
-        keywords.insert("units".to_string());
-        keywords.insert("battle_cruiser".to_string());
-        keywords.insert("battleship".to_string());
-        keywords.insert("heavy_cruiser".to_string());
-        keywords.insert("carrier".to_string());
-        keywords.insert("destroyer".to_string());
-        keywords.insert("light_cruiser".to_string());
-        keywords.insert("submarine".to_string());
-        keywords.insert("texture".to_string());
-        keywords.insert("spawn_city".to_string());
-        keywords.insert("perm_snow".to_string());
-
-        // Balance of power definition keywords (common/bop/*.txt)
-        keywords.insert("initial_value".to_string());
-        keywords.insert("left_side".to_string());
-        keywords.insert("right_side".to_string());
-        keywords.insert("decision_category".to_string());
-        keywords.insert("side".to_string());
-        keywords.insert("range".to_string());
-        keywords.insert("min".to_string());
-        keywords.insert("max".to_string());
-        keywords.insert("on_activate".to_string());
-        keywords.insert("on_deactivate".to_string());
-
-        // Event definition keywords (events/*.txt) structural — not in triggers/effects data
-        keywords.insert("add_namespace".to_string());
-        keywords.insert("mean_time_to_happen".to_string());
-        keywords.insert("fire_only_once".to_string());
-        keywords.insert("is_triggered_only".to_string());
-        keywords.insert("major".to_string());
-        keywords.insert("show_major".to_string());
-        keywords.insert("fire_for_sender".to_string());
-        keywords.insert("minor_flavor".to_string());
-        keywords.insert("timeout_days".to_string());
-        keywords.insert("immediate".to_string());
-        keywords.insert("after".to_string());
-        keywords.insert("option".to_string());
-        keywords.insert("original_recipient_only".to_string());
-        keywords.insert("ai_chance".to_string());
-        keywords.insert("title".to_string());
-        keywords.insert("text".to_string());
-        keywords.insert("tooltip".to_string());
-        keywords.insert("trigger".to_string());
-
-        // Event time / delay keywords (MTTH + event firing effect)
-        keywords.insert("days".to_string());
-        keywords.insert("months".to_string());
-        keywords.insert("years".to_string());
-        keywords.insert("hours".to_string());
-        keywords.insert("random_hours".to_string());
-        keywords.insert("random_days".to_string());
-        keywords.insert("random".to_string());
-
-        // Event-type-specific effect sub-keys
-        keywords.insert("trigger_for".to_string());
-        keywords.insert("occupied".to_string());
-        keywords.insert("originator".to_string());
-        keywords.insert("recipient".to_string());
-        keywords.insert("set_root".to_string());
-        keywords.insert("set_from".to_string());
-        keywords.insert("set_from_from".to_string());
-
-        // Bookmark definition keywords (common/bookmarks/*.txt)
-        keywords.insert("bookmarks".to_string());
-        keywords.insert("bookmark".to_string());
-        keywords.insert("default_country".to_string());
-        keywords.insert("effect".to_string());
-        keywords.insert("minor".to_string());
-        keywords.insert("ideas".to_string());
-        keywords.insert("focuses".to_string());
-
-        // Game rule keywords (common/game_rules/*.txt)
-        keywords.insert("group".to_string());
-        keywords.insert("required_dlc".to_string());
-        keywords.insert("exclude_dlc".to_string());
-        keywords.insert("allow_achievements".to_string());
-
-        // Difficulty setting keywords (common/difficulty_settings/*.txt)
-        keywords.insert("difficulty_settings".to_string());
-        keywords.insert("difficulty_setting".to_string());
-        keywords.insert("countries".to_string());
-        keywords.insert("multiplier".to_string());
-
-        // OOB (Order of Battle) keywords (history/units/*.txt)
-        keywords.insert("division_template".to_string());
-        keywords.insert("units".to_string());
-        keywords.insert("air_wings".to_string());
-        keywords.insert("amount".to_string());
-        keywords.insert("instant_effect".to_string());
-        keywords.insert("regiments".to_string());
-        keywords.insert("support".to_string());
-        keywords.insert("division_names_group".to_string());
-        keywords.insert("is_locked".to_string());
-        keywords.insert("force_allow_recruiting".to_string());
-        keywords.insert("division_cap".to_string());
-        keywords.insert("template_counter".to_string());
-        keywords.insert("override_model".to_string());
-        keywords.insert("division_name".to_string());
-        keywords.insert("is_name_ordered".to_string());
-        keywords.insert("name_order".to_string());
-        keywords.insert("start_experience_factor".to_string());
-        keywords.insert("start_equipment_factor".to_string());
-        keywords.insert("start_manpower_factor".to_string());
-        keywords.insert("force_equipment_variants".to_string());
-        keywords.insert("officer".to_string());
-        keywords.insert("division".to_string());
-        keywords.insert("location".to_string());
-        keywords.insert("fleet".to_string());
-        keywords.insert("naval_base".to_string());
-        keywords.insert("task_force".to_string());
-        keywords.insert("pride_of_the_fleet".to_string());
-        keywords.insert("ship".to_string());
-        keywords.insert("definition".to_string());
-        keywords.insert("add_equipment_production".to_string());
-        keywords.insert("requested_factories".to_string());
-        keywords.insert("efficiency".to_string());
-        keywords.insert("version_name".to_string());
-        keywords.insert("creator".to_string());
-
-        // Add unit type names to entity context for distinct highlighting
-        // (removed from keywords above — entity_names takes lower priority but
-        //  maps to a different token type via entity_kind_to_token_type)
-        let lookup = entity_lookup::EntityLookup::new(&self.scanner_data);
-        let all_names = lookup.entity_names();
-
-        semantic_tokens::SemanticTokenContext::new(keywords, all_names)
+        let keywords = (*self.static_token_keywords).clone();
+        let entity_names = self.entity_token_context.load_full();
+        semantic_tokens::SemanticTokenContext::new(keywords, (*entity_names).clone())
     }
+
+    /// Refresh the entity name map from current scanner data.
+    ///
+    /// Call this after a full initial scan ([`crate::lsp::handler::Backend::initialized`])
+    /// or after any rescan triggered by [`crate::lsp::handler::Backend::did_change_watched_files`].
+    /// Without this, semantic tokens would continue using a stale entity context
+    /// (entities added or removed by rescans wouldn't be highlighted).
+    pub(crate) fn update_entity_token_context(&self) {
+        let lookup = entity_lookup::EntityLookup::new(&self.scanner_data);
+        let names = lookup.entity_names();
+        self.entity_token_context.store(Arc::new(names));
+    }
+}
+
+/// Pre-compute the static keyword set used for semantic token resolution.
+///
+/// This includes: all built-in triggers, effects, modifiers, scopes,
+/// and the extensive hardcoded keyword list for character definitions,
+/// abilities, focuses, events, OOB, terrain, ideologies, etc.
+///
+/// This function is called exactly once at startup (see `main.rs`). The
+/// result is stored in `Backend::static_token_keywords` as `Arc<HashSet>`
+/// so each semantic token rebuild is just a cheap `Arc::clone`.
+pub(crate) fn build_static_semantic_keywords() -> HashSet<String> {
+    let mut keywords = HashSet::new();
+
+    for k in TRIGGERS.keys() {
+        keywords.insert(k.to_string());
+    }
+    for k in EFFECTS.keys() {
+        keywords.insert(k.to_string());
+    }
+    for k in MODIFIERS.keys() {
+        keywords.insert(k.to_string());
+    }
+    for k in SCOPES.iter() {
+        keywords.insert(k.to_string());
+        keywords.insert(k.to_ascii_lowercase());
+    }
+
+    // Add hardcoded achievement keywords
+    keywords.insert("unique_id".to_string());
+    keywords.insert("possible".to_string());
+    keywords.insert("happened".to_string());
+    keywords.insert("ribbon".to_string());
+    keywords.insert("frames".to_string());
+    keywords.insert("colors".to_string());
+    keywords.insert("custom_achievement".to_string());
+    keywords.insert("custom_ribbon".to_string());
+    keywords.insert("key".to_string());
+
+    // Character keywords
+    keywords.insert("characters".to_string());
+    keywords.insert("advisor".to_string());
+    keywords.insert("country_leader".to_string());
+    keywords.insert("corps_commander".to_string());
+    keywords.insert("field_marshal".to_string());
+    keywords.insert("navy_leader".to_string());
+    keywords.insert("scientist".to_string());
+    keywords.insert("portraits".to_string());
+    keywords.insert("traits".to_string());
+    keywords.insert("skill".to_string());
+    keywords.insert("gender".to_string());
+    keywords.insert("instance".to_string());
+    keywords.insert("idea_token".to_string());
+    keywords.insert("legacy_id".to_string());
+    keywords.insert("expire".to_string());
+    keywords.insert("recruit_character".to_string());
+    keywords.insert("ideology".to_string());
+    // Unit leader skill properties
+    keywords.insert("attack_skill".to_string());
+    keywords.insert("defense_skill".to_string());
+    keywords.insert("planning_skill".to_string());
+    keywords.insert("logistics_skill".to_string());
+    keywords.insert("maneuvering_skill".to_string());
+    keywords.insert("coordination_skill".to_string());
+    // Scientist specialization block
+    keywords.insert("skills".to_string());
+    // Advisor-only property
+    keywords.insert("can_be_fired".to_string());
+
+    // Custom advancement field keywords
+    keywords.insert("achievement".to_string());
+
+    // Ability keywords
+    keywords.insert("ability".to_string());
+    keywords.insert("name".to_string());
+    keywords.insert("desc".to_string());
+    keywords.insert("type".to_string());
+    keywords.insert("cost".to_string());
+    keywords.insert("duration".to_string());
+    keywords.insert("cooldown".to_string());
+    keywords.insert("icon".to_string());
+    keywords.insert("sound_effect".to_string());
+    keywords.insert("cancelable".to_string());
+    keywords.insert("allowed".to_string());
+    keywords.insert("one_time_effect".to_string());
+    keywords.insert("unit_modifiers".to_string());
+    keywords.insert("ai_will_do".to_string());
+    keywords.insert("has_ability".to_string());
+    keywords.insert("add_ability".to_string());
+    keywords.insert("remove_ability".to_string());
+
+    // AI strategy plan keywords
+    keywords.insert("enable".to_string());
+    keywords.insert("abort".to_string());
+    keywords.insert("ai_national_focuses".to_string());
+    keywords.insert("focus_factors".to_string());
+    keywords.insert("research".to_string());
+    keywords.insert("weight".to_string());
+    keywords.insert("planned_production".to_string());
+    keywords.insert("technologies".to_string());
+
+    // AI area keywords
+    keywords.insert("continents".to_string());
+    keywords.insert("strategic_regions".to_string());
+
+    // Music keywords
+    keywords.insert("music".to_string());
+    keywords.insert("music_station".to_string());
+    keywords.insert("song".to_string());
+    keywords.insert("chance".to_string());
+    keywords.insert("base".to_string());
+    keywords.insert("factor".to_string());
+    keywords.insert("add".to_string());
+    keywords.insert("modifier".to_string());
+    keywords.insert("volume".to_string());
+    keywords.insert("file".to_string());
+
+    // Structural block keywords (scope filter, conditional, option blocks)
+    keywords.insert("limit".to_string());
+    keywords.insert("else".to_string());
+    keywords.insert("else_if".to_string());
+    keywords.insert("option".to_string());
+    keywords.insert("trigger".to_string());
+
+    // Ideology definition keywords
+    keywords.insert("types".to_string());
+    keywords.insert("dynamic_faction_names".to_string());
+    keywords.insert("rules".to_string());
+    keywords.insert("can_host_government_in_exile".to_string());
+    keywords.insert("war_impact_on_world_tension".to_string());
+    keywords.insert("faction_impact_on_world_tension".to_string());
+    keywords.insert("can_be_boosted".to_string());
+    keywords.insert("can_collaborate".to_string());
+    keywords.insert("modifiers".to_string());
+    keywords.insert("faction_modifiers".to_string());
+    keywords.insert("can_create_collaboration_government".to_string());
+    keywords.insert("can_declare_war_on_same_ideology".to_string());
+    keywords.insert("can_force_government".to_string());
+
+    // Known idea category names (game-defined, not user types)
+    keywords.insert("country".to_string());
+    keywords.insert("slot_ledgers".to_string());
+    keywords.insert("slot".to_string());
+    keywords.insert("character_slot".to_string());
+    keywords.insert("designer".to_string());
+    keywords.insert("use_list_view".to_string());
+    keywords.insert("law".to_string());
+    keywords.insert("picture".to_string());
+    keywords.insert("targeted_modifier".to_string());
+    keywords.insert("research_bonus".to_string());
+    keywords.insert("equipment_bonus".to_string());
+    keywords.insert("rule".to_string());
+    keywords.insert("on_add".to_string());
+    keywords.insert("on_remove".to_string());
+    keywords.insert("cancel".to_string());
+    keywords.insert("allowed_civil_war".to_string());
+    keywords.insert("do_effect".to_string());
+    keywords.insert("allowed_to_remove".to_string());
+    keywords.insert("visible".to_string());
+    keywords.insert("available".to_string());
+    keywords.insert("removal_cost".to_string());
+    keywords.insert("level".to_string());
+    keywords.insert("ledger".to_string());
+    keywords.insert("hidden".to_string());
+    keywords.insert("politics_tab".to_string());
+
+    // National focus tree structure keywords
+    keywords.insert("focus_tree".to_string());
+    keywords.insert("focus".to_string());
+    keywords.insert("shared_focus".to_string());
+    keywords.insert("joint_focus".to_string());
+    keywords.insert("continuous_focus_palette".to_string());
+    keywords.insert("continuous_focus_position".to_string());
+    keywords.insert("initial_show_position".to_string());
+    keywords.insert("shortcut".to_string());
+    keywords.insert("inlay_window".to_string());
+    keywords.insert("style".to_string());
+    keywords.insert("search_filter_prios".to_string());
+
+    // National focus property keywords
+    keywords.insert("prerequisite".to_string());
+    keywords.insert("mutually_exclusive".to_string());
+    keywords.insert("bypass".to_string());
+    keywords.insert("bypass_if_unavailable".to_string());
+    keywords.insert("enable_automatic_bypass".to_string());
+    keywords.insert("allow_branch".to_string());
+    keywords.insert("available_if_capitulated".to_string());
+    keywords.insert("cancel_if_invalid".to_string());
+    keywords.insert("continue_if_invalid".to_string());
+    keywords.insert("historical_ai".to_string());
+    keywords.insert("completion_reward".to_string());
+    keywords.insert("complete_tooltip".to_string());
+    keywords.insert("select_effect".to_string());
+    keywords.insert("bypass_effect".to_string());
+    keywords.insert("search_filters".to_string());
+    keywords.insert("text_icon".to_string());
+    keywords.insert("will_lead_to_war_with".to_string());
+    keywords.insert("dynamic".to_string());
+    keywords.insert("offset".to_string());
+    keywords.insert("relative_position_id".to_string());
+    keywords.insert("id".to_string());
+    keywords.insert("cost".to_string());
+    keywords.insert("icon".to_string());
+    keywords.insert("default".to_string());
+    keywords.insert("reset_on_civilwar".to_string());
+    keywords.insert("target".to_string());
+    keywords.insert("scroll_wheel_factor".to_string());
+
+    // Continuous focus keywords
+    keywords.insert("daily_cost".to_string());
+    keywords.insert("supports_ai_strategy".to_string());
+    keywords.insert("cancel_effect".to_string());
+
+    // Joint focus keywords
+    keywords.insert("joint_trigger".to_string());
+    keywords.insert("completion_reward_joint_originator".to_string());
+    keywords.insert("completion_reward_joint_member".to_string());
+
+    // Focus inlay window keywords
+    keywords.insert("window_name".to_string());
+    keywords.insert("internal".to_string());
+    keywords.insert("scripted_buttons".to_string());
+    keywords.insert("scripted_images".to_string());
+    keywords.insert("click_effect".to_string());
+
+    // Style definition keywords
+    keywords.insert("unavailable".to_string());
+    keywords.insert("current".to_string());
+
+    // AI strategy plan keywords
+    keywords.insert("ai_strategy".to_string());
+
+    // State definition keywords (history/states/*.txt)
+    keywords.insert("state".to_string());
+    keywords.insert("id".to_string());
+    keywords.insert("manpower".to_string());
+    keywords.insert("state_category".to_string());
+    keywords.insert("impassable".to_string());
+    keywords.insert("resources".to_string());
+    keywords.insert("local_supplies".to_string());
+    keywords.insert("buildings_max_level_factor".to_string());
+    keywords.insert("history".to_string());
+    keywords.insert("provinces".to_string());
+
+    // State history sub-keywords
+    keywords.insert("owner".to_string());
+    keywords.insert("controller".to_string());
+    keywords.insert("victory_points".to_string());
+    keywords.insert("buildings".to_string());
+    keywords.insert("add_core_of".to_string());
+    keywords.insert("add_claim_by".to_string());
+    keywords.insert("set_state_name".to_string());
+
+    // Strategic region definition keywords (map/strategicregions/*.txt)
+    keywords.insert("strategic_region".to_string());
+    keywords.insert("weather".to_string());
+    keywords.insert("period".to_string());
+    keywords.insert("between".to_string());
+    keywords.insert("temperature".to_string());
+    keywords.insert("no_phenomenon".to_string());
+    keywords.insert("rain_light".to_string());
+    keywords.insert("rain_heavy".to_string());
+    keywords.insert("snow".to_string());
+    keywords.insert("blizzard".to_string());
+    keywords.insert("mud".to_string());
+    keywords.insert("sandstorm".to_string());
+    keywords.insert("arctic_water".to_string());
+    keywords.insert("min_snow_level".to_string());
+    keywords.insert("naval_terrain".to_string());
+
+    // Terrain definition keywords (common/terrain/*.txt)
+    keywords.insert("categories".to_string());
+    keywords.insert("color".to_string());
+    keywords.insert("terrain".to_string());
+    keywords.insert("movement_cost".to_string());
+    keywords.insert("is_water".to_string());
+    keywords.insert("sound_type".to_string());
+    keywords.insert("minimum_seazone_dominance".to_string());
+    keywords.insert("combat_width".to_string());
+    keywords.insert("combat_support_width".to_string());
+    keywords.insert("ai_terrain_importance_factor".to_string());
+    keywords.insert("match_value".to_string());
+    keywords.insert("buildings_max_level".to_string());
+    keywords.insert("supply_flow_penalty_factor".to_string());
+    keywords.insert("truck_attrition_factor".to_string());
+    keywords.insert("navy_fuel_consumption_factor".to_string());
+    keywords.insert("units".to_string());
+    keywords.insert("battle_cruiser".to_string());
+    keywords.insert("battleship".to_string());
+    keywords.insert("heavy_cruiser".to_string());
+    keywords.insert("carrier".to_string());
+    keywords.insert("destroyer".to_string());
+    keywords.insert("light_cruiser".to_string());
+    keywords.insert("submarine".to_string());
+    keywords.insert("texture".to_string());
+    keywords.insert("spawn_city".to_string());
+    keywords.insert("perm_snow".to_string());
+
+    // Balance of power definition keywords (common/bop/*.txt)
+    keywords.insert("initial_value".to_string());
+    keywords.insert("left_side".to_string());
+    keywords.insert("right_side".to_string());
+    keywords.insert("decision_category".to_string());
+    keywords.insert("side".to_string());
+    keywords.insert("range".to_string());
+    keywords.insert("min".to_string());
+    keywords.insert("max".to_string());
+    keywords.insert("on_activate".to_string());
+    keywords.insert("on_deactivate".to_string());
+
+    // Event definition keywords (events/*.txt) structural — not in triggers/effects data
+    keywords.insert("add_namespace".to_string());
+    keywords.insert("mean_time_to_happen".to_string());
+    keywords.insert("fire_only_once".to_string());
+    keywords.insert("is_triggered_only".to_string());
+    keywords.insert("major".to_string());
+    keywords.insert("show_major".to_string());
+    keywords.insert("fire_for_sender".to_string());
+    keywords.insert("minor_flavor".to_string());
+    keywords.insert("timeout_days".to_string());
+    keywords.insert("immediate".to_string());
+    keywords.insert("after".to_string());
+    keywords.insert("option".to_string());
+    keywords.insert("original_recipient_only".to_string());
+    keywords.insert("ai_chance".to_string());
+    keywords.insert("title".to_string());
+    keywords.insert("text".to_string());
+    keywords.insert("tooltip".to_string());
+    keywords.insert("trigger".to_string());
+
+    // Event time / delay keywords (MTTH + event firing effect)
+    keywords.insert("days".to_string());
+    keywords.insert("months".to_string());
+    keywords.insert("years".to_string());
+    keywords.insert("hours".to_string());
+    keywords.insert("random_hours".to_string());
+    keywords.insert("random_days".to_string());
+    keywords.insert("random".to_string());
+
+    // Event-type-specific effect sub-keys
+    keywords.insert("trigger_for".to_string());
+    keywords.insert("occupied".to_string());
+    keywords.insert("originator".to_string());
+    keywords.insert("recipient".to_string());
+    keywords.insert("set_root".to_string());
+    keywords.insert("set_from".to_string());
+    keywords.insert("set_from_from".to_string());
+
+    // Bookmark definition keywords (common/bookmarks/*.txt)
+    keywords.insert("bookmarks".to_string());
+    keywords.insert("bookmark".to_string());
+    keywords.insert("default_country".to_string());
+    keywords.insert("effect".to_string());
+    keywords.insert("minor".to_string());
+    keywords.insert("ideas".to_string());
+    keywords.insert("focuses".to_string());
+
+    // Game rule keywords (common/game_rules/*.txt)
+    keywords.insert("group".to_string());
+    keywords.insert("required_dlc".to_string());
+    keywords.insert("exclude_dlc".to_string());
+    keywords.insert("allow_achievements".to_string());
+
+    // Difficulty setting keywords (common/difficulty_settings/*.txt)
+    keywords.insert("difficulty_settings".to_string());
+    keywords.insert("difficulty_setting".to_string());
+    keywords.insert("countries".to_string());
+    keywords.insert("multiplier".to_string());
+
+    // OOB (Order of Battle) keywords (history/units/*.txt)
+    keywords.insert("division_template".to_string());
+    keywords.insert("units".to_string());
+    keywords.insert("air_wings".to_string());
+    keywords.insert("amount".to_string());
+    keywords.insert("instant_effect".to_string());
+    keywords.insert("regiments".to_string());
+    keywords.insert("support".to_string());
+    keywords.insert("division_names_group".to_string());
+    keywords.insert("is_locked".to_string());
+    keywords.insert("force_allow_recruiting".to_string());
+    keywords.insert("division_cap".to_string());
+    keywords.insert("template_counter".to_string());
+    keywords.insert("override_model".to_string());
+    keywords.insert("division_name".to_string());
+    keywords.insert("is_name_ordered".to_string());
+    keywords.insert("name_order".to_string());
+    keywords.insert("start_experience_factor".to_string());
+    keywords.insert("start_equipment_factor".to_string());
+    keywords.insert("start_manpower_factor".to_string());
+    keywords.insert("force_equipment_variants".to_string());
+    keywords.insert("officer".to_string());
+    keywords.insert("division".to_string());
+    keywords.insert("location".to_string());
+    keywords.insert("fleet".to_string());
+    keywords.insert("naval_base".to_string());
+    keywords.insert("task_force".to_string());
+    keywords.insert("pride_of_the_fleet".to_string());
+    keywords.insert("ship".to_string());
+    keywords.insert("definition".to_string());
+    keywords.insert("add_equipment_production".to_string());
+    keywords.insert("requested_factories".to_string());
+    keywords.insert("efficiency".to_string());
+    keywords.insert("version_name".to_string());
+    keywords.insert("creator".to_string());
+
+    keywords
 }
 
 /// Check for duplicate modifier keys within a block of entries.

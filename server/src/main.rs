@@ -23,8 +23,9 @@ pub(crate) use crate::backend::Backend;
 
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
+use arc_swap::ArcSwap;
 use dashmap::DashMap;
 use tower_lsp_server::{LspService, Server};
 
@@ -86,15 +87,20 @@ async fn main() {
     let stdin = tokio::io::stdin();
     let stdout = tokio::io::stdout();
 
-    let (service, socket) = LspService::new(|client| Backend {
-        client,
-        documents: DashMap::new(),
-        document_asts: DashMap::new(),
-        document_cancellation_tokens: DashMap::new(),
-        scanner_data: ScannerData::new(),
-        config: Config::new(),
-        system_info: Mutex::new(sysinfo::System::new()),
-        workspace_roots: Mutex::new(Vec::new()),
+    let (service, socket) = LspService::new(|client| {
+        let static_keywords = Arc::new(backend::build_static_semantic_keywords());
+        Backend {
+            client,
+            documents: DashMap::new(),
+            document_asts: DashMap::new(),
+            document_cancellation_tokens: DashMap::new(),
+            scanner_data: ScannerData::new(),
+            config: Config::new(),
+            system_info: Mutex::new(sysinfo::System::new()),
+            workspace_roots: Mutex::new(Vec::new()),
+            static_token_keywords: static_keywords,
+            entity_token_context: ArcSwap::from_pointee(HashMap::new()),
+        }
     });
     Server::new(stdin, stdout, socket).serve(service).await;
 }
