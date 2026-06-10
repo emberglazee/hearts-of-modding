@@ -70,7 +70,8 @@ pub(crate) fn find_event_definitions(
             if (key == "country_event"
                 || key == "state_event"
                 || key == "news_event"
-                || key == "unit_leader_event")
+                || key == "unit_leader_event"
+                || key == "operative_leader_event")
                 && let ast::Value::Block(inner) = &ass.value.value
             {
                 let mut id = None;
@@ -144,6 +145,7 @@ fn find_triggers_recursive(
                     || key == "state_event"
                     || key == "news_event"
                     || key == "unit_leader_event"
+                    || key == "operative_leader_event"
                 {
                     // Extract ID
                     if let ast::Value::Block(inner) = &ass.value.value {
@@ -168,6 +170,7 @@ fn find_triggers_recursive(
                     || key == "state_event"
                     || key == "news_event"
                     || key == "unit_leader_event"
+                    || key == "operative_leader_event"
                 {
                     // Check if it's a call: country_event = { id = ... } OR country_event = id
                     let called_id = match &ass.value.value {

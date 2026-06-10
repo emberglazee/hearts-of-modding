@@ -171,6 +171,7 @@ mod tests {
             styling_enabled,
             workspace_roots,
             unit_types: &DashMap::new(),
+            event_namespaces: &DashMap::new(),
         };
 
         let rule = GfxTextureRule::new(gfx_file_path);

@@ -1756,6 +1756,7 @@ impl Backend {
             styling_enabled,
             workspace_roots: &workspace_roots,
             unit_types: &self.scanner_data.unit_types,
+            event_namespaces: &self.scanner_data.event_namespaces,
         };
 
         // ── AST visitors (single traversal, replaces per-rule recursion) ──
@@ -1784,6 +1785,7 @@ impl Backend {
             Box::new(rules::state_definitions::StateDefinitionRule),
             Box::new(rules::terrains::TerrainRule),
             Box::new(rules::traits::TraitRule),
+            Box::new(rules::events::EventValidationRule),
         ];
 
         // Block-level rules: top-level entries only, NO recursion.
@@ -2158,6 +2160,11 @@ pub(crate) fn build_static_semantic_keywords() -> HashSet<String> {
 
     // Event definition keywords (events/*.txt) structural — not in triggers/effects data
     keywords.insert("add_namespace".to_string());
+    keywords.insert("country_event".to_string());
+    keywords.insert("state_event".to_string());
+    keywords.insert("news_event".to_string());
+    keywords.insert("unit_leader_event".to_string());
+    keywords.insert("operative_leader_event".to_string());
     keywords.insert("mean_time_to_happen".to_string());
     keywords.insert("fire_only_once".to_string());
     keywords.insert("is_triggered_only".to_string());

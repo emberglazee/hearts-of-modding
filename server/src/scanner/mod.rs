@@ -8,6 +8,7 @@ pub mod building_scanner;
 pub mod character_scanner;
 pub mod continent_scanner;
 pub mod country_scanner;
+pub mod event_namespace_scanner;
 pub mod event_scanner;
 pub mod file_overlay;
 pub mod focus_scanner;

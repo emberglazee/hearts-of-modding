@@ -35,6 +35,7 @@ pub enum EntityKind {
     SoundCategory,
     AdjacencyRule,
     BalanceOfPower,
+    EventNamespace,
     StrategicRegion,
     TerrainCategory,
     Portrait,
@@ -86,6 +87,7 @@ impl EntityKind {
             | EntityKind::Falloff
             | EntityKind::SoundCategory => SymbolKind::PROPERTY,
             EntityKind::AdjacencyRule => SymbolKind::FUNCTION,
+            EntityKind::EventNamespace => SymbolKind::NAMESPACE,
             EntityKind::StrategicRegion => SymbolKind::OBJECT,
             EntityKind::TerrainCategory => SymbolKind::ENUM,
             EntityKind::Portrait => SymbolKind::OBJECT,
@@ -238,6 +240,7 @@ impl<'a> EntityLookup<'a> {
         try_lookup!(AiStrategyPlan, ai_strategy_plans);
         try_lookup!(OobDivisionTemplate, oob_division_templates);
         try_lookup!(OobFleet, oob_fleets);
+        try_lookup!(EventNamespace, event_namespaces);
         try_lookup!(UnitType, unit_types);
 
         {
@@ -368,6 +371,7 @@ impl<'a> EntityLookup<'a> {
         collect_names!(ColorCode, color_codes);
         collect_names!(OobDivisionTemplate, oob_division_templates);
         collect_names!(OobFleet, oob_fleets);
+        collect_names!(EventNamespace, event_namespaces);
         collect_names!(UnitType, unit_types);
 
         names
@@ -693,6 +697,7 @@ impl<'a> EntityLookup<'a> {
         }
 
         push_symbols!(Ideology, ideologies, "Ideology");
+        push_symbols!(EventNamespace, event_namespaces, "Event Namespace");
 
         {
             let map = &self.data.sub_ideologies;

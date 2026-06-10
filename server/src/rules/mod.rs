@@ -2,6 +2,7 @@ use crate::data::interner::InternedStr;
 use crate::data::layered_value::LayeredValue;
 use crate::parser::ast;
 use crate::scanner::building_scanner;
+use crate::scanner::event_namespace_scanner;
 use crate::scope::scope;
 use dashmap::DashMap;
 use regex::Regex;
@@ -14,6 +15,7 @@ pub(crate) mod buildings;
 pub(crate) mod characters;
 pub(crate) mod country_metadata;
 pub(crate) mod country_tags;
+pub(crate) mod events;
 pub(crate) mod gfx_textures;
 pub(crate) mod ideas;
 pub(crate) mod ideologies;
@@ -81,6 +83,8 @@ pub(crate) struct ValidationContext<'a> {
     pub(crate) workspace_roots: &'a [std::path::PathBuf],
     pub(crate) unit_types:
         &'a DashMap<InternedStr, LayeredValue<crate::scanner::unit_scanner::UnitType>>,
+    pub(crate) event_namespaces:
+        &'a DashMap<InternedStr, LayeredValue<event_namespace_scanner::EventNamespace>>,
 }
 
 /// A validation rule for HOI4 script semantics.

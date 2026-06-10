@@ -12,6 +12,7 @@ use crate::scanner::bop_scanner;
 use crate::scanner::building_scanner;
 use crate::scanner::character_scanner;
 use crate::scanner::country_scanner;
+use crate::scanner::event_namespace_scanner;
 use crate::scanner::event_scanner;
 use crate::scanner::focus_scanner;
 use crate::scanner::idea_scanner;
@@ -231,6 +232,7 @@ impl_has_path!(country_scanner::CountryTag);
 impl_has_path!(bop_scanner::BalanceOfPower);
 impl_has_path!(oob_scanner::OobDivisionTemplate);
 impl_has_path!(oob_scanner::OobFleet);
+impl_has_path!(event_namespace_scanner::EventNamespace);
 impl_has_path!(unit_scanner::UnitType);
 
 /// Determines which scanner categories apply to a given file path.
@@ -535,6 +537,22 @@ fn update_events(scanner_data: &ScannerData, path_str: &str, script: &ast::Scrip
         scanner_data.events_file_index,
         path_str,
         new_entries
+    );
+
+    // Also update namespace declarations from the same file
+    let mut namespace_entries = HashMap::new();
+    event_namespace_scanner::find_namespaces_in_entries(
+        &script.entries,
+        &script.source,
+        path_str,
+        &mut namespace_entries,
+    );
+
+    retain_path!(
+        scanner_data.event_namespaces,
+        scanner_data.event_namespaces_file_index,
+        path_str,
+        namespace_entries
     );
 }
 
@@ -1179,6 +1197,11 @@ pub fn remove_path_from_scanner_data(scanner_data: &ScannerData, path_str: &str)
                 remove_path!(
                     scanner_data.events,
                     scanner_data.events_file_index,
+                    path_str
+                );
+                remove_path!(
+                    scanner_data.event_namespaces,
+                    scanner_data.event_namespaces_file_index,
                     path_str
                 );
             }

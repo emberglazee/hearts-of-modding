@@ -64,6 +64,7 @@ fn run_ability_visitor(input: &str, uri: &str) -> Vec<Diagnostic> {
         styling_enabled: false,
         workspace_roots: &[],
         unit_types: &DashMap::new(),
+        event_namespaces: &DashMap::new(),
     };
 
     let mut visitors: Vec<Box<dyn AstVisitor>> = vec![AbilityRule::visitor()];

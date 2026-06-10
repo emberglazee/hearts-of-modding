@@ -21,6 +21,12 @@ pub const ABILITY_MISSING_AI_LOGIC: &str = "HOM3004";
 pub const UNKNOWN_UNIT_TYPE: &str = "HOM3005";
 pub const UNIT_TYPE_CASE_MISMATCH: &str = "HOM3007";
 pub const UNKNOWN_DIVISION_TEMPLATE: &str = "HOM3006";
+pub const MISSING_EVENT_NAMESPACE: &str = "HOM3008";
+pub const NON_INTEGER_EVENT_ID: &str = "HOM3009";
+pub const EVENT_ID_TOO_LARGE: &str = "HOM3010";
+#[allow(dead_code)]
+pub const DUPLICATE_EVENT_ID: &str = "HOM3011";
+pub const DUPLICATE_EVENT_NAMESPACE: &str = "HOM3012";
 pub const PORTRAIT_UNKNOWN_GFX: &str = "HOM4001";
 pub const UNKNOWN_COUNTRY_METADATA_GFX: &str = "HOM4002";
 pub const UNKNOWN_STATE_CATEGORY: &str = "HOM5001";

@@ -13,6 +13,7 @@ use crate::scanner::building_scanner;
 use crate::scanner::character_scanner;
 use crate::scanner::continent_scanner;
 use crate::scanner::country_scanner;
+use crate::scanner::event_namespace_scanner;
 use crate::scanner::event_scanner;
 use crate::scanner::focus_scanner;
 use crate::scanner::gfx_scanner;
@@ -122,6 +123,9 @@ pub(crate) struct ScannerData {
     pub oob_division_templates:
         DashMap<InternedStr, LayeredValue<oob_scanner::OobDivisionTemplate>>,
     pub oob_fleets: DashMap<InternedStr, LayeredValue<oob_scanner::OobFleet>>,
+    pub event_namespaces:
+        DashMap<InternedStr, LayeredValue<event_namespace_scanner::EventNamespace>>,
+    pub event_namespaces_file_index: DashMap<InternedStr, Vec<InternedStr>>,
 
     // ── Reverse file-path indices for O(K) incremental updates ──
     // Maps file path -> Vec of keys defined in that file.
@@ -226,6 +230,8 @@ impl ScannerData {
             states: DashMap::new(),
             oob_division_templates: DashMap::new(),
             oob_fleets: DashMap::new(),
+            event_namespaces: DashMap::new(),
+            event_namespaces_file_index: DashMap::new(),
             localization_file_index: DashMap::new(),
             unit_types_file_index: DashMap::new(),
             scripted_triggers_file_index: DashMap::new(),
@@ -356,5 +362,6 @@ impl ScannerData {
             self.oob_division_templates_file_index
         );
         rebuild_index!(self.oob_fleets, self.oob_fleets_file_index);
+        rebuild_index!(self.event_namespaces, self.event_namespaces_file_index);
     }
 }
