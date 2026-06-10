@@ -361,7 +361,33 @@ impl LanguageServer for Backend {
         }
 
         // 5. Workspace root (active mod, highest priority)
-        roots.push(std::path::PathBuf::from("."));
+        //
+        // But if the workspace IS the HOI4 game installation directory, skip
+        // pushing "." to avoid double-scanning every file — the game path root
+        // (step 1) already covers this directory. Without this check, the same
+        // files would be walked twice through the overlay, and every entity
+        // would get an identical duplicate layer, causing false-positive
+        // diagnostics ("everything is a duplicate of everything else").
+        let same_as_game = gp
+            .as_ref()
+            .and_then(|gp_path| {
+                let ws = std::path::Path::new(".").canonicalize().ok();
+                let gp = std::path::Path::new(gp_path).canonicalize().ok();
+                ws.zip(gp).map(|(w, g)| w == g)
+            })
+            .unwrap_or(false);
+
+        if same_as_game {
+            self.client
+                .log_message(
+                    MessageType::INFO,
+                    "Workspace root is the configured HOI4 game installation path — \
+                     skipping duplicate workspace root to avoid double-scanning.",
+                )
+                .await;
+        } else {
+            roots.push(std::path::PathBuf::from("."));
+        }
 
         // Store roots for texture file path resolution and other validation
         *self.workspace_roots.lock().unwrap() = roots.clone();

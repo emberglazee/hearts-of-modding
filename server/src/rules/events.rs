@@ -3,7 +3,8 @@ use crate::rules::{ValidationContext, ValidationRule};
 use crate::scanner::event_namespace_scanner;
 use crate::scope::scope::ScopeStack;
 use crate::utils::lsp_convert::ast_range_to_lsp;
-use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
+use std::str::FromStr;
+use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString, Uri};
 
 /// Validates event definitions for correct namespace usage and ID format.
 ///
@@ -38,10 +39,22 @@ impl ValidationRule for EventValidationRule {
                 let ns_entry = ctx.event_namespaces.get(name);
                 if let Some(entry) = ns_entry {
                     // The entry exists — check if the file paths differ.
-                    // If the same file re-declares it, that's also a duplicate.
-                    let this_path = ctx.uri;
+                    // Compare as canonicalized filesystem paths to handle
+                    // both the URI-vs-path format mismatch (file:///foo vs /foo)
+                    // and symlinked paths pointing to the same physical file.
                     let other_path = &*entry.value().resolve().path;
-                    if other_path != this_path {
+                    let same_file = match Uri::from_str(ctx.uri) {
+                        Ok(uri) => match uri.to_file_path() {
+                            Some(path) => {
+                                let current = path.into_owned().canonicalize().ok();
+                                let stored = std::path::Path::new(other_path).canonicalize().ok();
+                                current.zip(stored).map(|(c, o)| c == o).unwrap_or(false)
+                            }
+                            None => false,
+                        },
+                        Err(_) => false,
+                    };
+                    if !same_file {
                         diags.push(Diagnostic {
                             range: ast_range_to_lsp(&ass.value.range),
                             severity: Some(DiagnosticSeverity::WARNING),

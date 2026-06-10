@@ -10,6 +10,10 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Event ID validation:** Event ID suffix must be a valid integer, and same suffix must not be >= 100000.
 
+### 🩹 Fixed
+
+- **Duplicate detection in vanilla files:** If your workspace has the same path as `hoi4.gamePath` (so your workspace is your specified HOI4 install) the extension will no longer give false warnings about duplicates.
+
 ## [v0.19.1] - 2026-06-10
 
 ### 🩹 Fixed
