@@ -507,7 +507,11 @@ mod tests {
 
         // `winning_files_in` must find the mod's usa.txt (higher priority wins)
         let ideas_files = overlay.winning_files_in("common/ideas");
-        assert_eq!(ideas_files.len(), 1, "Should find 1 file under common/ideas");
+        assert_eq!(
+            ideas_files.len(),
+            1,
+            "Should find 1 file under common/ideas"
+        );
         let winner = &ideas_files[0];
         assert!(
             winner.to_string_lossy().contains("mod"),
@@ -517,7 +521,11 @@ mod tests {
 
         // Focus file from vanilla must be discoverable (not replaced)
         let focus_files = overlay.winning_files_in("common/national_focus");
-        assert_eq!(focus_files.len(), 1, "Should find 1 file under common/national_focus");
+        assert_eq!(
+            focus_files.len(),
+            1,
+            "Should find 1 file under common/national_focus"
+        );
         let focus_winner = &focus_files[0];
         assert!(
             focus_winner.to_string_lossy().contains("vanilla"),
