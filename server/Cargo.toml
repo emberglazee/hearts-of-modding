@@ -20,12 +20,12 @@ arc-swap = "1.9.1"
 paste = { package = "pastey", version = "0.2" }
 rustc-hash = "2.1.2"
 smallvec = "1.13.2"
-tikv-jemallocator = "0.6"
+tikv-jemallocator = "0.7.0"
 tokio-util = "0.7"
 
 [patch.crates-io]
-tikv-jemalloc-sys = { git = "https://github.com/emberglazee/jemallocator", rev = "c74b240" }
-tikv-jemallocator = { git = "https://github.com/emberglazee/jemallocator", rev = "c74b240" }
+tikv-jemalloc-sys = { git = "https://github.com/emberglazee/jemallocator", rev = "da06d4a" }
+tikv-jemallocator = { git = "https://github.com/emberglazee/jemallocator", rev = "da06d4a" }
 
 [profile.release]
 strip = true
