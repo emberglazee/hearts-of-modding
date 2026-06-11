@@ -36,7 +36,10 @@ fn find_scope_context_in_entry(
         ast::Entry::Assignment(ass) => {
             if is_pos_in_range(pos, &ass.value.range) {
                 if let ast::Value::Block(_) | ast::Value::TaggedBlock(_, _, _) = &ass.value.value {
-                    let s = scope::resolve_key_scope(ass.key_text(&script.source), achievements);
+                    let key = ass.key_text(&script.source);
+                    // Try dynamic meta-scope resolution for THIS/ROOT/PREV/FROM
+                    // before falling back to static resolution.
+                    let s = scope_stack.resolve_scope_key(key, achievements);
                     scope_stack.push(s);
                 }
 

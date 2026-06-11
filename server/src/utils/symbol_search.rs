@@ -55,7 +55,9 @@ pub fn find_in_entry(
             let mut pushed_scope = None;
             if let ast::Value::Block(_) | ast::Value::TaggedBlock(_, _, _) = &ass.value.value {
                 let key_text = ass.key_text(source);
-                let s = scope::resolve_key_scope(key_text, achievements);
+                // Try dynamic meta-scope resolution for THIS/ROOT/PREV/FROM
+                // before falling back to static resolution.
+                let s = scope_stack.resolve_scope_key(key_text, achievements);
 
                 if s != scope::Scope::Unknown || key_text.contains(':') || key_text.contains('.') {
                     scope_stack.push(s);

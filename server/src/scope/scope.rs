@@ -181,4 +181,83 @@ impl ScopeStack {
     pub fn iter(&self) -> std::slice::Iter<'_, Scope> {
         self.stack.iter()
     }
+
+    /// Resolve a meta-scope reference dynamically based on the current
+    /// scope stack context.
+    ///
+    /// HOI4 defines several meta-scopes that refer to contextual scopes
+    /// rather than named ones:
+    ///
+    /// | Keyword | Resolves to |
+    /// |---------|------------|
+    /// | `THIS`  | Current scope (top of stack) |
+    /// | `ROOT`  | First non-Global scope pushed (the entry point of the block) |
+    /// | `PREV`  | Parent scope (one level up) |
+    /// | `PREVPREV` | Grandparent scope (two levels up) |
+    /// | `FROM`  | Event/action source scope — typically `Country` |
+    /// | `FROM.FROM` | Chained FROM — typically `Country` |
+    ///
+    /// Returns `None` when the key is not a meta-scope, so callers can
+    /// fall back to [`Scope::from_str`] or [`resolve_key_scope`].
+    pub fn resolve_meta_scope(&self, key: &str) -> Option<Scope> {
+        let upper = key.to_ascii_uppercase();
+        match upper.as_str() {
+            // THIS = current scope (top of stack).
+            // Always succeeds because the stack is never empty
+            // (it always has at least Global).
+            "THIS" => Some(self.current()),
+
+            // ROOT = the first non-Global scope that was pushed.
+            // In HOI4 this is usually Country (events, focuses, decisions),
+            // but can be State (state events) or Character (character events).
+            "ROOT" => Some(self.stack.get(1).copied().unwrap_or(Scope::Global)),
+
+            // PREV = one level above current (parent scope).
+            // PREVPREV, PREVPREVPREV, etc. = N levels up.
+            // We handle any string made of consecutive "PREV" parts.
+            "PREV" | "PREVPREV" | "PREVPREVPREV" | "PREVPREVPREVPREV" => {
+                let depth = upper.matches("PREV").count();
+                debug_assert!(depth >= 1, "PREV pattern matched with zero PREVs");
+                if self.stack.len() > depth {
+                    Some(self.stack[self.stack.len() - 1 - depth])
+                } else {
+                    Some(Scope::Unknown)
+                }
+            }
+
+            // FROM = source scope in events / targeted effects.
+            // Cannot be determined statically without tracking which
+            // event/effect fired this block. Default to Country since
+            // most senders are countries.
+            "FROM" => Some(Scope::Country),
+
+            // Chained FROM references: FROM.FROM, FROM.FROM.FROM.
+            // Also default to Country.
+            _ if upper.starts_with("FROM.") => {
+                let count = upper.matches("FROM").count();
+                if count > 3 || count == 0 {
+                    Some(Scope::Unknown)
+                } else {
+                    Some(Scope::Country)
+                }
+            }
+
+            _ => None,
+        }
+    }
+
+    /// Resolve a key to its semantic scope, trying meta-scope resolution
+    /// first, then falling back to achievement-aware resolution, then
+    /// static [`Scope::from_str`].
+    ///
+    /// This is the preferred single-call API when both a `ScopeStack`
+    /// and an achievements map are available.
+    pub fn resolve_scope_key(
+        &self,
+        key: &str,
+        achievements: &DashMap<InternedStr, LayeredValue<Achievement>>,
+    ) -> Scope {
+        self.resolve_meta_scope(key)
+            .unwrap_or_else(|| resolve_key_scope(key, achievements))
+    }
 }

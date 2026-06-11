@@ -146,7 +146,13 @@ fn walk_entries(
                 let mut pushed_scope = false;
 
                 // Structural blocks that push scope (mirrors Backend::check_entry_semantic)
-                let mut s = Scope::from_str(ass.key_text(ctx.source));
+                //
+                // First: try dynamic meta-scope resolution for THIS/ROOT/PREV/FROM.
+                // These refer to contextual scopes that depend on the current stack,
+                // not static scope names. Falls back to static resolution.
+                let mut s = scope_stack
+                    .resolve_meta_scope(ass.key_text(ctx.source))
+                    .unwrap_or_else(|| Scope::from_str(ass.key_text(ctx.source)));
 
                 // Internal 'idea' definition block context
                 // Unknown keys with block values at depth 2-3 inside an Idea
