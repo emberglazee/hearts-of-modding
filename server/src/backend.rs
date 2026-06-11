@@ -1768,6 +1768,7 @@ impl Backend {
             rules::ai_areas::AiAreaRule::visitor(uri),
             rules::provinces::ProvinceRule::vp_visitor(),
             rules::oob_regiments::OobRegimentVisitor::visitor(),
+            rules::events::EventValidationRule::visitor(),
         ];
 
         // Rules that still use check_assignment / check_block

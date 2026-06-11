@@ -87,7 +87,7 @@
     "semanticTokenColors": {
         "keyword": "#b8860b",
         "variable": "#c94a7a",
-        "string": "#1a1a2e",
+        "string": "#a31515",
         "string:hoi4-localisation": "#1a1a2e",
         "number": "#b8456e",
         "operator": "#8a8a9a",

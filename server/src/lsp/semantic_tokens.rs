@@ -572,7 +572,33 @@ fn push_entry_tokens(
             let key_text = ass.key_text(source);
             let is_keyword = ctx.keywords.contains(key_text);
 
-            if is_keyword {
+            // Event type keys (country_event, state_event, etc.) — highlight as Event
+            let is_event_type = matches!(
+                key_text,
+                "country_event"
+                    | "state_event"
+                    | "news_event"
+                    | "unit_leader_event"
+                    | "operative_leader_event"
+            );
+            // `option` = { ... } defines a structured block — highlight as Struct
+            let is_option_key = key_text == "option";
+
+            if is_event_type {
+                tokens.push(RawToken {
+                    line: ass.key_range.start_line,
+                    start: ass.key_range.start_col,
+                    length: ass.key_range.end_col - ass.key_range.start_col,
+                    token_type: TokenType::Event as u32,
+                });
+            } else if is_option_key {
+                tokens.push(RawToken {
+                    line: ass.key_range.start_line,
+                    start: ass.key_range.start_col,
+                    length: ass.key_range.end_col - ass.key_range.start_col,
+                    token_type: TokenType::Struct as u32,
+                });
+            } else if is_keyword {
                 tokens.push(RawToken {
                     line: ass.key_range.start_line,
                     start: ass.key_range.start_col,
@@ -678,22 +704,52 @@ fn push_value_tokens(
                     length: val.range.end_col - val.range.start_col,
                     token_type: TokenType::Number as u32,
                 });
-            } else if !is_localization_value {
-                if let Some(kind) = ctx.entity_names.get(s) {
-                    tokens.push(RawToken {
-                        line: val.range.start_line,
-                        start: val.range.start_col,
-                        length: val.range.end_col - val.range.start_col,
-                        token_type: entity_kind_to_token_type(*kind),
-                    });
-                } else if s.starts_with("var:") || s.starts_with("temp_var:") {
-                    tokens.push(RawToken {
-                        line: val.range.start_line,
-                        start: val.range.start_col,
-                        length: val.range.end_col - val.range.start_col,
-                        token_type: TokenType::Variable as u32,
-                    });
+            } else {
+                // Check entities and var: refs (skip for known
+                // localization-key fields like name/desc/text).
+                let is_loc = is_localization_value;
+                if !is_loc {
+                    if let Some(kind) = ctx.entity_names.get(s) {
+                        tokens.push(RawToken {
+                            line: val.range.start_line,
+                            start: val.range.start_col,
+                            length: val.range.end_col - val.range.start_col,
+                            token_type: entity_kind_to_token_type(*kind),
+                        });
+                        return;
+                    } else if s.starts_with("var:") || s.starts_with("temp_var:") {
+                        tokens.push(RawToken {
+                            line: val.range.start_line,
+                            start: val.range.start_col,
+                            length: val.range.end_col - val.range.start_col,
+                            token_type: TokenType::Variable as u32,
+                        });
+                        return;
+                    }
                 }
+                // Event ID pattern: `id = namespace.integer` — when the
+                // parent key is `id` and the value contains a dot, it's
+                // almost certainly an event reference even if the scanner
+                // hasn't indexed it yet (e.g. a newly written event).
+                if parent_key == Some("id") && s.contains('.') {
+                    tokens.push(RawToken {
+                        line: val.range.start_line,
+                        start: val.range.start_col,
+                        length: val.range.end_col - val.range.start_col,
+                        token_type: TokenType::Event as u32,
+                    });
+                    return;
+                }
+                // Fallback: highlight as String for visibility — catches
+                // event IDs not yet in scanner data, option names, idea
+                // names, desc keys, and any other unquoted string value
+                // that doesn't match a keyword or entity.
+                tokens.push(RawToken {
+                    line: val.range.start_line,
+                    start: val.range.start_col,
+                    length: val.range.end_col - val.range.start_col,
+                    token_type: TokenType::String as u32,
+                });
             }
         }
         Value::Number(_) => {
@@ -1280,6 +1336,115 @@ mod tests {
         let content = "7;212;179;179;sea;true;ocean;0\n\n\n114;40;15;15;land;false;plains;1\n";
         let tokens = collect_csv_tokens(content);
         assert_eq!(tokens.len(), 16, "2 data lines × 8 columns each");
+    }
+
+    #[test]
+    fn test_event_option_name_value_gets_string_token() {
+        // Option `name = my_name` inside a country_event — the value
+        // `my_name` should get a String token, not be invisible.
+        use crate::lsp::semantic_tokens::{SemanticTokenContext, get_semantic_tokens};
+        use crate::parser::parser::parse_script;
+        use std::collections::{HashMap, HashSet};
+
+        let input = "\
+country_event = {
+    id = my_event.1
+    option = {
+        name = my_option_name
+    }
+}
+";
+        let (script, _) = parse_script(input);
+        let mut keywords = HashSet::new();
+        keywords.insert("country_event".to_string());
+        keywords.insert("id".to_string());
+        keywords.insert("option".to_string());
+        keywords.insert("name".to_string());
+
+        let ctx = SemanticTokenContext::new(keywords, HashMap::new());
+        let result = get_semantic_tokens(&script, &ctx);
+
+        // Decode delta-encoded tokens
+        let legend = [
+            "keyword",
+            "variable",
+            "string",
+            "number",
+            "operator",
+            "comment",
+            "type",
+            "event",
+            "function",
+            "enum",
+            "enum_member",
+            "struct",
+            "class",
+            "property",
+        ];
+        let mut tokens = Vec::new();
+        let mut last_line = 0u32;
+        let mut last_start = 0u32;
+        match result {
+            SemanticTokensResult::Tokens(t) => {
+                for st in &t.data {
+                    let line = last_line + st.delta_line;
+                    let start = if st.delta_line == 0 {
+                        last_start + st.delta_start
+                    } else {
+                        st.delta_start
+                    };
+                    let name = legend
+                        .get(st.token_type as usize)
+                        .map(|s| s.to_string())
+                        .unwrap_or_else(|| format!("tt({})", st.token_type));
+                    tokens.push((line, start, st.length, name));
+                    last_line = line;
+                    last_start = start;
+                }
+            }
+            _ => panic!("expected Tokens result"),
+        }
+
+        // Tokens should include: country_event Event, = Operator,
+        //   id Keyword, = Operator, my_event.1 String,
+        //   option Struct, = Operator,
+        //   name Keyword, = Operator, my_option_name String
+
+        // Find the token for `my_option_name`
+        let my_name_tokens: Vec<_> = tokens
+            .iter()
+            .filter(|(_, _, len, name)| *len == 14 && *name == "string")
+            .collect();
+        assert!(
+            !my_name_tokens.is_empty(),
+            "Expected 'my_option_name' to get a String token, got tokens:\n{:#?}",
+            tokens,
+        );
+
+        // `my_event.1` (id value) is an event reference — should get Event
+        // token even though it's not in scanner data.
+        let id_val_tokens: Vec<_> = tokens
+            .iter()
+            .filter(|(_, _, len, name)| *len == 10 && *name == "event")
+            .collect();
+        assert!(
+            !id_val_tokens.is_empty(),
+            "Expected 'my_event.1' (id value) to get an Event token, got tokens:\n{:#?}",
+            tokens,
+        );
+
+        // Verify `country_event` gets Event (not Keyword)
+        let ce_token = tokens.iter().find(|(_, _, len, _)| *len == 13);
+        assert!(
+            ce_token.is_some(),
+            "Expected 'country_event' token (len 13), got:\n{:#?}",
+            tokens,
+        );
+        assert_eq!(
+            ce_token.unwrap().3,
+            "event",
+            "'country_event' should get Event token type",
+        );
     }
 
     #[test]

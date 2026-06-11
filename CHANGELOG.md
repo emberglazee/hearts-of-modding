@@ -6,9 +6,11 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### ✨ Added
 
-- **Event namespace validation:** Track namespace declarations, detect missing or duplicate namespaces.
+- **Event namespace, ID, and option validation.**
 
-- **Event ID validation:** Event ID suffix must be a valid integer, and same suffix must not be >= 100000.
+### 🔧 Changed
+
+- **Better semantic highlighting in events.**
 
 ### 🩹 Fixed
 
