@@ -14,6 +14,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Meta-scope resolution refactor.**
 
+- **Precomputed lookup table for ASCII identifier characters.**
+
 ### 🩹 Fixed
 
 - **Fixed duplicate detection in vanilla files:** If your workspace has the same path as `hoi4.gamePath` (so your workspace is your specified HOI4 install) the extension will no longer give false warnings about duplicates.

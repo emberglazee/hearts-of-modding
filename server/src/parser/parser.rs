@@ -51,23 +51,52 @@ fn to_range(span: Span) -> Range {
     }
 }
 
+/// Precomputed lookup table for ASCII identifier characters.
+///
+/// `true` at byte value `b` means `b` can appear inside a HOI4 identifier.
+/// Covers alphanumeric ASCII plus the special chars HOI4 allows.
+static IDENTIFIER_CHARS: [bool; 128] = {
+    let mut table = [false; 128];
+    let mut i = 0;
+    while i < 128 {
+        let b = i as u8;
+        if b.is_ascii_alphanumeric() {
+            table[i] = true;
+        }
+        i += 1;
+    }
+    table[b'_' as usize] = true;
+    table[b'.' as usize] = true;
+    table[b':' as usize] = true;
+    table[b'@' as usize] = true;
+    table[b'[' as usize] = true;
+    table[b']' as usize] = true;
+    table[b'?' as usize] = true;
+    table[b'^' as usize] = true;
+    table[b'$' as usize] = true;
+    table[b'/' as usize] = true;
+    table[b'-' as usize] = true;
+    table[b'\'' as usize] = true;
+    table[b'%' as usize] = true;
+    table[b'|' as usize] = true;
+    table[b'*' as usize] = true;
+    table
+};
+
+/// Returns `true` if `c` can appear inside a HOI4 identifier.
+///
+/// **Fast path** — ASCII chars via a precomputed 128-element lookup table
+/// (single branch + array access, no Unicode tables consulted).
+///
+/// **Slow path** — non-ASCII chars fall back to `char::is_alphanumeric`
+/// for rare identifiers like `jean_jaurès` found in some HOI4 files.
+#[inline]
 pub fn is_identifier_char(c: char) -> bool {
-    c.is_alphanumeric()
-        || c == '_'
-        || c == '.'
-        || c == ':'
-        || c == '@'
-        || c == '['
-        || c == ']'
-        || c == '?'
-        || c == '^'
-        || c == '$'
-        || c == '/'
-        || c == '-'
-        || c == '\''
-        || c == '%'
-        || c == '|'
-        || c == '*'
+    if c.is_ascii() {
+        IDENTIFIER_CHARS[c as usize]
+    } else {
+        c.is_alphanumeric()
+    }
 }
 
 /// Match an identifier and return (ByteSpan, Range).
