@@ -16,7 +16,9 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### 🩹 Fixed
 
-- **Duplicate detection in vanilla files:** If your workspace has the same path as `hoi4.gamePath` (so your workspace is your specified HOI4 install) the extension will no longer give false warnings about duplicates.
+- **Fixed duplicate detection in vanilla files:** If your workspace has the same path as `hoi4.gamePath` (so your workspace is your specified HOI4 install) the extension will no longer give false warnings about duplicates.
+
+- **Fixed wrongful duplicate key warnings for `icon` in `gfx/army_icons/army_icons.txt`.**
 
 ## [v0.19.1] - 2026-06-10
 

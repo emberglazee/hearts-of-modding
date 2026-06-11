@@ -2293,6 +2293,8 @@ pub(crate) fn check_duplicate_keys<'a>(
             // Exceptions: Some effects/triggers are specifically designed to be used multiple times
             // In air_wings province blocks, 'name' keys are used to label each preceding
             // equipment type block, so duplicates are valid.
+            // 'icon' is used structurally in army_icons.txt (and similar files) where
+            // each `icon = { ... }` block is a separate entry keyed by list position.
             let is_exception = key == "modifier"
                 || key == "option"
                 || key == "limit"
@@ -2300,6 +2302,7 @@ pub(crate) fn check_duplicate_keys<'a>(
                 || key == "else"
                 || key == "else_if"
                 || key == "variable_name"
+                || key == "icon"
                 || (in_air_wings && key == "name");
 
             if is_modifier && !is_exception {
