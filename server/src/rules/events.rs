@@ -17,36 +17,57 @@ struct EventOptionDef {
     has_ai_chance: bool,
 }
 
-/// AstVisitor that validates event option blocks (`option = { ... }`) inside
-/// event definitions (`country_event`, `state_event`, etc.).
+/// State tracked for the event itself.
+struct EventDef {
+    key_range: ast::Range,
+    has_title: bool,
+    has_desc: bool,
+    has_picture: bool,
+    is_hidden: bool,
+    has_mtth: bool,
+    has_is_triggered_only: bool,
+    /// Whether this block contains at least one `option = { ... }`.
+    /// Event definitions always have options; `country_event = { ... }`
+    /// used as an effect never does. Only validate definition usage.
+    has_option: bool,
+    /// Loc key extracted from `title = "..."` or `title = key` (not block form).
+    title_key: Option<String>,
+    /// Loc key extracted from `desc = "..."` or `desc = key` (not block form).
+    desc_key: Option<String>,
+    /// Sprite name extracted from `picture = GFX_...` (not quoted or block form).
+    picture_sprite: Option<String>,
+}
+
+/// AstVisitor that validates event structure and option blocks.
 ///
-/// Checks performed:
+/// Checks performed at the event level:
+/// - HOM3016 (EVENT_MISSING_TITLE): Warns when a non-hidden event lacks both `title` and `desc`.
+/// - HOM3018 (EVENT_MISSING_TITLE_LOC): Warns when the `title` localization key is missing.
+/// - HOM3019 (EVENT_MISSING_DESC_LOC): Warns when the `desc` localization key is missing.
+/// - HOM3020 (EVENT_PICTURE_SPRITE_NOT_FOUND): Warns when `picture` references an unknown sprite.
+///
+/// Checks performed at the option level (existing):
 /// - HOM3013 (EVENT_MISSING_OPTION_NAME): Warns when an option has no `name` field.
 /// - HOM3017 (EVENT_OPTION_MISSING_AI_CHANCE): Information when an option has no
-///   `ai_chance` block (AI may not choose optimally).
-struct EventOptionVisitor {
+///   `ai_chance` block.
+struct EventVisitor {
     /// Depth of event definition nesting (>0 means inside an event definition).
-    /// Event definitions cannot nest, but event-type keys also serve as effects
-    /// inside options (e.g. `country_event = { id = ... days = ... }`).
-    /// We increment for any `country_event = { ... }` with a block value and
-    /// decrement on exit, so nested effects are tracked correctly.
     event_depth: u32,
-    /// Whether the current event has `major = yes` set.
-    _event_is_major: bool,
+    /// Stack of events being tracked (supports nested effects).
+    event_stack: Vec<EventDef>,
     /// Stack of option definitions currently being walked.
     option_stack: Vec<EventOptionDef>,
 }
 
-impl EventOptionVisitor {
+impl EventVisitor {
     fn new() -> Self {
         Self {
             event_depth: 0,
-            _event_is_major: false,
+            event_stack: Vec::new(),
             option_stack: Vec::new(),
         }
     }
 
-    /// Returns `true` if `key` is an event definition type.
     fn is_event_type(key: &str) -> bool {
         matches!(
             key,
@@ -68,7 +89,6 @@ impl EventOptionVisitor {
         _ctx: &ValidationContext,
         diags: &mut Vec<Diagnostic>,
     ) {
-        // HOM3013: Option without a name field
         if !state.has_name {
             diags.push(Diagnostic {
                 range: ast_range_to_lsp(&state.key_range),
@@ -84,7 +104,6 @@ impl EventOptionVisitor {
             });
         }
 
-        // HOM3017: Option without ai_chance (AI guidance)
         if !state.has_ai_chance {
             diags.push(Diagnostic {
                 range: ast_range_to_lsp(&state.key_range),
@@ -101,9 +120,105 @@ impl EventOptionVisitor {
             });
         }
     }
+
+    fn validate_event(
+        &self,
+        state: &EventDef,
+        ctx: &ValidationContext,
+        diags: &mut Vec<Diagnostic>,
+    ) {
+        // Only validate blocks that are actual event definitions (contain at least one option).
+        // `country_event = { ... }` used as an effect inside options doesn't have options
+        // and would produce false-positive "missing title" diagnostics.
+        if !state.has_option {
+            return;
+        }
+
+        // HOM3016: non-hidden event without title AND desc
+        if !state.is_hidden && !state.has_title && !state.has_desc {
+            diags.push(Diagnostic {
+                range: ast_range_to_lsp(&state.key_range),
+                severity: Some(DiagnosticSeverity::WARNING),
+                message: "Event is missing both 'title' and 'desc'. A non-hidden event \
+                          requires at least one of them to display anything to the player."
+                    .to_string(),
+                code: Some(NumberOrString::String(
+                    crate::validation::advanced_validation::EVENT_MISSING_TITLE.to_string(),
+                )),
+                source: Some("Hearts of Modding".to_string()),
+                ..Default::default()
+            });
+        }
+
+        // HOM3018: title loc key missing from localization
+        if let Some(ref key) = state.title_key {
+            if !ctx.loc.contains_key(key.as_str()) {
+                let prefix = format!("{}:", key);
+                if !ctx.loc.iter().any(|e| e.key().starts_with(&prefix)) {
+                    diags.push(Diagnostic {
+                        range: ast_range_to_lsp(&state.key_range),
+                        severity: Some(DiagnosticSeverity::WARNING),
+                        message: format!(
+                            "Event title localization key '{}' not found in any localization file.",
+                            key,
+                        ),
+                        code: Some(NumberOrString::String(
+                            crate::validation::advanced_validation::EVENT_MISSING_TITLE_LOC
+                                .to_string(),
+                        )),
+                        source: Some("Hearts of Modding".to_string()),
+                        ..Default::default()
+                    });
+                }
+            }
+        }
+
+        // HOM3019: desc loc key missing from localization
+        if let Some(ref key) = state.desc_key {
+            if !ctx.loc.contains_key(key.as_str()) {
+                let prefix = format!("{}:", key);
+                if !ctx.loc.iter().any(|e| e.key().starts_with(&prefix)) {
+                    diags.push(Diagnostic {
+                        range: ast_range_to_lsp(&state.key_range),
+                        severity: Some(DiagnosticSeverity::WARNING),
+                        message: format!(
+                            "Event description localization key '{}' not found in any localization file.",
+                            key,
+                        ),
+                        code: Some(NumberOrString::String(
+                            crate::validation::advanced_validation::EVENT_MISSING_DESC_LOC
+                                .to_string(),
+                        )),
+                        source: Some("Hearts of Modding".to_string()),
+                        ..Default::default()
+                    });
+                }
+            }
+        }
+
+        // HOM3020: picture sprite not found
+        if let Some(ref sprite) = state.picture_sprite {
+            if sprite.starts_with("GFX_") && !ctx.sprites.contains_key(sprite.as_str()) {
+                diags.push(Diagnostic {
+                    range: ast_range_to_lsp(&state.key_range),
+                    severity: Some(DiagnosticSeverity::WARNING),
+                    message: format!(
+                        "Event picture sprite '{}' not found. Define it in an interface/*.gfx file.",
+                        sprite,
+                    ),
+                    code: Some(NumberOrString::String(
+                        crate::validation::advanced_validation::EVENT_PICTURE_SPRITE_NOT_FOUND
+                            .to_string(),
+                    )),
+                    source: Some("Hearts of Modding".to_string()),
+                    ..Default::default()
+                });
+            }
+        }
+    }
 }
 
-impl AstVisitor for EventOptionVisitor {
+impl AstVisitor for EventVisitor {
     fn enter_assignment(
         &mut self,
         ass: &ast::Assignment,
@@ -115,6 +230,19 @@ impl AstVisitor for EventOptionVisitor {
 
         // ── Detect event definition entry ──────────────────────────
         if Self::is_event_type(key) && matches!(&ass.value.value, ast::Value::Block(_)) {
+            self.event_stack.push(EventDef {
+                key_range: ass.key_range.clone(),
+                has_title: false,
+                has_desc: false,
+                has_picture: false,
+                is_hidden: false,
+                has_mtth: false,
+                has_is_triggered_only: false,
+                has_option: false,
+                title_key: None,
+                desc_key: None,
+                picture_sprite: None,
+            });
             self.event_depth += 1;
             return;
         }
@@ -123,10 +251,59 @@ impl AstVisitor for EventOptionVisitor {
             return;
         }
 
-        // ── Track `major` flag at event level (not inside options) ──
-        if !self.in_option() && key.eq_ignore_ascii_case("major") {
-            self._event_is_major = ass.value.value.as_str(ctx.source) == Some("yes");
-            return;
+        // ── Track event-level properties (not inside options) ──────
+        if !self.in_option() {
+            if let Some(state) = self.event_stack.last_mut() {
+                match key.to_ascii_lowercase().as_str() {
+                    "title" => {
+                        state.has_title = true;
+                        if let Some(s) = ass.value.value.as_str(ctx.source) {
+                            // Skip block-form title (multiple conditional texts).
+                            // Simple identifiers and quoted strings are both valid loc keys.
+                            if !matches!(
+                                &ass.value.value,
+                                ast::Value::Block(_) | ast::Value::TaggedBlock(..)
+                            ) {
+                                state.title_key = Some(s.to_string());
+                            }
+                        }
+                    }
+                    "desc" => {
+                        state.has_desc = true;
+                        if let Some(s) = ass.value.value.as_str(ctx.source) {
+                            if !matches!(
+                                &ass.value.value,
+                                ast::Value::Block(_) | ast::Value::TaggedBlock(..)
+                            ) {
+                                state.desc_key = Some(s.to_string());
+                            }
+                        }
+                    }
+                    "picture" => {
+                        state.has_picture = true;
+                        if let Some(s) = ass.value.value.as_str(ctx.source) {
+                            // Only check GFX_ prefixed sprites — quoted strings
+                            // may be scripted localisation.
+                            if s.starts_with("GFX_") {
+                                state.picture_sprite = Some(s.to_string());
+                            }
+                        }
+                    }
+                    "hidden" => {
+                        state.is_hidden = ass.value.value.as_str(ctx.source) == Some("yes");
+                    }
+                    _ => {}
+                }
+                // Track MTTH and is_triggered_only (non-block form)
+                if key == "is_triggered_only" {
+                    state.has_is_triggered_only = ass.value.value.as_str(ctx.source) == Some("yes");
+                } else if key == "mean_time_to_happen" {
+                    if matches!(&ass.value.value, ast::Value::Block(_)) {
+                        state.has_mtth = true;
+                    }
+                }
+            }
+            // Don't return — fall through to option detection below.
         }
 
         // ── Detect option definition entry (only at event level) ────
@@ -134,6 +311,11 @@ impl AstVisitor for EventOptionVisitor {
             && key.eq_ignore_ascii_case("option")
             && matches!(&ass.value.value, ast::Value::Block(_))
         {
+            // Mark the current event as having options (signals it's a definition,
+            // not an effect used inside another event).
+            if let Some(state) = self.event_stack.last_mut() {
+                state.has_option = true;
+            }
             self.option_stack.push(EventOptionDef {
                 key_range: ass.key_range.clone(),
                 has_name: false,
@@ -185,7 +367,14 @@ impl AstVisitor for EventOptionVisitor {
         {
             self.event_depth -= 1;
             if self.event_depth == 0 {
-                self._event_is_major = false;
+                // Validate the outer-most event when its depth returns to 0.
+                // Nested event-effect blocks (e.g. country_event = { ... }
+                // inside an option) are also events, but we only validate
+                // at the top level to avoid double-reporting.
+            }
+            // Always validate when popping, regardless of nesting
+            if let Some(state) = self.event_stack.pop() {
+                self.validate_event(&state, ctx, diags);
             }
         }
     }
@@ -365,6 +554,6 @@ impl ValidationRule for EventValidationRule {
 
 impl EventValidationRule {
     pub(crate) fn visitor() -> Box<dyn AstVisitor> {
-        Box::new(EventOptionVisitor::new())
+        Box::new(EventVisitor::new())
     }
 }

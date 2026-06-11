@@ -34,9 +34,11 @@ pub const EVENT_MISSING_OPTION_NAME: &str = "HOM3013";
 pub const TRIGGERED_ONLY_WITH_MTTH: &str = "HOM3014";
 #[allow(dead_code)]
 pub const NEWS_MAJOR_FIRE_ONCE: &str = "HOM3015";
-#[allow(dead_code)]
 pub const EVENT_MISSING_TITLE: &str = "HOM3016";
 pub const EVENT_OPTION_MISSING_AI_CHANCE: &str = "HOM3017";
+pub const EVENT_MISSING_TITLE_LOC: &str = "HOM3018";
+pub const EVENT_MISSING_DESC_LOC: &str = "HOM3019";
+pub const EVENT_PICTURE_SPRITE_NOT_FOUND: &str = "HOM3020";
 
 pub const PORTRAIT_UNKNOWN_GFX: &str = "HOM4001";
 pub const UNKNOWN_COUNTRY_METADATA_GFX: &str = "HOM4002";
