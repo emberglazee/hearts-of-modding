@@ -64,6 +64,14 @@ fn extract_mod_name(content: &str) -> Option<String> {
 
 /// Extract the `path` field from a `.mod` descriptor file and resolve it to
 /// an absolute path relative to `registry_dir`.
+///
+/// Relative path conventions:
+///   - `path = "mod/name"`  →  resolved relative to the **parent** of the registry
+///     (Paradox launcher convention: relative to the game's documents folder)
+///   - `path = "name"`      →  resolved relative to the registry directory itself
+///
+/// Absolute paths are returned verbatim.  Almost all real mods use absolute paths,
+/// but both relative conventions appear in manually-written `.mod` files.
 fn extract_mod_path(content: &str, registry_dir: &Path) -> Option<PathBuf> {
     for line in content.lines() {
         let trimmed = line.trim();
@@ -76,10 +84,27 @@ fn extract_mod_path(content: &str, registry_dir: &Path) -> Option<PathBuf> {
                     let p = PathBuf::from(raw);
                     if p.is_absolute() {
                         return Some(p);
-                    } else {
-                        // Relative to the registry directory
-                        return Some(registry_dir.join(&p));
                     }
+                    // Relative path — decide the base directory.
+                    // Paradox launcher convention: "mod/name" is relative to
+                    // the game's documents folder (parent of the registry).
+                    // Plain "name" is relative to the registry dir itself.
+                    let has_mod_prefix = p.starts_with("mod/") || p.starts_with("mod\\");
+                    let resolved = if has_mod_prefix {
+                        // Strip "mod/" prefix — the registry's parent IS "mod/"
+                        let p_str = p.to_string_lossy();
+                        let without_prefix = match p_str.strip_prefix("mod/") {
+                            Some(stripped) => stripped,
+                            None => p_str.strip_prefix("mod\\").unwrap_or(&p_str),
+                        };
+                        registry_dir
+                            .parent()
+                            .unwrap_or(registry_dir)
+                            .join(without_prefix)
+                    } else {
+                        registry_dir.join(&p)
+                    };
+                    return Some(resolved);
                 }
             }
         }
@@ -273,11 +298,12 @@ supported_version = "1.14.*""#;
         let registry =
             Path::new("/home/user/.local/share/Paradox Interactive/Hearts of Iron IV/mod");
         let result = extract_mod_path(content, registry);
+        // "mod/testmod" is relative to the game docs dir (parent of registry)
         assert_eq!(
             result,
             Some(
-                Path::new("/home/user/.local/share/Paradox Interactive/Hearts of Iron IV/mod")
-                    .join("mod/testmod")
+                Path::new("/home/user/.local/share/Paradox Interactive/Hearts of Iron IV")
+                    .join("testmod")
             )
         );
     }

@@ -20,6 +20,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Fixed wrongful duplicate key warnings for `icon` in `gfx/army_icons/army_icons.txt`.**
 
+- **Fixed relative path resolution for locally created mods in manual descriptor files.**
+
 ## [v0.19.1] - 2026-06-10
 
 ### 🩹 Fixed
