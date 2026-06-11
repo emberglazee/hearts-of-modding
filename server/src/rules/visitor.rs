@@ -204,6 +204,7 @@ fn walk_entries(
                             ctx.modifier_mappings,
                             ctx.source,
                             new_in_air_wings,
+                            Some(key),
                         );
                         walk_entries(
                             inner,
@@ -235,6 +236,7 @@ fn walk_entries(
                         ctx.modifier_mappings,
                         ctx.source,
                         in_air_wings,
+                        None,
                     );
                     walk_entries(
                         inner,

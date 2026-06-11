@@ -2271,6 +2271,7 @@ pub(crate) fn check_duplicate_keys<'a>(
     mod_maps: &DashMap<InternedStr, String>,
     source: &'a str,
     in_air_wings: bool,
+    parent_key: Option<&'a str>,
 ) {
     // Currently only checks keys that are in `mod_maps` (modifier names) plus a small
     // hardcoded set of common structural keys (`name`, `id`, `icon`). All other keys
@@ -2295,6 +2296,8 @@ pub(crate) fn check_duplicate_keys<'a>(
             // equipment type block, so duplicates are valid.
             // 'icon' is used structurally in army_icons.txt (and similar files) where
             // each `icon = { ... }` block is a separate entry keyed by list position.
+            // Inside `province` blocks, `id` values are list items (provinces to apply
+            // a modifier to), not genuine duplicates.
             let is_exception = key == "modifier"
                 || key == "option"
                 || key == "limit"
@@ -2303,7 +2306,8 @@ pub(crate) fn check_duplicate_keys<'a>(
                 || key == "else_if"
                 || key == "variable_name"
                 || key == "icon"
-                || (in_air_wings && key == "name");
+                || (in_air_wings && key == "name")
+                || (parent_key == Some("province") && key == "id");
 
             if is_modifier && !is_exception {
                 if let Some(prev_range) = seen_keys.get(key) {
