@@ -64,8 +64,14 @@ impl ValidationRule for LocalizationRule {
 
         if should_flag {
             if !ctx.loc.contains_key(val) {
-                let target = format!("{}:", val);
-                if !ctx.loc.iter().any(|e| e.key().starts_with(&target)) {
+                // Double-check: the key might be stored with a version suffix like ":0"
+                // Instead of iterating the entire 162k-entry DashMap (which is O(N) per
+                // missing key), check a few common version numbers directly.
+                let version_suffixed = (0..=5).any(|v| {
+                    let target = format!("{}:{}", val, v);
+                    ctx.loc.contains_key(target.as_str())
+                });
+                if !version_suffixed {
                     // Final check against regex
                     let is_regex_ignored = ctx.ignored_loc_regex.iter().any(|re| re.is_match(val));
 

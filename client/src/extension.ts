@@ -10,9 +10,12 @@ import {
 } from 'vscode-languageclient/node'
 
 import { LocColorDecorator } from './locColorDecorator'
+import { LogPanelProvider } from './logPanel'
 
 let client: LanguageClient
 let outputChannel: OutputChannel
+let logChannel: OutputChannel
+let logPanelProvider: LogPanelProvider
 let memoryInterval: NodeJS.Timeout | undefined
 let locColorDecorator: LocColorDecorator
 
@@ -29,10 +32,17 @@ function formatBytes(bytes: number): string {
 
 export async function activate(context: ExtensionContext) {
     outputChannel = window.createOutputChannel('Hearts of Modding')
+    logChannel = window.createOutputChannel('HoM Log')
     console.log('Hearts of Modding extension: activate called')
 
     const statusBarItem = window.createStatusBarItem(StatusBarAlignment.Right, 100)
     context.subscriptions.push(statusBarItem)
+
+    // ── Register the HoM Log panel provider ──
+    logPanelProvider = new LogPanelProvider()
+    context.subscriptions.push(
+        window.registerWebviewViewProvider(LogPanelProvider.viewType, logPanelProvider)
+    )
 
     // ── Initialise localisation colour decorator ──
     locColorDecorator = new LocColorDecorator()
@@ -332,6 +342,34 @@ async function startServer(context: ExtensionContext, statusBarItem: StatusBarIt
 
     // Start the client. This will also launch the server
     await client.start()
+
+    // ── Intercept server log messages for the HoM Log panel ──
+    // Captures window/logMessage notifications from the server (which carry
+    // [LEVEL] prefixes like [INFO], [DEBUG], [TRACE]) and forwards them to
+    // the custom webview log panel for colored, filterable display.
+    client.onNotification('window/logMessage', (params: { type?: number, message?: string }) => {
+        if (!params.message) return
+
+        // Also append to the dedicated output channel (legacy)
+        logChannel.appendLine(params.message)
+
+        // Parse [LEVEL] prefix and forward to the webview panel
+        const levelMatch = params.message.match(/^\[(ERROR|WARN|INFO|DEBUG|TRACE)\]\s*/)
+        if (levelMatch) {
+            const level = levelMatch[1]
+            const body = params.message.slice(levelMatch[0].length)
+            logPanelProvider.append(level, body)
+        } else {
+            // No level prefix — show as INFO
+            logPanelProvider.append('INFO', params.message)
+        }
+    })
+
+    // ── Command: Show the HoM Log panel ──
+    context.subscriptions.push(commands.registerCommand('hearts-of-modding.showLog', () => {
+        // The panel appears as a tab in the bottom panel area.
+        // Focus the view via the command palette: View: Focus on HoM Log
+    }))
 
     // ── Request scanned colour codes from the LSP ──
     try {

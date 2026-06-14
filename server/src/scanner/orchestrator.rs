@@ -271,21 +271,30 @@ impl Backend {
     pub(crate) async fn scan_events(&self, overlay: &crate::scanner::file_overlay::FileOverlay) {
         let filter = self.get_sync_filter();
         let mut files: Vec<std::path::PathBuf> = overlay.winning_files_in("events");
-        // Also scan common/ for event trigger relationships (old scan_for_triggers walked common/ + events/)
-        files.extend(overlay.winning_files_in("common"));
         files.retain(|p| p.extension().is_some_and(|ext| ext == "txt"));
-        let event_files = files.clone();
-        let result = tokio::task::spawn_blocking(move || {
-            event_scanner::scan_event_files(&event_files, &filter)
-        })
-        .await
-        .unwrap();
+        let file_count = files.len();
+        let start = std::time::Instant::now();
+        let result =
+            tokio::task::spawn_blocking(move || event_scanner::scan_event_files(&files, &filter))
+                .await
+                .unwrap();
+        let elapsed = start.elapsed();
         self.scanner_data.events.clear();
         for (k, v) in result {
             self.scanner_data
                 .events
                 .insert(k.into(), crate::data::layered_value::LayeredValue::new(v));
         }
+        let count = self.scanner_data.events.len();
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!(
+                    "Loaded {} events from {} files in {:.1?}",
+                    count, file_count, elapsed,
+                ),
+            )
+            .await;
 
         // ── Scan event namespaces from event files ───────────────────
         let ns_filter = self.get_sync_filter();

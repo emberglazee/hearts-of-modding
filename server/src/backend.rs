@@ -45,6 +45,20 @@ pub(crate) struct Backend {
 }
 
 impl Backend {
+    /// Send a log message to the client, filtered by the current log level.
+    /// Messages below the configured level are silently dropped.
+    pub(crate) async fn log_msg(&self, level: crate::log_level::LogLevel, msg: impl Into<String>) {
+        if level > self.config.log_level() {
+            return;
+        }
+        self.client
+            .log_message(
+                tower_lsp_server::ls_types::MessageType::INFO,
+                format!("[{}] {}", level.prefix(), msg.into()),
+            )
+            .await;
+    }
+
     pub(crate) fn make_file_link(&self, path: &str) -> String {
         // Try to canonicalize for absolute path if possible
         let abs_path = std::path::Path::new(path)
@@ -191,7 +205,17 @@ impl Backend {
         let extensions = ["txt", "yml", "csv"];
         let filter = self.get_sync_filter();
         let files = crate::utils::fs_util::collect_files(root, &extensions, filter, true);
+        let total = files.len();
         let mut file_count = 0;
+        let scan_start = std::time::Instant::now();
+        let mut last_log = scan_start;
+
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!("Workspace scan collecting {} files...", total),
+            )
+            .await;
 
         for path in &files {
             if let Ok(content) = std::fs::read_to_string(path) {
@@ -204,6 +228,30 @@ impl Backend {
                                 .await;
                         }
                         file_count += 1;
+
+                        // Log progress every 100 files or every 5 seconds
+                        if file_count % 100 == 0
+                            || last_log.elapsed() > std::time::Duration::from_secs(5)
+                        {
+                            let elapsed_ms = scan_start.elapsed().as_millis();
+                            let pct = (file_count as f64 / total as f64 * 100.0) as u32;
+                            self.client
+                                .log_message(
+                                    MessageType::INFO,
+                                    format!(
+                                        "[+{}ms] Workspace scan: {}/{} files ({}%) — {}",
+                                        elapsed_ms,
+                                        file_count,
+                                        total,
+                                        pct,
+                                        path.file_name()
+                                            .map(|n| n.to_string_lossy())
+                                            .unwrap_or_default(),
+                                    ),
+                                )
+                                .await;
+                            last_log = std::time::Instant::now();
+                        }
                     }
                 }
             }
@@ -248,7 +296,54 @@ impl Backend {
             }
         };
 
+        let start = std::time::Instant::now();
         let diagnostics = self.validate_content(&uri, &content).await;
+        let elapsed = start.elapsed();
+
+        // Log slow validations (>500ms) at DEBUG level so users can
+        // diagnose which files are slow without cluttering default INFO.
+        if elapsed > std::time::Duration::from_millis(500) {
+            let path = uri
+                .to_file_path()
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or_default();
+            let diag_types: std::collections::HashSet<&str> = diagnostics
+                .iter()
+                .filter_map(|d| {
+                    d.code
+                        .as_ref()
+                        .and_then(|c| match c {
+                            tower_lsp_server::ls_types::NumberOrString::String(s) => {
+                                Some(s.as_str())
+                            }
+                            _ => None,
+                        })
+                        .or_else(|| {
+                            if d.message.contains("styling")
+                                || d.message.contains("trailing")
+                                || d.message.contains("indent")
+                                || d.message.contains("brace")
+                            {
+                                Some("styling")
+                            } else {
+                                None
+                            }
+                        })
+                })
+                .collect();
+            self.log_msg(
+                crate::log_level::LogLevel::Debug,
+                format!(
+                    "Validated {} in {:.1?} — {} diags ({:?})",
+                    path,
+                    elapsed,
+                    diagnostics.len(),
+                    diag_types,
+                ),
+            )
+            .await;
+        }
+
         self.client
             .publish_diagnostics(uri, diagnostics, None)
             .await;
@@ -1260,6 +1355,26 @@ impl Backend {
         }
     }
 
+    /// Compatibility wrapper — delegates to the combined `check_styling_ast`.
+    ///
+    /// Kept for tests in `tests/formatting.rs` that call this function directly.
+    /// The combined walk emits both assignment and brace spacing diagnostics,
+    /// matching the superset of what the old standalone function produced.
+    #[allow(dead_code)]
+    pub(crate) fn check_assignment_spacing(
+        entries: &[ast::Entry],
+        content: &str,
+        diagnostics: &mut Vec<Diagnostic>,
+    ) {
+        let lines: Vec<&str> = content.lines().collect();
+        Self::check_styling_ast(entries, &lines, diagnostics, &mut HashMap::new(), 0);
+    }
+
+    /// Compute expected indentation depth for each line in the AST.
+    ///
+    /// Used by the "Fix all indentation" code action in `validation/formatting.rs`.
+    /// Standalone function (not combined with other styling checks) because it's
+    /// triggered only on explicit user action, not on every keystroke.
     pub(crate) fn compute_expected_indentations(
         entries: &[ast::Entry],
         depth: usize,
@@ -1314,60 +1429,33 @@ impl Backend {
         }
     }
 
-    fn check_single_line_braces(
+    /// Combined AST walk for styling checks (per-keystroke path).
+    ///
+    /// Performs a single recursive traversal of the AST to:
+    /// 1. Compute expected indentation depths
+    /// 2. Check single-line brace spacing
+    /// 3. Check assignment operator spacing
+    ///
+    /// Uses a pre-cached lines slice for O(1) line lookups instead of
+    /// `content.lines().nth()` O(n) scans.
+    fn check_styling_ast(
         entries: &[ast::Entry],
-        content: &str,
+        lines: &[&str],
         diagnostics: &mut Vec<Diagnostic>,
+        expected_indents: &mut HashMap<u32, usize>,
+        depth: usize,
     ) {
         for entry in entries {
-            match entry {
-                ast::Entry::Assignment(ass) => {
-                    Self::check_brace_spacing_for_range(
-                        &ass.value.range,
-                        &ass.value.value,
-                        content,
-                        diagnostics,
-                    );
-                    match &ass.value.value {
-                        ast::Value::Block(inner) => {
-                            Self::check_single_line_braces(inner, content, diagnostics)
-                        }
-                        ast::Value::TaggedBlock(_, inner, _) => {
-                            Self::check_single_line_braces(inner, content, diagnostics)
-                        }
-                        _ => {}
-                    }
-                }
-                ast::Entry::Value(val) => {
-                    Self::check_brace_spacing_for_range(
-                        &val.range,
-                        &val.value,
-                        content,
-                        diagnostics,
-                    );
-                    match &val.value {
-                        ast::Value::Block(inner) => {
-                            Self::check_single_line_braces(inner, content, diagnostics)
-                        }
-                        ast::Value::TaggedBlock(_, inner, _) => {
-                            Self::check_single_line_braces(inner, content, diagnostics)
-                        }
-                        _ => {}
-                    }
-                }
-                _ => {}
-            }
-        }
-    }
+            let start_line = match entry {
+                ast::Entry::Assignment(ass) => ass.key_range.start_line,
+                ast::Entry::Value(val) => val.range.start_line,
+                ast::Entry::Comment(_, r) => r.start_line,
+            };
+            expected_indents.entry(start_line).or_insert(depth);
 
-    pub(crate) fn check_assignment_spacing(
-        entries: &[ast::Entry],
-        content: &str,
-        diagnostics: &mut Vec<Diagnostic>,
-    ) {
-        for entry in entries {
             match entry {
                 ast::Entry::Assignment(ass) => {
+                    // ── Assignment spacing check ──
                     let mut needs_fix = false;
                     if ass.key_range.end_line == ass.operator_range.start_line
                         && ass.key_range.end_line == ass.value.range.start_line
@@ -1388,7 +1476,7 @@ impl Backend {
 
                     if needs_fix {
                         let line_idx = ass.key_range.end_line as usize;
-                        if let Some(line) = content.lines().nth(line_idx) {
+                        if let Some(line) = lines.get(line_idx) {
                             let start = ass.key_range.end_col as usize;
                             let end = ass.value.range.start_col as usize;
                             if start <= end && end <= line.len() {
@@ -1416,34 +1504,99 @@ impl Backend {
                         }
                     }
 
+                    // ── Single-line brace spacing check ──
+                    Self::check_brace_spacing_for_range_slice(
+                        &ass.value.range,
+                        &ass.value.value,
+                        lines,
+                        diagnostics,
+                    );
+
+                    // ── Recurse into child blocks ──
                     match &ass.value.value {
                         ast::Value::Block(inner) => {
-                            Self::check_assignment_spacing(inner, content, diagnostics)
+                            Self::check_styling_ast(
+                                inner,
+                                lines,
+                                diagnostics,
+                                expected_indents,
+                                depth + 1,
+                            );
+                            let end_line = ass.value.range.end_line;
+                            if end_line != start_line {
+                                expected_indents.entry(end_line).or_insert(depth);
+                            }
                         }
                         ast::Value::TaggedBlock(_, inner, _) => {
-                            Self::check_assignment_spacing(inner, content, diagnostics)
+                            Self::check_styling_ast(
+                                inner,
+                                lines,
+                                diagnostics,
+                                expected_indents,
+                                depth + 1,
+                            );
+                            let end_line = ass.value.range.end_line;
+                            if end_line != start_line {
+                                expected_indents.entry(end_line).or_insert(depth);
+                            }
                         }
                         _ => {}
                     }
                 }
-                ast::Entry::Value(val) => match &val.value {
-                    ast::Value::Block(inner) => {
-                        Self::check_assignment_spacing(inner, content, diagnostics)
+                ast::Entry::Value(val) => {
+                    // ── Single-line brace spacing check ──
+                    Self::check_brace_spacing_for_range_slice(
+                        &val.range,
+                        &val.value,
+                        lines,
+                        diagnostics,
+                    );
+
+                    // ── Recurse into child blocks ──
+                    match &val.value {
+                        ast::Value::Block(inner) => {
+                            Self::check_styling_ast(
+                                inner,
+                                lines,
+                                diagnostics,
+                                expected_indents,
+                                depth + 1,
+                            );
+                            let end_line = val.range.end_line;
+                            if end_line != start_line {
+                                expected_indents.entry(end_line).or_insert(depth);
+                            }
+                        }
+                        ast::Value::TaggedBlock(_, inner, _) => {
+                            Self::check_styling_ast(
+                                inner,
+                                lines,
+                                diagnostics,
+                                expected_indents,
+                                depth + 1,
+                            );
+                            let end_line = val.range.end_line;
+                            if end_line != start_line {
+                                expected_indents.entry(end_line).or_insert(depth);
+                            }
+                        }
+                        _ => {}
                     }
-                    ast::Value::TaggedBlock(_, inner, _) => {
-                        Self::check_assignment_spacing(inner, content, diagnostics)
-                    }
-                    _ => {}
-                },
-                _ => {}
+                }
+                ast::Entry::Comment(_, _) => {}
             }
         }
     }
 
-    fn check_brace_spacing_for_range(
+    /// Check single-line brace spacing, using a pre-cached lines slice.
+    ///
+    /// Accepts `&[&str]` instead of `&str` to avoid O(n) `content.lines().nth()` calls.
+    /// Logic is identical to the old `check_brace_spacing_for_range` which accepted
+    /// `content: &str` and scanned from the start on every call.
+    fn check_brace_spacing_for_range_slice(
         range: &ast::Range,
         value: &ast::Value,
-        content: &str,
+        lines: &[&str],
         diagnostics: &mut Vec<Diagnostic>,
     ) {
         match value {
@@ -1451,7 +1604,7 @@ impl Backend {
                 if range.start_line == range.end_line =>
             {
                 let line_idx = range.start_line as usize;
-                if let Some(line) = content.lines().nth(line_idx) {
+                if let Some(line) = lines.get(line_idx) {
                     let start = range.start_col as usize;
                     let end = range.end_col as usize;
                     if start < end && end <= line.len() {
@@ -1516,13 +1669,17 @@ impl Backend {
         is_yaml: bool,
         uri: &str,
     ) {
+        // Pre-cache lines for O(1) index lookups — avoids content.lines().nth() O(n) scans
+        // that were the main performance bottleneck in styling checks on large files.
+        let lines: Vec<&str> = content.lines().collect();
+
         if !content.is_empty()
             && !content.ends_with('\n')
             && !content.ends_with("\r\n")
             && !uri.ends_with("map/buildings.txt")
         {
-            let line_count = content.lines().count();
-            let last_line = content.lines().last().unwrap_or("");
+            let line_count = lines.len();
+            let last_line = lines.last().copied().unwrap_or("");
             let line_idx = if line_count > 0 {
                 line_count as u32 - 1
             } else {
@@ -1547,14 +1704,22 @@ impl Backend {
             });
         }
 
+        // Combined AST walk: indentations, single-line braces, assignment spacing.
+        // Replaces 3 separate recursive walks (compute_expected_indentations,
+        // check_single_line_braces, check_assignment_spacing) with a single traversal.
+        // Also passes the pre-cached lines slice so helpers get O(1) line lookups.
         let mut expected_indents = HashMap::new();
         if let Some(script) = script_opt {
-            Self::compute_expected_indentations(&script.entries, 0, &mut expected_indents);
-            Self::check_single_line_braces(&script.entries, content, diagnostics);
-            Self::check_assignment_spacing(&script.entries, content, diagnostics);
+            Self::check_styling_ast(
+                &script.entries,
+                &lines,
+                diagnostics,
+                &mut expected_indents,
+                0,
+            );
         }
 
-        for (line_idx, line) in content.lines().enumerate() {
+        for (line_idx, line) in lines.iter().enumerate() {
             // Skip styling checks for CSV files as they have their own formatting rules
             if uri.ends_with(".csv") {
                 continue;

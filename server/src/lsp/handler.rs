@@ -172,6 +172,22 @@ impl LanguageServer for Backend {
             .log_message(MessageType::INFO, "server initialized!")
             .await;
 
+        // Log current configuration
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!(
+                    "Config: styling={}, workspace_scan={}, log_level={}, cosmetic_loc_indent={}, loc_ignore={:?}, files_ignore={:?}",
+                    if self.config.styling_enabled() { "on" } else { "off" },
+                    if self.config.workspace_scan_enabled() { "on" } else { "off" },
+                    self.config.log_level().prefix(),
+                    if self.config.cosmetic_loc_indent() { "on" } else { "off" },
+                    self.config.ignored_loc_regex().iter().map(|r| r.as_str()).collect::<Vec<_>>(),
+                    self.config.ignored_files_regex().iter().map(|r| r.as_str()).collect::<Vec<_>>(),
+                ),
+            )
+            .await;
+
         // Build the VFS root stack: game path (lowest priority) → dependency
         // mods → workspace (highest priority). The scan_dashmap_layered! macro
         // iterates roots in order, pushing each root's entries into LayeredValue
@@ -403,6 +419,7 @@ impl LanguageServer for Backend {
             &replace_paths,
         );
 
+        let scan_start = std::time::Instant::now();
         tokio::join!(
             self.scan_localization(&roots), // merges by key — keeps root-based scanning
             self.load_assets(),             // no roots needed
@@ -441,6 +458,13 @@ impl LanguageServer for Backend {
             self.scan_oobs(&overlay),
             self.scan_units(&overlay),
         );
+        let scan_elapsed = scan_start.elapsed();
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!("All scanners completed in {:.1?}", scan_elapsed),
+            )
+            .await;
 
         // Rebuild reverse file-path indices so incremental updates are O(K) not O(N)
         self.scanner_data.rebuild_all_file_indices();
@@ -550,6 +574,17 @@ impl LanguageServer for Backend {
                         self.config.set_cosmetic_loc_indent(enabled);
                         let _ci = self.config.cosmetic_loc_indent();
                     }
+                }
+                if let Some(level_str) = hoi4.get("logLevel").and_then(|v| v.as_str()) {
+                    let level = match level_str {
+                        "error" => crate::log_level::LogLevel::Error,
+                        "warn" => crate::log_level::LogLevel::Warn,
+                        "info" => crate::log_level::LogLevel::Info,
+                        "debug" => crate::log_level::LogLevel::Debug,
+                        "trace" => crate::log_level::LogLevel::Trace,
+                        _ => crate::log_level::LogLevel::Info,
+                    };
+                    self.config.set_log_level(level);
                 }
                 // Re-validate all documents
                 for entry in self.documents.iter() {

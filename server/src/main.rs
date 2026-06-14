@@ -17,6 +17,7 @@ mod validation;
 
 mod backend;
 mod config;
+mod log_level;
 mod rules;
 
 pub(crate) use crate::backend::Backend;

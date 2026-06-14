@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 
 macro_rules! config_field {
     ($name:ident, $ty:ty) => {
@@ -34,6 +34,7 @@ pub(crate) struct Config {
     workspace_scan_enabled_field: AtomicBool,
     styling_enabled_field: AtomicBool,
     cosmetic_loc_indent_field: AtomicBool,
+    log_level_field: AtomicU8,
     game_path_field: Arc<arc_swap::ArcSwap<Option<String>>>,
     dependency_mod_paths_field: Arc<arc_swap::ArcSwap<Vec<String>>>,
     mod_registry_path_field: Arc<arc_swap::ArcSwap<Option<String>>>,
@@ -47,6 +48,7 @@ impl Config {
             workspace_scan_enabled_field: AtomicBool::new(false),
             styling_enabled_field: AtomicBool::new(true),
             cosmetic_loc_indent_field: AtomicBool::new(false),
+            log_level_field: AtomicU8::new(2), // default: INFO
             game_path_field: Arc::new(arc_swap::ArcSwap::from_pointee(None)),
             dependency_mod_paths_field: Arc::new(arc_swap::ArcSwap::from_pointee(Vec::new())),
             mod_registry_path_field: Arc::new(arc_swap::ArcSwap::from_pointee(None)),
@@ -79,6 +81,14 @@ impl Config {
     pub fn set_cosmetic_loc_indent(&self, value: bool) {
         self.cosmetic_loc_indent_field
             .store(value, Ordering::Relaxed);
+    }
+
+    pub fn log_level(&self) -> crate::log_level::LogLevel {
+        crate::log_level::LogLevel::from_u8(self.log_level_field.load(Ordering::Relaxed))
+    }
+
+    pub fn set_log_level(&self, level: crate::log_level::LogLevel) {
+        self.log_level_field.store(level.to_u8(), Ordering::Relaxed);
     }
 
     config_field_deref!(game_path, Option<String>, Option<String>);

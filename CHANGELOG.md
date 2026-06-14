@@ -2,6 +2,24 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
+## [v0.21.0] - 2026-06-14
+
+> its becoming a bit too burdensome
+
+### ✨ Added
+
+- **Experimental log tab:** Allows the extension log to be displayed in a prettier way. Open with `Hearts of Modding: Show Log Panel`.
+
+  - Will not be documented in the README.md yet due to its current lack of features.
+
+### 🔧 Changed
+
+- **Various optimizations to improve the extension performance.**
+
+- **More logging messages for troubleshooting.**
+
+- **Updated dependencies.**
+
 ## [v0.20.0] - 2026-06-11
 
 ### ✨ Added

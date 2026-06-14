@@ -386,10 +386,16 @@ impl Backend {
             }
         }
 
+        // Fetch a fresh AST for "Fix all" bulk operations below.
+        // Uses get_or_parse_ast to ensure the AST matches current document content,
+        // preventing stale-position edits when the user clicks the lightbulb
+        // between a did_change update and the debounced AST re-parse.
+        let fresh_uri = params.text_document.uri.as_str().to_owned();
+        let fresh_ast = self.get_or_parse_ast(&fresh_uri).await;
+
         // Add "Fix all" if any casing diagnostic is present
         if has_casing_diagnostic {
-            let uri_str = params.text_document.uri.as_str();
-            if let Some((script, _)) = self.ensure_ast_cached(uri_str) {
+            if let Some((ref script, _)) = fresh_ast {
                 let mut all_fixes = Vec::new();
                 self.collect_casing_fixes(&script.entries, &mut all_fixes, &script.source);
 
@@ -421,8 +427,7 @@ impl Backend {
 
         // Add "Fix all path separators" if any such diagnostic is present
         if has_path_separator_diagnostic {
-            let uri_str = params.text_document.uri.as_str();
-            if let Some((script, _)) = self.ensure_ast_cached(uri_str) {
+            if let Some((ref script, _)) = fresh_ast {
                 let mut all_fixes = Vec::new();
                 self.collect_path_separator_fixes(&script.entries, &mut all_fixes, &script.source);
 
@@ -491,8 +496,7 @@ impl Backend {
                 let script_opt = if is_yaml {
                     None
                 } else {
-                    let uri_str = params.text_document.uri.as_str();
-                    self.ensure_ast_cached(uri_str).map(|(s, _)| s)
+                    fresh_ast.as_ref().map(|(s, _)| s.clone())
                 };
 
                 let mut all_fixes = Vec::new();
@@ -527,8 +531,7 @@ impl Backend {
         // Add "Surround all assignment operators with spaces" if any such diagnostic is present
         if has_assignment_space_diagnostic {
             if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
-                let uri_str = params.text_document.uri.as_str();
-                if let Some((script, _)) = self.ensure_ast_cached(uri_str) {
+                if let Some((ref script, _)) = fresh_ast {
                     let mut all_fixes = Vec::new();
                     Self::collect_assignment_space_fixes(&script.entries, &mut all_fixes, &content);
 
@@ -563,8 +566,7 @@ impl Backend {
         // Add "Fix curly brace spacing" if any such diagnostic is present
         if has_brace_space_diagnostic {
             if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
-                let uri_str = params.text_document.uri.as_str();
-                if let Some((script, _)) = self.ensure_ast_cached(uri_str) {
+                if let Some((ref script, _)) = fresh_ast {
                     let mut all_fixes = Vec::new();
                     self.collect_brace_space_fixes(&script.entries, &mut all_fixes, &content);
                     self.collect_brace_newline_fixes(&script.entries, &mut all_fixes);
@@ -684,19 +686,20 @@ impl Backend {
 
         if has_any_styling_diagnostic {
             if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
-                let uri_str = params.text_document.uri.as_str();
-                if let Some((script, _)) = self.ensure_ast_cached(uri_str) {
+                if let Some((ref script, _)) = fresh_ast {
                     let mut all_changes = Vec::new();
-                    let is_yaml = uri_str.ends_with(".yml");
+                    let is_yaml = fresh_uri.ends_with(".yml");
+                    let lines: Vec<&str> = content.lines().collect();
 
                     // Add EOF newline fix if needed
-                    if !content.is_empty()
+                    if has_eof_newline_diagnostic
+                        && !content.is_empty()
                         && !content.ends_with('\n')
                         && !content.ends_with("\r\n")
-                        && !uri_str.ends_with("map/buildings.txt")
+                        && !fresh_uri.ends_with("map/buildings.txt")
                     {
-                        let line_count = content.lines().count();
-                        let last_line = content.lines().last().unwrap_or("");
+                        let line_count = lines.len();
+                        let last_line = lines.last().copied().unwrap_or("");
                         let line_idx = if line_count > 0 {
                             line_count as u32 - 1
                         } else {
@@ -717,6 +720,12 @@ impl Backend {
                         });
                     }
 
+                    // ── Always collect ALL fix types across the whole file ──
+                    // Unlike individual "Fix all X" actions (which scan the whole file
+                    // for their type), this combined action does them all in one go.
+                    // The individual has_*_diagnostic flags are NOT used here because
+                    // they only reflect diagnostics near the cursor — we want to fix
+                    // all styling issues in the entire file regardless.
                     let mut casing_fixes = Vec::new();
                     self.collect_casing_fixes(&script.entries, &mut casing_fixes, &script.source);
                     for (range, text) in casing_fixes {
@@ -736,7 +745,7 @@ impl Backend {
                     }
 
                     let mut indent_fixes = Vec::new();
-                    let script_opt = if is_yaml { None } else { Some(&*script) };
+                    let script_opt = if is_yaml { None } else { Some(&**script) };
                     self.collect_indentation_fixes(&content, script_opt, &mut indent_fixes);
                     for (range, text) in indent_fixes {
                         all_changes.push(TextEdit {
@@ -802,7 +811,7 @@ impl Backend {
                     for d in quote_diagnostics {
                         all_changes.push(TextEdit {
                             range: ast_range_to_lsp(&d.range),
-                            new_text: "\\\"".to_string(),
+                            new_text: "\"".to_string(),
                         });
                     }
 
@@ -843,8 +852,7 @@ impl Backend {
                 }
             }
 
-            let uri_str = params.text_document.uri.as_str();
-            if let Some((script, _)) = self.ensure_ast_cached(uri_str) {
+            if let Some((ref script, _)) = fresh_ast {
                 // ── Per-type bulk actions ─────────────────────────────
                 for canonical in &seen_types {
                     let mut fixes = Vec::new();

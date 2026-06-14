@@ -106,17 +106,19 @@ fn scan_for_triggers<F>(root: &Path, events: &mut HashMap<String, Event>, filter
 where
     F: Fn(&Path) -> bool,
 {
-    for subdir in ["common", "events"] {
-        crate::utils::fs_util::walk_and_parse_files(
-            &root.join(subdir),
-            &["txt"],
-            filter,
-            |_path, content| {
-                let (script, _) = parser::parse_script(&content);
-                find_triggers_in_script(&script.entries, &script.source, events);
-            },
-        );
-    }
+    // Only scan events/ for trigger relationships. The old code also scanned
+    // common/ (thousands of files), which was extremely slow for very rare
+    // hits — scripted triggers/effects occasionally call country_event but
+    // the vast majority of event triggers are inside event files themselves.
+    crate::utils::fs_util::walk_and_parse_files(
+        &root.join("events"),
+        &["txt"],
+        filter,
+        |_path, content| {
+            let (script, _) = parser::parse_script(&content);
+            find_triggers_in_script(&script.entries, &script.source, events);
+        },
+    );
 }
 
 fn find_triggers_in_script(
@@ -228,20 +230,19 @@ where
 {
     let mut events = HashMap::new();
 
-    // Pass 1: Find event definitions in the provided files
+    // Single pass: extract both definitions AND trigger relationships
+    // from each file, avoiding the old two-pass pattern that parsed every
+    // file twice and walked common/ (thousands of files).
     crate::utils::fs_util::parse_winning_files(files, filter, |path, content| {
         let (script, _) = parser::parse_script(&content);
+        // Extract event definitions
         find_event_definitions(
             &script.entries,
             &script.source,
             &path.to_string_lossy(),
             &mut events,
         );
-    });
-
-    // Pass 2: Find trigger relationships in the provided files
-    crate::utils::fs_util::parse_winning_files(files, filter, |_path, content| {
-        let (script, _) = parser::parse_script(&content);
+        // Extract trigger relationships (same parse, same AST)
         find_triggers_in_script(&script.entries, &script.source, &mut events);
     });
 

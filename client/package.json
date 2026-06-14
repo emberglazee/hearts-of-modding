@@ -85,7 +85,14 @@
                 "hoi4.showMemoryUsage.enabled": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Show language server memory usage in the status bar."
+                    "description": "Show memory usage in the status bar. Updates every 10 seconds."
+                },
+                "hoi4.logLevel": {
+                    "type": "string",
+                    "default": "info",
+                    "enum": ["error", "warn", "info", "debug", "trace"],
+                    "description": "Log verbosity level. ERROR=only failures, INFO=scan results and progress (default), DEBUG=per-file timing, TRACE=every LSP event.",
+                    "scope": "window"
                 },
                 "hoi4.themePromptDismissed": {
                     "type": "boolean",
@@ -125,8 +132,30 @@
                 "command": "hearts-of-modding.toggleTheme",
                 "title": "Toggle Workspace Theme",
                 "category": "Hearts of Modding"
+            },
+            {
+                "command": "hearts-of-modding.showLog",
+                "title": "Show Log Panel",
+                "category": "Hearts of Modding"
             }
         ],
+        "viewsContainers": {
+            "panel": [
+                {
+                    "id": "hoi4-log",
+                    "title": "HoM Log"
+                }
+            ]
+        },
+        "views": {
+            "panel": [
+                {
+                    "type": "webview",
+                    "id": "hoi4Log",
+                    "name": "HoM Log"
+                }
+            ]
+        },
         "languages": [
             {
                 "id": "hoi4",
@@ -248,8 +277,8 @@
         "@typescript-eslint/eslint-plugin": "^8.61.0",
         "@typescript-eslint/parser": "^8.61.0",
         "@vscode/vsce": "^3.9.2",
-        "esbuild": "^0.28.0",
-        "eslint": "^10.4.1",
+        "esbuild": "^0.28.1",
+        "eslint": "^10.5.0",
         "globals": "^17.6.0",
         "jiti": "^2.7.0",
         "typescript": "^6.0.3",
