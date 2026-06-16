@@ -10,6 +10,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Better `common/countries/*.txt` scanning.**
 
+- Updated dev dependencies.
+
 ## [v0.21.0] - 2026-06-15
 
 > its becoming a bit too burdensome

@@ -21,7 +21,7 @@ paste = { package = "pastey", version = "0.2" }
 rustc-hash = "2.1.2"
 smallvec = "1.15.2"
 tikv-jemallocator = "0.7.0"
-tokio-util = "0.7"
+tokio-util = "0.7.18"
 
 [patch.crates-io]
 tikv-jemalloc-sys = { git = "https://github.com/emberglazee/jemallocator", rev = "da06d4a" }
