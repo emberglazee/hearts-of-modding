@@ -2287,6 +2287,7 @@ pub(crate) fn build_static_semantic_keywords() -> HashSet<String> {
     // Terrain definition keywords (common/terrain/*.txt)
     keywords.insert("categories".to_string());
     keywords.insert("color".to_string());
+    keywords.insert("color_ui".to_string());
     keywords.insert("terrain".to_string());
     keywords.insert("movement_cost".to_string());
     keywords.insert("is_water".to_string());

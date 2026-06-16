@@ -167,6 +167,9 @@ pub(crate) struct ScannerData {
     pub balance_of_powers_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub oob_division_templates_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub oob_fleets_file_index: DashMap<InternedStr, Vec<InternedStr>>,
+    pub color_codes_file_index: DashMap<InternedStr, Vec<InternedStr>>,
+    pub continents_file_index: DashMap<InternedStr, Vec<InternedStr>>,
+    pub adjacency_rules_file_index: DashMap<InternedStr, Vec<InternedStr>>,
 
     // ── DashSet registries ──
     pub duplicated_loc_keys: DashSet<(InternedStr, InternedStr)>,
@@ -268,6 +271,9 @@ impl ScannerData {
             balance_of_powers_file_index: DashMap::new(),
             oob_division_templates_file_index: DashMap::new(),
             oob_fleets_file_index: DashMap::new(),
+            color_codes_file_index: DashMap::new(),
+            continents_file_index: DashMap::new(),
+            adjacency_rules_file_index: DashMap::new(),
             duplicated_loc_keys: DashSet::new(),
             game_loc_keys: DashSet::new(),
             workspace_files: DashSet::new(),
@@ -329,7 +335,6 @@ impl ScannerData {
 
         // ── Special scanners (manual) ──
         rebuild_index!(self.localization, self.localization_file_index);
-        rebuild_index!(self.unit_types, self.unit_types_file_index);
         rebuild_index!(self.scripted_triggers, self.scripted_triggers_file_index);
         rebuild_index!(self.scripted_effects, self.scripted_effects_file_index);
         rebuild_index!(self.ideologies, self.ideologies_file_index);
@@ -361,5 +366,8 @@ impl ScannerData {
         );
         rebuild_index!(self.oob_fleets, self.oob_fleets_file_index);
         rebuild_index!(self.event_namespaces, self.event_namespaces_file_index);
+        rebuild_index!(self.color_codes, self.color_codes_file_index);
+        rebuild_index!(self.continents, self.continents_file_index);
+        rebuild_index!(self.adjacency_rules, self.adjacency_rules_file_index);
     }
 }

@@ -188,7 +188,6 @@ impl<'a> EntityLookup<'a> {
 
         try_lookup!(Trait, traits);
         try_lookup!(Event, events);
-        try_lookup!(BalanceOfPower, balance_of_powers);
 
         {
             let map = &self.data.variables;
@@ -237,7 +236,6 @@ impl<'a> EntityLookup<'a> {
             }
         }
 
-        try_lookup!(ColorCode, color_codes);
         try_lookup!(CountryTag, country_tags);
         try_lookup!(OobDivisionTemplate, oob_division_templates);
         try_lookup!(OobFleet, oob_fleets);
@@ -349,7 +347,6 @@ impl<'a> EntityLookup<'a> {
         for_each_standard_scanner!(std_collect_names);
 
         // Special scanners (manual)
-        collect_names!(BalanceOfPower, balance_of_powers);
 
         {
             let map = &self.data.sub_ideologies;
@@ -374,7 +371,6 @@ impl<'a> EntityLookup<'a> {
         collect_names!(SoundCategory, sound_categories);
         collect_names!(AdjacencyRule, adjacency_rules);
         collect_names!(CountryTag, country_tags);
-        collect_names!(ColorCode, color_codes);
         collect_names!(OobDivisionTemplate, oob_division_templates);
         collect_names!(OobFleet, oob_fleets);
         collect_names!(EventNamespace, event_namespaces);

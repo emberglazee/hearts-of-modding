@@ -129,7 +129,7 @@ fn test_standard_scanner_count() {
     crate::for_each_standard_scanner!(counter);
 
     assert_eq!(
-        count, 14,
+        count, 16,
         "Number of standard scanners in registry. \
          Update this count when adding entries to registry.rs"
     );

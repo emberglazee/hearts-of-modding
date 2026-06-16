@@ -116,5 +116,21 @@ macro_rules! for_each_standard_scanner {
             "common/units",
             &["txt"]
         );
+        $mac!(
+            bop_scanner,
+            BalanceOfPower,
+            BalanceOfPower,
+            balance_of_powers,
+            "common/balance_of_power",
+            &["txt"]
+        );
+        $mac!(
+            gfx_scanner,
+            ColorCode,
+            ColorCode,
+            color_codes,
+            "interface",
+            &["gfx"]
+        );
     };
 }

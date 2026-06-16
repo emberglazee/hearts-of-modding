@@ -7,11 +7,13 @@ use crate::parser::loc_parser;
 use crate::parser::parser;
 use crate::scanner::ability_scanner;
 use crate::scanner::achievement_scanner;
+use crate::scanner::adjacency_scanner;
 use crate::scanner::ai_area_scanner;
 use crate::scanner::ai_strategy_plan_scanner;
 use crate::scanner::bop_scanner;
 use crate::scanner::building_scanner;
 use crate::scanner::character_scanner;
+use crate::scanner::continent_scanner;
 use crate::scanner::country_scanner;
 use crate::scanner::event_namespace_scanner;
 use crate::scanner::event_scanner;
@@ -207,7 +209,6 @@ impl_has_path!(variable_scanner::Variable);
 impl_has_path!(variable_scanner::EventTarget);
 impl_has_path!(strategic_region_scanner::StrategicRegion);
 impl_has_path!(country_scanner::CountryTag);
-impl_has_path!(bop_scanner::BalanceOfPower);
 impl_has_path!(oob_scanner::OobDivisionTemplate);
 impl_has_path!(oob_scanner::OobFleet);
 impl_has_path!(event_namespace_scanner::EventNamespace);
@@ -218,6 +219,8 @@ impl_has_path!(sound_scanner::Sound);
 impl_has_path!(sound_scanner::SoundEffect);
 impl_has_path!(sound_scanner::Falloff);
 impl_has_path!(sound_scanner::SoundCategory);
+impl_has_path!(continent_scanner::Continent);
+impl_has_path!(adjacency_scanner::AdjacencyRule);
 
 // Standard scanners (generated via registry)
 macro_rules! gen_has_path {
