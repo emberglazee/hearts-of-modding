@@ -1,0 +1,120 @@
+/// Master list of standard scanners — those with a simple 1:1 mapping from
+/// one module, one struct type, one directory, one DashMap field.
+///
+/// Each entry: (module_name, struct_type, entity_kind, field_name, directory, extensions)
+///
+/// The `scan_*_files` function is assumed to be `{module}_files` with `_scanner`
+/// stripped: `ability_scanner` → `scan_ability_files`.
+///
+/// Callbacks are defined per-context-file and invoked via `for_each_standard_scanner!`.
+/// This avoids touching 11 files when adding a new entity type.
+#[macro_export]
+macro_rules! for_each_standard_scanner {
+    ($mac:ident) => {
+        $mac!(
+            ability_scanner,
+            Ability,
+            Ability,
+            abilities,
+            "common/abilities",
+            &["txt"]
+        );
+        $mac!(
+            achievement_scanner,
+            Achievement,
+            Achievement,
+            achievements,
+            "common/achievements",
+            &["txt"]
+        );
+        $mac!(
+            ai_area_scanner,
+            AiArea,
+            AiArea,
+            ai_areas,
+            "common/ai_areas",
+            &["txt"]
+        );
+        $mac!(
+            ai_strategy_plan_scanner,
+            AiStrategyPlan,
+            AiStrategyPlan,
+            ai_strategy_plans,
+            "common/ai_strategy_plans",
+            &["txt"]
+        );
+        $mac!(
+            building_scanner,
+            Building,
+            Building,
+            buildings,
+            "common/buildings",
+            &["txt"]
+        );
+        $mac!(
+            character_scanner,
+            Character,
+            Character,
+            characters,
+            "common/characters",
+            &["txt"]
+        );
+        $mac!(
+            focus_scanner,
+            Focus,
+            Focus,
+            focuses,
+            "common/national_focus",
+            &["txt"]
+        );
+        $mac!(idea_scanner, Idea, Idea, ideas, "common/ideas", &["txt"]);
+        $mac!(
+            portrait_scanner,
+            Portrait,
+            Portrait,
+            portraits,
+            "gfx/portraits",
+            &["txt"]
+        );
+        $mac!(
+            resource_scanner,
+            Resource,
+            Resource,
+            resources,
+            "common/resources",
+            &["txt"]
+        );
+        $mac!(
+            sprite_scanner,
+            Sprite,
+            Sprite,
+            sprites,
+            "interface",
+            &["gfx", "gui"]
+        );
+        $mac!(
+            state_category_scanner,
+            StateCategory,
+            StateCategory,
+            state_categories,
+            "common/state_category",
+            &["txt"]
+        );
+        $mac!(
+            terrain_scanner,
+            TerrainCategory,
+            TerrainCategory,
+            terrain_categories,
+            "common/terrain",
+            &["txt"]
+        );
+        $mac!(
+            unit_scanner,
+            UnitType,
+            UnitType,
+            unit_types,
+            "common/units",
+            &["txt"]
+        );
+    };
+}

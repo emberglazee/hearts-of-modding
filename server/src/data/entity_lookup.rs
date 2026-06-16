@@ -2,6 +2,7 @@
 
 use crate::ScannerData;
 use crate::data::interner::InternedStr;
+use crate::for_each_standard_scanner;
 use crate::parser::ast;
 use crate::utils::lsp_convert::is_pos_in_range;
 use std::collections::HashMap;
@@ -154,7 +155,21 @@ impl<'a> EntityLookup<'a> {
             };
         }
 
-        // Source definitions in priority order (matching original goto_definition)
+        // Standard scanners (generated via registry)
+        macro_rules! std_lookup_get {
+            ($mod:ident, $ty:ident, $kind:ident, $field:ident, $dir:expr, $ext:expr) => {
+                if let Some(entity) = self.data.$field.get(key) {
+                    results.push(EntityLocation {
+                        kind: EntityKind::$kind,
+                        range: entity.range.clone(),
+                        path: entity.path.clone(),
+                    });
+                }
+            };
+        }
+        for_each_standard_scanner!(std_lookup_get);
+
+        // Special scanners (manual)
         try_lookup!(ScriptedTrigger, scripted_triggers);
         try_lookup!(ScriptedEffect, scripted_effects);
         try_lookup!(ScriptedLoc, scripted_locs);
@@ -172,14 +187,7 @@ impl<'a> EntityLookup<'a> {
         }
 
         try_lookup!(Trait, traits);
-        try_lookup!(Sprite, sprites);
-        try_lookup!(Idea, ideas);
-        try_lookup!(Character, characters);
         try_lookup!(Event, events);
-        try_lookup!(Focus, focuses);
-        try_lookup!(Ability, abilities);
-        try_lookup!(Achievement, achievements);
-        try_lookup!(AiArea, ai_areas);
         try_lookup!(BalanceOfPower, balance_of_powers);
 
         {
@@ -229,19 +237,11 @@ impl<'a> EntityLookup<'a> {
             }
         }
 
-        try_lookup!(TerrainCategory, terrain_categories);
-
-        try_lookup!(Portrait, portraits);
         try_lookup!(ColorCode, color_codes);
         try_lookup!(CountryTag, country_tags);
-        try_lookup!(Building, buildings);
-        try_lookup!(Resource, resources);
-        try_lookup!(StateCategory, state_categories);
-        try_lookup!(AiStrategyPlan, ai_strategy_plans);
         try_lookup!(OobDivisionTemplate, oob_division_templates);
         try_lookup!(OobFleet, oob_fleets);
         try_lookup!(EventNamespace, event_namespaces);
-        try_lookup!(UnitType, unit_types);
 
         {
             let map = &self.data.modifier_mappings;
@@ -295,14 +295,22 @@ impl<'a> EntityLookup<'a> {
             };
         }
 
+        // Standard scanners (generated)
+        macro_rules! std_check_entity {
+            ($mod:ident, $ty:ident, $kind:ident, $field:ident, $dir:expr, $ext:expr) => {
+                for entry in self.data.$field.iter() {
+                    let entity = entry.value();
+                    let name = entry.key();
+                    if entity.path.as_ref() == path && is_pos_in_range(pos, &entity.range) {
+                        return Some((EntityKind::$kind, entity.range.clone(), name.to_string()));
+                    }
+                }
+            };
+        }
+        for_each_standard_scanner!(std_check_entity);
+
+        // Special scanners (manual)
         check_entity!(Event, events);
-        check_entity!(Focus, focuses);
-        check_entity!(ScriptedTrigger, scripted_triggers);
-        check_entity!(ScriptedEffect, scripted_effects);
-        check_entity!(Idea, ideas);
-        check_entity!(Character, characters);
-        check_entity!(Ability, abilities);
-        check_entity!(BalanceOfPower, balance_of_powers);
 
         {
             let map = &self.data.variables;
@@ -330,11 +338,18 @@ impl<'a> EntityLookup<'a> {
             };
         }
 
-        collect_names!(Ability, abilities);
+        // Standard scanners (generated)
+        macro_rules! std_collect_names {
+            ($mod:ident, $ty:ident, $kind:ident, $field:ident, $dir:expr, $ext:expr) => {
+                for entry in self.data.$field.iter() {
+                    names.insert(entry.key().to_string(), EntityKind::$kind);
+                }
+            };
+        }
+        for_each_standard_scanner!(std_collect_names);
+
+        // Special scanners (manual)
         collect_names!(BalanceOfPower, balance_of_powers);
-        collect_names!(AiStrategyPlan, ai_strategy_plans);
-        collect_names!(Portrait, portraits);
-        collect_names!(Character, characters);
 
         {
             let map = &self.data.sub_ideologies;
@@ -343,17 +358,12 @@ impl<'a> EntityLookup<'a> {
             }
         }
 
-        collect_names!(Achievement, achievements);
-        collect_names!(Focus, focuses);
-        collect_names!(AiArea, ai_areas);
         collect_names!(Event, events);
         collect_names!(ScriptedTrigger, scripted_triggers);
         collect_names!(ScriptedEffect, scripted_effects);
         collect_names!(ScriptedLoc, scripted_locs);
         collect_names!(Ideology, ideologies);
         collect_names!(Trait, traits);
-        collect_names!(Sprite, sprites);
-        collect_names!(Idea, ideas);
         collect_names!(CustomModifier, custom_modifiers);
         collect_names!(MusicAsset, music_assets);
         collect_names!(MusicStation, music_stations);
@@ -363,16 +373,11 @@ impl<'a> EntityLookup<'a> {
         collect_names!(Falloff, falloffs);
         collect_names!(SoundCategory, sound_categories);
         collect_names!(AdjacencyRule, adjacency_rules);
-        collect_names!(Building, buildings);
-        collect_names!(Resource, resources);
-        collect_names!(StateCategory, state_categories);
-        collect_names!(TerrainCategory, terrain_categories);
         collect_names!(CountryTag, country_tags);
         collect_names!(ColorCode, color_codes);
         collect_names!(OobDivisionTemplate, oob_division_templates);
         collect_names!(OobFleet, oob_fleets);
         collect_names!(EventNamespace, event_namespaces);
-        collect_names!(UnitType, unit_types);
 
         names
     }

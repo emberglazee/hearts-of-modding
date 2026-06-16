@@ -1,5 +1,6 @@
 use crate::data::interner::{InternedStr, Interner};
 use crate::data::layered_value::LayeredValue;
+use crate::for_each_standard_scanner;
 use crate::parser::ast;
 use crate::parser::defines_parser;
 use crate::parser::loc_parser;
@@ -316,6 +317,17 @@ impl ScannerData {
             };
         }
 
+        // ── Standard scanners (generated) ──
+        macro_rules! std_rebuild {
+            ($mod:ident, $ty:ident, $kind:ident, $field:ident, $dir:expr, $ext:expr) => {
+                paste::paste! {
+                    rebuild_index!(self.[<$field>], self.[<$field _file_index>]);
+                }
+            };
+        }
+        for_each_standard_scanner!(std_rebuild);
+
+        // ── Special scanners (manual) ──
         rebuild_index!(self.localization, self.localization_file_index);
         rebuild_index!(self.unit_types, self.unit_types_file_index);
         rebuild_index!(self.scripted_triggers, self.scripted_triggers_file_index);
@@ -331,12 +343,9 @@ impl ScannerData {
                 .push(entry.key().clone());
         }
         rebuild_index!(self.traits, self.traits_file_index);
-        rebuild_index!(self.sprites, self.sprites_file_index);
-        rebuild_index!(self.ideas, self.ideas_file_index);
-        rebuild_index!(self.characters, self.characters_file_index);
+        rebuild_index!(self.scripted_locs, self.scripted_locs_file_index);
         rebuild_index!(self.custom_modifiers, self.custom_modifiers_file_index);
         rebuild_index!(self.events, self.events_file_index);
-        rebuild_index!(self.focuses, self.focuses_file_index);
         rebuild_index!(self.music_assets, self.music_assets_file_index);
         rebuild_index!(self.music_stations, self.music_stations_file_index);
         rebuild_index!(self.songs, self.songs_file_index);
@@ -344,19 +353,8 @@ impl ScannerData {
         rebuild_index!(self.sound_effects, self.sound_effects_file_index);
         rebuild_index!(self.falloffs, self.falloffs_file_index);
         rebuild_index!(self.sound_categories, self.sound_categories_file_index);
-        rebuild_index!(self.buildings, self.buildings_file_index);
-        rebuild_index!(self.resources, self.resources_file_index);
-        rebuild_index!(self.state_categories, self.state_categories_file_index);
-        rebuild_index!(self.achievements, self.achievements_file_index);
-        rebuild_index!(self.abilities, self.abilities_file_index);
-        rebuild_index!(self.ai_strategy_plans, self.ai_strategy_plans_file_index);
-        rebuild_index!(self.ai_areas, self.ai_areas_file_index);
-        rebuild_index!(self.portraits, self.portraits_file_index);
-        rebuild_index!(self.scripted_locs, self.scripted_locs_file_index);
         rebuild_index!(self.country_tags, self.country_tags_file_index);
         rebuild_index_flat!(self.strategic_regions, self.strategic_regions_file_index);
-        rebuild_index!(self.terrain_categories, self.terrain_categories_file_index);
-        rebuild_index!(self.balance_of_powers, self.balance_of_powers_file_index);
         rebuild_index!(
             self.oob_division_templates,
             self.oob_division_templates_file_index

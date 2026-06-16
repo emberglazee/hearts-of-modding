@@ -1,5 +1,6 @@
 use crate::data::interner::InternedStr;
 use crate::data::scanner_data::ScannerData;
+use crate::for_each_standard_scanner;
 use crate::parser::ast;
 use crate::parser::defines_parser;
 use crate::parser::loc_parser;
@@ -14,19 +15,16 @@ use crate::scanner::character_scanner;
 use crate::scanner::country_scanner;
 use crate::scanner::event_namespace_scanner;
 use crate::scanner::event_scanner;
-use crate::scanner::focus_scanner;
 use crate::scanner::idea_scanner;
 use crate::scanner::ideology_scanner;
 use crate::scanner::modifier_scanner;
 use crate::scanner::music_scanner;
 use crate::scanner::oob_scanner;
 use crate::scanner::portrait_scanner;
-use crate::scanner::resource_scanner;
 use crate::scanner::scripted_loc_scanner;
 use crate::scanner::scripted_scanner;
 use crate::scanner::sound_scanner;
 use crate::scanner::sprite_scanner;
-use crate::scanner::state_category_scanner;
 use crate::scanner::strategic_region_scanner;
 use crate::scanner::terrain_scanner;
 use crate::scanner::trait_scanner;
@@ -200,21 +198,19 @@ macro_rules! impl_has_path {
 
 impl_has_path!(loc_parser::LocEntry);
 impl_has_path!(event_scanner::Event);
-impl_has_path!(focus_scanner::Focus);
 impl_has_path!(scripted_scanner::ScriptedEntity);
 impl_has_path!(scripted_loc_scanner::ScriptedLoc);
-impl_has_path!(achievement_scanner::Achievement);
 impl_has_path!(modifier_scanner::Modifier);
 impl_has_path!(ideology_scanner::Ideology);
 impl_has_path!(trait_scanner::Trait);
-impl_has_path!(idea_scanner::Idea);
-impl_has_path!(character_scanner::Character);
-impl_has_path!(building_scanner::Building);
-impl_has_path!(resource_scanner::Resource);
-impl_has_path!(state_category_scanner::StateCategory);
-impl_has_path!(ability_scanner::Ability);
-impl_has_path!(ai_strategy_plan_scanner::AiStrategyPlan);
-impl_has_path!(ai_area_scanner::AiArea);
+impl_has_path!(variable_scanner::Variable);
+impl_has_path!(variable_scanner::EventTarget);
+impl_has_path!(strategic_region_scanner::StrategicRegion);
+impl_has_path!(country_scanner::CountryTag);
+impl_has_path!(bop_scanner::BalanceOfPower);
+impl_has_path!(oob_scanner::OobDivisionTemplate);
+impl_has_path!(oob_scanner::OobFleet);
+impl_has_path!(event_namespace_scanner::EventNamespace);
 impl_has_path!(music_scanner::MusicAsset);
 impl_has_path!(music_scanner::MusicStation);
 impl_has_path!(music_scanner::Song);
@@ -222,18 +218,14 @@ impl_has_path!(sound_scanner::Sound);
 impl_has_path!(sound_scanner::SoundEffect);
 impl_has_path!(sound_scanner::Falloff);
 impl_has_path!(sound_scanner::SoundCategory);
-impl_has_path!(portrait_scanner::Portrait);
-impl_has_path!(sprite_scanner::Sprite);
-impl_has_path!(variable_scanner::Variable);
-impl_has_path!(variable_scanner::EventTarget);
-impl_has_path!(strategic_region_scanner::StrategicRegion);
-impl_has_path!(terrain_scanner::TerrainCategory);
-impl_has_path!(country_scanner::CountryTag);
-impl_has_path!(bop_scanner::BalanceOfPower);
-impl_has_path!(oob_scanner::OobDivisionTemplate);
-impl_has_path!(oob_scanner::OobFleet);
-impl_has_path!(event_namespace_scanner::EventNamespace);
-impl_has_path!(unit_scanner::UnitType);
+
+// Standard scanners (generated via registry)
+macro_rules! gen_has_path {
+    ($mod:ident, $ty:ident, $kind:ident, $field:ident, $dir:expr, $ext:expr) => {
+        impl_has_path!(crate::scanner::$mod::$ty);
+    };
+}
+for_each_standard_scanner!(gen_has_path);
 
 /// Determines which scanner categories apply to a given file path.
 fn classify_file(path: &str) -> Vec<FileCategory> {

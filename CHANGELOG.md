@@ -2,6 +2,12 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
+## [v0.21.1] - 2026-06-16
+
+### 🔧 Changed
+
+- **Slight refactor to reduce scanner boilerplate code.**
+
 ## [v0.21.0] - 2026-06-15
 
 > its becoming a bit too burdensome

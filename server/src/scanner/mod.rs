@@ -36,3 +36,5 @@ pub mod terrain_scanner;
 pub mod trait_scanner;
 pub mod unit_scanner;
 pub mod variable_scanner;
+
+pub(crate) mod registry;

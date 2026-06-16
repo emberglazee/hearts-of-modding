@@ -8,5 +8,6 @@ pub mod loc_empty;
 pub mod loc_version;
 pub mod oob_regiments;
 pub mod parser_skip;
+pub mod registry;
 pub mod scripted_loc;
 pub mod utf16_conversion;
