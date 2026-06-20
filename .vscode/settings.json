@@ -1,3 +1,4 @@
 {
-    "hoi4.lsp.enabled": false
+    "hoi4.lsp.enabled": false,
+    "hoi4.lsp.suppressDisabledPrompt": true
 }

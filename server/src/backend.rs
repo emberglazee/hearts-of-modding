@@ -233,14 +233,12 @@ impl Backend {
                         if file_count % 100 == 0
                             || last_log.elapsed() > std::time::Duration::from_secs(5)
                         {
-                            let elapsed_ms = scan_start.elapsed().as_millis();
                             let pct = (file_count as f64 / total as f64 * 100.0) as u32;
                             self.client
                                 .log_message(
                                     MessageType::INFO,
                                     format!(
-                                        "[+{}ms] Workspace scan: {}/{} files ({}%) — {}",
-                                        elapsed_ms,
+                                        "Workspace scan: {}/{} files ({}%) — {}",
                                         file_count,
                                         total,
                                         pct,

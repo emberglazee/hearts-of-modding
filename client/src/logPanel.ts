@@ -70,7 +70,8 @@ export class LogPanelProvider implements WebviewViewProvider {
         const filtered = this._entries.filter(e => this._filters.has(e.level))
         const html = filtered.map(e => {
             const color = LEVEL_COLORS[e.level] || '#fff'
-            const time = new Date(e.timestamp).toLocaleTimeString()
+            const d = new Date(e.timestamp)
+            const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}.${String(d.getMilliseconds()).padStart(3, '0')}`
             return `<div class="entry ${e.level.toLowerCase()}"><span class="time">${time}</span> <span class="level" style="color:${color}">[${e.level}]</span> <span class="msg">${this._escapeHtml(e.message)}</span></div>`
         }).join('\n')
 
