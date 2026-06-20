@@ -1,4 +1,4 @@
-import { WebviewView, WebviewViewProvider, WebviewViewResolveContext, CancellationToken } from 'vscode'
+import { WebviewView, WebviewViewProvider, WebviewViewResolveContext, CancellationToken, window, workspace, env, Uri } from 'vscode'
 
 interface LogEntry {
     level: string
@@ -50,6 +50,12 @@ export class LogPanelProvider implements WebviewViewProvider {
                     this._autoScroll = !this._autoScroll
                     this._render()
                     break
+                case 'copyAll':
+                    this._copyAllFiltered()
+                    break
+                case 'exportAsFile':
+                    this._exportAsFile()
+                    break
             }
         })
 
@@ -82,9 +88,39 @@ export class LogPanelProvider implements WebviewViewProvider {
 
         this._view.webview.postMessage({
             command: 'render',
-            html: `<div class="toolbar">${filterBtns} <button class="filter" data-cmd="clear">✕ Clear</button> <button class="filter ${this._autoScroll ? 'active' : ''}" data-cmd="autoscroll">⬇ Auto</button> <span style="color:#666;font-size:11px;margin-left:auto">${this._entries.length} entries</span></div><div id="log">${html}</div>`,
+            html: `<div class="toolbar">${filterBtns} <button class="filter" data-cmd="clear">✕ Clear</button> <button class="filter ${this._autoScroll ? 'active' : ''}" data-cmd="autoscroll">⬇ Auto</button> <button class="filter" data-cmd="copyAll">📋 Copy All</button> <button class="filter" data-cmd="exportAsFile">💾 Export</button> <span style="color:#666;font-size:11px;margin-left:auto">${this._entries.length} entries</span></div><div id="log">${html}</div>`,
             scroll: this._autoScroll
         })
+    }
+
+    private _formatFilteredEntries(): string {
+        const filtered = this._entries.filter(e => this._filters.has(e.level))
+        return filtered.map(e => {
+            const d = new Date(e.timestamp)
+            const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}.${String(d.getMilliseconds()).padStart(3, '0')}`
+            return `[${time}] [${e.level}] ${e.message}`
+        }).join('\n')
+    }
+
+    private async _copyAllFiltered(): Promise<void> {
+        if (!this._entries.length) return
+        const text = this._formatFilteredEntries()
+        await env.clipboard.writeText(text)
+        window.showInformationMessage(`Copied ${this._entries.filter(e => this._filters.has(e.level)).length} log entries to clipboard`)
+    }
+
+    private async _exportAsFile(): Promise<void> {
+        if (!this._entries.length) return
+        const filtered = this._entries.filter(e => this._filters.has(e.level))
+        const uri = await window.showSaveDialog({
+            filters: { 'Log Files': ['log', 'txt'], 'All Files': ['*'] },
+            defaultUri: Uri.file(`hoi4-log-${Date.now()}.log`),
+            title: 'Export HoM Log'
+        })
+        if (!uri) return
+        const text = this._formatFilteredEntries()
+        await workspace.fs.writeFile(uri, new TextEncoder().encode(text))
+        window.showInformationMessage(`Exported ${filtered.length} log entries to ${uri.fsPath}`)
     }
 
     private _escapeHtml(text: string): string {
@@ -128,6 +164,12 @@ window.addEventListener('message', (e) => {
         });
         document.querySelectorAll('.filter[data-cmd="autoscroll"]').forEach((btn) => {
             btn.addEventListener('click', () => vscode.postMessage({ command: 'toggleAutoScroll' }));
+        });
+        document.querySelectorAll('.filter[data-cmd="copyAll"]').forEach((btn) => {
+            btn.addEventListener('click', () => vscode.postMessage({ command: 'copyAll' }));
+        });
+        document.querySelectorAll('.filter[data-cmd="exportAsFile"]').forEach((btn) => {
+            btn.addEventListener('click', () => vscode.postMessage({ command: 'exportAsFile' }));
         });
         const logEl = document.getElementById('log');
         if (logEl && msg.scroll !== false) {

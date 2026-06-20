@@ -6,7 +6,7 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### 🔧 Changed
 
-- **Minor improvements to extension logs.**
+- **Minor improvements to the log panel:** Milliseconds in the timestamp, and additional buttons to copy the logs, or export them as a file.
 
 - Updated `undici` dependency to v7.28.0.
 
