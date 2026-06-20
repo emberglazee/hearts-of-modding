@@ -8,6 +8,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Minor improvements to extension logs.**
 
+- Updated `undici` dependency to v7.28.0.
+
 ## [v0.21.1] - 2026-06-16
 
 ### 🔧 Changed
