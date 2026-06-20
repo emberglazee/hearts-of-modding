@@ -1239,7 +1239,25 @@ impl Backend {
             });
         }
 
-        for entry in parsed.values() {
+        // Pre-build these sets once before the entry loop instead of rebuilding
+        // them on every iteration (1280 × 610 = 780k+ DashMap lookups per file).
+        let color_code_set: std::collections::HashSet<String> =
+            color_codes.iter().map(|e| e.key().to_string()).collect();
+        let country_tag_set: std::collections::HashSet<String> = self
+            .scanner_data
+            .country_tags
+            .iter()
+            .map(|e| e.key().to_string())
+            .collect();
+
+        for (entry_idx, entry) in parsed.values().enumerate() {
+            // Yield to the async executor periodically so that large loc files
+            // (e.g. countries_l_english.yml with 5688 entries) don't block LSP
+            // request handling during workspace scans.
+            if entry_idx > 0 && entry_idx % 500 == 0 {
+                tokio::task::yield_now().await;
+            }
+
             // Check for unnecessary version numbers
             if let Some(d) = loc_parser::check_unnecessary_version(entry) {
                 diagnostics.push(Diagnostic {
@@ -1272,14 +1290,6 @@ impl Backend {
                 });
             }
 
-            let color_code_set: std::collections::HashSet<String> =
-                color_codes.iter().map(|e| e.key().to_string()).collect();
-            let country_tag_set: std::collections::HashSet<String> = self
-                .scanner_data
-                .country_tags
-                .iter()
-                .map(|e| e.key().to_string())
-                .collect();
             let loc_diagnostics = loc_parser::validate_loc_string(
                 entry,
                 event_targets,

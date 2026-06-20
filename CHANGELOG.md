@@ -10,6 +10,10 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - Updated `undici` dependency to v7.28.0.
 
+### 🩹 Fixed
+
+- **Optimize localization content validation.**
+
 ## [v0.21.1] - 2026-06-16
 
 ### 🔧 Changed
