@@ -6,7 +6,7 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### 🔧 Changed
 
-- **Better timestamps in the log panel.**
+- **Minor improvements to extension logs.**
 
 ## [v0.21.1] - 2026-06-16
 

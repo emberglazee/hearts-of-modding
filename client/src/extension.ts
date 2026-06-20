@@ -14,7 +14,6 @@ import { LogPanelProvider } from './logPanel'
 
 let client: LanguageClient
 let outputChannel: OutputChannel
-let logChannel: OutputChannel
 let logPanelProvider: LogPanelProvider
 let memoryInterval: NodeJS.Timeout | undefined
 let locColorDecorator: LocColorDecorator
@@ -32,7 +31,6 @@ function formatBytes(bytes: number): string {
 
 export async function activate(context: ExtensionContext) {
     outputChannel = window.createOutputChannel('Hearts of Modding')
-    logChannel = window.createOutputChannel('HoM Log')
     console.log('Hearts of Modding extension: activate called')
 
     const statusBarItem = window.createStatusBarItem(StatusBarAlignment.Right, 100)
@@ -259,7 +257,9 @@ async function startServer(context: ExtensionContext, statusBarItem: StatusBarIt
         return
     }
 
-    outputChannel.show(true)
+    // Open the HoM Log panel in the bottom panel instead of the output channel
+    commands.executeCommand('workbench.view.extension.hoi4-log')
+    logPanelProvider.append('INFO', 'Hearts of Modding extension is now starting...')
     outputChannel.appendLine('Hearts of Modding extension is now starting...')
 
     // The server is implemented in Rust
@@ -275,6 +275,7 @@ async function startServer(context: ExtensionContext, statusBarItem: StatusBarIt
     )
 
     if (!fs.existsSync(serverModule)) {
+        logPanelProvider.append('INFO', `Server binary not found in server-bin (${serverModule}), falling back to local build...`)
         outputChannel.appendLine(`Server binary not found in server-bin (${serverModule}), falling back to local build...`)
         // Fallback for development if not packaged
         const localSuffix = process.platform === 'win32' ? '.exe' : ''
@@ -284,6 +285,7 @@ async function startServer(context: ExtensionContext, statusBarItem: StatusBarIt
     }
 
     if (!fs.existsSync(serverModule)) {
+        logPanelProvider.append('INFO', 'Release binary not found, falling back to debug build...')
         outputChannel.appendLine('Release binary not found, falling back to debug build...')
         const localSuffix = process.platform === 'win32' ? '.exe' : ''
         serverModule = context.asAbsolutePath(
@@ -292,8 +294,10 @@ async function startServer(context: ExtensionContext, statusBarItem: StatusBarIt
     }
 
     if (!fs.existsSync(serverModule)) {
+        logPanelProvider.append('ERROR', 'CRITICAL: No server binary found! Language features will not be available.')
         outputChannel.appendLine('CRITICAL: No server binary found! Language features will not be available.')
     } else {
+        logPanelProvider.append('INFO', `Using server binary at: ${serverModule}`)
         outputChannel.appendLine(`Using server binary at: ${serverModule}`)
     }
 
@@ -350,9 +354,6 @@ async function startServer(context: ExtensionContext, statusBarItem: StatusBarIt
     client.onNotification('window/logMessage', (params: { type?: number, message?: string }) => {
         if (!params.message) return
 
-        // Also append to the dedicated output channel (legacy)
-        logChannel.appendLine(params.message)
-
         // Parse [LEVEL] prefix and forward to the webview panel
         const levelMatch = params.message.match(/^\[(ERROR|WARN|INFO|DEBUG|TRACE)\]\s*/)
         if (levelMatch) {
@@ -367,8 +368,7 @@ async function startServer(context: ExtensionContext, statusBarItem: StatusBarIt
 
     // ── Command: Show the HoM Log panel ──
     context.subscriptions.push(commands.registerCommand('hearts-of-modding.showLog', () => {
-        // The panel appears as a tab in the bottom panel area.
-        // Focus the view via the command palette: View: Focus on HoM Log
+        commands.executeCommand('workbench.view.extension.hoi4-log')
     }))
 
     // ── Request scanned colour codes from the LSP ──
