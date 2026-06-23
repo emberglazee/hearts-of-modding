@@ -2,7 +2,7 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
-## [v0.21.2] - 2026-06-20
+## [v0.21.2] - 2026-06-23
 
 ### 🔧 Changed
 
@@ -10,7 +10,7 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Slight refactor for the localization scan logging.**
 
-- Updated `undici` dependency to v7.28.0.
+- **Updated dependencies.**
 
 ### 🩹 Fixed
 
