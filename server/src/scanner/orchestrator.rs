@@ -725,6 +725,8 @@ impl Backend {
                 });
 
                 let mut root_locs = HashMap::new();
+                let mut root_file_count = 0u32;
+                let mut root_key_count: usize = 0;
                 for path in files_to_scan {
                     match std::fs::read_to_string(&path) {
                         Ok(content) => {
@@ -733,6 +735,9 @@ impl Backend {
                                 loc_parser::parse_loc_file(&content, &path_str);
                             let lang_str = doc_lang.unwrap_or_else(|| "unknown".to_string());
 
+                            root_file_count += 1;
+                            root_key_count += parsed.len();
+
                             if parsed.is_empty() {
                                 logs.push((
                                     MessageType::LOG,
@@ -740,11 +745,6 @@ impl Backend {
                                         "Warning: No keys found in localization file: {:?}",
                                         path
                                     ),
-                                ));
-                            } else {
-                                logs.push((
-                                    MessageType::LOG,
-                                    format!("Loaded {} keys from {:?}", parsed.len(), path),
                                 ));
                             }
 
@@ -768,6 +768,20 @@ impl Backend {
                             ));
                         }
                     }
+                }
+                if root_file_count > 0 {
+                    let root_label = if is_game_root {
+                        "game path"
+                    } else {
+                        "workspace root"
+                    };
+                    logs.push((
+                        MessageType::INFO,
+                        format!(
+                            "Loaded {} keys from {} files ({})",
+                            root_key_count, root_file_count, root_label,
+                        ),
+                    ));
                 }
                 per_root_locs.push(root_locs);
             }

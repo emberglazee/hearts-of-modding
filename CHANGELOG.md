@@ -8,6 +8,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Minor improvements to the log panel:** Milliseconds in the timestamp, and additional buttons to copy the logs, or export them as a file.
 
+- **Slight refactor for the localization scan logging.**
+
 - Updated `undici` dependency to v7.28.0.
 
 ### 🩹 Fixed
