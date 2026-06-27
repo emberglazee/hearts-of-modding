@@ -127,6 +127,8 @@ impl LanguageServer for Backend {
                                     SemanticTokenType::PROPERTY,
                                     SemanticTokenType::from("escapeCharacter"),
                                     SemanticTokenType::from("parameter"),
+                                    SemanticTokenType::from("boolean"),
+                                    SemanticTokenType::from("metaScope"),
                                 ],
                                 token_modifiers: vec![],
                             },

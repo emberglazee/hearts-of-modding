@@ -101,7 +101,9 @@
         "class": "#3db8c8",
         "property": "#78dba8",
         "escapeCharacter": "#e2c15a",
-        "parameter": "#8b5cf6"
+        "parameter": "#8b5cf6",
+        "boolean": "#4ec9b3",
+        "metaScope": "#c586c0"
     },
     "tokenColors": [
         {

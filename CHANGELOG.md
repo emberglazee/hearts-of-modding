@@ -8,6 +8,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Added more missing keywords to the list of semantic tokens.**
 
+- **Distinctive semantic highlighting for booleans (`yes`/`no`) and meta-scopes (`ROOT`, `FROM`, `PREV`, `THIS`).**
+
 ### 🔧 Changed
 
 - ⭐ **Better event namespace validation:** Same-file namespace after event, cross-file namespace ordering, case-insensitive namespace lookup, vanilla namespaces, ignoring `events/` subdirectories.

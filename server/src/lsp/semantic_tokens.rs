@@ -24,6 +24,17 @@ enum TokenType {
     Property = 13,
     EscapeCharacter = 14,
     Parameter = 15,
+    Boolean = 16,
+    MetaScope = 17,
+}
+
+/// Check if a string is one of the 4 HOI4 meta-scopes (case-insensitive).
+/// These are NOT ordinary keywords — they refer to runtime scopes on the
+/// scope stack and deserve distinct highlighting.
+fn is_meta_scope(s: &str) -> bool {
+    ["ROOT", "THIS", "PREV", "FROM"]
+        .iter()
+        .any(|ms| ms.eq_ignore_ascii_case(s))
 }
 
 /// Fields whose values are always localization keys, not entity references.
@@ -584,6 +595,11 @@ fn push_entry_tokens(
             // `option` = { ... } defines a structured block — highlight as Struct
             let is_option_key = key_text == "option";
 
+            // Meta-scope keys (ROOT, THIS, PREV, FROM) — these are not
+            // ordinary keywords, they refer to runtime scopes and should
+            // be highlighted distinctly.
+            let is_meta = is_meta_scope(key_text);
+
             if is_event_type {
                 tokens.push(RawToken {
                     line: ass.key_range.start_line,
@@ -597,6 +613,13 @@ fn push_entry_tokens(
                     start: ass.key_range.start_col,
                     length: ass.key_range.end_col - ass.key_range.start_col,
                     token_type: TokenType::Struct as u32,
+                });
+            } else if is_meta {
+                tokens.push(RawToken {
+                    line: ass.key_range.start_line,
+                    start: ass.key_range.start_col,
+                    length: ass.key_range.end_col - ass.key_range.start_col,
+                    token_type: TokenType::MetaScope as u32,
                 });
             } else if is_keyword {
                 tokens.push(RawToken {
@@ -687,7 +710,14 @@ fn push_value_tokens(
             let is_localization_value =
                 parent_key.is_some_and(|k| LOCALIZATION_VALUE_FIELDS.contains(&k));
 
-            if ctx.keywords.contains(s) {
+            if is_meta_scope(s) {
+                tokens.push(RawToken {
+                    line: val.range.start_line,
+                    start: val.range.start_col,
+                    length: val.range.end_col - val.range.start_col,
+                    token_type: TokenType::MetaScope as u32,
+                });
+            } else if ctx.keywords.contains(s) {
                 tokens.push(RawToken {
                     line: val.range.start_line,
                     start: val.range.start_col,
@@ -765,7 +795,7 @@ fn push_value_tokens(
                 line: val.range.start_line,
                 start: val.range.start_col,
                 length: val.range.end_col - val.range.start_col,
-                token_type: TokenType::Keyword as u32,
+                token_type: TokenType::Boolean as u32,
             });
         }
         Value::Block(entries) => {
