@@ -271,7 +271,12 @@ impl Backend {
     pub(crate) async fn scan_events(&self, overlay: &crate::scanner::file_overlay::FileOverlay) {
         let filter = self.get_sync_filter();
         let mut files: Vec<std::path::PathBuf> = overlay.winning_files_in("events");
-        files.retain(|p| p.extension().is_some_and(|ext| ext == "txt"));
+        files.retain(|p| {
+            p.extension().is_some_and(|ext| ext == "txt")
+                && p.parent()
+                    .and_then(|par| par.file_name())
+                    .is_some_and(|n| n == "events")
+        });
         let file_count = files.len();
         let start = std::time::Instant::now();
         let result =
@@ -301,7 +306,12 @@ impl Backend {
         let ns_files: Vec<std::path::PathBuf> = overlay
             .winning_files_in("events")
             .into_iter()
-            .filter(|p| p.extension().is_some_and(|ext| ext == "txt"))
+            .filter(|p| {
+                p.extension().is_some_and(|ext| ext == "txt")
+                    && p.parent()
+                        .and_then(|par| par.file_name())
+                        .is_some_and(|n| n == "events")
+            })
             .collect();
         let ns_result = tokio::task::spawn_blocking(move || {
             crate::scanner::event_namespace_scanner::scan_event_namespaces(&ns_files, &ns_filter)

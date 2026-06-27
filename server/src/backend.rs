@@ -357,6 +357,39 @@ impl Backend {
             }
         }
 
+        // Check for .txt files in events/ subdirectories — the game does not load them
+        if uri.as_str().ends_with(".txt") {
+            let uri_str = uri.as_str();
+            if let Some(events_pos) = uri_str.find("/events/") {
+                let after_events = &uri_str[events_pos + 8..]; // skip past "/events/"
+                if after_events.contains('/') {
+                    diagnostics.push(tower_lsp_server::ls_types::Diagnostic {
+                        range: tower_lsp_server::ls_types::Range {
+                            start: tower_lsp_server::ls_types::Position {
+                                line: 0,
+                                character: 0,
+                            },
+                            end: tower_lsp_server::ls_types::Position {
+                                line: 0,
+                                character: 0,
+                            },
+                        },
+                        severity: Some(tower_lsp_server::ls_types::DiagnosticSeverity::ERROR),
+                        message: "Files in events/ subdirectories are not loaded by the game. \
+                                  Move this file directly into events/ for it to be recognised."
+                            .to_string(),
+                        code: Some(tower_lsp_server::ls_types::NumberOrString::String(
+                            crate::validation::advanced_validation::EVENTS_SUBDIRECTORY_FILE
+                                .to_string(),
+                        )),
+                        source: Some("Hearts of Modding".to_string()),
+                        ..Default::default()
+                    });
+                    return diagnostics;
+                }
+            }
+        }
+
         let styling_enabled = self.config.styling_enabled();
         let mut script_opt: Option<Arc<ast::Script>> = None;
         let map_config = crate::utils::map_config::get_map_config(std::path::Path::new("."));

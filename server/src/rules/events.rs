@@ -321,6 +321,30 @@ impl EventVisitor {
                     .is_some_and(|cp| ctx.game_path.as_ref().is_some_and(|gp| cp.starts_with(gp)));
                 if is_declaring_under_game && !is_current_under_game {
                     // Vanilla/DLC files always load BEFORE mod files — namespace available
+                } else if !is_declaring_under_game && is_current_under_game {
+                    // Mod files load AFTER vanilla — a mod namespace is NOT available
+                    // to a vanilla file. Fall through to the filename-ordering check,
+                    // but we know the result will always be "not available". Since the
+                    // filename comparison might incorrectly think otherwise (e.g.,
+                    // aaa_mod.txt sorts before zzz_vanilla.txt), emit directly.
+                    let decl_file_label = decl_filename.as_deref().unwrap_or("other file");
+                    diags.push(Diagnostic {
+                        range: ast_range_to_lsp(&ass.value.range),
+                        severity: Some(DiagnosticSeverity::ERROR),
+                        message: format!(
+                            "Event ID '{}' uses namespace '{}' declared in mod file '{}', \
+                             but this file is from the base game. Vanilla/DLC files load \
+                             BEFORE mod files, so this namespace is not available here. \
+                             Use a namespace already declared in the base game instead.",
+                            id, namespace_str, decl_file_label
+                        ),
+                        code: Some(NumberOrString::String(
+                            crate::validation::advanced_validation::MISSING_EVENT_NAMESPACE
+                                .to_string(),
+                        )),
+                        source: Some("Hearts of Modding".to_string()),
+                        ..Default::default()
+                    });
                 } else {
                     match (&current_filename, decl_filename) {
                         (Some(cur), Some(decl)) if decl.as_str() == cur.as_str() => {
@@ -627,9 +651,15 @@ impl ValidationRule for EventValidationRule {
                     let same_file = match Uri::from_str(ctx.uri) {
                         Ok(uri) => match uri.to_file_path() {
                             Some(path) => {
-                                let current = path.into_owned().canonicalize().ok();
-                                let stored = std::path::Path::new(other_path).canonicalize().ok();
-                                current.zip(stored).map(|(c, o)| c == o).unwrap_or(false)
+                                let path = path.into_owned();
+                                let current = path.canonicalize().ok();
+                                let decl_path = std::path::Path::new(other_path);
+                                let stored = decl_path.canonicalize().ok();
+                                match (current, stored) {
+                                    (Some(c), Some(s)) => c == s,
+                                    (None, None) => path == decl_path,
+                                    _ => false,
+                                }
                             }
                             None => false,
                         },
