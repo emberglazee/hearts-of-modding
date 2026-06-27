@@ -325,8 +325,7 @@ impl EventVisitor {
                         id, namespace_str, id, namespace_str
                     ),
                     code: Some(NumberOrString::String(
-                        crate::validation::advanced_validation::MISSING_EVENT_NAMESPACE
-                            .to_string(),
+                        crate::validation::advanced_validation::MISSING_EVENT_NAMESPACE.to_string(),
                     )),
                     source: Some("Hearts of Modding".to_string()),
                     ..Default::default()

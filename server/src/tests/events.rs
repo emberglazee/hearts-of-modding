@@ -570,11 +570,7 @@ fn test_event_namespace_in_decisions_file_still_errors_if_missing() {
     let input = r#"
 country_event = { id = missing_ns.1 }
 "#;
-    let diags = run_event_visitor(
-        input,
-        "file:///common/decisions/test_decisions.txt",
-        &[],
-    );
+    let diags = run_event_visitor(input, "file:///common/decisions/test_decisions.txt", &[]);
     let ns_diags = namespace_diags(&diags);
     assert_eq!(
         ns_diags.len(),
