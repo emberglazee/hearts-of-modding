@@ -312,14 +312,13 @@ impl EventVisitor {
                 // Vanilla/DLC files always load BEFORE mod files, regardless of
                 // individual filenames. If the namespace is declared in a game-path
                 // file and the current file is from the workspace (mod), it's available.
-                let is_declaring_under_game = ctx.game_path.as_ref().is_some_and(|gp| {
-                    decl_path.starts_with(gp)
-                });
-                let is_current_under_game = current_path.as_ref().is_some_and(|cp| {
-                    ctx.game_path
-                        .as_ref()
-                        .is_some_and(|gp| cp.starts_with(gp))
-                });
+                let is_declaring_under_game = ctx
+                    .game_path
+                    .as_ref()
+                    .is_some_and(|gp| decl_path.starts_with(gp));
+                let is_current_under_game = current_path
+                    .as_ref()
+                    .is_some_and(|cp| ctx.game_path.as_ref().is_some_and(|gp| cp.starts_with(gp)));
                 if is_declaring_under_game && !is_current_under_game {
                     // Vanilla/DLC files always load BEFORE mod files — namespace available
                 } else {

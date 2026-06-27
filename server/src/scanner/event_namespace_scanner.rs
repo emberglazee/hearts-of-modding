@@ -78,13 +78,11 @@ pub(crate) fn find_namespaces_in_entries(
                 if let Some(name) = ass.value.value.as_str(source) {
                     // Keep the first declaration's path — subsequent ones are duplicates.
                     // The first declaration's internal ID is what the game uses.
-                    map.entry(name.to_string()).or_insert(
-                        EventNamespace {
-                            name: name.to_string(),
-                            path: std::sync::Arc::from(file_path),
-                            range: ass.value.range.clone(),
-                        },
-                    );
+                    map.entry(name.to_string()).or_insert(EventNamespace {
+                        name: name.to_string(),
+                        path: std::sync::Arc::from(file_path),
+                        range: ass.value.range.clone(),
+                    });
                 }
             }
         }
