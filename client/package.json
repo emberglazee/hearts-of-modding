@@ -285,7 +285,7 @@
         "@typescript-eslint/parser": "^8.62.0",
         "@vscode/vsce": "^3.9.2",
         "esbuild": "^0.28.1",
-        "eslint": "^10.5.0",
+        "eslint": "^10.6.0",
         "globals": "^17.7.0",
         "jiti": "^2.7.0",
         "typescript": "^6.0.3",
