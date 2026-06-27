@@ -258,7 +258,14 @@ async function startServer(context: ExtensionContext, statusBarItem: StatusBarIt
     }
 
     // Open the HoM Log panel in the bottom panel instead of the output channel
-    commands.executeCommand('workbench.view.extension.hoi4-log')
+    // Wrap in try-catch because the view container may not be registered yet
+    // during early activation — an unhandled rejection here destabilizes the
+    // extension host, cascading into session crashes and message queue backlogs.
+    try {
+        commands.executeCommand('workbench.view.extension.hoi4-log')
+    } catch {
+        // View container not ready — messages still go to outputChannel
+    }
     logPanelProvider.append('INFO', 'Hearts of Modding extension is now starting...')
     outputChannel.appendLine('Hearts of Modding extension is now starting...')
 
@@ -368,7 +375,11 @@ async function startServer(context: ExtensionContext, statusBarItem: StatusBarIt
 
     // ── Command: Show the HoM Log panel ──
     context.subscriptions.push(commands.registerCommand('hearts-of-modding.showLog', () => {
-        commands.executeCommand('workbench.view.extension.hoi4-log')
+        try {
+            commands.executeCommand('workbench.view.extension.hoi4-log')
+        } catch {
+            // Silently ignore — fallback to the output channel
+        }
     }))
 
     // ── Request scanned colour codes from the LSP ──

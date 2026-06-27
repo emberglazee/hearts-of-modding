@@ -2,7 +2,7 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
-## [v0.21.2] - 2026-06-23
+## [v0.21.2] - 2026-06-27
 
 ### 🔧 Changed
 

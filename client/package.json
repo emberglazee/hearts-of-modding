@@ -149,12 +149,13 @@
             "panel": [
                 {
                     "id": "hoi4-log",
-                    "title": "HoM Log"
+                    "title": "HoM Log",
+                    "icon": "icons/hoi4-log.svg"
                 }
             ]
         },
         "views": {
-            "panel": [
+            "hoi4-log": [
                 {
                     "type": "webview",
                     "id": "hoi4Log",
