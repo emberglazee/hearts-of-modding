@@ -16,6 +16,10 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Lowered severity of diagnostic `HOM3012` (`DUPLICATE_EVENT_NAMESPACE`) from a warning to information.** The game silently merges the two declarations into one internal ID without any error logs.
 
+### 🩹 Fixed
+
+- **Quoted strings in event titles no longer trigger error diagnostic `HOM3018` (`EVENT_MISSING_TITLE_LOC`).**
+
 ## [v0.21.2] - 2026-06-27
 
 ### ✨ Added

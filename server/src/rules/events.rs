@@ -506,26 +506,17 @@ impl AstVisitor for EventVisitor {
                 match key.to_ascii_lowercase().as_str() {
                     "title" => {
                         state.has_title = true;
-                        if let Some(s) = ass.value.value.as_str(ctx.source) {
-                            // Skip block-form title (multiple conditional texts).
-                            // Simple identifiers and quoted strings are both valid loc keys.
-                            if !matches!(
-                                &ass.value.value,
-                                ast::Value::Block(_) | ast::Value::TaggedBlock(..)
-                            ) {
-                                state.title_key = Some(s.to_string());
-                            }
+                        // Only unquoted identifiers are loc key references.
+                        // Quoted strings like title = "Literal Text" are inline
+                        // text displayed directly by the game — not loc keys.
+                        if let ast::Value::String(span) = &ass.value.value {
+                            state.title_key = Some(span.resolve(ctx.source).to_string());
                         }
                     }
                     "desc" => {
                         state.has_desc = true;
-                        if let Some(s) = ass.value.value.as_str(ctx.source) {
-                            if !matches!(
-                                &ass.value.value,
-                                ast::Value::Block(_) | ast::Value::TaggedBlock(..)
-                            ) {
-                                state.desc_key = Some(s.to_string());
-                            }
+                        if let ast::Value::String(span) = &ass.value.value {
+                            state.desc_key = Some(span.resolve(ctx.source).to_string());
                         }
                     }
                     "picture" => {
