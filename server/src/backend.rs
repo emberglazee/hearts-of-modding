@@ -2213,6 +2213,7 @@ pub(crate) fn build_static_semantic_keywords() -> HashSet<String> {
     keywords.insert("continue_if_invalid".to_string());
     keywords.insert("historical_ai".to_string());
     keywords.insert("completion_reward".to_string());
+    keywords.insert("hidden_effect".to_string());
     keywords.insert("complete_tooltip".to_string());
     keywords.insert("select_effect".to_string());
     keywords.insert("bypass_effect".to_string());

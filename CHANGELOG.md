@@ -4,6 +4,10 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ## [v0.21.2] - 2026-06-27
 
+### ✨ Added
+
+- Added missing `hidden_effect` keyword to the list of semantic tokens.
+
 ### 🔧 Changed
 
 - **Minor improvements to the log panel:** Milliseconds in the timestamp, and additional buttons to copy the logs, or export them as a file.
