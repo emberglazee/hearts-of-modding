@@ -31,6 +31,18 @@ struct EventDef {
     /// Event definitions always have options; `country_event = { ... }`
     /// used as an effect never does. Only validate definition usage.
     has_option: bool,
+    /// Total option blocks in this event.
+    option_count: u32,
+    /// Number of options missing an `ai_chance` block.
+    options_missing_ai_chance: u32,
+    /// Key range of the last option missing `ai_chance` (for diagnostic positioning).
+    last_missing_ai_chance_range: Option<ast::Range>,
+    /// Range of the `title` assignment key (for HOM3018 positioning).
+    title_range: Option<ast::Range>,
+    /// Range of the `desc` assignment key (for HOM3019 positioning).
+    desc_range: Option<ast::Range>,
+    /// Range of the `picture` assignment key (for HOM3020 positioning).
+    picture_range: Option<ast::Range>,
     /// Loc key extracted from `title = "..."` or `title = key` (not block form).
     title_key: Option<String>,
     /// Loc key extracted from `desc = "..."` or `desc = key` (not block form).
@@ -101,22 +113,6 @@ impl EventVisitor {
                 ..Default::default()
             });
         }
-
-        if !state.has_ai_chance {
-            diags.push(Diagnostic {
-                range: ast_range_to_lsp(&state.key_range),
-                severity: Some(DiagnosticSeverity::INFORMATION),
-                message: "Event option is missing an 'ai_chance' block. \
-                          The AI may not choose this option optimally."
-                    .to_string(),
-                code: Some(NumberOrString::String(
-                    crate::validation::advanced_validation::EVENT_OPTION_MISSING_AI_CHANCE
-                        .to_string(),
-                )),
-                source: Some("Hearts of Modding".to_string()),
-                ..Default::default()
-            });
-        }
     }
 
     fn validate_event(
@@ -153,8 +149,9 @@ impl EventVisitor {
             if !ctx.loc.contains_key(key.as_str()) {
                 let prefix = format!("{}:", key);
                 if !ctx.loc.iter().any(|e| e.key().starts_with(&prefix)) {
+                    let d = state.title_range.as_ref().unwrap_or(&state.key_range);
                     diags.push(Diagnostic {
-                        range: ast_range_to_lsp(&state.key_range),
+                        range: ast_range_to_lsp(d),
                         severity: Some(DiagnosticSeverity::WARNING),
                         message: format!(
                             "Event title localization key '{}' not found in any localization file.",
@@ -176,8 +173,9 @@ impl EventVisitor {
             if !ctx.loc.contains_key(key.as_str()) {
                 let prefix = format!("{}:", key);
                 if !ctx.loc.iter().any(|e| e.key().starts_with(&prefix)) {
+                    let d = state.desc_range.as_ref().unwrap_or(&state.key_range);
                     diags.push(Diagnostic {
-                        range: ast_range_to_lsp(&state.key_range),
+                        range: ast_range_to_lsp(d),
                         severity: Some(DiagnosticSeverity::WARNING),
                         message: format!(
                             "Event description localization key '{}' not found in any localization file.",
@@ -197,8 +195,9 @@ impl EventVisitor {
         // HOM3020: picture sprite not found
         if let Some(ref sprite) = state.picture_sprite {
             if sprite.starts_with("GFX_") && !ctx.sprites.contains_key(sprite.as_str()) {
+                let d = state.picture_range.as_ref().unwrap_or(&state.key_range);
                 diags.push(Diagnostic {
-                    range: ast_range_to_lsp(&state.key_range),
+                    range: ast_range_to_lsp(d),
                     severity: Some(DiagnosticSeverity::WARNING),
                     message: format!(
                         "Event picture sprite '{}' not found. Define it in an interface/*.gfx file.",
@@ -212,6 +211,30 @@ impl EventVisitor {
                     ..Default::default()
                 });
             }
+        }
+
+        // HOM3017: ai_chance check — only meaningful when there are multiple options
+        if state.option_count > 1 && state.options_missing_ai_chance > 0 {
+            let diag_range = state
+                .last_missing_ai_chance_range
+                .as_ref()
+                .map(ast_range_to_lsp)
+                .unwrap_or_else(|| ast_range_to_lsp(&state.key_range));
+            diags.push(Diagnostic {
+                range: diag_range,
+                severity: Some(DiagnosticSeverity::INFORMATION),
+                message: format!(
+                    "{} of {} option(s) are missing an 'ai_chance' block. \
+                     The AI may not choose optimally without explicit weights.",
+                    state.options_missing_ai_chance, state.option_count,
+                ),
+                code: Some(NumberOrString::String(
+                    crate::validation::advanced_validation::EVENT_OPTION_MISSING_AI_CHANCE
+                        .to_string(),
+                )),
+                source: Some("Hearts of Modding".to_string()),
+                ..Default::default()
+            });
         }
     }
 
@@ -313,20 +336,30 @@ impl EventVisitor {
                 // individual filenames. If the namespace is declared in a game-path
                 // file and the current file is from the workspace (mod), it's available.
                 //
-                // Normalize paths for cross-platform comparison: lowercased, forward slashes.
+                // Normalize paths for cross-platform comparison: lowercased, forward slashes,
+                // stripped leading / (since URI paths may include / on Unix while stored
+                // paths with drive letters like C:/... start without one).
                 let norm = |p: &std::path::Path| -> String {
-                    p.to_string_lossy().to_lowercase().replace('\\', "/")
+                    p.to_string_lossy()
+                        .to_lowercase()
+                        .replace('\\', "/")
+                        .trim_start_matches('/')
+                        .to_string()
                 };
+                let gp_norm = ctx.game_path.as_ref().map(|gp| {
+                    gp.to_lowercase()
+                        .replace('\\', "/")
+                        .trim_start_matches('/')
+                        .to_string()
+                });
                 let decl_norm = norm(decl_path);
-                let is_declaring_under_game = ctx
-                    .game_path
+                let is_declaring_under_game = gp_norm
                     .as_ref()
-                    .is_some_and(|gp| decl_norm.starts_with(&gp.to_lowercase().replace('\\', "/")));
+                    .is_some_and(|gp| decl_norm.starts_with(gp.as_str()));
                 let is_current_under_game = current_path.as_ref().is_some_and(|cp| {
-                    let cp_norm = norm(cp);
-                    ctx.game_path.as_ref().is_some_and(|gp| {
-                        cp_norm.starts_with(&gp.to_lowercase().replace('\\', "/"))
-                    })
+                    gp_norm
+                        .as_ref()
+                        .is_some_and(|gp| norm(cp).starts_with(gp.as_str()))
                 });
                 if is_declaring_under_game && !is_current_under_game {
                     // Vanilla/DLC files always load BEFORE mod files — namespace available
@@ -488,6 +521,12 @@ impl AstVisitor for EventVisitor {
                 has_mtth: false,
                 has_is_triggered_only: false,
                 has_option: false,
+                option_count: 0,
+                options_missing_ai_chance: 0,
+                last_missing_ai_chance_range: None,
+                title_range: None,
+                desc_range: None,
+                picture_range: None,
                 title_key: None,
                 desc_key: None,
                 picture_sprite: None,
@@ -506,6 +545,7 @@ impl AstVisitor for EventVisitor {
                 match key.to_ascii_lowercase().as_str() {
                     "title" => {
                         state.has_title = true;
+                        state.title_range = Some(ass.key_range.clone());
                         // Only unquoted identifiers are loc key references.
                         // Quoted strings like title = "Literal Text" are inline
                         // text displayed directly by the game — not loc keys.
@@ -515,15 +555,15 @@ impl AstVisitor for EventVisitor {
                     }
                     "desc" => {
                         state.has_desc = true;
+                        state.desc_range = Some(ass.key_range.clone());
                         if let ast::Value::String(span) = &ass.value.value {
                             state.desc_key = Some(span.resolve(ctx.source).to_string());
                         }
                     }
                     "picture" => {
                         state.has_picture = true;
+                        state.picture_range = Some(ass.key_range.clone());
                         if let Some(s) = ass.value.value.as_str(ctx.source) {
-                            // Only check GFX_ prefixed sprites — quoted strings
-                            // may be scripted localisation.
                             if s.starts_with("GFX_") {
                                 state.picture_sprite = Some(s.to_string());
                             }
@@ -555,6 +595,7 @@ impl AstVisitor for EventVisitor {
             // not an effect used inside another event).
             if let Some(state) = self.event_stack.last_mut() {
                 state.has_option = true;
+                state.option_count += 1;
             }
             self.option_stack.push(EventOptionDef {
                 key_range: ass.key_range.clone(),
@@ -595,6 +636,13 @@ impl AstVisitor for EventVisitor {
             && matches!(&ass.value.value, ast::Value::Block(_))
         {
             if let Some(state) = self.option_stack.pop() {
+                // Track missing ai_chance on the event for summary reporting
+                if !state.has_ai_chance {
+                    if let Some(event) = self.event_stack.last_mut() {
+                        event.options_missing_ai_chance += 1;
+                        event.last_missing_ai_chance_range = Some(state.key_range.clone());
+                    }
+                }
                 self.validate_option(&state, ctx, diags);
             }
             return;
@@ -674,7 +722,14 @@ impl ValidationRule for EventValidationRule {
                                     _ => false,
                                 }
                             }
-                            None => false,
+                            None => {
+                                // URI can't be resolved (e.g., no drive letter on
+                                // Windows). Fall back to comparing filenames — for
+                                // event files in a flat directory this is sufficient.
+                                let uri_fn = std::path::Path::new(ctx.uri).file_name();
+                                let stored_fn = std::path::Path::new(other_path).file_name();
+                                uri_fn.zip(stored_fn).is_some_and(|(a, b)| a == b)
+                            }
                         },
                         Err(_) => false,
                     };
