@@ -27,37 +27,6 @@ impl serde::Serialize for Event {
     }
 }
 
-pub fn scan_events<F>(roots: &[PathBuf], filter: &F) -> HashMap<String, Event>
-where
-    F: Fn(&Path) -> bool,
-{
-    let mut events = HashMap::new();
-
-    for root in roots {
-        crate::utils::fs_util::walk_and_parse_files(
-            &root.join("events"),
-            &["txt"],
-            filter,
-            |path, content| {
-                let (script, _) = parser::parse_script(&content);
-                find_event_definitions(
-                    &script.entries,
-                    &script.source,
-                    &path.to_string_lossy(),
-                    &mut events,
-                );
-            },
-        );
-    }
-
-    // Second pass: Find where events are triggered
-    for root in roots {
-        scan_for_triggers(root, &mut events, filter);
-    }
-
-    events
-}
-
 pub(crate) fn find_event_definitions(
     entries: &[ast::Entry],
     source: &str,
@@ -100,25 +69,6 @@ pub(crate) fn find_event_definitions(
             }
         }
     }
-}
-
-fn scan_for_triggers<F>(root: &Path, events: &mut HashMap<String, Event>, filter: &F)
-where
-    F: Fn(&Path) -> bool,
-{
-    // Only scan events/ for trigger relationships. The old code also scanned
-    // common/ (thousands of files), which was extremely slow for very rare
-    // hits — scripted triggers/effects occasionally call country_event but
-    // the vast majority of event triggers are inside event files themselves.
-    crate::utils::fs_util::walk_and_parse_files(
-        &root.join("events"),
-        &["txt"],
-        filter,
-        |_path, content| {
-            let (script, _) = parser::parse_script(&content);
-            find_triggers_in_script(&script.entries, &script.source, events);
-        },
-    );
 }
 
 fn find_triggers_in_script(

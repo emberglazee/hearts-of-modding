@@ -2,6 +2,12 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
+## [v0.22.1] - 2026-06-28
+
+### 🔧 Changed
+
+- **Dead code cleanup.**
+
 ## [v0.22.0] - 2026-06-28
 
 ### ✨ Added
