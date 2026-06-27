@@ -34,6 +34,8 @@ jobs:
         run: |
           cd server
           cargo test
+        env:
+          RUST_BACKTRACE: 1
 
   build:
     name: Build (${{ matrix.os }} - ${{ matrix.target }})
@@ -102,3 +104,5 @@ jobs:
         run: |
           cd server
           cargo test
+        env:
+          RUST_BACKTRACE: 1

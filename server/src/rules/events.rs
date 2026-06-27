@@ -707,16 +707,20 @@ impl ValidationRule for EventValidationRule {
                                     (Some(c), Some(s)) => c == s,
                                     (None, None) => {
                                         // Both files are virtual (e.g., in tests or not on
-                                        // disk). Normalize separators and case for a
-                                        // cross-platform string comparison.
+                                        // disk). Normalize separators, case, and leading
+                                        // slashes for a cross-platform string comparison.
                                         let p = path
                                             .to_string_lossy()
                                             .to_lowercase()
-                                            .replace('\\', "/");
+                                            .replace('\\', "/")
+                                            .trim_start_matches('/')
+                                            .to_string();
                                         let d = decl_path
                                             .to_string_lossy()
                                             .to_lowercase()
-                                            .replace('\\', "/");
+                                            .replace('\\', "/")
+                                            .trim_start_matches('/')
+                                            .to_string();
                                         p == d
                                     }
                                     _ => false,
