@@ -6,7 +6,7 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### ✨ Added
 
-- Added missing `target_country` keyword to the list of semantic tokens.
+- **Added more missing keywords to the list of semantic tokens.**
 
 ### 🔧 Changed
 

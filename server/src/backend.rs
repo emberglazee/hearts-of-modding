@@ -2262,7 +2262,6 @@ pub(crate) fn build_static_semantic_keywords() -> HashSet<String> {
     keywords.insert("default".to_string());
     keywords.insert("reset_on_civilwar".to_string());
     keywords.insert("target".to_string());
-    keywords.insert("transfer_troops".to_string());
     keywords.insert("scroll_wheel_factor".to_string());
 
     // Continuous focus keywords
@@ -2467,6 +2466,14 @@ pub(crate) fn build_static_semantic_keywords() -> HashSet<String> {
     keywords.insert("efficiency".to_string());
     keywords.insert("version_name".to_string());
     keywords.insert("creator".to_string());
+
+    // lowk lazy to categorize
+    keywords.insert("popularity".to_string());
+    keywords.insert("ruling_party".to_string());
+    keywords.insert("elections_allowed".to_string());
+    keywords.insert("size".to_string());
+    keywords.insert("transfer_troops".to_string());
+    keywords.insert("autonomy_state".to_string());
 
     keywords
 }
