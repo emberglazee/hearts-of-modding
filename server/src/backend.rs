@@ -2262,6 +2262,7 @@ pub(crate) fn build_static_semantic_keywords() -> HashSet<String> {
     keywords.insert("default".to_string());
     keywords.insert("reset_on_civilwar".to_string());
     keywords.insert("target".to_string());
+    keywords.insert("transfer_troops".to_string());
     keywords.insert("scroll_wheel_factor".to_string());
 
     // Continuous focus keywords

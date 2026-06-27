@@ -4,6 +4,10 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ## [v0.22.0] - 2026-06-27
 
+### ✨ Added
+
+- Added missing `target_country` keyword to the list of semantic tokens.
+
 ### 🔧 Changed
 
 - ⭐ **Better event namespace validation:** Same-file namespace after event, cross-file namespace ordering, case-insensitive namespace lookup, vanilla namespaces, ignoring `events/` subdirectories.
