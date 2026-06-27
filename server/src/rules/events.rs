@@ -724,11 +724,19 @@ impl ValidationRule for EventValidationRule {
                             }
                             None => {
                                 // URI can't be resolved (e.g., no drive letter on
-                                // Windows). Fall back to comparing filenames — for
-                                // event files in a flat directory this is sufficient.
-                                let uri_fn = std::path::Path::new(ctx.uri).file_name();
-                                let stored_fn = std::path::Path::new(other_path).file_name();
-                                uri_fn.zip(stored_fn).is_some_and(|(a, b)| a == b)
+                                // Windows). Extract filename from URI string directly
+                                // since Path::new may not handle "file:///..." properly.
+                                let uri_fn = ctx
+                                    .uri
+                                    .rsplit('/')
+                                    .next()
+                                    .and_then(|s| if s.is_empty() { None } else { Some(s) });
+                                let stored_fn = std::path::Path::new(other_path)
+                                    .file_name()
+                                    .and_then(|n| n.to_str());
+                                uri_fn
+                                    .zip(stored_fn)
+                                    .is_some_and(|(a, b)| a.eq_ignore_ascii_case(b))
                             }
                         },
                         Err(_) => false,
