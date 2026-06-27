@@ -312,13 +312,22 @@ impl EventVisitor {
                 // Vanilla/DLC files always load BEFORE mod files, regardless of
                 // individual filenames. If the namespace is declared in a game-path
                 // file and the current file is from the workspace (mod), it's available.
+                //
+                // Normalize paths for cross-platform comparison: lowercased, forward slashes.
+                let norm = |p: &std::path::Path| -> String {
+                    p.to_string_lossy().to_lowercase().replace('\\', "/")
+                };
+                let decl_norm = norm(decl_path);
                 let is_declaring_under_game = ctx
                     .game_path
                     .as_ref()
-                    .is_some_and(|gp| decl_path.starts_with(gp));
-                let is_current_under_game = current_path
-                    .as_ref()
-                    .is_some_and(|cp| ctx.game_path.as_ref().is_some_and(|gp| cp.starts_with(gp)));
+                    .is_some_and(|gp| decl_norm.starts_with(&gp.to_lowercase().replace('\\', "/")));
+                let is_current_under_game = current_path.as_ref().is_some_and(|cp| {
+                    let cp_norm = norm(cp);
+                    ctx.game_path.as_ref().is_some_and(|gp| {
+                        cp_norm.starts_with(&gp.to_lowercase().replace('\\', "/"))
+                    })
+                });
                 if is_declaring_under_game && !is_current_under_game {
                     // Vanilla/DLC files always load BEFORE mod files — namespace available
                 } else if !is_declaring_under_game && is_current_under_game {
@@ -657,7 +666,20 @@ impl ValidationRule for EventValidationRule {
                                 let stored = decl_path.canonicalize().ok();
                                 match (current, stored) {
                                     (Some(c), Some(s)) => c == s,
-                                    (None, None) => path == decl_path,
+                                    (None, None) => {
+                                        // Both files are virtual (e.g., in tests or not on
+                                        // disk). Normalize separators and case for a
+                                        // cross-platform string comparison.
+                                        let p = path
+                                            .to_string_lossy()
+                                            .to_lowercase()
+                                            .replace('\\', "/");
+                                        let d = decl_path
+                                            .to_string_lossy()
+                                            .to_lowercase()
+                                            .replace('\\', "/");
+                                        p == d
+                                    }
                                     _ => false,
                                 }
                             }
