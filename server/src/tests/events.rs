@@ -10,9 +10,12 @@ use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString}
 // Test runner
 // ---------------------------------------------------------------------------
 
-/// Run the EventValidationRule over a script and return all diagnostics.
-/// `declared_namespaces` controls which namespaces are pre-declared in scanner data.
-fn run_event_rule(input: &str, uri: &str, declared_namespaces: &[&str]) -> Vec<Diagnostic> {
+/// Run the EventValidationRule (with visitor) over a script and return all diagnostics.
+fn run_event_visitor(
+    input: &str,
+    uri: &str,
+    declared_namespaces: &[(/*name*/ &str, /*filepath*/ &str)],
+) -> Vec<Diagnostic> {
     let (script, _) = parser::parse_script(input);
 
     let loc = DashMap::new();
@@ -41,13 +44,13 @@ fn run_event_rule(input: &str, uri: &str, declared_namespaces: &[&str]) -> Vec<D
         >,
     > = DashMap::new();
 
-    for ns in declared_namespaces {
+    for (name, filepath) in declared_namespaces {
         event_namespaces.insert(
-            std::sync::Arc::<str>::from(*ns),
+            std::sync::Arc::<str>::from(*name),
             crate::data::layered_value::LayeredValue::new(
                 crate::scanner::event_namespace_scanner::EventNamespace {
-                    name: ns.to_string(),
-                    path: std::sync::Arc::<str>::from("test.txt"),
+                    name: name.to_string(),
+                    path: std::sync::Arc::<str>::from(*filepath),
                     range: crate::parser::ast::Range {
                         start_line: 0,
                         start_col: 0,
@@ -91,7 +94,7 @@ fn run_event_rule(input: &str, uri: &str, declared_namespaces: &[&str]) -> Vec<D
     };
 
     let rules: Vec<Box<dyn ValidationRule>> = vec![Box::new(EventValidationRule)];
-    let mut visitors: Vec<Box<dyn AstVisitor>> = Vec::new();
+    let mut visitors: Vec<Box<dyn AstVisitor>> = vec![EventValidationRule::visitor()];
     let mut diags = Vec::new();
 
     walk_script(
@@ -120,7 +123,8 @@ fn namespace_diags(diags: &[Diagnostic]) -> Vec<&Diagnostic> {
 // ---------------------------------------------------------------------------
 
 #[test]
-fn test_event_declared_namespace() {
+fn test_event_declared_namespace_same_file_before() {
+    // Namespace declared BEFORE event in same file → no diagnostic
     let input = r#"
 add_namespace = ns_test
 country_event = {
@@ -129,21 +133,23 @@ country_event = {
     is_triggered_only = yes
 }
 "#;
-    let diags = run_event_rule(input, "file:///test.txt", &["ns_test"]);
+    let diags = run_event_visitor(
+        input,
+        "file:///events/aaa_test.txt",
+        &[("ns_test", "/events/aaa_test.txt")],
+    );
     let ns_diags = namespace_diags(&diags);
     assert!(
         ns_diags.is_empty(),
-        "Declared namespace should produce no HOM3008, got {}: {:?}",
+        "Declared namespace before event should produce no HOM3008, got {}: {:?}",
         ns_diags.len(),
         ns_diags.iter().map(|d| &d.message).collect::<Vec<_>>()
     );
 }
 
 #[test]
-fn test_event_missing_namespace() {
-    // NOTE: namespace names starting with "no" (like "no_ns") trigger a parser
-    // quirk where bare "no" is treated as boolean. Use a namespace that doesn't
-    // conflict with HOI4's boolean keywords.
+fn test_event_missing_namespace_undeclared() {
+    // Namespace never declared anywhere → ERROR
     let input = r#"
 country_event = {
     id = undef_ns.1
@@ -151,22 +157,18 @@ country_event = {
     is_triggered_only = yes
 }
 "#;
-    let diags = run_event_rule(input, "file:///test.txt", &[]);
+    let diags = run_event_visitor(input, "file:///events/test.txt", &[]);
     let ns_diags = namespace_diags(&diags);
     assert_eq!(
         ns_diags.len(),
         1,
-        "Missing namespace should produce exactly one HOM3008"
+        "Undeclared namespace should produce exactly one HOM3008"
     );
-
-    // Verify severity is ERROR (empirically confirmed: event is completely unregistered)
     assert_eq!(
         ns_diags[0].severity,
         Some(DiagnosticSeverity::ERROR),
         "HOM3008 must be ERROR severity (event cannot fire without namespace)"
     );
-
-    // Verify message mentions "Malformed token" (links to game.log)
     assert!(
         ns_diags[0].message.contains("Malformed token"),
         "HOM3008 message should mention 'Malformed token': {}",
@@ -175,7 +177,93 @@ country_event = {
 }
 
 #[test]
-fn test_event_numeric_legacy_id() {
+fn test_event_namespace_declared_later_in_same_file() {
+    // Namespace declared AFTER event in same file → ERROR with reorder message
+    let input = r#"
+country_event = {
+    id = late_ns.1
+    hidden = yes
+    is_triggered_only = yes
+}
+add_namespace = late_ns
+"#;
+    let diags = run_event_visitor(
+        input,
+        "file:///events/test.txt",
+        &[("late_ns", "/events/test.txt")],
+    );
+    let ns_diags = namespace_diags(&diags);
+    assert_eq!(
+        ns_diags.len(),
+        1,
+        "Namespace declared later in same file should produce HOM3008"
+    );
+    assert_eq!(
+        ns_diags[0].severity,
+        Some(DiagnosticSeverity::ERROR),
+        "HOM3008 must be ERROR severity"
+    );
+    assert!(
+        ns_diags[0].message.contains("LATER"),
+        "Message should mention 'LATER': {}",
+        ns_diags[0].message
+    );
+}
+
+#[test]
+fn test_event_namespace_in_file_that_loads_after() {
+    // Namespace declared in a file that loads AFTER the current file → ERROR
+    let input = r#"
+country_event = {
+    id = after_ns.1
+    hidden = yes
+    is_triggered_only = yes
+}
+"#;
+    let diags = run_event_visitor(
+        input,
+        "file:///events/aaa_events.txt", // loads first (ASCII)
+        &[("after_ns", "/events/zzz_events.txt")], // loads after
+    );
+    let ns_diags = namespace_diags(&diags);
+    assert_eq!(
+        ns_diags.len(),
+        1,
+        "Namespace in file that loads after should produce HOM3008"
+    );
+    assert!(
+        ns_diags[0].message.contains("loads AFTER this one"),
+        "Message should mention 'loads AFTER this one': {}",
+        ns_diags[0].message
+    );
+}
+
+#[test]
+fn test_event_namespace_in_file_that_loads_before() {
+    // Namespace declared in a file that loads BEFORE → available → no diagnostic
+    let input = r#"
+country_event = {
+    id = before_ns.1
+    hidden = yes
+    is_triggered_only = yes
+}
+"#;
+    let diags = run_event_visitor(
+        input,
+        "file:///events/zzz_events.txt", // loads last (ASCII)
+        &[("before_ns", "/events/aaa_events.txt")], // loads first
+    );
+    let ns_diags = namespace_diags(&diags);
+    assert!(
+        ns_diags.is_empty(),
+        "Namespace in file that loads before should produce no HOM3008, got {}",
+        ns_diags.len()
+    );
+}
+
+#[test]
+fn test_event_numeric_legacy_id_no_namespace() {
+    // Pure numeric legacy ID → no namespace check needed
     let input = r#"
 country_event = {
     id = 90001
@@ -183,7 +271,7 @@ country_event = {
     is_triggered_only = yes
 }
 "#;
-    let diags = run_event_rule(input, "file:///test.txt", &[]);
+    let diags = run_event_visitor(input, "file:///events/test.txt", &[]);
     let ns_diags = namespace_diags(&diags);
     assert!(
         ns_diags.is_empty(),
@@ -194,46 +282,101 @@ country_event = {
 
 #[test]
 fn test_event_mixed_namespaces_in_one_file() {
-    // Test all three patterns in a single file
+    // Test all patterns in a single file with ordering
     let input = r#"
 add_namespace = ns_test
 
-# This one has a namespace
+# This one has a namespace declared before it → OK
 country_event = {
     id = ns_test.1
     hidden = yes
     is_triggered_only = yes
 }
 
-# This one is missing its namespace declaration
+# This one uses an undeclared namespace → ERROR
 country_event = {
     id = bad_ns.1
     hidden = yes
     is_triggered_only = yes
 }
 
-# This one uses a numeric legacy ID
+# This one uses a numeric legacy ID → OK
 country_event = {
     id = 99999
     hidden = yes
     is_triggered_only = yes
 }
+
+# This one's namespace is declared AFTER it in same file → ERROR (reorder)
+country_event = {
+    id = late_ns.1
+    hidden = yes
+    is_triggered_only = yes
+}
+add_namespace = late_ns
 "#;
-    let diags = run_event_rule(input, "file:///test.txt", &["ns_test"]);
+    let diags = run_event_visitor(
+        input,
+        "file:///events/test.txt",
+        &[
+            ("ns_test", "/events/test.txt"),
+            ("late_ns", "/events/test.txt"),
+        ],
+    );
     let ns_diags = namespace_diags(&diags);
     assert_eq!(
         ns_diags.len(),
-        1,
-        "Only the bad_ns event should produce HOM3008"
+        2,
+        "bad_ns and late_ns should produce HOM3008; ns_test and 99999 should not"
+    );
+
+    // Verify both get ERROR severity
+    for d in &ns_diags {
+        assert_eq!(
+            d.severity,
+            Some(DiagnosticSeverity::ERROR),
+            "All HOM3008 must be ERROR severity: {}",
+            d.message
+        );
+    }
+
+    // One should mention "LATER", one should mention undeclared
+    let msgs: Vec<&str> = ns_diags.iter().map(|d| d.message.as_str()).collect();
+    let has_later = msgs.iter().any(|m| m.contains("LATER"));
+    let has_undeclared = msgs.iter().any(|m| m.contains("Malformed token"));
+    assert!(
+        has_later,
+        "Should have a 'LATER in this file' message: {:?}",
+        msgs
     );
     assert!(
-        ns_diags[0].message.contains("bad_ns"),
-        "HOM3008 should reference the broken namespace: {}",
-        ns_diags[0].message
+        has_undeclared,
+        "Should have a 'Malformed token' message for truly undeclared: {:?}",
+        msgs
     );
-    assert_eq!(
-        ns_diags[0].severity,
-        Some(DiagnosticSeverity::ERROR),
-        "HOM3008 must be ERROR severity"
+}
+
+#[test]
+fn test_event_case_insensitive_namespace() {
+    // Case mismatch between add_namespace and event ID → should still work
+    // (Clausewitz engine is case-insensitive for identifiers)
+    let input = r#"
+add_namespace = My_Test_Case
+country_event = {
+    id = my_test_case.1
+    hidden = yes
+    is_triggered_only = yes
+}
+"#;
+    let diags = run_event_visitor(
+        input,
+        "file:///events/test.txt",
+        &[("My_Test_Case", "/events/test.txt")],
+    );
+    let ns_diags = namespace_diags(&diags);
+    assert!(
+        ns_diags.is_empty(),
+        "Case-insensitive namespace should produce no HOM3008, got {}",
+        ns_diags.len()
     );
 }

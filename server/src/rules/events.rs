@@ -4,6 +4,7 @@ use crate::rules::{ValidationContext, ValidationRule};
 use crate::scanner::event_namespace_scanner;
 use crate::scope::scope::ScopeStack;
 use crate::utils::lsp_convert::ast_range_to_lsp;
+use std::collections::HashSet;
 use std::str::FromStr;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString, Uri};
 
@@ -38,18 +39,11 @@ struct EventDef {
     picture_sprite: Option<String>,
 }
 
-/// AstVisitor that validates event structure and option blocks.
+/// AstVisitor that validates event structure, option blocks, and namespace IDs.
 ///
-/// Checks performed at the event level:
-/// - HOM3016 (EVENT_MISSING_TITLE): Warns when a non-hidden event lacks both `title` and `desc`.
-/// - HOM3018 (EVENT_MISSING_TITLE_LOC): Warns when the `title` localization key is missing.
-/// - HOM3019 (EVENT_MISSING_DESC_LOC): Warns when the `desc` localization key is missing.
-/// - HOM3020 (EVENT_PICTURE_SPRITE_NOT_FOUND): Warns when `picture` references an unknown sprite.
-///
-/// Checks performed at the option level (existing):
-/// - HOM3013 (EVENT_MISSING_OPTION_NAME): Warns when an option has no `name` field.
-/// - HOM3017 (EVENT_OPTION_MISSING_AI_CHANCE): Information when an option has no
-///   `ai_chance` block.
+/// The visitor tracks `add_namespace` declarations as they appear, enabling
+/// same-file positional ordering checks. Cross-file ordering is verified by
+/// comparing filenames against the ASCII sort order HOI4 uses to load files.
 struct EventVisitor {
     /// Depth of event definition nesting (>0 means inside an event definition).
     event_depth: u32,
@@ -57,6 +51,9 @@ struct EventVisitor {
     event_stack: Vec<EventDef>,
     /// Stack of option definitions currently being walked.
     option_stack: Vec<EventOptionDef>,
+    /// Namespace declarations seen so far in the current file walk (lowercased).
+    /// Populated by `add_namespace = X` entries in document order.
+    seen_namespaces: HashSet<String>,
 }
 
 impl EventVisitor {
@@ -65,6 +62,7 @@ impl EventVisitor {
             event_depth: 0,
             event_stack: Vec::new(),
             option_stack: Vec::new(),
+            seen_namespaces: HashSet::new(),
         }
     }
 
@@ -216,6 +214,197 @@ impl EventVisitor {
             }
         }
     }
+
+    /// Check an event ID for namespace validity with same-file and cross-file ordering.
+    fn check_event_id(
+        &self,
+        ass: &ast::Assignment,
+        ctx: &ValidationContext,
+        id: &str,
+        diags: &mut Vec<Diagnostic>,
+    ) {
+        let Some(parsed) = event_namespace_scanner::parse_event_id(id) else {
+            return;
+        };
+
+        // HOM3009: non-integer event ID suffix
+        if !parsed.is_valid_integer {
+            diags.push(Diagnostic {
+                range: ast_range_to_lsp(&ass.value.range),
+                severity: Some(DiagnosticSeverity::WARNING),
+                message: format!(
+                    "Event ID '{}' has non-integer suffix '{}'. Event IDs must be in the format \
+                     <namespace>.<integer> (e.g. 'my_event.123'). Non-integer IDs cause duplicate \
+                     internal event IDs (all become ID 0).",
+                    id, parsed.numeric_raw
+                ),
+                code: Some(NumberOrString::String(
+                    crate::validation::advanced_validation::NON_INTEGER_EVENT_ID.to_string(),
+                )),
+                source: Some("Hearts of Modding".to_string()),
+                ..Default::default()
+            });
+            return;
+        }
+
+        // HOM3010: event ID too large (>= 100000)
+        if let Some(n) = parsed.numeric_value {
+            if n >= 100_000 {
+                diags.push(Diagnostic {
+                    range: ast_range_to_lsp(&ass.value.range),
+                    severity: Some(DiagnosticSeverity::WARNING),
+                    message: format!(
+                        "Event ID '{}' uses numeric ID {}, which is >= 100000. This encroaches \
+                         on other namespace's internal ID range and may cause duplicate ID conflicts.",
+                        id, n
+                    ),
+                    code: Some(NumberOrString::String(
+                        crate::validation::advanced_validation::EVENT_ID_TOO_LARGE.to_string(),
+                    )),
+                    source: Some("Hearts of Modding".to_string()),
+                    ..Default::default()
+                });
+            }
+        }
+
+        // HOM3008: namespace availability check with ordering awareness
+        let namespace_str = parsed.namespace;
+        // Allow event IDs without a namespace part (e.g. just "12345" — legacy IDs)
+        if namespace_str.is_empty() || namespace_str.chars().all(|c| c.is_ascii_digit()) {
+            return;
+        }
+
+        let ns_lower = namespace_str.to_ascii_lowercase();
+
+        // Case 1: Same-file, declared before this event → OK
+        if self.seen_namespaces.contains(&ns_lower) {
+            return;
+        }
+
+        // Resolve current file path from URI for cross-file ordering
+        let current_filename: Option<String> = match Uri::from_str(ctx.uri) {
+            Ok(uri) => match uri.to_file_path() {
+                Some(path) => path.file_name().map(|n| n.to_string_lossy().to_lowercase()),
+                None => None,
+            },
+            Err(_) => None,
+        };
+
+        // Look up the namespace in the global map (try exact match, then lowercase)
+        let global_entry = ctx.event_namespaces.get(namespace_str);
+        let global_entry = if global_entry.is_some() {
+            global_entry
+        } else {
+            ctx.event_namespaces.get(ns_lower.as_str())
+        };
+
+        match global_entry {
+            Some(entry) => {
+                // Namespace exists somewhere — check ordering
+                let declaring_path = &*entry.value().resolve().path;
+                let decl_filename = std::path::Path::new(declaring_path)
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .map(|s| s.to_lowercase());
+
+                match (&current_filename, decl_filename) {
+                    (Some(cur), Some(decl)) if decl.as_str() == cur.as_str() => {
+                        // Same file → declared LATER → reorder needed
+                        diags.push(Diagnostic {
+                            range: ast_range_to_lsp(&ass.value.range),
+                            severity: Some(DiagnosticSeverity::ERROR),
+                            message: format!(
+                                "Event ID '{}' uses namespace '{}' which is declared LATER \
+                                 in this file. Move 'add_namespace = {}' BEFORE this event \
+                                 definition. The game registers namespaces sequentially as \
+                                 it reads the file.",
+                                id, namespace_str, namespace_str
+                            ),
+                            code: Some(NumberOrString::String(
+                                crate::validation::advanced_validation::MISSING_EVENT_NAMESPACE
+                                    .to_string(),
+                            )),
+                            source: Some("Hearts of Modding".to_string()),
+                            ..Default::default()
+                        });
+                    }
+                    (Some(cur), Some(decl)) if decl.as_str() > cur.as_str() => {
+                        // Other file loads AFTER → namespace unavailable at this point
+                        diags.push(Diagnostic {
+                            range: ast_range_to_lsp(&ass.value.range),
+                            severity: Some(DiagnosticSeverity::ERROR),
+                            message: format!(
+                                "Event ID '{}' uses namespace '{}' which is declared in '{}'. \
+                                 That file loads AFTER this one (ASCII filename order), so the \
+                                 namespace is not yet registered. Either move the 'add_namespace' \
+                                 declaration to a file that loads before this one, or add a \
+                                 declaration here before the event.",
+                                id, namespace_str, decl
+                            ),
+                            code: Some(NumberOrString::String(
+                                crate::validation::advanced_validation::MISSING_EVENT_NAMESPACE
+                                    .to_string(),
+                            )),
+                            source: Some("Hearts of Modding".to_string()),
+                            ..Default::default()
+                        });
+                    }
+                    _ => {
+                        // Same-file/cross-file available, or can't determine ordering
+                        // (decl < cur means declaring file loads first → available, no diagnostic)
+                        // If ordering is indeterminate, be conservative: don't flag
+                    }
+                }
+            }
+            None => {
+                // Namespace not declared anywhere → genuinely missing
+                diags.push(Diagnostic {
+                    range: ast_range_to_lsp(&ass.value.range),
+                    severity: Some(DiagnosticSeverity::ERROR),
+                    message: format!(
+                        "Event ID '{}' uses namespace '{}' which has not been declared. \
+                         The event will not be registered by the game (log error: \
+                         'Malformed token: {}'). \
+                         Add 'add_namespace = {}' before any events using this namespace.",
+                        id, namespace_str, id, namespace_str
+                    ),
+                    code: Some(NumberOrString::String(
+                        crate::validation::advanced_validation::MISSING_EVENT_NAMESPACE.to_string(),
+                    )),
+                    source: Some("Hearts of Modding".to_string()),
+                    ..Default::default()
+                });
+            }
+        }
+    }
+
+    /// Extract `id = ...` from an event block and run namespace checks.
+    fn check_event_assignment(
+        &self,
+        ass: &ast::Assignment,
+        ctx: &ValidationContext,
+        diags: &mut Vec<Diagnostic>,
+    ) {
+        let id_str = match &ass.value.value {
+            ast::Value::String(span) => Some(span.resolve(ctx.source)),
+            ast::Value::Block(entries) => entries.iter().find_map(|e| {
+                if let ast::Entry::Assignment(inner_ass) = e {
+                    if inner_ass.key_text(ctx.source) == "id" {
+                        inner_ass.value.value.as_str(ctx.source)
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            }),
+            _ => None,
+        };
+
+        if let Some(id) = id_str {
+            self.check_event_id(ass, ctx, id, diags);
+        }
+    }
 }
 
 impl AstVisitor for EventVisitor {
@@ -224,12 +413,23 @@ impl AstVisitor for EventVisitor {
         ass: &ast::Assignment,
         ctx: &ValidationContext,
         _scope: &ScopeStack,
-        _diags: &mut Vec<Diagnostic>,
+        diags: &mut Vec<Diagnostic>,
     ) {
         let key = ass.key_text(ctx.source);
 
+        // ── Track add_namespace declarations (document order) ─────
+        if key == "add_namespace" {
+            if let Some(name) = ass.value.value.as_str(ctx.source) {
+                self.seen_namespaces.insert(name.to_ascii_lowercase());
+            }
+            // Don't return — HOM3012 (duplicate namespace) still fires via check_assignment
+        }
+
         // ── Detect event definition entry ──────────────────────────
         if Self::is_event_type(key) && matches!(&ass.value.value, ast::Value::Block(_)) {
+            // Check namespace ID BEFORE pushing to stack (ordering check uses seen_namespaces)
+            self.check_event_assignment(ass, ctx, diags);
+
             self.event_stack.push(EventDef {
                 key_range: ass.key_range.clone(),
                 has_title: false,
@@ -366,13 +566,7 @@ impl AstVisitor for EventVisitor {
             && matches!(&ass.value.value, ast::Value::Block(_))
         {
             self.event_depth -= 1;
-            if self.event_depth == 0 {
-                // Validate the outer-most event when its depth returns to 0.
-                // Nested event-effect blocks (e.g. country_event = { ... }
-                // inside an option) are also events, but we only validate
-                // at the top level to avoid double-reporting.
-            }
-            // Always validate when popping, regardless of nesting
+            // Always validate when popping
             if let Some(state) = self.event_stack.pop() {
                 self.validate_event(&state, ctx, diags);
             }
@@ -380,17 +574,14 @@ impl AstVisitor for EventVisitor {
     }
 }
 
-/// Validates event definitions for correct namespace usage and ID format.
+/// Validates event definitions for correct structure.
 ///
-/// Checks:
-/// - Event IDs that use a namespace not declared via `add_namespace` → HOM3008
-/// - Non-integer event IDs (e.g. `my_event.abc`) → HOM3009
-/// - Numeric event ID >= 100000 → HOM3010
-/// - Duplicate event IDs → HOM3011
+/// Checks that remain at the block level (not per-assignment):
 /// - Duplicate `add_namespace` declarations → HOM3012
 ///
-/// The `add_namespace` diagnostic (HOM3012) is produced at the block level
-/// (cross-file), while the others are per-assignment.
+/// Per-assignment checks (HOM3008, HOM3009, HOM3010) are handled by
+/// `EventVisitor` which has access to walking-order state for
+/// same-file namespace ordering validation.
 pub(crate) struct EventValidationRule;
 
 impl ValidationRule for EventValidationRule {
@@ -431,7 +622,7 @@ impl ValidationRule for EventValidationRule {
                     if !same_file {
                         diags.push(Diagnostic {
                             range: ast_range_to_lsp(&ass.value.range),
-                            severity: Some(DiagnosticSeverity::WARNING),
+                            severity: Some(DiagnosticSeverity::INFORMATION),
                             message: format!(
                                 "Duplicate event namespace '{}' (also declared in {})",
                                 name, other_path
@@ -446,110 +637,6 @@ impl ValidationRule for EventValidationRule {
                     }
                 }
             }
-            return;
-        }
-
-        // ── Check event IDs ──────────────────────────────────────
-        if key != "country_event"
-            && key != "state_event"
-            && key != "news_event"
-            && key != "unit_leader_event"
-            && key != "operative_leader_event"
-        {
-            return;
-        }
-
-        // Extract the `id = ...` from the event block, or the string value itself
-        let id_str = match &ass.value.value {
-            ast::Value::String(span) => Some(span.resolve(ctx.source)),
-            ast::Value::Block(entries) => entries.iter().find_map(|e| {
-                if let ast::Entry::Assignment(inner_ass) = e {
-                    if inner_ass.key_text(ctx.source) == "id" {
-                        inner_ass.value.value.as_str(ctx.source)
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
-            }),
-            _ => None,
-        };
-
-        let Some(id) = id_str else {
-            return;
-        };
-
-        // Parse the event ID
-        let Some(parsed) = event_namespace_scanner::parse_event_id(id) else {
-            // Cannot parse at all — the parser may have already caught this.
-            return;
-        };
-
-        // Check 1: Non-integer event ID
-        if !parsed.is_valid_integer {
-            diags.push(Diagnostic {
-                range: ast_range_to_lsp(&ass.value.range),
-                severity: Some(DiagnosticSeverity::WARNING),
-                message: format!(
-                    "Event ID '{}' has non-integer suffix '{}'. Event IDs must be in the format \
-                     <namespace>.<integer> (e.g. 'my_event.123'). Non-integer IDs cause duplicate \
-                     internal event IDs (all become ID 0).",
-                    id, parsed.numeric_raw
-                ),
-                code: Some(NumberOrString::String(
-                    crate::validation::advanced_validation::NON_INTEGER_EVENT_ID.to_string(),
-                )),
-                source: Some("Hearts of Modding".to_string()),
-                ..Default::default()
-            });
-            return; // Can't check further without a valid integer
-        }
-
-        // Check 2: Event ID too large (>= 100000)
-        if let Some(n) = parsed.numeric_value {
-            if n >= 100_000 {
-                diags.push(Diagnostic {
-                    range: ast_range_to_lsp(&ass.value.range),
-                    severity: Some(DiagnosticSeverity::WARNING),
-                    message: format!(
-                        "Event ID '{}' uses numeric ID {}, which is >= 100000. This encroaches \
-                         on other namespace's internal ID range and may cause duplicate ID conflicts.",
-                        id, n
-                    ),
-                    code: Some(NumberOrString::String(
-                        crate::validation::advanced_validation::EVENT_ID_TOO_LARGE.to_string(),
-                    )),
-                    source: Some("Hearts of Modding".to_string()),
-                    ..Default::default()
-                });
-            }
-        }
-
-        // Check 3: Missing namespace declaration
-        let namespace_str = parsed.namespace;
-        // Allow event IDs without a namespace part (e.g. just "12345" — legacy IDs)
-        // Only flag if there IS a namespace part and it's NOT declared.
-        if !namespace_str.is_empty()
-            && !ctx.event_namespaces.contains_key(namespace_str)
-            && namespace_str.chars().any(|c| !c.is_ascii_digit())
-        {
-            diags.push(Diagnostic {
-                range: ast_range_to_lsp(&ass.value.range),
-                severity: Some(DiagnosticSeverity::ERROR),
-                message: format!(
-                    "Event ID '{}' uses namespace '{}' which has not been declared. \
-                     The event will not be registered by the game (log error: \
-                     'Malformed token: {}'). \
-                     Add 'add_namespace = {}' before any events using this namespace.",
-                    id, namespace_str, id, namespace_str
-                ),
-                code: Some(NumberOrString::String(
-                    crate::validation::advanced_validation::MISSING_EVENT_NAMESPACE.to_string(),
-                )),
-                source: Some("Hearts of Modding".to_string()),
-                ..Default::default()
-            });
         }
     }
 }

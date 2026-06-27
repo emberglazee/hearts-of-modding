@@ -76,8 +76,9 @@ pub(crate) fn find_namespaces_in_entries(
             let key = ass.key_text(source);
             if key == "add_namespace" {
                 if let Some(name) = ass.value.value.as_str(source) {
-                    map.insert(
-                        name.to_string(),
+                    // Keep the first declaration's path — subsequent ones are duplicates.
+                    // The first declaration's internal ID is what the game uses.
+                    map.entry(name.to_string()).or_insert(
                         EventNamespace {
                             name: name.to_string(),
                             path: std::sync::Arc::from(file_path),

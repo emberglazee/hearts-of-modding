@@ -2,11 +2,17 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
-## [v0.21.3] - 2026-06-27
+## [v0.22.0] - 2026-06-27
+
+### ✨ Added
+
+- ⭐ **Better event namespace validation:** Same-file namespace after event, cross-file namespace ordering, duplicate `add_namespace`, case-insensitive namespace lookup.
 
 ### 🔧 Changed
 
-- **Changed severity of diagnostic `HOM3008` (`MISSING_EVENT_NAMESPACE`) from a warning to an error.** Not declaring a namespace causes `Malformed token` errors and the game fails to register the events.
+- **Raised severity of diagnostic `HOM3008` (`MISSING_EVENT_NAMESPACE`) from a warning to an error.** Not declaring a namespace causes `Malformed token` errors and the game fails to register the events.
+
+- **Lowered severity of diagnostic `HOM3012` (`DUPLICATE_EVENT_NAMESPACE`) from a warning to information.** The game silently merges the two declarations into one internal ID without any error logs.
 
 ## [v0.21.2] - 2026-06-27
 
