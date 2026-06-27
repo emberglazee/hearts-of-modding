@@ -6,7 +6,7 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### ✨ Added
 
-- ⭐ **Better event namespace validation:** Same-file namespace after event, cross-file namespace ordering, duplicate `add_namespace`, case-insensitive namespace lookup.
+- ⭐ **Better event namespace validation:** Same-file namespace after event, cross-file namespace ordering, case-insensitive namespace lookup, namespaces declared in vanilla.
 
 ### 🔧 Changed
 

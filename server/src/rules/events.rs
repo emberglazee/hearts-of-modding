@@ -282,13 +282,14 @@ impl EventVisitor {
         }
 
         // Resolve current file path from URI for cross-file ordering
-        let current_filename: Option<String> = match Uri::from_str(ctx.uri) {
-            Ok(uri) => match uri.to_file_path() {
-                Some(path) => path.file_name().map(|n| n.to_string_lossy().to_lowercase()),
-                None => None,
-            },
+        let current_path: Option<std::path::PathBuf> = match Uri::from_str(ctx.uri) {
+            Ok(uri) => uri.to_file_path().map(|p| p.into_owned()),
             Err(_) => None,
         };
+        let current_filename = current_path
+            .as_ref()
+            .and_then(|p| p.file_name())
+            .map(|n| n.to_string_lossy().to_lowercase());
 
         // Look up the namespace in the global map (try exact match, then lowercase)
         let global_entry = ctx.event_namespaces.get(namespace_str);
@@ -302,57 +303,73 @@ impl EventVisitor {
             Some(entry) => {
                 // Namespace exists somewhere — check ordering
                 let declaring_path = &*entry.value().resolve().path;
-                let decl_filename = std::path::Path::new(declaring_path)
+                let decl_path = std::path::Path::new(declaring_path);
+                let decl_filename = decl_path
                     .file_name()
                     .and_then(|n| n.to_str())
                     .map(|s| s.to_lowercase());
 
-                match (&current_filename, decl_filename) {
-                    (Some(cur), Some(decl)) if decl.as_str() == cur.as_str() => {
-                        // Same file → declared LATER → reorder needed
-                        diags.push(Diagnostic {
-                            range: ast_range_to_lsp(&ass.value.range),
-                            severity: Some(DiagnosticSeverity::ERROR),
-                            message: format!(
-                                "Event ID '{}' uses namespace '{}' which is declared LATER \
-                                 in this file. Move 'add_namespace = {}' BEFORE this event \
-                                 definition. The game registers namespaces sequentially as \
-                                 it reads the file.",
-                                id, namespace_str, namespace_str
-                            ),
-                            code: Some(NumberOrString::String(
-                                crate::validation::advanced_validation::MISSING_EVENT_NAMESPACE
-                                    .to_string(),
-                            )),
-                            source: Some("Hearts of Modding".to_string()),
-                            ..Default::default()
-                        });
-                    }
-                    (Some(cur), Some(decl)) if decl.as_str() > cur.as_str() => {
-                        // Other file loads AFTER → namespace unavailable at this point
-                        diags.push(Diagnostic {
-                            range: ast_range_to_lsp(&ass.value.range),
-                            severity: Some(DiagnosticSeverity::ERROR),
-                            message: format!(
-                                "Event ID '{}' uses namespace '{}' which is declared in '{}'. \
-                                 That file loads AFTER this one (ASCII filename order), so the \
-                                 namespace is not yet registered. Either move the 'add_namespace' \
-                                 declaration to a file that loads before this one, or add a \
-                                 declaration here before the event.",
-                                id, namespace_str, decl
-                            ),
-                            code: Some(NumberOrString::String(
-                                crate::validation::advanced_validation::MISSING_EVENT_NAMESPACE
-                                    .to_string(),
-                            )),
-                            source: Some("Hearts of Modding".to_string()),
-                            ..Default::default()
-                        });
-                    }
-                    _ => {
-                        // Same-file/cross-file available, or can't determine ordering
-                        // (decl < cur means declaring file loads first → available, no diagnostic)
-                        // If ordering is indeterminate, be conservative: don't flag
+                // Vanilla/DLC files always load BEFORE mod files, regardless of
+                // individual filenames. If the namespace is declared in a game-path
+                // file and the current file is from the workspace (mod), it's available.
+                let is_declaring_under_game = ctx.game_path.as_ref().is_some_and(|gp| {
+                    decl_path.starts_with(gp)
+                });
+                let is_current_under_game = current_path.as_ref().is_some_and(|cp| {
+                    ctx.game_path
+                        .as_ref()
+                        .is_some_and(|gp| cp.starts_with(gp))
+                });
+                if is_declaring_under_game && !is_current_under_game {
+                    // Vanilla/DLC files always load BEFORE mod files — namespace available
+                } else {
+                    match (&current_filename, decl_filename) {
+                        (Some(cur), Some(decl)) if decl.as_str() == cur.as_str() => {
+                            // Same file → declared LATER → reorder needed
+                            diags.push(Diagnostic {
+                                range: ast_range_to_lsp(&ass.value.range),
+                                severity: Some(DiagnosticSeverity::ERROR),
+                                message: format!(
+                                    "Event ID '{}' uses namespace '{}' which is declared LATER \
+                                     in this file. Move 'add_namespace = {}' BEFORE this event \
+                                     definition. The game registers namespaces sequentially as \
+                                     it reads the file.",
+                                    id, namespace_str, namespace_str
+                                ),
+                                code: Some(NumberOrString::String(
+                                    crate::validation::advanced_validation::MISSING_EVENT_NAMESPACE
+                                        .to_string(),
+                                )),
+                                source: Some("Hearts of Modding".to_string()),
+                                ..Default::default()
+                            });
+                        }
+                        (Some(cur), Some(decl)) if decl.as_str() > cur.as_str() => {
+                            // Other file loads AFTER → namespace unavailable at this point
+                            diags.push(Diagnostic {
+                                range: ast_range_to_lsp(&ass.value.range),
+                                severity: Some(DiagnosticSeverity::ERROR),
+                                message: format!(
+                                    "Event ID '{}' uses namespace '{}' which is declared in '{}'. \
+                                     That file loads AFTER this one (ASCII filename order), so the \
+                                     namespace is not yet registered. Either move the 'add_namespace' \
+                                     declaration to a file that loads before this one, or add a \
+                                     declaration here before the event.",
+                                    id, namespace_str, decl
+                                ),
+                                code: Some(NumberOrString::String(
+                                    crate::validation::advanced_validation::MISSING_EVENT_NAMESPACE
+                                        .to_string(),
+                                )),
+                                source: Some("Hearts of Modding".to_string()),
+                                ..Default::default()
+                            });
+                        }
+                        _ => {
+                            // Same-file/cross-file available, or can't determine ordering
+                            // (decl < cur means declaring file loads first → available, no diagnostic)
+                            // If ordering is indeterminate, be conservative: don't flag
+                        }
                     }
                 }
             }
