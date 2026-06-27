@@ -536,11 +536,13 @@ impl ValidationRule for EventValidationRule {
         {
             diags.push(Diagnostic {
                 range: ast_range_to_lsp(&ass.value.range),
-                severity: Some(DiagnosticSeverity::WARNING),
+                severity: Some(DiagnosticSeverity::ERROR),
                 message: format!(
                     "Event ID '{}' uses namespace '{}' which has not been declared. \
+                     The event will not be registered by the game (log error: \
+                     'Malformed token: {}'). \
                      Add 'add_namespace = {}' before any events using this namespace.",
-                    id, namespace_str, namespace_str
+                    id, namespace_str, id, namespace_str
                 ),
                 code: Some(NumberOrString::String(
                     crate::validation::advanced_validation::MISSING_EVENT_NAMESPACE.to_string(),

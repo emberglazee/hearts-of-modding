@@ -1,5 +1,6 @@
 pub mod abilities;
 pub mod dependency_resolution;
+pub mod events;
 pub mod formatting;
 pub mod ideas;
 pub mod loc_columns;
