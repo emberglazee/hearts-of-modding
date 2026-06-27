@@ -545,6 +545,46 @@ country_event = { id = same_file_ns.1 hidden = yes is_triggered_only = yes }
 }
 
 // ---------------------------------------------------------------------------
+// Non-events directory: country_event used as effect, not definition
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_event_namespace_in_decisions_file_skips_ordering() {
+    let input = r#"
+country_event = { id = dec_ns.1 }
+"#;
+    let diags = run_event_visitor(
+        input,
+        "file:///common/decisions/test_decisions.txt",
+        &[("dec_ns", "/events/some_events.txt")],
+    );
+    let ns_diags = namespace_diags(&diags);
+    assert!(
+        ns_diags.is_empty(),
+        "Decisions file should not get ordering-based HOM3008 when namespace exists in events"
+    );
+}
+
+#[test]
+fn test_event_namespace_in_decisions_file_still_errors_if_missing() {
+    let input = r#"
+country_event = { id = missing_ns.1 }
+"#;
+    let diags = run_event_visitor(
+        input,
+        "file:///common/decisions/test_decisions.txt",
+        &[],
+    );
+    let ns_diags = namespace_diags(&diags);
+    assert_eq!(
+        ns_diags.len(),
+        1,
+        "Missing namespace in decisions file should still produce HOM3008"
+    );
+    assert!(ns_diags[0].message.contains("Malformed token"));
+}
+
+// ---------------------------------------------------------------------------
 // ai_chance (HOM3017) tests
 // ---------------------------------------------------------------------------
 
