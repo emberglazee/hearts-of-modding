@@ -304,6 +304,37 @@ impl EventVisitor {
             return;
         }
 
+        // Files outside `events/` use `country_event = { ... }` as an *effect*,
+        // not a definition. The namespace just needs to exist somewhere in any
+        // events file — ordering doesn't apply because events are fully loaded
+        // before decisions/focuses/etc. are executed.
+        let is_in_events_dir = ctx.uri.contains("/events/");
+        if !is_in_events_dir {
+            // For non-events files, check if the namespace exists anywhere
+            let available = ctx.event_namespaces.get(namespace_str).is_some()
+                || ctx.event_namespaces.get(ns_lower.as_str()).is_some();
+            if !available {
+                diags.push(Diagnostic {
+                    range: ast_range_to_lsp(&ass.value.range),
+                    severity: Some(DiagnosticSeverity::ERROR),
+                    message: format!(
+                        "Event ID '{}' uses namespace '{}' which has not been declared. \
+                         The event will not be registered by the game (log error: \
+                         'Malformed token: {}'). \
+                         Add 'add_namespace = {}' before any events using this namespace.",
+                        id, namespace_str, id, namespace_str
+                    ),
+                    code: Some(NumberOrString::String(
+                        crate::validation::advanced_validation::MISSING_EVENT_NAMESPACE
+                            .to_string(),
+                    )),
+                    source: Some("Hearts of Modding".to_string()),
+                    ..Default::default()
+                });
+            }
+            return;
+        }
+
         // Resolve current file path from URI for cross-file ordering
         let current_path: Option<std::path::PathBuf> = match Uri::from_str(ctx.uri) {
             Ok(uri) => uri.to_file_path().map(|p| p.into_owned()),

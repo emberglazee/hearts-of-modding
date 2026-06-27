@@ -8,6 +8,10 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Dead code cleanup.**
 
+### 🩹 Fixed
+
+- **Fixed namespace ordering validation applying to `country_event` uses as an effect.**
+
 ## [v0.22.0] - 2026-06-28
 
 ### ✨ Added
