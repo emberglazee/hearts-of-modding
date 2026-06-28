@@ -125,6 +125,14 @@ macro_rules! for_each_standard_scanner {
             &["txt"]
         );
         $mac!(
+            decision_scanner,
+            Decision,
+            Decision,
+            decisions,
+            "common/decisions",
+            &["txt"]
+        );
+        $mac!(
             gfx_scanner,
             ColorCode,
             ColorCode,

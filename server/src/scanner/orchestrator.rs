@@ -575,6 +575,18 @@ impl Backend {
         );
     }
 
+    pub(crate) async fn scan_decisions(&self, overlay: &crate::scanner::file_overlay::FileOverlay) {
+        scan_dashmap_overlay!(
+            self,
+            overlay,
+            "common/decisions",
+            crate::scanner::decision_scanner::scan_decision_files,
+            decisions,
+            &["txt"],
+            "Total: Loaded {} decisions"
+        );
+    }
+
     pub(crate) async fn scan_resources(&self, overlay: &crate::scanner::file_overlay::FileOverlay) {
         scan_dashmap_overlay!(
             self,

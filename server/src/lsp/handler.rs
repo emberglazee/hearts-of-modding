@@ -441,6 +441,7 @@ impl LanguageServer for Backend {
             self.scan_terrains(&overlay),
             self.scan_modifiers(&overlay),
             self.scan_buildings(&overlay),
+            self.scan_decisions(&overlay),
             self.scan_resources(&overlay),
             self.scan_state_categories(&overlay),
             self.scan_achievements(&overlay),

@@ -54,6 +54,7 @@ pub enum EntityKind {
     ModifierMapping,
     CountryTag,
     ColorCode,
+    Decision,
     Resource,
     StateCategory,
     OobDivisionTemplate,
@@ -107,6 +108,7 @@ impl EntityKind {
             EntityKind::ModifierMapping => SymbolKind::PROPERTY,
             EntityKind::CountryTag => SymbolKind::MODULE,
             EntityKind::ColorCode => SymbolKind::CONSTANT,
+            EntityKind::Decision => SymbolKind::EVENT,
             EntityKind::Resource => SymbolKind::PROPERTY,
             EntityKind::StateCategory => SymbolKind::ENUM,
             EntityKind::OobDivisionTemplate => SymbolKind::STRUCT,
@@ -732,6 +734,7 @@ impl<'a> EntityLookup<'a> {
         push_symbols!(Ability, abilities, "Ability");
         push_symbols!(Portrait, portraits, "Portrait");
         push_symbols!(ColorCode, color_codes, "Color Code");
+        push_symbols!(Decision, decisions, "Decision");
         push_symbols!(TerrainCategory, terrain_categories, "Terrain Category");
         push_symbols!(CountryTag, country_tags, "Country Tag");
         push_symbols!(Building, buildings, "Building");

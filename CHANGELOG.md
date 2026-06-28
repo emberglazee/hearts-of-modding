@@ -8,6 +8,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Event and scanner data dependency graphs** to ensure better workspace data synchronization.
 
+- **Decision scanner:** Scan and parse `common/decisions/*.txt`.
+
 ## [v0.22.2] - 2026-06-28 (Hotfix)
 
 ### 🩹 Fixed

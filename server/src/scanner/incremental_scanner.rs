@@ -325,6 +325,12 @@ fn classify_file(path: &str) -> Vec<FileCategory> {
             cats.push(FileCategory::BalanceOfPower);
         }
 
+        // Decision definitions
+        if lower.contains("/common/decisions/") && !lower.contains("/common/decisions/categories/")
+        {
+            cats.push(FileCategory::Decisions);
+        }
+
         // Unit type definitions (common/units/*.txt)
         if lower.contains("/common/units/") {
             cats.push(FileCategory::Units);
@@ -496,6 +502,7 @@ enum FileCategory {
     BalanceOfPower,
     Oob,
     Units,
+    Decisions,
 }
 
 /// Update `ScannerData` with fresh entities extracted from a single saved file.
@@ -575,6 +582,7 @@ fn update_from_ast(
         FileCategory::BalanceOfPower => update_balance_of_powers(scanner_data, path_str, script),
         FileCategory::Oob => update_oobs(scanner_data, path_str, script),
         FileCategory::Units => update_units(scanner_data, path_str, script),
+        FileCategory::Decisions => update_decisions(scanner_data, path_str, script),
         FileCategory::Localization | FileCategory::Defines | FileCategory::Countries => {
             // Handled directly in update_scanner_data_for_file, unreachable here
         }
@@ -1300,6 +1308,22 @@ fn update_units(scanner_data: &ScannerData, path_str: &str, script: &ast::Script
     );
 }
 
+fn update_decisions(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
+    let mut new_entries = std::collections::HashMap::new();
+    crate::scanner::decision_scanner::find_decisions_in_entries(
+        &script.entries,
+        &script.source,
+        path_str,
+        &mut new_entries,
+    );
+    retain_path!(
+        scanner_data.decisions,
+        scanner_data.decisions_file_index,
+        path_str,
+        new_entries
+    );
+}
+
 /// Remove all scanner data entries originating from a given file path.
 /// Used by `did_change_watched_files` when a file is deleted externally
 /// (Git branch switch, file explorer rename, etc.).
@@ -1555,6 +1579,13 @@ pub fn remove_path_from_scanner_data(scanner_data: &ScannerData, path_str: &str)
                 remove_path!(
                     scanner_data.unit_types,
                     scanner_data.unit_types_file_index,
+                    path_str
+                );
+            }
+            FileCategory::Decisions => {
+                remove_path!(
+                    scanner_data.decisions,
+                    scanner_data.decisions_file_index,
                     path_str
                 );
             }

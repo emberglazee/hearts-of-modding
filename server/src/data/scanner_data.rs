@@ -14,6 +14,7 @@ use crate::scanner::building_scanner;
 use crate::scanner::character_scanner;
 use crate::scanner::continent_scanner;
 use crate::scanner::country_scanner;
+use crate::scanner::decision_scanner;
 use crate::scanner::event_namespace_scanner;
 use crate::scanner::event_scanner;
 use crate::scanner::focus_scanner;
@@ -92,6 +93,7 @@ pub(crate) struct ScannerData {
     pub event_targets: DashMap<InternedStr, Vec<variable_scanner::EventTarget>>,
     pub provinces: DashMap<u32, province_scanner::Province>,
     pub custom_modifiers: DashMap<InternedStr, LayeredValue<modifier_scanner::Modifier>>,
+    pub decisions: DashMap<InternedStr, LayeredValue<decision_scanner::Decision>>,
     pub modifier_mappings: DashMap<InternedStr, String>,
     pub modifier_formats: DashMap<InternedStr, String>,
     pub events: DashMap<InternedStr, LayeredValue<event_scanner::Event>>,
@@ -144,6 +146,7 @@ pub(crate) struct ScannerData {
     pub ideas_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub characters_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub custom_modifiers_file_index: DashMap<InternedStr, Vec<InternedStr>>,
+    pub decisions_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub events_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub focuses_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub music_assets_file_index: DashMap<InternedStr, Vec<InternedStr>>,
@@ -205,6 +208,7 @@ impl ScannerData {
             event_targets: DashMap::new(),
             provinces: DashMap::new(),
             custom_modifiers: DashMap::new(),
+            decisions: DashMap::new(),
             modifier_mappings: DashMap::new(),
             modifier_formats: DashMap::new(),
             events: DashMap::new(),
@@ -249,6 +253,7 @@ impl ScannerData {
             ideas_file_index: DashMap::new(),
             characters_file_index: DashMap::new(),
             custom_modifiers_file_index: DashMap::new(),
+            decisions_file_index: DashMap::new(),
             events_file_index: DashMap::new(),
             focuses_file_index: DashMap::new(),
             music_assets_file_index: DashMap::new(),
