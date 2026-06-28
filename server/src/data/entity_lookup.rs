@@ -55,6 +55,7 @@ pub enum EntityKind {
     CountryTag,
     ColorCode,
     Decision,
+    DecisionCategory,
     Resource,
     StateCategory,
     OobDivisionTemplate,
@@ -109,6 +110,7 @@ impl EntityKind {
             EntityKind::CountryTag => SymbolKind::MODULE,
             EntityKind::ColorCode => SymbolKind::CONSTANT,
             EntityKind::Decision => SymbolKind::EVENT,
+            EntityKind::DecisionCategory => SymbolKind::ENUM,
             EntityKind::Resource => SymbolKind::PROPERTY,
             EntityKind::StateCategory => SymbolKind::ENUM,
             EntityKind::OobDivisionTemplate => SymbolKind::STRUCT,
@@ -347,6 +349,15 @@ impl<'a> EntityLookup<'a> {
             };
         }
         for_each_standard_scanner!(std_collect_names);
+
+        // Decision categories — derived from decisions DashMap
+        {
+            let map = &self.data.decisions;
+            for entry in map.iter() {
+                let cat = entry.value().resolve().category.clone();
+                names.insert(cat, EntityKind::DecisionCategory);
+            }
+        }
 
         // Special scanners (manual)
 
