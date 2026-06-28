@@ -761,12 +761,29 @@ impl LanguageServer for Backend {
     async fn did_change_watched_files(&self, params: DidChangeWatchedFilesParams) {
         use std::sync::Arc;
 
+        // Collect affected re-validation prefixes across ALL change events
+        // so we only re-validate documents that could actually be affected.
+        let mut all_affected: Vec<&'static str> = Vec::new();
+        let mut has_wildcard = false;
+
         for event in params.changes {
             let uri = &event.uri;
             let path_str = match uri.to_file_path() {
                 Some(p) => p.to_string_lossy().to_string(),
                 None => continue,
             };
+
+            // Accumulate dependency prefixes (skip if already wildcard)
+            if !has_wildcard {
+                let prefixes =
+                    crate::scanner::incremental_scanner::dependency_affected_prefixes(&path_str);
+                if prefixes.contains(&"/") {
+                    has_wildcard = true;
+                    all_affected.clear();
+                } else {
+                    all_affected.extend(prefixes);
+                }
+            }
 
             match event.typ {
                 FileChangeType::CREATED | FileChangeType::CHANGED => {
@@ -806,12 +823,14 @@ impl LanguageServer for Backend {
             }
         }
 
-        // Re-validate all open documents so their diagnostics reflect the
-        // updated scanner data (e.g. sprite name changes in .gfx files
-        // should update idea "picture" validity warnings immediately).
+        // Re-validate only the open documents whose paths intersect
+        // with the accumulated affected prefixes.
         for entry in self.documents.iter() {
-            if let Ok(uri) = entry.key().parse::<Uri>() {
-                self.validate_document(uri).await;
+            let doc_uri_str = entry.key();
+            if has_wildcard || all_affected.iter().any(|p| doc_uri_str.contains(p)) {
+                if let Ok(uri) = doc_uri_str.parse::<Uri>() {
+                    self.validate_document(uri).await;
+                }
             }
         }
         // Update entity token context since scanner data may have changed,

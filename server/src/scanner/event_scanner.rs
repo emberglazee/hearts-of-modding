@@ -71,7 +71,7 @@ pub(crate) fn find_event_definitions(
     }
 }
 
-fn find_triggers_in_script(
+pub(crate) fn find_triggers_in_script(
     entries: &[ast::Entry],
     source: &str,
     events: &mut HashMap<String, Event>,

@@ -925,18 +925,26 @@ impl Backend {
                     // Check events
                     let e_map = &self.scanner_data.events;
                     if let Some(event) = e_map.get(identifier.as_str()) {
+                        let trigger_text = if event.triggered_events.is_empty() {
+                            "None".to_string()
+                        } else {
+                            event.triggered_events.join(", ")
+                        };
+                        let callers = self.scanner_data.event_dep_graph.callers_of(&event.id);
+                        let called_by = if callers.is_empty() {
+                            "None".to_string()
+                        } else {
+                            callers.join(", ")
+                        };
                         push_section(
                             &mut hover_text,
                             &format!(
-                                "### 📅 Event: {}\n\nType: `{}`\n\nDefined in: {}\n\nTriggers: {}",
+                                "### 📅 Event: {}\n\nType: `{}`\n\nDefined in: {}\n\nTriggers: {}\n\nCalled by: {}",
                                 event.id,
                                 event.event_type,
                                 self.make_file_link(&event.path),
-                                if event.triggered_events.is_empty() {
-                                    "None".to_string()
-                                } else {
-                                    event.triggered_events.join(", ")
-                                }
+                                trigger_text,
+                                called_by,
                             ),
                         );
                     }

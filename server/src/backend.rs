@@ -1963,6 +1963,7 @@ impl Backend {
             workspace_roots: &workspace_roots,
             unit_types: &self.scanner_data.unit_types,
             event_namespaces: &self.scanner_data.event_namespaces,
+            events: &self.scanner_data.events,
         };
 
         // ── AST visitors (single traversal, replaces per-rule recursion) ──

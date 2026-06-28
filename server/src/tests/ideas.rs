@@ -43,6 +43,7 @@ mod tests {
             workspace_roots: &[] as &[std::path::PathBuf],
             unit_types: leak_map(),
             event_namespaces: leak_map(),
+            events: leak_map(),
         }
     }
 

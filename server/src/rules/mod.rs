@@ -85,6 +85,7 @@ pub(crate) struct ValidationContext<'a> {
         &'a DashMap<InternedStr, LayeredValue<crate::scanner::unit_scanner::UnitType>>,
     pub(crate) event_namespaces:
         &'a DashMap<InternedStr, LayeredValue<event_namespace_scanner::EventNamespace>>,
+    pub(crate) events: &'a DashMap<InternedStr, LayeredValue<crate::scanner::event_scanner::Event>>,
 }
 
 /// A validation rule for HOI4 script semantics.

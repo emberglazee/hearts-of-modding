@@ -1,9 +1,14 @@
+use crate::data::interner::InternedStr;
+use crate::data::layered_value::LayeredValue;
+use crate::parser::ast;
 use crate::parser::parser;
 use crate::rules::events::EventValidationRule;
 use crate::rules::visitor::{AstVisitor, walk_script};
 use crate::rules::{ValidationContext, ValidationRule};
+use crate::scanner::event_scanner::Event;
 use crate::scope::scope::Scope;
 use dashmap::DashMap;
+use std::sync::Arc;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
 // ---------------------------------------------------------------------------
@@ -91,6 +96,106 @@ fn run_event_visitor(
         workspace_roots: &[],
         unit_types: &DashMap::new(),
         event_namespaces: &event_namespaces,
+        events: &DashMap::new(),
+    };
+
+    let rules: Vec<Box<dyn ValidationRule>> = vec![Box::new(EventValidationRule)];
+    let mut visitors: Vec<Box<dyn AstVisitor>> = vec![EventValidationRule::visitor()];
+    let mut diags = Vec::new();
+
+    walk_script(
+        &script.entries,
+        &mut visitors,
+        &rules,
+        &ctx,
+        &mut diags,
+        Scope::Country,
+        false,
+    );
+
+    diags
+}
+
+/// Like run_event_visitor but with a pre-populated events DashMap (for
+/// testing broken-reference and cross-file trigger validation).
+fn run_event_visitor_with_events(
+    input: &str,
+    uri: &str,
+    declared_namespaces: &[(&str, &str)],
+    events: &DashMap<InternedStr, LayeredValue<Event>>,
+) -> Vec<Diagnostic> {
+    let (script, _) = parser::parse_script(input);
+
+    let loc = DashMap::new();
+    let st = DashMap::new();
+    let se = DashMap::new();
+    let ideologies = DashMap::new();
+    let sub_ideologies = DashMap::new();
+    let traits = DashMap::new();
+    let sprites = DashMap::new();
+    let ideas = DashMap::new();
+    let provinces = DashMap::new();
+    let modifier_mappings = DashMap::new();
+    let sound_effects = DashMap::new();
+    let country_tags = DashMap::new();
+    let buildings = DashMap::new();
+    let resources = DashMap::new();
+    let state_categories = DashMap::new();
+    let continents = DashMap::new();
+    let strategic_regions = DashMap::new();
+    let terrain_categories = DashMap::new();
+    let abilities = DashMap::new();
+    let event_namespaces: DashMap<
+        InternedStr,
+        LayeredValue<crate::scanner::event_namespace_scanner::EventNamespace>,
+    > = DashMap::new();
+
+    for (name, filepath) in declared_namespaces {
+        event_namespaces.insert(
+            Arc::from(*name),
+            LayeredValue::new(crate::scanner::event_namespace_scanner::EventNamespace {
+                name: name.to_string(),
+                path: Arc::from(*filepath),
+                range: ast::Range {
+                    start_line: 0,
+                    start_col: 0,
+                    end_line: 0,
+                    end_col: 0,
+                },
+            }),
+        );
+    }
+
+    let ctx = ValidationContext {
+        uri,
+        source: &script.source,
+        loc: &loc,
+        scripted_triggers: &st,
+        scripted_effects: &se,
+        ideologies: &ideologies,
+        sub_ideologies: &sub_ideologies,
+        traits: &traits,
+        sprites: &sprites,
+        ideas: &ideas,
+        provinces: &provinces,
+        modifier_mappings: &modifier_mappings,
+        ignored_loc_regex: &[],
+        comments: &[],
+        sound_effects: &sound_effects,
+        country_tags: &country_tags,
+        buildings: &buildings,
+        resources: &resources,
+        state_categories: &state_categories,
+        continents: &continents,
+        strategic_regions: &strategic_regions,
+        terrain_categories: &terrain_categories,
+        abilities: &abilities,
+        game_path: None,
+        styling_enabled: false,
+        workspace_roots: &[],
+        unit_types: &DashMap::new(),
+        event_namespaces: &event_namespaces,
+        events,
     };
 
     let rules: Vec<Box<dyn ValidationRule>> = vec![Box::new(EventValidationRule)];
@@ -192,6 +297,7 @@ fn run_event_visitor_with_game_path(
         workspace_roots: &[],
         unit_types: &DashMap::new(),
         event_namespaces: &event_namespaces,
+        events: &DashMap::new(),
     };
 
     let rules: Vec<Box<dyn ValidationRule>> = vec![Box::new(EventValidationRule)];
@@ -676,4 +782,169 @@ fn test_non_events_path_no_diagnostic() {
     assert!(!is_events_subdirectory_path(
         "file:///workspace/localisation/test.yml"
     ));
+}
+
+// ---------------------------------------------------------------------------
+// Broken event reference (HOM3022) tests
+// ---------------------------------------------------------------------------
+
+fn broken_ref_diags(diags: &[Diagnostic]) -> Vec<&Diagnostic> {
+    diags
+        .iter()
+        .filter(|d| matches!(&d.code, Some(NumberOrString::String(c)) if c == "HOM3022"))
+        .collect()
+}
+
+#[test]
+fn test_broken_event_reference_block_form_emits_diagnostic() {
+    let events: DashMap<InternedStr, LayeredValue<Event>> = DashMap::new();
+    events.insert(
+        Arc::from("existing.1"),
+        LayeredValue::new(Event {
+            id: "existing.1".to_string(),
+            event_type: "country_event".to_string(),
+            path: Arc::from("events/existing.txt"),
+            range: ast::Range {
+                start_line: 0,
+                start_col: 0,
+                end_line: 0,
+                end_col: 0,
+            },
+            triggered_events: vec![],
+        }),
+    );
+
+    let input = r#"
+add_namespace = test_ns
+country_event = {
+    id = test_ns.1
+    option = {
+        name = test.1.a
+        country_event = { id = missing.1 }
+    }
+}
+"#;
+    let diags = run_event_visitor_with_events(
+        input,
+        "file:///events/test.txt",
+        &[("test_ns", "/events/test.txt")],
+        &events,
+    );
+    let refs = broken_ref_diags(&diags);
+    assert_eq!(refs.len(), 1, "Missing event target should produce HOM3022");
+    assert!(
+        refs[0].message.contains("missing.1"),
+        "Message: {}",
+        refs[0].message
+    );
+}
+
+#[test]
+fn test_broken_event_reference_block_form_to_existing_event_no_diagnostic() {
+    let events: DashMap<InternedStr, LayeredValue<Event>> = DashMap::new();
+    events.insert(
+        Arc::from("existing.1"),
+        LayeredValue::new(Event {
+            id: "existing.1".to_string(),
+            event_type: "country_event".to_string(),
+            path: Arc::from("events/existing.txt"),
+            range: ast::Range {
+                start_line: 0,
+                start_col: 0,
+                end_line: 0,
+                end_col: 0,
+            },
+            triggered_events: vec![],
+        }),
+    );
+
+    let input = r#"
+add_namespace = test_ns
+country_event = {
+    id = test_ns.1
+    option = {
+        name = test.1.a
+        country_event = { id = existing.1 }
+    }
+}
+"#;
+    let diags = run_event_visitor_with_events(
+        input,
+        "file:///events/test.txt",
+        &[("test_ns", "/events/test.txt")],
+        &events,
+    );
+    let refs = broken_ref_diags(&diags);
+    assert!(
+        refs.is_empty(),
+        "Existing event target should not produce HOM3022"
+    );
+}
+
+#[test]
+fn test_broken_event_reference_string_form_emits_diagnostic() {
+    let events: DashMap<InternedStr, LayeredValue<Event>> = DashMap::new();
+    events.insert(
+        Arc::from("existing.1"),
+        LayeredValue::new(Event {
+            id: "existing.1".to_string(),
+            event_type: "country_event".to_string(),
+            path: Arc::from("events/existing.txt"),
+            range: ast::Range {
+                start_line: 0,
+                start_col: 0,
+                end_line: 0,
+                end_col: 0,
+            },
+            triggered_events: vec![],
+        }),
+    );
+
+    let input = r#"
+add_namespace = test_ns
+country_event = {
+    id = test_ns.1
+    option = {
+        name = test.1.a
+        country_event = "missing.1"
+    }
+}
+"#;
+    let diags = run_event_visitor_with_events(
+        input,
+        "file:///events/test.txt",
+        &[("test_ns", "/events/test.txt")],
+        &events,
+    );
+    let refs = broken_ref_diags(&diags);
+    assert_eq!(
+        refs.len(),
+        1,
+        "Missing event target in string form should produce HOM3022"
+    );
+    assert!(
+        refs[0].message.contains("missing.1"),
+        "Message: {}",
+        refs[0].message
+    );
+}
+
+#[test]
+fn test_no_broken_reference_for_event_definition() {
+    let events: DashMap<InternedStr, LayeredValue<Event>> = DashMap::new();
+    let input = r#"
+add_namespace = test_ns
+country_event = { id = test_ns.1 }
+"#;
+    let diags = run_event_visitor_with_events(
+        input,
+        "file:///events/test.txt",
+        &[("test_ns", "/events/test.txt")],
+        &events,
+    );
+    let refs = broken_ref_diags(&diags);
+    assert!(
+        refs.is_empty(),
+        "Top-level event definition should not produce HOM3022"
+    );
 }

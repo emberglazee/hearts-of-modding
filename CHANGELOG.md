@@ -2,13 +2,19 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
-## [v0.22.2] - 2026-06-28
+## [v0.23.0] - 2026-06-28
+
+### ✨ Added
+
+- **Event and scanner data dependency graphs** to ensure better workspace data synchronization.
+
+## [v0.22.2] - 2026-06-28 (Hotfix)
 
 ### 🩹 Fixed
 
 - **Fixed case-insensitivity not working correctly for event namespaces.**
 
-## [v0.22.1] - 2026-06-28
+## [v0.22.1] - 2026-06-28 (Hotfix)
 
 ### 🔧 Changed
 

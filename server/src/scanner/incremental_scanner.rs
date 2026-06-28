@@ -368,6 +368,103 @@ fn classify_file(path: &str) -> Vec<FileCategory> {
     cats
 }
 
+/// Given a changed file path, return path prefixes of documents that should
+/// be re-validated because their validation rules consume data populated
+/// from the changed file's category.
+///
+/// For example, when a file in `common/units/` changes, the unit types
+/// DashMap is updated, and OOB files in `history/units/` need re-validation
+/// because their regiment checks reference unit types.
+///
+/// Returns `["/"]` for changes that affect **all** open documents (defines,
+/// localisation). The caller treats `"/"` as a wildcard.
+pub(crate) fn dependency_affected_prefixes(path: &str) -> Vec<&'static str> {
+    let lower = path.to_ascii_lowercase().replace('\\', "/");
+
+    let mut affected: Vec<&str> = Vec::new();
+
+    // ── Specialists: changes to these directories only affect specific categories ──
+    if lower.contains("/common/units/") {
+        // Unit type definitions consumed by OOB regiment validation
+        affected.push("/history/units/");
+    }
+    if lower.contains("/interface/") {
+        // Sprite/GFX definitions consumed by idea sprite, event picture, portrait
+        affected.push("/common/ideas/");
+        affected.push("/events/");
+        affected.push("/gfx/portraits/");
+    }
+    if lower.contains("/events/") {
+        // Event definitions and namespaces consumed by cross-event references
+        affected.push("/events/");
+    }
+    if lower.contains("/common/scripted_triggers/")
+        || lower.contains("/common/scripted_effects/")
+        || lower.contains("/common/scripted_localisation/")
+    {
+        // Scripted entities referenced by events and decisions
+        affected.push("/events/");
+        affected.push("/common/decisions/");
+    }
+    if lower.contains("/common/decisions/") {
+        affected.push("/common/decisions/");
+    }
+    if lower.contains("/common/national_focus/") {
+        affected.push("/common/national_focus/");
+    }
+    if lower.contains("/common/ideas/") {
+        // Ideas reference other ideas (categories, picture sprites)
+        affected.push("/common/ideas/");
+    }
+    if lower.contains("/common/characters/") {
+        affected.push("/common/characters/");
+    }
+    if lower.contains("/history/units/") {
+        // OOB templates reference other templates
+        affected.push("/history/units/");
+    }
+    if lower.contains("/common/ideologies/") {
+        affected.push("/common/ideologies/");
+    }
+    if lower.contains("/common/country_tags/")
+        || lower.contains("/common/countries/")
+        || lower.contains("/history/countries/")
+    {
+        affected.push("/common/country_tags/");
+        affected.push("/common/countries/");
+        affected.push("/history/countries/");
+    }
+    if lower.contains("/common/abilities/") {
+        affected.push("/common/abilities/");
+    }
+    if lower.contains("/common/ai_areas/") {
+        affected.push("/common/ai_areas/");
+    }
+    if lower.contains("/common/ai_strategy_plans/") {
+        affected.push("/common/ai_strategy_plans/");
+    }
+    if lower.contains("/common/bop/") {
+        affected.push("/common/bop/");
+    }
+    if lower.contains("/common/terrain/") {
+        affected.push("/common/terrain/");
+        affected.push("/map/");
+    }
+    if lower.contains("/map/") {
+        affected.push("/map/");
+    }
+
+    // ── Generalists: changes that ripple everywhere ──
+    if lower.contains("/common/defines/") {
+        affected.push("/"); // wildcard — affects all documents
+    }
+    if lower.contains("localisation/") && lower.ends_with(".yml") {
+        affected.push("/"); // wildcard — loc keys used everywhere
+    }
+
+    affected
+}
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum FileCategory {
     Localization,
@@ -519,6 +616,15 @@ fn update_localization(scanner_data: &ScannerData, path_str: &str, content: &str
 }
 
 fn update_events(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
+    // Step 1: Collect old event IDs for this file BEFORE retain_path! clears the index.
+    // These are needed to clear stale outgoing edges from the dependency graph.
+    let old_event_ids: Vec<String> = scanner_data
+        .events_file_index
+        .get(path_str)
+        .map(|keys| keys.value().iter().map(|k| k.to_string()).collect())
+        .unwrap_or_default();
+
+    // Step 2: Parse new event definitions AND trigger relationships from the fresh AST.
     let mut new_entries = HashMap::new();
     event_scanner::find_event_definitions(
         &script.entries,
@@ -526,7 +632,19 @@ fn update_events(scanner_data: &ScannerData, path_str: &str, script: &ast::Scrip
         path_str,
         &mut new_entries,
     );
+    event_scanner::find_triggers_in_script(&script.entries, &script.source, &mut new_entries);
 
+    // Step 3: Collect edges BEFORE retain_path! consumes new_entries.
+    let mut new_edges: Vec<(String, String)> = Vec::new();
+    for (caller, event) in &new_entries {
+        for callee in &event.triggered_events {
+            if callee != caller {
+                new_edges.push((caller.clone(), callee.clone()));
+            }
+        }
+    }
+
+    // Step 4: Update the events DashMap — inserts new entries, removes stale ones.
     retain_path!(
         scanner_data.events,
         scanner_data.events_file_index,
@@ -534,7 +652,16 @@ fn update_events(scanner_data: &ScannerData, path_str: &str, script: &ast::Scrip
         new_entries
     );
 
-    // Also update namespace declarations from the same file
+    // Step 5: Update the event dependency graph.
+    // Remove old outgoing edges for events that were in this file (even if they
+    // were also in the new_entries — their outgoing edges may have changed).
+    scanner_data.event_dep_graph.remove_callers(&old_event_ids);
+    // Add new outgoing edges from freshly parsed trigger relationships.
+    for (caller, callee) in &new_edges {
+        scanner_data.event_dep_graph.add_edge(caller, callee);
+    }
+
+    // Step 5: Update namespace declarations from the same file
     let mut namespace_entries = HashMap::new();
     event_namespace_scanner::find_namespaces_in_entries(
         &script.entries,

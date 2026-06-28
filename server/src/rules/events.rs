@@ -537,6 +537,45 @@ impl AstVisitor for EventVisitor {
             // Don't return — HOM3012 (duplicate namespace) still fires via check_assignment
         }
 
+        // ── Inside an option: event type assignments are CALLS, not definitions ──
+        if self.in_option() && Self::is_event_type(key) {
+            // Extract target event ID and check if it exists in the workspace.
+            let target_id = match &ass.value.value {
+                ast::Value::String(span) => Some(span.resolve(ctx.source)),
+                ast::Value::QuotedString(s) => Some(s.as_str()),
+                ast::Value::Block(entries) => entries.iter().find_map(|e| {
+                    if let ast::Entry::Assignment(inner_ass) = e
+                        && inner_ass.key_text(ctx.source) == "id"
+                    {
+                        inner_ass.value.value.as_str(ctx.source)
+                    } else {
+                        None
+                    }
+                }),
+                _ => None,
+            };
+            if let Some(id) = target_id
+                && !ctx.events.contains_key(id)
+            {
+                diags.push(Diagnostic {
+                    range: ast_range_to_lsp(&ass.key_range),
+                    severity: Some(DiagnosticSeverity::WARNING),
+                    message: format!(
+                        "Event reference '{}' does not match any defined event in the workspace.",
+                        id,
+                    ),
+                    code: Some(NumberOrString::String(
+                        crate::validation::advanced_validation::BROKEN_EVENT_REFERENCE.to_string(),
+                    )),
+                    source: Some("Hearts of Modding".to_string()),
+                    ..Default::default()
+                });
+            }
+            // Don't return — the existing event-definition handler below will push
+            // to event_stack (harmless for calls — validate_event bails early when
+            // has_option is false).
+        }
+
         // ── Detect event definition entry ──────────────────────────
         if Self::is_event_type(key) && matches!(&ass.value.value, ast::Value::Block(_)) {
             // Check namespace ID BEFORE pushing to stack (ordering check uses seen_namespaces)

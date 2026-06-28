@@ -291,6 +291,12 @@ impl Backend {
                 .insert(k.into(), crate::data::layered_value::LayeredValue::new(v));
         }
         let count = self.scanner_data.events.len();
+
+        // ── Rebuild event dependency graph ──────────────────────────
+        self.scanner_data
+            .event_dep_graph
+            .rebuild_from_events_db(&self.scanner_data.events);
+
         self.client
             .log_message(
                 MessageType::INFO,
