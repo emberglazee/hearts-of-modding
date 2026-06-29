@@ -89,8 +89,10 @@ pub(crate) struct ValidationContext<'a> {
     pub(crate) events: &'a DashMap<InternedStr, LayeredValue<crate::scanner::event_scanner::Event>>,
 
     // Decision validation data
+    #[allow(dead_code)]
     pub(crate) decisions:
         &'a DashMap<InternedStr, LayeredValue<crate::scanner::decision_scanner::Decision>>,
+    pub(crate) decision_categories: &'a DashMap<InternedStr, LayeredValue<()>>,
 }
 
 /// A validation rule for HOI4 script semantics.

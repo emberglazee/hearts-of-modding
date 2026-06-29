@@ -98,6 +98,7 @@ fn run_event_visitor(
         event_namespaces: &event_namespaces,
         events: &DashMap::new(),
         decisions: &DashMap::new(),
+        decision_categories: &DashMap::new(),
     };
 
     let rules: Vec<Box<dyn ValidationRule>> = vec![Box::new(EventValidationRule)];
@@ -198,6 +199,7 @@ fn run_event_visitor_with_events(
         event_namespaces: &event_namespaces,
         events,
         decisions: &DashMap::new(),
+        decision_categories: &DashMap::new(),
     };
 
     let rules: Vec<Box<dyn ValidationRule>> = vec![Box::new(EventValidationRule)];
@@ -301,6 +303,7 @@ fn run_event_visitor_with_game_path(
         event_namespaces: &event_namespaces,
         events: &DashMap::new(),
         decisions: &DashMap::new(),
+        decision_categories: &DashMap::new(),
     };
 
     let rules: Vec<Box<dyn ValidationRule>> = vec![Box::new(EventValidationRule)];

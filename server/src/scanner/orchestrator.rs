@@ -585,6 +585,41 @@ impl Backend {
             &["txt"],
             "Total: Loaded {} decisions"
         );
+
+        // Also scan categories/*.txt for declared category names.
+        // These are separate from decision definitions and don't get
+        // recorded in the decisions DashMap.
+        {
+            let cat_files: Vec<std::path::PathBuf> = overlay
+                .winning_files_in("common/decisions/categories")
+                .into_iter()
+                .filter(|p| p.extension().and_then(|e| e.to_str()) == Some("txt"))
+                .collect();
+            let filter = self.get_sync_filter();
+            let cats = tokio::task::spawn_blocking(move || {
+                crate::scanner::decision_scanner::scan_category_declarations_files(
+                    &cat_files, &filter,
+                )
+            })
+            .await
+            .unwrap();
+            self.scanner_data.decision_categories.clear();
+            for cat in cats {
+                self.scanner_data.decision_categories.insert(
+                    cat.into(),
+                    crate::data::layered_value::LayeredValue::new(()),
+                );
+            }
+            self.client
+                .log_message(
+                    MessageType::INFO,
+                    format!(
+                        "Total: Loaded {} decision categories",
+                        self.scanner_data.decision_categories.len()
+                    ),
+                )
+                .await;
+        }
     }
 
     pub(crate) async fn scan_resources(&self, overlay: &crate::scanner::file_overlay::FileOverlay) {

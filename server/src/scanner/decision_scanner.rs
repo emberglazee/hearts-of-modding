@@ -106,6 +106,34 @@ pub(crate) fn find_decisions_in_entries(
                         if let ast::Entry::Assignment(inner_ass) = inner_entry {
                             if let ast::Value::Block(_) = &inner_ass.value.value {
                                 let decision_key = inner_ass.key_text(source);
+                                // Skip known category-level properties that have
+                                // block values but are NOT decisions:
+                                //   allowed/visible/available — trigger blocks
+                                //   target_root_trigger/target_trigger — targeted decision pre-filters
+                                //   highlight_states — state highlighting config
+                                //   on_map_area — map area config
+                                //   modifier — category-level modifier
+                                //   ai_will_do — category-level AI weight
+                                //   cancel_trigger, cancel_if_not_visible — cancellation
+                                let dk_lower = decision_key.to_ascii_lowercase();
+                                if dk_lower == "allowed"
+                                    || dk_lower == "visible"
+                                    || dk_lower == "available"
+                                    || dk_lower == "target_root_trigger"
+                                    || dk_lower == "target_trigger"
+                                    || dk_lower == "target_array"
+                                    || dk_lower == "targets"
+                                    || dk_lower == "highlight_states"
+                                    || dk_lower == "on_map_area"
+                                    || dk_lower == "modifier"
+                                    || dk_lower == "targeted_modifier"
+                                    || dk_lower == "ai_will_do"
+                                    || dk_lower == "cancel_trigger"
+                                    || dk_lower == "cancel_if_not_visible"
+                                    || dk_lower == "activation"
+                                {
+                                    continue;
+                                }
                                 map.insert(
                                     decision_key.to_string(),
                                     Decision {
@@ -135,6 +163,58 @@ pub(crate) fn find_decisions_in_entries(
             _ => {}
         }
     }
+}
+
+/// Scan `categories/*.txt` files for declared category names.
+/// Returns a set of category names (top-level assignment keys).
+pub fn scan_category_declarations<F>(
+    roots: &[PathBuf],
+    filter: &F,
+) -> std::collections::HashSet<String>
+where
+    F: Fn(&Path) -> bool,
+{
+    let mut cats = std::collections::HashSet::new();
+    for root in roots {
+        crate::utils::fs_util::walk_and_parse_files(
+            &root.join("common/decisions/categories"),
+            &["txt"],
+            filter,
+            |_path, content| {
+                let (script, _) = parser::parse_script(&content);
+                for entry in &script.entries {
+                    if let ast::Entry::Assignment(ass) = entry {
+                        if let ast::Value::Block(_) = &ass.value.value {
+                            cats.insert(ass.key_text(&script.source).to_string());
+                        }
+                    }
+                }
+            },
+        );
+    }
+    cats
+}
+
+/// Like scan_category_declarations but for pre-filtered files.
+pub fn scan_category_declarations_files<F>(
+    files: &[PathBuf],
+    filter: &F,
+) -> std::collections::HashSet<String>
+where
+    F: Fn(&Path) -> bool,
+{
+    let mut cats = std::collections::HashSet::new();
+    crate::utils::fs_util::parse_winning_files(files, filter, |_path, content| {
+        let (script, _) = parser::parse_script(&content);
+        for entry in &script.entries {
+            if let ast::Entry::Assignment(ass) = entry {
+                if let ast::Value::Block(_) = &ass.value.value {
+                    cats.insert(ass.key_text(&script.source).to_string());
+                }
+            }
+        }
+    });
+    cats
 }
 
 #[cfg(test)]

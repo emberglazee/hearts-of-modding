@@ -3,6 +3,7 @@ use crate::data::layered_value::LayeredValue;
 use crate::parser::ast;
 use crate::rules::visitor::AstVisitor;
 use crate::rules::{ValidationContext, ValidationRule};
+#[cfg(test)]
 use crate::scanner::decision_scanner::Decision;
 use crate::scope::scope::ScopeStack;
 use crate::utils::lsp_convert::ast_range_to_lsp;
@@ -11,21 +12,12 @@ use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString}
 
 /// Query scanner data to collect all known decision category names.
 /// Only categories declared in `categories/*.txt` files count as "known".
-/// Categories defined inline in `common/decisions/*.txt` are treated as
-/// unknown by the game engine ("Unknown category: ..." error in log).
-fn known_categories(decisions: &DashMap<InternedStr, LayeredValue<Decision>>) -> Vec<String> {
-    let mut cats: Vec<String> = Vec::new();
-    for entry in decisions.iter() {
-        let d = entry.value().resolve();
-        // Only count categories whose definition comes from categories/ dir
-        if d.path.contains("/categories/") {
-            let cat = d.category.clone();
-            if !cats.contains(&cat) {
-                cats.push(cat);
-            }
-        }
+fn known_categories(cats: &DashMap<InternedStr, LayeredValue<()>>) -> Vec<String> {
+    let mut result: Vec<String> = Vec::new();
+    for entry in cats.iter() {
+        result.push(entry.key().to_string());
     }
-    cats
+    result
 }
 
 /// Check whether a file path is inside `common/decisions/` (but NOT
@@ -71,7 +63,7 @@ impl ValidationRule for DecisionsRule {
         if !is_decisions_file(ctx.uri) {
             return;
         }
-        let cats = known_categories(ctx.decisions);
+        let cats = known_categories(ctx.decision_categories);
         for entry in entries {
             let ast::Entry::Assignment(ass) = entry else {
                 continue;
@@ -334,6 +326,7 @@ mod tests {
             event_namespaces: &scanner_data.event_namespaces,
             events: &scanner_data.events,
             decisions: &scanner_data.decisions,
+            decision_categories: &scanner_data.decision_categories,
         };
         let mut diags = Vec::new();
         rule.check_block(&script.entries, &ctx, &mut diags);
@@ -373,6 +366,7 @@ mod tests {
             event_namespaces: &scanner_data.event_namespaces,
             events: &scanner_data.events,
             decisions: &scanner_data.decisions,
+            decision_categories: &scanner_data.decision_categories,
         };
         let mut diags = Vec::new();
         let mut visitors: Vec<Box<dyn AstVisitor>> = vec![DecisionsRule::visitor()];
@@ -402,6 +396,10 @@ mod tests {
                 path: InternedStr::from("/common/decisions/categories/test.txt"),
                 range: dummy_range(),
             }),
+        );
+        data.decision_categories.insert(
+            InternedStr::from("hom_test_valid_category"),
+            LayeredValue::new(()),
         );
         let source = r#"hom_test_valid_category = { my_decision = { icon = generic_research complete_effect = { add_political_power = 50 } } }"#;
         let diags = check_block_diags(source, "/common/decisions/test.txt", &data);

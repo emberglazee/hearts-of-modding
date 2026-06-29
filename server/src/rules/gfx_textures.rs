@@ -174,6 +174,7 @@ mod tests {
             event_namespaces: &DashMap::new(),
             events: &DashMap::new(),
             decisions: &DashMap::new(),
+            decision_categories: &DashMap::new(),
         };
 
         let rule = GfxTextureRule::new(gfx_file_path);

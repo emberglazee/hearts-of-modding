@@ -1965,6 +1965,7 @@ impl Backend {
             event_namespaces: &self.scanner_data.event_namespaces,
             events: &self.scanner_data.events,
             decisions: &self.scanner_data.decisions,
+            decision_categories: &self.scanner_data.decision_categories,
         };
 
         // ── AST visitors (single traversal, replaces per-rule recursion) ──
