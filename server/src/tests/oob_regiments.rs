@@ -91,6 +91,7 @@ fn run_oob_visitor(input: &str, unit_types: &[&str]) -> Vec<Diagnostic> {
         unit_types: &unit_type_map,
         event_namespaces: &DashMap::new(),
         events: &DashMap::new(),
+        decisions: &DashMap::new(),
     };
 
     let mut visitors: Vec<Box<dyn AstVisitor>> = vec![OobRegimentVisitor::visitor()];

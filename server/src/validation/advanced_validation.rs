@@ -50,6 +50,12 @@ pub const UNKNOWN_BUILDING: &str = "HOM5003";
 pub const UNKNOWN_NAVAL_TERRAIN: &str = "HOM5004";
 pub const UNKNOWN_PROVINCE_TERRAIN: &str = "HOM5005";
 
+// ── Decision validation codes (HOM5006–HOM5009) ──
+pub const UNDECLARED_DECISION_CATEGORY: &str = "HOM5006";
+pub const CATEGORY_KEY_IN_DECISION: &str = "HOM5007";
+pub const DECISION_MISSING_COMPLETE_EFFECT: &str = "HOM5008";
+pub const DECISION_DUAL_COST: &str = "HOM5009";
+
 #[derive(Debug, Clone)]
 /// Kept for public API compatibility; no longer directly constructed by validation rules.
 #[allow(dead_code)]

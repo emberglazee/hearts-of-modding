@@ -15,6 +15,7 @@ pub(crate) mod buildings;
 pub(crate) mod characters;
 pub(crate) mod country_metadata;
 pub(crate) mod country_tags;
+pub(crate) mod decisions;
 pub(crate) mod events;
 pub(crate) mod gfx_textures;
 pub(crate) mod ideas;
@@ -86,6 +87,10 @@ pub(crate) struct ValidationContext<'a> {
     pub(crate) event_namespaces:
         &'a DashMap<InternedStr, LayeredValue<event_namespace_scanner::EventNamespace>>,
     pub(crate) events: &'a DashMap<InternedStr, LayeredValue<crate::scanner::event_scanner::Event>>,
+
+    // Decision validation data
+    pub(crate) decisions:
+        &'a DashMap<InternedStr, LayeredValue<crate::scanner::decision_scanner::Decision>>,
 }
 
 /// A validation rule for HOI4 script semantics.

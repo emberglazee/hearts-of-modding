@@ -97,6 +97,7 @@ fn run_event_visitor(
         unit_types: &DashMap::new(),
         event_namespaces: &event_namespaces,
         events: &DashMap::new(),
+        decisions: &DashMap::new(),
     };
 
     let rules: Vec<Box<dyn ValidationRule>> = vec![Box::new(EventValidationRule)];
@@ -196,6 +197,7 @@ fn run_event_visitor_with_events(
         unit_types: &DashMap::new(),
         event_namespaces: &event_namespaces,
         events,
+        decisions: &DashMap::new(),
     };
 
     let rules: Vec<Box<dyn ValidationRule>> = vec![Box::new(EventValidationRule)];
@@ -215,7 +217,7 @@ fn run_event_visitor_with_events(
     diags
 }
 
-/// Like run_event_visitor but with a configurable game_path.
+/// Helper to add default namespaces for a list of files.
 fn run_event_visitor_with_game_path(
     input: &str,
     uri: &str,
@@ -298,6 +300,7 @@ fn run_event_visitor_with_game_path(
         unit_types: &DashMap::new(),
         event_namespaces: &event_namespaces,
         events: &DashMap::new(),
+        decisions: &DashMap::new(),
     };
 
     let rules: Vec<Box<dyn ValidationRule>> = vec![Box::new(EventValidationRule)];
@@ -317,7 +320,7 @@ fn run_event_visitor_with_game_path(
     diags
 }
 
-/// Filter diagnostics to HOM3008 (missing event namespace).
+/// Helper to add default namespaces for a list of files.
 fn namespace_diags(diags: &[Diagnostic]) -> Vec<&Diagnostic> {
     diags
         .iter()

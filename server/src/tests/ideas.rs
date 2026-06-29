@@ -44,6 +44,7 @@ mod tests {
             unit_types: leak_map(),
             event_namespaces: leak_map(),
             events: leak_map(),
+            decisions: leak_map(),
         }
     }
 

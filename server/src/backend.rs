@@ -1964,6 +1964,7 @@ impl Backend {
             unit_types: &self.scanner_data.unit_types,
             event_namespaces: &self.scanner_data.event_namespaces,
             events: &self.scanner_data.events,
+            decisions: &self.scanner_data.decisions,
         };
 
         // ── AST visitors (single traversal, replaces per-rule recursion) ──
@@ -1976,6 +1977,7 @@ impl Backend {
             rules::provinces::ProvinceRule::vp_visitor(),
             rules::oob_regiments::OobRegimentVisitor::visitor(),
             rules::events::EventValidationRule::visitor(),
+            rules::decisions::DecisionsRule::visitor(),
         ];
 
         // Rules that still use check_assignment / check_block
@@ -1994,6 +1996,7 @@ impl Backend {
             Box::new(rules::terrains::TerrainRule),
             Box::new(rules::traits::TraitRule),
             Box::new(rules::events::EventValidationRule),
+            Box::new(rules::decisions::DecisionsRule),
         ];
 
         // Block-level rules: top-level entries only, NO recursion.

@@ -2,13 +2,13 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
-## [v0.23.0] - 2026-06-28
+## [v0.23.0] - 2026-06-29
 
 ### ✨ Added
 
 - **Event and scanner data dependency graphs** to ensure better workspace data synchronization.
 
-- **Decision scanner:** Scan and parse `common/decisions/*.txt`.
+- **Decision scanner:** Scan, parse, and validate `common/decisions/*.txt`.
 
 ## [v0.22.2] - 2026-06-28 (Hotfix)
 
