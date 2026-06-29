@@ -298,7 +298,12 @@ fn parse_value(input: Span) -> IResult<Span, ast::NodeedValue> {
 
 fn parse_block(input: Span) -> IResult<Span, (Vec<ast::Entry>, Range)> {
     let (input, start) = preceded(multispace0, recognize(char('{'))).parse(input)?;
-    let (input, entries) = many0(preceded(multispace0, parse_entry)).parse(input)?;
+    // Comma-separated lists: HOI4 allows commas between block entries (e.g.
+    // `traits = { trait_cautious, inflexible_strategist }`). Treat each comma
+    // as an optional separator before entries, like whitespace, so both
+    // space-separated and comma-separated entry lists are accepted.
+    let (input, entries) =
+        many0(preceded(opt(tag(",")), preceded(multispace0, parse_entry))).parse(input)?;
     let (input, end) = preceded(multispace0, recognize(char('}'))).parse(input)?;
 
     let range = Range {
@@ -1013,5 +1018,79 @@ mod tests {
             script.entries.len(),
             errors.len()
         );
+    }
+
+    #[test]
+    fn test_comma_separated_list() {
+        // HOI4 allows commas as entry separators inside blocks, e.g.
+        // `traits = { trait_cautious, inflexible_strategist }`.
+        // The comma should be treated like whitespace — skipped before entries.
+        let input = "traits = { trait_cautious, inflexible_strategist }";
+        let (script, errors) = parse_script(input);
+        assert!(errors.is_empty(), "Comma-separated list: {:?}", errors);
+        assert_eq!(script.entries.len(), 1, "Should have one assignment");
+        if let ast::Entry::Assignment(ass) = &script.entries[0] {
+            let key = ass.key_text(&script.source);
+            assert_eq!(key, "traits");
+            if let ast::Value::Block(entries) = &ass.value.value {
+                assert_eq!(entries.len(), 2, "Block should have 2 entries");
+                // First entry: "trait_cautious" as a value
+                if let ast::Entry::Value(v) = &entries[0] {
+                    assert_eq!(v.value.as_str(&script.source), Some("trait_cautious"));
+                } else {
+                    panic!("First entry should be a Value");
+                }
+                // Second entry: "inflexible_strategist" as a value
+                if let ast::Entry::Value(v) = &entries[1] {
+                    assert_eq!(
+                        v.value.as_str(&script.source),
+                        Some("inflexible_strategist")
+                    );
+                } else {
+                    panic!("Second entry should be a Value");
+                }
+            } else {
+                panic!("Value should be a Block");
+            }
+        } else {
+            panic!("Should be an Assignment");
+        }
+    }
+
+    #[test]
+    fn test_comma_separated_list_in_assignment() {
+        // Comma-separated list inside a larger assignment block
+        let input = "character = {\n    traits = { cautious, aggressive }\n    skill = 3\n}";
+        let (script, errors) = parse_script(input);
+        assert!(errors.is_empty(), "Comma list in block: {:?}", errors);
+        assert_eq!(script.entries.len(), 1);
+    }
+
+    #[test]
+    fn test_space_separated_list_still_works() {
+        // Traditional space-separated lists should still work
+        let input = "traits = { brave determined }";
+        let (script, errors) = parse_script(input);
+        assert!(errors.is_empty(), "Space-separated list: {:?}", errors);
+        assert_eq!(script.entries.len(), 1);
+        if let ast::Entry::Assignment(ass) = &script.entries[0] {
+            if let ast::Value::Block(entries) = &ass.value.value {
+                assert_eq!(entries.len(), 2, "Block should have 2 entries");
+            }
+        }
+    }
+
+    #[test]
+    fn test_comma_list_without_trailing_comma() {
+        // Standard pattern: no trailing comma before closing brace
+        let input = "targets = { a, b, c }";
+        let (script, errors) = parse_script(input);
+        assert!(errors.is_empty(), "Multi-value comma list: {:?}", errors);
+        assert_eq!(script.entries.len(), 1);
+        if let ast::Entry::Assignment(ass) = &script.entries[0] {
+            if let ast::Value::Block(entries) = &ass.value.value {
+                assert_eq!(entries.len(), 3, "Block should have 3 entries");
+            }
+        }
     }
 }

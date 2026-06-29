@@ -6,9 +6,13 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### ✨ Added
 
+- ⭐ **Decision scanner:** Scan, parse, and validate decisions and decision categories.
+
 - **Event and scanner data dependency graphs** to ensure better workspace data synchronization.
 
-- ⭐ **Decision scanner:** Scan, parse, and validate decisions and decision categories.
+### 🩹 Fixed
+
+- **Correctly handle commas in blocks.** Using commas like `traits = { trait_cautious, inflexible_strategist }` is valid in Clausewitz scripts, as shown by HOI4 vanilla files. It is now handled properly in the script parser and won't cause parse errors.
 
 ## [v0.22.2] - 2026-06-28 (Hotfix)
 
