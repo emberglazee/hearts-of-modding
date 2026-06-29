@@ -355,22 +355,22 @@ async function startServer(context: ExtensionContext, statusBarItem: StatusBarIt
     await client.start()
 
     // ── Intercept server log messages for the HoM Log panel ──
-    // Captures window/logMessage notifications from the server (which carry
-    // [LEVEL] prefixes like [INFO], [DEBUG], [TRACE]) and forwards them to
-    // the custom webview log panel for colored, filterable display.
+    // Captures window/logMessage notifications from the server and
+    // maps the LSP MessageType to log panel severity levels.
     client.onNotification('window/logMessage', (params: { type?: number, message?: string }) => {
         if (!params.message) return
 
-        // Parse [LEVEL] prefix and forward to the webview panel
+        // Map LSP MessageType to our log levels:
+        //   1 = Error, 2 = Warning, 3 = Info, 4 = Log
+        const typeMap: Record<number, string> = { 1: 'ERROR', 2: 'WARN', 3: 'INFO', 4: 'INFO' }
+        const typeLevel = params.type !== undefined ? typeMap[params.type] : undefined
+
+        // Also check for legacy [LEVEL] text prefix (older server builds)
         const levelMatch = params.message.match(/^\[(ERROR|WARN|INFO|DEBUG|TRACE)\]\s*/)
-        if (levelMatch) {
-            const level = levelMatch[1]
-            const body = params.message.slice(levelMatch[0].length)
-            logPanelProvider.append(level, body)
-        } else {
-            // No level prefix — show as INFO
-            logPanelProvider.append('INFO', params.message)
-        }
+        const level = typeLevel || (levelMatch ? levelMatch[1] : 'INFO')
+        const body = levelMatch ? params.message.slice(levelMatch[0].length) : params.message
+
+        logPanelProvider.append(level, body)
     })
 
     // ── Command: Show the HoM Log panel ──

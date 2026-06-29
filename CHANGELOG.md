@@ -2,6 +2,18 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
+## [v0.23.1] - 2026-06-30
+
+### 🔧 Changed
+
+- **Optimized the log panel for a large amount of log entries.** Should feel more performant now.
+
+### 🩹 Fixed
+
+- **Fixed the log entries disappearing from the log panel after switching to another panel.**
+
+- **Fixed the `"Warning: No keys found in localization file"` log message being misleadingly `[INFO]` level.**
+
 ## [v0.23.0] - 2026-06-30
 
 ### ✨ Added

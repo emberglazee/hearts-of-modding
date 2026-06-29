@@ -803,11 +803,8 @@ impl Backend {
 
                             if parsed.is_empty() {
                                 logs.push((
-                                    MessageType::LOG,
-                                    format!(
-                                        "Warning: No keys found in localization file: {:?}",
-                                        path
-                                    ),
+                                    MessageType::WARNING,
+                                    format!("No keys found in localization file: {:?}", path),
                                 ));
                             }
 
