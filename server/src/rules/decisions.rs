@@ -149,8 +149,15 @@ impl AstVisitor for DecisionsVisitor {
 
         let key = ass.key_text(ctx.source);
 
-        // Track decision-level flags on ALL assignments at Decision level
-        if self.level == BlockLevel::Decision && self.decision_key.is_some() {
+        // Track decision-level flags when inside any decision block.
+        // NOTE: we cannot rely on `self.level == BlockLevel::Decision` here because
+        // the level flip-flops between SubBlock and Decision due to nested sub-blocks
+        // (e.g., visible/ai_will_do/highlight_states each have inner blocks). By the time
+        // complete_effect or cost is entered, the level may be SubBlock, causing the flag
+        // to be missed. Using decision_key.is_some() is correct because these flags
+        // should be set whenever the key appears as a direct child of a decision at
+        // ANY nesting depth within that decision.
+        if self.decision_key.is_some() && self.level != BlockLevel::Category {
             if CATEGORY_ONLY_KEYS.contains(&key) {
                 diags.push(Diagnostic {
                     range: ast_range_to_lsp(&ass.key_range),
@@ -598,5 +605,63 @@ mod tests {
             .filter(|d| d.code == Some(NumberOrString::String("HOM5009".to_string())))
             .collect();
         assert!(dual_diags.is_empty());
+    }
+
+    /// Regression test: decisions with sub-blocks (available, visible, ai_will_do,
+    /// highlight_states) BEFORE complete_effect should not produce a false positive
+    /// HOM5008. The flag-tracking guard must not rely on `level == BlockLevel::Decision`
+    /// because the level flips to SubBlock after nested sub-block entry/exit.
+    #[test]
+    fn test_complete_effect_after_subblocks_no_false_positive() {
+        let data = ScannerData::new();
+        let key: InternedStr = InternedStr::from("test_hom_decision");
+        data.decisions.insert(
+            key,
+            LayeredValue::new(Decision {
+                key: "my_decision".to_string(),
+                category: "hom_test_cat".to_string(),
+                path: InternedStr::from("test.txt"),
+                range: dummy_range(),
+            }),
+        );
+        let source = r#"hom_test_cat = { my_decision = { icon = generic_research available = { always = yes } visible = { always = yes } ai_will_do = { base = 50 } cost = 10 highlight_states = { highlight_states_trigger = { state = 62 } } complete_effect = { add_political_power = 50 } } }"#;
+        let diags = visitor_diags(source, "/common/decisions/test.txt", &data);
+        let missing_diags: Vec<&Diagnostic> = diags
+            .iter()
+            .filter(|d| d.code == Some(NumberOrString::String("HOM5008".to_string())))
+            .collect();
+        assert!(
+            missing_diags.is_empty(),
+            "Expected no HOM5008 for decision with complete_effect after sub-blocks, got: {:?}",
+            missing_diags
+        );
+    }
+
+    /// Regression test: decisions with sub-blocks before `cost` and `custom_cost_trigger`
+    /// should still fire HOM5009 (dual cost). Same level flip-flop issue.
+    #[test]
+    fn test_dual_cost_after_subblocks_still_detected() {
+        let data = ScannerData::new();
+        let key: InternedStr = InternedStr::from("test_hom_decision");
+        data.decisions.insert(
+            key,
+            LayeredValue::new(Decision {
+                key: "dual_cost".to_string(),
+                category: "hom_test_cat".to_string(),
+                path: InternedStr::from("test.txt"),
+                range: dummy_range(),
+            }),
+        );
+        let source = r#"hom_test_cat = { dual_cost = { icon = generic_research available = { always = yes } cost = 50 visible = { always = yes } custom_cost_trigger = { has_command_power > 14 } complete_effect = { add_political_power = 50 } } }"#;
+        let diags = visitor_diags(source, "/common/decisions/test.txt", &data);
+        let dual_diags: Vec<&Diagnostic> = diags
+            .iter()
+            .filter(|d| d.code == Some(NumberOrString::String("HOM5009".to_string())))
+            .collect();
+        assert_eq!(
+            dual_diags.len(),
+            1,
+            "Expected HOM5009 for dual cost decision with sub-blocks before cost"
+        );
     }
 }
