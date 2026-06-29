@@ -2498,6 +2498,24 @@ pub(crate) fn build_static_semantic_keywords() -> HashSet<String> {
     keywords.insert("version_name".to_string());
     keywords.insert("creator".to_string());
 
+    // Decisions-adjacent keywords
+    keywords.insert("complete_effect".to_string());
+    keywords.insert("remove_effect".to_string());
+    keywords.insert("timeout_effect".to_string());
+    keywords.insert("highlight_states".to_string());
+    keywords.insert("highlight_states_trigger".to_string());
+    keywords.insert("days_remove".to_string());
+    keywords.insert("days_re_enable".to_string());
+    keywords.insert("on_map_mode".to_string());
+    keywords.insert("targets".to_string());
+    keywords.insert("target_trigger".to_string());
+    keywords.insert("state_target".to_string());
+    keywords.insert("cancel_trigger".to_string());
+    keywords.insert("days_mission_timeout".to_string());
+    keywords.insert("custom_cost_trigger".to_string());
+    keywords.insert("custom_cost_text".to_string());
+    keywords.insert("is_good".to_string());
+
     // lowk lazy to categorize
     keywords.insert("popularity".to_string());
     keywords.insert("ruling_party".to_string());
@@ -2505,6 +2523,23 @@ pub(crate) fn build_static_semantic_keywords() -> HashSet<String> {
     keywords.insert("size".to_string());
     keywords.insert("transfer_troops".to_string());
     keywords.insert("autonomy_state".to_string());
+    keywords.insert("scope".to_string());
+    keywords.insert("random_list".to_string());
+    keywords.insert("producer".to_string());
+    keywords.insert("var".to_string());
+    keywords.insert("value".to_string());
+    keywords.insert("fixed_random_seed".to_string());
+    keywords.insert("instant_build".to_string());
+    keywords.insert("add_to_temp_variable".to_string());
+    keywords.insert("divide_temp_variable".to_string());
+    keywords.insert("add_idea".to_string());
+    keywords.insert("remove_idea".to_string());
+    keywords.insert("province".to_string());
+    keywords.insert("build_only_on_allied".to_string());
+    keywords.insert("controller_priority".to_string());
+    keywords.insert("fallback".to_string());
+    keywords.insert("start_province".to_string());
+    keywords.insert("target_province".to_string());
 
     keywords
 }

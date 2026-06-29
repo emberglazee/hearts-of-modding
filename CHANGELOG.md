@@ -2,13 +2,15 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
-## [v0.23.0] - 2026-06-29
+## [v0.23.0] - 2026-06-30
 
 ### ✨ Added
 
 - ⭐ **Decision scanner:** Scan, parse, and validate decisions and decision categories.
 
 - **Event and scanner data dependency graphs** to ensure better workspace data synchronization.
+
+- **Added more missing keywords to the list of semantic tokens.**
 
 ### 🔧 Changed
 
