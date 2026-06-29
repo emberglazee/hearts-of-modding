@@ -7,7 +7,7 @@ use nom::{
     branch::alt,
     bytes::complete::{tag, take, take_while, take_while1},
     character::complete::{anychar, char, multispace0},
-    combinator::{eof, map, opt, recognize},
+    combinator::{map, opt, recognize},
     multi::many0,
     sequence::preceded,
 };
@@ -305,20 +305,58 @@ fn parse_block(input: Span) -> IResult<Span, (Vec<ast::Entry>, Range)> {
     // space-separated and comma-separated entry lists are accepted.
     let (input, entries) =
         many0(preceded(opt(tag(",")), preceded(multispace0, parse_entry))).parse(input)?;
-    // Match closing '}', but accept EOF as implicit close.
-    let (input, end) = alt((
-        preceded(multispace0, recognize(char('}'))),
-        map(preceded(multispace0, eof), |eof_span| eof_span),
-    ))
-    .parse(input)?;
+    // Try explicit closing '}' first. If not found, check if remaining
+    // content is only closing braces (safe implicit close) or new scopes
+    // after the gap (structural break — propagate error for HOM001).
+    match preceded(multispace0, recognize(char('}'))).parse(input) {
+        Ok((remaining, end)) => {
+            let range = Range {
+                start_line: start.location_line() - 1,
+                start_col: start.get_column() as u32 - 1,
+                end_line: end.location_line() - 1,
+                end_col: end.get_column() as u32,
+            };
+            Ok((remaining, (entries, range)))
+        }
+        Err(nom::Err::Error(_)) if only_closing_braces_until_eof(input) => {
+            let advance = input.fragment().len();
+            let (remaining, _) = take::<_, _, nom::error::Error<Span>>(advance)(input)?;
+            let range = Range {
+                start_line: start.location_line() - 1,
+                start_col: start.get_column() as u32 - 1,
+                end_line: input.location_line() - 1,
+                end_col: input.get_column() as u32,
+            };
+            Ok((remaining, (entries, range)))
+        }
+        Err(nom::Err::Error(_)) => Err(nom::Err::Error(nom::error::Error::new(
+            input,
+            nom::error::ErrorKind::Eof,
+        ))),
+        Err(e) => Err(e),
+    }
+}
 
-    let range = Range {
-        start_line: start.location_line() - 1,
-        start_col: start.get_column() as u32 - 1,
-        end_line: end.location_line() - 1,
-        end_col: end.get_column() as u32,
-    };
-    Ok((input, (entries, range)))
+/// After a missing `}`, check whether everything remaining is only `}` tokens
+/// (plus whitespace and comments). If so, the engine can safely close at EOF.
+/// If a non-`}` token appears, a new scope exists after the gap — unrecoverable.
+fn only_closing_braces_until_eof(span: Span) -> bool {
+    let bytes = span.fragment().as_bytes();
+    let len = bytes.len();
+    let mut i = 0;
+    while i < len {
+        match bytes[i] {
+            b' ' | b'\t' | b'\n' | b'\r' => i += 1,
+            b'#' => {
+                while i < len && bytes[i] != b'\n' {
+                    i += 1;
+                }
+            }
+            b'}' => i += 1,
+            _ => return false,
+        }
+    }
+    true
 }
 
 fn parse_assignment(input: Span) -> IResult<Span, ast::Assignment> {
@@ -476,43 +514,6 @@ fn brace_balance(source: &str) -> i32 {
     depth
 }
 
-/// Detect structural break (sibling at same indent without `}` between).
-/// Returns 0-based line of the intruding `{`, or None.
-fn structural_break_line(source: &str) -> Option<usize> {
-    let lines: Vec<&str> = source.lines().collect();
-    // Track (indent, line_idx) for the `{` at each depth
-    let mut open_stack: Vec<(usize, usize)> = Vec::new();
-    let mut depth = 0usize;
-    for (line_idx, line) in lines.iter().enumerate() {
-        let indent = line.len() - line.trim_start().len();
-        for ch in line.trim().chars() {
-            if ch == '#' {
-                break;
-            }
-            match ch {
-                '{' => {
-                    if depth > 0 {
-                        // Same indent AND different line from parent → sibling conflict
-                        if let Some(&(pi, pl)) = open_stack.get(depth - 1) {
-                            if pi == indent && pl != line_idx {
-                                return Some(line_idx);
-                            }
-                        }
-                    }
-                    if depth >= open_stack.len() {
-                        open_stack.push((0, 0));
-                    }
-                    open_stack[depth] = (indent, line_idx);
-                    depth += 1;
-                }
-                '}' if depth > 0 => depth = depth.saturating_sub(1),
-                _ => {}
-            }
-        }
-    }
-    None
-}
-
 pub fn parse_script(input: &str) -> (ast::Script, Vec<(String, Range)>) {
     // Strip BOM if present — all ByteSpan offsets are relative to the cleaned text,
     // and Script.source will contain the cleaned text.
@@ -591,18 +592,7 @@ pub fn parse_script(input: &str) -> (ast::Script, Vec<(String, Range)>) {
 
     let closed_by_eof = brace_balance(&input_clean) > 0;
 
-    if let Some(break_line) = structural_break_line(&input_clean) {
-        let bl = break_line as u32;
-        errors.push((
-            "Unexpected new scope after missing closing brace".to_string(),
-            Range {
-                start_line: bl,
-                start_col: 0,
-                end_line: bl,
-                end_col: 1,
-            },
-        ));
-    } else if closed_by_eof {
+    if closed_by_eof {
         let last_line = input_clean.lines().count().max(1) as u32;
         errors.push((
             format!(
