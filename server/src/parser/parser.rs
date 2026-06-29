@@ -1,12 +1,13 @@
 use std::sync::Arc;
 
 use crate::parser::ast::{self, ByteSpan, Range, Value};
+use crate::validation::advanced_validation::IMPLICIT_EOF_CLOSE;
 use nom::{
     IResult, Parser,
     branch::alt,
     bytes::complete::{tag, take, take_while, take_while1},
     character::complete::{anychar, char, multispace0},
-    combinator::{map, opt, recognize},
+    combinator::{eof, map, opt, recognize},
     multi::many0,
     sequence::preceded,
 };
@@ -304,7 +305,12 @@ fn parse_block(input: Span) -> IResult<Span, (Vec<ast::Entry>, Range)> {
     // space-separated and comma-separated entry lists are accepted.
     let (input, entries) =
         many0(preceded(opt(tag(",")), preceded(multispace0, parse_entry))).parse(input)?;
-    let (input, end) = preceded(multispace0, recognize(char('}'))).parse(input)?;
+    // Match closing '}', but accept EOF as implicit close.
+    let (input, end) = alt((
+        preceded(multispace0, recognize(char('}'))),
+        map(preceded(multispace0, eof), |eof_span| eof_span),
+    ))
+    .parse(input)?;
 
     let range = Range {
         start_line: start.location_line() - 1,
@@ -439,6 +445,74 @@ fn to_error_range(span: Span) -> Range {
     }
 }
 
+/// Returns the net brace depth at EOF (>0 means unclosed blocks).
+fn brace_balance(source: &str) -> i32 {
+    let bytes = source.as_bytes();
+    let len = bytes.len();
+    let mut depth = 0i32;
+    let mut i = 0;
+    while i < len {
+        match bytes[i] {
+            b'#' => {
+                while i < len && bytes[i] != b'\n' {
+                    i += 1;
+                }
+            }
+            b'"' => {
+                i += 1;
+                while i < len && bytes[i] != b'"' {
+                    if bytes[i] == b'\\' {
+                        i += 1;
+                    }
+                    i += 1;
+                }
+            }
+            b'{' => depth += 1,
+            b'}' => depth -= 1,
+            _ => {}
+        }
+        i += 1;
+    }
+    depth
+}
+
+/// Detect structural break (sibling at same indent without `}` between).
+/// Returns 0-based line of the intruding `{`, or None.
+fn structural_break_line(source: &str) -> Option<usize> {
+    let lines: Vec<&str> = source.lines().collect();
+    // Track (indent, line_idx) for the `{` at each depth
+    let mut open_stack: Vec<(usize, usize)> = Vec::new();
+    let mut depth = 0usize;
+    for (line_idx, line) in lines.iter().enumerate() {
+        let indent = line.len() - line.trim_start().len();
+        for ch in line.trim().chars() {
+            if ch == '#' {
+                break;
+            }
+            match ch {
+                '{' => {
+                    if depth > 0 {
+                        // Same indent AND different line from parent → sibling conflict
+                        if let Some(&(pi, pl)) = open_stack.get(depth - 1) {
+                            if pi == indent && pl != line_idx {
+                                return Some(line_idx);
+                            }
+                        }
+                    }
+                    if depth >= open_stack.len() {
+                        open_stack.push((0, 0));
+                    }
+                    open_stack[depth] = (indent, line_idx);
+                    depth += 1;
+                }
+                '}' if depth > 0 => depth = depth.saturating_sub(1),
+                _ => {}
+            }
+        }
+    }
+    None
+}
+
 pub fn parse_script(input: &str) -> (ast::Script, Vec<(String, Range)>) {
     // Strip BOM if present — all ByteSpan offsets are relative to the cleaned text,
     // and Script.source will contain the cleaned text.
@@ -515,10 +589,41 @@ pub fn parse_script(input: &str) -> (ast::Script, Vec<(String, Range)>) {
         }
     }
 
+    let closed_by_eof = brace_balance(&input_clean) > 0;
+
+    if let Some(break_line) = structural_break_line(&input_clean) {
+        let bl = break_line as u32;
+        errors.push((
+            "Unexpected new scope after missing closing brace".to_string(),
+            Range {
+                start_line: bl,
+                start_col: 0,
+                end_line: bl,
+                end_col: 1,
+            },
+        ));
+    } else if closed_by_eof {
+        let last_line = input_clean.lines().count().max(1) as u32;
+        errors.push((
+            format!(
+                "{}: Block implicitly closed at end of file. The Clausewitz \
+                 engine accepts this, but consider adding the closing }}.",
+                IMPLICIT_EOF_CLOSE
+            ),
+            Range {
+                start_line: last_line - 1,
+                start_col: 0,
+                end_line: last_line - 1,
+                end_col: 1,
+            },
+        ));
+    }
+
     (
         ast::Script {
-            source: input_clean,
+            source: input_clean.clone(),
             entries,
+            closed_by_eof,
         },
         errors,
     )
@@ -1012,12 +1117,10 @@ mod tests {
         // than corrupting the AST (parse_block never returned Ok).
         let input = "outer = {\n    inner = val\n    missing_brace = yes\n";
         let (script, errors) = parse_script(input);
-        assert!(!errors.is_empty(), "Missing brace should produce error");
-        println!(
-            "Missing block close test — {} entries, {} errors",
-            script.entries.len(),
-            errors.len()
-        );
+        assert_eq!(errors.len(), 1, "HOM6000 for unclosed block at EOF");
+        assert!(errors[0].0.contains("HOM6000"));
+        assert!(script.closed_by_eof);
+        assert_eq!(script.entries.len(), 1, "Block entries properly nested");
     }
 
     #[test]
@@ -1092,5 +1195,89 @@ mod tests {
                 assert_eq!(entries.len(), 3, "Block should have 3 entries");
             }
         }
+    }
+
+    // ── Implicit EOF bracket closure tests ────────────────────────────────
+    // Parser matches engine: HOM6000 INFO for eof-close, HOM001 for breaks.
+
+    #[test]
+    fn test_implicit_close_single_block_at_eof() {
+        let input = "test_block = {\n    key = value\n    inner = {\n        stuff = yes\n    }\n    # no trailing }\n";
+        let (script, errors) = parse_script(input);
+        assert_eq!(errors.len(), 1, "HOM6000 for EOF close");
+        assert!(errors[0].0.contains("HOM6000"));
+        assert!(script.closed_by_eof);
+        assert_eq!(script.entries.len(), 1);
+    }
+
+    #[test]
+    fn test_implicit_close_nested_blocks_at_eof() {
+        let input = "outer = {\n    mid = {\n        inner = {\n            core = {\n                value = 42\n                # 4 levels unclosed at EOF\n";
+        let (script, errors) = parse_script(input);
+        assert_eq!(errors.len(), 1, "HOM6000 for nested EOF close");
+        assert!(errors[0].0.contains("HOM6000"));
+        assert!(script.closed_by_eof);
+        assert_eq!(script.entries.len(), 1);
+    }
+
+    #[test]
+    fn test_implicit_close_multi_block_last_unclosed() {
+        let input =
+            "first_block = {\n    a = 1\n}\n\nsecond_block = {\n    b = 2\n    # no trailing }\n";
+        let (script, errors) = parse_script(input);
+        assert_eq!(errors.len(), 1, "HOM6000 for multi-block EOF close");
+        assert!(errors[0].0.contains("HOM6000"));
+        assert!(script.closed_by_eof);
+        assert_eq!(script.entries.len(), 2);
+    }
+
+    #[test]
+    fn test_implicit_close_properly_closed_still_works() {
+        let input = "good_block = {\n    x = 10\n    y = 20\n}\n";
+        let (script, errors) = parse_script(input);
+        assert!(errors.is_empty());
+        assert!(!script.closed_by_eof);
+        assert_eq!(script.entries.len(), 1);
+    }
+
+    #[test]
+    fn test_implicit_close_decision_category_pattern() {
+        let input = "debug_decisions = {\n    test_decision = {\n        priority = 999\n        allowed = {\n            tag = GER\n        }\n    }\n    # no trailing }\n";
+        let (script, errors) = parse_script(input);
+        assert_eq!(errors.len(), 1, "HOM6000 for decision EOF close");
+        assert!(errors[0].0.contains("HOM6000"));
+        assert!(script.closed_by_eof);
+        assert_eq!(script.entries.len(), 1);
+    }
+
+    #[test]
+    fn test_struct_break_no_false_positive_inline_blocks() {
+        // Inline blocks: `limit = { NOT = { ... } }` — two `{`s on one line
+        // at the same indent. Must NOT trigger a structural break false positive.
+        let input = "block = {\n    IF = {\n        limit = { NOT = { has_rule = test } }\n        has_government = FROM\n    }\n}";
+        let (script, errors) = parse_script(input);
+        assert!(errors.is_empty(), "No false HOM001 for inline blocks");
+        assert!(!script.closed_by_eof);
+    }
+
+    #[test]
+    fn test_struct_break_multiple_inline_blocks() {
+        // Deeper nesting with multiple inline blocks on same line
+        let input = "block = {\n    IF = {\n        limit = { NOT = { OR = { a = b c = d } } }\n        x = y\n    }\n}";
+        let (script, errors) = parse_script(input);
+        assert!(
+            errors.is_empty(),
+            "No false HOM001 for nested inline blocks"
+        );
+        assert!(!script.closed_by_eof);
+    }
+
+    #[test]
+    fn test_struct_break_real_file_pattern() {
+        // Pattern matching the joining_rules.txt file that triggered the false positive
+        let input = "rule = {\n    trigger = {\n        has_government = A\n        IF = {\n            limit = { NOT = { has_rule = can_join } }\n            has_government = FROM\n        }\n    }\n}";
+        let (script, errors) = parse_script(input);
+        assert!(errors.is_empty(), "No false HOM001 for real file pattern");
+        assert!(!script.closed_by_eof);
     }
 }

@@ -445,13 +445,26 @@ impl Backend {
                 (Arc::new(s), e)
             };
             for (msg, range) in &parse_errors {
+                let (severity, code) = if msg.starts_with(advanced_validation::IMPLICIT_EOF_CLOSE) {
+                    (
+                        Some(DiagnosticSeverity::INFORMATION),
+                        Some(NumberOrString::String(
+                            advanced_validation::IMPLICIT_EOF_CLOSE.to_string(),
+                        )),
+                    )
+                } else {
+                    (
+                        Some(DiagnosticSeverity::ERROR),
+                        Some(NumberOrString::String(
+                            advanced_validation::PARSE_ERROR.to_string(),
+                        )),
+                    )
+                };
                 diagnostics.push(Diagnostic {
                     range: ast_range_to_lsp(range),
-                    severity: Some(DiagnosticSeverity::ERROR),
+                    severity,
                     message: msg.clone(),
-                    code: Some(NumberOrString::String(
-                        advanced_validation::PARSE_ERROR.to_string(),
-                    )),
+                    code,
                     source: Some("Hearts of Modding".to_string()),
                     ..Default::default()
                 });
@@ -475,13 +488,26 @@ impl Backend {
                 (Arc::new(s), e)
             };
             for (msg, range) in &parse_errors {
+                let (severity, code) = if msg.starts_with(advanced_validation::IMPLICIT_EOF_CLOSE) {
+                    (
+                        Some(DiagnosticSeverity::INFORMATION),
+                        Some(NumberOrString::String(
+                            advanced_validation::IMPLICIT_EOF_CLOSE.to_string(),
+                        )),
+                    )
+                } else {
+                    (
+                        Some(DiagnosticSeverity::ERROR),
+                        Some(NumberOrString::String(
+                            advanced_validation::PARSE_ERROR.to_string(),
+                        )),
+                    )
+                };
                 diagnostics.push(Diagnostic {
                     range: ast_range_to_lsp(range),
-                    severity: Some(DiagnosticSeverity::ERROR),
+                    severity,
                     message: msg.clone(),
-                    code: Some(NumberOrString::String(
-                        advanced_validation::PARSE_ERROR.to_string(),
-                    )),
+                    code,
                     source: Some("Hearts of Modding".to_string()),
                     ..Default::default()
                 });

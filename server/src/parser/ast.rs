@@ -111,6 +111,9 @@ pub struct Script {
     /// The source document text that all ByteSpan offsets reference.
     pub source: Arc<str>,
     pub entries: Vec<Entry>,
+    /// True when at least one block in this script was implicitly closed
+    /// at EOF (the Clausewitz engine accepts this).
+    pub closed_by_eof: bool,
 }
 
 impl Default for Script {
@@ -118,6 +121,7 @@ impl Default for Script {
         Self {
             source: Arc::from(""),
             entries: Vec::new(),
+            closed_by_eof: false,
         }
     }
 }

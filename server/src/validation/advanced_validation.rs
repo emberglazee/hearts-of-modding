@@ -27,6 +27,8 @@ pub const EVENT_ID_TOO_LARGE: &str = "HOM3010";
 #[allow(dead_code)]
 pub const DUPLICATE_EVENT_ID: &str = "HOM3011";
 pub const DUPLICATE_EVENT_NAMESPACE: &str = "HOM3012";
+/// Block implicitly closed at end-of-file (Clausewitz engine accepts this)
+pub const IMPLICIT_EOF_CLOSE: &str = "HOM6000";
 
 // ── Event option & structure validation (HOM3013–HOM3020) ──
 pub const EVENT_MISSING_OPTION_NAME: &str = "HOM3013";

@@ -616,6 +616,7 @@ impl LanguageServer for Backend {
                 Arc::new(ast::Script {
                     source: Arc::from(""),
                     entries: vec![],
+                    closed_by_eof: false,
                 }),
                 vec![],
             )
@@ -674,6 +675,7 @@ impl LanguageServer for Backend {
                 Arc::new(ast::Script {
                     source: Arc::from(""),
                     entries: vec![],
+                    closed_by_eof: false,
                 }),
                 vec![],
             )
@@ -736,6 +738,7 @@ impl LanguageServer for Backend {
                 Arc::new(ast::Script {
                     source: Arc::from(""),
                     entries: vec![],
+                    closed_by_eof: false,
                 }),
                 vec![],
             )
