@@ -8,6 +8,10 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Parallel scanning of workspace files for diagnostics.**
 
+### 🩹 Fixed
+
+- **Fixed false `HOM5007` (`CATEGORY_KEY_IN_DECISION`) diagnostics for category-only keys at sub-block depths within a decision.**
+
 ## [v0.23.1] - 2026-06-30
 
 ### 🔧 Changed

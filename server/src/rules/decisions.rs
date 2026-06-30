@@ -158,7 +158,9 @@ impl AstVisitor for DecisionsVisitor {
         // should be set whenever the key appears as a direct child of a decision at
         // ANY nesting depth within that decision.
         if self.decision_key.is_some() && self.level != BlockLevel::Category {
-            if CATEGORY_ONLY_KEYS.contains(&key) {
+            // HOM5007: category-only keys only matter at the direct decision level,
+            // not inside sub-blocks (e.g., picture in create_country_leader = { ... })
+            if self.level == BlockLevel::Decision && CATEGORY_ONLY_KEYS.contains(&key) {
                 diags.push(Diagnostic {
                     range: ast_range_to_lsp(&ass.key_range),
                     severity: Some(DiagnosticSeverity::ERROR),
@@ -493,6 +495,33 @@ mod tests {
             .filter(|d| d.code == Some(NumberOrString::String("HOM5007".to_string())))
             .collect();
         assert!(cat_key_diags.is_empty());
+    }
+
+    #[test]
+    /// picture inside a sub-block (create_country_leader etc.) should NOT fire HOM5007.
+    fn test_picture_inside_sub_block_not_flagged() {
+        let data = ScannerData::new();
+        let key: InternedStr = InternedStr::from("test_hom_decision");
+        data.decisions.insert(
+            key,
+            LayeredValue::new(Decision {
+                key: "my_decision".to_string(),
+                category: "hom_test_cat".to_string(),
+                path: InternedStr::from("test.txt"),
+                range: dummy_range(),
+            }),
+        );
+        let source = r#"hom_test_cat = { my_decision = { icon = generic_research cost = 200 complete_effect = { every_country = { limit = { tag = prev } create_country_leader = { name = "Test" picture = "gfx/leaders/test.dds" ideology = neutrality } } } } }"#;
+        let diags = visitor_diags(source, "/common/decisions/test.txt", &data);
+        let cat_key_diags: Vec<&Diagnostic> = diags
+            .iter()
+            .filter(|d| d.code == Some(NumberOrString::String("HOM5007".to_string())))
+            .collect();
+        assert!(
+            cat_key_diags.is_empty(),
+            "picture in sub-block should not be HOM5007: {:?}",
+            cat_key_diags
+        );
     }
 
     // ── HOM5008 ──
