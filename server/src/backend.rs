@@ -206,9 +206,6 @@ impl Backend {
         let filter = self.get_sync_filter();
         let files = crate::utils::fs_util::collect_files(root, &extensions, filter, true);
         let total = files.len();
-        let mut file_count = 0;
-        let scan_start = std::time::Instant::now();
-        let mut last_log = scan_start;
 
         self.client
             .log_message(
@@ -217,47 +214,112 @@ impl Backend {
             )
             .await;
 
-        for path in &files {
-            if let Ok(content) = std::fs::read_to_string(path) {
-                if let Ok(abs_path) = path.canonicalize() {
-                    if let Some(uri) = Uri::from_file_path(abs_path) {
-                        let diagnostics = self.validate_content(&uri, &content).await;
-                        if !diagnostics.is_empty() {
-                            self.client
-                                .publish_diagnostics(uri, diagnostics, None)
-                                .await;
-                        }
-                        file_count += 1;
+        if total == 0 {
+            self.client
+                .log_message(
+                    MessageType::INFO,
+                    "Workspace scan complete. No files found.".to_string(),
+                )
+                .await;
+            return;
+        }
 
-                        // Log progress every 100 files or every 5 seconds
-                        if file_count % 100 == 0
-                            || last_log.elapsed() > std::time::Duration::from_secs(5)
-                        {
-                            let pct = (file_count as f64 / total as f64 * 100.0) as u32;
-                            self.client
-                                .log_message(
-                                    MessageType::INFO,
-                                    format!(
-                                        "Workspace scan: {}/{} files ({}%) — {}",
-                                        file_count,
-                                        total,
-                                        pct,
-                                        path.file_name()
-                                            .map(|n| n.to_string_lossy())
-                                            .unwrap_or_default(),
-                                    ),
-                                )
-                                .await;
-                            last_log = std::time::Instant::now();
-                        }
-                    }
+        let scan_start = std::time::Instant::now();
+
+        // ── Phase 1: Parallel file I/O ──────────────────────────────────
+        // Read ALL files concurrently on the blocking thread pool.
+        // spawn_blocking per file lets tokio's 512-thread pool parallelize
+        // the blocking read_to_string + canonicalize calls.
+        let mut io_set: tokio::task::JoinSet<Option<(String, Uri)>> = tokio::task::JoinSet::new();
+        for path in &files {
+            let path = path.clone();
+            io_set.spawn_blocking(move || {
+                let content = std::fs::read_to_string(&path).ok()?;
+                let abs_path = path.canonicalize().ok()?;
+                Uri::from_file_path(&abs_path).map(|uri| (content, uri))
+            });
+        }
+
+        let mut read_results: Vec<(String, Uri)> = Vec::with_capacity(total);
+        while let Some(result) = io_set.join_next().await {
+            if let Ok(Some(pair)) = result {
+                read_results.push(pair);
+            }
+        }
+
+        let io_elapsed = scan_start.elapsed();
+        let validated = read_results.len();
+        self.log_msg(
+            crate::log_level::LogLevel::Debug,
+            format!(
+                "Workspace scan: read {} / {} files in {:.1?}",
+                validated, total, io_elapsed,
+            ),
+        )
+        .await;
+
+        if read_results.is_empty() {
+            self.client
+                .log_message(
+                    MessageType::INFO,
+                    "Workspace scan complete. No readable files.".to_string(),
+                )
+                .await;
+            return;
+        }
+
+        // ── Phase 2: Concurrent validation ──────────────────────────────
+        // Validate files in bounded-concurrency batches using join_all.
+        // Each batch runs multiple validate_content futures concurrently on
+        // tokio's multi-thread runtime. The .await points inside
+        // validate_content (check_semantic, etc.) allow interleaving across
+        // files within a batch.
+        let concurrency = std::thread::available_parallelism()
+            .map(|n| (n.get() * 2).max(4))
+            .unwrap_or(16)
+            .min(validated);
+
+        let mut pending: Vec<(Uri, Vec<Diagnostic>)> = Vec::with_capacity(validated);
+
+        for chunk in read_results.chunks(concurrency) {
+            let futures: Vec<_> = chunk
+                .iter()
+                .map(|(content, uri)| self.validate_content(uri, content, false))
+                .collect();
+            let batch = futures::future::join_all(futures).await;
+            for (i, diags) in batch.into_iter().enumerate() {
+                if !diags.is_empty() {
+                    pending.push((chunk[i].1.clone(), diags));
                 }
             }
         }
+
+        // ── Phase 3: Deferred diagnostics with pacing ─────────────────
+        // Publish all diagnostics AFTER validation completes, avoiding
+        // buffer-1 channel backpressure from per-file publish_diagnostics.
+        // Pacing with small sleeps prevents VS Code's receive buffer from
+        // filling up when there are thousands of files to publish.
+        for (i, (uri, diags)) in pending.iter().enumerate() {
+            self.client
+                .publish_diagnostics(uri.clone(), diags.clone(), None)
+                .await;
+            // Throttle: every 100 files, yield so VS Code can drain its
+            // socket buffer and the transport doesn't block on write().
+            if i > 0 && i % 100 == 0 {
+                tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+            }
+        }
+
+        let total_elapsed = scan_start.elapsed();
         self.client
             .log_message(
                 MessageType::INFO,
-                format!("Workspace scan complete. Scanned {} files.", file_count),
+                format!(
+                    "Workspace scan complete. Scanned {} files with {} diagnostics in {:.1?}.",
+                    validated,
+                    pending.iter().map(|(_, d)| d.len()).sum::<usize>(),
+                    total_elapsed,
+                ),
             )
             .await;
     }
@@ -295,7 +357,7 @@ impl Backend {
         };
 
         let start = std::time::Instant::now();
-        let diagnostics = self.validate_content(&uri, &content).await;
+        let diagnostics = self.validate_content(&uri, &content, false).await;
         let elapsed = start.elapsed();
 
         // Log slow validations (>500ms) at DEBUG level so users can
@@ -347,7 +409,12 @@ impl Backend {
             .await;
     }
 
-    async fn validate_content(&self, uri: &Uri, content: &str) -> Vec<Diagnostic> {
+    async fn validate_content(
+        &self,
+        uri: &Uri,
+        content: &str,
+        skip_styling: bool,
+    ) -> Vec<Diagnostic> {
         let mut diagnostics = Vec::new();
 
         // Skip known-ignored files: internal Paradox data, gfx/fonts credits, etc.
@@ -518,7 +585,7 @@ impl Backend {
             script_opt = Some(script);
         }
 
-        if styling_enabled {
+        if styling_enabled && !skip_styling {
             let is_yaml = uri.as_str().ends_with(".yml");
             self.check_styling(
                 content,

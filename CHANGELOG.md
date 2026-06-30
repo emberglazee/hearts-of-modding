@@ -2,6 +2,12 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
+## [v0.23.2] - 2026-06-30
+
+### 🔧 Changed
+
+- **Parallel scanning of workspace files for diagnostics.**
+
 ## [v0.23.1] - 2026-06-30
 
 ### 🔧 Changed
