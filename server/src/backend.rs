@@ -2017,6 +2017,10 @@ impl Backend {
         // Detect file type from URI for scope inference
         let initial_scope = if uri.contains("/common/abilities/") {
             scope::Scope::Character
+        } else if uri.contains("/common/decisions/") {
+            // Decisions evaluate in Country scope — triggers like has_country_flag,
+            // effects like country_event, and properties like cost all expect it.
+            scope::Scope::Country
         } else {
             scope::Scope::Global
         };

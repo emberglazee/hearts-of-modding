@@ -34,6 +34,7 @@ pub(crate) fn is_idea_structure_key(key: &str) -> bool {
         | "visible"
         | "allowed_to_remove"
         | "removal_cost"
+        | "cost"
         | "level"
         | "ledger"
         | "hidden"
