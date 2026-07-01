@@ -512,7 +512,9 @@ impl Backend {
                 (Arc::new(s), e)
             };
             for (msg, range) in &parse_errors {
-                let (severity, code) = if msg.starts_with(advanced_validation::IMPLICIT_EOF_CLOSE) {
+                let (severity, code) = if msg.starts_with(advanced_validation::IMPLICIT_EOF_CLOSE)
+                    || msg.starts_with(advanced_validation::STRAY_BRACE)
+                {
                     (
                         Some(DiagnosticSeverity::INFORMATION),
                         Some(NumberOrString::String(
@@ -555,7 +557,9 @@ impl Backend {
                 (Arc::new(s), e)
             };
             for (msg, range) in &parse_errors {
-                let (severity, code) = if msg.starts_with(advanced_validation::IMPLICIT_EOF_CLOSE) {
+                let (severity, code) = if msg.starts_with(advanced_validation::IMPLICIT_EOF_CLOSE)
+                    || msg.starts_with(advanced_validation::STRAY_BRACE)
+                {
                     (
                         Some(DiagnosticSeverity::INFORMATION),
                         Some(NumberOrString::String(

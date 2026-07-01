@@ -29,6 +29,9 @@ pub const DUPLICATE_EVENT_ID: &str = "HOM3011";
 pub const DUPLICATE_EVENT_NAMESPACE: &str = "HOM3012";
 /// Block implicitly closed at end-of-file (Clausewitz engine accepts this)
 pub const IMPLICIT_EOF_CLOSE: &str = "HOM6000";
+/// Extra closing brace `}` that doesn't match any open block — the engine
+/// silently discards it, but it's worth flagging as INFO for cleanliness.
+pub const STRAY_BRACE: &str = "HOM6001";
 
 // ── Event option & structure validation (HOM3013–HOM3020) ──
 pub const EVENT_MISSING_OPTION_NAME: &str = "HOM3013";

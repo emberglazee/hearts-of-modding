@@ -10,6 +10,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Improved UTF-16 char handling in UTF-8 script files.**
 
+- **Correctly parse files with a stray closing brace:** An addition to v0.23.0's parser improvement that handles missing end-of-file closing braces the same way Clausewitz does.
+
 ### 🩹 Fixed
 
 - **Allowed curly quotes and apostrophe as identifier chars.** Commonly used in character names (`“Lha-bzang”`, `“Savas’jan”`) but causing parsing errors due to these chars not being ASCII alphanumeric.
