@@ -129,9 +129,6 @@ impl Scope {
                     && !RESERVED.contains(&s)
                 {
                     Scope::Country
-                } else if !s.is_empty() && s.as_bytes().iter().all(|b| b.is_ascii_digit()) {
-                    // Numeric keys (state IDs like 684, province IDs) push State scope
-                    Scope::State
                 } else {
                     Scope::Unknown
                 }

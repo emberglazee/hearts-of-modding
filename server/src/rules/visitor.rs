@@ -124,6 +124,7 @@ pub fn walk_script(
         diags,
         &mut scope_stack,
         in_air_wings,
+        false,
     );
 
     // Post-walk hook for cross-reference checks
@@ -140,6 +141,7 @@ fn walk_entries(
     diags: &mut Vec<Diagnostic>,
     scope_stack: &mut ScopeStack,
     in_air_wings: bool,
+    in_random_list: bool,
 ) {
     for entry in entries {
         match entry {
@@ -209,6 +211,16 @@ fn walk_entries(
                     if s == Scope::Unknown && ctx.characters.contains_key(key_text) {
                         s = Scope::Character;
                     }
+
+                    // Numeric keys (state IDs like 684, province IDs) push State scope.
+                    // Must NOT be inside random_list (where numbers are weights, not scopes).
+                    if s == Scope::Unknown
+                        && !in_random_list
+                        && !key_text.is_empty()
+                        && key_text.as_bytes().iter().all(|b| b.is_ascii_digit())
+                    {
+                        s = Scope::State;
+                    }
                 }
 
                 if s != Scope::Unknown || key_text.contains(':') || key_text.contains('.') {
@@ -236,6 +248,7 @@ fn walk_entries(
                     ast::Value::Block(inner) | ast::Value::TaggedBlock(_, inner, _) => {
                         let key = ass.key_text(ctx.source);
                         let new_in_air_wings = in_air_wings || key == "air_wings";
+                        let new_in_random_list = in_random_list || key == "random_list";
                         crate::backend::check_duplicate_keys(
                             inner,
                             diags,
@@ -252,6 +265,7 @@ fn walk_entries(
                             diags,
                             scope_stack,
                             new_in_air_wings,
+                            new_in_random_list,
                         );
                     }
                     _ => {}
@@ -284,6 +298,7 @@ fn walk_entries(
                         diags,
                         scope_stack,
                         in_air_wings,
+                        in_random_list,
                     );
                 }
                 _ => {}
