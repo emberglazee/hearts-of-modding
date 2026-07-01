@@ -363,12 +363,9 @@ fn only_closing_braces_until_eof(span: Span) -> bool {
 }
 
 fn skip_ws_comments(input: Span) -> IResult<Span, ()> {
-    let (input, _) = multispace0::<_, nom::error::Error<_>>(input)?;
+    let (input, _) = multispace0(input)?;
     match comment(input) {
-        Ok((remaining, _)) => {
-            // A comment was consumed — recurse to catch more (comment + ws + comment)
-            skip_ws_comments(remaining)
-        }
+        Ok((remaining, _)) => skip_ws_comments(remaining),
         Err(_) => Ok((input, ())),
     }
 }

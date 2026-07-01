@@ -512,13 +512,18 @@ impl Backend {
                 (Arc::new(s), e)
             };
             for (msg, range) in &parse_errors {
-                let (severity, code) = if msg.starts_with(advanced_validation::IMPLICIT_EOF_CLOSE)
-                    || msg.starts_with(advanced_validation::STRAY_BRACE)
-                {
+                let (severity, code) = if msg.starts_with(advanced_validation::IMPLICIT_EOF_CLOSE) {
                     (
                         Some(DiagnosticSeverity::INFORMATION),
                         Some(NumberOrString::String(
                             advanced_validation::IMPLICIT_EOF_CLOSE.to_string(),
+                        )),
+                    )
+                } else if msg.starts_with(advanced_validation::STRAY_BRACE) {
+                    (
+                        Some(DiagnosticSeverity::INFORMATION),
+                        Some(NumberOrString::String(
+                            advanced_validation::STRAY_BRACE.to_string(),
                         )),
                     )
                 } else {
@@ -557,13 +562,18 @@ impl Backend {
                 (Arc::new(s), e)
             };
             for (msg, range) in &parse_errors {
-                let (severity, code) = if msg.starts_with(advanced_validation::IMPLICIT_EOF_CLOSE)
-                    || msg.starts_with(advanced_validation::STRAY_BRACE)
-                {
+                let (severity, code) = if msg.starts_with(advanced_validation::IMPLICIT_EOF_CLOSE) {
                     (
                         Some(DiagnosticSeverity::INFORMATION),
                         Some(NumberOrString::String(
                             advanced_validation::IMPLICIT_EOF_CLOSE.to_string(),
+                        )),
+                    )
+                } else if msg.starts_with(advanced_validation::STRAY_BRACE) {
+                    (
+                        Some(DiagnosticSeverity::INFORMATION),
+                        Some(NumberOrString::String(
+                            advanced_validation::STRAY_BRACE.to_string(),
                         )),
                     )
                 } else {
