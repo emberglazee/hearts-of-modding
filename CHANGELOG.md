@@ -8,6 +8,10 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Scope refactor:** Rewrote the scope system from the ground up.
 
+### 🩹 Fixed
+
+- **Allowed curly quotes and apostrophe as identifier chars.** Commonly used in character names (`“Lha-bzang”`, `“Savas’jan”`) but causing parsing errors due to these chars not being ASCII alphanumeric.
+
 ## [v0.23.1] - 2026-06-30
 
 ### 🔧 Changed
