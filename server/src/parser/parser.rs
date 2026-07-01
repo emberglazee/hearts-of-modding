@@ -96,7 +96,10 @@ pub fn is_identifier_char(c: char) -> bool {
     if c.is_ascii() {
         IDENTIFIER_CHARS[c as usize]
     } else {
-        c.is_alphanumeric()
+        // Non-ASCII alphanumeric (accents like é, à, è from HOI4 names/characters).
+        // Also allow curly/smart quotes (\u{201c} \u{201d}) and curly apostrophe (\u{2019})
+        // — they appear in vanilla 00_names.txt and the engine treats them as plain text.
+        c.is_alphanumeric() || c == '\u{201c}' || c == '\u{201d}' || c == '\u{2019}'
     }
 }
 
