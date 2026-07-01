@@ -29,6 +29,7 @@ pub(crate) mod sprites;
 pub(crate) mod state_definitions;
 pub(crate) mod terrains;
 pub(crate) mod traits;
+pub(crate) mod v2_scope;
 pub(crate) mod visitor;
 
 /// Context passed to validation rules during semantic checking.
@@ -56,6 +57,8 @@ pub(crate) struct ValidationContext<'a> {
     pub(crate) sprites:
         &'a DashMap<InternedStr, LayeredValue<crate::scanner::sprite_scanner::Sprite>>,
     pub(crate) ideas: &'a DashMap<InternedStr, LayeredValue<crate::scanner::idea_scanner::Idea>>,
+    pub(crate) characters:
+        &'a DashMap<InternedStr, LayeredValue<crate::scanner::character_scanner::Character>>,
     pub(crate) provinces: &'a DashMap<u32, crate::scanner::province_scanner::Province>,
     pub(crate) modifier_mappings: &'a DashMap<InternedStr, String>,
     pub(crate) ignored_loc_regex: &'a [Regex],
@@ -84,6 +87,8 @@ pub(crate) struct ValidationContext<'a> {
     pub(crate) workspace_roots: &'a [std::path::PathBuf],
     pub(crate) unit_types:
         &'a DashMap<InternedStr, LayeredValue<crate::scanner::unit_scanner::UnitType>>,
+    pub(crate) event_targets:
+        &'a DashMap<InternedStr, Vec<crate::scanner::variable_scanner::EventTarget>>,
     pub(crate) event_namespaces:
         &'a DashMap<InternedStr, LayeredValue<event_namespace_scanner::EventNamespace>>,
     pub(crate) events: &'a DashMap<InternedStr, LayeredValue<crate::scanner::event_scanner::Event>>,

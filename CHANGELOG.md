@@ -2,6 +2,12 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
+## [v0.24.0] - 2026-07-01
+
+### 🔧 Changed
+
+- **Scope refactor:** Rewrote the scope system from the ground up.
+
 ## [v0.23.1] - 2026-06-30
 
 ### 🔧 Changed

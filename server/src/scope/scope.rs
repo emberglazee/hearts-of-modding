@@ -20,6 +20,8 @@ pub enum Scope {
     /// `country` as a category keyword, except ideas defined within it
     /// don't show up in the spirit container and don't need a `picture`.
     HiddenIdeaCategory,
+    /// Strategic region (air zone / naval region)
+    StrategicRegion,
     Unknown,
 }
 
@@ -37,6 +39,7 @@ impl Scope {
             Scope::Ribbon => "Ribbon",
             Scope::Idea => "Idea",
             Scope::HiddenIdeaCategory => "Hidden Idea Category",
+            Scope::StrategicRegion => "Strategic Region",
             Scope::Unknown => "Unknown",
         }
     }
@@ -47,6 +50,7 @@ impl Scope {
             "music_station" => Scope::MusicStation,
             "music" => Scope::MusicTrack,
             "state" => Scope::State,
+            "strategic_region" => Scope::StrategicRegion,
             "ideas" => Scope::Idea,
             "hidden_ideas" => Scope::HiddenIdeaCategory,
             "country"
@@ -133,6 +137,22 @@ impl Scope {
     }
 }
 
+/// A node on the scope stack with transparency metadata.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ScopeNode {
+    pub scope_type: Scope,
+    pub is_transparent: bool,
+}
+
+impl ScopeNode {
+    pub fn new(scope_type: Scope) -> Self {
+        Self {
+            scope_type,
+            is_transparent: false,
+        }
+    }
+}
+
 /// Resolve a key to its semantic scope, with achievement/ribbon overrides.
 /// Use this instead of `Scope::from_str` directly when achievements data is available.
 /// This ensures the achievement-override logic lives in one place.
@@ -152,34 +172,139 @@ pub fn resolve_key_scope(
 }
 
 pub struct ScopeStack {
-    stack: Vec<Scope>,
+    nodes: Vec<ScopeNode>,
 }
 
 impl ScopeStack {
     pub fn new(initial: Scope) -> Self {
         Self {
-            stack: vec![initial],
+            nodes: vec![ScopeNode::new(initial)],
         }
     }
 
     pub fn push(&mut self, scope: Scope) {
-        self.stack.push(scope);
+        self.nodes.push(ScopeNode::new(scope));
+    }
+
+    /// Push a scope with explicit transparency flag.
+    pub fn push_with(&mut self, scope: Scope, is_transparent: bool) {
+        self.nodes.push(ScopeNode {
+            scope_type: scope,
+            is_transparent,
+        });
     }
 
     pub fn pop(&mut self) -> Option<Scope> {
-        self.stack.pop()
+        self.nodes.pop().map(|n| n.scope_type)
     }
 
     pub fn current(&self) -> Scope {
-        *self.stack.last().unwrap_or(&Scope::Global)
+        self.nodes.last().map_or(Scope::Global, |n| n.scope_type)
     }
 
-    pub fn stack(&self) -> &[Scope] {
-        &self.stack
+    /// Get the current node for transparency checking
+    #[allow(dead_code)]
+    pub fn current_node(&self) -> Option<&ScopeNode> {
+        self.nodes.last()
     }
 
-    pub fn iter(&self) -> std::slice::Iter<'_, Scope> {
-        self.stack.iter()
+    /// Returns scopes as a Vec<Scope> for backward compatibility.
+    pub fn stack(&self) -> Vec<Scope> {
+        self.nodes.iter().map(|n| n.scope_type).collect()
+    }
+
+    /// Iterate over Scope values (not ScopeNode).
+    pub fn iter(&self) -> impl Iterator<Item = &Scope> {
+        self.nodes.iter().map(|n| &n.scope_type)
+    }
+
+    /// Get all scopes as a slice of nodes
+    #[allow(dead_code)]
+    pub fn nodes(&self) -> &[ScopeNode] {
+        &self.nodes
+    }
+
+    #[allow(dead_code)]
+    pub fn len(&self) -> usize {
+        self.nodes.len()
+    }
+
+    /// Resolve ROOT/THIS/PREV pointers, using transparency-aware semantics.
+    /// - ROOT: First non-transparent scope in the stack
+    /// - THIS: Current (top) scope
+    /// - PREV: Previous non-transparent scope before the current one
+    pub fn resolve_pointer(&self, pointer: &str) -> Scope {
+        match pointer.to_ascii_uppercase().as_str() {
+            "ROOT" => self
+                .nodes
+                .iter()
+                .skip(1)
+                .find(|n| !n.is_transparent)
+                .map_or(Scope::Global, |n| n.scope_type),
+            "THIS" => self.current(),
+            "PREV" => self
+                .nodes
+                .iter()
+                .rev()
+                .skip(1)
+                .find(|n| !n.is_transparent)
+                .map_or(Scope::Global, |n| n.scope_type),
+            _ => Scope::Unknown,
+        }
+    }
+
+    /// Resolve a dot-notation scope chain like `ROOT.owner.capital.controller`.
+    ///
+    /// Walk the chain using V2 chain target data:
+    /// 1. Split on `.`
+    /// 2. First segment: resolve via pointer or from_str
+    /// 3. Subsequent segments: look up chain_target(current, segment) in V2 data
+    /// 4. Returns `(final_scope, is_known)`
+    #[allow(dead_code)]
+    pub fn resolve_chain(&self, key: &str) -> (Scope, bool) {
+        let parts: Vec<&str> = key.split('.').collect();
+        if parts.is_empty() {
+            return (Scope::Unknown, false);
+        }
+
+        // Resolve the first segment
+        let first = parts[0];
+        let (mut current, mut known) = match first.to_ascii_uppercase().as_str() {
+            "ROOT" => (self.resolve_pointer("ROOT"), true),
+            "THIS" => (self.resolve_pointer("THIS"), true),
+            "PREV" => (self.resolve_pointer("PREV"), true),
+            "FROM" => (Scope::Country, true),
+            _ => {
+                let s = Scope::from_str(first);
+                let known = s != Scope::Unknown;
+                (s, known)
+            }
+        };
+
+        // Walk subsequent segments via chain targets
+        for segment in &parts[1..] {
+            if let Some(target) = crate::data::hoi4_data::lookup_chain_target(&current, segment) {
+                current = target.scope;
+            } else {
+                // Unknown link — try from_str as fallback
+                let s = Scope::from_str(segment);
+                if s != Scope::Unknown {
+                    current = s;
+                } else if segment.len() == 3
+                    && segment.is_ascii()
+                    && segment.as_bytes()[0].is_ascii_alphabetic()
+                    && segment.as_bytes()[0].is_ascii_uppercase()
+                {
+                    // Country tag
+                    current = Scope::Country;
+                } else {
+                    known = false;
+                    break;
+                }
+            }
+        }
+
+        (current, known)
     }
 
     /// Resolve a meta-scope reference dynamically based on the current
@@ -191,9 +316,9 @@ impl ScopeStack {
     /// | Keyword | Resolves to |
     /// |---------|------------|
     /// | `THIS`  | Current scope (top of stack) |
-    /// | `ROOT`  | First non-Global scope pushed (the entry point of the block) |
-    /// | `PREV`  | Parent scope (one level up) |
-    /// | `PREVPREV` | Grandparent scope (two levels up) |
+    /// | `ROOT`  | First non-transparent scope pushed (the entry point of the block) |
+    /// | `PREV`  | Previous non-transparent scope (one level up) |
+    /// | `PREVPREV` | Two non-transparent scopes up |
     /// | `FROM`  | Event/action source scope — typically `Country` |
     /// | `FROM.FROM` | Chained FROM — typically `Country` |
     ///
@@ -207,22 +332,26 @@ impl ScopeStack {
             // (it always has at least Global).
             "THIS" => Some(self.current()),
 
-            // ROOT = the first non-Global scope that was pushed.
+            // ROOT = the first non-transparent scope pushed after Global.
             // In HOI4 this is usually Country (events, focuses, decisions),
             // but can be State (state events) or Character (character events).
-            "ROOT" => Some(self.stack.get(1).copied().unwrap_or(Scope::Global)),
+            "ROOT" => Some(self.resolve_pointer("ROOT")),
 
-            // PREV = one level above current (parent scope).
-            // PREVPREV, PREVPREVPREV, etc. = N levels up.
+            // PREV = previous non-transparent scope (one above current).
+            // PREVPREV, PREVPREVPREV, etc. = N non-transparent scopes up.
             // We handle any string made of consecutive "PREV" parts.
             "PREV" | "PREVPREV" | "PREVPREVPREV" | "PREVPREVPREVPREV" => {
                 let depth = upper.matches("PREV").count();
-                debug_assert!(depth >= 1, "PREV pattern matched with zero PREVs");
-                if self.stack.len() > depth {
-                    Some(self.stack[self.stack.len() - 1 - depth])
-                } else {
-                    Some(Scope::Unknown)
+                let mut count = 0;
+                for node in self.nodes.iter().rev().skip(1) {
+                    if !node.is_transparent {
+                        count += 1;
+                        if count == depth {
+                            return Some(node.scope_type);
+                        }
+                    }
                 }
+                Some(Scope::Unknown)
             }
 
             // FROM = source scope in events / targeted effects.

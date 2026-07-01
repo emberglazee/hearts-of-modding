@@ -7,7 +7,7 @@ use tower_lsp_server::ls_types::Diagnostic;
 /// Mirrors the list in [`crate::rules::ideas::is_idea_structure_key`].
 /// Kept separate to avoid circular module deps between rules::visitor and
 /// rules::ideas.
-fn is_idea_structure_key(key: &str) -> bool {
+pub(crate) fn is_idea_structure_key(key: &str) -> bool {
     matches!(
         key.to_ascii_lowercase().as_str(),
         // Category structure & attributes
@@ -145,38 +145,75 @@ fn walk_entries(
             ast::Entry::Assignment(ass) => {
                 let mut pushed_scope = false;
 
-                // Structural blocks that push scope (mirrors Backend::check_entry_semantic)
-                //
-                // First: try dynamic meta-scope resolution for THIS/ROOT/PREV/FROM.
-                // These refer to contextual scopes that depend on the current stack,
-                // not static scope names. Falls back to static resolution.
-                let mut s = scope_stack
-                    .resolve_meta_scope(ass.key_text(ctx.source))
-                    .unwrap_or_else(|| Scope::from_str(ass.key_text(ctx.source)));
+                let key_text = ass.key_text(ctx.source);
+                let mut s;
+                let mut is_transparent = false;
 
-                // Internal 'idea' definition block context
-                // Unknown keys with block values at depth 2-3 inside an Idea
-                // scope are likely idea names (e.g. `my_idea = { ... }` inside
-                // `country = { ... }`). Promote them to Scope::Idea.
-                // EXCLUDE known idea structure/sub-block keywords — those are
-                // never valid idea names even if placed at the category level.
-                if s == Scope::Unknown {
-                    let stack = scope_stack.stack();
-                    if stack.contains(&Scope::Idea)
-                        && (stack.len() == 2 || stack.len() == 3)
-                        && !is_idea_structure_key(ass.key_text(ctx.source))
-                    {
-                        s = Scope::Idea;
+                // V2: Check if this is a transparent block first (AND, OR, NOT, limit, if, etc.)
+                if crate::data::hoi4_data::is_transparent_block(key_text)
+                    || matches!(key_text.to_ascii_uppercase().as_str(), "AND" | "OR" | "NOT")
+                {
+                    s = scope_stack.current();
+                    is_transparent = true;
+                } else if let Some(pushed) = crate::data::hoi4_data::lookup_pushes_scope(key_text) {
+                    // V2: Known trigger/effect with explicit scope push
+                    s = pushed;
+                } else if let Some(event_target_scope) = {
+                    // V2: Check if this key is a saved event target
+                    let lower_key = key_text.to_ascii_lowercase();
+                    let result = ctx
+                        .event_targets
+                        .get(&*lower_key)
+                        .or_else(|| ctx.event_targets.get(key_text));
+                    result
+                        .map(|targets| {
+                            targets
+                                .value()
+                                .first()
+                                .map(|t| t.scope)
+                                .unwrap_or(Scope::Unknown)
+                        })
+                        .filter(|s| *s != Scope::Unknown)
+                } {
+                    s = event_target_scope;
+                } else if let Some(chain_target) =
+                    crate::data::hoi4_data::lookup_chain_target(&scope_stack.current(), key_text)
+                {
+                    // Chain target from current scope (e.g. State -> owner -> Country)
+                    s = chain_target.scope;
+                } else {
+                    // Legacy: try dynamic meta-scope resolution for THIS/ROOT/PREV/FROM.
+                    // Then fall back to static Scope::from_str.
+                    s = scope_stack
+                        .resolve_meta_scope(key_text)
+                        .unwrap_or_else(|| Scope::from_str(key_text));
+
+                    // Internal 'idea' definition block context
+                    // Unknown keys with block values at depth 2-3 inside an Idea
+                    // scope are likely idea names (e.g. `my_idea = { ... }` inside
+                    // `country = { ... }`). Promote them to Scope::Idea.
+                    // EXCLUDE known idea structure/sub-block keywords — those are
+                    // never valid idea names even if placed at the category level.
+                    if s == Scope::Unknown {
+                        let stack = scope_stack.stack();
+                        if stack.contains(&Scope::Idea)
+                            && (stack.len() == 2 || stack.len() == 3)
+                            && !is_idea_structure_key(key_text)
+                        {
+                            s = Scope::Idea;
+                        }
+                    }
+
+                    // Known character tokens (GER_walter_ulbricht, etc.) -> Character scope
+                    if s == Scope::Unknown && ctx.characters.contains_key(key_text) {
+                        s = Scope::Character;
                     }
                 }
 
-                if s != Scope::Unknown
-                    || ass.key_text(ctx.source).contains(':')
-                    || ass.key_text(ctx.source).contains('.')
-                {
+                if s != Scope::Unknown || key_text.contains(':') || key_text.contains('.') {
                     match &ass.value.value {
                         ast::Value::Block(_) | ast::Value::TaggedBlock(_, _, _) => {
-                            scope_stack.push(s);
+                            scope_stack.push_with(s, is_transparent);
                             pushed_scope = true;
                         }
                         _ => {}

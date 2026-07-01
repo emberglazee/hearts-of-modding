@@ -2038,6 +2038,7 @@ impl Backend {
             traits: tr,
             sprites: sp,
             ideas: ids,
+            characters: &self.scanner_data.characters,
             provinces: provs,
             modifier_mappings: mod_maps,
             ignored_loc_regex: &ig_loc,
@@ -2055,6 +2056,7 @@ impl Backend {
             styling_enabled,
             workspace_roots: &workspace_roots,
             unit_types: &self.scanner_data.unit_types,
+            event_targets: &self.scanner_data.event_targets,
             event_namespaces: &self.scanner_data.event_namespaces,
             events: &self.scanner_data.events,
             decisions: &self.scanner_data.decisions,
@@ -2091,6 +2093,7 @@ impl Backend {
             Box::new(rules::traits::TraitRule),
             Box::new(rules::events::EventValidationRule),
             Box::new(rules::decisions::DecisionsRule),
+            Box::new(rules::v2_scope::V2ScopeRule),
         ];
 
         // Block-level rules: top-level entries only, NO recursion.
@@ -2607,6 +2610,17 @@ pub(crate) fn build_static_semantic_keywords() -> HashSet<String> {
     keywords.insert("fallback".to_string());
     keywords.insert("start_province".to_string());
     keywords.insert("target_province".to_string());
+
+    // Structural flow control keywords (transparent blocks)
+    keywords.insert("and".to_string());
+    keywords.insert("or".to_string());
+    keywords.insert("not".to_string());
+    keywords.insert("if".to_string());
+
+    // Add transparent block types from V2 data
+    for block in crate::data::hoi4_data::get_transparent_block_types() {
+        keywords.insert(block.clone());
+    }
 
     keywords
 }

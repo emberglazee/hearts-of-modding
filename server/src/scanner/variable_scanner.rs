@@ -2,6 +2,7 @@
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use crate::parser::parser;
+use crate::scope::scope::Scope;
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
@@ -20,6 +21,7 @@ pub struct EventTarget {
     pub path: InternedStr,
     pub range: ast::Range,
     pub is_global: bool,
+    pub scope: Scope,
 }
 
 pub struct ScanResult {
@@ -258,6 +260,7 @@ fn add_event_target(
         path: std::sync::Arc::from(path),
         range: range.clone(),
         is_global,
+        scope: Scope::Unknown,
     };
     event_targets.entry(name).or_default().push(entry);
 }
