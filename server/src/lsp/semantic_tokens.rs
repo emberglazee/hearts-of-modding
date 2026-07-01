@@ -1,6 +1,5 @@
 use crate::data::entity_lookup::EntityKind;
-// Note: LineIndex is not used here — per-line byte→UTF-16 conversion
-// uses a zero-allocation char walk instead (see byte_to_col closure).
+use crate::utils::line_index::LineIndex;
 use std::collections::{HashMap, HashSet};
 use tower_lsp_server::ls_types::{SemanticToken, SemanticTokens, SemanticTokensResult};
 
@@ -126,10 +125,53 @@ fn entity_kind_to_token_type(kind: EntityKind) -> u32 {
     }
 }
 
+/// Precomputed line-start byte offsets + LineIndex for O(1) byte→UTF-16
+/// column conversion. Used by script semantic tokens (where AST ranges store
+/// byte columns) to produce LSP-compatible UTF-16 column values.
+struct Utf16Index {
+    line_starts: Vec<usize>,
+    line_index: LineIndex,
+    source_len_bytes: usize,
+}
+
+impl Utf16Index {
+    fn new(source: &str) -> Self {
+        let line_starts: Vec<usize> = std::iter::once(0)
+            .chain(source.match_indices('\n').map(|(i, _)| i + 1))
+            .collect();
+        Self {
+            line_starts,
+            line_index: LineIndex::new(source),
+            source_len_bytes: source.len(),
+        }
+    }
+
+    /// Convert a byte column on a line to a UTF-16 code unit column.
+    /// Clamps to source bounds — AST end_col may point past the line content.
+    fn col_to_utf16(&self, line: u32, byte_col: u32) -> u32 {
+        let line_start = self.line_starts[line as usize];
+        let abs_byte = (line_start + byte_col as usize).min(self.source_len_bytes);
+        self.line_index.byte_to_utf16(abs_byte) - self.line_index.byte_to_utf16(line_start)
+    }
+
+    /// Convert a byte range on a line to UTF-16 length in code units.
+    fn range_len_utf16(&self, line: u32, start_byte: u32, end_byte: u32) -> u32 {
+        let line_start = self.line_starts[line as usize];
+        let abs_start = (line_start + start_byte as usize).min(self.source_len_bytes);
+        let abs_end = (line_start + end_byte as usize).min(self.source_len_bytes);
+        if abs_end <= abs_start {
+            0
+        } else {
+            self.line_index.byte_to_utf16(abs_end) - self.line_index.byte_to_utf16(abs_start)
+        }
+    }
+}
+
 pub fn get_semantic_tokens(script: &Script, ctx: &SemanticTokenContext) -> SemanticTokensResult {
+    let utf16 = Utf16Index::new(&script.source);
     let mut tokens = Vec::new();
     for entry in &script.entries {
-        push_entry_tokens(entry, &mut tokens, ctx, &script.source, None);
+        push_entry_tokens(entry, &mut tokens, ctx, &script.source, None, &utf16);
     }
 
     tokens_to_lsp(tokens)
@@ -154,6 +196,7 @@ pub fn get_semantic_tokens_range(
     ctx: &SemanticTokenContext,
     range: &tower_lsp_server::ls_types::Range,
 ) -> SemanticTokensResult {
+    let utf16 = Utf16Index::new(&script.source);
     let mut tokens = Vec::new();
     for entry in &script.entries {
         // Determine the full range of the entry (key + value tree)
@@ -168,7 +211,7 @@ pub fn get_semantic_tokens_range(
             continue;
         }
 
-        push_entry_tokens(entry, &mut tokens, ctx, &script.source, None);
+        push_entry_tokens(entry, &mut tokens, ctx, &script.source, None, &utf16);
     }
 
     tokens_to_lsp(tokens)
@@ -578,11 +621,18 @@ fn push_entry_tokens(
     ctx: &SemanticTokenContext,
     source: &str,
     parent_key: Option<&str>,
+    utf16: &Utf16Index,
 ) {
     match entry {
         Entry::Assignment(ass) => {
             let key_text = ass.key_text(source);
             let is_keyword = ctx.keywords.contains(key_text);
+
+            // Precompute UTF-16 columns for the key range (byte→UTF-16)
+            let key_line = ass.key_range.start_line;
+            let key_start = utf16.col_to_utf16(key_line, ass.key_range.start_col);
+            let key_len =
+                utf16.range_len_utf16(key_line, ass.key_range.start_col, ass.key_range.end_col);
 
             // Event type keys (country_event, state_event, etc.) — highlight as Event
             let is_event_type = matches!(
@@ -603,37 +653,37 @@ fn push_entry_tokens(
 
             if is_event_type {
                 tokens.push(RawToken {
-                    line: ass.key_range.start_line,
-                    start: ass.key_range.start_col,
-                    length: ass.key_range.end_col - ass.key_range.start_col,
+                    line: key_line,
+                    start: key_start,
+                    length: key_len,
                     token_type: TokenType::Event as u32,
                 });
             } else if is_option_key {
                 tokens.push(RawToken {
-                    line: ass.key_range.start_line,
-                    start: ass.key_range.start_col,
-                    length: ass.key_range.end_col - ass.key_range.start_col,
+                    line: key_line,
+                    start: key_start,
+                    length: key_len,
                     token_type: TokenType::Struct as u32,
                 });
             } else if is_meta {
                 tokens.push(RawToken {
-                    line: ass.key_range.start_line,
-                    start: ass.key_range.start_col,
-                    length: ass.key_range.end_col - ass.key_range.start_col,
+                    line: key_line,
+                    start: key_start,
+                    length: key_len,
                     token_type: TokenType::MetaScope as u32,
                 });
             } else if is_keyword {
                 tokens.push(RawToken {
-                    line: ass.key_range.start_line,
-                    start: ass.key_range.start_col,
-                    length: ass.key_range.end_col - ass.key_range.start_col,
+                    line: key_line,
+                    start: key_start,
+                    length: key_len,
                     token_type: TokenType::Keyword as u32,
                 });
             } else if let Some(kind) = ctx.entity_names.get(key_text) {
                 tokens.push(RawToken {
-                    line: ass.key_range.start_line,
-                    start: ass.key_range.start_col,
-                    length: ass.key_range.end_col - ass.key_range.start_col,
+                    line: key_line,
+                    start: key_start,
+                    length: key_len,
                     token_type: entity_kind_to_token_type(*kind),
                 });
             } else {
@@ -650,48 +700,58 @@ fn push_entry_tokens(
 
                 if is_idea_category {
                     tokens.push(RawToken {
-                        line: ass.key_range.start_line,
-                        start: ass.key_range.start_col,
-                        length: ass.key_range.end_col - ass.key_range.start_col,
+                        line: key_line,
+                        start: key_start,
+                        length: key_len,
                         token_type: TokenType::Type as u32,
                     });
                 } else if is_portrait_category || is_portrait_size {
                     tokens.push(RawToken {
-                        line: ass.key_range.start_line,
-                        start: ass.key_range.start_col,
-                        length: ass.key_range.end_col - ass.key_range.start_col,
+                        line: key_line,
+                        start: key_start,
+                        length: key_len,
                         token_type: TokenType::Keyword as u32,
                     });
                 } else if matches!(key_text, "x" | "y") {
                     // Coordinate/position parameters used in division templates,
                     // .gui, .gfx, and other placement contexts
                     tokens.push(RawToken {
-                        line: ass.key_range.start_line,
-                        start: ass.key_range.start_col,
-                        length: ass.key_range.end_col - ass.key_range.start_col,
+                        line: key_line,
+                        start: key_start,
+                        length: key_len,
                         token_type: TokenType::Parameter as u32,
                     });
                 }
             }
 
             // Always emit operator token
+            let op_line = ass.operator_range.start_line;
+            let op_start = utf16.col_to_utf16(op_line, ass.operator_range.start_col);
+            let op_len = utf16.range_len_utf16(
+                op_line,
+                ass.operator_range.start_col,
+                ass.operator_range.end_col,
+            );
             tokens.push(RawToken {
-                line: ass.operator_range.start_line,
-                start: ass.operator_range.start_col,
-                length: ass.operator_range.end_col - ass.operator_range.start_col,
+                line: op_line,
+                start: op_start,
+                length: op_len,
                 token_type: TokenType::Operator as u32,
             });
 
-            push_value_tokens(&ass.value, tokens, ctx, source, Some(key_text));
+            push_value_tokens(&ass.value, tokens, ctx, source, Some(key_text), utf16);
         }
         Entry::Value(val) => {
-            push_value_tokens(val, tokens, ctx, source, parent_key);
+            push_value_tokens(val, tokens, ctx, source, parent_key, utf16);
         }
         Entry::Comment(_, range) => {
+            let com_line = range.start_line;
+            let com_start = utf16.col_to_utf16(com_line, range.start_col);
+            let com_len = utf16.range_len_utf16(com_line, range.start_col, range.end_col);
             tokens.push(RawToken {
-                line: range.start_line,
-                start: range.start_col,
-                length: range.end_col - range.start_col,
+                line: com_line,
+                start: com_start,
+                length: com_len,
                 token_type: TokenType::Comment as u32,
             });
         }
@@ -704,7 +764,13 @@ fn push_value_tokens(
     ctx: &SemanticTokenContext,
     source: &str,
     parent_key: Option<&str>,
+    utf16: &Utf16Index,
 ) {
+    // Precompute UTF-16 columns for the value range
+    let val_line = val.range.start_line;
+    let val_start = utf16.col_to_utf16(val_line, val.range.start_col);
+    let val_len = utf16.range_len_utf16(val_line, val.range.start_col, val.range.end_col);
+
     match &val.value {
         Value::String(span) => {
             let s = span.resolve(source);
@@ -713,16 +779,16 @@ fn push_value_tokens(
 
             if is_meta_scope(s) {
                 tokens.push(RawToken {
-                    line: val.range.start_line,
-                    start: val.range.start_col,
-                    length: val.range.end_col - val.range.start_col,
+                    line: val_line,
+                    start: val_start,
+                    length: val_len,
                     token_type: TokenType::MetaScope as u32,
                 });
             } else if ctx.keywords.contains(s) {
                 tokens.push(RawToken {
-                    line: val.range.start_line,
-                    start: val.range.start_col,
-                    length: val.range.end_col - val.range.start_col,
+                    line: val_line,
+                    start: val_start,
+                    length: val_len,
                     token_type: TokenType::Keyword as u32,
                 });
             } else if parent_key == Some("date") {
@@ -730,9 +796,9 @@ fn push_value_tokens(
                 // strings (f64 can't handle multiple dots), but should be
                 // highlighted as numbers like any other date/time literal.
                 tokens.push(RawToken {
-                    line: val.range.start_line,
-                    start: val.range.start_col,
-                    length: val.range.end_col - val.range.start_col,
+                    line: val_line,
+                    start: val_start,
+                    length: val_len,
                     token_type: TokenType::Number as u32,
                 });
             } else {
@@ -742,17 +808,17 @@ fn push_value_tokens(
                 if !is_loc {
                     if let Some(kind) = ctx.entity_names.get(s) {
                         tokens.push(RawToken {
-                            line: val.range.start_line,
-                            start: val.range.start_col,
-                            length: val.range.end_col - val.range.start_col,
+                            line: val_line,
+                            start: val_start,
+                            length: val_len,
                             token_type: entity_kind_to_token_type(*kind),
                         });
                         return;
                     } else if s.starts_with("var:") || s.starts_with("temp_var:") {
                         tokens.push(RawToken {
-                            line: val.range.start_line,
-                            start: val.range.start_col,
-                            length: val.range.end_col - val.range.start_col,
+                            line: val_line,
+                            start: val_start,
+                            length: val_len,
                             token_type: TokenType::Variable as u32,
                         });
                         return;
@@ -764,9 +830,9 @@ fn push_value_tokens(
                 // hasn't indexed it yet (e.g. a newly written event).
                 if parent_key == Some("id") && s.contains('.') {
                     tokens.push(RawToken {
-                        line: val.range.start_line,
-                        start: val.range.start_col,
-                        length: val.range.end_col - val.range.start_col,
+                        line: val_line,
+                        start: val_start,
+                        length: val_len,
                         token_type: TokenType::Event as u32,
                     });
                     return;
@@ -776,51 +842,58 @@ fn push_value_tokens(
                 // names, desc keys, and any other unquoted string value
                 // that doesn't match a keyword or entity.
                 tokens.push(RawToken {
-                    line: val.range.start_line,
-                    start: val.range.start_col,
-                    length: val.range.end_col - val.range.start_col,
+                    line: val_line,
+                    start: val_start,
+                    length: val_len,
                     token_type: TokenType::String as u32,
                 });
             }
         }
         Value::Number(_) => {
             tokens.push(RawToken {
-                line: val.range.start_line,
-                start: val.range.start_col,
-                length: val.range.end_col - val.range.start_col,
+                line: val_line,
+                start: val_start,
+                length: val_len,
                 token_type: TokenType::Number as u32,
             });
         }
         Value::Boolean(_) => {
             tokens.push(RawToken {
-                line: val.range.start_line,
-                start: val.range.start_col,
-                length: val.range.end_col - val.range.start_col,
+                line: val_line,
+                start: val_start,
+                length: val_len,
                 token_type: TokenType::Boolean as u32,
             });
         }
         Value::Block(entries) => {
             for entry in entries {
-                push_entry_tokens(entry, tokens, ctx, source, parent_key);
+                push_entry_tokens(entry, tokens, ctx, source, parent_key, utf16);
             }
         }
         Value::TaggedBlock(tag, entries, _) => {
+            let tag_line = val.range.start_line;
+            let tag_start = utf16.col_to_utf16(tag_line, val.range.start_col);
+            let tag_len = utf16.range_len_utf16(
+                tag_line,
+                val.range.start_col,
+                tag.len() as u32 + val.range.start_col,
+            );
             tokens.push(RawToken {
-                line: val.range.start_line,
-                start: val.range.start_col,
-                length: tag.len() as u32,
+                line: tag_line,
+                start: tag_start,
+                length: tag_len,
                 token_type: TokenType::Keyword as u32,
             });
             for entry in entries {
-                push_entry_tokens(entry, tokens, ctx, source, parent_key);
+                push_entry_tokens(entry, tokens, ctx, source, parent_key, utf16);
             }
         }
         Value::QuotedString(_) => {
             // Quoted string literals get String token type
             tokens.push(RawToken {
-                line: val.range.start_line,
-                start: val.range.start_col,
-                length: val.range.end_col - val.range.start_col,
+                line: val_line,
+                start: val_start,
+                length: val_len,
                 token_type: TokenType::String as u32,
             });
         }

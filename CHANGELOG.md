@@ -6,11 +6,15 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### 🔧 Changed
 
-- **Scope refactor:** Rewrote the scope system from the ground up.
+- **Scope V2 refactor:** Rewrote the scope system from the ground up.
+
+- **Improved UTF-16 char handling in UTF-8 script files.**
 
 ### 🩹 Fixed
 
 - **Allowed curly quotes and apostrophe as identifier chars.** Commonly used in character names (`“Lha-bzang”`, `“Savas’jan”`) but causing parsing errors due to these chars not being ASCII alphanumeric.
+
+- **Fixed wrong offset calculations in semantic highlighting for multi-byte chars in script files.**
 
 ## [v0.23.1] - 2026-06-30
 

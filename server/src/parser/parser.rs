@@ -28,18 +28,18 @@ fn to_range(span: Span) -> Range {
     let fragment = span.fragment();
 
     let mut end_line = start_line;
-    let mut last_line_len = 0;
+    let mut last_line_len = 0u32;
     for c in fragment.chars() {
         if c == '\n' {
             end_line += 1;
             last_line_len = 0;
         } else {
-            last_line_len += 1;
+            last_line_len += c.len_utf8() as u32;
         }
     }
 
     let end_col = if end_line == start_line {
-        start_col + fragment.chars().count() as u32
+        start_col + fragment.len() as u32
     } else {
         last_line_len
     };
