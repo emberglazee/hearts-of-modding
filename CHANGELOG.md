@@ -10,7 +10,7 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Improved UTF-16 char handling in UTF-8 script files.**
 
-- **Correctly parse files with a stray closing brace:** An addition to v0.23.0's parser improvement that handles missing end-of-file closing braces the same way Clausewitz does.
+- **Continued parser improvements:** Skip comments between assignment and a starting block at a new line (`SOV_CAV_02 = #COSSACK CAVALRY\n{`), recover from stray closing braces.
 
 ### 🩹 Fixed
 

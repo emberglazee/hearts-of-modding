@@ -223,7 +223,7 @@ fn operator(input: Span) -> IResult<Span, (ast::Operator, Range)> {
 
 fn parse_tagged_block(input: Span) -> IResult<Span, (ByteSpan, Vec<ast::Entry>, Range, Range)> {
     let (input, (tag_span, tag_range)) = ident(input)?;
-    let (input, (entries, block_range)) = preceded(multispace0, parse_block).parse(input)?;
+    let (input, (entries, block_range)) = preceded(skip_ws_comments, parse_block).parse(input)?;
 
     let range = Range {
         start_line: tag_range.start_line,
@@ -301,7 +301,7 @@ fn parse_value(input: Span) -> IResult<Span, ast::NodeedValue> {
 }
 
 fn parse_block(input: Span) -> IResult<Span, (Vec<ast::Entry>, Range)> {
-    let (input, start) = preceded(multispace0, recognize(char('{'))).parse(input)?;
+    let (input, start) = preceded(skip_ws_comments, recognize(char('{'))).parse(input)?;
     // Comma-separated lists: HOI4 allows commas between block entries (e.g.
     // `traits = { trait_cautious, inflexible_strategist }`). Treat each comma
     // as an optional separator before entries, like whitespace, so both
@@ -311,7 +311,7 @@ fn parse_block(input: Span) -> IResult<Span, (Vec<ast::Entry>, Range)> {
     // Try explicit closing '}' first. If not found, check if remaining
     // content is only closing braces (safe implicit close) or new scopes
     // after the gap (structural break — propagate error for HOM001).
-    match preceded(multispace0, recognize(char('}'))).parse(input) {
+    match preceded(skip_ws_comments, recognize(char('}'))).parse(input) {
         Ok((remaining, end)) => {
             let range = Range {
                 start_line: start.location_line() - 1,
@@ -362,12 +362,23 @@ fn only_closing_braces_until_eof(span: Span) -> bool {
     true
 }
 
+fn skip_ws_comments(input: Span) -> IResult<Span, ()> {
+    let (input, _) = multispace0::<_, nom::error::Error<_>>(input)?;
+    match comment(input) {
+        Ok((remaining, _)) => {
+            // A comment was consumed — recurse to catch more (comment + ws + comment)
+            skip_ws_comments(remaining)
+        }
+        Err(_) => Ok((input, ())),
+    }
+}
+
 fn parse_assignment(input: Span) -> IResult<Span, ast::Assignment> {
     // Keys are identifiers in practice; support quoted keys for robustness.
     let (input, (key_span, key_range)) =
         alt((ident, map(quoted_string, |(_, bs, r)| (bs, r)))).parse(input)?;
-    let (input, (op, op_range)) = preceded(multispace0, operator).parse(input)?;
-    let (input, val) = preceded(multispace0, parse_value).parse(input)?;
+    let (input, (op, op_range)) = preceded(skip_ws_comments, operator).parse(input)?;
+    let (input, val) = preceded(skip_ws_comments, parse_value).parse(input)?;
 
     Ok((
         input,
