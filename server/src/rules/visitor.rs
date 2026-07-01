@@ -125,6 +125,7 @@ pub fn walk_script(
         &mut scope_stack,
         in_air_wings,
         false,
+        false,
     );
 
     // Post-walk hook for cross-reference checks
@@ -142,7 +143,20 @@ fn walk_entries(
     scope_stack: &mut ScopeStack,
     in_air_wings: bool,
     in_random_list: bool,
+    in_state_targeted_decision: bool,
 ) {
+    // Scan the current block's entries for state_target = yes to detect
+    // state-targeted decisions. Inside those, FROM refers to the target state.
+    let has_state_target = entries.iter().any(|e| {
+        if let ast::Entry::Assignment(ass) = e {
+            ass.key_text(ctx.source) == "state_target"
+                && matches!(&ass.value.value, ast::Value::Boolean(true))
+        } else {
+            false
+        }
+    });
+    let state_targeted = in_state_targeted_decision || has_state_target;
+
     for entry in entries {
         match entry {
             ast::Entry::Assignment(ass) => {
@@ -221,6 +235,14 @@ fn walk_entries(
                     {
                         s = Scope::State;
                     }
+
+                    // State-targeted decisions: FROM refers to the target state
+                    if s == Scope::Country
+                        && state_targeted
+                        && key_text.eq_ignore_ascii_case("FROM")
+                    {
+                        s = Scope::State;
+                    }
                 }
 
                 if s != Scope::Unknown || key_text.contains(':') || key_text.contains('.') {
@@ -248,7 +270,7 @@ fn walk_entries(
                     ast::Value::Block(inner) | ast::Value::TaggedBlock(_, inner, _) => {
                         let key = ass.key_text(ctx.source);
                         let new_in_air_wings = in_air_wings || key == "air_wings";
-                        let new_in_random_list = in_random_list || key == "random_list";
+                        let new_in_random_list = key == "random_list";
                         crate::backend::check_duplicate_keys(
                             inner,
                             diags,
@@ -266,6 +288,7 @@ fn walk_entries(
                             scope_stack,
                             new_in_air_wings,
                             new_in_random_list,
+                            state_targeted,
                         );
                     }
                     _ => {}
@@ -299,6 +322,7 @@ fn walk_entries(
                         scope_stack,
                         in_air_wings,
                         in_random_list,
+                        state_targeted,
                     );
                 }
                 _ => {}
