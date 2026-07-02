@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
 use crate::parser::ast::{self, ByteSpan, Range, Value};
-use crate::validation::advanced_validation::{IMPLICIT_EOF_CLOSE, STRAY_BRACE};
+use crate::validation::advanced_validation::{
+    IMPLICIT_EOF_CLOSE, SECTION_SIGN_IN_VALUE, STRAY_BRACE,
+};
 use nom::{
     IResult, Parser,
     branch::alt,
@@ -598,6 +600,56 @@ pub fn parse_script(input: &str) -> (ast::Script, Vec<(String, Range)>) {
                     }
                 } else {
                     break;
+                }
+            }
+        }
+    }
+
+    // Scan for § (section sign) in unquoted values — the engine silently
+    // corrupts suffixed numbers to 0 or errors on infix positions.
+    {
+        let bytes = input_clean.as_bytes();
+        let len = bytes.len();
+        let mut i = 0;
+        while i < len {
+            match bytes[i] {
+                b'#' => {
+                    while i < len && bytes[i] != b'\n' {
+                        i += 1;
+                    }
+                }
+                b'"' => {
+                    i += 1;
+                    while i < len && bytes[i] != b'"' {
+                        if bytes[i] == b'\\' {
+                            i += 1;
+                        }
+                        i += 1;
+                    }
+                }
+                0xc2 if i + 1 < len && bytes[i + 1] == 0xa7 => {
+                    let line = input_clean[..i].matches('\n').count() as u32;
+                    let col = i - input_clean[..i].rfind('\n').map_or(0, |p| p + 1);
+                    errors.push((
+                        format!(
+                            "{}: Section sign `§` in unquoted value at L{}:{}. \
+                             The engine either silently corrupts the value to 0 \
+                             or errors out depending on position.",
+                            SECTION_SIGN_IN_VALUE,
+                            line + 1,
+                            col + 1
+                        ),
+                        Range {
+                            start_line: line,
+                            start_col: col as u32,
+                            end_line: line,
+                            end_col: (col + 2) as u32,
+                        },
+                    ));
+                    i += 2;
+                }
+                _ => {
+                    i += 1;
                 }
             }
         }

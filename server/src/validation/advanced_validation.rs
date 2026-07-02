@@ -32,6 +32,11 @@ pub const IMPLICIT_EOF_CLOSE: &str = "HOM6000";
 /// Extra closing brace `}` that doesn't match any open block — the engine
 /// silently discards it, but it's worth flagging as INFO for cleanliness.
 pub const STRAY_BRACE: &str = "HOM6001";
+/// Section sign `§` in an unquoted script value — the engine either silently
+/// corrupts the value to 0 or errors out depending on position. Check the
+/// actual file content and consider replacing or quoting it.
+/// Added because this was encountered in v1.18.3 `ship_hull_carrier.txt:708`.
+pub const SECTION_SIGN_IN_VALUE: &str = "HOM6002";
 
 // ── Event option & structure validation (HOM3013–HOM3020) ──
 pub const EVENT_MISSING_OPTION_NAME: &str = "HOM3013";

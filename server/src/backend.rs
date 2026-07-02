@@ -526,6 +526,13 @@ impl Backend {
                             advanced_validation::STRAY_BRACE.to_string(),
                         )),
                     )
+                } else if msg.starts_with(advanced_validation::SECTION_SIGN_IN_VALUE) {
+                    (
+                        Some(DiagnosticSeverity::WARNING),
+                        Some(NumberOrString::String(
+                            advanced_validation::SECTION_SIGN_IN_VALUE.to_string(),
+                        )),
+                    )
                 } else {
                     (
                         Some(DiagnosticSeverity::ERROR),
@@ -574,6 +581,13 @@ impl Backend {
                         Some(DiagnosticSeverity::INFORMATION),
                         Some(NumberOrString::String(
                             advanced_validation::STRAY_BRACE.to_string(),
+                        )),
+                    )
+                } else if msg.starts_with(advanced_validation::SECTION_SIGN_IN_VALUE) {
+                    (
+                        Some(DiagnosticSeverity::WARNING),
+                        Some(NumberOrString::String(
+                            advanced_validation::SECTION_SIGN_IN_VALUE.to_string(),
                         )),
                     )
                 } else {
