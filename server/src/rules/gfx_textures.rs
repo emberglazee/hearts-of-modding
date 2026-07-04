@@ -168,6 +168,7 @@ mod tests {
             strategic_regions: &DashMap::new(),
             terrain_categories: &DashMap::new(),
             abilities: &DashMap::new(),
+            ace_modifiers: &DashMap::new(),
             game_path: game_path_owned,
             styling_enabled,
             workspace_roots,

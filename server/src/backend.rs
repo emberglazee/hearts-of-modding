@@ -2046,9 +2046,9 @@ impl Backend {
         let initial_scope = if uri.contains("/common/abilities/") {
             scope::Scope::Character
         } else if uri.contains("/common/decisions/") {
-            // Decisions evaluate in Country scope — triggers like has_country_flag,
-            // effects like country_event, and properties like cost all expect it.
             scope::Scope::Country
+        } else if uri.contains("/common/aces/") {
+            scope::Scope::Ace
         } else {
             scope::Scope::Global
         };
@@ -2084,6 +2084,7 @@ impl Backend {
             strategic_regions: &self.scanner_data.strategic_regions,
             terrain_categories: &self.scanner_data.terrain_categories,
             abilities: &self.scanner_data.abilities,
+            ace_modifiers: &self.scanner_data.ace_modifiers,
             game_path,
             styling_enabled,
             workspace_roots: &workspace_roots,
@@ -2101,6 +2102,7 @@ impl Backend {
             rules::portraits::PortraitRule::visitor(),
             rules::characters::CharacterRule::visitor(),
             rules::abilities::AbilityRule::visitor(),
+            rules::aces::AceVisitor::visitor(),
             rules::ai_areas::AiAreaRule::visitor(uri),
             rules::provinces::ProvinceRule::vp_visitor(),
             rules::oob_regiments::OobRegimentVisitor::visitor(),

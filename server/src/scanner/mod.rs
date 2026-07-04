@@ -1,4 +1,5 @@
 pub mod ability_scanner;
+pub mod ace_scanner;
 pub mod achievement_scanner;
 pub mod adjacency_scanner;
 pub mod ai_area_scanner;

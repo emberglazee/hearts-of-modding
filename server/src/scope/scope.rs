@@ -26,6 +26,9 @@ pub enum Scope {
     NationalFocus,
     /// Strategic region (air zone / naval region)
     StrategicRegion,
+    /// Ace pilot modifier definitions (common/aces/*.txt)
+    /// Represents the file-level scope for ace modifier definitions.
+    Ace,
     /// A modifier-application target block (e.g. `unit_modifiers = { }`).
     /// The engine reads these as a flat bag of modifiers and routes them
     /// per-key — not a trigger/effect evaluation scope. V2ScopeRule skips
@@ -51,6 +54,7 @@ impl Scope {
             Scope::FocusTree => "Focus Tree",
             Scope::NationalFocus => "National Focus",
             Scope::StrategicRegion => "Strategic Region",
+            Scope::Ace => "Ace",
             Scope::ModifierBag => "Modifier Bag",
             Scope::Unknown => "Unknown",
         }
@@ -62,6 +66,7 @@ impl Scope {
     pub fn effective_scope(&self) -> Scope {
         match self {
             Scope::FocusTree | Scope::NationalFocus => Scope::Country,
+            Scope::Unknown => Scope::Global,
             other => *other,
         }
     }
@@ -412,7 +417,7 @@ impl ScopeStack {
         // evaluation scopes — the engine reads them as a flat bag and
         // routes entries per-key. These should show up in hover/completion
         // scope displays so users understand why validation is skipped.
-        if key.ends_with("_modifiers") {
+        if key == "modifiers" || key.ends_with("_modifiers") {
             return Scope::ModifierBag;
         }
         self.resolve_meta_scope(key)

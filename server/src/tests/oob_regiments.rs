@@ -86,6 +86,7 @@ fn run_oob_visitor(input: &str, unit_types: &[&str]) -> Vec<Diagnostic> {
         strategic_regions: &strategic_regions,
         terrain_categories: &terrain_categories,
         abilities: &abilities,
+        ace_modifiers: &DashMap::new(),
         game_path: None,
         styling_enabled: false,
         workspace_roots: &[],

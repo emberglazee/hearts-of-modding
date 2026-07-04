@@ -5,6 +5,7 @@ use crate::parser::ast;
 use crate::parser::defines_parser;
 use crate::parser::loc_parser;
 use crate::scanner::ability_scanner;
+use crate::scanner::ace_scanner;
 use crate::scanner::achievement_scanner;
 use crate::scanner::adjacency_scanner;
 use crate::scanner::ai_area_scanner;
@@ -112,6 +113,7 @@ pub(crate) struct ScannerData {
     pub state_categories: DashMap<InternedStr, LayeredValue<state_category_scanner::StateCategory>>,
     pub achievements: DashMap<InternedStr, LayeredValue<achievement_scanner::Achievement>>,
     pub abilities: DashMap<InternedStr, LayeredValue<ability_scanner::Ability>>,
+    pub ace_modifiers: DashMap<InternedStr, LayeredValue<ace_scanner::AceModifier>>,
     pub ai_strategy_plans:
         DashMap<InternedStr, LayeredValue<ai_strategy_plan_scanner::AiStrategyPlan>>,
     pub ai_areas: DashMap<InternedStr, LayeredValue<ai_area_scanner::AiArea>>,
@@ -162,6 +164,7 @@ pub(crate) struct ScannerData {
     pub state_categories_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub achievements_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub abilities_file_index: DashMap<InternedStr, Vec<InternedStr>>,
+    pub ace_modifiers_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub ai_strategy_plans_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub ai_areas_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub portraits_file_index: DashMap<InternedStr, Vec<InternedStr>>,
@@ -228,6 +231,7 @@ impl ScannerData {
             state_categories: DashMap::new(),
             achievements: DashMap::new(),
             abilities: DashMap::new(),
+            ace_modifiers: DashMap::new(),
             ai_strategy_plans: DashMap::new(),
             ai_areas: DashMap::new(),
             continents: DashMap::new(),
@@ -270,6 +274,7 @@ impl ScannerData {
             state_categories_file_index: DashMap::new(),
             achievements_file_index: DashMap::new(),
             abilities_file_index: DashMap::new(),
+            ace_modifiers_file_index: DashMap::new(),
             ai_strategy_plans_file_index: DashMap::new(),
             ai_areas_file_index: DashMap::new(),
             portraits_file_index: DashMap::new(),

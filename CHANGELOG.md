@@ -14,6 +14,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Introduced `Modifier Bag` scope for the scope stack** to avoid scope classification issues in modifier blocks like `country_modifier` or `unit_modifier`. Will be revisited at a later date.
 
+- **Ace scanner:** Scans `common/aces/*.txt` for ace categories.
+
 ### 🔧 Changed
 
 - ⭐ **Scope V2 refactor:** Rewrote the scope system from the ground up.

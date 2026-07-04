@@ -198,7 +198,12 @@ fn walk_entries(
                 {
                     // Chain target from current scope (e.g. State -> owner -> Country)
                     s = chain_target.scope;
-                } else if key_text.ends_with("_modifiers") {
+                } else if key_text == "effect" && ctx.uri.contains("/common/aces/") {
+                    // Inside ace modifier definitions, the `effect = {}` block
+                    // contains Country-scope modifiers. Push Country scope so
+                    // V2ScopeRule validates them against Country-scope data.
+                    s = Scope::Country;
+                } else if key_text == "modifiers" || key_text.ends_with("_modifiers") {
                     // Modifier application-target blocks (unit_modifiers, etc.) are
                     // not evaluation scopes — the engine reads them as a flat bag
                     // and routes modifiers per-key. Push ModifierBag transparent so

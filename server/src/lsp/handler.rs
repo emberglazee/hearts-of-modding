@@ -452,6 +452,7 @@ impl LanguageServer for Backend {
             self.scan_music(&overlay),
             self.scan_sounds(&overlay),
             self.scan_abilities(&overlay),
+            self.scan_aces(&overlay),
             self.scan_ai_strategy_plans(&overlay),
             self.scan_ai_areas(&overlay),
             self.scan_continents(&overlay),

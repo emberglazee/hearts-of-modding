@@ -39,6 +39,7 @@ mod tests {
             strategic_regions: Box::leak(Box::new(DashMap::<u32, StrategicRegion>::new())),
             terrain_categories: leak_map(),
             abilities: leak_map(),
+            ace_modifiers: leak_map(),
             game_path: None,
             styling_enabled: false,
             workspace_roots: &[] as &[std::path::PathBuf],

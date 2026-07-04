@@ -20,6 +20,14 @@ macro_rules! for_each_standard_scanner {
             &["txt"]
         );
         $mac!(
+            ace_scanner,
+            AceModifier,
+            AceModifier,
+            ace_modifiers,
+            "common/aces",
+            &["txt"]
+        );
+        $mac!(
             achievement_scanner,
             Achievement,
             Achievement,

@@ -22,6 +22,7 @@ pub enum EntityKind {
     Event,
     Focus,
     Ability,
+    AceModifier,
     Achievement,
     AiArea,
     Variable,
@@ -78,6 +79,7 @@ impl EntityKind {
             EntityKind::Event => SymbolKind::EVENT,
             EntityKind::Focus => SymbolKind::EVENT,
             EntityKind::Ability => SymbolKind::METHOD,
+            EntityKind::AceModifier => SymbolKind::CLASS,
             EntityKind::Achievement => SymbolKind::EVENT,
             EntityKind::Variable => SymbolKind::VARIABLE,
             EntityKind::EventTarget => SymbolKind::VARIABLE,
@@ -743,6 +745,7 @@ impl<'a> EntityLookup<'a> {
         push_symbols!(SoundCategory, sound_categories, "Sound Category");
         push_symbols!(Character, characters, "Character");
         push_symbols!(Ability, abilities, "Ability");
+        push_symbols!(AceModifier, ace_modifiers, "Ace Modifier");
         push_symbols!(Portrait, portraits, "Portrait");
         push_symbols!(ColorCode, color_codes, "Color Code");
         push_symbols!(Decision, decisions, "Decision");

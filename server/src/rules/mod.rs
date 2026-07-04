@@ -9,6 +9,7 @@ use regex::Regex;
 use tower_lsp_server::ls_types::Diagnostic;
 
 pub(crate) mod abilities;
+pub(crate) mod aces;
 pub(crate) mod achievements;
 pub(crate) mod ai_areas;
 pub(crate) mod buildings;
@@ -82,6 +83,8 @@ pub(crate) struct ValidationContext<'a> {
         &'a DashMap<InternedStr, LayeredValue<crate::scanner::terrain_scanner::TerrainCategory>>,
     pub(crate) abilities:
         &'a DashMap<InternedStr, LayeredValue<crate::scanner::ability_scanner::Ability>>,
+    pub(crate) ace_modifiers:
+        &'a DashMap<InternedStr, LayeredValue<crate::scanner::ace_scanner::AceModifier>>,
     pub(crate) game_path: Option<String>,
     pub(crate) styling_enabled: bool,
     pub(crate) workspace_roots: &'a [std::path::PathBuf],

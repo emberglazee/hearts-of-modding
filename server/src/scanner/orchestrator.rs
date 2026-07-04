@@ -364,6 +364,18 @@ impl Backend {
         );
     }
 
+    pub(crate) async fn scan_aces(&self, overlay: &crate::scanner::file_overlay::FileOverlay) {
+        scan_dashmap_overlay!(
+            self,
+            overlay,
+            "common/aces",
+            crate::scanner::ace_scanner::scan_ace_files,
+            ace_modifiers,
+            &["txt"],
+            "Total: Loaded {} ace modifiers"
+        );
+    }
+
     pub(crate) async fn scan_ai_strategy_plans(
         &self,
         overlay: &crate::scanner::file_overlay::FileOverlay,

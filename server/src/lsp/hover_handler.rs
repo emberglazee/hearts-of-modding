@@ -555,7 +555,12 @@ impl Backend {
                     let (s, e) = parser::parse_script(&content);
                     (Arc::new(s), e)
                 });
-                let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
+                let initial_scope = if uri.contains("/common/aces/") {
+                    scope::Scope::Ace
+                } else {
+                    scope::Scope::Global
+                };
+                let mut scope_stack = scope::ScopeStack::new(initial_scope);
                 let achievements = &self.scanner_data.achievements;
                 if let Some((identifier, final_scopes, assigned_value, context_key)) =
                     find_identifier_at(&script, position, &mut scope_stack, achievements)
