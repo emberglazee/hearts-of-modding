@@ -27,6 +27,10 @@ struct EventDef {
     is_hidden: bool,
     has_mtth: bool,
     has_is_triggered_only: bool,
+    /// Whether this block is an event call (nested inside another event),
+    /// not a top-level definition. Calls skip namespace ordering and
+    /// structural validation.
+    is_call: bool,
     /// Whether this block contains at least one `option = { ... }`.
     /// Event definitions always have options; `country_event = { ... }`
     /// used as an effect never does. Only validate definition usage.
@@ -121,10 +125,10 @@ impl EventVisitor {
         ctx: &ValidationContext,
         diags: &mut Vec<Diagnostic>,
     ) {
-        // Only validate blocks that are actual event definitions (contain at least one option).
-        // `country_event = { ... }` used as an effect inside options doesn't have options
-        // and would produce false-positive "missing title" diagnostics.
-        if !state.has_option {
+        // Only validate blocks that are actual event definitions.
+        // Calls (nested event-type blocks) have is_call=true and are
+        // never structural event definitions.
+        if state.is_call {
             return;
         }
 
@@ -571,25 +575,23 @@ impl AstVisitor for EventVisitor {
                     ..Default::default()
                 });
             }
-            // Return — event calls inside options must NOT trigger the
-            // definition-level namespace ordering check below. Ordering
-            // only matters for event DEFINITION namespace availability;
-            // event calls fire at runtime when ALL files are loaded.
-            return;
+            // Fall through — still push to event_stack to maintain
+            // push/pop symmetry with exit_assignment. The EventDef is
+            // marked as is_call=true so namespace ordering and structural
+            // validation are skipped.
         }
 
         // ── Detect event definition entry ──────────────────────────
-        // Only run for TOP-LEVEL event definitions (event_depth == 0).
-        // Nested `country_event = { id = ... }` blocks (in options, immediate,
-        // trigger, etc.) are event CALLS, not definitions — they fire at
-        // runtime when all files are already loaded, so ordering is irrelevant
-        // and validation (title/desc) shouldn't apply.
-        if self.event_depth == 0
-            && Self::is_event_type(key)
-            && matches!(&ass.value.value, ast::Value::Block(_))
-        {
-            // Check namespace ID BEFORE pushing to stack (ordering check uses seen_namespaces)
-            self.check_event_assignment(ass, ctx, diags);
+        // Push ALL event-type blocks (both defs and calls) to event_stack
+        // to keep push/pop symmetry with exit_assignment. Calls are marked
+        // with is_call=true so namespace ordering and validation are skipped.
+        if Self::is_event_type(key) && matches!(&ass.value.value, ast::Value::Block(_)) {
+            // Only check namespace ordering for TOP-LEVEL event definitions.
+            // Nested blocks are CALLS — they fire at runtime when all files
+            // are already loaded.
+            if self.event_depth == 0 {
+                self.check_event_assignment(ass, ctx, diags);
+            }
 
             self.event_stack.push(EventDef {
                 key_range: ass.key_range.clone(),
@@ -599,6 +601,7 @@ impl AstVisitor for EventVisitor {
                 is_hidden: false,
                 has_mtth: false,
                 has_is_triggered_only: false,
+                is_call: self.event_depth > 0,
                 has_option: false,
                 option_count: 0,
                 options_missing_ai_chance: 0,

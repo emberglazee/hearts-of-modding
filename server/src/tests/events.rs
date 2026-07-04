@@ -1013,3 +1013,65 @@ country_event = {
         ns_diags.len()
     );
 }
+
+#[test]
+/// Reproduces the exact AAT_Finland.txt pattern: news_event call inside
+/// hidden_effect inside an option, where the namespace is declared in a
+/// file that sorts after the current file in ASCII order.
+fn test_news_event_call_across_ascii_order_no_hom3008() {
+    let events: DashMap<InternedStr, LayeredValue<Event>> = DashMap::new();
+    events.insert(
+        Arc::from("aat_news.1"),
+        LayeredValue::new(Event {
+            id: "aat_news.1".to_string(),
+            event_type: "news_event".to_string(),
+            path: Arc::from("events/AAT_NewsEvents.txt"),
+            range: ast::Range {
+                start_line: 0,
+                start_col: 0,
+                end_line: 0,
+                end_col: 0,
+            },
+            triggered_events: vec![],
+        }),
+    );
+
+    // Match the AAT_Finland.txt structure:
+    // country_event = { id = AAT_finland_continuation_war.11
+    //     option = {
+    //         hidden_effect = {
+    //             news_event = { id = aat_news.121 hours = 24 }
+    //         }
+    //     }
+    // }
+    let input = r#"
+add_namespace = aat_finland
+country_event = {
+    id = aat_finland.1
+    is_triggered_only = yes
+    option = {
+        name = aat_finland.1.a
+        hidden_effect = {
+            news_event = { id = aat_news.1 }
+        }
+    }
+}
+"#;
+    // aat_news namespace is declared in AAT_NewsEvents.txt which sorts AFTER
+    // AAT_Finland.txt — but this is a CALL, not a definition.
+    let diags = run_event_visitor_with_events(
+        input,
+        "file:///events/AAT_Finland.txt",
+        &[
+            ("aat_finland", "/events/AAT_Finland.txt"),
+            ("aat_news", "/events/AAT_NewsEvents.txt"),
+        ],
+        &events,
+    );
+    let ns_diags = namespace_diags(&diags);
+    assert!(
+        ns_diags.is_empty(),
+        "news_event call across ASCII order should NOT produce HOM3008: got {}",
+        ns_diags.len()
+    );
+}
