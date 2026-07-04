@@ -437,4 +437,133 @@ mod tests {
             "Empty ability block should produce no diagnostics"
         );
     }
+
+    // ── Regression: HOM004 scope check suppressed inside unit_modifiers ────
+
+    /// An ability with unit_modifiers containing Country-scoped modifiers.
+    /// The engine accepts any modifier inside unit_modifiers and routes them
+    /// per-key — HOM004 must not fire here.
+    const ABILITY_WITH_SCOPE_SENSITIVE_MODIFIERS: &str = r#"ability = {
+    quinine = {
+        type = army_leader
+        name = "ABILITY_QUININE"
+        desc = "ABILITY_QUININE_DESC"
+
+        allowed = {
+            is_border_war = no
+            OWNER = { has_country_flag = has_quinine }
+        }
+
+        unit_modifiers = {
+            no_supply_grace = 240
+            attrition = -0.12
+            sickness_chance = -1
+            heat_attrition_factor = -0.35
+        }
+
+        one_time_effect = { supply_units = 240 }
+        cost = 0.15
+        duration = 240
+        cooldown = 504
+    }
+}"#;
+
+    /// Run the full validation suite (AbilityRule + V2ScopeRule) over ability
+    /// input and return only HOM004 diagnostics.
+    fn run_v2scope_test(input: &str, uri: &str) -> Vec<Diagnostic> {
+        let (script, _) = parser::parse_script(input);
+
+        let loc = DashMap::new();
+        let st = DashMap::new();
+        let se = DashMap::new();
+        let ideologies = DashMap::new();
+        let sub_ideologies = DashMap::new();
+        let traits = DashMap::new();
+        let sprites = DashMap::new();
+        let ideas = DashMap::new();
+        let provinces = DashMap::new();
+        let modifier_mappings = DashMap::new();
+        let sound_effects = DashMap::new();
+        let country_tags = DashMap::new();
+        let buildings = DashMap::new();
+        let resources = DashMap::new();
+        let state_categories = DashMap::new();
+        let continents = DashMap::new();
+        let strategic_regions = DashMap::new();
+        let terrain_categories = DashMap::new();
+        let abilities = DashMap::new();
+
+        let ctx = ValidationContext {
+            uri,
+            source: &script.source,
+            loc: &loc,
+            scripted_triggers: &st,
+            scripted_effects: &se,
+            ideologies: &ideologies,
+            sub_ideologies: &sub_ideologies,
+            traits: &traits,
+            sprites: &sprites,
+            ideas: &ideas,
+            characters: &DashMap::new(),
+            provinces: &provinces,
+            modifier_mappings: &modifier_mappings,
+            ignored_loc_regex: &[],
+            comments: &[],
+            sound_effects: &sound_effects,
+            country_tags: &country_tags,
+            buildings: &buildings,
+            resources: &resources,
+            state_categories: &state_categories,
+            continents: &continents,
+            strategic_regions: &strategic_regions,
+            terrain_categories: &terrain_categories,
+            abilities: &abilities,
+            game_path: None,
+            styling_enabled: false,
+            workspace_roots: &[],
+            unit_types: &DashMap::new(),
+            event_targets: &DashMap::new(),
+            event_namespaces: &DashMap::new(),
+            events: &DashMap::new(),
+            decisions: &DashMap::new(),
+            decision_categories: &DashMap::new(),
+        };
+
+        let mut visitors: Vec<Box<dyn AstVisitor>> = vec![AbilityRule::visitor()];
+        let rules: Vec<Box<dyn ValidationRule>> = vec![
+            Box::new(AbilityRule),
+            Box::new(crate::rules::v2_scope::V2ScopeRule),
+        ];
+        let mut diags = Vec::new();
+
+        walk_script(
+            &script.entries,
+            &mut visitors,
+            &rules,
+            &ctx,
+            &mut diags,
+            Scope::Character,
+            false,
+        );
+
+        diags
+    }
+
+    #[test]
+    fn unit_modifiers_suppresses_hom004_for_country_scoped_modifiers() {
+        let diags = run_v2scope_test(ABILITY_WITH_SCOPE_SENSITIVE_MODIFIERS, TEST_URI);
+
+        // Filter to HOM004 diagnostics only
+        let hom004: Vec<&Diagnostic> = diags
+            .iter()
+            .filter(|d| matches!(&d.code, Some(NumberOrString::String(c)) if c == "HOM004"))
+            .collect();
+
+        assert!(
+            hom004.is_empty(),
+            "Expected zero HOM004 diagnostics inside unit_modifiers with mixed-scope modifiers, got {}:\n{:#?}",
+            hom004.len(),
+            hom004,
+        );
+    }
 }

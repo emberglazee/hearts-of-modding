@@ -198,6 +198,14 @@ fn walk_entries(
                 {
                     // Chain target from current scope (e.g. State -> owner -> Country)
                     s = chain_target.scope;
+                } else if key_text.ends_with("_modifiers") {
+                    // Modifier application-target blocks (unit_modifiers, etc.) are
+                    // not evaluation scopes — the engine reads them as a flat bag
+                    // and routes modifiers per-key. Push ModifierBag transparent so
+                    // V2ScopeRule skips scope checks inside, while THIS/ROOT/PREV
+                    // resolution still walks through the transparent node correctly.
+                    s = Scope::ModifierBag;
+                    is_transparent = true;
                 } else {
                     // Legacy: try dynamic meta-scope resolution for THIS/ROOT/PREV/FROM.
                     // Then fall back to static Scope::from_str.

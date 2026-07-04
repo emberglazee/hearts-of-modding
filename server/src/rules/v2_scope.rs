@@ -74,6 +74,13 @@ impl ValidationRule for V2ScopeRule {
                 return;
             }
 
+            // ModifierBag scope (unit_modifiers etc.) skips strict scope checks.
+            // The engine reads these blocks as a flat modifier bag and routes
+            // entries per-key — asking "what scope is it" is a category error.
+            if current_scope == Scope::ModifierBag {
+                return;
+            }
+
             diags.push(Diagnostic {
                 range: ast_range_to_lsp(&ass.key_range),
                 severity: Some(DiagnosticSeverity::WARNING),

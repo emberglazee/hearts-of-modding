@@ -4,9 +4,19 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ## [v0.24.0] - 2026-07-04
 
+### ⭐ Highlights
+
+- ⭐ **Scope V2 refactor:** Rewrote the scope system from the ground up.
+
+- **Continued fixes for multi-byte characters in UTF-8 files, and parser improvements.**
+
+### ✨ Added
+
+- **Introduced `Modifier Bag` scope for the scope stack** to avoid scope classification issues in modifier blocks like `country_modifier` or `unit_modifier`. Will be revisited at a later date.
+
 ### 🔧 Changed
 
-- **Scope V2 refactor:** Rewrote the scope system from the ground up.
+- ⭐ **Scope V2 refactor:** Rewrote the scope system from the ground up.
 
 - **Improved scope stack for focuses.** Introduced custom `Focus Tree` and `National Focus` scopes.
 

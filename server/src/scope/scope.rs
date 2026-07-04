@@ -26,6 +26,11 @@ pub enum Scope {
     NationalFocus,
     /// Strategic region (air zone / naval region)
     StrategicRegion,
+    /// A modifier-application target block (e.g. `unit_modifiers = { }`).
+    /// The engine reads these as a flat bag of modifiers and routes them
+    /// per-key — not a trigger/effect evaluation scope. V2ScopeRule skips
+    /// scope checks inside these blocks.
+    ModifierBag,
     Unknown,
 }
 
@@ -46,6 +51,7 @@ impl Scope {
             Scope::FocusTree => "Focus Tree",
             Scope::NationalFocus => "National Focus",
             Scope::StrategicRegion => "Strategic Region",
+            Scope::ModifierBag => "Modifier Bag",
             Scope::Unknown => "Unknown",
         }
     }
@@ -402,6 +408,13 @@ impl ScopeStack {
         key: &str,
         achievements: &DashMap<InternedStr, LayeredValue<Achievement>>,
     ) -> Scope {
+        // Modifier application-target blocks (_modifiers suffix) are not
+        // evaluation scopes — the engine reads them as a flat bag and
+        // routes entries per-key. These should show up in hover/completion
+        // scope displays so users understand why validation is skipped.
+        if key.ends_with("_modifiers") {
+            return Scope::ModifierBag;
+        }
         self.resolve_meta_scope(key)
             .unwrap_or_else(|| resolve_key_scope(key, achievements))
     }
