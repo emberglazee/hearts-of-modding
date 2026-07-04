@@ -652,13 +652,19 @@ impl AstVisitor for EventVisitor {
                         }
                     }
                     "hidden" => {
-                        state.is_hidden = ass.value.value.as_str(ctx.source) == Some("yes");
+                        state.is_hidden = match &ass.value.value {
+                            ast::Value::Boolean(b) => *b,
+                            _ => ass.value.value.as_str(ctx.source) == Some("yes"),
+                        };
                     }
                     _ => {}
                 }
                 // Track MTTH and is_triggered_only (non-block form)
                 if key == "is_triggered_only" {
-                    state.has_is_triggered_only = ass.value.value.as_str(ctx.source) == Some("yes");
+                    state.has_is_triggered_only = match &ass.value.value {
+                        ast::Value::Boolean(b) => *b,
+                        _ => ass.value.value.as_str(ctx.source) == Some("yes"),
+                    };
                 } else if key == "mean_time_to_happen" {
                     if matches!(&ass.value.value, ast::Value::Block(_)) {
                         state.has_mtth = true;
