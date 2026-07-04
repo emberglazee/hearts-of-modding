@@ -20,6 +20,10 @@ pub enum Scope {
     /// `country` as a category keyword, except ideas defined within it
     /// don't show up in the spirit container and don't need a `picture`.
     HiddenIdeaCategory,
+    /// A focus tree or continuous focus palette container
+    FocusTree,
+    /// A national focus, shared focus, or joint focus definition
+    NationalFocus,
     /// Strategic region (air zone / naval region)
     StrategicRegion,
     Unknown,
@@ -39,8 +43,20 @@ impl Scope {
             Scope::Ribbon => "Ribbon",
             Scope::Idea => "Idea",
             Scope::HiddenIdeaCategory => "Hidden Idea Category",
+            Scope::FocusTree => "Focus Tree",
+            Scope::NationalFocus => "National Focus",
             Scope::StrategicRegion => "Strategic Region",
             Scope::Unknown => "Unknown",
+        }
+    }
+
+    /// Return the scope variant used for behavioral filtering (completions,
+    /// validation). Focus-related scopes are semantically country-scoped,
+    /// so they map to `Country` for filtering purposes.
+    pub fn effective_scope(&self) -> Scope {
+        match self {
+            Scope::FocusTree | Scope::NationalFocus => Scope::Country,
+            other => *other,
         }
     }
 
@@ -53,6 +69,11 @@ impl Scope {
             "strategic_region" => Scope::StrategicRegion,
             "ideas" => Scope::Idea,
             "hidden_ideas" => Scope::HiddenIdeaCategory,
+            // Focus-specific scopes — structural containers for focus definitions.
+            // Mapped before Country so focus keywords aren't swallowed by the
+            // Country wildcard match.
+            "focus_tree" | "continuous_focus_palette" => Scope::FocusTree,
+            "focus" | "shared_focus" | "joint_focus" => Scope::NationalFocus,
             "country"
             | "ger"
             | "eng"
@@ -61,11 +82,6 @@ impl Scope {
             | "jap"
             | "sov"
             | "usa"
-            | "focus_tree"
-            | "focus"
-            | "shared_focus"
-            | "joint_focus"
-            | "continuous_focus_palette"
             | "completion_reward"
             | "completion_reward_joint_originator"
             | "completion_reward_joint_member"
