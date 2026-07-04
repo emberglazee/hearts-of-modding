@@ -6171,7 +6171,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -14722,7 +14722,7 @@
       "description": "Demotes the current unit leader to Commander (if Field Marshal).",
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
