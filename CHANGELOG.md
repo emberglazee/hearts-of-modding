@@ -8,6 +8,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Scope V2 refactor:** Rewrote the scope system from the ground up.
 
+- **Improved scope stack for focuses.** Introduced custom `Focus Tree` and `National Focus` scopes.
+
 - **Improved UTF-16 char handling in UTF-8 script files.**
 
 - **Continued parser improvements:** Skip comments between assignment and a starting block at a new line (`SOV_CAV_02 = #COSSACK CAVALRY\n{`), recover from stray closing braces and erroneous section signs in script files.
