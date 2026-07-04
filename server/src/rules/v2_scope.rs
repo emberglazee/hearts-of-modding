@@ -30,7 +30,7 @@ impl ValidationRule for V2ScopeRule {
         diags: &mut Vec<Diagnostic>,
     ) {
         let key = ass.key_text(ctx.source);
-        let current_scope = scope.current();
+        let current_scope = scope.current().effective_scope();
 
         // Skip empty keys and structural keywords
         if key.is_empty() || key.starts_with('#') {

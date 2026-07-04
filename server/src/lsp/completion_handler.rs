@@ -381,7 +381,11 @@ impl Backend {
 
         let mut items = Vec::new();
 
-        let current_scope = *current_scopes.last().unwrap_or(&scope::Scope::Global);
+        let current_scope = current_scopes
+            .last()
+            .copied()
+            .unwrap_or(scope::Scope::Global)
+            .effective_scope();
 
         for trigger in crate::TRIGGERS.values() {
             if !trigger.scopes.contains(&scope::Scope::Unknown)
