@@ -571,13 +571,23 @@ impl AstVisitor for EventVisitor {
                     ..Default::default()
                 });
             }
-            // Don't return — the existing event-definition handler below will push
-            // to event_stack (harmless for calls — validate_event bails early when
-            // has_option is false).
+            // Return — event calls inside options must NOT trigger the
+            // definition-level namespace ordering check below. Ordering
+            // only matters for event DEFINITION namespace availability;
+            // event calls fire at runtime when ALL files are loaded.
+            return;
         }
 
         // ── Detect event definition entry ──────────────────────────
-        if Self::is_event_type(key) && matches!(&ass.value.value, ast::Value::Block(_)) {
+        // Only run for TOP-LEVEL event definitions (event_depth == 0).
+        // Nested `country_event = { id = ... }` blocks (in options, immediate,
+        // trigger, etc.) are event CALLS, not definitions — they fire at
+        // runtime when all files are already loaded, so ordering is irrelevant
+        // and validation (title/desc) shouldn't apply.
+        if self.event_depth == 0
+            && Self::is_event_type(key)
+            && matches!(&ass.value.value, ast::Value::Block(_))
+        {
             // Check namespace ID BEFORE pushing to stack (ordering check uses seen_namespaces)
             self.check_event_assignment(ass, ctx, diags);
 

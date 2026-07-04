@@ -960,3 +960,56 @@ country_event = { id = test_ns.1 }
         "Top-level event definition should not produce HOM3022"
     );
 }
+
+#[test]
+/// Regression test: event CALLs inside options should NOT trigger namespace
+/// ordering checks (HOM3008). Reproduces the vanilla AAT_Finland.txt pattern
+/// where a file sorted first in ASCII calls an event whose namespace is
+/// declared in a file sorted later.
+fn test_event_call_across_ascii_order_no_hom3008() {
+    let events: DashMap<InternedStr, LayeredValue<Event>> = DashMap::new();
+    events.insert(
+        Arc::from("other_ns.1"),
+        LayeredValue::new(Event {
+            id: "other_ns.1".to_string(),
+            event_type: "country_event".to_string(),
+            path: Arc::from("events/ZZZ_test.txt"),
+            range: ast::Range {
+                start_line: 0,
+                start_col: 0,
+                end_line: 0,
+                end_col: 0,
+            },
+            triggered_events: vec![],
+        }),
+    );
+
+    let input = r#"
+add_namespace = call_ns
+country_event = {
+    id = call_ns.1
+    is_triggered_only = yes
+    option = {
+        name = call_ns.1.a
+        country_event = { id = other_ns.1 }
+    }
+}
+"#;
+    let diags = run_event_visitor_with_events(
+        input,
+        "file:///events/AAA_test.txt",
+        // other_ns declared in ZZZ_test.txt — sorts AFTER AAA_test.txt.
+        // If namespace ordering fired on the call, this would produce HOM3008.
+        &[
+            ("call_ns", "/events/AAA_test.txt"),
+            ("other_ns", "/events/ZZZ_test.txt"),
+        ],
+        &events,
+    );
+    let ns_diags = namespace_diags(&diags);
+    assert!(
+        ns_diags.is_empty(),
+        "Event call across ASCII order should NOT produce HOM3008: got {}",
+        ns_diags.len()
+    );
+}

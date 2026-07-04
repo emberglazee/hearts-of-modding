@@ -2,7 +2,7 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
-## [v0.24.0] - 2026-07-01
+## [v0.24.0] - 2026-07-04
 
 ### 🔧 Changed
 
@@ -17,6 +17,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 - **Allowed curly quotes and apostrophe as identifier chars.** Commonly used in character names (`“Lha-bzang”`, `“Savas’jan”`) but causing parsing errors due to these chars not being ASCII alphanumeric.
 
 - **Fixed wrong offset calculations in semantic highlighting for multi-byte chars in script files.**
+
+- **Event namespace ordering checks are now prevented for nested event calls.** Those caused false `HOM3008` (`MISSING_EVENT_NAMESPACE`) diagnostics.
 
 ## [v0.23.1] - 2026-06-30
 
