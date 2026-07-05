@@ -19337,7 +19337,7 @@
       "description": "Shows the name of the specified character as a tooltip.",
       "scopes": {
         "usage": [
-          "Character"
+          "Country"
         ],
         "usage_restriction": ""
       },

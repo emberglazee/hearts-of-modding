@@ -101,9 +101,11 @@ impl ValidationRule for IdeaRule {
                 }
                 // Check if any character has a role with this idea_token
                 if ctx.characters.iter().any(|entry| {
-                    entry.value().roles.iter().any(|r| {
-                        r.idea_token.as_deref() == Some(val)
-                    })
+                    entry
+                        .value()
+                        .roles
+                        .iter()
+                        .any(|r| r.idea_token.as_deref() == Some(val))
                 }) {
                     return;
                 }
