@@ -2,7 +2,9 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
-## [v0.24.0] - 2026-07-04
+## [v0.24.0] - 2026-07-06
+
+***The biggest update since v0.14.0.***
 
 ### ⭐ Highlights
 
@@ -35,6 +37,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 - **Event namespace ordering checks are now prevented for nested event calls.** Those caused false `HOM3008` (`MISSING_EVENT_NAMESPACE`) diagnostics.
 
 - **Fixed parsing of `hidden = yes` in events.** Led to wrongful `HOM3016` (`EVENT_MISSING_TITLE`) diagnostics. Neither titles nor pictures are expected for `hidden` events.
+
+> ...and many more undocumented changes/fixes, this update has turned my whole brain into a slushie
 
 ## [v0.23.1] - 2026-06-30
 
