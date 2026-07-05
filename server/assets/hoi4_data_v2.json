@@ -625,8 +625,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country",
-          "State"
+          "Global"
         ],
         "usage_restriction": ""
       },
@@ -4622,7 +4621,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "State"
+          "Global"
         ],
         "usage_restriction": ""
       },
@@ -5191,8 +5190,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Character",
-          "Global"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -6171,7 +6169,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Global"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -6229,8 +6227,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Global",
-          "Country"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -6699,7 +6696,6 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Unit",
           "Character"
         ],
         "usage_restriction": ""
@@ -12955,7 +12951,8 @@
       "description": "Adds the specified combat buff to the current unit leader.",
       "scopes": {
         "usage": [
-          "Country"
+          "Character",
+          "Unit"
         ],
         "usage_restriction": ""
       },
@@ -13154,8 +13151,7 @@
       "description": "Adds permanent subunit and subunit category bonuses for country.",
       "scopes": {
         "usage": [
-          "Unit",
-          "Country"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -20435,8 +20431,7 @@
       "description": "Shows the name of the specified character as a tooltip.",
       "scopes": {
         "usage": [
-          "Country",
-          "Global"
+          "Character"
         ],
         "usage_restriction": ""
       },
