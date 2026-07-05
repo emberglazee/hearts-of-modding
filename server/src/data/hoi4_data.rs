@@ -423,19 +423,33 @@ mod tests {
 
     #[test]
     fn test_lookup_pushes_scope() {
-        // any_country was removed from V2 data — it's a scope-pusher, not a trigger
+        // any_country is a scope-pusher: push Country scope
         let result = lookup_pushes_scope("any_country");
-        assert!(
-            result.is_none(),
-            "any_country should have been removed from V2 data"
+        assert_eq!(
+            result,
+            Some(Scope::Country),
+            "any_country should push Country scope"
         );
 
-        // controller as an effect has no pushes_scope (it's a value_effect, not a scope-pusher)
-        let result = lookup_pushes_scope("controller");
-        assert!(
-            result.is_none(),
-            "controller effect should have no pushes_scope"
+        // every_state pushes State scope
+        let result = lookup_pushes_scope("every_state");
+        assert_eq!(
+            result,
+            Some(Scope::State),
+            "every_state should push State scope"
         );
+
+        // controller pushes Country scope (chain target)
+        let result = lookup_pushes_scope("controller");
+        assert_eq!(
+            result,
+            Some(Scope::Country),
+            "controller should push Country scope"
+        );
+
+        // Unknown entity has no pushes_scope
+        let result = lookup_pushes_scope("nonexistent_trigger_xyz");
+        assert!(result.is_none());
     }
 
     #[test]
