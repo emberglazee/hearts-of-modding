@@ -87,7 +87,7 @@ pub(crate) fn utf16_to_byte_offset(s: &str, utf16_offset: usize) -> usize {
 async fn main() {
     // CLI validation mode: cargo run --release -- <file_path>
     let args: Vec<String> = std::env::args().collect();
-    if args.len() > 1 && args[1] != "--lsp" {
+    if args.len() > 1 && !args[1].starts_with("--") {
         cli_validate(&args[1]).await;
         return;
     }
@@ -145,33 +145,75 @@ async fn cli_validate(path: &str) {
     use crate::data::layered_value::LayeredValue;
     use dashmap::DashMap;
 
-    let loc: DashMap<InternedStr, LayeredValue<crate::parser::loc_parser::LocEntry>> = DashMap::new();
-    let st: DashMap<InternedStr, LayeredValue<crate::scanner::scripted_scanner::ScriptedEntity>> = DashMap::new();
-    let se: DashMap<InternedStr, LayeredValue<crate::scanner::scripted_scanner::ScriptedEntity>> = DashMap::new();
-    let ideologies: DashMap<InternedStr, LayeredValue<crate::scanner::ideology_scanner::Ideology>> = DashMap::new();
-    let sub_ideologies: DashMap<InternedStr, LayeredValue<(InternedStr, crate::parser::ast::Range, InternedStr)>> = DashMap::new();
-    let traits: DashMap<InternedStr, LayeredValue<crate::scanner::trait_scanner::Trait>> = DashMap::new();
-    let sprites: DashMap<InternedStr, LayeredValue<crate::scanner::sprite_scanner::Sprite>> = DashMap::new();
-    let ideas: DashMap<InternedStr, LayeredValue<crate::scanner::idea_scanner::Idea>> = DashMap::new();
-    let characters: DashMap<InternedStr, LayeredValue<crate::scanner::character_scanner::Character>> = DashMap::new();
+    let loc: DashMap<InternedStr, LayeredValue<crate::parser::loc_parser::LocEntry>> =
+        DashMap::new();
+    let st: DashMap<InternedStr, LayeredValue<crate::scanner::scripted_scanner::ScriptedEntity>> =
+        DashMap::new();
+    let se: DashMap<InternedStr, LayeredValue<crate::scanner::scripted_scanner::ScriptedEntity>> =
+        DashMap::new();
+    let ideologies: DashMap<InternedStr, LayeredValue<crate::scanner::ideology_scanner::Ideology>> =
+        DashMap::new();
+    let sub_ideologies: DashMap<
+        InternedStr,
+        LayeredValue<(InternedStr, crate::parser::ast::Range, InternedStr)>,
+    > = DashMap::new();
+    let traits: DashMap<InternedStr, LayeredValue<crate::scanner::trait_scanner::Trait>> =
+        DashMap::new();
+    let sprites: DashMap<InternedStr, LayeredValue<crate::scanner::sprite_scanner::Sprite>> =
+        DashMap::new();
+    let ideas: DashMap<InternedStr, LayeredValue<crate::scanner::idea_scanner::Idea>> =
+        DashMap::new();
+    let characters: DashMap<
+        InternedStr,
+        LayeredValue<crate::scanner::character_scanner::Character>,
+    > = DashMap::new();
     let provinces: DashMap<u32, crate::scanner::province_scanner::Province> = DashMap::new();
     let modifier_mappings: DashMap<InternedStr, String> = DashMap::new();
-    let sound_effects: DashMap<InternedStr, LayeredValue<crate::scanner::sound_scanner::SoundEffect>> = DashMap::new();
-    let country_tags: DashMap<InternedStr, LayeredValue<crate::scanner::country_scanner::CountryTag>> = DashMap::new();
-    let buildings: DashMap<InternedStr, LayeredValue<crate::scanner::building_scanner::Building>> = DashMap::new();
-    let resources: DashMap<InternedStr, LayeredValue<crate::scanner::resource_scanner::Resource>> = DashMap::new();
-    let state_categories: DashMap<InternedStr, LayeredValue<crate::scanner::state_category_scanner::StateCategory>> = DashMap::new();
-    let continents: DashMap<InternedStr, LayeredValue<crate::scanner::continent_scanner::Continent>> = DashMap::new();
-    let strategic_regions: DashMap<u32, crate::scanner::strategic_region_scanner::StrategicRegion> = DashMap::new();
-    let terrain_categories: DashMap<InternedStr, LayeredValue<crate::scanner::terrain_scanner::TerrainCategory>> = DashMap::new();
-    let abilities: DashMap<InternedStr, LayeredValue<crate::scanner::ability_scanner::Ability>> = DashMap::new();
-    let ace_modifiers: DashMap<InternedStr, LayeredValue<crate::scanner::ace_scanner::AceModifier>> = DashMap::new();
-    let event_targets: DashMap<InternedStr, Vec<crate::scanner::variable_scanner::EventTarget>> = DashMap::new();
-    let event_namespaces: DashMap<InternedStr, LayeredValue<crate::scanner::event_namespace_scanner::EventNamespace>> = DashMap::new();
-    let events: DashMap<InternedStr, LayeredValue<crate::scanner::event_scanner::Event>> = DashMap::new();
-    let decisions: DashMap<InternedStr, LayeredValue<crate::scanner::decision_scanner::Decision>> = DashMap::new();
+    let sound_effects: DashMap<
+        InternedStr,
+        LayeredValue<crate::scanner::sound_scanner::SoundEffect>,
+    > = DashMap::new();
+    let country_tags: DashMap<
+        InternedStr,
+        LayeredValue<crate::scanner::country_scanner::CountryTag>,
+    > = DashMap::new();
+    let buildings: DashMap<InternedStr, LayeredValue<crate::scanner::building_scanner::Building>> =
+        DashMap::new();
+    let resources: DashMap<InternedStr, LayeredValue<crate::scanner::resource_scanner::Resource>> =
+        DashMap::new();
+    let state_categories: DashMap<
+        InternedStr,
+        LayeredValue<crate::scanner::state_category_scanner::StateCategory>,
+    > = DashMap::new();
+    let continents: DashMap<
+        InternedStr,
+        LayeredValue<crate::scanner::continent_scanner::Continent>,
+    > = DashMap::new();
+    let strategic_regions: DashMap<u32, crate::scanner::strategic_region_scanner::StrategicRegion> =
+        DashMap::new();
+    let terrain_categories: DashMap<
+        InternedStr,
+        LayeredValue<crate::scanner::terrain_scanner::TerrainCategory>,
+    > = DashMap::new();
+    let abilities: DashMap<InternedStr, LayeredValue<crate::scanner::ability_scanner::Ability>> =
+        DashMap::new();
+    let ace_modifiers: DashMap<
+        InternedStr,
+        LayeredValue<crate::scanner::ace_scanner::AceModifier>,
+    > = DashMap::new();
+    let event_targets: DashMap<InternedStr, Vec<crate::scanner::variable_scanner::EventTarget>> =
+        DashMap::new();
+    let event_namespaces: DashMap<
+        InternedStr,
+        LayeredValue<crate::scanner::event_namespace_scanner::EventNamespace>,
+    > = DashMap::new();
+    let events: DashMap<InternedStr, LayeredValue<crate::scanner::event_scanner::Event>> =
+        DashMap::new();
+    let decisions: DashMap<InternedStr, LayeredValue<crate::scanner::decision_scanner::Decision>> =
+        DashMap::new();
     let decision_categories: DashMap<InternedStr, LayeredValue<()>> = DashMap::new();
-    let unit_types: DashMap<InternedStr, LayeredValue<crate::scanner::unit_scanner::UnitType>> = DashMap::new();
+    let unit_types: DashMap<InternedStr, LayeredValue<crate::scanner::unit_scanner::UnitType>> =
+        DashMap::new();
 
     let ctx = crate::rules::ValidationContext {
         uri: path,
@@ -211,9 +253,8 @@ async fn cli_validate(path: &str) {
     };
 
     let mut visitors: Vec<Box<dyn crate::rules::visitor::AstVisitor>> = Vec::new();
-    let rules: Vec<Box<dyn crate::rules::ValidationRule>> = vec![
-        Box::new(crate::rules::v2_scope::V2ScopeRule),
-    ];
+    let rules: Vec<Box<dyn crate::rules::ValidationRule>> =
+        vec![Box::new(crate::rules::v2_scope::V2ScopeRule)];
 
     let mut diags = Vec::new();
     crate::rules::visitor::walk_script(
@@ -238,21 +279,19 @@ async fn cli_validate(path: &str) {
                 range.start.line + 1,
                 range.start.character + 1,
                 d.message,
-                d.code.as_ref().map(|c| match c {
-                    tower_lsp_server::ls_types::NumberOrString::String(s) => s.as_str(),
-                    tower_lsp_server::ls_types::NumberOrString::Number(_) => "?",
-                }).unwrap_or("?"),
+                d.code
+                    .as_ref()
+                    .map(|c| match c {
+                        tower_lsp_server::ls_types::NumberOrString::String(s) => s.as_str(),
+                        tower_lsp_server::ls_types::NumberOrString::Number(_) => "?",
+                    })
+                    .unwrap_or("?"),
             );
         }
     }
 
     // Also show parse errors
     for (msg, range) in &parse_errors {
-        println!(
-            "PARSE {}:{}: {}",
-            path,
-            range.start_line + 1,
-            msg,
-        );
+        println!("PARSE {}:{}: {}", path, range.start_line + 1, msg,);
     }
 }
