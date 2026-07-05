@@ -504,7 +504,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -618,7 +618,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "State"
+          "Global"
         ],
         "usage_restriction": ""
       },
@@ -694,7 +694,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -1509,7 +1509,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -2126,8 +2126,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country",
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -4572,7 +4571,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "State"
+          "Global"
         ],
         "usage_restriction": ""
       },
@@ -5130,7 +5129,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -5613,7 +5612,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -6095,7 +6094,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -6114,7 +6113,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -6152,7 +6151,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -6579,7 +6578,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -6619,7 +6618,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -6638,7 +6637,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -6657,7 +6656,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -7536,7 +7535,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -8930,7 +8929,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -9254,7 +9253,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -9273,7 +9272,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -11196,7 +11195,7 @@
       "description": "Adds attack skill to the current unit leader.",
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -11443,7 +11442,7 @@
       "description": "Adds coordination skill to the current navy leader.",
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -11616,7 +11615,7 @@
       "description": "Adds defense skill to the current unit leader.",
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -12038,7 +12037,7 @@
       "description": "Adds logistics skill to the current unit leader.",
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -12057,7 +12056,7 @@
       "description": "Adds maneuver skill to the current navy leader.",
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -12134,7 +12133,7 @@
       "description": "Adds the specified amount of assignable trait slots to the current unit leader.",
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -12514,7 +12513,7 @@
       "description": "Adds planning skill to the current unit leader.",
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -12683,7 +12682,7 @@
       "description": "Adds a random trait from the list to the character.",
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -12702,7 +12701,7 @@
       "description": "Adds a random valid unit trait to a unit leader.",
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -12928,7 +12927,7 @@
       "description": "Adds skill to the current unit leader.",
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -13125,7 +13124,7 @@
       "description": "Adds the specified trait to the current unit leader for the specified duration.",
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -13265,8 +13264,7 @@
       "description": "Adds permanent subunit and subunit category bonuses for country.",
       "scopes": {
         "usage": [
-          "Country",
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -13285,7 +13283,7 @@
       "description": "Adds the specified trait to the current unit leader.",
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -13304,7 +13302,7 @@
       "description": "Adds the specified medal to the latest entry within the unit's history.",
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -13969,7 +13967,7 @@
       "description": "Clears a defined unit leader flag.",
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -15837,7 +15835,7 @@
       "description": "Adds experience to the current unit leader, promoting to the next skill level if applicable.",
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -16606,7 +16604,7 @@
       "description": "Adds an integer value to a flag.",
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -17934,7 +17932,7 @@
       "description": "Removes a leaders exile tag.",
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -18383,7 +18381,7 @@
       "description": "Removes the current unit leader.",
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -18422,7 +18420,7 @@
       "description": "Removes the specified trait from the current unit leader.",
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -18460,7 +18458,7 @@
       "description": "Replaces the specified trait with the new trait.",
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -20650,7 +20648,7 @@
       "description": "Defines a unit leader flag.",
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -20806,8 +20804,7 @@
       "description": "Shows the name of the specified character as a tooltip.",
       "scopes": {
         "usage": [
-          "Country",
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -21275,7 +21272,7 @@
       "description": "Fires the specified event for the owner of the current unit leader.",
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -27429,11 +27426,14 @@
     "AND",
     "NOT",
     "OR",
+    "allowed",
     "chance",
     "count_triggers",
     "custom_override_tooltip",
     "custom_trigger_tooltip",
     "effect_tooltip",
+    "for_each_loop",
+    "for_each_scope_loop",
     "for_loop_effect",
     "hidden_effect",
     "hidden_trigger",
@@ -27443,8 +27443,6 @@
     "random",
     "random_list",
     "trigger",
-    "while_loop_effect",
-    "for_each_scope_loop",
-    "for_each_loop"
+    "while_loop_effect"
   ]
 }
