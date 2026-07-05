@@ -12965,7 +12965,8 @@
       "description": "Adds the specified country leader trait to the character.",
       "scopes": {
         "usage": [
-          "Character"
+          "Character",
+          "Country"
         ],
         "usage_restriction": ""
       },
