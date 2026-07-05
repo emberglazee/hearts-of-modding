@@ -13,6 +13,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
+          "Country",
           "State"
         ],
         "usage_restriction": ""
@@ -51,6 +52,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
+          "Country",
           "State"
         ],
         "usage_restriction": ""
@@ -488,7 +490,8 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -622,7 +625,8 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Global"
+          "Country",
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -954,7 +958,11 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Global"
+          "Global",
+          "Country",
+          "State",
+          "Character",
+          "Unit"
         ],
         "usage_restriction": ""
       },
@@ -1262,8 +1270,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country",
-          "State"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -1282,8 +1289,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country",
-          "State"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -1547,6 +1553,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
+          "Unit",
           "Character"
         ],
         "usage_restriction": ""
@@ -2042,8 +2049,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country",
-          "State"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -2758,8 +2764,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country",
-          "Character"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -3059,7 +3064,12 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Global",
+          "State",
+          "Character",
+          "Unit",
+          "Idea"
         ],
         "usage_restriction": ""
       },
@@ -3078,8 +3088,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country",
-          "Character"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -3438,7 +3447,11 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country"
+          "Global",
+          "Country",
+          "State",
+          "Character",
+          "Unit"
         ],
         "usage_restriction": ""
       },
@@ -3631,11 +3644,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -3737,7 +3746,11 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea",
+          "Unit"
         ],
         "usage_restriction": ""
       },
@@ -3797,7 +3810,8 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Character"
+          "Character",
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -3951,7 +3965,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -3970,7 +3984,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -3989,7 +4003,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Character"
+          "Unit"
         ],
         "usage_restriction": ""
       },
@@ -4046,7 +4060,8 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -4065,7 +4080,8 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -4103,6 +4119,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
+          "Character",
           "Country"
         ],
         "usage_restriction": ""
@@ -4122,6 +4139,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
+          "Character",
           "Country"
         ],
         "usage_restriction": ""
@@ -4141,6 +4159,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
+          "Character",
           "Country"
         ],
         "usage_restriction": ""
@@ -4160,6 +4179,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
+          "Character",
           "Country"
         ],
         "usage_restriction": ""
@@ -4198,6 +4218,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
+          "Character",
           "Country"
         ],
         "usage_restriction": ""
@@ -4351,6 +4372,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
+          "Country",
           "State"
         ],
         "usage_restriction": ""
@@ -4428,7 +4450,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -4600,7 +4622,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Global"
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -4676,7 +4698,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "State"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -4714,7 +4736,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "State"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -4791,7 +4813,6 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country",
           "Character"
         ],
         "usage_restriction": ""
@@ -5089,7 +5110,8 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -5547,7 +5569,8 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -5798,7 +5821,8 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "State"
+          "State",
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -5992,7 +6016,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Character"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -6245,7 +6269,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Character"
+          "Unit"
         ],
         "usage_restriction": ""
       },
@@ -6443,10 +6467,7 @@
       "scopes": {
         "usage": [
           "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -6678,6 +6699,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
+          "Unit",
           "Character"
         ],
         "usage_restriction": ""
@@ -6831,7 +6853,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -6869,7 +6891,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -6907,7 +6929,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -7570,7 +7592,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Character"
+          "Unit"
         ],
         "usage_restriction": ""
       },
@@ -7687,7 +7709,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Character"
+          "Unit"
         ],
         "usage_restriction": ""
       },
@@ -7706,7 +7728,8 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country"
+          "State",
+          "StrategicRegion"
         ],
         "usage_restriction": ""
       },
@@ -7801,7 +7824,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Character"
+          "Global"
         ],
         "usage_restriction": ""
       },
@@ -7991,8 +8014,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country",
-          "State"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -8125,8 +8147,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country",
-          "State"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -8297,7 +8318,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "State"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -8392,8 +8413,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -8532,8 +8552,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country",
-          "State"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -8629,7 +8648,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "State"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -8838,7 +8857,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "State"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -8857,7 +8876,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "State"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -8971,7 +8990,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "State"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -9123,7 +9142,11 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Global"
+          "Global",
+          "Country",
+          "State",
+          "Character",
+          "Unit"
         ],
         "usage_restriction": ""
       },
@@ -9161,7 +9184,8 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Character"
+          "Country",
+          "Unit"
         ],
         "usage_restriction": ""
       },
@@ -9199,7 +9223,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Character"
+          "Unit"
         ],
         "usage_restriction": ""
       },
@@ -9256,8 +9280,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country",
-          "State"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -9295,7 +9318,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "State"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -9314,7 +9337,8 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -9373,8 +9397,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country",
-          "State"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -9565,7 +9588,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Character"
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -9584,11 +9607,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -9657,11 +9676,7 @@
       "description": "Checks if any country meets the triggers.\n\n**Example:**\n```paradox\n`any_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -9678,11 +9693,7 @@
       "description": "Checks if any country that is occupied by the one where this scope is located - meaning that the occupied country has core states controlled by the occupier country - meets the triggers.\n\n**Example:**\n```paradox\n`any_occupied_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -9699,11 +9710,7 @@
       "description": "Checks if all countries originating from the specified country, including the dynamic countries created for civil wars and other purposes, meet the triggers. `original_tag_to_check = TAG` is used to specify the original tag.\n\n**Example:**\n```paradox\nall_country_with_original_tag = {\n\toriginal_tag_to_check = TAG  #required\n\t\u2026 # triggers to check\n}\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -9741,11 +9748,7 @@
       "description": "Checks if any country other than the one where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_other_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -9762,11 +9765,7 @@
       "description": "Checks if all characters that are recruited by the country where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`all_character = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -9800,10 +9799,7 @@
       "description": "Checks if any division owned by the current country meets the triggers.\n\n**Example:**\n```paradox\n`any_country_division = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
           "Country",
-          "State",
-          "Character",
           "Unit"
         ],
         "usage_restriction": ""
@@ -9821,11 +9817,7 @@
       "description": "Checks if all countries that are guaranteed by the one where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`all_guaranteed_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -9842,11 +9834,7 @@
       "description": "Checks if any army leader that is employed by the country where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_army_leader = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -9863,11 +9851,7 @@
       "description": "Checks if any of the provided states fulfills the specified triggers. The `target` supports script constants and `tooltip` supports bindable localization.\n\n**Example:**\n```paradox\nany_state_of = {\n\ttooltip = my_loc # Optional bindable localization\n\ttarget = { 1 42 1992 }\n\tcontroller = {\n\t\thas_defensive_war = yes\n\t}\n}\n\nany_state_of = {\n    tooltip = my_loc # Optional bindable localization\n\ttarget = constant:country_groups:nordics\n\tcontroller = {\n\t\thas_defensive_war = yes\n\t}\n}\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -9884,11 +9868,7 @@
       "description": "Checks if any country that is guaranteed by the one where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_guaranteed_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -9905,11 +9885,7 @@
       "description": "Check if any state in the given category meets the trigger.\n\n**Example:**\n```paradox\nany_state_in = {\n  array = array_of_states  #required\n    \u2026                  #triggers to check\n}\n```\n\n Requires on of the following fields\n\n```paradox\narray = <array_of_states>\ncontinent = <continent_name>\nai_area = <ai_area_name>\nstrategic_region = <strategic_region_number>\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -9944,11 +9920,7 @@
       "description": "Checks if at least one active scientist of the Country in scope matches the triggers.\n\n**Example:**\n```paradox\n`any_active_scientist = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -9965,11 +9937,7 @@
       "description": "Check if any state that is neighbour to the one where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_neighbor_state = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -10024,11 +9992,7 @@
       "description": "Checks if any country originating from the specified country, including the dynamic countries created for civil wars and other purposes, meets the triggers. `original_tag_to_check = TAG` is used to specify the original tag.\n\n**Example:**\n```paradox\nany_country_with_original_tag = {\n    original_tag_to_check = TAG  #required\n    \u2026                  #triggers to check\n}\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -10045,11 +10009,7 @@
       "description": "Checks if any navy leader that is employed by the country where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_navy_leader = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -10066,11 +10026,7 @@
       "description": "Checks if all countries that are a subject of the one where this scope is located meet the triggers. Notice the plural spelling in the scope.\n\n**Example:**\n```paradox\n`all_subject_countries = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -10087,11 +10043,7 @@
       "description": "Checks if all countries that are occupied by the one where this scope is located - meaning that the occupied country has core states controlled by the occupier country - meet the triggers.\n\n**Example:**\n```paradox\n`all_occupied_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -10108,11 +10060,7 @@
       "description": "Check if all states that are neighbour to the one where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`all_neighbor_state = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -10146,11 +10094,7 @@
       "description": "Checks if any operative that is employed by the country where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_operative_leader = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -10167,11 +10111,7 @@
       "description": "Checks if all scientists of the Country in scope matches the triggers.\n\n**Example:**\n```paradox\n`all_scientistst = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -10188,11 +10128,7 @@
       "description": "Checks if any country that are at war with the one where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_enemy_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -10209,11 +10145,7 @@
       "description": "Checks if all army leaders that are employed by the country where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`all_army_leader = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -10251,11 +10183,7 @@
       "description": "Checks if all operatives that are employed by the country where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`all_operative_leader = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -10272,11 +10200,7 @@
       "description": "Check if all states that are controlled by the country where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`all_controlled_state = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -10293,11 +10217,7 @@
       "description": "Checks if all purchase contracts within the current country meet the conditions.\n\n**Example:**\n```paradox\n`all_purchase_contract = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -10314,11 +10234,7 @@
       "description": "Checks if any country that borders the one where this scope is located, as well as being in its home area - meaning a direct land connection between the capitals of countries - meets the triggers.\n\n**Example:**\n```paradox\n`any_home_area_neighbor_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -10335,11 +10251,7 @@
       "description": "Checks if any unit leader (corps commander, field marshal, admiral) that is employed by the country where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_unit_leader = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -10356,11 +10268,7 @@
       "description": "Checks if all countries that border the one where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`all_neighbor_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -10377,11 +10285,7 @@
       "description": "Check if all states meet the triggers.\n\n**Example:**\n```paradox\n`all_state = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -10398,11 +10302,7 @@
       "description": "Check if any state that is controlled by the country where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_controlled_state = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -10440,11 +10340,7 @@
       "description": "Checks if all countries other than the one where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`all_other_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -10461,11 +10357,7 @@
       "description": "Checks if at least one active scientist of the Country in scope matches the triggers.\n\n**Example:**\n```paradox\n`any_scientist = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -10482,11 +10374,7 @@
       "description": "Checks if any country that has the current scope as a core state meets the triggers. **Does not have an equivalent for other effect/trigger scope types.**\n\n**Example:**\n```paradox\n`any_country_with_core = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -10503,11 +10391,7 @@
       "description": "Checks if any character that is recruited by the country where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_character = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -10524,11 +10408,7 @@
       "description": "Checks if all countries that are allied with the one where this scope is located - meaning that they are either a subject of the country, its overlord, or that they share a faction - meet the triggers. Does not include the country itself.\n\n**Example:**\n```paradox\n`all_allied_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -10545,11 +10425,7 @@
       "description": "Check if all states that are cored by the country where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`any_core_state = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -10587,11 +10463,7 @@
       "description": "Checks if any country that borders the one where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_neighbor_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -10608,11 +10480,7 @@
       "description": "Checks if all active scientists of the Country in scope matches the triggers.\n\n**Example:**\n```paradox\n`all_active_scientist = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -10629,11 +10497,7 @@
       "description": "Check if any state that is cored by the country where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`all_core_state = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -10650,11 +10514,7 @@
       "description": "Checks if all countries meet the triggers.\n\n**Example:**\n```paradox\n`all_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -10692,11 +10552,7 @@
       "description": "Checks if all unit leaders (corps commanders, field marshals, admirals) that are employed by the country where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`all_unit_leader = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -10713,11 +10569,7 @@
       "description": "Checks if any of the provided countries fulfills the specified triggers. The `target` supports script constants and `tooltip` supports bindable localization.\n\n**Example:**\n```paradox\nany_country_of = {\n\ttooltip = my_loc # Optional bindable localization\n\ttarget = { SWE NOR FIN DEN ICE }\n\thas_defensive_war = yes\n}\n\nany_country_of = {\n    tooltip = my_loc # Optional bindable localization\n\ttarget = constant:country_groups:nordics\n\thas_defensive_war = yes\n}\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -10734,11 +10586,7 @@
       "description": "Checks if any country that is allied with the one where this scope is located - meaning that they are either a subject of the country, its overlord, or that they share a faction - meets the triggers. Does not include the country itself.\n\n**Example:**\n```paradox\n`any_allied_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -10755,11 +10603,7 @@
       "description": "Check if any state meets the triggers.\n\n**Example:**\n```paradox\n`any_state = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -10776,10 +10620,7 @@
       "description": "Checks if any division within the current state meets the triggers.\n\n**Example:**\n```paradox\n`any_state_division = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
           "State",
-          "Character",
           "Unit"
         ],
         "usage_restriction": ""
@@ -10797,11 +10638,7 @@
       "description": "Checks if all navy leaders that are employed by the country where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`all_navy_leader = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -10818,11 +10655,8 @@
       "description": "Checks if any MIO within the current country meets the conditions.\n\n**Example:**\n```paradox\n`any_military_industrial_organization = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
           "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -10839,11 +10673,7 @@
       "description": "Check if any state that is owned by the country where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_owned_state = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -10860,11 +10690,7 @@
       "description": "Checks if any purchase contract within the current country meets the conditions.\n\n**Example:**\n```paradox\n`any_purchase_contract = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -10881,11 +10707,7 @@
       "description": "Checks if all countries that are at war with the one where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`all_enemy_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -10902,11 +10724,7 @@
       "description": "Checks if all of the provided countries fulfill the specified triggers. The `target` supports script constants and `tooltip` supports bindable localization.\n\n**Example:**\n```paradox\nall_country_of = {\n\ttooltip = my_loc # Optional bindable localization\n\ttarget = { SWE NOR FIN DEN ICE }\n\thas_defensive_war = yes\n}\n\nall_country_of = {\n    tooltip = my_loc # Optional bindable localization\n\ttarget = constant:country_groups:nordics\n\thas_defensive_war = yes\n}\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -10923,11 +10741,7 @@
       "description": "Checks if any country that is a subject of the one where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_subject_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -10944,11 +10758,7 @@
       "description": "Check if all states that are owned by the country where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`all_owned_state = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -10965,11 +10775,8 @@
       "description": "Checks if all MIOs within the current country meet the conditions.\n\n**Example:**\n```paradox\n`all_military_industrial_organization = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
           "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -11220,8 +11027,7 @@
       "description": "Sets the specified character to also act as an advisor, activating if specified.",
       "scopes": {
         "usage": [
-          "Country",
-          "Character"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -11568,7 +11374,6 @@
       "description": "Sets the specified character to also act as a country leader, promoting to the party leader if specified.",
       "scopes": {
         "usage": [
-          "Country",
           "Character"
         ],
         "usage_restriction": ""
@@ -11608,7 +11413,7 @@
       "description": "Adds doctrine mastery daily for a certain duration.",
       "scopes": {
         "usage": [
-          "Country"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -11627,7 +11432,7 @@
       "description": "Adds the number of days to the specified mission.",
       "scopes": {
         "usage": [
-          "Country"
+          "Unit"
         ],
         "usage_restriction": ""
       },
@@ -11646,7 +11451,7 @@
       "description": "Decisions are found in common/decisions/*.txt",
       "scopes": {
         "usage": [
-          "Country"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -12036,6 +11841,10 @@
       "description": "Creates an entry within the command history of a division.",
       "scopes": {
         "usage": [
+          "Global",
+          "Country",
+          "State",
+          "Character",
           "Unit"
         ],
         "usage_restriction": ""
@@ -12174,7 +11983,7 @@
       "description": "Adds doctrine mastery.",
       "scopes": {
         "usage": [
-          "Country"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -12193,7 +12002,7 @@
       "description": "Get a bonus to doctrine mastery gain for a certain duration.",
       "scopes": {
         "usage": [
-          "Country"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -12231,7 +12040,7 @@
       "description": "Add mines to a strategic region.",
       "scopes": {
         "usage": [
-          "Country"
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -12880,7 +12689,7 @@
       "description": "Increases resistance target in the specified state.",
       "scopes": {
         "usage": [
-          "State"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -12899,6 +12708,7 @@
       "description": "Adds the specified resource in the specified amount to the current state.",
       "scopes": {
         "usage": [
+          "Country",
           "State"
         ],
         "usage_restriction": ""
@@ -13049,8 +12859,7 @@
       "description": "Adds a claim for the current scope on the specified state.",
       "scopes": {
         "usage": [
-          "Country",
-          "State"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -13108,11 +12917,7 @@
       "description": "Adds either a resistance or compliance modifier to a state. Can only use modifiers from the common/resistance_modifiers.txt/compliance_modifiers.txt that are marked as is_dynamic = yes",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -13150,8 +12955,7 @@
       "description": "Adds the specified combat buff to the current unit leader.",
       "scopes": {
         "usage": [
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -13331,8 +13135,7 @@
       "description": "Adds the specified country leader trait to the character.",
       "scopes": {
         "usage": [
-          "Character",
-          "Country"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -13351,7 +13154,8 @@
       "description": "Adds permanent subunit and subunit category bonuses for country.",
       "scopes": {
         "usage": [
-          "Character"
+          "Unit",
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -13409,8 +13213,7 @@
       "description": "Adds the specified brigades to first available slots of specified columns to the template (if possible).",
       "scopes": {
         "usage": [
-          "Country",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -13429,7 +13232,7 @@
       "description": "Adds victory points to a province.",
       "scopes": {
         "usage": [
-          "Country"
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -13564,11 +13367,7 @@
       "description": "Adds a railway level between two provinces or along a predefined path.",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -13587,11 +13386,7 @@
       "description": "Cancels an on-going border war without a winner.",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -13688,11 +13483,7 @@
       "description": "Sets a temporary variable to a value or another variable.\n\n**Example:**\n```paradox\ncareer_profile_set_temp_playthrough_variable = {\n  sum = rocket_sites_built_1936\n}\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Global"
         ],
         "usage_restriction": ""
       },
@@ -13709,11 +13500,7 @@
       "description": "Sets a temporary variable to a value or another variable.\n\n**Example:**\n```paradox\ncareer_profile_set_temp_variable = {\n  var = num_dogs\n  value = num_dogs_in_career_profile\n}\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Global"
         ],
         "usage_restriction": ""
       },
@@ -13749,7 +13536,8 @@
       "description": "Changes the template of the division to the specified one.",
       "scopes": {
         "usage": [
-          "Unit"
+          "Unit",
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -13788,8 +13576,11 @@
       "description": "Displays a list of every character meeting the specified limitation and recruited by the current country.",
       "scopes": {
         "usage": [
+          "Global",
           "Country",
-          "Character"
+          "State",
+          "Character",
+          "Unit"
         ],
         "usage_restriction": ""
       },
@@ -13852,8 +13643,7 @@
       "description": "Clears the cap on the template, allowing it to have an unlimited amount of divisions.",
       "scopes": {
         "usage": [
-          "Country",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -13892,11 +13682,7 @@
       "description": "Clears all global event targets.",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Global"
         ],
         "usage_restriction": ""
       },
@@ -13991,7 +13777,8 @@
       "description": "Clears a defined MIO flag.",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -14110,7 +13897,11 @@
       "description": "Complete a prototype reward option for the project in scope",
       "scopes": {
         "usage": [
-          "Country"
+          "Global",
+          "Country",
+          "State",
+          "Character",
+          "Unit"
         ],
         "usage_restriction": ""
       },
@@ -14223,8 +14014,7 @@
       "description": "Create a colonial division template for overlord/owner.",
       "scopes": {
         "usage": [
-          "Country",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -14243,8 +14033,7 @@
       "description": "Creates a commander for the current scope with the specified attributes.",
       "scopes": {
         "usage": [
-          "Country",
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -14263,7 +14052,7 @@
       "description": "\n\n**Example:**\n```paradox\ncreate_country_leader = {\n\tname = AFG_mohammed_zahir_shah\n\tdesc = \"POLITICS_MOHAMMED_ZAHIR_SHAH_DESC\"\n\tpicture = GFX_AFG_mohammed_zahir_shah\n\texpire = \"1965.1.1\"\n\tideology = despotism\n\ttraits = {\n\t}\n}\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -14301,11 +14090,7 @@
       "description": "Creates an entity.",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -14383,8 +14168,7 @@
       "description": "Creates a field marshal for the current scope with the specified attributes.",
       "scopes": {
         "usage": [
-          "Country",
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -14442,8 +14226,7 @@
       "description": "Traits are found in common/unit_leader/*.txt. Deprecated, recommended to use [[#add_naval_commander_role|add_naval_commander_role]] instead when possible. '''The created admiral will not be able to have a portrait if assigned to be a minister via officer corps, causing errors.'''",
       "scopes": {
         "usage": [
-          "Country",
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -14462,7 +14245,7 @@
       "description": "Creates an operative for the current scope with the specified attributes.",
       "scopes": {
         "usage": [
-          "Country"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -14500,11 +14283,7 @@
       "description": "Creates a purchase contract with the specified parameters.",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -14523,8 +14302,7 @@
       "description": "Creates a railway gun.",
       "scopes": {
         "usage": [
-          "Country",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -14562,7 +14340,7 @@
       "description": "Adds the specified division to the current state.",
       "scopes": {
         "usage": [
-          "State"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -14665,11 +14443,8 @@
       "description": "Damages units in the specified area.",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
           "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -14765,8 +14540,7 @@
       "description": "Deletes the specified division template and all units using it for the current scope.",
       "scopes": {
         "usage": [
-          "Country",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -14825,11 +14599,7 @@
       "description": "Deletes an entity",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -14848,7 +14618,7 @@
       "description": "Destroys specified resource in the specified amount to the specified state.",
       "scopes": {
         "usage": [
-          "Country"
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -14867,7 +14637,8 @@
       "description": "Destroys the specified type and amount of ships controlled by the current scope.",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Unit"
         ],
         "usage_restriction": ""
       },
@@ -14886,6 +14657,7 @@
       "description": "Destroys the currently-scoped division.",
       "scopes": {
         "usage": [
+          "Country",
           "Unit"
         ],
         "usage_restriction": ""
@@ -15086,11 +14858,7 @@
       "description": "Executes children effects on every active scientist (or \"random_select_amount\" of random character if specified) of the country in scope, that fulfills the \"limit\" trigger.title.\n\n**Example:**\n```paradox\n`every_active_scientist = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -15107,11 +14875,7 @@
       "description": "Executes children effects on every Allied Country different from the one in scope (or `random_select_amount` of random country if specified) that fulfills the `limit` trigger.\n\n**Example:**\n```paradox\n`every_allied_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -15128,11 +14892,7 @@
       "description": "Executes contained effects on every army leader that meets the limit and is recruited by the country this is contained in.\n\n**Example:**\n```paradox\n`every_unit_leader = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -15149,11 +14909,7 @@
       "description": "Executes contained effects on every character that meets the limit and is recruited by the country this is contained in.\n\n**Example:**\n```paradox\n`every_character = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -15191,11 +14947,7 @@
       "description": "Executes contained effects on every state that meets the limit and is controlled by the country this is contained in.\n\n**Example:**\n```paradox\n`every_controlled_state = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -15212,11 +14964,7 @@
       "description": "Executes contained effects on every state that meets the limit and is a core of the country this is contained in.\n\n**Example:**\n```paradox\n`every_core_state = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -15233,11 +14981,7 @@
       "description": "Executes contained effects on every country that meets the limit.\n\n**Example:**\n```paradox\n`every_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -15254,10 +14998,7 @@
       "description": "Executes contained effects on every division that meets the limit and is owned by the current country.\n\n**Example:**\n```paradox\n`every_country_division = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
           "Country",
-          "State",
-          "Character",
           "Unit"
         ],
         "usage_restriction": ""
@@ -15275,11 +15016,7 @@
       "description": "Executes contained effects on every country that meets the limit and has the specified original tag.\n\n**Example:**\n```paradox\nevery_country_with_original_tag = {\n    original_tag_to_check = TAG  #required\n    \u2026                  #effects to run\n}\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -15296,11 +15033,7 @@
       "description": "Executes contained effects on every country that meets the limit and is at war with the country this is contained in.\n\n**Example:**\n```paradox\n`every_enemy_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -15317,11 +15050,7 @@
       "description": "Executes children effects on every faction member of the country's faction in scope, if country does not have a faction it will only work on itself.\n\n**Example:**\n```paradox\n`every_faction_member = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -15338,11 +15067,8 @@
       "description": "Executes contained effects on every MIO within the current country that meets the limit.\n\n**Example:**\n```paradox\n`every_military_industrial_organization = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
           "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -15359,11 +15085,7 @@
       "description": "Executes contained effects on every navy leader that meets the limit and is recruited by the country this is contained in.\n\n**Example:**\n```paradox\n`every_navy_leader = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -15380,11 +15102,7 @@
       "description": "Executes contained effects on every country that meets the limit and borders the country this is contained in.\n\n**Example:**\n```paradox\n`every_neighbor_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -15401,11 +15119,7 @@
       "description": "Executes contained effects on every state that meets the limit and neighbours the state this is contained in.\n\n**Example:**\n```paradox\n`every_neighbor_state = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -15422,11 +15136,7 @@
       "description": "Executes contained effects on every country that meets the limit and has any core states controlled by the country this is contained in.\n\n**Example:**\n```paradox\n`every_occupied_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -15443,11 +15153,7 @@
       "description": "Executes contained effects on every operative that meets the limit and is recruited by the country this is contained in.\n\n**Example:**\n```paradox\n`every_operative = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -15464,11 +15170,7 @@
       "description": "Executes contained effects on every country that meets the limit and is not the same country as the one this is contained in.\n\n**Example:**\n```paradox\n`every_other_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -15485,11 +15187,7 @@
       "description": "Executes contained effects on every state that meets the limit and is owned by the country this is contained in.\n\n**Example:**\n```paradox\n`every_owned_state = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -15506,11 +15204,7 @@
       "description": "Executes children effects on every country that meets the limit, including those that do not exist.\n\n**Example:**\n```paradox\n`every_possible_country = { ... }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -15527,11 +15221,7 @@
       "description": "Executes contained effects on every purchase contract within the current country that meets the limit.\n\n**Example:**\n```paradox\n`every_purchase_contract = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -15548,11 +15238,7 @@
       "description": "Executes children effects on every scientist (or \"random_select_amount\" of random character if specified) of the country in scope, that fulfills the \"limit\" trigger.\n\n**Example:**\n```paradox\n`every_scientist = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -15569,11 +15255,7 @@
       "description": "Executes contained effects on every state that meets the limit.\n\n**Example:**\n```paradox\n`every_state = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -15590,10 +15272,7 @@
       "description": "Executes contained effects on every division that meets the limit and is located within the current state.\n\n**Example:**\n```paradox\n`every_state_division = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
           "State",
-          "Character",
           "Unit"
         ],
         "usage_restriction": ""
@@ -15611,11 +15290,7 @@
       "description": "Executes contained effects on every country that meets the limit and is a subject of the country this is contained in.\n\n**Example:**\n```paradox\n`every_subject_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -15632,11 +15307,7 @@
       "description": "Executes contained effects on every unit leader (corps commanders, field marshals, admirals) that meets the limit and is recruited by the country this is contained in.\n\n**Example:**\n```paradox\n`every_unit_leader = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -15653,11 +15324,7 @@
       "description": "All prepared Port Strike and Strategic Bombing in the target region will execute multiple times without air defence being able to intercept them.",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -15693,11 +15360,7 @@
       "description": "Ends an on-going border war.",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -15839,7 +15502,7 @@
       "description": "Forcefully refreshes the specified mapmode for the player, rather than waiting for a daily update.",
       "scopes": {
         "usage": [
-          "Country"
+          "Global"
         ],
         "usage_restriction": ""
       },
@@ -15858,7 +15521,7 @@
       "description": "Frees the current operative.",
       "scopes": {
         "usage": [
-          "Country"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -15877,6 +15540,7 @@
       "description": "Frees one random captured operative or all of them.",
       "scopes": {
         "usage": [
+          "Character",
           "Country"
         ],
         "usage_restriction": ""
@@ -15933,7 +15597,7 @@
       "description": "Generates a character for current country.",
       "scopes": {
         "usage": [
-          "Country"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -15952,7 +15616,7 @@
       "description": "Generate a new character with a scientist role and recruit it in the country in scope.",
       "scopes": {
         "usage": [
-          "Country"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -15971,7 +15635,11 @@
       "description": "Calculates the highest scored country that is defined in a country scorer and sets it to a variable.",
       "scopes": {
         "usage": [
-          "Country"
+          "Global",
+          "Country",
+          "State",
+          "Character",
+          "Unit"
         ],
         "usage_restriction": ""
       },
@@ -15990,7 +15658,11 @@
       "description": "Calculates & sorts all countries in a country scorer and stores them and their scores in temp arrays.",
       "scopes": {
         "usage": [
-          "Country"
+          "Global",
+          "Country",
+          "State",
+          "Character",
+          "Unit"
         ],
         "usage_restriction": ""
       },
@@ -16128,9 +15800,7 @@
         "usage": [
           "Global",
           "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -16147,7 +15817,7 @@
       "description": "Moves the camera position over the specified province.",
       "scopes": {
         "usage": [
-          "Country"
+          "Global"
         ],
         "usage_restriction": ""
       },
@@ -16335,7 +16005,7 @@
       "description": "Kills the current operative.",
       "scopes": {
         "usage": [
-          "Country"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -16354,6 +16024,7 @@
       "description": "Nukes the specified province or a province in the needed state. If a state is set rather than the specific province, first prioritises the country set in controller, then prioritises the countries at war with the current scope, and then countries that are neutral.",
       "scopes": {
         "usage": [
+          "State",
           "Country"
         ],
         "usage_restriction": ""
@@ -16430,8 +16101,7 @@
       "description": "Loads the specified order of battle for the current scope, applying the effects within. The filename with the .txt extension omitted is used as the effect's target.",
       "scopes": {
         "usage": [
-          "Country",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -16490,7 +16160,7 @@
       "description": "Forces the refresh of the hidden technologies for the scoped country.",
       "scopes": {
         "usage": [
-          "Country"
+          "Global"
         ],
         "usage_restriction": ""
       },
@@ -16509,7 +16179,7 @@
       "description": "Modifies the resource output of the specified building for the current scope.",
       "scopes": {
         "usage": [
-          "Country"
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -16566,11 +16236,7 @@
       "description": "Adds an integer value to a flag.",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Global"
         ],
         "usage_restriction": ""
       },
@@ -16589,7 +16255,8 @@
       "description": "Adds an integer value to a flag.",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -16846,11 +16513,7 @@
       "description": "Executes the effects on the party leader with the specified ideology type. Must contain a `has_ideology` in the limit that refers to a specific ideology type (e.g. Despotic), not a group that contain the type (e.g. Non-Aligned). The selected character must be the leader of a party corresponding to the ideology group.\n\n**Example:**\n```paradox\nparty_leader = {\n    limit = {\n        has_ideology = liberalism\n    }\n    set_nationality = BHR\n}\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -16928,7 +16591,7 @@
       "description": "Promote the officer of the division to a general.",
       "scopes": {
         "usage": [
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -17024,11 +16687,7 @@
       "description": "Executes children effects on random scientists that fulfills the \"limit\" trigger.\n\n**Example:**\n```paradox\n`random_active_scientist = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -17045,11 +16704,7 @@
       "description": "Executes children effects on a random Allied Country different from the one in scope that fulfills the `limit` trigger.\n\n**Example:**\n```paradox\n`random_allied_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -17066,11 +16721,7 @@
       "description": "Executes contained effects on a random army leader that meets the limit and is recruited by the country this is contained in.\n\n**Example:**\n```paradox\n`random_army_leader = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -17087,11 +16738,7 @@
       "description": "Executes contained effects on a random character that meets the limit and is recruited by the country this is contained in.\n\n**Example:**\n```paradox\n`random_character = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -17108,11 +16755,7 @@
       "description": "Executes contained effects on a random state that meets the limit and is controlled by the country this is contained in.\n\n**Example:**\n```paradox\nrandom_controlled_state = {\n    prioritize = { 123 321 } #optional\n    \u2026    #effects to run\n}\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -17129,11 +16772,7 @@
       "description": "Executes contained effects on a random state that meets the limit and is a core of the country this is contained in.\n\n**Example:**\n```paradox\nrandom_core_state = {\n    prioritize = { 123 321 } #optional\n    \u2026    #effects to run\n}\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -17150,11 +16789,7 @@
       "description": "Executes contained effects on a random country that meets the limit.\n\n**Example:**\n```paradox\n`random_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -17171,10 +16806,7 @@
       "description": "Executes contained effects on a random division that meets the limit and is owned by the current country.\n\n**Example:**\n```paradox\n`random_country_division = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
           "Country",
-          "State",
-          "Character",
           "Unit"
         ],
         "usage_restriction": ""
@@ -17192,11 +16824,7 @@
       "description": "Executes contained effects on a random country that meets the limit and has the specified original tag.\n\n**Example:**\n```paradox\nrandom_country_with_original_tag = {\n    original_tag_to_check = TAG  #required\n    \u2026                  #effects to run\n}\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -17213,11 +16841,7 @@
       "description": "Executes contained effects on a random country that meets the limit and is at war with the country this is contained in.\n\n**Example:**\n```paradox\n`random_enemy_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -17234,11 +16858,8 @@
       "description": "Executes contained effects on a random MIO within the current country that meets the limit.\n\n**Example:**\n```paradox\n`random_military_industrial_organization = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
           "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -17255,11 +16876,7 @@
       "description": "Executes contained effects on a random navy leader that meets the limit and is recruited by the country this is contained in.\n\n**Example:**\n```paradox\n`random_navy_leader = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -17276,11 +16893,7 @@
       "description": "Executes contained effects on a random country that meets the limit and borders the country this is contained in.\n\n**Example:**\n```paradox\n`random_neighbor_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -17297,11 +16910,7 @@
       "description": "Executes contained effects on a random state that meets the limit and neighbours the state this is contained in. Does not support prioritizing.\n\n**Example:**\n```paradox\n`random_neighbor_state = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -17318,11 +16927,7 @@
       "description": "Executes contained effects on a random country that meets the limit and has any core states controlled by the country this is contained in.\n\n**Example:**\n```paradox\n`random_occupied_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -17339,11 +16944,7 @@
       "description": "Executes contained effects on a random operative that meets the limit and is recruited by the country this is contained in.\n\n**Example:**\n```paradox\n`random_operative = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -17360,11 +16961,7 @@
       "description": "Executes contained effects on a random country that meets the limit and is not the same country as the one this is contained in.\n\n**Example:**\n```paradox\n`random_other_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -17381,11 +16978,7 @@
       "description": "Executes contained effects on a random state that meets the limit and is owned and controlled by the country this is contained in.\n\n**Example:**\n```paradox\nrandom_owned_controlled_state = {\n    prioritize = { 123 321 } #optional\n    \u2026    #effects to run\n}\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -17402,11 +16995,7 @@
       "description": "Executes contained effects on a random state that meets the limit and is owned by the country this is contained in.\n\n**Example:**\n```paradox\nrandom_owned_state = {\n    prioritize = { 123 321 } #optional\n    \u2026    #effects to run\n}\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -17423,11 +17012,7 @@
       "description": "Executes contained effects on a random purchase contract within the current country that meets the limit.\n\n**Example:**\n```paradox\n`random_purchase_contract = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -17444,11 +17029,7 @@
       "description": "Executes children effects on random scientists that fulfills the \"limit\" trigger.\n\n**Example:**\n```paradox\n`random_scientist = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -17465,11 +17046,7 @@
       "description": "Executes contained effects on a random state that meets the limit.\n\n**Example:**\n```paradox\nrandom_state = {\n    prioritize = { 123 321 } #optional\n    \u2026    #effects to run\n}\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -17486,10 +17063,7 @@
       "description": "Executes contained effects on a random division that meets the limit and is located within the current state.\n\n**Example:**\n```paradox\n`random_state_division = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
           "State",
-          "Character",
           "Unit"
         ],
         "usage_restriction": ""
@@ -17507,11 +17081,7 @@
       "description": "Executes contained effects on a random country that meets the limit and is a subject of the country this is contained in.\n\n**Example:**\n```paradox\n`random_subject_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -17528,11 +17098,7 @@
       "description": "Executes contained effects on a random unit leader (corps commanders, field marshals, admirals) that meets the limit and is recruited by the country this is contained in.\n\n**Example:**\n```paradox\n`random_unit_leader = { \u2026 }`\n```",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -17760,7 +17326,6 @@
       "description": "Removes the specified advisor role from the character.",
       "scopes": {
         "usage": [
-          "Country",
           "Character"
         ],
         "usage_restriction": ""
@@ -17911,7 +17476,6 @@
       "description": "Removes a country leader role from a character.",
       "scopes": {
         "usage": [
-          "Country",
           "Character"
         ],
         "usage_restriction": ""
@@ -18304,7 +17868,7 @@
       "description": "Removes a set resistance target increase in the specified state.",
       "scopes": {
         "usage": [
-          "State"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -18401,11 +17965,7 @@
       "description": "Removes either a resistance or compliance modifier from a state. Can only use modifiers from the common/resistance_modifiers.txt/compliance_modifiers.txt that are marked as is_dynamic = yes",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -18443,8 +18003,7 @@
       "description": "Removes the specified trait from the character.",
       "scopes": {
         "usage": [
-          "Character",
-          "Country"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -18561,6 +18120,7 @@
       "description": "Re-randomises the division commander using the given seed.",
       "scopes": {
         "usage": [
+          "Character",
           "Unit"
         ],
         "usage_restriction": ""
@@ -18840,7 +18400,11 @@
       "description": "Plays the specified sound once only for the current country.",
       "scopes": {
         "usage": [
-          "Country"
+          "Global",
+          "Country",
+          "State",
+          "Character",
+          "Unit"
         ],
         "usage_restriction": ""
       },
@@ -18974,11 +18538,7 @@
       "description": "Sets the bonuses or penalties for the attacker and defender in an on-going border war. Used after '''start_border_war'''.",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -19035,7 +18595,6 @@
       "description": "Makes the specified state the current scope's capital state.",
       "scopes": {
         "usage": [
-          "Country",
           "State"
         ],
         "usage_restriction": ""
@@ -19093,7 +18652,8 @@
       "description": "Sets the collaboration in TAG with the scoped country.",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -19170,7 +18730,7 @@
       "description": "Changes the country leader's description.",
       "scopes": {
         "usage": [
-          "Country"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -19209,7 +18769,7 @@
       "description": "Changes the country leader's name.",
       "scopes": {
         "usage": [
-          "Country"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -19228,7 +18788,7 @@
       "description": "Changes the country leader's portrait.",
       "scopes": {
         "usage": [
-          "Country"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -19288,8 +18848,7 @@
       "description": "Sets the cap of a division template. The template has to be locked first.",
       "scopes": {
         "usage": [
-          "Country",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -19308,8 +18867,7 @@
       "description": "Toggles the locked status on a division template for the current scope, which prevents editing or deletion.",
       "scopes": {
         "usage": [
-          "Country",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -19328,11 +18886,7 @@
       "description": "Sets the animation of a specified entity.",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -19351,11 +18905,7 @@
       "description": "Sets the position and rotation of an entity using two coordinates.",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -19374,11 +18924,7 @@
       "description": "Sets the position of an existing entity",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -19397,11 +18943,7 @@
       "description": "Sets the currently-facing angle of an existing entity.",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -19420,11 +18962,7 @@
       "description": "Sets the size of an existing entity.",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -19868,7 +19406,8 @@
       "description": "Defines a MIO flag.",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -20077,8 +19616,8 @@
       "description": "Switches the current character to the specified country, giving them the character.",
       "scopes": {
         "usage": [
-          "Country",
-          "Character"
+          "Character",
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -20383,11 +19922,7 @@
       "description": "Changes the specified province/victory point's name to the specified name.",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -20604,7 +20139,6 @@
       "description": "Makes the current scope the owner of the specified state.",
       "scopes": {
         "usage": [
-          "Country",
           "State"
         ],
         "usage_restriction": ""
@@ -20941,11 +20475,7 @@
       "description": "Starts a border war for the specified attacker and defender. The participating countries are the owners of the specified states.",
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "State",
-          "Character",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -21192,7 +20722,7 @@
       "description": "Swaps traits.",
       "scopes": {
         "usage": [
-          "Country"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -21211,7 +20741,7 @@
       "description": "Teleports all armies in the specified state if the owner of the armies meets the condition.",
       "scopes": {
         "usage": [
-          "State"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -21328,7 +20858,7 @@
       "description": "Turns the current operative against their own country, transferring them to the specified country.",
       "scopes": {
         "usage": [
-          "Country"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -21729,7 +21259,10 @@
       "description": "Modifies the chance for the country's ships to retreat after initial combat.\n\n**Example:**\n```paradox\nnaval_retreat_chance_after_initial_combat = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Global",
+          "Character",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -21739,7 +21272,8 @@
       "description": "Modifies attrition suffered by naval units.\n\n**Example:**\n```paradox\nnaval_attrition = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -21806,7 +21340,10 @@
       "description": "Modifies the ability of planes to target their objectives when executing naval strikes.\n\n**Example:**\n```paradox\nnaval_strike_targetting_factor = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Ace"
         ],
         "usage_restriction": ""
       }
@@ -21816,7 +21353,10 @@
       "description": "Changes amount of building slots in our every state.\n\n**Example:**\n```paradox\nglobal_building_slots = 1\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "State",
+          "Global",
+          "Character"
         ],
         "usage_restriction": ""
       }
@@ -21838,7 +21378,9 @@
       "description": "Resource extraction efficiency. Modifies the amount of available resources.\n\n**Example:**\n```paradox\nlocal_resources_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "State",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -21869,7 +21411,9 @@
       "description": "Changes the loss in divisions' experience in combat.\n\n**Example:**\n```paradox\nexperience_loss_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -21910,7 +21454,9 @@
       "description": "Modifies the division recovery rate by a percentage.\n\n**Example:**\n```paradox\narmy_morale_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -21930,7 +21476,10 @@
       "description": "Modifies the speed of the country's ships.\n\n**Example:**\n```paradox\nnaval_speed_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Unit",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -21993,7 +21542,10 @@
       "description": "Modifies the counter intelligence.\n\n**Example:**\n```paradox\nintelligence_agency_defense = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -22003,7 +21555,9 @@
       "description": "The speed at which naval equipment is refitted.\n\n**Example:**\n```paradox\nrefit_speed = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -22026,7 +21580,9 @@
       "description": "Reduces the penalty that troops take when they are encircled.\n\n**Example:**\n```paradox\npocket_penalty = 0.2\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -22046,7 +21602,10 @@
       "description": "Modifies the attack of the country's screening ships.\n\n**Example:**\n```paradox\nnavy_screen_attack_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -22141,8 +21700,9 @@
       "description": "Modifies the penalty given by the shore bombardment on divisions.\n\n**Example:**\n```paradox\nshore_bombardment_bonus = 0.5\n```",
       "scopes": {
         "usage": [
+          "Character",
           "Country",
-          "Character"
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -22233,7 +21793,10 @@
       "description": "Changes reconnaisance.\n\n**Example:**\n```paradox\nrecon_factor = 0.2\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -22243,7 +21806,10 @@
       "description": "Modifies the attack of the country's submarines.\n\n**Example:**\n```paradox\nnavy_submarine_attack_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -22265,7 +21831,10 @@
       "description": "Modifies weekly war support gain of the country depending on the enemy bombing of its states.\n\n**Example:**\n```paradox\nweekly_bombing_war_support = 0.006\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -22275,7 +21844,9 @@
       "description": "Paratrooper transport space factor.\n\n**Example:**\n```paradox\nparatrooper_weight_factor = 0.5\n```",
       "scopes": {
         "usage": [
-          "Character"
+          "Character",
+          "Country",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -22285,7 +21856,9 @@
       "description": "Modifies the speed of units during naval invasions.\n\n**Example:**\n```paradox\namphibious_invasion = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -22295,7 +21868,9 @@
       "description": "Changes the daily gain of command power by a percentage.\n\n**Example:**\n```paradox\ncommand_power_gain_mult = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -22328,7 +21903,9 @@
       "description": "Modifies the effect to land combat from enemy air superiority.\n\n**Example:**\n```paradox\nenemy_army_bonus_air_superiority_factor = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -22371,7 +21948,10 @@
       "description": "Production efficiency growth.\n\n**Example:**\n```paradox\nproduction_factory_efficiency_gain_factor = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -22381,7 +21961,9 @@
       "description": "Modifies the effectiveness of land forts in defence.\n\n**Example:**\n```paradox\nland_bunker_effectiveness_factor = 0.1\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -22431,7 +22013,9 @@
       "description": "Modifies the country's detection of enemy submarines.\n\n**Example:**\n```paradox\nnavy_submarine_detection_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -22451,7 +22035,10 @@
       "description": "Changes the speed at which buildings repair themselves without factories assigned.\n\n**Example:**\n```paradox\nindustry_free_repair_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -22473,7 +22060,8 @@
       "description": "Modifies amount of energy consumed by factories in the state.\n\n**Example:**\n```paradox\nlocal_factory_energy_consumption = 0.2\n```",
       "scopes": {
         "usage": [
-          "State"
+          "State",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -22483,7 +22071,9 @@
       "description": "Chance for AI to call allies.\n\n**Example:**\n```paradox\nai_call_ally_desire_factor = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -22503,7 +22093,10 @@
       "description": "Modifies the stability penalty received from participating in an offensive war.\n\n**Example:**\n```paradox\noffensive_war_stability_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -22533,7 +22126,9 @@
       "description": "Base chance for air detection.\n\n**Example:**\n```paradox\nair_detection = -0.1\n```",
       "scopes": {
         "usage": [
-          "StrategicRegion"
+          "StrategicRegion",
+          "Global",
+          "Country"
         ],
         "usage_restriction": ""
       }
@@ -22543,7 +22138,9 @@
       "description": "Changes the necessary tension for us to generate a wargoal.\n\n**Example:**\n```paradox\ngenerate_wargoal_tension = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -22553,7 +22150,9 @@
       "description": "The bonus to land army's speed.\n\n**Example:**\n```paradox\narmy_speed_factor = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -22781,7 +22380,9 @@
       "description": "Modifies weekly war support gain of the country depending on the casualties suffered by it.\n\n**Example:**\n```paradox\nweekly_casualties_war_support = 0.006\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -22836,7 +22437,8 @@
       "scopes": {
         "usage": [
           "Country",
-          "Character"
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -22866,7 +22468,9 @@
       "description": "Modifies the daily gain of air experience.\n\n**Example:**\n```paradox\nexperience_gain_air = 0.05\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -22951,7 +22555,8 @@
       "scopes": {
         "usage": [
           "Character",
-          "Country"
+          "Country",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -22961,7 +22566,9 @@
       "description": "Modifies the attack against enemy airplanes for the country's ships by a percentage.\n\n**Example:**\n```paradox\nnavy_anti_air_attack_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -22971,7 +22578,10 @@
       "description": "The bonus to land army's strength.\n\n**Example:**\n```paradox\narmy_strength_factor = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -23002,7 +22612,9 @@
       "description": "Modifies the targeting of airplanes executing tasks from carriers.\n\n**Example:**\n```paradox\nnavy_carrier_air_targetting_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -23036,7 +22648,9 @@
       "description": "Changes the resistance target in our occupied states.\n\n**Example:**\n```paradox\nresistance_target_on_our_occupied_states = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -23046,7 +22660,9 @@
       "description": "Changes the resistance decay in our occupied states.\n\n**Example:**\n```paradox\nresistance_decay_on_our_occupied_states = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -23066,7 +22682,10 @@
       "description": "Modifies the speed when refueling and rearming fighter planes on the carrier during the battle.\n\n**Example:**\n```paradox\nfighter_sortie_efficiency = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -23107,7 +22726,9 @@
       "description": "Modifies the traffic of carriers at night.\n\n**Example:**\n```paradox\ncarrier_night_traffic = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -23127,7 +22748,9 @@
       "description": "The IC cost to refit naval equipment.\n\n**Example:**\n```paradox\nrefit_ic_cost = 20\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -23202,7 +22825,9 @@
       "description": "Reduces the penalty that units take when they run out of supplies.\n\n**Example:**\n```paradox\nout_of_supply_factor = 0.2\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -23223,7 +22848,9 @@
       "scopes": {
         "usage": [
           "Country",
-          "Character"
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -23265,7 +22892,9 @@
       "description": "Modifies the effectiveness of rooting out resistance.\n\n**Example:**\n```paradox\nroot_out_resistance_effectiveness_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -23317,7 +22946,8 @@
       "scopes": {
         "usage": [
           "Country",
-          "State"
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -23338,7 +22968,9 @@
       "description": "The bonus to land army's defence against a major country.\n\n**Example:**\n```paradox\narmy_defence_against_major_factor = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -23358,7 +22990,9 @@
       "description": "Modifies the navy's organisation.\n\n**Example:**\n```paradox\nnavy_org = 10\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -23433,7 +23067,10 @@
       "description": "Changes the percentage of victory points the country needs to lose control of to capitulate.\n\n**Example:**\n```paradox\nsurrender_limit = 0.1\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -23455,7 +23092,10 @@
       "description": "Modifies the rate at which the airforce consumes fuel.\n\n**Example:**\n```paradox\nair_fuel_consumption_factor = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -23476,7 +23116,8 @@
       "scopes": {
         "usage": [
           "Character",
-          "Country"
+          "Country",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -23552,7 +23193,9 @@
       "description": "The amount of time necessary to justify a wargoal.\n\n**Example:**\n```paradox\njustify_war_goal_time = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -23562,7 +23205,10 @@
       "description": "Changes experience gain by the army divisions by a percentage.\n\n**Example:**\n```paradox\nexperience_gain_army_unit_factor = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -23603,7 +23249,12 @@
       "description": "Modifies the effect of the specified mission.\n\n**Example:**\n```paradox\nboost_ideology_mission_factor = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Global",
+          "Character",
+          "Idea",
+          "State",
+          "Unit"
         ],
         "usage_restriction": ""
       }
@@ -23633,7 +23284,9 @@
       "description": "Modifies the damage received by our ships.\n\n**Example:**\n```paradox\nnaval_defense_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -23644,7 +23297,9 @@
       "scopes": {
         "usage": [
           "Country",
-          "State"
+          "State",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -23700,7 +23355,9 @@
       "description": "Modifies the gain of army experience by a percentage.\n\n**Example:**\n```paradox\nexperience_gain_army_factor = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -23710,7 +23367,10 @@
       "description": "Changes daily gain of fuel by a percentage.\n\n**Example:**\n```paradox\nfuel_gain_factor_from_states = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -23776,7 +23436,9 @@
       "description": "Changes the penalty due to attacking at night.\n\n**Example:**\n```paradox\nland_night_attack = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -23849,7 +23511,9 @@
       "description": "The bonus to land army's attack.\n\n**Example:**\n```paradox\narmy_attack_factor = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -23891,7 +23555,9 @@
       "description": "Modifies the penalty given to airplanes which don't have enough experience.\n\n**Example:**\n```paradox\nair_untrained_pilots_penalty_factor = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -23936,7 +23602,10 @@
       "description": "Production efficiency cap.\n\n**Example:**\n```paradox\nproduction_factory_max_efficiency_factor = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -23970,7 +23639,9 @@
       "description": "Modifies the penalty given by low supply when the army is on a core state.\n\n**Example:**\n```paradox\nsupply_combat_penalties_on_core_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -23980,7 +23651,9 @@
       "description": "The bonus in combat given from having air superiority.\n\n**Example:**\n```paradox\nair_superiority_bonus_in_combat = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -24002,7 +23675,9 @@
       "description": "The amount of time necessary to justify a wargoal when in a war with a major country.\n\n**Example:**\n```paradox\njustify_war_goal_when_in_major_war_time = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -24012,7 +23687,9 @@
       "description": "Ideology drift defense.\n\n**Example:**\n```paradox\ndrift_defence_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -24022,7 +23699,9 @@
       "description": "Modifies the modifier to the base construction speed from civilian factories.\n\n**Example:**\n```paradox\ncic_construction_boost_factor = 0.1\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -24042,7 +23721,9 @@
       "description": "Changes the maximum entrenchment.\n\n**Example:**\n```paradox\nmax_dig_in = 20\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -24063,7 +23744,10 @@
       "description": "Changes the opinion gain gained by trade between faction members.\n\n**Example:**\n```paradox\nfaction_trade_opinion_factor = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -24104,7 +23788,8 @@
       "description": "Modifies the damage naval mines deal to enemy ships.\n\n**Example:**\n```paradox\nnaval_mines_damage_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -24114,7 +23799,9 @@
       "description": "Changes the experience penalty applied to the divisions when a commander is promoted to a field marshal.\n\n**Example:**\n```paradox\nfield_officer_promotion_penalty = 0.2\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -24124,7 +23811,9 @@
       "description": "Changes the resistance damage to the garrison in our occupied states.\n\n**Example:**\n```paradox\nresistance_damage_to_garrison_on_our_occupied_states = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -24146,7 +23835,9 @@
       "description": "Modifies the stability loss caused by being at war.\n\n**Example:**\n```paradox\nwar_stability_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -24198,7 +23889,9 @@
       "description": "Modifies the initiative.\n\n**Example:**\n```paradox\ninitiative_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -24208,7 +23901,9 @@
       "description": "Modifies the daily gain of naval experience.\n\n**Example:**\n```paradox\nexperience_gain_navy = 0.02\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -24241,7 +23936,9 @@
       "scopes": {
         "usage": [
           "Country",
-          "State"
+          "State",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -24306,7 +24003,9 @@
       "description": "The bonus to land army's attack against a major country.\n\n**Example:**\n```paradox\narmy_attack_against_major_factor = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -24373,7 +24072,9 @@
       "description": "Modifies the attack of the country's capital ships.\n\n**Example:**\n```paradox\nnavy_capital_ship_attack_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -24434,7 +24135,9 @@
       "description": "Changes the chance for an enemy operative to be captured.\n\n**Example:**\n```paradox\nenemy_operative_capture_chance_factor = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -24444,7 +24147,9 @@
       "description": "Modifies the daily gain of army experience.\n\n**Example:**\n```paradox\nexperience_gain_army = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -24528,7 +24233,9 @@
       "description": "Modifies the damage at which enemy torpedos damage the country's ships.\n\n**Example:**\n```paradox\nnaval_torpedo_damage_reduction_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Unit",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -24538,7 +24245,9 @@
       "description": "Modifies the bombardment of railway guns.\n\n**Example:**\n```paradox\nrailway_gun_bombardment_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -24558,7 +24267,10 @@
       "description": "Modifies war support of the country.\n\n**Example:**\n```paradox\nwar_support_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -24568,7 +24280,9 @@
       "description": "Changes the world tension required for an enemy to justify a wargoal on us.\n\n**Example:**\n```paradox\nenemy_declare_war_tension = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -24641,7 +24355,8 @@
       "description": "Modifies the navy recovery rate by a percentage.\n\n**Example:**\n```paradox\nnaval_morale_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -24672,7 +24387,8 @@
       "description": "Hot acclimatization gain factor.\n\n**Example:**\n```paradox\nacclimatization_hot_climate_gain_factor = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -24682,7 +24398,8 @@
       "description": "Chance for combat to damage enemy forts.\n\n**Example:**\n```paradox\nfortification_collateral_chance = 0.4\n```",
       "scopes": {
         "usage": [
-          "Character"
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -24692,7 +24409,10 @@
       "description": "Controls the maximum surrender progress of a nation.\n\n**Example:**\n```paradox\nmax_surrender_limit_offset = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -24715,7 +24435,10 @@
       "description": "Changes amount of building slots in our every state by a percentage.\n\n**Example:**\n```paradox\nglobal_building_slots_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -24726,7 +24449,9 @@
       "scopes": {
         "usage": [
           "Country",
-          "State"
+          "State",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -24736,7 +24461,9 @@
       "description": "Changes the maximum planning.\n\n**Example:**\n```paradox\nmax_planning = 20\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -24767,7 +24494,9 @@
       "description": "Cost in political power for the country to guarantee an another country.\n\n**Example:**\n```paradox\nguarantee_cost = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -24777,7 +24506,10 @@
       "description": "Changes the amount of resources to market.\n\n**Example:**\n```paradox\nmin_export = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -24787,7 +24519,9 @@
       "description": "Modifies the chance for air accidents to happen.\n\n**Example:**\n```paradox\nair_accidents_factor = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -24851,7 +24585,9 @@
       "scopes": {
         "usage": [
           "Country",
-          "State"
+          "State",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -24942,7 +24678,8 @@
       "description": "Amount of damage our factories receive from air bombings.\n\n**Example:**\n```paradox\nindustry_air_damage_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -24952,7 +24689,9 @@
       "description": "Modifies how quickly the fleet can gather or disperse when a target is found or when switching missions.\n\n**Example:**\n```paradox\nnaval_coordination = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -24972,7 +24711,9 @@
       "description": "Modifies the attack of airplanes executing tasks from carriers.\n\n**Example:**\n```paradox\nnavy_carrier_air_attack_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -25015,7 +24756,11 @@
       "description": "Modifies the likelihood for country's torpedos to hit enemy ships.\n\n**Example:**\n```paradox\nnaval_torpedo_hit_chance_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Unit",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -25025,7 +24770,9 @@
       "description": "Changes the number of divisions the country can send as volunteers by a percentage.\n\n**Example:**\n```paradox\nsend_volunteer_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -25035,7 +24782,10 @@
       "description": "Modifies the stability gained by the popularity of the ruling party.\n\n**Example:**\n```paradox\nparty_popularity_stability_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -25086,7 +24836,8 @@
       "scopes": {
         "usage": [
           "Character",
-          "Country"
+          "Country",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -25116,7 +24867,10 @@
       "description": "Modifies the intelligence gained from combat.\n\n**Example:**\n```paradox\nintel_from_combat_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -25157,7 +24911,10 @@
       "description": "Modifies the speed when refueling and rearming planes on the carrier during the battle.\n\n**Example:**\n```paradox\nsortie_efficiency = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -25238,7 +24995,9 @@
       "description": "Changes daily gain of fuel from our controlled oil by a percentage.\n\n**Example:**\n```paradox\nfuel_gain_factor = 100\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -25259,7 +25018,9 @@
       "description": "Amount of manpower given to the host country.\n\n**Example:**\n```paradox\nexile_manpower_factor = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -25269,7 +25030,10 @@
       "description": "Modifies weekly war support gain of the country depending on the amount of its convoys that have been sunk.\n\n**Example:**\n```paradox\nweekly_convoys_war_support = 0.006\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -25310,7 +25074,9 @@
       "scopes": {
         "usage": [
           "Country",
-          "Character"
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -25399,7 +25165,9 @@
       "description": "Changes the efficiency of operations.\n\n**Example:**\n```paradox\noperation_outcome = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -25494,7 +25262,10 @@
       "description": "Changes the speed at which equipment is converted.\n\n**Example:**\n```paradox\nequipment_conversion_speed = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -25504,7 +25275,9 @@
       "description": "Modifies the defence of the country's screening ships.\n\n**Example:**\n```paradox\nnavy_screen_defence_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -25514,7 +25287,9 @@
       "description": "Changes gain of intel network strength.\n\n**Example:**\n```paradox\nintel_network_gain = 1\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -25535,7 +25310,10 @@
       "description": "Production efficiency base.\n\n**Example:**\n```paradox\nproduction_factory_start_efficiency_factor = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -25546,7 +25324,9 @@
       "scopes": {
         "usage": [
           "Country",
-          "State"
+          "State",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -25578,7 +25358,9 @@
       "scopes": {
         "usage": [
           "Country",
-          "Character"
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -25621,7 +25403,9 @@
       "scopes": {
         "usage": [
           "Country",
-          "State"
+          "State",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -25672,9 +25456,10 @@
       "description": "Modifies the planning speed.\n\n**Example:**\n```paradox\nplanning_speed = 0.2\n```",
       "scopes": {
         "usage": [
-          "Character",
           "Country",
-          "State"
+          "Character",
+          "State",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -25727,7 +25512,9 @@
       "description": "Changes entrenchment speed by a percentage.\n\n**Example:**\n```paradox\ndig_in_speed_factor = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -25737,7 +25524,10 @@
       "description": "Modifies the agility of airplanes executing tasks from carriers.\n\n**Example:**\n```paradox\nnavy_carrier_air_agility_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -25768,7 +25558,9 @@
       "description": "Modifies the rate at which army consumes supply.\n\n**Example:**\n```paradox\nsupply_consumption_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -25800,7 +25592,10 @@
       "description": "Modifies the country's cost to buy resources from others.\n\n**Example:**\n```paradox\nresource_trade_cost_bonus_per_factory = 1\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -25922,7 +25717,9 @@
       "description": "Modifies the efficiency of the mine sweeping mission.\n\n**Example:**\n```paradox\nmines_sweeping_by_fleets_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -25932,7 +25729,10 @@
       "description": "Modifies the agility of the country's airplanes.\n\n**Example:**\n```paradox\nair_agility_factor = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Global",
+          "Idea",
+          "Ace"
         ],
         "usage_restriction": ""
       }
@@ -25952,7 +25752,9 @@
       "description": "The bonus to land army's attack on core territory.\n\n**Example:**\n```paradox\narmy_core_attack_factor = 0.1\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -25985,7 +25787,11 @@
       "description": "Modifies the combat equipment capture ratio.\n\n**Example:**\n```paradox\nequipment_capture_factor = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Unit",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -25995,7 +25801,10 @@
       "description": "Modifies the speed at which the country's ships retreat.\n\n**Example:**\n```paradox\nnaval_retreat_speed = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -26059,7 +25868,10 @@
       "description": "Modifies the effects of sustained critical hits on our ships.\n\n**Example:**\n```paradox\nnaval_critical_effect_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -26070,7 +25882,9 @@
       "scopes": {
         "usage": [
           "Country",
-          "State"
+          "State",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -26091,7 +25905,9 @@
       "description": "Changes the chance for resistance activity to occur on our occupied states.\n\n**Example:**\n```paradox\nresistance_activity = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -26111,7 +25927,9 @@
       "description": "Changes gain of intel network strength by a percentage.\n\n**Example:**\n```paradox\nintel_network_gain_factor = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -26133,7 +25951,9 @@
       "description": "Changes the amount of legitimacy gained daily.\n\n**Example:**\n```paradox\nlegitimacy_daily = 1\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -26176,7 +25996,10 @@
       "description": "Changes the cost in command power to grant a medal to a division commander.\n\n**Example:**\n```paradox\ngrant_medal_cost_factor = 0.2\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -26218,7 +26041,9 @@
       "description": "The bonus to land army's defence.\n\n**Example:**\n```paradox\narmy_defence_factor = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -26261,7 +26086,9 @@
       "description": "Changes the experience cost to upgrade military equipment.\n\n**Example:**\n```paradox\nequipment_upgrade_xp_cost = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -26281,7 +26108,11 @@
       "description": "Modifies stability of the country.\n\n**Example:**\n```paradox\nstability_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea",
+          "State"
         ],
         "usage_restriction": ""
       }
@@ -26311,7 +26142,10 @@
       "description": "Changes the research speed.\n\n**Example:**\n```paradox\nresearch_speed_factor = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -26342,7 +26176,10 @@
       "description": "Modifies the chance for the country's naval light guns to hit enemy ships.\n\n**Example:**\n```paradox\nnaval_light_gun_hit_chance_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Unit"
         ],
         "usage_restriction": ""
       }
@@ -26352,7 +26189,9 @@
       "description": "Modifies the navy's organisation by a percentage.\n\n**Example:**\n```paradox\nnavy_org_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -26393,7 +26232,9 @@
       "description": "Gives a breakthrough bonus against the armies of the specified country.\n\n**Example:**\n```paradox\nbreakthrough_bonus_against = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -26403,7 +26244,9 @@
       "description": "Modifies the chance for an operative to get the commando trait when hired.\n\n**Example:**\n```paradox\ncommando_trait_chance_factor = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -26425,7 +26268,10 @@
       "description": "Modifies the damage dealt by the country's ships at night.\n\n**Example:**\n```paradox\nnaval_night_attack = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -26435,7 +26281,9 @@
       "description": "Modifies the positioning of the country's navy.\n\n**Example:**\n```paradox\npositioning = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -26477,7 +26325,9 @@
       "description": "Changes the monthly population gain in states owned by the country.\n\n**Example:**\n```paradox\nmonthly_population = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -26544,7 +26394,9 @@
       "description": "Makes AI more likely to purchase resources from this country.\n\n**Example:**\n```paradox\ntrade_opinion_factor = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -26564,7 +26416,9 @@
       "description": "Changes the cost in command power to turn a unit leader into an advisor.\n\n**Example:**\n```paradox\nunit_leader_as_advisor_cp_cost_factor = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -26574,7 +26428,9 @@
       "description": "Modifies daily gain in political power by a percentage.\n\n**Example:**\n```paradox\npolitical_power_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -26596,7 +26452,9 @@
       "description": "Modifies the attrition supply trucks suffer from.\n\n**Example:**\n```paradox\ntruck_attrition_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -26673,7 +26531,9 @@
       "description": "Changes the resistance growth speed in our occupied states.\n\n**Example:**\n```paradox\nresistance_growth_on_our_occupied_states = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -26771,7 +26631,10 @@
       "description": "Modifies the rate at which the country's torpedos penalise enemy screening.\n\n**Example:**\n```paradox\nnaval_torpedo_screen_penetration_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -26791,7 +26654,10 @@
       "description": "Changes the chance for the enemy to get a critical hit on us in naval combat.\n\n**Example:**\n```paradox\ncritical_receive_chance = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -26801,7 +26667,10 @@
       "description": "Lack of resources penalty.\n\n**Example:**\n```paradox\nproduction_lack_of_resource_penalty_factor = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -26842,7 +26711,9 @@
       "description": "Necessary world tension for the country to request lend-lease.\n\n**Example:**\n```paradox\nrequest_lease_tension = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -26884,7 +26755,10 @@
       "description": "Modifies the rate at which the navy consumes fuel.\n\n**Example:**\n```paradox\nnavy_fuel_consumption_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -26915,7 +26789,10 @@
       "description": "Production efficiency retention.\n\n**Example:**\n```paradox\nline_change_production_efficiency_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -26946,7 +26823,9 @@
       "description": "Changes the rate at which reinforcements to divisions arrive.\n\n**Example:**\n```paradox\nland_reinforce_rate = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -26956,7 +26835,10 @@
       "description": "Changes the cost of subversive activities.\n\n**Example:**\n```paradox\nsubversive_activites_upkeep = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -26977,7 +26859,9 @@
       "description": "Changes the cost of licensed equipment by a percentage.\n\n**Example:**\n```paradox\nlicense_purchase_cost = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -26997,7 +26881,9 @@
       "description": "Increases the effective range of supply nodes.\n\n**Example:**\n```paradox\nsupply_node_range = 0.1\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -27029,7 +26915,9 @@
       "description": "Changes the combat equipment capture ratio.\n\n**Example:**\n```paradox\nequipment_capture = 0.2\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -27039,7 +26927,10 @@
       "description": "Changes the time it takes to upgrade the agency\n\n**Example:**\n```paradox\nagency_upgrade_time = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -27049,7 +26940,10 @@
       "description": "Changes the bonus to coordination, that is how much damage is done to the primary target instead of being spread out.\n\n**Example:**\n```paradox\ncoordination_bonus = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -27059,7 +26953,8 @@
       "description": "Changes the production speed of licensed equipment by a percentage.\n\n**Example:**\n```paradox\nlicense_production_speed = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -27069,7 +26964,10 @@
       "description": "Changes the penalty to the stability invoked by participating in a defensive war.\n\n**Example:**\n```paradox\ndefensive_war_stability_factor = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -27091,7 +26989,9 @@
       "description": "Modifies the efficiency of airplanes in missions.\n\n**Example:**\n```paradox\nair_mission_efficiency = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -27101,7 +27001,10 @@
       "description": "Changes the cost to convert civilian factories to military factories.\n\n**Example:**\n```paradox\nconversion_cost_civ_to_mil_factor = 0.4\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -27111,7 +27014,9 @@
       "description": "Daily gain of autonomy in our subjects.\n\n**Example:**\n```paradox\nsubjects_autonomy_gain = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -27133,7 +27038,9 @@
       "description": "Changes the time required for an enemy to justify a wargoal on us.\n\n**Example:**\n```paradox\nenemy_justify_war_goal_time = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -27143,7 +27050,8 @@
       "description": "Modifies the chance for our ships to detect submarines.\n\n**Example:**\n```paradox\nnaval_detection = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -27153,7 +27061,9 @@
       "description": "Modifies the chance to spot enemy ships.\n\n**Example:**\n```paradox\nspotting_chance = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -27185,7 +27095,10 @@
       "description": "Modifies the speed at which the dockyards repair the navy.\n\n**Example:**\n```paradox\nrepair_speed_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Global",
+          "Idea",
+          "State"
         ],
         "usage_restriction": ""
       }
@@ -27196,7 +27109,9 @@
       "scopes": {
         "usage": [
           "Country",
-          "State"
+          "State",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -27226,7 +27141,9 @@
       "description": "Modifies the cost in victory points to annex states in peace deals.\n\n**Example:**\n```paradox\nannex_cost_factor = 0.1\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -27246,7 +27163,10 @@
       "description": "Modifies the chance for the country's naval heavy guns to hit enemy ships.\n\n**Example:**\n```paradox\nnaval_heavy_gun_hit_chance_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Unit"
         ],
         "usage_restriction": ""
       }
@@ -27269,7 +27189,9 @@
       "scopes": {
         "usage": [
           "Country",
-          "Character"
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -27279,7 +27201,10 @@
       "description": "Changes the supply grace given to paratroopers.\n\n**Example:**\n```paradox\nextra_paratrooper_supply_grace = 96\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -27354,7 +27279,9 @@
       "description": "The bonus to speed at which the land army attacks.\n\n**Example:**\n```paradox\narmy_attack_speed_factor = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -27394,7 +27321,9 @@
       "description": "The bonus to land army's defence on core territory.\n\n**Example:**\n```paradox\narmy_core_defence_factor = 0.1\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -27437,7 +27366,10 @@
       "description": "Modifies the defence value of our military, navy, and airforce.\n\n**Example:**\n```paradox\ndefence = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global",
+          "Unit"
         ],
         "usage_restriction": ""
       }
@@ -27457,7 +27389,9 @@
       "description": "Modifies the reduction of the night penalty for air carriers.\n\n**Example:**\n```paradox\nair_carrier_night_penalty_reduction_factor = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -27467,7 +27401,9 @@
       "description": "Modifies the chance for an enemy torpedo to get a cricical hit against the country's ships.\n\n**Example:**\n```paradox\nnaval_torpedo_enemy_critical_chance_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Global",
+          "Unit"
         ],
         "usage_restriction": ""
       }
@@ -27518,7 +27454,9 @@
       "description": "Amount of civilian factories donated.\n\n**Example:**\n```paradox\nindustrial_factory_donations = 2\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -27581,7 +27519,9 @@
       "description": "Modifies the defence of the country's capital ships.\n\n**Example:**\n```paradox\nnavy_capital_ship_defence_factor = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -27591,7 +27531,9 @@
       "description": "Modifies the chance for a ship to be accidentally sunk or damaged.\n\n**Example:**\n```paradox\nnaval_accidents_chance = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Global",
+          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -27686,7 +27628,9 @@
       "description": "Changes maximum command power by a percentage.\n\n**Example:**\n```paradox\nmax_command_power_mult = 0.3\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
@@ -27747,7 +27691,9 @@
       "description": "Changes the decription capability of the country by a percentage.\n\n**Example:**\n```paradox\ndecryption_factor = 0.5\n```",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Character",
+          "Global"
         ],
         "usage_restriction": ""
       }
