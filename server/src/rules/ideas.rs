@@ -95,6 +95,11 @@ impl ValidationRule for IdeaRule {
         // Idea existence checks (add_ideas, has_idea, remove_ideas)
         if key_lower == "add_ideas" || key_lower == "has_idea" || key_lower == "remove_ideas" {
             if let Some(val) = ass.value.value.as_str(ctx.source) {
+                // Skip if value is a known character — character-specific ideas
+                // share the same ID namespace but aren't in common/ideas/
+                if ctx.characters.contains_key(val) {
+                    return;
+                }
                 if val != "all" && !ctx.ideas.contains_key(val) {
                     diags.push(Diagnostic {
                         range: ast_range_to_lsp(&ass.value.range),
