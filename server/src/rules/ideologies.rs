@@ -1,5 +1,6 @@
 use crate::parser::ast;
 use crate::rules::{ValidationContext, ValidationRule};
+use crate::scanner::country_scanner::is_valid_tag;
 use crate::scope::scope::ScopeStack;
 use crate::utils::lsp_convert::ast_range_to_lsp;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
@@ -29,7 +30,7 @@ impl ValidationRule for IdeologyRule {
             return;
         };
 
-        // Allow scoped references (ROOT, FROM, PREV, THIS, etc.)
+        // Allow scope references (ROOT, FROM, PREV, THIS, etc.)
         let is_scope_ref = matches!(
             val.to_uppercase().as_str(),
             "ROOT"
@@ -47,11 +48,15 @@ impl ValidationRule for IdeologyRule {
         );
         // Allow variable references (var:SCOPE@name or var:name)
         let is_var_ref = val.starts_with("var:");
+        // Allow 3-letter country tags as scope references for add_popularity etc.:
+        //   ideology = GER  → use Germany's current ideology
+        let is_country_tag = is_valid_tag(val);
 
         if !ctx.ideologies.contains_key(val)
             && !ctx.sub_ideologies.contains_key(val)
             && !is_scope_ref
             && !is_var_ref
+            && !is_country_tag
         {
             diags.push(Diagnostic {
                 range: ast_range_to_lsp(&ass.value.range),
