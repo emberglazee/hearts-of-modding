@@ -11341,7 +11341,8 @@
       "description": "Sets the specified character to also act as a country leader, promoting to the party leader if specified.",
       "scopes": {
         "usage": [
-          "Character"
+          "Character",
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -17443,7 +17444,8 @@
       "description": "Removes a country leader role from a character.",
       "scopes": {
         "usage": [
-          "Character"
+          "Character",
+          "Country"
         ],
         "usage_restriction": ""
       },
