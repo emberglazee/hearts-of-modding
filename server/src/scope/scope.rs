@@ -122,6 +122,7 @@ impl Scope {
             | "option"
             | "after"
             | "country_event"
+            | "news_event"
             | "on_action"
             | "modifier"
             | "trigger"
