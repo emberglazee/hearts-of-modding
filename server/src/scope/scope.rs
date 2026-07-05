@@ -1,6 +1,8 @@
 use crate::data::interner::InternedStr;
 use crate::data::layered_value::LayeredValue;
 use crate::scanner::achievement_scanner::Achievement;
+use crate::scanner::character_scanner::Character;
+use crate::scanner::variable_scanner::EventTarget;
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 
@@ -132,7 +134,9 @@ impl Scope {
             | "any_allied_country"
             | "any_war_adversary"
             | "any_war_ally"
-            | "any_guaranteed_country" => Scope::Country,
+            | "any_guaranteed_country"
+            | "possible"
+            | "happened" => Scope::Country,
             "any_state"
             | "every_state"
             | "random_state"
@@ -196,6 +200,19 @@ pub fn resolve_key_scope(
     } else {
         Scope::from_str(key)
     }
+}
+
+/// External context for unified scope resolution via [`ScopeStack::resolve_entry_scope`].
+///
+/// Pass whatever data is available at the call site. Fields that aren't available
+/// can be passed as empty DashMaps — the resolution is a no-op for empty maps.
+pub struct ScopeCtx<'a> {
+    pub uri: &'a str,
+    pub event_targets: &'a DashMap<InternedStr, Vec<EventTarget>>,
+    pub characters: &'a DashMap<InternedStr, LayeredValue<Character>>,
+    pub achievements: &'a DashMap<InternedStr, LayeredValue<Achievement>>,
+    pub in_random_list: bool,
+    pub state_targeted: bool,
 }
 
 pub struct ScopeStack {
@@ -402,25 +419,123 @@ impl ScopeStack {
         }
     }
 
+    /// Unified scope resolution for any block key.
+    ///
+    /// Returns `(scope, is_transparent)` — the scope to push and whether
+    /// it should be transparent (passes THIS/ROOT/PREV through).
+    ///
+    /// Resolution order:
+    /// 1. Transparent block (AND, OR, NOT, limit, if) → inherit current scope
+    /// 2. V2 pushes_scope → explicit scope from trigger/effect data
+    /// 3. Event target → scope saved by `save_event_target`
+    /// 4. Chain target from current scope (e.g. State → owner → Country)
+    /// 5. Ace file `effect` → Country scope (ace modifiers are Country-scoped)
+    /// 6. Modifier application blocks (`modifiers`, `unit_modifiers`, etc.) → ModifierBag
+    /// 7. Legacy fallback:
+    ///    a. Meta-scope (THIS/ROOT/PREV/FROM)
+    ///    b. Achievement-aware resolution via `resolve_key_scope`
+    ///    c. Character token lookup
+    ///    d. Numeric state IDs (outside random_list)
+    ///    e. State-targeted FROM override
+    ///
+    /// NOTE: Idea promotion (Unknown keys at depth 2-3 inside Idea scope)
+    /// is NOT handled here — callers that need it (the validation walker)
+    /// apply it after this call using `is_idea_structure_key` from the
+    /// rules module.
+    pub fn resolve_entry_scope(&self, key: &str, ctx: &ScopeCtx) -> (Scope, bool) {
+        // 1. Transparent block (AND, OR, NOT, limit, if)
+        if crate::data::hoi4_data::is_transparent_block(key)
+            || matches!(key.to_ascii_uppercase().as_str(), "AND" | "OR" | "NOT")
+        {
+            return (self.current(), true);
+        }
+
+        // 2. V2: Known trigger/effect with explicit scope push
+        if let Some(pushed) = crate::data::hoi4_data::lookup_pushes_scope(key) {
+            return (pushed, false);
+        }
+
+        // 3. V2: Saved event target
+        {
+            let lower_key = key.to_ascii_lowercase();
+            let result = ctx
+                .event_targets
+                .get(&*lower_key)
+                .or_else(|| ctx.event_targets.get(key));
+            if let Some(scope) = result
+                .and_then(|targets| targets.value().first().map(|t| t.scope))
+                .filter(|s| *s != Scope::Unknown)
+            {
+                return (scope, false);
+            }
+        }
+
+        // 4. Chain target from current scope (e.g. State -> owner -> Country)
+        if let Some(chain_target) =
+            crate::data::hoi4_data::lookup_chain_target(&self.current(), key)
+        {
+            return (chain_target.scope, false);
+        }
+
+        // 5. Ace file: `effect` block contains Country-scope modifiers
+        if key == "effect" && ctx.uri.contains("/common/aces/") {
+            return (Scope::Country, false);
+        }
+
+        // 6. Modifier application blocks (unit_modifiers, modifiers, *_modifiers)
+        if key == "modifiers" || key.ends_with("_modifiers") {
+            return (Scope::ModifierBag, true);
+        }
+
+        // 7. Legacy fallback
+        let mut s = self
+            .resolve_meta_scope(key)
+            .unwrap_or_else(|| resolve_key_scope(key, ctx.achievements));
+
+        // 7c. Known character tokens -> Character scope
+        if s == Scope::Unknown && ctx.characters.contains_key(key) {
+            s = Scope::Character;
+        }
+
+        // 7d. Numeric keys (state IDs) -> State scope (outside random_list)
+        if s == Scope::Unknown
+            && !ctx.in_random_list
+            && !key.is_empty()
+            && key.as_bytes().iter().all(|b| b.is_ascii_digit())
+        {
+            s = Scope::State;
+        }
+
+        // 7e. State-targeted decisions: FROM -> State
+        if s == Scope::Country && ctx.state_targeted && key.eq_ignore_ascii_case("FROM") {
+            s = Scope::State;
+        }
+
+        (s, false)
+    }
+
     /// Resolve a key to its semantic scope, trying meta-scope resolution
     /// first, then falling back to achievement-aware resolution, then
     /// static [`Scope::from_str`].
     ///
     /// This is the preferred single-call API when both a `ScopeStack`
-    /// and an achievements map are available.
+    /// and an achievements map are available. For full resolution
+    /// (including event targets, chain targets, file-type overrides),
+    /// use [`resolve_entry_scope`] instead.
     pub fn resolve_scope_key(
         &self,
         key: &str,
         achievements: &DashMap<InternedStr, LayeredValue<Achievement>>,
     ) -> Scope {
-        // Modifier application-target blocks (_modifiers suffix) are not
-        // evaluation scopes — the engine reads them as a flat bag and
-        // routes entries per-key. These should show up in hover/completion
-        // scope displays so users understand why validation is skipped.
-        if key == "modifiers" || key.ends_with("_modifiers") {
-            return Scope::ModifierBag;
-        }
-        self.resolve_meta_scope(key)
-            .unwrap_or_else(|| resolve_key_scope(key, achievements))
+        let ctx = ScopeCtx {
+            uri: "",
+            event_targets: &DashMap::new(),
+            characters: &DashMap::new(),
+            achievements,
+            in_random_list: false,
+            state_targeted: false,
+        };
+        let (scope, _) = self.resolve_entry_scope(key, &ctx);
+        scope
     }
 }

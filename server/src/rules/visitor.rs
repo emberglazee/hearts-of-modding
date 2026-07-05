@@ -1,6 +1,6 @@
 use crate::parser::ast;
 use crate::rules::{ValidationContext, ValidationRule};
-use crate::scope::scope::{Scope, ScopeStack};
+use crate::scope::scope::{Scope, ScopeCtx, ScopeStack};
 use tower_lsp_server::ls_types::Diagnostic;
 
 /// Idea-adjacent keywords that should never be promoted to `Scope::Idea`.
@@ -163,98 +163,35 @@ fn walk_entries(
                 let mut pushed_scope = false;
 
                 let key_text = ass.key_text(ctx.source);
-                let mut s;
-                let mut is_transparent = false;
+                let empty_achievements: dashmap::DashMap<
+                    crate::data::interner::InternedStr,
+                    crate::data::layered_value::LayeredValue<
+                        crate::scanner::achievement_scanner::Achievement,
+                    >,
+                > = dashmap::DashMap::new();
+                let (mut s, is_transparent) = scope_stack.resolve_entry_scope(
+                    key_text,
+                    &ScopeCtx {
+                        uri: ctx.uri,
+                        event_targets: ctx.event_targets,
+                        characters: ctx.characters,
+                        achievements: &empty_achievements,
+                        in_random_list,
+                        state_targeted,
+                    },
+                );
 
-                // V2: Check if this is a transparent block first (AND, OR, NOT, limit, if, etc.)
-                if crate::data::hoi4_data::is_transparent_block(key_text)
-                    || matches!(key_text.to_ascii_uppercase().as_str(), "AND" | "OR" | "NOT")
-                {
-                    s = scope_stack.current();
-                    is_transparent = true;
-                } else if let Some(pushed) = crate::data::hoi4_data::lookup_pushes_scope(key_text) {
-                    // V2: Known trigger/effect with explicit scope push
-                    s = pushed;
-                } else if let Some(event_target_scope) = {
-                    // V2: Check if this key is a saved event target
-                    let lower_key = key_text.to_ascii_lowercase();
-                    let result = ctx
-                        .event_targets
-                        .get(&*lower_key)
-                        .or_else(|| ctx.event_targets.get(key_text));
-                    result
-                        .map(|targets| {
-                            targets
-                                .value()
-                                .first()
-                                .map(|t| t.scope)
-                                .unwrap_or(Scope::Unknown)
-                        })
-                        .filter(|s| *s != Scope::Unknown)
-                } {
-                    s = event_target_scope;
-                } else if let Some(chain_target) =
-                    crate::data::hoi4_data::lookup_chain_target(&scope_stack.current(), key_text)
-                {
-                    // Chain target from current scope (e.g. State -> owner -> Country)
-                    s = chain_target.scope;
-                } else if key_text == "effect" && ctx.uri.contains("/common/aces/") {
-                    // Inside ace modifier definitions, the `effect = {}` block
-                    // contains Country-scope modifiers. Push Country scope so
-                    // V2ScopeRule validates them against Country-scope data.
-                    s = Scope::Country;
-                } else if key_text == "modifiers" || key_text.ends_with("_modifiers") {
-                    // Modifier application-target blocks (unit_modifiers, etc.) are
-                    // not evaluation scopes — the engine reads them as a flat bag
-                    // and routes modifiers per-key. Push ModifierBag transparent so
-                    // V2ScopeRule skips scope checks inside, while THIS/ROOT/PREV
-                    // resolution still walks through the transparent node correctly.
-                    s = Scope::ModifierBag;
-                    is_transparent = true;
-                } else {
-                    // Legacy: try dynamic meta-scope resolution for THIS/ROOT/PREV/FROM.
-                    // Then fall back to static Scope::from_str.
-                    s = scope_stack
-                        .resolve_meta_scope(key_text)
-                        .unwrap_or_else(|| Scope::from_str(key_text));
-
-                    // Internal 'idea' definition block context
-                    // Unknown keys with block values at depth 2-3 inside an Idea
-                    // scope are likely idea names (e.g. `my_idea = { ... }` inside
-                    // `country = { ... }`). Promote them to Scope::Idea.
-                    // EXCLUDE known idea structure/sub-block keywords — those are
-                    // never valid idea names even if placed at the category level.
-                    if s == Scope::Unknown {
-                        let stack = scope_stack.stack();
-                        if stack.contains(&Scope::Idea)
-                            && (stack.len() == 2 || stack.len() == 3)
-                            && !is_idea_structure_key(key_text)
-                        {
-                            s = Scope::Idea;
-                        }
-                    }
-
-                    // Known character tokens (GER_walter_ulbricht, etc.) -> Character scope
-                    if s == Scope::Unknown && ctx.characters.contains_key(key_text) {
-                        s = Scope::Character;
-                    }
-
-                    // Numeric keys (state IDs like 684, province IDs) push State scope.
-                    // Must NOT be inside random_list (where numbers are weights, not scopes).
-                    if s == Scope::Unknown
-                        && !in_random_list
-                        && !key_text.is_empty()
-                        && key_text.as_bytes().iter().all(|b| b.is_ascii_digit())
+                // Idea promotion: Unknown keys with block values at depth 2-3
+                // inside an Idea scope are likely idea names (e.g. `my_idea = { }`
+                // inside `country = { ... }`). EXCLUDE known idea structure/sub-block
+                // keywords — those are never valid idea names.
+                if s == Scope::Unknown {
+                    let stack = scope_stack.stack();
+                    if stack.contains(&Scope::Idea)
+                        && (stack.len() == 2 || stack.len() == 3)
+                        && !is_idea_structure_key(key_text)
                     {
-                        s = Scope::State;
-                    }
-
-                    // State-targeted decisions: FROM refers to the target state
-                    if s == Scope::Country
-                        && state_targeted
-                        && key_text.eq_ignore_ascii_case("FROM")
-                    {
-                        s = Scope::State;
+                        s = Scope::Idea;
                     }
                 }
 
