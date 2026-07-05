@@ -22,8 +22,10 @@ impl ValidationRule for AchievementRule {
             };
             let key_lower = ass.key_text(ctx.source).to_ascii_lowercase();
             if key_lower == "custom_achievement" || key_lower == "custom_ribbon" {
-                let name_key = format!("{}_NAME", ass.key_text(ctx.source));
-                let desc_key = format!("{}_DESC", ass.key_text(ctx.source));
+                // Skip loc checks if localization hasn't been scanned yet
+                if !ctx.loc.is_empty() {
+                    let name_key = format!("{}_NAME", ass.key_text(ctx.source));
+                    let desc_key = format!("{}_DESC", ass.key_text(ctx.source));
 
                 if !ctx.loc.contains_key(name_key.as_str()) {
                     diags.push(Diagnostic {
@@ -57,6 +59,7 @@ impl ValidationRule for AchievementRule {
                         ..Default::default()
                     });
                 }
+                } // end loc_ready guard
             }
         }
     }

@@ -63,7 +63,8 @@ impl ValidationRule for LocalizationRule {
         }
 
         if should_flag {
-            if !ctx.loc.contains_key(val) {
+            // Skip if localization hasn't been scanned yet
+            if !ctx.loc.is_empty() && !ctx.loc.contains_key(val) {
                 // Double-check: the key might be stored with a version suffix like ":0"
                 // Instead of iterating the entire 162k-entry DashMap (which is O(N) per
                 // missing key), check a few common version numbers directly.

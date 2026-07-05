@@ -149,6 +149,7 @@ impl EventVisitor {
         }
 
         // HOM3018: title loc key missing from localization
+        if !ctx.loc.is_empty() {
         if let Some(ref key) = state.title_key {
             if !ctx.loc.contains_key(key.as_str()) {
                 let prefix = format!("{}:", key);
@@ -195,6 +196,7 @@ impl EventVisitor {
                 }
             }
         }
+        } // end loc_ready guard
 
         // HOM3020: picture sprite not found
         if let Some(ref sprite) = state.picture_sprite {

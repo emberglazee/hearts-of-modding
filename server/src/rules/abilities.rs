@@ -141,7 +141,7 @@ impl AstVisitor for AbilityVisitor {
                 if p_key.eq_ignore_ascii_case("name") {
                     state.has_name = true;
                     if let Some(s) = ass.value.value.as_str(ctx.source) {
-                        if !ctx.loc.contains_key(s) {
+                        if !ctx.loc.is_empty() && !ctx.loc.contains_key(s) {
                             diags.push(Diagnostic {
                                 range: ast_range_to_lsp(&ass.value.range),
                                 severity: Some(DiagnosticSeverity::WARNING),
@@ -161,7 +161,7 @@ impl AstVisitor for AbilityVisitor {
                 } else if p_key.eq_ignore_ascii_case("desc") {
                     state.has_desc = true;
                     if let Some(s) = ass.value.value.as_str(ctx.source) {
-                        if !ctx.loc.contains_key(s) {
+                        if !ctx.loc.is_empty() && !ctx.loc.contains_key(s) {
                             diags.push(Diagnostic {
                                 range: ast_range_to_lsp(&ass.value.range),
                                 severity: Some(DiagnosticSeverity::WARNING),
