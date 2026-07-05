@@ -312,11 +312,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country",
-          "Unit",
-          "Global",
-          "Idea",
-          "Character"
+          "Global"
         ],
         "usage_restriction": ""
       },
@@ -469,8 +465,6 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Idea",
-          "Global",
           "Country"
         ],
         "usage_restriction": ""
@@ -1230,8 +1224,7 @@
       "scopes": {
         "usage": [
           "Country",
-          "Global",
-          "Idea"
+          "Global"
         ],
         "usage_restriction": ""
       },
@@ -2088,9 +2081,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Unit",
-          "Country",
-          "Idea"
+          "Unit"
         ],
         "usage_restriction": ""
       },
@@ -2147,9 +2138,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country",
-          "Global",
-          "Idea"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -2667,9 +2656,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country",
-          "Global",
-          "Idea"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -2905,11 +2892,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country",
-          "Global",
-          "Character",
-          "Idea",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -3052,30 +3035,6 @@
       "stack_behaviour": "passthrough",
       "version_added": "1.0"
     },
-    "has_country_flag": {
-      "block_type": "value_trigger",
-      "description": "Compares the specified flag's last set date, days since last set, and/or value.",
-      "examples": [
-        "has_country_flag = {\n flag = my_flag\n days > 30\n date > 1936.6.1\n value > 0\n}"
-      ],
-      "name": "has_country_flag",
-      "notes": "If not set, the value comparison is >0. value is limited between -32768 and 32767.",
-      "parameters": {},
-      "pushes_scope": null,
-      "scopes": {
-        "usage": [
-          "Country",
-          "Global",
-          "State",
-          "Character",
-          "Unit",
-          "Idea"
-        ],
-        "usage_restriction": ""
-      },
-      "stack_behaviour": "passthrough",
-      "version_added": "1.0"
-    },
     "has_country_leader": {
       "block_type": "value_trigger",
       "description": "Checks if the current scope has the specified country leader.",
@@ -3209,9 +3168,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country",
-          "Global",
-          "Idea"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -3312,7 +3269,6 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Idea",
           "Country"
         ],
         "usage_restriction": ""
@@ -3684,11 +3640,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "Character",
-          "Idea",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -3746,11 +3698,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country",
-          "Character",
-          "Global",
-          "Idea",
-          "Unit"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -3960,25 +3908,6 @@
         "has_mastery = {\n amount = 200\n track = infantry\n}"
       ],
       "name": "has_mastery",
-      "notes": "1.17",
-      "parameters": {},
-      "pushes_scope": null,
-      "scopes": {
-        "usage": [
-          "Character"
-        ],
-        "usage_restriction": ""
-      },
-      "stack_behaviour": "passthrough",
-      "version_added": ""
-    },
-    "has_mastery_level": {
-      "block_type": "value_trigger",
-      "description": "Checks if the country has reached the specified number of mastery levels (rewards) for the given subdoctrine.",
-      "examples": [
-        "has_mastery_level = {\n amount = 2\n subdoctrine = mobile_infantry\n}"
-      ],
-      "name": "has_mastery_level",
       "notes": "1.17",
       "parameters": {},
       "pushes_scope": null,
@@ -4813,7 +4742,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Character"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -5326,11 +5255,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country",
-          "Global",
-          "State",
-          "Idea",
-          "Character"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -6345,9 +6270,8 @@
       "scopes": {
         "usage": [
           "Country",
-          "Global",
           "State",
-          "Idea"
+          "Global"
         ],
         "usage_restriction": ""
       },
@@ -7411,11 +7335,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "Character",
-          "Idea",
-          "State"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -7434,11 +7354,8 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Global",
           "Country",
-          "State",
-          "Character",
-          "Idea"
+          "Global"
         ],
         "usage_restriction": ""
       },
@@ -8528,11 +8445,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Global",
-          "Country",
-          "Character",
-          "Idea",
-          "State"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -10407,24 +10320,6 @@
       "version_added": "",
       "notes": ""
     },
-    "any_military_industrial_organization": {
-      "name": "any_military_industrial_organization",
-      "description": "Checks if any MIO within the current country meets the conditions.\n\n**Example:**\n```paradox\n`any_military_industrial_organization = { \u2026 }`\n```",
-      "scopes": {
-        "usage": [
-          "Country",
-          "Character"
-        ],
-        "usage_restriction": ""
-      },
-      "pushes_scope": null,
-      "parameters": {},
-      "examples": [],
-      "stack_behaviour": "passthrough",
-      "block_type": "value_trigger",
-      "version_added": "",
-      "notes": ""
-    },
     "any_purchase_contract": {
       "name": "any_purchase_contract",
       "description": "Checks if any purchase contract within the current country meets the conditions.\n\n**Example:**\n```paradox\n`any_purchase_contract = { \u2026 }`\n```",
@@ -10482,24 +10377,6 @@
       "scopes": {
         "usage": [
           "Country"
-        ],
-        "usage_restriction": ""
-      },
-      "pushes_scope": null,
-      "parameters": {},
-      "examples": [],
-      "stack_behaviour": "passthrough",
-      "block_type": "value_trigger",
-      "version_added": "",
-      "notes": ""
-    },
-    "all_military_industrial_organization": {
-      "name": "all_military_industrial_organization",
-      "description": "Checks if all MIOs within the current country meet the conditions.\n\n**Example:**\n```paradox\n`all_military_industrial_organization = { \u2026 }`\n```",
-      "scopes": {
-        "usage": [
-          "Country",
-          "Character"
         ],
         "usage_restriction": ""
       },
@@ -11391,10 +11268,7 @@
       "description": "Changes the number of shared building slots for the current state.",
       "scopes": {
         "usage": [
-          "Country",
-          "State",
-          "Global",
-          "Idea"
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -13462,7 +13336,10 @@
       "scopes": {
         "usage": [
           "Global",
-          "Country"
+          "Country",
+          "State",
+          "Character",
+          "Unit"
         ],
         "usage_restriction": ""
       },
