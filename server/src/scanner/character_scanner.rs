@@ -17,6 +17,7 @@ pub struct CharacterRole {
     pub maneuvering_skill: Option<i32>,
     pub coordination_skill: Option<i32>,
     pub ideology: Option<String>,
+    pub idea_token: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -187,6 +188,7 @@ fn parse_character_details(entries: &[ast::Entry], source: &str, character: &mut
                             maneuvering_skill: None,
                             coordination_skill: None,
                             ideology: None,
+                            idea_token: None,
                         };
                         parse_role_details(role_details, source, &mut role);
                         character.roles.push(role);
@@ -234,6 +236,11 @@ fn parse_role_details(entries: &[ast::Entry], source: &str, role: &mut Character
                 "logistics_skill" => role.logistics_skill = get_int(&ass.value, source),
                 "maneuvering_skill" => role.maneuvering_skill = get_int(&ass.value, source),
                 "coordination_skill" => role.coordination_skill = get_int(&ass.value, source),
+                "idea_token" => {
+                    if let Some(s) = ass.value.value.as_str(source) {
+                        role.idea_token = Some(s.to_string());
+                    }
+                }
                 _ => {}
             }
         }

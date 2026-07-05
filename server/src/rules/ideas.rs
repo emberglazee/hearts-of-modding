@@ -95,20 +95,25 @@ impl ValidationRule for IdeaRule {
         // Idea existence checks (add_ideas, has_idea, remove_ideas)
         if key_lower == "add_ideas" || key_lower == "has_idea" || key_lower == "remove_ideas" {
             if let Some(val) = ass.value.value.as_str(ctx.source) {
-                // Skip if value is a known character — character-specific ideas
-                // share the same ID namespace but aren't in common/ideas/
-                if ctx.characters.contains_key(val) {
+                // Skip if value is a known idea, or "all", or a character idea token
+                if val == "all" || ctx.ideas.contains_key(val) {
                     return;
                 }
-                if val != "all" && !ctx.ideas.contains_key(val) {
-                    diags.push(Diagnostic {
-                        range: ast_range_to_lsp(&ass.value.range),
-                        severity: Some(DiagnosticSeverity::WARNING),
-                        message: format!("Unknown idea: '{}'", val),
-                        source: Some("Hearts of Modding".to_string()),
-                        ..Default::default()
-                    });
+                // Check if any character has a role with this idea_token
+                if ctx.characters.iter().any(|entry| {
+                    entry.value().roles.iter().any(|r| {
+                        r.idea_token.as_deref() == Some(val)
+                    })
+                }) {
+                    return;
                 }
+                diags.push(Diagnostic {
+                    range: ast_range_to_lsp(&ass.value.range),
+                    severity: Some(DiagnosticSeverity::WARNING),
+                    message: format!("Unknown idea: '{}'", val),
+                    source: Some("Hearts of Modding".to_string()),
+                    ..Default::default()
+                });
             }
             return;
         }
