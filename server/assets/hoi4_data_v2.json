@@ -10372,6 +10372,249 @@
       "block_type": "value_trigger",
       "version_added": "",
       "notes": ""
+    },
+    "any_country": {
+      "name": "any_country",
+      "description": "Checks if any country meets the triggers.\n\n**Example:**\n```paradox\n`any_country = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Country",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": "",
+      "notes": ""
+    },
+    "any_neighbor_state": {
+      "name": "any_neighbor_state",
+      "description": "Check if any state that is neighbour to the one where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_neighbor_state = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "State"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "State",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": "",
+      "notes": ""
+    },
+    "controller": {
+      "name": "controller",
+      "description": "The controller of the current state. Subject to the 'invalid event target' error.\n\n**Example:**\n```paradox\ncontroller = {\n    ROOT = {\n        create_wargoal = {\n            target = PREV\n            type = take_state_focus\n            generator = { 123 }\n        }\n    }\n}\n```",
+      "scopes": {
+        "usage": [
+          "State"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Country",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": "",
+      "notes": ""
+    },
+    "all_state": {
+      "name": "all_state",
+      "description": "Check if all states meet the triggers.\n\n**Example:**\n```paradox\n`all_state = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "State"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "State",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": "",
+      "notes": ""
+    },
+    "any_controlled_state": {
+      "name": "any_controlled_state",
+      "description": "Check if any state that is controlled by the country where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_controlled_state = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "State"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "State",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": "",
+      "notes": ""
+    },
+    "all_other_country": {
+      "name": "all_other_country",
+      "description": "Checks if all countries other than the one where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`all_other_country = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Country",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": "",
+      "notes": ""
+    },
+    "any_core_state": {
+      "name": "any_core_state",
+      "description": "Check if all states that are cored by the country where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`any_core_state = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "State"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "State",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": "",
+      "notes": ""
+    },
+    "capital_scope": {
+      "name": "capital_scope",
+      "description": "The state where the capital of the current country is located in. Subject to the 'invalid event target' error in rare cases.\n\n**Example:**\n```paradox\n`capital_scope = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Global",
+          "Country",
+          "State",
+          "Character",
+          "Unit"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "State",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": "",
+      "notes": ""
+    },
+    "all_core_state": {
+      "name": "all_core_state",
+      "description": "Check if any state that is cored by the country where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`all_core_state = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "State"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "State",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": "",
+      "notes": ""
+    },
+    "all_country": {
+      "name": "all_country",
+      "description": "Checks if all countries meet the triggers.\n\n**Example:**\n```paradox\n`all_country = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Country",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": "",
+      "notes": ""
+    },
+    "any_state": {
+      "name": "any_state",
+      "description": "Check if any state meets the triggers.\n\n**Example:**\n```paradox\n`any_state = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "State"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "State",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": "",
+      "notes": ""
+    },
+    "any_state_division": {
+      "name": "any_state_division",
+      "description": "Checks if any division within the current state meets the triggers.\n\n**Example:**\n```paradox\n`any_state_division = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "State",
+          "Unit"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Unit",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": "",
+      "notes": ""
+    },
+    "any_owned_state": {
+      "name": "any_owned_state",
+      "description": "Check if any state that is owned by the country where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_owned_state = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "State"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "State",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": "",
+      "notes": ""
+    },
+    "all_owned_state": {
+      "name": "all_owned_state",
+      "description": "Check if all states that are owned by the country where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`all_owned_state = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "State"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "State",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": "",
+      "notes": ""
     }
   },
   "effects": {
@@ -19791,6 +20034,940 @@
       "examples": [],
       "stack_behaviour": "passthrough",
       "block_type": "value_effect",
+      "version_added": "",
+      "notes": ""
+    },
+    "capital_scope": {
+      "name": "capital_scope",
+      "description": "The state where the capital of the current country is located in. Subject to the 'invalid event target' error in rare cases.\n\n**Example:**\n```paradox\n`capital_scope = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Global",
+          "Country",
+          "State",
+          "Character",
+          "Unit"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "State",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "transparent",
+      "block_type": "value_effect",
+      "version_added": "",
+      "notes": ""
+    },
+    "every_active_scientist": {
+      "name": "every_active_scientist",
+      "description": "Executes children effects on every active scientist (or \"random_select_amount\" of random character if specified) of the country in scope, that fulfills the \"limit\" trigger.title.\n\n**Example:**\n```paradox\n`every_active_scientist = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Character"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Character",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "every_allied_country": {
+      "name": "every_allied_country",
+      "description": "Executes children effects on every Allied Country different from the one in scope (or `random_select_amount` of random country if specified) that fulfills the `limit` trigger.\n\n**Example:**\n```paradox\n`every_allied_country = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Country",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "every_army_leader": {
+      "name": "every_army_leader",
+      "description": "Executes contained effects on every army leader that meets the limit and is recruited by the country this is contained in.\n\n**Example:**\n```paradox\n`every_unit_leader = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Character"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Character",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "every_character": {
+      "name": "every_character",
+      "description": "Executes contained effects on every character that meets the limit and is recruited by the country this is contained in.\n\n**Example:**\n```paradox\n`every_character = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Character"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Character",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "every_collection_element": {
+      "name": "every_collection_element",
+      "description": "Applies arbitrary effects to all elements of a collection. To learn more about collections, see the documentation in /Hearts of Iron IV/common/collections.\n\n**Example:**\n```paradox\nevery_collection_element = {\n    input = {\n        input = collection_id # This can be a collection name or an inline definition of a collection\n        limit = {\n            # Trigger - limit effect execution to a subset of elements\n        }\n    }\n    # Effects to be executed\n}\n```",
+      "scopes": {
+        "usage": [
+          "Global",
+          "Country",
+          "State",
+          "Character",
+          "Unit"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Unknown",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "every_controlled_state": {
+      "name": "every_controlled_state",
+      "description": "Executes contained effects on every state that meets the limit and is controlled by the country this is contained in.\n\n**Example:**\n```paradox\n`every_controlled_state = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "State"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "State",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "every_core_state": {
+      "name": "every_core_state",
+      "description": "Executes contained effects on every state that meets the limit and is a core of the country this is contained in.\n\n**Example:**\n```paradox\n`every_core_state = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "State"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "State",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "every_country": {
+      "name": "every_country",
+      "description": "Executes contained effects on every country that meets the limit.\n\n**Example:**\n```paradox\n`every_country = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Country",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "every_country_division": {
+      "name": "every_country_division",
+      "description": "Executes contained effects on every division that meets the limit and is owned by the current country.\n\n**Example:**\n```paradox\n`every_country_division = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Country",
+          "Unit"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Unit",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "every_country_with_original_tag": {
+      "name": "every_country_with_original_tag",
+      "description": "Executes contained effects on every country that meets the limit and has the specified original tag.\n\n**Example:**\n```paradox\nevery_country_with_original_tag = {\n    original_tag_to_check = TAG  #required\n    \u2026                  #effects to run\n}\n```",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Country",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "every_enemy_country": {
+      "name": "every_enemy_country",
+      "description": "Executes contained effects on every country that meets the limit and is at war with the country this is contained in.\n\n**Example:**\n```paradox\n`every_enemy_country = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Country",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "every_faction_member": {
+      "name": "every_faction_member",
+      "description": "Executes children effects on every faction member of the country's faction in scope, if country does not have a faction it will only work on itself.\n\n**Example:**\n```paradox\n`every_faction_member = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Country",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "every_military_industrial_organization": {
+      "name": "every_military_industrial_organization",
+      "description": "Executes contained effects on every MIO within the current country that meets the limit.\n\n**Example:**\n```paradox\n`every_military_industrial_organization = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Country",
+          "Character"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Country",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "every_navy_leader": {
+      "name": "every_navy_leader",
+      "description": "Executes contained effects on every navy leader that meets the limit and is recruited by the country this is contained in.\n\n**Example:**\n```paradox\n`every_navy_leader = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Character"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Character",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "every_neighbor_country": {
+      "name": "every_neighbor_country",
+      "description": "Executes contained effects on every country that meets the limit and borders the country this is contained in.\n\n**Example:**\n```paradox\n`every_neighbor_country = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Country",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "every_neighbor_state": {
+      "name": "every_neighbor_state",
+      "description": "Executes contained effects on every state that meets the limit and neighbours the state this is contained in.\n\n**Example:**\n```paradox\n`every_neighbor_state = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "State"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "State",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "every_occupied_country": {
+      "name": "every_occupied_country",
+      "description": "Executes contained effects on every country that meets the limit and has any core states controlled by the country this is contained in.\n\n**Example:**\n```paradox\n`every_occupied_country = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Country",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "every_operative": {
+      "name": "every_operative",
+      "description": "Executes contained effects on every operative that meets the limit and is recruited by the country this is contained in.\n\n**Example:**\n```paradox\n`every_operative = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Character"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Character",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "every_other_country": {
+      "name": "every_other_country",
+      "description": "Executes contained effects on every country that meets the limit and is not the same country as the one this is contained in.\n\n**Example:**\n```paradox\n`every_other_country = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Country",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "every_owned_state": {
+      "name": "every_owned_state",
+      "description": "Executes contained effects on every state that meets the limit and is owned by the country this is contained in.\n\n**Example:**\n```paradox\n`every_owned_state = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "State"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "State",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "every_possible_country": {
+      "name": "every_possible_country",
+      "description": "Executes children effects on every country that meets the limit, including those that do not exist.\n\n**Example:**\n```paradox\n`every_possible_country = { ... }`\n```",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Country",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "every_purchase_contract": {
+      "name": "every_purchase_contract",
+      "description": "Executes contained effects on every purchase contract within the current country that meets the limit.\n\n**Example:**\n```paradox\n`every_purchase_contract = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Country",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "every_scientist": {
+      "name": "every_scientist",
+      "description": "Executes children effects on every scientist (or \"random_select_amount\" of random character if specified) of the country in scope, that fulfills the \"limit\" trigger.\n\n**Example:**\n```paradox\n`every_scientist = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Character"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Character",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "every_state": {
+      "name": "every_state",
+      "description": "Executes contained effects on every state that meets the limit.\n\n**Example:**\n```paradox\n`every_state = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "State"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "State",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "every_state_division": {
+      "name": "every_state_division",
+      "description": "Executes contained effects on every division that meets the limit and is located within the current state.\n\n**Example:**\n```paradox\n`every_state_division = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "State",
+          "Unit"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Unit",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "every_subject_country": {
+      "name": "every_subject_country",
+      "description": "Executes contained effects on every country that meets the limit and is a subject of the country this is contained in.\n\n**Example:**\n```paradox\n`every_subject_country = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Country",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "every_unit_leader": {
+      "name": "every_unit_leader",
+      "description": "Executes contained effects on every unit leader (corps commanders, field marshals, admirals) that meets the limit and is recruited by the country this is contained in.\n\n**Example:**\n```paradox\n`every_unit_leader = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Character"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Character",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "global_every_army_leader": {
+      "name": "global_every_army_leader",
+      "description": "Executes contained effects on every army leader that meets the limit. Preferable to use every_army_leader unless necessary to use global_every_army_leader.\n\n**Example:**\n```paradox\n`global_every_army_leader = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Global",
+          "Country",
+          "Character"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Character",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "random_active_scientist": {
+      "name": "random_active_scientist",
+      "description": "Executes children effects on random scientists that fulfills the \"limit\" trigger.\n\n**Example:**\n```paradox\n`random_active_scientist = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Character"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Character",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "random_allied_country": {
+      "name": "random_allied_country",
+      "description": "Executes children effects on a random Allied Country different from the one in scope that fulfills the `limit` trigger.\n\n**Example:**\n```paradox\n`random_allied_country = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Country",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "random_army_leader": {
+      "name": "random_army_leader",
+      "description": "Executes contained effects on a random army leader that meets the limit and is recruited by the country this is contained in.\n\n**Example:**\n```paradox\n`random_army_leader = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Character"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Character",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "random_character": {
+      "name": "random_character",
+      "description": "Executes contained effects on a random character that meets the limit and is recruited by the country this is contained in.\n\n**Example:**\n```paradox\n`random_character = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Character"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Character",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "random_controlled_state": {
+      "name": "random_controlled_state",
+      "description": "Executes contained effects on a random state that meets the limit and is controlled by the country this is contained in.\n\n**Example:**\n```paradox\nrandom_controlled_state = {\n    prioritize = { 123 321 } #optional\n    \u2026    #effects to run\n}\n```",
+      "scopes": {
+        "usage": [
+          "State"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "State",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "random_core_state": {
+      "name": "random_core_state",
+      "description": "Executes contained effects on a random state that meets the limit and is a core of the country this is contained in.\n\n**Example:**\n```paradox\nrandom_core_state = {\n    prioritize = { 123 321 } #optional\n    \u2026    #effects to run\n}\n```",
+      "scopes": {
+        "usage": [
+          "State"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "State",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "random_country": {
+      "name": "random_country",
+      "description": "Executes contained effects on a random country that meets the limit.\n\n**Example:**\n```paradox\n`random_country = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Country",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "random_country_division": {
+      "name": "random_country_division",
+      "description": "Executes contained effects on a random division that meets the limit and is owned by the current country.\n\n**Example:**\n```paradox\n`random_country_division = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Country",
+          "Unit"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Unit",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "random_country_with_original_tag": {
+      "name": "random_country_with_original_tag",
+      "description": "Executes contained effects on a random country that meets the limit and has the specified original tag.\n\n**Example:**\n```paradox\nrandom_country_with_original_tag = {\n    original_tag_to_check = TAG  #required\n    \u2026                  #effects to run\n}\n```",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Country",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "random_enemy_country": {
+      "name": "random_enemy_country",
+      "description": "Executes contained effects on a random country that meets the limit and is at war with the country this is contained in.\n\n**Example:**\n```paradox\n`random_enemy_country = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Country",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "random_military_industrial_organization": {
+      "name": "random_military_industrial_organization",
+      "description": "Executes contained effects on a random MIO within the current country that meets the limit.\n\n**Example:**\n```paradox\n`random_military_industrial_organization = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Country",
+          "Character"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Country",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "random_navy_leader": {
+      "name": "random_navy_leader",
+      "description": "Executes contained effects on a random navy leader that meets the limit and is recruited by the country this is contained in.\n\n**Example:**\n```paradox\n`random_navy_leader = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Character"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Character",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "random_neighbor_country": {
+      "name": "random_neighbor_country",
+      "description": "Executes contained effects on a random country that meets the limit and borders the country this is contained in.\n\n**Example:**\n```paradox\n`random_neighbor_country = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Country",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "random_neighbor_state": {
+      "name": "random_neighbor_state",
+      "description": "Executes contained effects on a random state that meets the limit and neighbours the state this is contained in. Does not support prioritizing.\n\n**Example:**\n```paradox\n`random_neighbor_state = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "State"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "State",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "random_occupied_country": {
+      "name": "random_occupied_country",
+      "description": "Executes contained effects on a random country that meets the limit and has any core states controlled by the country this is contained in.\n\n**Example:**\n```paradox\n`random_occupied_country = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Country",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "random_operative": {
+      "name": "random_operative",
+      "description": "Executes contained effects on a random operative that meets the limit and is recruited by the country this is contained in.\n\n**Example:**\n```paradox\n`random_operative = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Character"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Character",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "random_other_country": {
+      "name": "random_other_country",
+      "description": "Executes contained effects on a random country that meets the limit and is not the same country as the one this is contained in.\n\n**Example:**\n```paradox\n`random_other_country = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Country",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "random_owned_controlled_state": {
+      "name": "random_owned_controlled_state",
+      "description": "Executes contained effects on a random state that meets the limit and is owned and controlled by the country this is contained in.\n\n**Example:**\n```paradox\nrandom_owned_controlled_state = {\n    prioritize = { 123 321 } #optional\n    \u2026    #effects to run\n}\n```",
+      "scopes": {
+        "usage": [
+          "State"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "State",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "random_owned_state": {
+      "name": "random_owned_state",
+      "description": "Executes contained effects on a random state that meets the limit and is owned by the country this is contained in.\n\n**Example:**\n```paradox\nrandom_owned_state = {\n    prioritize = { 123 321 } #optional\n    \u2026    #effects to run\n}\n```",
+      "scopes": {
+        "usage": [
+          "State"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "State",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "random_purchase_contract": {
+      "name": "random_purchase_contract",
+      "description": "Executes contained effects on a random purchase contract within the current country that meets the limit.\n\n**Example:**\n```paradox\n`random_purchase_contract = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Country",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "random_scientist": {
+      "name": "random_scientist",
+      "description": "Executes children effects on random scientists that fulfills the \"limit\" trigger.\n\n**Example:**\n```paradox\n`random_scientist = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Character"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Character",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "random_state": {
+      "name": "random_state",
+      "description": "Executes contained effects on a random state that meets the limit.\n\n**Example:**\n```paradox\nrandom_state = {\n    prioritize = { 123 321 } #optional\n    \u2026    #effects to run\n}\n```",
+      "scopes": {
+        "usage": [
+          "State"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "State",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "random_state_division": {
+      "name": "random_state_division",
+      "description": "Executes contained effects on a random division that meets the limit and is located within the current state.\n\n**Example:**\n```paradox\n`random_state_division = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "State",
+          "Unit"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Unit",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "random_subject_country": {
+      "name": "random_subject_country",
+      "description": "Executes contained effects on a random country that meets the limit and is a subject of the country this is contained in.\n\n**Example:**\n```paradox\n`random_subject_country = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Country",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
+      "version_added": "",
+      "notes": ""
+    },
+    "random_unit_leader": {
+      "name": "random_unit_leader",
+      "description": "Executes contained effects on a random unit leader (corps commanders, field marshals, admirals) that meets the limit and is recruited by the country this is contained in.\n\n**Example:**\n```paradox\n`random_unit_leader = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Character"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Character",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "push",
+      "block_type": "effect_scope",
       "version_added": "",
       "notes": ""
     }
