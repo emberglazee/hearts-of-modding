@@ -1604,9 +1604,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Character",
-          "Country",
-          "Global"
+          "Unit"
         ],
         "usage_restriction": ""
       },
@@ -21368,8 +21366,7 @@
       "description": "Fires the specified event for the owner of the current unit leader.",
       "scopes": {
         "usage": [
-          "Country",
-          "Global"
+          "Character"
         ],
         "usage_restriction": ""
       },
