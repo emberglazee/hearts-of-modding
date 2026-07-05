@@ -2520,9 +2520,8 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Global",
           "Country",
-          "Character"
+          "Global"
         ],
         "usage_restriction": ""
       },
@@ -2772,8 +2771,7 @@
       "scopes": {
         "usage": [
           "Character",
-          "Global",
-          "Country"
+          "Global"
         ],
         "usage_restriction": ""
       },
@@ -3619,9 +3617,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country",
-          "Global",
-          "Character"
+          "Global"
         ],
         "usage_restriction": ""
       },
@@ -3718,8 +3714,7 @@
       "scopes": {
         "usage": [
           "Country",
-          "Global",
-          "Character"
+          "Global"
         ],
         "usage_restriction": ""
       },
@@ -3797,9 +3792,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country",
-          "Character",
-          "Global"
+          "Country"
         ],
         "usage_restriction": ""
       },
@@ -4379,7 +4372,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country"
+          "Unit"
         ],
         "usage_restriction": ""
       },
@@ -5060,9 +5053,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Character",
-          "Global",
-          "Country"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -5474,7 +5465,6 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Global",
           "Character"
         ],
         "usage_restriction": ""
@@ -5534,9 +5524,7 @@
       "scopes": {
         "usage": [
           "Country",
-          "Global",
-          "State",
-          "Character"
+          "Global"
         ],
         "usage_restriction": ""
       },
@@ -5845,8 +5833,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Character",
-          "Country"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -6173,8 +6160,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Character",
-          "Country"
+          "Character"
         ],
         "usage_restriction": ""
       },
@@ -9270,9 +9256,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Character",
-          "Country",
-          "Global"
+          "Character"
         ],
         "usage_restriction": ""
       },
