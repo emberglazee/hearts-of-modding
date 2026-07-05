@@ -638,7 +638,8 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country"
+          "State",
+          "Global"
         ],
         "usage_restriction": ""
       },
@@ -3580,8 +3581,7 @@
       "scopes": {
         "usage": [
           "Country",
-          "Global",
-          "State"
+          "Global"
         ],
         "usage_restriction": ""
       },
@@ -4665,7 +4665,8 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -20058,16 +20059,6 @@
         "usage_restriction": ""
       }
     },
-    "opinion_gain_monthly_same_ideology": {
-      "name": "opinion_gain_monthly_same_ideology",
-      "description": "Changes opinion gain from the 'Improve relations' diplomatic action for countries of the same ideology.\n\n**Example:**\n```paradox\nopinion_gain_monthly_same_ideology = 5\n```",
-      "scopes": {
-        "usage": [
-          "Character"
-        ],
-        "usage_restriction": ""
-      }
-    },
     "training_time_army_factor": {
       "name": "training_time_army_factor",
       "description": "Modifies the training time for the army.\n\n**Example:**\n```paradox\ntraining_time_army_factor = 0.3\n```",
@@ -20108,16 +20099,6 @@
       "scopes": {
         "usage": [
           "Country"
-        ],
-        "usage_restriction": ""
-      }
-    },
-    "choose_preferred_tactics_cost": {
-      "name": "choose_preferred_tactics_cost",
-      "description": "Changes the cost to choose a preferred tactic.\n\n**Example:**\n```paradox\nchoose_preferred_tactics_cost = 5\n```",
-      "scopes": {
-        "usage": [
-          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -21116,16 +21097,6 @@
         "usage_restriction": ""
       }
     },
-    "female_random_army_leader_chance": {
-      "name": "female_random_army_leader_chance",
-      "description": "Changes the chance for a randomly-generated army leader to be female.\n\n**Example:**\n```paradox\nfemale_random_army_leader_chance = 0.3\n```",
-      "scopes": {
-        "usage": [
-          "Character"
-        ],
-        "usage_restriction": ""
-      }
-    },
     "army_attack_against_minor_factor": {
       "name": "army_attack_against_minor_factor",
       "description": "The bonus to land army's attack against a non-major country.\n\n**Example:**\n```paradox\narmy_attack_against_minor_factor = 0.5\n```",
@@ -21893,16 +21864,6 @@
         "usage": [
           "Idea",
           "Global"
-        ],
-        "usage_restriction": ""
-      }
-    },
-    "army_fuel_capacity_factor": {
-      "name": "army_fuel_capacity_factor",
-      "description": "Modifies how much fuel a single unit can store before running out.\n\n**Example:**\n```paradox\narmy_fuel_capacity_factor = 0.3\n```",
-      "scopes": {
-        "usage": [
-          "Idea"
         ],
         "usage_restriction": ""
       }
@@ -23045,16 +23006,6 @@
         "usage_restriction": ""
       }
     },
-    "navy_weather_penalty": {
-      "name": "navy_weather_penalty",
-      "description": "Modifies the penalty the country's navy gets during poor weather.\n\n**Example:**\n```paradox\nnavy_weather_penalty = 0.3\n```",
-      "scopes": {
-        "usage": [
-          "Idea"
-        ],
-        "usage_restriction": ""
-      }
-    },
     "acclimatization_hot_climate_gain_factor": {
       "name": "acclimatization_hot_climate_gain_factor",
       "description": "Hot acclimatization gain factor.\n\n**Example:**\n```paradox\nacclimatization_hot_climate_gain_factor = 0.5\n```",
@@ -24060,16 +24011,6 @@
         "usage_restriction": ""
       }
     },
-    "night_spotting_chance": {
-      "name": "night_spotting_chance",
-      "description": "Modifies the chance for the country's navy to spot the enemy at night.\n\n**Example:**\n```paradox\nnight_spotting_chance = 0.3\n```",
-      "scopes": {
-        "usage": [
-          "Idea"
-        ],
-        "usage_restriction": ""
-      }
-    },
     "resistance_decay": {
       "name": "resistance_decay",
       "description": "Modifies the speed of resistance decay.\n\n**Example:**\n```paradox\nresistance_decay = 0.3\n```",
@@ -24673,16 +24614,6 @@
           "Character",
           "Global",
           "Idea"
-        ],
-        "usage_restriction": ""
-      }
-    },
-    "military_industrial_organization_policy_cost": {
-      "name": "military_industrial_organization_policy_cost",
-      "description": "Modifies the political power cost to assign a MIO policy.\n\n**Example:**\n```paradox\nmilitary_industrial_organization_policy_cost = 20\n```",
-      "scopes": {
-        "usage": [
-          "Character"
         ],
         "usage_restriction": ""
       }
@@ -25737,16 +25668,6 @@
           "Country",
           "Character",
           "Global"
-        ],
-        "usage_restriction": ""
-      }
-    },
-    "female_random_scientist_chance": {
-      "name": "female_random_scientist_chance",
-      "description": "The chance of spawn female scientist\n\n**Example:**\n```paradox\nfemale_random_scientist_chance = 0.05\n```",
-      "scopes": {
-        "usage": [
-          "Character"
         ],
         "usage_restriction": ""
       }
