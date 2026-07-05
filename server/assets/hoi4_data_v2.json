@@ -18565,6 +18565,7 @@
       "description": "Makes the specified state the current scope's capital state.",
       "scopes": {
         "usage": [
+          "Country",
           "State"
         ],
         "usage_restriction": ""
