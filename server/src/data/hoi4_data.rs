@@ -423,13 +423,19 @@ mod tests {
 
     #[test]
     fn test_lookup_pushes_scope() {
-        // any_country is a known trigger in V2 data that should push Country scope
+        // any_country was removed from V2 data — it's a scope-pusher, not a trigger
         let result = lookup_pushes_scope("any_country");
         assert!(
-            result.is_some(),
-            "any_country should have a pushes_scope in V2 data"
+            result.is_none(),
+            "any_country should have been removed from V2 data"
         );
-        assert_eq!(result, Some(Scope::Country));
+
+        // controller as an effect has no pushes_scope (it's a value_effect, not a scope-pusher)
+        let result = lookup_pushes_scope("controller");
+        assert!(
+            result.is_none(),
+            "controller effect should have no pushes_scope"
+        );
     }
 
     #[test]
