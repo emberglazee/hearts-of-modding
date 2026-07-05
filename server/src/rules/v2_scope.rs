@@ -56,6 +56,13 @@ impl ValidationRule for V2ScopeRule {
             .or_else(|| crate::MODIFIERS.get(key));
 
         if let Some(entity) = entity {
+            // Skip keys with pushes_scope — these are structural scope-pushers
+            // (e.g. controller, any_country, all_state) not real triggers.
+            // The V2ScopeRule should only validate actual trigger/effect usage.
+            if entity.pushes_scope.is_some() {
+                return;
+            }
+
             // Scope mismatch check (HOM004)
             if entity.scopes.allows(&current_scope) {
                 return;

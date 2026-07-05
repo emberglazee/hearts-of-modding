@@ -140,11 +140,15 @@ impl Scope {
             "any_state"
             | "every_state"
             | "random_state"
+            | "all_state"
             | "any_neighbor_state"
             | "any_home_state"
             | "any_owned_state"
+            | "all_owned_state"
             | "any_controlled_state"
-            | "any_core_state" => Scope::State,
+            | "all_controlled_state"
+            | "any_core_state"
+            | "all_core_state" => Scope::State,
             "unit" | "any_unit" | "every_unit" | "random_unit" => Scope::Unit,
             "character"
             | "any_character"

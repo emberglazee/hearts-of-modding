@@ -4603,7 +4603,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "State"
+          "Global"
         ],
         "usage_restriction": ""
       },
@@ -7100,6 +7100,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
+          "Country",
           "State"
         ],
         "usage_restriction": ""
@@ -7119,6 +7120,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
+          "Country",
           "State"
         ],
         "usage_restriction": ""
@@ -9394,7 +9396,8 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "State"
         ],
         "usage_restriction": ""
       },
@@ -10588,7 +10591,7 @@
         ],
         "usage_restriction": ""
       },
-      "pushes_scope": null,
+      "pushes_scope": "Unit",
       "parameters": {},
       "examples": [],
       "stack_behaviour": "passthrough",
