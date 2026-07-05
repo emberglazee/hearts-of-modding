@@ -14308,7 +14308,8 @@
       "description": "Adds the specified division to the current state.",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "State"
         ],
         "usage_restriction": ""
       },
