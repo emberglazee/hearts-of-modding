@@ -10085,23 +10085,6 @@
       "version_added": "",
       "notes": ""
     },
-    "any_operative_leader": {
-      "name": "any_operative_leader",
-      "description": "Checks if any operative that is employed by the country where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_operative_leader = { \u2026 }`\n```",
-      "scopes": {
-        "usage": [
-          "Character"
-        ],
-        "usage_restriction": ""
-      },
-      "pushes_scope": null,
-      "parameters": {},
-      "examples": [],
-      "stack_behaviour": "passthrough",
-      "block_type": "value_trigger",
-      "version_added": "",
-      "notes": ""
-    },
     "all_scientists": {
       "name": "all_scientists",
       "description": "Checks if all scientists of the Country in scope matches the triggers.\n\n**Example:**\n```paradox\n`all_scientistst = { \u2026 }`\n```",
@@ -10163,23 +10146,6 @@
           "State",
           "Character",
           "Unit"
-        ],
-        "usage_restriction": ""
-      },
-      "pushes_scope": null,
-      "parameters": {},
-      "examples": [],
-      "stack_behaviour": "passthrough",
-      "block_type": "value_trigger",
-      "version_added": "",
-      "notes": ""
-    },
-    "all_operative_leader": {
-      "name": "all_operative_leader",
-      "description": "Checks if all operatives that are employed by the country where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`all_operative_leader = { \u2026 }`\n```",
-      "scopes": {
-        "usage": [
-          "Character"
         ],
         "usage_restriction": ""
       },

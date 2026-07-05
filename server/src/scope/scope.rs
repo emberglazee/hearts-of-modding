@@ -146,8 +146,17 @@ impl Scope {
             | "any_controlled_state"
             | "any_core_state" => Scope::State,
             "unit" | "any_unit" | "every_unit" | "random_unit" => Scope::Unit,
-            "character" | "any_character" | "every_character" | "random_character"
-            | "any_unit_leader" | "any_army_leader" | "any_navy_leader" => Scope::Character,
+            "character"
+            | "any_character"
+            | "every_character"
+            | "random_character"
+            | "any_unit_leader"
+            | "any_army_leader"
+            | "any_navy_leader"
+            | "any_operative_leader"
+            | "all_operative_leader"
+            | "every_operative_leader"
+            | "random_operative_leader" => Scope::Character,
             _ => {
                 // HOI4 tags: 3 chars, first uppercase alphabetic, rest uppercase alphanumeric.
                 // Reserved words (NOT, AND, TAG, OOB, LOG, NUM, RED) excluded.
