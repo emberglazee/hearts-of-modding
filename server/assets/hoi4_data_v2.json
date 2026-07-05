@@ -11947,7 +11947,8 @@
       "description": "Adds an off-map (offmap) building for the current scope that produces its effects without being present in a state.",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Global"
         ],
         "usage_restriction": ""
       },
@@ -12458,7 +12459,8 @@
       "description": "Adds a claim for the current scope on the specified state.",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Global"
         ],
         "usage_restriction": ""
       },
@@ -13671,7 +13673,7 @@
       "description": "Creates an entity.",
       "scopes": {
         "usage": [
-          "Country"
+          "Global"
         ],
         "usage_restriction": ""
       },
@@ -14181,7 +14183,7 @@
       "description": "Deletes an entity",
       "scopes": {
         "usage": [
-          "Country"
+          "Global"
         ],
         "usage_restriction": ""
       },
@@ -14990,7 +14992,8 @@
       "description": "Changes the [[state category]] to the next one that contains more building slots.",
       "scopes": {
         "usage": [
-          "Country"
+          "Country",
+          "Global"
         ],
         "usage_restriction": ""
       },
@@ -17557,7 +17560,7 @@
       "description": "Sets the animation of a specified entity.",
       "scopes": {
         "usage": [
-          "Country"
+          "Global"
         ],
         "usage_restriction": ""
       },
@@ -17576,7 +17579,7 @@
       "description": "Sets the position and rotation of an entity using two coordinates.",
       "scopes": {
         "usage": [
-          "Country"
+          "Global"
         ],
         "usage_restriction": ""
       },
@@ -17595,7 +17598,7 @@
       "description": "Sets the position of an existing entity",
       "scopes": {
         "usage": [
-          "Country"
+          "Global"
         ],
         "usage_restriction": ""
       },
@@ -17614,7 +17617,7 @@
       "description": "Sets the currently-facing angle of an existing entity.",
       "scopes": {
         "usage": [
-          "Country"
+          "Global"
         ],
         "usage_restriction": ""
       },
@@ -17633,7 +17636,7 @@
       "description": "Sets the size of an existing entity.",
       "scopes": {
         "usage": [
-          "Country"
+          "Global"
         ],
         "usage_restriction": ""
       },
@@ -19259,7 +19262,7 @@
       "description": "Stores the current core states of the current scope in an [[array]] in ROOT's scope.",
       "scopes": {
         "usage": [
-          "Country"
+          "Global"
         ],
         "usage_restriction": ""
       },
