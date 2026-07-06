@@ -2051,6 +2051,7 @@ impl Backend {
             scope::Scope::Ace
         } else if uri.contains("/common/ai_faction_theaters/")
             || uri.contains("/common/ai_focuses/")
+            || uri.contains("/common/ai_navy/taskforce/")
         {
             scope::Scope::Country
         } else {
