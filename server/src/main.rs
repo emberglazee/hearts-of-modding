@@ -138,6 +138,8 @@ async fn cli_validate(path: &str) {
         crate::scope::scope::Scope::Ace
     } else if path.contains("/common/ai_faction_theaters/") {
         crate::scope::scope::Scope::Country
+    } else if path.contains("/common/ai_focuses/") {
+        crate::scope::scope::Scope::Country
     } else {
         crate::scope::scope::Scope::Global
     };

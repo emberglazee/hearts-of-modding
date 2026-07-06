@@ -2051,6 +2051,8 @@ impl Backend {
             scope::Scope::Ace
         } else if uri.contains("/common/ai_faction_theaters/") {
             scope::Scope::Country
+        } else if uri.contains("/common/ai_focuses/") {
+            scope::Scope::Country
         } else {
             scope::Scope::Global
         };
