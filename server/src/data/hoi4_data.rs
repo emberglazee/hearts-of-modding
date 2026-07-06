@@ -439,12 +439,12 @@ mod tests {
             "every_state should push State scope"
         );
 
-        // controller pushes Country scope (chain target)
-        let result = lookup_pushes_scope("controller");
+        // every_country pushes Country scope (iteration target)
+        let result = lookup_pushes_scope("every_country");
         assert_eq!(
             result,
             Some(Scope::Country),
-            "controller should push Country scope"
+            "every_country should push Country scope"
         );
 
         // Unknown entity has no pushes_scope
