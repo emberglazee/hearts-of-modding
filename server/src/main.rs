@@ -139,7 +139,14 @@ async fn cli_validate(path: &str) {
     } else if path.contains("/common/ai_faction_theaters/")
         || path.contains("/common/ai_focuses/")
         || path.contains("/common/ai_navy/taskforce/")
+        || path.contains("/common/ai_equipment/")
+        || path.contains("/common/ai_strategy/")
+        || path.contains("/common/ai_strategy_plans/")
+        || path.contains("/common/ai_templates/")
     {
+        // NOTE: No scanner or validation for these yet — just mapped to
+        // Country scope to avoid false positives.
+        // TODO: implement proper scanners for each ai_* directory
         crate::scope::scope::Scope::Country
     } else {
         crate::scope::scope::Scope::Global
