@@ -270,7 +270,7 @@
     },
     "all_active_scientist": {
       "name": "all_active_scientist",
-      "description": "Checks if all active scientists of the Country in scope matches the triggers.\n\n**Example:**\n```paradox\n`all_active_scientist = { … }`\n```",
+      "description": "Checks if all active scientists of the Country in scope matches the triggers.\n\n**Example:**\n```paradox\n`all_active_scientist = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -287,7 +287,7 @@
     },
     "all_allied_country": {
       "name": "all_allied_country",
-      "description": "Checks if all countries that are allied with the one where this scope is located - meaning that they are either a subject of the country, its overlord, or that they share a faction - meet the triggers. Does not include the country itself.\n\n**Example:**\n```paradox\n`all_allied_country = { … }`\n```",
+      "description": "Checks if all countries that are allied with the one where this scope is located - meaning that they are either a subject of the country, its overlord, or that they share a faction - meet the triggers. Does not include the country itself.\n\n**Example:**\n```paradox\n`all_allied_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -304,7 +304,7 @@
     },
     "all_army_leader": {
       "name": "all_army_leader",
-      "description": "Checks if all army leaders that are employed by the country where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`all_army_leader = { … }`\n```",
+      "description": "Checks if all army leaders that are employed by the country where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`all_army_leader = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -321,7 +321,7 @@
     },
     "all_character": {
       "name": "all_character",
-      "description": "Checks if all characters that are recruited by the country where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`all_character = { … }`\n```",
+      "description": "Checks if all characters that are recruited by the country where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`all_character = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -338,7 +338,7 @@
     },
     "all_controlled_state": {
       "name": "all_controlled_state",
-      "description": "Check if all states that are controlled by the country where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`all_controlled_state = { … }`\n```",
+      "description": "Check if all states that are controlled by the country where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`all_controlled_state = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -355,7 +355,7 @@
     },
     "all_core_state": {
       "name": "all_core_state",
-      "description": "Check if any state that is cored by the country where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`all_core_state = { … }`\n```",
+      "description": "Check if any state that is cored by the country where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`all_core_state = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -372,7 +372,7 @@
     },
     "all_country": {
       "name": "all_country",
-      "description": "Checks if all countries meet the triggers.\n\n**Example:**\n```paradox\n`all_country = { … }`\n```",
+      "description": "Checks if all countries meet the triggers.\n\n**Example:**\n```paradox\n`all_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Global"
@@ -406,7 +406,7 @@
     },
     "all_country_with_original_tag": {
       "name": "all_country_with_original_tag",
-      "description": "Checks if all countries originating from the specified country, including the dynamic countries created for civil wars and other purposes, meet the triggers. `original_tag_to_check = TAG` is used to specify the original tag.\n\n**Example:**\n```paradox\nall_country_with_original_tag = {\n\toriginal_tag_to_check = TAG  #required\n\t… # triggers to check\n}\n```",
+      "description": "Checks if all countries originating from the specified country, including the dynamic countries created for civil wars and other purposes, meet the triggers. `original_tag_to_check = TAG` is used to specify the original tag.\n\n**Example:**\n```paradox\nall_country_with_original_tag = {\n\toriginal_tag_to_check = TAG  #required\n\t\u2026 # triggers to check\n}\n```",
       "scopes": {
         "usage": [
           "Global"
@@ -423,7 +423,7 @@
     },
     "all_enemy_country": {
       "name": "all_enemy_country",
-      "description": "Checks if all countries that are at war with the one where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`all_enemy_country = { … }`\n```",
+      "description": "Checks if all countries that are at war with the one where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`all_enemy_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -440,7 +440,7 @@
     },
     "all_guaranteed_country": {
       "name": "all_guaranteed_country",
-      "description": "Checks if all countries that are guaranteed by the one where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`all_guaranteed_country = { … }`\n```",
+      "description": "Checks if all countries that are guaranteed by the one where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`all_guaranteed_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -457,7 +457,7 @@
     },
     "all_navy_leader": {
       "name": "all_navy_leader",
-      "description": "Checks if all navy leaders that are employed by the country where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`all_navy_leader = { … }`\n```",
+      "description": "Checks if all navy leaders that are employed by the country where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`all_navy_leader = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -474,7 +474,7 @@
     },
     "all_neighbor_country": {
       "name": "all_neighbor_country",
-      "description": "Checks if all countries that border the one where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`all_neighbor_country = { … }`\n```",
+      "description": "Checks if all countries that border the one where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`all_neighbor_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -491,7 +491,7 @@
     },
     "all_neighbor_state": {
       "name": "all_neighbor_state",
-      "description": "Check if all states that are neighbour to the one where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`all_neighbor_state = { … }`\n```",
+      "description": "Check if all states that are neighbour to the one where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`all_neighbor_state = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "State"
@@ -508,7 +508,7 @@
     },
     "all_occupied_country": {
       "name": "all_occupied_country",
-      "description": "Checks if all countries that are occupied by the one where this scope is located - meaning that the occupied country has core states controlled by the occupier country - meet the triggers.\n\n**Example:**\n```paradox\n`all_occupied_country = { … }`\n```",
+      "description": "Checks if all countries that are occupied by the one where this scope is located - meaning that the occupied country has core states controlled by the occupier country - meet the triggers.\n\n**Example:**\n```paradox\n`all_occupied_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -525,7 +525,7 @@
     },
     "all_other_country": {
       "name": "all_other_country",
-      "description": "Checks if all countries other than the one where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`all_other_country = { … }`\n```",
+      "description": "Checks if all countries other than the one where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`all_other_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Global"
@@ -542,7 +542,7 @@
     },
     "all_owned_state": {
       "name": "all_owned_state",
-      "description": "Check if all states that are owned by the country where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`all_owned_state = { … }`\n```",
+      "description": "Check if all states that are owned by the country where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`all_owned_state = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -559,7 +559,7 @@
     },
     "all_scientists": {
       "name": "all_scientists",
-      "description": "Checks if all scientists of the Country in scope matches the triggers.\n\n**Example:**\n```paradox\n`all_scientistst = { … }`\n```",
+      "description": "Checks if all scientists of the Country in scope matches the triggers.\n\n**Example:**\n```paradox\n`all_scientistst = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -576,7 +576,7 @@
     },
     "all_state": {
       "name": "all_state",
-      "description": "Check if all states meet the triggers.\n\n**Example:**\n```paradox\n`all_state = { … }`\n```",
+      "description": "Check if all states meet the triggers.\n\n**Example:**\n```paradox\n`all_state = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Global"
@@ -593,7 +593,7 @@
     },
     "all_subject_countries": {
       "name": "all_subject_countries",
-      "description": "Checks if all countries that are a subject of the one where this scope is located meet the triggers. Notice the plural spelling in the scope.\n\n**Example:**\n```paradox\n`all_subject_countries = { … }`\n```",
+      "description": "Checks if all countries that are a subject of the one where this scope is located meet the triggers. Notice the plural spelling in the scope.\n\n**Example:**\n```paradox\n`all_subject_countries = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -610,7 +610,7 @@
     },
     "all_unit_leader": {
       "name": "all_unit_leader",
-      "description": "Checks if all unit leaders (corps commanders, field marshals, admirals) that are employed by the country where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`all_unit_leader = { … }`\n```",
+      "description": "Checks if all unit leaders (corps commanders, field marshals, admirals) that are employed by the country where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`all_unit_leader = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -741,7 +741,7 @@
     },
     "any_active_scientist": {
       "name": "any_active_scientist",
-      "description": "Checks if at least one active scientist of the Country in scope matches the triggers.\n\n**Example:**\n```paradox\n`any_active_scientist = { … }`\n```",
+      "description": "Checks if at least one active scientist of the Country in scope matches the triggers.\n\n**Example:**\n```paradox\n`any_active_scientist = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -758,7 +758,7 @@
     },
     "any_allied_country": {
       "name": "any_allied_country",
-      "description": "Checks if any country that is allied with the one where this scope is located - meaning that they are either a subject of the country, its overlord, or that they share a faction - meets the triggers. Does not include the country itself.\n\n**Example:**\n```paradox\n`any_allied_country = { … }`\n```",
+      "description": "Checks if any country that is allied with the one where this scope is located - meaning that they are either a subject of the country, its overlord, or that they share a faction - meets the triggers. Does not include the country itself.\n\n**Example:**\n```paradox\n`any_allied_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -775,7 +775,7 @@
     },
     "any_army_leader": {
       "name": "any_army_leader",
-      "description": "Checks if any army leader that is employed by the country where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_army_leader = { … }`\n```",
+      "description": "Checks if any army leader that is employed by the country where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_army_leader = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -792,7 +792,7 @@
     },
     "any_character": {
       "name": "any_character",
-      "description": "Checks if any character that is recruited by the country where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_character = { … }`\n```",
+      "description": "Checks if any character that is recruited by the country where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_character = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -828,7 +828,7 @@
     },
     "any_controlled_state": {
       "name": "any_controlled_state",
-      "description": "Check if any state that is controlled by the country where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_controlled_state = { … }`\n```",
+      "description": "Check if any state that is controlled by the country where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_controlled_state = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -845,7 +845,7 @@
     },
     "any_core_state": {
       "name": "any_core_state",
-      "description": "Check if all states that are cored by the country where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`any_core_state = { … }`\n```",
+      "description": "Check if all states that are cored by the country where this scope is located meet the triggers.\n\n**Example:**\n```paradox\n`any_core_state = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -862,7 +862,7 @@
     },
     "any_country": {
       "name": "any_country",
-      "description": "Checks if any country meets the triggers.\n\n**Example:**\n```paradox\n`any_country = { … }`\n```",
+      "description": "Checks if any country meets the triggers.\n\n**Example:**\n```paradox\n`any_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Global"
@@ -879,7 +879,7 @@
     },
     "any_country_division": {
       "name": "any_country_division",
-      "description": "Checks if any division owned by the current country meets the triggers.\n\n**Example:**\n```paradox\n`any_country_division = { … }`\n```",
+      "description": "Checks if any division owned by the current country meets the triggers.\n\n**Example:**\n```paradox\n`any_country_division = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -913,7 +913,7 @@
     },
     "any_country_with_core": {
       "name": "any_country_with_core",
-      "description": "Checks if any country that has the current scope as a core state meets the triggers. **Does not have an equivalent for other effect/trigger scope types.**\n\n**Example:**\n```paradox\n`any_country_with_core = { … }`\n```",
+      "description": "Checks if any country that has the current scope as a core state meets the triggers. **Does not have an equivalent for other effect/trigger scope types.**\n\n**Example:**\n```paradox\n`any_country_with_core = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "State"
@@ -930,7 +930,7 @@
     },
     "any_country_with_original_tag": {
       "name": "any_country_with_original_tag",
-      "description": "Checks if any country originating from the specified country, including the dynamic countries created for civil wars and other purposes, meets the triggers. `original_tag_to_check = TAG` is used to specify the original tag.\n\n**Example:**\n```paradox\nany_country_with_original_tag = {\n    original_tag_to_check = TAG  #required\n    …                  #triggers to check\n}\n```",
+      "description": "Checks if any country originating from the specified country, including the dynamic countries created for civil wars and other purposes, meets the triggers. `original_tag_to_check = TAG` is used to specify the original tag.\n\n**Example:**\n```paradox\nany_country_with_original_tag = {\n    original_tag_to_check = TAG  #required\n    \u2026                  #triggers to check\n}\n```",
       "scopes": {
         "usage": [
           "Global"
@@ -947,7 +947,7 @@
     },
     "any_enemy_country": {
       "name": "any_enemy_country",
-      "description": "Checks if any country that are at war with the one where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_enemy_country = { … }`\n```",
+      "description": "Checks if any country that are at war with the one where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_enemy_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -964,7 +964,7 @@
     },
     "any_guaranteed_country": {
       "name": "any_guaranteed_country",
-      "description": "Checks if any country that is guaranteed by the one where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_guaranteed_country = { … }`\n```",
+      "description": "Checks if any country that is guaranteed by the one where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_guaranteed_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -981,7 +981,7 @@
     },
     "any_home_area_neighbor_country": {
       "name": "any_home_area_neighbor_country",
-      "description": "Checks if any country that borders the one where this scope is located, as well as being in its home area - meaning a direct land connection between the capitals of countries - meets the triggers.\n\n**Example:**\n```paradox\n`any_home_area_neighbor_country = { … }`\n```",
+      "description": "Checks if any country that borders the one where this scope is located, as well as being in its home area - meaning a direct land connection between the capitals of countries - meets the triggers.\n\n**Example:**\n```paradox\n`any_home_area_neighbor_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -998,7 +998,7 @@
     },
     "any_navy_leader": {
       "name": "any_navy_leader",
-      "description": "Checks if any navy leader that is employed by the country where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_navy_leader = { … }`\n```",
+      "description": "Checks if any navy leader that is employed by the country where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_navy_leader = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -1015,7 +1015,7 @@
     },
     "any_neighbor_country": {
       "name": "any_neighbor_country",
-      "description": "Checks if any country that borders the one where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_neighbor_country = { … }`\n```",
+      "description": "Checks if any country that borders the one where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_neighbor_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -1032,7 +1032,7 @@
     },
     "any_neighbor_state": {
       "name": "any_neighbor_state",
-      "description": "Check if any state that is neighbour to the one where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_neighbor_state = { … }`\n```",
+      "description": "Check if any state that is neighbour to the one where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_neighbor_state = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "State"
@@ -1049,7 +1049,7 @@
     },
     "any_occupied_country": {
       "name": "any_occupied_country",
-      "description": "Checks if any country that is occupied by the one where this scope is located - meaning that the occupied country has core states controlled by the occupier country - meets the triggers.\n\n**Example:**\n```paradox\n`any_occupied_country = { … }`\n```",
+      "description": "Checks if any country that is occupied by the one where this scope is located - meaning that the occupied country has core states controlled by the occupier country - meets the triggers.\n\n**Example:**\n```paradox\n`any_occupied_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -1066,7 +1066,7 @@
     },
     "any_other_country": {
       "name": "any_other_country",
-      "description": "Checks if any country other than the one where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_other_country = { … }`\n```",
+      "description": "Checks if any country other than the one where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_other_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Global"
@@ -1083,7 +1083,7 @@
     },
     "any_owned_state": {
       "name": "any_owned_state",
-      "description": "Check if any state that is owned by the country where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_owned_state = { … }`\n```",
+      "description": "Check if any state that is owned by the country where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_owned_state = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -1119,7 +1119,7 @@
     },
     "any_purchase_contract": {
       "name": "any_purchase_contract",
-      "description": "Checks if any purchase contract within the current country meets the conditions.\n\n**Example:**\n```paradox\n`any_purchase_contract = { … }`\n```",
+      "description": "Checks if any purchase contract within the current country meets the conditions.\n\n**Example:**\n```paradox\n`any_purchase_contract = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -1136,7 +1136,7 @@
     },
     "any_scientist": {
       "name": "any_scientist",
-      "description": "Checks if at least one active scientist of the Country in scope matches the triggers.\n\n**Example:**\n```paradox\n`any_scientist = { … }`\n```",
+      "description": "Checks if at least one active scientist of the Country in scope matches the triggers.\n\n**Example:**\n```paradox\n`any_scientist = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -1153,7 +1153,7 @@
     },
     "any_state": {
       "name": "any_state",
-      "description": "Check if any state meets the triggers.\n\n**Example:**\n```paradox\n`any_state = { … }`\n```",
+      "description": "Check if any state meets the triggers.\n\n**Example:**\n```paradox\n`any_state = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Global"
@@ -1170,7 +1170,7 @@
     },
     "any_state_division": {
       "name": "any_state_division",
-      "description": "Checks if any division within the current state meets the triggers.\n\n**Example:**\n```paradox\n`any_state_division = { … }`\n```",
+      "description": "Checks if any division within the current state meets the triggers.\n\n**Example:**\n```paradox\n`any_state_division = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "State"
@@ -1187,7 +1187,7 @@
     },
     "any_state_in": {
       "name": "any_state_in",
-      "description": "Check if any state in the given category meets the trigger.\n\n**Example:**\n```paradox\nany_state_in = {\n  array = array_of_states  #required\n    …                  #triggers to check\n}\n```\n\n Requires on of the following fields\n\n```paradox\narray = <array_of_states>\ncontinent = <continent_name>\nai_area = <ai_area_name>\nstrategic_region = <strategic_region_number>\n```",
+      "description": "Check if any state in the given category meets the trigger.\n\n**Example:**\n```paradox\nany_state_in = {\n  array = array_of_states  #required\n    \u2026                  #triggers to check\n}\n```\n\n Requires on of the following fields\n\n```paradox\narray = <array_of_states>\ncontinent = <continent_name>\nai_area = <ai_area_name>\nstrategic_region = <strategic_region_number>\n```",
       "scopes": {
         "usage": [
           "Global"
@@ -1221,7 +1221,7 @@
     },
     "any_subject_country": {
       "name": "any_subject_country",
-      "description": "Checks if any country that is a subject of the one where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_subject_country = { … }`\n```",
+      "description": "Checks if any country that is a subject of the one where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_subject_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -1238,7 +1238,7 @@
     },
     "any_unit_leader": {
       "name": "any_unit_leader",
-      "description": "Checks if any unit leader (corps commander, field marshal, admiral) that is employed by the country where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_unit_leader = { … }`\n```",
+      "description": "Checks if any unit leader (corps commander, field marshal, admiral) that is employed by the country where this scope is located meets the triggers.\n\n**Example:**\n```paradox\n`any_unit_leader = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -3711,6 +3711,23 @@
       },
       "stack_behaviour": "passthrough",
       "version_added": "1.0"
+    },
+    "has_country_flag": {
+      "name": "has_country_flag",
+      "description": "Checks if the current scope has the specified country flag.",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": "",
+      "notes": ""
     },
     "has_country_leader": {
       "block_type": "value_trigger",
@@ -9947,6 +9964,99 @@
       },
       "stack_behaviour": "passthrough",
       "version_added": ""
+    },
+    "unit_strength": {
+      "block_type": "value_trigger",
+      "description": "Checks the current strength of the unit on the scale from 0 to 1.",
+      "examples": [
+        "unit_strength"
+      ],
+      "name": "unit_strength",
+      "notes": "Must use either the operator.",
+      "parameters": {},
+      "pushes_scope": null,
+      "scopes": {
+        "usage": [
+          "Unit"
+        ],
+        "usage_restriction": ""
+      },
+      "stack_behaviour": "passthrough",
+      "version_added": "1.12"
+    },
+    "unit_organization": {
+      "block_type": "value_trigger",
+      "description": "Checks the current organisation of the unit on the scale from 0 to 1.",
+      "examples": [
+        "unit_organization"
+      ],
+      "name": "unit_organization",
+      "notes": "Must use either the operator.",
+      "parameters": {},
+      "pushes_scope": null,
+      "scopes": {
+        "usage": [
+          "Unit"
+        ],
+        "usage_restriction": ""
+      },
+      "stack_behaviour": "passthrough",
+      "version_added": "1.12"
+    },
+    "controller": {
+      "name": "controller",
+      "description": "The controller of the current state. Subject to the 'invalid event target' error.\n\n**Example:**\n```paradox\ncontroller = {\n    ROOT = {\n        create_wargoal = {\n            target = PREV\n            type = take_state_focus\n            generator = { 123 }\n        }\n    }\n}\n```",
+      "scopes": {
+        "usage": [
+          "State"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Country",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": "",
+      "notes": ""
+    },
+    "capital_scope": {
+      "name": "capital_scope",
+      "description": "The state where the capital of the current country is located in. Subject to the 'invalid event target' error in rare cases.\n\n**Example:**\n```paradox\n`capital_scope = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Global",
+          "Country",
+          "State",
+          "Character",
+          "Unit"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "State",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": "",
+      "notes": ""
+    },
+    "any_unit": {
+      "name": "any_unit",
+      "description": "Check if any unit meets the triggers.",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Unit",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": "",
+      "notes": ""
     }
   },
   "effects": {
@@ -10718,7 +10828,7 @@
     },
     "add_faction_goal": {
       "name": "add_faction_goal",
-      "description": "Adds a goal to the current’s country faction.",
+      "description": "Adds a goal to the current\u2019s country faction.",
       "scopes": {
         "usage": [
           "Country"
@@ -10756,7 +10866,7 @@
     },
     "add_faction_influence_ratio": {
       "name": "add_faction_influence_ratio",
-      "description": "Adds influence to the country based on the given ratio of the faction’s total influence.",
+      "description": "Adds influence to the country based on the given ratio of the faction\u2019s total influence.",
       "scopes": {
         "usage": [
           "Country"
@@ -10794,7 +10904,7 @@
     },
     "add_faction_initiative": {
       "name": "add_faction_initiative",
-      "description": "Adds Faction Initiative points to the current country’s faction.",
+      "description": "Adds Faction Initiative points to the current country\u2019s faction.",
       "scopes": {
         "usage": [
           "Country"
@@ -13587,7 +13697,7 @@
     },
     "every_active_scientist": {
       "name": "every_active_scientist",
-      "description": "Executes children effects on every active scientist (or \"random_select_amount\" of random character if specified) of the country in scope, that fulfills the \"limit\" trigger.title.\n\n**Example:**\n```paradox\n`every_active_scientist = { … }`\n```",
+      "description": "Executes children effects on every active scientist (or \"random_select_amount\" of random character if specified) of the country in scope, that fulfills the \"limit\" trigger.title.\n\n**Example:**\n```paradox\n`every_active_scientist = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Global"
@@ -13604,7 +13714,7 @@
     },
     "every_allied_country": {
       "name": "every_allied_country",
-      "description": "Executes children effects on every Allied Country different from the one in scope (or `random_select_amount` of random country if specified) that fulfills the `limit` trigger.\n\n**Example:**\n```paradox\n`every_allied_country = { … }`\n```",
+      "description": "Executes children effects on every Allied Country different from the one in scope (or `random_select_amount` of random country if specified) that fulfills the `limit` trigger.\n\n**Example:**\n```paradox\n`every_allied_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -13621,7 +13731,7 @@
     },
     "every_army_leader": {
       "name": "every_army_leader",
-      "description": "Executes contained effects on every army leader that meets the limit and is recruited by the country this is contained in.\n\n**Example:**\n```paradox\n`every_unit_leader = { … }`\n```",
+      "description": "Executes contained effects on every army leader that meets the limit and is recruited by the country this is contained in.\n\n**Example:**\n```paradox\n`every_unit_leader = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -13638,7 +13748,7 @@
     },
     "every_character": {
       "name": "every_character",
-      "description": "Executes contained effects on every character that meets the limit and is recruited by the country this is contained in.\n\n**Example:**\n```paradox\n`every_character = { … }`\n```",
+      "description": "Executes contained effects on every character that meets the limit and is recruited by the country this is contained in.\n\n**Example:**\n```paradox\n`every_character = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -13672,7 +13782,7 @@
     },
     "every_controlled_state": {
       "name": "every_controlled_state",
-      "description": "Executes contained effects on every state that meets the limit and is controlled by the country this is contained in.\n\n**Example:**\n```paradox\n`every_controlled_state = { … }`\n```",
+      "description": "Executes contained effects on every state that meets the limit and is controlled by the country this is contained in.\n\n**Example:**\n```paradox\n`every_controlled_state = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -13689,7 +13799,7 @@
     },
     "every_core_state": {
       "name": "every_core_state",
-      "description": "Executes contained effects on every state that meets the limit and is a core of the country this is contained in.\n\n**Example:**\n```paradox\n`every_core_state = { … }`\n```",
+      "description": "Executes contained effects on every state that meets the limit and is a core of the country this is contained in.\n\n**Example:**\n```paradox\n`every_core_state = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -13706,7 +13816,7 @@
     },
     "every_country": {
       "name": "every_country",
-      "description": "Executes contained effects on every country that meets the limit.\n\n**Example:**\n```paradox\n`every_country = { … }`\n```",
+      "description": "Executes contained effects on every country that meets the limit.\n\n**Example:**\n```paradox\n`every_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Global"
@@ -13723,7 +13833,7 @@
     },
     "every_country_division": {
       "name": "every_country_division",
-      "description": "Executes contained effects on every division that meets the limit and is owned by the current country.\n\n**Example:**\n```paradox\n`every_country_division = { … }`\n```",
+      "description": "Executes contained effects on every division that meets the limit and is owned by the current country.\n\n**Example:**\n```paradox\n`every_country_division = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -13740,7 +13850,7 @@
     },
     "every_country_with_original_tag": {
       "name": "every_country_with_original_tag",
-      "description": "Executes contained effects on every country that meets the limit and has the specified original tag.\n\n**Example:**\n```paradox\nevery_country_with_original_tag = {\n    original_tag_to_check = TAG  #required\n    …                  #effects to run\n}\n```",
+      "description": "Executes contained effects on every country that meets the limit and has the specified original tag.\n\n**Example:**\n```paradox\nevery_country_with_original_tag = {\n    original_tag_to_check = TAG  #required\n    \u2026                  #effects to run\n}\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -13757,7 +13867,7 @@
     },
     "every_enemy_country": {
       "name": "every_enemy_country",
-      "description": "Executes contained effects on every country that meets the limit and is at war with the country this is contained in.\n\n**Example:**\n```paradox\n`every_enemy_country = { … }`\n```",
+      "description": "Executes contained effects on every country that meets the limit and is at war with the country this is contained in.\n\n**Example:**\n```paradox\n`every_enemy_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -13774,7 +13884,7 @@
     },
     "every_faction_member": {
       "name": "every_faction_member",
-      "description": "Executes children effects on every faction member of the country's faction in scope, if country does not have a faction it will only work on itself.\n\n**Example:**\n```paradox\n`every_faction_member = { … }`\n```",
+      "description": "Executes children effects on every faction member of the country's faction in scope, if country does not have a faction it will only work on itself.\n\n**Example:**\n```paradox\n`every_faction_member = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -13791,7 +13901,7 @@
     },
     "every_military_industrial_organization": {
       "name": "every_military_industrial_organization",
-      "description": "Executes contained effects on every MIO within the current country that meets the limit.\n\n**Example:**\n```paradox\n`every_military_industrial_organization = { … }`\n```",
+      "description": "Executes contained effects on every MIO within the current country that meets the limit.\n\n**Example:**\n```paradox\n`every_military_industrial_organization = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -13808,7 +13918,7 @@
     },
     "every_navy_leader": {
       "name": "every_navy_leader",
-      "description": "Executes contained effects on every navy leader that meets the limit and is recruited by the country this is contained in.\n\n**Example:**\n```paradox\n`every_navy_leader = { … }`\n```",
+      "description": "Executes contained effects on every navy leader that meets the limit and is recruited by the country this is contained in.\n\n**Example:**\n```paradox\n`every_navy_leader = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -13825,7 +13935,7 @@
     },
     "every_neighbor_country": {
       "name": "every_neighbor_country",
-      "description": "Executes contained effects on every country that meets the limit and borders the country this is contained in.\n\n**Example:**\n```paradox\n`every_neighbor_country = { … }`\n```",
+      "description": "Executes contained effects on every country that meets the limit and borders the country this is contained in.\n\n**Example:**\n```paradox\n`every_neighbor_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -13842,7 +13952,7 @@
     },
     "every_neighbor_state": {
       "name": "every_neighbor_state",
-      "description": "Executes contained effects on every state that meets the limit and neighbours the state this is contained in.\n\n**Example:**\n```paradox\n`every_neighbor_state = { … }`\n```",
+      "description": "Executes contained effects on every state that meets the limit and neighbours the state this is contained in.\n\n**Example:**\n```paradox\n`every_neighbor_state = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "State"
@@ -13859,7 +13969,7 @@
     },
     "every_occupied_country": {
       "name": "every_occupied_country",
-      "description": "Executes contained effects on every country that meets the limit and has any core states controlled by the country this is contained in.\n\n**Example:**\n```paradox\n`every_occupied_country = { … }`\n```",
+      "description": "Executes contained effects on every country that meets the limit and has any core states controlled by the country this is contained in.\n\n**Example:**\n```paradox\n`every_occupied_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -13876,7 +13986,7 @@
     },
     "every_operative": {
       "name": "every_operative",
-      "description": "Executes contained effects on every operative that meets the limit and is recruited by the country this is contained in.\n\n**Example:**\n```paradox\n`every_operative = { … }`\n```",
+      "description": "Executes contained effects on every operative that meets the limit and is recruited by the country this is contained in.\n\n**Example:**\n```paradox\n`every_operative = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -13893,7 +14003,7 @@
     },
     "every_other_country": {
       "name": "every_other_country",
-      "description": "Executes contained effects on every country that meets the limit and is not the same country as the one this is contained in.\n\n**Example:**\n```paradox\n`every_other_country = { … }`\n```",
+      "description": "Executes contained effects on every country that meets the limit and is not the same country as the one this is contained in.\n\n**Example:**\n```paradox\n`every_other_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -13910,7 +14020,7 @@
     },
     "every_owned_state": {
       "name": "every_owned_state",
-      "description": "Executes contained effects on every state that meets the limit and is owned by the country this is contained in.\n\n**Example:**\n```paradox\n`every_owned_state = { … }`\n```",
+      "description": "Executes contained effects on every state that meets the limit and is owned by the country this is contained in.\n\n**Example:**\n```paradox\n`every_owned_state = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -13944,7 +14054,7 @@
     },
     "every_purchase_contract": {
       "name": "every_purchase_contract",
-      "description": "Executes contained effects on every purchase contract within the current country that meets the limit.\n\n**Example:**\n```paradox\n`every_purchase_contract = { … }`\n```",
+      "description": "Executes contained effects on every purchase contract within the current country that meets the limit.\n\n**Example:**\n```paradox\n`every_purchase_contract = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Global"
@@ -13961,7 +14071,7 @@
     },
     "every_scientist": {
       "name": "every_scientist",
-      "description": "Executes children effects on every scientist (or \"random_select_amount\" of random character if specified) of the country in scope, that fulfills the \"limit\" trigger.\n\n**Example:**\n```paradox\n`every_scientist = { … }`\n```",
+      "description": "Executes children effects on every scientist (or \"random_select_amount\" of random character if specified) of the country in scope, that fulfills the \"limit\" trigger.\n\n**Example:**\n```paradox\n`every_scientist = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Global"
@@ -13978,7 +14088,7 @@
     },
     "every_state": {
       "name": "every_state",
-      "description": "Executes contained effects on every state that meets the limit.\n\n**Example:**\n```paradox\n`every_state = { … }`\n```",
+      "description": "Executes contained effects on every state that meets the limit.\n\n**Example:**\n```paradox\n`every_state = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Global"
@@ -13995,7 +14105,7 @@
     },
     "every_state_division": {
       "name": "every_state_division",
-      "description": "Executes contained effects on every division that meets the limit and is located within the current state.\n\n**Example:**\n```paradox\n`every_state_division = { … }`\n```",
+      "description": "Executes contained effects on every division that meets the limit and is located within the current state.\n\n**Example:**\n```paradox\n`every_state_division = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "State"
@@ -14012,7 +14122,7 @@
     },
     "every_subject_country": {
       "name": "every_subject_country",
-      "description": "Executes contained effects on every country that meets the limit and is a subject of the country this is contained in.\n\n**Example:**\n```paradox\n`every_subject_country = { … }`\n```",
+      "description": "Executes contained effects on every country that meets the limit and is a subject of the country this is contained in.\n\n**Example:**\n```paradox\n`every_subject_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -14029,7 +14139,7 @@
     },
     "every_unit_leader": {
       "name": "every_unit_leader",
-      "description": "Executes contained effects on every unit leader (corps commanders, field marshals, admirals) that meets the limit and is recruited by the country this is contained in.\n\n**Example:**\n```paradox\n`every_unit_leader = { … }`\n```",
+      "description": "Executes contained effects on every unit leader (corps commanders, field marshals, admirals) that meets the limit and is recruited by the country this is contained in.\n\n**Example:**\n```paradox\n`every_unit_leader = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -14467,7 +14577,7 @@
     },
     "global_every_army_leader": {
       "name": "global_every_army_leader",
-      "description": "Executes contained effects on every army leader that meets the limit. Preferable to use every_army_leader unless necessary to use global_every_army_leader.\n\n**Example:**\n```paradox\n`global_every_army_leader = { … }`\n```",
+      "description": "Executes contained effects on every army leader that meets the limit. Preferable to use every_army_leader unless necessary to use global_every_army_leader.\n\n**Example:**\n```paradox\n`global_every_army_leader = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -15221,7 +15331,7 @@
     },
     "random_active_scientist": {
       "name": "random_active_scientist",
-      "description": "Executes children effects on random scientists that fulfills the \"limit\" trigger.\n\n**Example:**\n```paradox\n`random_active_scientist = { … }`\n```",
+      "description": "Executes children effects on random scientists that fulfills the \"limit\" trigger.\n\n**Example:**\n```paradox\n`random_active_scientist = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Global"
@@ -15238,7 +15348,7 @@
     },
     "random_allied_country": {
       "name": "random_allied_country",
-      "description": "Executes children effects on a random Allied Country different from the one in scope that fulfills the `limit` trigger.\n\n**Example:**\n```paradox\n`random_allied_country = { … }`\n```",
+      "description": "Executes children effects on a random Allied Country different from the one in scope that fulfills the `limit` trigger.\n\n**Example:**\n```paradox\n`random_allied_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -15255,7 +15365,7 @@
     },
     "random_army_leader": {
       "name": "random_army_leader",
-      "description": "Executes contained effects on a random army leader that meets the limit and is recruited by the country this is contained in.\n\n**Example:**\n```paradox\n`random_army_leader = { … }`\n```",
+      "description": "Executes contained effects on a random army leader that meets the limit and is recruited by the country this is contained in.\n\n**Example:**\n```paradox\n`random_army_leader = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -15272,7 +15382,7 @@
     },
     "random_character": {
       "name": "random_character",
-      "description": "Executes contained effects on a random character that meets the limit and is recruited by the country this is contained in.\n\n**Example:**\n```paradox\n`random_character = { … }`\n```",
+      "description": "Executes contained effects on a random character that meets the limit and is recruited by the country this is contained in.\n\n**Example:**\n```paradox\n`random_character = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -15289,7 +15399,7 @@
     },
     "random_controlled_state": {
       "name": "random_controlled_state",
-      "description": "Executes contained effects on a random state that meets the limit and is controlled by the country this is contained in.\n\n**Example:**\n```paradox\nrandom_controlled_state = {\n    prioritize = { 123 321 } #optional\n    …    #effects to run\n}\n```",
+      "description": "Executes contained effects on a random state that meets the limit and is controlled by the country this is contained in.\n\n**Example:**\n```paradox\nrandom_controlled_state = {\n    prioritize = { 123 321 } #optional\n    \u2026    #effects to run\n}\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -15306,7 +15416,7 @@
     },
     "random_core_state": {
       "name": "random_core_state",
-      "description": "Executes contained effects on a random state that meets the limit and is a core of the country this is contained in.\n\n**Example:**\n```paradox\nrandom_core_state = {\n    prioritize = { 123 321 } #optional\n    …    #effects to run\n}\n```",
+      "description": "Executes contained effects on a random state that meets the limit and is a core of the country this is contained in.\n\n**Example:**\n```paradox\nrandom_core_state = {\n    prioritize = { 123 321 } #optional\n    \u2026    #effects to run\n}\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -15323,7 +15433,7 @@
     },
     "random_country": {
       "name": "random_country",
-      "description": "Executes contained effects on a random country that meets the limit.\n\n**Example:**\n```paradox\n`random_country = { … }`\n```",
+      "description": "Executes contained effects on a random country that meets the limit.\n\n**Example:**\n```paradox\n`random_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Global"
@@ -15340,7 +15450,7 @@
     },
     "random_country_division": {
       "name": "random_country_division",
-      "description": "Executes contained effects on a random division that meets the limit and is owned by the current country.\n\n**Example:**\n```paradox\n`random_country_division = { … }`\n```",
+      "description": "Executes contained effects on a random division that meets the limit and is owned by the current country.\n\n**Example:**\n```paradox\n`random_country_division = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -15357,7 +15467,7 @@
     },
     "random_country_with_original_tag": {
       "name": "random_country_with_original_tag",
-      "description": "Executes contained effects on a random country that meets the limit and has the specified original tag.\n\n**Example:**\n```paradox\nrandom_country_with_original_tag = {\n    original_tag_to_check = TAG  #required\n    …                  #effects to run\n}\n```",
+      "description": "Executes contained effects on a random country that meets the limit and has the specified original tag.\n\n**Example:**\n```paradox\nrandom_country_with_original_tag = {\n    original_tag_to_check = TAG  #required\n    \u2026                  #effects to run\n}\n```",
       "scopes": {
         "usage": [
           "Global"
@@ -15374,7 +15484,7 @@
     },
     "random_enemy_country": {
       "name": "random_enemy_country",
-      "description": "Executes contained effects on a random country that meets the limit and is at war with the country this is contained in.\n\n**Example:**\n```paradox\n`random_enemy_country = { … }`\n```",
+      "description": "Executes contained effects on a random country that meets the limit and is at war with the country this is contained in.\n\n**Example:**\n```paradox\n`random_enemy_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -15391,7 +15501,7 @@
     },
     "random_military_industrial_organization": {
       "name": "random_military_industrial_organization",
-      "description": "Executes contained effects on a random MIO within the current country that meets the limit.\n\n**Example:**\n```paradox\n`random_military_industrial_organization = { … }`\n```",
+      "description": "Executes contained effects on a random MIO within the current country that meets the limit.\n\n**Example:**\n```paradox\n`random_military_industrial_organization = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -15408,7 +15518,7 @@
     },
     "random_navy_leader": {
       "name": "random_navy_leader",
-      "description": "Executes contained effects on a random navy leader that meets the limit and is recruited by the country this is contained in.\n\n**Example:**\n```paradox\n`random_navy_leader = { … }`\n```",
+      "description": "Executes contained effects on a random navy leader that meets the limit and is recruited by the country this is contained in.\n\n**Example:**\n```paradox\n`random_navy_leader = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -15425,7 +15535,7 @@
     },
     "random_neighbor_country": {
       "name": "random_neighbor_country",
-      "description": "Executes contained effects on a random country that meets the limit and borders the country this is contained in.\n\n**Example:**\n```paradox\n`random_neighbor_country = { … }`\n```",
+      "description": "Executes contained effects on a random country that meets the limit and borders the country this is contained in.\n\n**Example:**\n```paradox\n`random_neighbor_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -15442,7 +15552,7 @@
     },
     "random_neighbor_state": {
       "name": "random_neighbor_state",
-      "description": "Executes contained effects on a random state that meets the limit and neighbours the state this is contained in. Does not support prioritizing.\n\n**Example:**\n```paradox\n`random_neighbor_state = { … }`\n```",
+      "description": "Executes contained effects on a random state that meets the limit and neighbours the state this is contained in. Does not support prioritizing.\n\n**Example:**\n```paradox\n`random_neighbor_state = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "State"
@@ -15459,7 +15569,7 @@
     },
     "random_occupied_country": {
       "name": "random_occupied_country",
-      "description": "Executes contained effects on a random country that meets the limit and has any core states controlled by the country this is contained in.\n\n**Example:**\n```paradox\n`random_occupied_country = { … }`\n```",
+      "description": "Executes contained effects on a random country that meets the limit and has any core states controlled by the country this is contained in.\n\n**Example:**\n```paradox\n`random_occupied_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -15476,7 +15586,7 @@
     },
     "random_operative": {
       "name": "random_operative",
-      "description": "Executes contained effects on a random operative that meets the limit and is recruited by the country this is contained in.\n\n**Example:**\n```paradox\n`random_operative = { … }`\n```",
+      "description": "Executes contained effects on a random operative that meets the limit and is recruited by the country this is contained in.\n\n**Example:**\n```paradox\n`random_operative = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -15493,7 +15603,7 @@
     },
     "random_other_country": {
       "name": "random_other_country",
-      "description": "Executes contained effects on a random country that meets the limit and is not the same country as the one this is contained in.\n\n**Example:**\n```paradox\n`random_other_country = { … }`\n```",
+      "description": "Executes contained effects on a random country that meets the limit and is not the same country as the one this is contained in.\n\n**Example:**\n```paradox\n`random_other_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Global"
@@ -15510,7 +15620,7 @@
     },
     "random_owned_controlled_state": {
       "name": "random_owned_controlled_state",
-      "description": "Executes contained effects on a random state that meets the limit and is owned and controlled by the country this is contained in.\n\n**Example:**\n```paradox\nrandom_owned_controlled_state = {\n    prioritize = { 123 321 } #optional\n    …    #effects to run\n}\n```",
+      "description": "Executes contained effects on a random state that meets the limit and is owned and controlled by the country this is contained in.\n\n**Example:**\n```paradox\nrandom_owned_controlled_state = {\n    prioritize = { 123 321 } #optional\n    \u2026    #effects to run\n}\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -15527,7 +15637,7 @@
     },
     "random_owned_state": {
       "name": "random_owned_state",
-      "description": "Executes contained effects on a random state that meets the limit and is owned by the country this is contained in.\n\n**Example:**\n```paradox\nrandom_owned_state = {\n    prioritize = { 123 321 } #optional\n    …    #effects to run\n}\n```",
+      "description": "Executes contained effects on a random state that meets the limit and is owned by the country this is contained in.\n\n**Example:**\n```paradox\nrandom_owned_state = {\n    prioritize = { 123 321 } #optional\n    \u2026    #effects to run\n}\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -15544,7 +15654,7 @@
     },
     "random_purchase_contract": {
       "name": "random_purchase_contract",
-      "description": "Executes contained effects on a random purchase contract within the current country that meets the limit.\n\n**Example:**\n```paradox\n`random_purchase_contract = { … }`\n```",
+      "description": "Executes contained effects on a random purchase contract within the current country that meets the limit.\n\n**Example:**\n```paradox\n`random_purchase_contract = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -15561,7 +15671,7 @@
     },
     "random_scientist": {
       "name": "random_scientist",
-      "description": "Executes children effects on random scientists that fulfills the \"limit\" trigger.\n\n**Example:**\n```paradox\n`random_scientist = { … }`\n```",
+      "description": "Executes children effects on random scientists that fulfills the \"limit\" trigger.\n\n**Example:**\n```paradox\n`random_scientist = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Global"
@@ -15578,7 +15688,7 @@
     },
     "random_state": {
       "name": "random_state",
-      "description": "Executes contained effects on a random state that meets the limit.\n\n**Example:**\n```paradox\nrandom_state = {\n    prioritize = { 123 321 } #optional\n    …    #effects to run\n}\n```",
+      "description": "Executes contained effects on a random state that meets the limit.\n\n**Example:**\n```paradox\nrandom_state = {\n    prioritize = { 123 321 } #optional\n    \u2026    #effects to run\n}\n```",
       "scopes": {
         "usage": [
           "Global"
@@ -15595,7 +15705,7 @@
     },
     "random_state_division": {
       "name": "random_state_division",
-      "description": "Executes contained effects on a random division that meets the limit and is located within the current state.\n\n**Example:**\n```paradox\n`random_state_division = { … }`\n```",
+      "description": "Executes contained effects on a random division that meets the limit and is located within the current state.\n\n**Example:**\n```paradox\n`random_state_division = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "State"
@@ -15612,7 +15722,7 @@
     },
     "random_subject_country": {
       "name": "random_subject_country",
-      "description": "Executes contained effects on a random country that meets the limit and is a subject of the country this is contained in.\n\n**Example:**\n```paradox\n`random_subject_country = { … }`\n```",
+      "description": "Executes contained effects on a random country that meets the limit and is a subject of the country this is contained in.\n\n**Example:**\n```paradox\n`random_subject_country = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -15629,7 +15739,7 @@
     },
     "random_unit_leader": {
       "name": "random_unit_leader",
-      "description": "Executes contained effects on a random unit leader (corps commanders, field marshals, admirals) that meets the limit and is recruited by the country this is contained in.\n\n**Example:**\n```paradox\n`random_unit_leader = { … }`\n```",
+      "description": "Executes contained effects on a random unit leader (corps commanders, field marshals, admirals) that meets the limit and is recruited by the country this is contained in.\n\n**Example:**\n```paradox\n`random_unit_leader = { \u2026 }`\n```",
       "scopes": {
         "usage": [
           "Country"
@@ -15665,7 +15775,7 @@
     },
     "recall_attache": {
       "name": "recall_attache",
-      "description": "Recalls the current scope's attaché from the specified country.",
+      "description": "Recalls the current scope's attach\u00e9 from the specified country.",
       "scopes": {
         "usage": [
           "Country"
@@ -16090,7 +16200,7 @@
     },
     "remove_faction_goal": {
       "name": "remove_faction_goal",
-      "description": "Remove a goal from the current’s country faction.",
+      "description": "Remove a goal from the current\u2019s country faction.",
       "scopes": {
         "usage": [
           "Country"
@@ -19470,6 +19580,61 @@
       "stack_behaviour": "passthrough",
       "block_type": "value_effect",
       "version_added": "1.0",
+      "notes": ""
+    },
+    "controller": {
+      "name": "controller",
+      "description": "The controller of the current state. Subject to the 'invalid event target' error.\n\n**Example:**\n```paradox\ncontroller = {\n    ROOT = {\n        create_wargoal = {\n            target = PREV\n            type = take_state_focus\n            generator = { 123 }\n        }\n    }\n}\n```",
+      "scopes": {
+        "usage": [
+          "State"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "transparent",
+      "block_type": "value_effect",
+      "version_added": "",
+      "notes": ""
+    },
+    "capital_scope": {
+      "name": "capital_scope",
+      "description": "The state where the capital of the current country is located in. Subject to the 'invalid event target' error in rare cases.\n\n**Example:**\n```paradox\n`capital_scope = { \u2026 }`\n```",
+      "scopes": {
+        "usage": [
+          "Global",
+          "Country",
+          "State",
+          "Character",
+          "Unit"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "State",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "transparent",
+      "block_type": "value_effect",
+      "version_added": "",
+      "notes": ""
+    },
+    "every_unit": {
+      "name": "every_unit",
+      "description": "Execute effects on every unit that meets the limit.",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Unit",
+      "parameters": {},
+      "examples": [],
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": "",
       "notes": ""
     }
   },
