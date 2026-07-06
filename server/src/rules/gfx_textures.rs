@@ -161,6 +161,7 @@ mod tests {
             comments: &[],
             sound_effects: &DashMap::new(),
             country_tags: &DashMap::new(),
+            tag_aliases: &DashMap::new(),
             buildings: &DashMap::new(),
             resources: &DashMap::new(),
             state_categories: &DashMap::new(),

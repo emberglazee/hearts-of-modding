@@ -79,6 +79,7 @@ fn run_oob_visitor(input: &str, unit_types: &[&str]) -> Vec<Diagnostic> {
         comments: &[],
         sound_effects: &sound_effects,
         country_tags: &country_tags,
+            tag_aliases: &DashMap::new(),
         buildings: &buildings,
         resources: &resources,
         state_categories: &state_categories,

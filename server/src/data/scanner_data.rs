@@ -38,6 +38,7 @@ use crate::scanner::sprite_scanner;
 use crate::scanner::state_category_scanner;
 use crate::scanner::state_scanner;
 use crate::scanner::strategic_region_scanner;
+use crate::scanner::tag_alias_scanner;
 use crate::scanner::terrain_scanner;
 use crate::scanner::trait_scanner;
 use crate::scanner::unit_scanner;
@@ -126,6 +127,7 @@ pub(crate) struct ScannerData {
     pub balance_of_powers: DashMap<InternedStr, LayeredValue<bop_scanner::BalanceOfPower>>,
     pub color_codes: DashMap<InternedStr, LayeredValue<gfx_scanner::ColorCode>>,
     pub country_tags: DashMap<InternedStr, LayeredValue<country_scanner::CountryTag>>,
+    pub tag_aliases: DashMap<InternedStr, LayeredValue<tag_alias_scanner::TagAlias>>,
     pub states: DashMap<u32, state_scanner::State>,
     pub oob_division_templates:
         DashMap<InternedStr, LayeredValue<oob_scanner::OobDivisionTemplate>>,
@@ -243,6 +245,7 @@ impl ScannerData {
             balance_of_powers: DashMap::new(),
             color_codes: DashMap::new(),
             country_tags: DashMap::new(),
+            tag_aliases: DashMap::new(),
             states: DashMap::new(),
             oob_division_templates: DashMap::new(),
             oob_fleets: DashMap::new(),

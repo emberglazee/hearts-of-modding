@@ -32,6 +32,7 @@ mod tests {
             comments: &[] as &[(ast::ByteSpan, ast::Range)],
             sound_effects: leak_map(),
             country_tags: leak_map(),
+            tag_aliases: leak_map(),
             buildings: leak_map(),
             resources: leak_map(),
             state_categories: leak_map(),

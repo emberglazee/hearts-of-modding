@@ -1120,6 +1120,23 @@ impl Backend {
             .await;
     }
 
+    pub(crate) async fn scan_tag_aliases(&self, overlay: &crate::scanner::file_overlay::FileOverlay) {
+        let filter = self.get_sync_filter();
+        let files: Vec<std::path::PathBuf> =
+            overlay.winning_files_in("common/country_tag_aliases");
+        let result = tokio::task::spawn_blocking(move || {
+            crate::scanner::tag_alias_scanner::scan_tag_alias_files(&files, &filter)
+        })
+        .await
+        .unwrap();
+        self.scanner_data.tag_aliases.clear();
+        for (k, v) in result {
+            self.scanner_data
+                .tag_aliases
+                .insert(k.into(), crate::data::layered_value::LayeredValue::new(v));
+        }
+    }
+
     pub(crate) async fn load_assets(&self) {
         let exe_path = std::env::current_exe().unwrap_or_default();
         let exe_dir = exe_path.parent().unwrap_or(std::path::Path::new("."));

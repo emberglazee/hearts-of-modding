@@ -458,6 +458,7 @@ impl LanguageServer for Backend {
             self.scan_continents(&overlay),
             self.scan_portraits(&overlay),
             self.scan_countries(&overlay),
+            self.scan_tag_aliases(&overlay),
             self.scan_gfx(&overlay),
             self.scan_oobs(&overlay),
             self.scan_units(&overlay),

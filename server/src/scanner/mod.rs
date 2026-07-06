@@ -35,6 +35,7 @@ pub mod sprite_scanner;
 pub mod state_category_scanner;
 pub mod state_scanner;
 pub mod strategic_region_scanner;
+pub mod tag_alias_scanner;
 pub mod terrain_scanner;
 pub mod trait_scanner;
 pub mod unit_scanner;

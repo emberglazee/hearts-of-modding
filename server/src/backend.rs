@@ -2092,6 +2092,7 @@ impl Backend {
             comments: &comments,
             sound_effects: s_effects,
             country_tags: ct,
+            tag_aliases: &self.scanner_data.tag_aliases,
             buildings,
             resources,
             state_categories,

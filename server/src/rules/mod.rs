@@ -68,6 +68,8 @@ pub(crate) struct ValidationContext<'a> {
         &'a DashMap<InternedStr, LayeredValue<crate::scanner::sound_scanner::SoundEffect>>,
     pub(crate) country_tags:
         &'a DashMap<InternedStr, LayeredValue<crate::scanner::country_scanner::CountryTag>>,
+    pub(crate) tag_aliases:
+        &'a DashMap<InternedStr, LayeredValue<crate::scanner::tag_alias_scanner::TagAlias>>,
     pub(crate) buildings: &'a DashMap<InternedStr, LayeredValue<building_scanner::Building>>,
     pub(crate) resources:
         &'a DashMap<InternedStr, LayeredValue<crate::scanner::resource_scanner::Resource>>,

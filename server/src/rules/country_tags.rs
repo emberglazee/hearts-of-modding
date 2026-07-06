@@ -62,7 +62,10 @@ impl ValidationRule for CountryTagRule {
             && b[2].is_ascii_alphanumeric()
             && !matches!(val, "NOT" | "AND" | "TAG" | "OOB" | "LOG" | "NUM" | "RED");
 
-        if !is_scope_ref && !is_var_ref && looks_like_tag && !ctx.country_tags.contains_key(val) {
+        if !is_scope_ref && !is_var_ref && looks_like_tag
+            && !ctx.country_tags.contains_key(val)
+            && !ctx.tag_aliases.contains_key(val)
+        {
             diags.push(Diagnostic {
                 range: ast_range_to_lsp(&ass.value.range),
                 severity: Some(DiagnosticSeverity::WARNING),

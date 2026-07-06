@@ -213,8 +213,8 @@ async fn cli_validate(path: &str) {
         InternedStr,
         LayeredValue<crate::scanner::ace_scanner::AceModifier>,
     > = DashMap::new();
-    let event_targets: DashMap<InternedStr, Vec<crate::scanner::variable_scanner::EventTarget>> =
-        DashMap::new();
+    let tag_aliases: DashMap<InternedStr, LayeredValue<crate::scanner::tag_alias_scanner::TagAlias>> = DashMap::new();
+    let event_targets: DashMap<InternedStr, Vec<crate::scanner::variable_scanner::EventTarget>> = DashMap::new();
     let event_namespaces: DashMap<
         InternedStr,
         LayeredValue<crate::scanner::event_namespace_scanner::EventNamespace>,
@@ -245,6 +245,7 @@ async fn cli_validate(path: &str) {
         comments: &[],
         sound_effects: &sound_effects,
         country_tags: &country_tags,
+            tag_aliases: &tag_aliases,
         buildings: &buildings,
         resources: &resources,
         state_categories: &state_categories,
