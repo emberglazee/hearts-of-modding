@@ -1272,25 +1272,6 @@
       "stack_behaviour": "passthrough",
       "version_added": "1.0"
     },
-    "area": {
-      "block_type": "value_trigger",
-      "description": "Checks if the current scope is a state in the specified supply area.",
-      "examples": [
-        "area = 6"
-      ],
-      "name": "area",
-      "notes": "1.0\n!-->",
-      "parameters": {},
-      "pushes_scope": null,
-      "scopes": {
-        "usage": [
-          "State"
-        ],
-        "usage_restriction": ""
-      },
-      "stack_behaviour": "passthrough",
-      "version_added": ""
-    },
     "army_manpower_in_state": {
       "block_type": "value_trigger",
       "description": "Checks if the specified state contains the specified amount of army manpower within the state.",
