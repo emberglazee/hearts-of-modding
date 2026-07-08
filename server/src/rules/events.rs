@@ -603,7 +603,7 @@ impl AstVisitor for EventVisitor {
                 is_hidden: false,
                 has_mtth: false,
                 has_is_triggered_only: false,
-                is_call: self.event_depth > 0,
+                is_call: self.event_depth > 0 || !ctx.uri.contains("/events/"),
                 has_option: false,
                 option_count: 0,
                 options_missing_ai_chance: 0,
