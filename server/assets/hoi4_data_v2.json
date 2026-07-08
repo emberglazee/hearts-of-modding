@@ -2657,6 +2657,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
+          "Country",
           "State"
         ],
         "usage_restriction": ""
@@ -5435,6 +5436,7 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
+          "Country",
           "State"
         ],
         "usage_restriction": ""
@@ -10312,6 +10314,7 @@
       "description": "Starts construction in the current state for the specified building.",
       "scopes": {
         "usage": [
+          "Country",
           "State"
         ],
         "usage_restriction": ""
@@ -12732,6 +12735,7 @@
       "description": "Clears a defined state flag.",
       "scopes": {
         "usage": [
+          "Country",
           "State"
         ],
         "usage_restriction": ""
@@ -18626,6 +18630,7 @@
       "description": "Defines a state flag.",
       "scopes": {
         "usage": [
+          "Country",
           "State"
         ],
         "usage_restriction": ""
