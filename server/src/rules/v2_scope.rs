@@ -79,6 +79,15 @@ impl ValidationRule for V2ScopeRule {
                 return;
             }
 
+            // NOTE: is_fully_controlled_by is documented as State-scoped but
+            // is commonly used inside for_each_scope_loop = { array = *_states }
+            // which iterates state arrays at runtime. The LSP can't statically
+            // know the array element type, so it can't push State scope.
+            // Allowing Country scope avoids false positives in this pattern.
+            if key == "is_fully_controlled_by" && current_scope == Scope::Country {
+                return;
+            }
+
             // Scope mismatch check (HOM004)
             if entity.scopes.allows(&current_scope) {
                 return;
