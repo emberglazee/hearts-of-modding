@@ -27,8 +27,8 @@ impl ValidationRule for AchievementRule {
                     let name_key = format!("{}_NAME", ass.key_text(ctx.source));
                     let desc_key = format!("{}_DESC", ass.key_text(ctx.source));
 
-                if !ctx.loc.contains_key(name_key.as_str()) {
-                    diags.push(Diagnostic {
+                    if !ctx.loc.contains_key(name_key.as_str()) {
+                        diags.push(Diagnostic {
                         range: ast_range_to_lsp(&ass.key_range),
                         severity: Some(DiagnosticSeverity::WARNING),
                         message: format!(
@@ -42,9 +42,9 @@ impl ValidationRule for AchievementRule {
                         source: Some("Hearts of Modding".to_string()),
                         ..Default::default()
                     });
-                }
-                if !ctx.loc.contains_key(desc_key.as_str()) {
-                    diags.push(Diagnostic {
+                    }
+                    if !ctx.loc.contains_key(desc_key.as_str()) {
+                        diags.push(Diagnostic {
                         range: ast_range_to_lsp(&ass.key_range),
                         severity: Some(DiagnosticSeverity::WARNING),
                         message: format!(
@@ -58,7 +58,7 @@ impl ValidationRule for AchievementRule {
                         source: Some("Hearts of Modding".to_string()),
                         ..Default::default()
                     });
-                }
+                    }
                 } // end loc_ready guard
             }
         }

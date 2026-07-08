@@ -150,12 +150,12 @@ impl EventVisitor {
 
         // HOM3018: title loc key missing from localization
         if !ctx.loc.is_empty() {
-        if let Some(ref key) = state.title_key {
-            if !ctx.loc.contains_key(key.as_str()) {
-                let prefix = format!("{}:", key);
-                if !ctx.loc.iter().any(|e| e.key().starts_with(&prefix)) {
-                    let d = state.title_range.as_ref().unwrap_or(&state.key_range);
-                    diags.push(Diagnostic {
+            if let Some(ref key) = state.title_key {
+                if !ctx.loc.contains_key(key.as_str()) {
+                    let prefix = format!("{}:", key);
+                    if !ctx.loc.iter().any(|e| e.key().starts_with(&prefix)) {
+                        let d = state.title_range.as_ref().unwrap_or(&state.key_range);
+                        diags.push(Diagnostic {
                         range: ast_range_to_lsp(d),
                         severity: Some(DiagnosticSeverity::WARNING),
                         message: format!(
@@ -169,17 +169,17 @@ impl EventVisitor {
                         source: Some("Hearts of Modding".to_string()),
                         ..Default::default()
                     });
+                    }
                 }
             }
-        }
 
-        // HOM3019: desc loc key missing from localization
-        if let Some(ref key) = state.desc_key {
-            if !ctx.loc.contains_key(key.as_str()) {
-                let prefix = format!("{}:", key);
-                if !ctx.loc.iter().any(|e| e.key().starts_with(&prefix)) {
-                    let d = state.desc_range.as_ref().unwrap_or(&state.key_range);
-                    diags.push(Diagnostic {
+            // HOM3019: desc loc key missing from localization
+            if let Some(ref key) = state.desc_key {
+                if !ctx.loc.contains_key(key.as_str()) {
+                    let prefix = format!("{}:", key);
+                    if !ctx.loc.iter().any(|e| e.key().starts_with(&prefix)) {
+                        let d = state.desc_range.as_ref().unwrap_or(&state.key_range);
+                        diags.push(Diagnostic {
                         range: ast_range_to_lsp(d),
                         severity: Some(DiagnosticSeverity::WARNING),
                         message: format!(
@@ -193,9 +193,9 @@ impl EventVisitor {
                         source: Some("Hearts of Modding".to_string()),
                         ..Default::default()
                     });
+                    }
                 }
             }
-        }
         } // end loc_ready guard
 
         // HOM3020: picture sprite not found

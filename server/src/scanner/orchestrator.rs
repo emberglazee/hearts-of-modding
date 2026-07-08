@@ -1120,10 +1120,12 @@ impl Backend {
             .await;
     }
 
-    pub(crate) async fn scan_tag_aliases(&self, overlay: &crate::scanner::file_overlay::FileOverlay) {
+    pub(crate) async fn scan_tag_aliases(
+        &self,
+        overlay: &crate::scanner::file_overlay::FileOverlay,
+    ) {
         let filter = self.get_sync_filter();
-        let files: Vec<std::path::PathBuf> =
-            overlay.winning_files_in("common/country_tag_aliases");
+        let files: Vec<std::path::PathBuf> = overlay.winning_files_in("common/country_tag_aliases");
         let result = tokio::task::spawn_blocking(move || {
             crate::scanner::tag_alias_scanner::scan_tag_alias_files(&files, &filter)
         })
