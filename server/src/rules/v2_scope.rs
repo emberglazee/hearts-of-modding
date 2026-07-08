@@ -63,6 +63,15 @@ impl ValidationRule for V2ScopeRule {
                 return;
             }
 
+            // Skip keys that are recognized by Scope::from_str as structural
+            // keywords (e.g. state, unit, character, country). These keywords
+            // have their own scope semantics and shouldn't be double-checked
+            // as triggers — they can appear as both scope-pushers and value
+            // parameters in various contexts.
+            if Scope::from_str(key) != Scope::Unknown {
+                return;
+            }
+
             // Scope mismatch check (HOM004)
             if entity.scopes.allows(&current_scope) {
                 return;
