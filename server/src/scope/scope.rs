@@ -296,7 +296,6 @@ impl ScopeStack {
             "ROOT" => self
                 .nodes
                 .iter()
-                .skip(1)
                 .find(|n| !n.is_transparent)
                 .map_or(Scope::Global, |n| n.scope_type),
             "THIS" => self.current(),
