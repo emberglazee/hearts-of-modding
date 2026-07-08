@@ -88,6 +88,16 @@ impl ValidationRule for V2ScopeRule {
                 return;
             }
 
+            // Same pattern: state-scoped triggers inside all_of_scopes and
+            // for_each_scope_loop iterating state arrays at Country scope.
+            if matches!(
+                key,
+                "is_controlled_by" | "is_owned_by" | "is_owned_and_controlled_by" | "is_core_of"
+            ) && current_scope == Scope::Country
+            {
+                return;
+            }
+
             // Scope mismatch check (HOM004)
             if entity.scopes.allows(&current_scope) {
                 return;
