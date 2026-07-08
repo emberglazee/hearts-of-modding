@@ -1291,25 +1291,6 @@
       "stack_behaviour": "passthrough",
       "version_added": ""
     },
-    "armor": {
-      "block_type": "value_trigger",
-      "description": "Checks if the current scope has the specified amount of armor units.",
-      "examples": [
-        "armor > 0.5"
-      ],
-      "name": "armor",
-      "notes": "Must use either > or < operators.",
-      "parameters": {},
-      "pushes_scope": null,
-      "scopes": {
-        "usage": [
-          "Unit"
-        ],
-        "usage_restriction": ""
-      },
-      "stack_behaviour": "passthrough",
-      "version_added": "1.0"
-    },
     "army_manpower_in_state": {
       "block_type": "value_trigger",
       "description": "Checks if the specified state contains the specified amount of army manpower within the state.",
