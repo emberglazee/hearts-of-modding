@@ -8797,7 +8797,8 @@
       "pushes_scope": null,
       "scopes": {
         "usage": [
-          "Character"
+          "Character",
+          "Country"
         ],
         "usage_restriction": ""
       },
