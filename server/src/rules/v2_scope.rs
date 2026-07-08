@@ -30,10 +30,17 @@ impl ValidationRule for V2ScopeRule {
         diags: &mut Vec<Diagnostic>,
     ) {
         let key = ass.key_text(ctx.source);
-        let current_scope = scope.current().effective_scope();
+        let raw_scope = scope.current();
+        let current_scope = raw_scope.effective_scope();
 
         // Skip empty keys and structural keywords
         if key.is_empty() || key.starts_with('#') {
+            return;
+        }
+
+        // Can't validate if the scope is Unknown (unresolved event target,
+        // mio: reference, unknown scope keyword, etc.)
+        if raw_scope == Scope::Unknown {
             return;
         }
 

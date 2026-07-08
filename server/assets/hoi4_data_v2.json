@@ -15219,25 +15219,6 @@
       "version_added": "1.11",
       "notes": "If the character has multiple country leader roles, specifying the ideology type is mandatory. Ideology type refers to a sub-type of an ideology group assigned to characters, commonly referred to as sub-ideologies in community jargon."
     },
-    "promote_leader": {
-      "name": "promote_leader",
-      "description": "Promotes the current unit leader to Field Marshal (if Commander).",
-      "scopes": {
-        "usage": [
-          "Character"
-        ],
-        "usage_restriction": ""
-      },
-      "pushes_scope": null,
-      "parameters": {},
-      "examples": [
-        "promote_leader = yes"
-      ],
-      "stack_behaviour": "passthrough",
-      "block_type": "value_effect",
-      "version_added": "1.5",
-      "notes": ""
-    },
     "puppet": {
       "name": "puppet",
       "description": "Makes the specified country a subject of the current scope.",
