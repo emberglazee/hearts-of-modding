@@ -1081,3 +1081,36 @@ country_event = {
         ns_diags.len()
     );
 }
+
+/// Filter diagnostics to only HOM3016 (missing title/desc).
+fn missing_title_diags(diags: &[Diagnostic]) -> Vec<&Diagnostic> {
+    diags
+        .iter()
+        .filter(|d| {
+            matches!(&d.code, Some(NumberOrString::String(c)) if c == crate::validation::advanced_validation::EVENT_MISSING_TITLE)
+        })
+        .collect()
+}
+
+#[test]
+/// Regression: country_event = { id = X } in a decision file is a CALL,
+/// not an event definition. HOM3016 should NOT fire for missing title/desc.
+fn test_event_call_in_decision_file_no_hom3016() {
+    let input = r#"
+my_decision = {
+    picture = GFX_decision
+    fire_only_once = yes
+    available = { always = yes }
+    effect = {
+        country_event = { id = test.1 }
+    }
+}
+"#;
+    let diags = run_event_visitor(input, "file:///common/decisions/test.txt", &[]);
+    let title_diags = missing_title_diags(&diags);
+    assert!(
+        title_diags.is_empty(),
+        "country_event in decision file should NOT produce HOM3016 (missing title/desc): got {}",
+        title_diags.len()
+    );
+}
