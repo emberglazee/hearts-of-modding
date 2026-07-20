@@ -2103,6 +2103,7 @@ impl Backend {
             ace_modifiers: &self.scanner_data.ace_modifiers,
             game_path,
             styling_enabled,
+            scope_validation_enabled: self.config.scope_validation_enabled(),
             workspace_roots: &workspace_roots,
             unit_types: &self.scanner_data.unit_types,
             event_targets: &self.scanner_data.event_targets,

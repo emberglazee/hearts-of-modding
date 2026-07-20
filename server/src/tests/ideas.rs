@@ -43,6 +43,7 @@ mod tests {
             ace_modifiers: leak_map(),
             game_path: None,
             styling_enabled: false,
+            scope_validation_enabled: false,
             workspace_roots: &[] as &[std::path::PathBuf],
             unit_types: leak_map(),
             event_targets: leak_map(),

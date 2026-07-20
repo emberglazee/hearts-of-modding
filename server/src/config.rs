@@ -34,6 +34,7 @@ pub(crate) struct Config {
     workspace_scan_enabled_field: AtomicBool,
     styling_enabled_field: AtomicBool,
     cosmetic_loc_indent_field: AtomicBool,
+    scope_validation_enabled_field: AtomicBool,
     log_level_field: AtomicU8,
     game_path_field: Arc<arc_swap::ArcSwap<Option<String>>>,
     dependency_mod_paths_field: Arc<arc_swap::ArcSwap<Vec<String>>>,
@@ -48,6 +49,7 @@ impl Config {
             workspace_scan_enabled_field: AtomicBool::new(false),
             styling_enabled_field: AtomicBool::new(true),
             cosmetic_loc_indent_field: AtomicBool::new(false),
+            scope_validation_enabled_field: AtomicBool::new(false),
             log_level_field: AtomicU8::new(2), // default: INFO
             game_path_field: Arc::new(arc_swap::ArcSwap::from_pointee(None)),
             dependency_mod_paths_field: Arc::new(arc_swap::ArcSwap::from_pointee(Vec::new())),
@@ -80,6 +82,15 @@ impl Config {
 
     pub fn set_cosmetic_loc_indent(&self, value: bool) {
         self.cosmetic_loc_indent_field
+            .store(value, Ordering::Relaxed);
+    }
+
+    pub fn scope_validation_enabled(&self) -> bool {
+        self.scope_validation_enabled_field.load(Ordering::Relaxed)
+    }
+
+    pub fn set_scope_validation_enabled(&self, value: bool) {
+        self.scope_validation_enabled_field
             .store(value, Ordering::Relaxed);
     }
 

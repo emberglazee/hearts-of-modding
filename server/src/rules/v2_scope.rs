@@ -99,6 +99,9 @@ impl ValidationRule for V2ScopeRule {
             }
 
             // Scope mismatch check (HOM004)
+            if !ctx.scope_validation_enabled {
+                return;
+            }
             if entity.scopes.allows(&current_scope) {
                 return;
             }

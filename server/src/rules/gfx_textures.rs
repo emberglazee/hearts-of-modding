@@ -172,6 +172,7 @@ mod tests {
             ace_modifiers: &DashMap::new(),
             game_path: game_path_owned,
             styling_enabled,
+            scope_validation_enabled: false,
             workspace_roots,
             unit_types: &DashMap::new(),
             event_targets: &DashMap::new(),

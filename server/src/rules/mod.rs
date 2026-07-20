@@ -89,6 +89,7 @@ pub(crate) struct ValidationContext<'a> {
         &'a DashMap<InternedStr, LayeredValue<crate::scanner::ace_scanner::AceModifier>>,
     pub(crate) game_path: Option<String>,
     pub(crate) styling_enabled: bool,
+    pub(crate) scope_validation_enabled: bool,
     pub(crate) workspace_roots: &'a [std::path::PathBuf],
     pub(crate) unit_types:
         &'a DashMap<InternedStr, LayeredValue<crate::scanner::unit_scanner::UnitType>>,

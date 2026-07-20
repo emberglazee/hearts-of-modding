@@ -76,6 +76,9 @@ impl LanguageServer for Backend {
                 self.config.set_cosmetic_loc_indent(enabled);
                 let _ci = self.config.cosmetic_loc_indent();
             }
+            if let Some(enabled) = options.get("scopeValidationEnabled").and_then(|v| v.as_bool()) {
+                self.config.set_scope_validation_enabled(enabled);
+            }
             if let Some(dep_paths) = options.get("dependencyModPaths").and_then(|v| v.as_array()) {
                 let mut paths = Vec::new();
                 for val in dep_paths {

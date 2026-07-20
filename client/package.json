@@ -72,6 +72,11 @@
                     "default": false,
                     "description": "Enable automatic workspace-wide diagnostic scanning upon initialization. Large mods may experience high CPU usage during the initial scan."
                 },
+                "hoi4.validator.scopeValidationEnabled": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Enable scope mismatch validation (HOM004). Warnings when triggers/effects are used outside their documented scope. Disabled by default — scope resolution is incomplete for many edge cases."
+                },
                 "hoi4.styling.enabled": {
                     "type": "boolean",
                     "default": true,

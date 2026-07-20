@@ -200,6 +200,18 @@ export async function activate(context: ExtensionContext) {
                 }
             })
         }
+        if (e.affectsConfiguration('hoi4.validator.scopeValidationEnabled')) {
+            const newValue = workspace.getConfiguration('hoi4.validator').get('scopeValidationEnabled')
+            client.sendNotification('workspace/didChangeConfiguration', {
+                settings: {
+                    hoi4: {
+                        validator: {
+                            scopeValidationEnabled: newValue
+                        }
+                    }
+                }
+            })
+        }
         if (e.affectsConfiguration('hoi4.styling.enabled')) {
             const newValue = workspace.getConfiguration('hoi4.styling').get('enabled')
             client.sendNotification('workspace/didChangeConfiguration', {
