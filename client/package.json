@@ -275,7 +275,7 @@
         "check-all-package": "npm run check-all && npm run package"
     },
     "dependencies": {
-        "vscode-languageclient": "9.0.1"
+        "vscode-languageclient": "10.1.0"
     },
     "devDependencies": {
         "@eslint/js": "^10.0.1",
