@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
 use arc_swap::ArcSwap;
@@ -25,6 +26,20 @@ use crate::utils::lsp_convert::{ast_range_to_lsp, ast_related_info_to_lsp, ast_t
 use crate::validation::advanced_validation;
 use crate::{EFFECTS, MODIFIERS, SCOPES, TRIGGERS};
 
+// ── Processing tracking ───────────────────────────────────────────
+/// RAII guard that increments `pending_tasks` on creation and
+/// decrements on drop.  Safe to hold across `.await` points because
+/// `&AtomicU64` is `Send + Sync`.
+pub(crate) struct ProcessingGuard<'a> {
+    pending: &'a AtomicU64,
+}
+
+impl Drop for ProcessingGuard<'_> {
+    fn drop(&mut self) {
+        self.pending.fetch_sub(1, Ordering::Relaxed);
+    }
+}
+
 pub(crate) struct Backend {
     pub(crate) client: Client,
     pub(crate) documents: DashMap<String, String>,
@@ -34,6 +49,10 @@ pub(crate) struct Backend {
     pub(crate) config: Config,
     pub(crate) system_info: Mutex<sysinfo::System>,
     pub(crate) workspace_roots: Mutex<Vec<std::path::PathBuf>>,
+    /// Monotonic counter of in-flight handler operations.
+    /// Client polls via `hoi4/getMemoryUsage` to decide whether the status
+    /// bar icon should show a throbber (busy) or pulse (idle).
+    pub(crate) pending_tasks: AtomicU64,
     /// Static token keywords — computed once from TRIGGERS, EFFECTS, MODIFIERS, SCOPES,
     /// and the hardcoded keyword list. Never changes at runtime, so stored as Arc for
     /// cheap cloning on every semantic token request.
@@ -130,6 +149,18 @@ impl Backend {
         let result = (script.clone(), errors.clone());
         self.document_asts.insert(uri.to_string(), (script, errors));
         Some(result)
+    }
+
+    // ── Processing tracking ───────────────────────────────────────────
+    // RAII guard: marks the server as busy (pending_tasks > 0) for the
+    // lifetime of the guard. Used by every LSP handler so the status bar
+    // can pulse ↔ throb based on whether work is in-flight.
+
+    pub(crate) fn processing_guard(&self) -> ProcessingGuard<'_> {
+        self.pending_tasks.fetch_add(1, Ordering::Relaxed);
+        ProcessingGuard {
+            pending: &self.pending_tasks,
+        }
     }
 
     pub(crate) async fn find_references_in_root(

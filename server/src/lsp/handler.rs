@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::sync::atomic::Ordering;
 
 use tokio_util::sync::CancellationToken;
 use tower_lsp_server::LanguageServer;
@@ -176,6 +177,7 @@ impl LanguageServer for Backend {
     }
 
     async fn initialized(&self, _: InitializedParams) {
+        let _guard = self.processing_guard();
         self.client
             .log_message(MessageType::INFO, "server initialized!")
             .await;
@@ -527,6 +529,7 @@ impl LanguageServer for Backend {
     }
 
     async fn did_change_configuration(&self, params: DidChangeConfigurationParams) {
+        let _guard = self.processing_guard();
         if let Some(settings) = params.settings.as_object() {
             if let Some(hoi4) = settings.get("hoi4").and_then(|v| v.as_object()) {
                 if let Some(validator) = hoi4.get("validator").and_then(|v| v.as_object()) {
@@ -608,6 +611,7 @@ impl LanguageServer for Backend {
     }
 
     async fn did_open(&self, params: DidOpenTextDocumentParams) {
+        let _guard = self.processing_guard();
         let uri = params.text_document.uri.as_str().to_string();
         let text = params.text_document.text;
         self.documents.insert(uri.clone(), text.clone());
@@ -635,6 +639,7 @@ impl LanguageServer for Backend {
     }
 
     async fn did_change(&self, params: DidChangeTextDocumentParams) {
+        let _guard = self.processing_guard();
         let uri = params.text_document.uri.as_str().to_string();
         let text = params.content_changes[0].text.clone();
         self.documents.insert(uri.clone(), text.clone());
@@ -712,6 +717,7 @@ impl LanguageServer for Backend {
     }
 
     async fn did_save(&self, params: DidSaveTextDocumentParams) {
+        let _guard = self.processing_guard();
         let uri = params.text_document.uri;
         let uri_str = uri.as_str().to_string();
 
@@ -771,6 +777,7 @@ impl LanguageServer for Backend {
     }
 
     async fn did_change_watched_files(&self, params: DidChangeWatchedFilesParams) {
+        let _guard = self.processing_guard();
         use std::sync::Arc;
 
         // Collect affected re-validation prefixes across ALL change events
@@ -854,6 +861,7 @@ impl LanguageServer for Backend {
         &self,
         params: SemanticTokensParams,
     ) -> Result<Option<SemanticTokensResult>> {
+        let _guard = self.processing_guard();
         let uri = params.text_document.uri.to_string();
 
         // YAML localization files get their own line-based semantic tokens
@@ -891,6 +899,7 @@ impl LanguageServer for Backend {
         &self,
         params: SemanticTokensRangeParams,
     ) -> Result<Option<SemanticTokensRangeResult>> {
+        let _guard = self.processing_guard();
         let uri = params.text_document.uri.to_string();
         let range = params.range;
 
@@ -933,6 +942,7 @@ impl LanguageServer for Backend {
     }
 
     async fn document_color(&self, params: DocumentColorParams) -> Result<Vec<ColorInformation>> {
+        let _guard = self.processing_guard();
         let uri = params.text_document.uri.to_string();
         if let Some((script, _)) = self.ensure_ast_cached(&uri) {
             return Ok(find_colors(&script));
@@ -944,6 +954,7 @@ impl LanguageServer for Backend {
         &self,
         params: ColorPresentationParams,
     ) -> Result<Vec<ColorPresentation>> {
+        let _guard = self.processing_guard();
         // Determine if this is a color_ui field by checking the document context
         let uri = params.text_document.uri.to_string();
         let is_ui = match self.documents.get(&uri) {
@@ -969,6 +980,7 @@ impl LanguageServer for Backend {
     }
 
     async fn formatting(&self, params: DocumentFormattingParams) -> Result<Option<Vec<TextEdit>>> {
+        let _guard = self.processing_guard();
         let uri = params.text_document.uri.to_string();
         if let Some(content) = self.documents.get(&uri) {
             if uri.ends_with(".yml") {
@@ -1010,10 +1022,12 @@ impl LanguageServer for Backend {
     }
 
     async fn hover(&self, params: HoverParams) -> Result<Option<Hover>> {
+        let _guard = self.processing_guard();
         self.handle_hover(params).await
     }
 
     async fn completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
+        let _guard = self.processing_guard();
         self.handle_completion(params).await
     }
 
@@ -1021,6 +1035,7 @@ impl LanguageServer for Backend {
         &self,
         params: GotoDefinitionParams,
     ) -> Result<Option<GotoDefinitionResponse>> {
+        let _guard = self.processing_guard();
         let uri = params
             .text_document_position_params
             .text_document
@@ -1058,6 +1073,7 @@ impl LanguageServer for Backend {
     }
 
     async fn references(&self, params: ReferenceParams) -> Result<Option<Vec<Location>>> {
+        let _guard = self.processing_guard();
         let uri = params.text_document_position.text_document.uri.to_string();
         let position = params.text_document_position.position;
 
@@ -1090,6 +1106,7 @@ impl LanguageServer for Backend {
     }
 
     async fn code_action(&self, params: CodeActionParams) -> Result<Option<CodeActionResponse>> {
+        let _guard = self.processing_guard();
         self.handle_code_action(params).await
     }
 
@@ -1112,8 +1129,10 @@ impl LanguageServer for Backend {
                 sys.refresh_processes(sysinfo::ProcessesToUpdate::Some(&[pid]), true);
                 if let Some(process) = sys.process(pid) {
                     let memory = process.memory();
+                    let pending = self.pending_tasks.load(Ordering::Relaxed);
                     let json = serde_json::json!({
-                        "memoryUsedBytes": memory
+                        "memoryUsedBytes": memory,
+                        "pendingTasks": pending
                     });
                     return Ok(Some(json));
                 }
@@ -1140,6 +1159,7 @@ impl LanguageServer for Backend {
         &self,
         params: DocumentSymbolParams,
     ) -> Result<Option<DocumentSymbolResponse>> {
+        let _guard = self.processing_guard();
         let uri = params.text_document.uri.as_str();
 
         if let Some((script, _)) = self.ensure_ast_cached(uri) {
@@ -1154,6 +1174,7 @@ impl LanguageServer for Backend {
         &self,
         params: WorkspaceSymbolParams,
     ) -> Result<Option<WorkspaceSymbolResponse>> {
+        let _guard = self.processing_guard();
         let symbols =
             workspace_symbols::generate_workspace_symbols(&params.query, &self.scanner_data).await;
 
@@ -1164,6 +1185,7 @@ impl LanguageServer for Backend {
         &self,
         params: CallHierarchyPrepareParams,
     ) -> Result<Option<Vec<CallHierarchyItem>>> {
+        let _guard = self.processing_guard();
         let uri = params
             .text_document_position_params
             .text_document
@@ -1180,6 +1202,7 @@ impl LanguageServer for Backend {
         &self,
         params: CallHierarchyIncomingCallsParams,
     ) -> Result<Option<Vec<CallHierarchyIncomingCall>>> {
+        let _guard = self.processing_guard();
         let calls = call_hierarchy::get_incoming_calls(
             &params.item,
             &self.scanner_data,
@@ -1194,6 +1217,7 @@ impl LanguageServer for Backend {
         &self,
         params: CallHierarchyOutgoingCallsParams,
     ) -> Result<Option<Vec<CallHierarchyOutgoingCall>>> {
+        let _guard = self.processing_guard();
         let calls = call_hierarchy::get_outgoing_calls(
             &params.item,
             &self.scanner_data,
@@ -1208,6 +1232,7 @@ impl LanguageServer for Backend {
         &self,
         params: TextDocumentPositionParams,
     ) -> Result<Option<PrepareRenameResponse>> {
+        let _guard = self.processing_guard();
         let uri = params.text_document.uri.as_str();
         let position = params.position;
 
@@ -1217,6 +1242,7 @@ impl LanguageServer for Backend {
     }
 
     async fn rename(&self, params: RenameParams) -> Result<Option<WorkspaceEdit>> {
+        let _guard = self.processing_guard();
         let uri = params.text_document_position.text_document.uri.as_str();
         let position = params.text_document_position.position;
         let new_name = &params.new_name;

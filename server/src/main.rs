@@ -24,6 +24,7 @@ pub(crate) use crate::backend::Backend;
 
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
+use std::sync::atomic::AtomicU64;
 use std::sync::{Arc, Mutex};
 
 use arc_swap::ArcSwap;
@@ -106,6 +107,7 @@ async fn main() {
             config: Config::new(),
             system_info: Mutex::new(sysinfo::System::new()),
             workspace_roots: Mutex::new(Vec::new()),
+            pending_tasks: AtomicU64::new(0),
             static_token_keywords: static_keywords,
             entity_token_context: ArcSwap::from_pointee(HashMap::new()),
         }

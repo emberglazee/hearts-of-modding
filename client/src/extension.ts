@@ -414,13 +414,16 @@ async function startServer(context: ExtensionContext, statusBarItem: StatusBarIt
         const enabled = workspace.getConfiguration('hoi4.showMemoryUsage').get('enabled')
         if (enabled) {
             try {
-                const usage: { memoryUsedBytes?: number } | undefined = await client.sendRequest('workspace/executeCommand', {
+                const usage: { memoryUsedBytes?: number, pendingTasks?: number } | undefined = await client.sendRequest('workspace/executeCommand', {
                     command: 'hoi4/getMemoryUsage',
                     arguments: []
-                }) as { memoryUsedBytes?: number } | undefined
+                }) as { memoryUsedBytes?: number, pendingTasks?: number } | undefined
                 if (usage && usage.memoryUsedBytes) {
-                    statusBarItem.text = `$(pulse) HoM RAM: ${formatBytes(usage.memoryUsedBytes)}`
-                    statusBarItem.tooltip = 'Hearts of Modding Server Memory Usage'
+                    const icon = usage.pendingTasks && usage.pendingTasks > 0 ? '$(sync~spin)' : '$(pulse)'
+                    statusBarItem.text = `${icon} HoM RAM: ${formatBytes(usage.memoryUsedBytes)}`
+                    statusBarItem.tooltip = usage.pendingTasks && usage.pendingTasks > 0
+                        ? 'Hearts of Modding Server Memory Usage (processing...)'
+                        : 'Hearts of Modding Server Memory Usage'
                     statusBarItem.show()
                 } else {
                     statusBarItem.hide()

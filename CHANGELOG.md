@@ -18,6 +18,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Ace scanner:** Scans `common/aces/*.txt` for ace categories.
 
+- **The RAM usage indicator in the status bar now shows when the LSP is busy processing something.**
+
 ### 🔧 Changed
 
 - ⭐ **Scope V2 refactor:** Rewrote the scope system from the ground up.
