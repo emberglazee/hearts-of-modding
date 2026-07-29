@@ -42,7 +42,7 @@ export async function activate(context: ExtensionContext) {
         window.registerWebviewViewProvider(LogPanelProvider.viewType, logPanelProvider)
     )
 
-    // ── Initialise localisation colour decorator ──
+    // ── Initialise localisation color decorator ──
     locColorDecorator = new LocColorDecorator()
     locColorDecorator.activate()
     context.subscriptions.push(locColorDecorator)
@@ -394,7 +394,7 @@ async function startServer(context: ExtensionContext, statusBarItem: StatusBarIt
         }
     }))
 
-    // ── Request scanned colour codes from the LSP ──
+    // ── Request scanned color codes from the LSP ──
     try {
         const colorData: Record<string, string> | undefined = await client.sendRequest('workspace/executeCommand', {
             command: 'hoi4/getColorCodes',
@@ -402,12 +402,12 @@ async function startServer(context: ExtensionContext, statusBarItem: StatusBarIt
         }) as Record<string, string> | undefined
         if (colorData && Object.keys(colorData).length > 0) {
             locColorDecorator.updateColors(colorData)
-            outputChannel.appendLine(`HoM colour decorator: loaded ${Object.keys(colorData).length} colour codes from LSP`)
+            outputChannel.appendLine(`HoM color decorator: loaded ${Object.keys(colorData).length} color codes from LSP`)
         }
     } catch (err) {
         // LSP may not support this command yet (e.g. during development)
         // Decorator will use wiki defaults
-        outputChannel.appendLine(`HoM colour decorator: LSP colour query failed (${err}), using wiki defaults`)
+        outputChannel.appendLine(`HoM color decorator: LSP color query failed (${err}), using wiki defaults`)
     }
 
     const updateMemoryUsage = async () => {
