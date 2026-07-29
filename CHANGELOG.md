@@ -4,6 +4,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ## [v0.24.0] - 2026-07-29
 
+> been a while, eh?
+
 ***The biggest update since v0.14.0.***
 
 ### ⭐ Highlights
@@ -22,7 +24,7 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### 🔧 Changed
 
-- ⭐ **Scope V2 refactor:** Rewrote the scope system from the ground up.
+- ⭐ **Scope V2 refactor:** Rewrote the scope system from the ground up. Scope validation is experimental, incomplete due to sheer scale. Opt-in via `hoi4.validator.scopeValidationEnabled` boolean configuration property.
 
 - **Improved scope stack for focuses.** Introduced custom `Focus Tree` and `National Focus` scopes.
 
