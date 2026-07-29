@@ -90,7 +90,7 @@ fn run_oob_visitor(input: &str, unit_types: &[&str]) -> Vec<Diagnostic> {
         ace_modifiers: &DashMap::new(),
         game_path: None,
         styling_enabled: false,
-            scope_validation_enabled: false,
+        scope_validation_enabled: false,
         workspace_roots: &[],
         unit_types: &unit_type_map,
         event_targets: &DashMap::new(),

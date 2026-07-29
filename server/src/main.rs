@@ -260,7 +260,7 @@ async fn cli_validate(path: &str) {
         ace_modifiers: &ace_modifiers,
         game_path: None,
         styling_enabled: false,
-            scope_validation_enabled: false,
+        scope_validation_enabled: false,
         workspace_roots: &[],
         unit_types: &unit_types,
         event_targets: &event_targets,

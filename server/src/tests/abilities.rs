@@ -65,7 +65,7 @@ fn run_ability_visitor(input: &str, uri: &str) -> Vec<Diagnostic> {
         ace_modifiers: &DashMap::new(),
         game_path: None,
         styling_enabled: false,
-            scope_validation_enabled: false,
+        scope_validation_enabled: false,
         workspace_roots: &[],
         unit_types: &DashMap::new(),
         event_targets: &DashMap::new(),
