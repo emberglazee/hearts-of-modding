@@ -2,7 +2,7 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
-## [v0.24.0] - 2026-07-06
+## [v0.24.0] - 2026-07-29
 
 ***The biggest update since v0.14.0.***
 
@@ -27,6 +27,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 - **Improved UTF-16 char handling in UTF-8 script files.**
 
 - **Continued parser improvements:** Skip comments between assignment and a starting block at a new line (`SOV_CAV_02 = #COSSACK CAVALRY\n{`), recover from stray closing braces and erroneous section signs in script files.
+
+- Dependency updates.
 
 ### 🩹 Fixed
 
