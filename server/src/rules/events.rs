@@ -820,11 +820,7 @@ impl ValidationRule for EventValidationRule {
                                 // URI can't be resolved (e.g., no drive letter on
                                 // Windows). Extract filename from URI string directly
                                 // since Path::new may not handle "file:///..." properly.
-                                let uri_fn = ctx
-                                    .uri
-                                    .rsplit('/')
-                                    .next()
-                                    .and_then(|s| if s.is_empty() { None } else { Some(s) });
+                                let uri_fn = ctx.uri.rsplit('/').next().filter(|&s| !s.is_empty());
                                 let stored_fn = std::path::Path::new(other_path)
                                     .file_name()
                                     .and_then(|n| n.to_str());
