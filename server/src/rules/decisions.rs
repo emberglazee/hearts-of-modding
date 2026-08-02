@@ -36,6 +36,13 @@ const CATEGORY_ONLY_KEYS: [&str; 5] = [
     "day_of_week",
 ];
 
+/// Block keys that are legitimate *category fields* (not decisions) when they
+/// appear directly under a category. Vanilla decision categories use these as
+/// condition containers (e.g. `allowed = { tag = { ... } }`), so they must not
+/// be interpreted as a nested decision (which would falsely trigger the
+/// end-of-decision HOM5008/5009 checks).
+const CATEGORY_FIELD_BLOCKS: [&str; 2] = ["allowed", "visible"];
+
 /// # HOM5006 — Undeclared decision category
 /// # HOM5007 — Category-only key used inside a decision (game logs "Unexpected token" ERROR)
 /// # HOM5008 — Decision missing complete_effect
@@ -108,16 +115,30 @@ impl DecisionsRule {
 }
 
 #[derive(Clone, Copy, PartialEq)]
-enum BlockLevel {
+enum BlockScopeKind {
     Root,
     Category,
     Decision,
     SubBlock,
 }
 
-struct DecisionsVisitor {
-    level: BlockLevel,
+/// One scope entry on the visitor's stack. `decision_key` is the name of the
+/// nearest enclosing *decision* block (propagated down into sub-blocks), or
+/// `None` when the scope is a category or the file root.
+///
+/// Using an explicit stack (push on enter, symmetric pop on exit) fixes the
+/// previous single-`level` state machine, which corrupted the current depth
+/// whenever a decision contained nested sub-blocks — e.g. `cancel_trigger -> { NOT = { } }`
+/// or `timeout_effect -> { HBC = { ... } }`. After such a decision, the stale
+/// `level`/`decision_key` wrongly re-scoped the *next* sibling category as a
+/// decision, firing HOM5007 on its category-level keys.
+struct BlockScope {
+    kind: BlockScopeKind,
     decision_key: Option<String>,
+}
+
+struct DecisionsVisitor {
+    scopes: Vec<BlockScope>,
     has_complete_effect: bool,
     has_cost: bool,
     has_custom_cost: bool,
@@ -126,12 +147,37 @@ struct DecisionsVisitor {
 impl DecisionsVisitor {
     fn new() -> Self {
         Self {
-            level: BlockLevel::Root,
-            decision_key: None,
+            scopes: vec![BlockScope {
+                kind: BlockScopeKind::Root,
+                decision_key: None,
+            }],
             has_complete_effect: false,
             has_cost: false,
             has_custom_cost: false,
         }
+    }
+
+    fn top(&self) -> &BlockScope {
+        self.scopes
+            .last()
+            .expect("decision scope stack never empty")
+    }
+
+    /// True when the current key sits *directly* inside a decision block — the
+    /// only position where a category-only key has no effect (HOM5007).
+    fn directly_in_decision(&self) -> bool {
+        self.top().kind == BlockScopeKind::Decision
+    }
+
+    /// True when the current key is inside a decision block at any depth.
+    fn inside_decision(&self) -> bool {
+        self.scopes.iter().any(|s| s.decision_key.is_some())
+    }
+
+    fn reset_decision_flags(&mut self) {
+        self.has_complete_effect = false;
+        self.has_cost = false;
+        self.has_custom_cost = false;
     }
 }
 
@@ -149,45 +195,37 @@ impl AstVisitor for DecisionsVisitor {
 
         let key = ass.key_text(ctx.source);
 
-        // Track decision-level flags when inside any decision block.
-        // NOTE: we cannot rely on `self.level == BlockLevel::Decision` here because
-        // the level flip-flops between SubBlock and Decision due to nested sub-blocks
-        // (e.g., visible/ai_will_do/highlight_states each have inner blocks). By the time
-        // complete_effect or cost is entered, the level may be SubBlock, causing the flag
-        // to be missed. Using decision_key.is_some() is correct because these flags
-        // should be set whenever the key appears as a direct child of a decision at
-        // ANY nesting depth within that decision.
-        if self.decision_key.is_some() && self.level != BlockLevel::Category {
-            // HOM5007: category-only keys only matter at the direct decision level,
-            // not inside sub-blocks (e.g., picture in create_country_leader = { ... })
-            if self.level == BlockLevel::Decision && CATEGORY_ONLY_KEYS.contains(&key) {
-                diags.push(Diagnostic {
-                    range: ast_range_to_lsp(&ass.key_range),
-                    severity: Some(DiagnosticSeverity::ERROR),
-                    message: format!(
-                        "'{}' is a category-only key and has no effect inside a decision block.",
-                        key
-                    ),
-                    code: Some(NumberOrString::String(
-                        crate::validation::advanced_validation::CATEGORY_KEY_IN_DECISION
-                            .to_string(),
-                    )),
-                    source: Some("Hearts of Modding".to_string()),
-                    ..Default::default()
-                });
-            }
-            if key == "complete_effect" {
-                self.has_complete_effect = true;
-            }
-            if key == "cost" {
-                self.has_cost = true;
-            }
-            if key == "custom_cost_trigger" {
-                self.has_custom_cost = true;
+        // HOM5007: a category-only key (picture, visible_when_empty, ...) has no
+        // effect ONLY as a direct child of a decision block. It is valid inside a
+        // category, and harmless deeper inside sub-blocks (e.g. `picture` inside
+        // `create_country_leader = { ... }`).
+        if self.directly_in_decision() && CATEGORY_ONLY_KEYS.contains(&key) {
+            diags.push(Diagnostic {
+                range: ast_range_to_lsp(&ass.key_range),
+                severity: Some(DiagnosticSeverity::ERROR),
+                message: format!(
+                    "'{}' is a category-only key and has no effect inside a decision block.",
+                    key
+                ),
+                code: Some(NumberOrString::String(
+                    crate::validation::advanced_validation::CATEGORY_KEY_IN_DECISION.to_string(),
+                )),
+                source: Some("Hearts of Modding".to_string()),
+                ..Default::default()
+            });
+        }
+
+        // Accumulate decision flags at any depth within a decision block.
+        if self.inside_decision() {
+            match key {
+                "complete_effect" => self.has_complete_effect = true,
+                "cost" => self.has_cost = true,
+                "custom_cost_trigger" => self.has_custom_cost = true,
+                _ => {}
             }
         }
 
-        // Track nesting for block values
+        // Empty-block / non-decision top-level types: don't open a scope.
         let ast::Value::Block(_) = &ass.value.value else {
             return;
         };
@@ -195,21 +233,28 @@ impl AstVisitor for DecisionsVisitor {
             return;
         }
 
-        match self.level {
-            BlockLevel::Root => {
-                self.level = BlockLevel::Category;
+        let kind = match self.top().kind {
+            BlockScopeKind::Root => BlockScopeKind::Category,
+            // `allowed` and `visible` are legitimate category-field blocks (not
+            // decisions) when they appear directly under a category — vanilla
+            // decision categories use both heavily. Treat them as a container
+            // (SubBlock) so they don't get flagged as "missing complete_effect".
+            BlockScopeKind::Category if CATEGORY_FIELD_BLOCKS.contains(&key) => {
+                BlockScopeKind::SubBlock
             }
-            BlockLevel::Category => {
-                self.level = BlockLevel::Decision;
-                self.decision_key = Some(key.to_string());
-                self.has_complete_effect = false;
-                self.has_cost = false;
-                self.has_custom_cost = false;
-            }
-            BlockLevel::Decision | BlockLevel::SubBlock => {
-                self.level = BlockLevel::SubBlock;
-            }
-        }
+            BlockScopeKind::Category => BlockScopeKind::Decision,
+            BlockScopeKind::Decision | BlockScopeKind::SubBlock => BlockScopeKind::SubBlock,
+        };
+        let decision_key = match kind {
+            BlockScopeKind::Decision => Some(key.to_string()),
+            // Sub-blocks inherit the nearest enclosing decision's key, so the
+            // "inside a decision" context propagates down through any nesting.
+            // Category fields (allowed/visible) inherit `None`, keeping them
+            // out of the decision path entirely.
+            BlockScopeKind::SubBlock => self.top().decision_key.clone(),
+            _ => None,
+        };
+        self.scopes.push(BlockScope { kind, decision_key });
     }
 
     fn exit_assignment(
@@ -230,54 +275,47 @@ impl AstVisitor for DecisionsVisitor {
             return;
         }
 
-        match self.level {
-            BlockLevel::Decision => {
-                if self.decision_key.as_deref() == Some(key) {
-                    // HOM5008: Missing complete_effect
-                    let is_real_decision = inner.iter().any(|e| {
-                        matches!(e, ast::Entry::Assignment(a) if !CATEGORY_ONLY_KEYS.contains(&a.key_text(ctx.source)))
-                    });
-                    if is_real_decision && !self.has_complete_effect {
-                        diags.push(Diagnostic {
-                            range: ast_range_to_lsp(&ass.key_range),
-                            severity: Some(DiagnosticSeverity::WARNING),
-                            message: format!("Decision '{}' has no complete_effect — it does nothing when selected.",
-                                self.decision_key.as_deref().unwrap_or(key)),
-                            code: Some(NumberOrString::String(
-                                crate::validation::advanced_validation::DECISION_MISSING_COMPLETE_EFFECT.to_string(),
-                            )),
-                            source: Some("Hearts of Modding".to_string()),
-                            ..Default::default()
-                        });
-                    }
-                    // HOM5009: Both cost and custom_cost_trigger
-                    if self.has_cost && self.has_custom_cost {
-                        diags.push(Diagnostic {
-                            range: ast_range_to_lsp(&ass.key_range),
-                            severity: Some(DiagnosticSeverity::WARNING),
-                            message: format!("Decision '{}' has both 'cost' and 'custom_cost_trigger'. \
-                             These are mutually exclusive per the wiki — custom_cost_trigger will be ignored.",
-                                self.decision_key.as_deref().unwrap_or(key)),
-                            code: Some(NumberOrString::String(
-                                crate::validation::advanced_validation::DECISION_DUAL_COST.to_string(),
-                            )),
-                            source: Some("Hearts of Modding".to_string()),
-                            ..Default::default()
-                        });
-                    }
-                    self.level = BlockLevel::Category;
-                    self.decision_key = None;
-                } else {
-                    self.level = BlockLevel::SubBlock;
-                }
+        let Some(scope) = self.scopes.pop() else {
+            return;
+        };
+
+        // End-of-decision checks fire when leaving the decision scope itself.
+        if scope.kind == BlockScopeKind::Decision && scope.decision_key.as_deref() == Some(key) {
+            // HOM5008: Missing complete_effect
+            let is_real_decision = inner.iter().any(|e| {
+                matches!(e, ast::Entry::Assignment(a) if !CATEGORY_ONLY_KEYS.contains(&a.key_text(ctx.source)))
+            });
+            if is_real_decision && !self.has_complete_effect {
+                diags.push(Diagnostic {
+                    range: ast_range_to_lsp(&ass.key_range),
+                    severity: Some(DiagnosticSeverity::WARNING),
+                    message: format!(
+                        "Decision '{}' has no complete_effect — it does nothing when selected.",
+                        key
+                    ),
+                    code: Some(NumberOrString::String(
+                        crate::validation::advanced_validation::DECISION_MISSING_COMPLETE_EFFECT
+                            .to_string(),
+                    )),
+                    source: Some("Hearts of Modding".to_string()),
+                    ..Default::default()
+                });
             }
-            BlockLevel::Category => {
-                self.level = BlockLevel::Root;
+            // HOM5009: Both cost and custom_cost_trigger
+            if self.has_cost && self.has_custom_cost {
+                diags.push(Diagnostic {
+                    range: ast_range_to_lsp(&ass.key_range),
+                    severity: Some(DiagnosticSeverity::WARNING),
+                    message: format!("Decision '{}' has both 'cost' and 'custom_cost_trigger'. \
+                             These are mutually exclusive per the wiki — custom_cost_trigger will be ignored.", key),
+                    code: Some(NumberOrString::String(
+                        crate::validation::advanced_validation::DECISION_DUAL_COST.to_string(),
+                    )),
+                    source: Some("Hearts of Modding".to_string()),
+                    ..Default::default()
+                });
             }
-            BlockLevel::SubBlock => {
-                self.level = BlockLevel::Decision;
-            }
-            BlockLevel::Root => {}
+            self.reset_decision_flags();
         }
     }
 }
@@ -508,6 +546,33 @@ mod tests {
     }
 
     #[test]
+    /// Reproduces the user report: a top-level category whose children are BOTH
+    /// category-field blocks (allowed/visible) AND a real decision, with a
+    /// `visible_when_empty` on the category in between. That category-level
+    /// `visible_when_empty` must NOT be flagged HOM5007.
+    fn test_category_visible_when_empty_with_real_decision_children() {
+        let data = ScannerData::new();
+        let source = r#"hom_expand_cat = {
+            allowed = { original_tag = SPE }
+            visible = { has_completed_focus = SPE_expand_the_spp }
+            visible_when_empty = yes
+            SPE_invite_country_to_spp = {
+                icon = GFX_decision_icon_default
+                complete_effect = { add_political_power = 50 }
+            }
+        }"#;
+        let diags = visitor_diags(source, "/common/decisions/test.txt", &data);
+        let h7: Vec<&Diagnostic> = diags
+            .iter()
+            .filter(|d| d.code == Some(NumberOrString::String("HOM5007".to_string())))
+            .collect();
+        assert!(
+            h7.is_empty(),
+            "category-level visible_when_empty wrongly flagged as HOM5007: {h7:?}"
+        );
+    }
+
+    #[test]
     /// picture inside a sub-block (create_country_leader etc.) should NOT fire HOM5007.
     fn test_picture_inside_sub_block_not_flagged() {
         let data = ScannerData::new();
@@ -701,6 +766,38 @@ mod tests {
             dual_diags.len(),
             1,
             "Expected HOM5009 for dual cost decision with sub-blocks before cost"
+        );
+    }
+
+    /// Regression: a category-level `visible_when_empty` must NOT be flagged
+    /// HOM5007 even when an *earlier sibling* decision contained deeply nested
+    /// sub-blocks (e.g. `cancel_trigger -> NOT`, `timeout_effect -> TAG`). The
+    /// old single-`level` scope state machine leaked that nesting into later
+    /// sibling blocks and wrongly re-scoped this category as a decision.
+    #[test]
+    fn test_visible_when_empty_not_flagged_after_nested_subblocks_sibling() {
+        let data = ScannerData::new();
+        let source = r#"SPE_prior_category = {
+            inv_decision = {
+                cancel_trigger = { NOT = { country_exists = HBC } }
+                timeout_effect = { HBC = { country_event = hbc.46 } }
+            }
+        }
+        SPE_expand_spp_category = {
+            visible_when_empty = yes
+            SPE_invite_country_to_spp = {
+                icon = GFX_decision_icon_default
+                complete_effect = { add_political_power = 50 }
+            }
+        }"#;
+        let diags = visitor_diags(source, "/common/decisions/test.txt", &data);
+        let h7: Vec<&Diagnostic> = diags
+            .iter()
+            .filter(|d| d.code == Some(NumberOrString::String("HOM5007".to_string())))
+            .collect();
+        assert!(
+            h7.is_empty(),
+            "category-level visible_when_empty wrongly flagged as HOM5007: {h7:?}"
         );
     }
 }

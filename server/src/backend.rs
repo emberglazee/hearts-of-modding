@@ -2674,6 +2674,12 @@ pub(crate) fn build_static_semantic_keywords() -> HashSet<String> {
     keywords.insert("custom_cost_text".to_string());
     keywords.insert("is_good".to_string());
 
+    // Decision-category-only keys (valid on a category block, shown/hidden logic)
+    keywords.insert("visible_when_empty".to_string());
+    keywords.insert("scripted_gui".to_string());
+    keywords.insert("on_map_area".to_string());
+    keywords.insert("day_of_week".to_string());
+
     // lowk lazy to categorize
     keywords.insert("popularity".to_string());
     keywords.insert("ruling_party".to_string());
