@@ -22,7 +22,9 @@ use crate::rules;
 use crate::rules::{ValidationContext, ValidationRule};
 use crate::scope::scope;
 use crate::utf16_len;
-use crate::utils::lsp_convert::{RangeMapper, ast_related_info_to_lsp, ast_tag_to_lsp};
+use crate::utils::lsp_convert::{
+    RangeMapper, ast_range_to_lsp_passthrough, ast_related_info_to_lsp, ast_tag_to_lsp,
+};
 use crate::validation::advanced_validation;
 use crate::{EFFECTS, MODIFIERS, SCOPES, TRIGGERS};
 
@@ -1389,7 +1391,6 @@ impl Backend {
             .to_string();
         let (parsed, loc_diagnostics_structural, doc_lang) =
             loc_parser::parse_loc_file(content, &path_str);
-        let mapper = RangeMapper::new(content);
         let doc_lang_str = doc_lang.unwrap_or_else(|| "unknown".to_string());
         let event_targets = &self.scanner_data.event_targets;
         let scripted_locs = &self.scanner_data.scripted_locs;
@@ -1400,7 +1401,7 @@ impl Backend {
         // Add structural diagnostics
         for d in loc_diagnostics_structural {
             diagnostics.push(Diagnostic {
-                range: mapper.range(&d.range),
+                range: ast_range_to_lsp_passthrough(&d.range),
                 severity: Some(match d.severity {
                     ast::DiagnosticSeverity::Error => DiagnosticSeverity::ERROR,
                     ast::DiagnosticSeverity::Warning => DiagnosticSeverity::WARNING,
@@ -1451,7 +1452,7 @@ impl Backend {
             // Check for unnecessary version numbers
             if let Some(d) = loc_parser::check_unnecessary_version(entry) {
                 diagnostics.push(Diagnostic {
-                    range: mapper.range(&d.range),
+                    range: ast_range_to_lsp_passthrough(&d.range),
                     severity: Some(match d.severity {
                         ast::DiagnosticSeverity::Error => DiagnosticSeverity::ERROR,
                         ast::DiagnosticSeverity::Warning => DiagnosticSeverity::WARNING,
@@ -1489,7 +1490,7 @@ impl Backend {
             );
             for d in loc_diagnostics {
                 diagnostics.push(Diagnostic {
-                    range: mapper.range(&d.range),
+                    range: ast_range_to_lsp_passthrough(&d.range),
                     severity: Some(match d.severity {
                         ast::DiagnosticSeverity::Error => DiagnosticSeverity::ERROR,
                         ast::DiagnosticSeverity::Warning => DiagnosticSeverity::WARNING,
@@ -1540,7 +1541,7 @@ impl Backend {
 
                     if !is_intentional_override {
                         diagnostics.push(Diagnostic {
-                            range: mapper.range(&entry.range),
+                            range: ast_range_to_lsp_passthrough(&entry.range),
                             severity: Some(DiagnosticSeverity::WARNING),
                             message: format!("Duplicate localization key found: '{}'. The game will only use one of them unless one is in a 'replace' folder.", entry.key),
                             source: Some("Hearts of Modding".to_string()),

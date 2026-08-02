@@ -67,6 +67,26 @@ impl RangeMapper {
     }
 }
 
+/// Convert an AST range whose columns are ALREADY UTF-16 to an LSP range, without
+/// re-conversion.
+///
+/// Some producers (notably `loc_parser` via its `LineIndex`) emit ranges whose
+/// columns are already UTF-16 code units. Feeding them through `RangeMapper`
+/// (which expects **byte** columns) would silently double-shift them on any line
+/// with multi-byte characters (§, accents) — use this passthrough for those.
+pub fn ast_range_to_lsp_passthrough(range: &ast::Range) -> Range {
+    Range {
+        start: Position {
+            line: range.start_line,
+            character: range.start_col,
+        },
+        end: Position {
+            line: range.end_line,
+            character: range.end_col,
+        },
+    }
+}
+
 pub fn ast_tag_to_lsp(tag: &ast::DiagnosticTag) -> DiagnosticTag {
     match tag {
         ast::DiagnosticTag::Unnecessary => DiagnosticTag::UNNECESSARY,
@@ -187,5 +207,25 @@ mod tests {
             end_col: 8,
         };
         assert_eq!(mapper.range(&r).end.character, 8);
+    }
+
+    /// Regression: loc_parser already emits UTF-16 columns; the passthrough must
+    /// NOT re-convert them through RangeMapper (which expects byte columns and
+    /// would double-shift on §-containing lines). A UTF-16 column value must come
+    /// through unchanged.
+    #[test]
+    fn test_passthrough_does_not_reconvert_utf16_columns() {
+        let r = ast::Range {
+            start_line: 0,
+            start_col: 57, // already UTF-16 (from loc_parser's LineIndex), matching the loc_columns test
+            end_line: 0,
+            end_col: 59,
+        };
+        let l = ast_range_to_lsp_passthrough(&r);
+        assert_eq!(
+            l.start.character, 57,
+            "passthrough must not shift UTF-16 columns"
+        );
+        assert_eq!(l.end.character, 59);
     }
 }
