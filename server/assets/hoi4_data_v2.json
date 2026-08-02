@@ -10022,6 +10022,916 @@
       "block_type": "value_trigger",
       "version_added": "",
       "notes": ""
+    },
+    "add_to_temp_array": {
+      "name": "add_to_temp_array",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "add_to_temp_variable": {
+      "name": "add_to_temp_variable",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "all_claimant": {
+      "name": "all_claimant",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "State",
+      "stack_behaviour": "push",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "all_collection_elements": {
+      "name": "all_collection_elements",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "all_military_industrial_organization": {
+      "name": "all_military_industrial_organization",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Country",
+      "stack_behaviour": "push",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "all_of": {
+      "name": "all_of",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "all_of_scopes": {
+      "name": "all_of_scopes",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "all_operative_leader": {
+      "name": "all_operative_leader",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Country",
+      "stack_behaviour": "push",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "all_purchase_contracts": {
+      "name": "all_purchase_contracts",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Country",
+      "stack_behaviour": "push",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "any_collection_element": {
+      "name": "any_collection_element",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "any_country_with_original_tag_of": {
+      "name": "any_country_with_original_tag_of",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "any_military_industrial_organization": {
+      "name": "any_military_industrial_organization",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Country",
+      "stack_behaviour": "push",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "any_of": {
+      "name": "any_of",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "any_of_scopes": {
+      "name": "any_of_scopes",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "any_operative_leader": {
+      "name": "any_operative_leader",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": "Country",
+      "stack_behaviour": "push",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "any_other_country_of": {
+      "name": "any_other_country_of",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "any_other_country_with_original_tag_of": {
+      "name": "any_other_country_with_original_tag_of",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "area": {
+      "name": "area",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "State"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "armor": {
+      "name": "armor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Unit"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "can_be_captured": {
+      "name": "can_be_captured",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Character"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "career_profile_set_temp_playthrough_variable": {
+      "name": "career_profile_set_temp_playthrough_variable",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "career_profile_set_temp_variable": {
+      "name": "career_profile_set_temp_variable",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "check_expr": {
+      "name": "check_expr",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "clamp_temp_variable": {
+      "name": "clamp_temp_variable",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "clear_temp_array": {
+      "name": "clear_temp_array",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "collection_contains": {
+      "name": "collection_contains",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "collection_size": {
+      "name": "collection_size",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "count_in_collection": {
+      "name": "count_in_collection",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "debug_math_expr": {
+      "name": "debug_math_expr",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "divide_temp_variable": {
+      "name": "divide_temp_variable",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "energy_ratio": {
+      "name": "energy_ratio",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "find_highest_in_array": {
+      "name": "find_highest_in_array",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "find_lowest_in_array": {
+      "name": "find_lowest_in_array",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "get_highest_scored_country_temp": {
+      "name": "get_highest_scored_country_temp",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "get_sorted_scored_countries_temp": {
+      "name": "get_sorted_scored_countries_temp",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "get_supply_vehicles_temp": {
+      "name": "get_supply_vehicles_temp",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "has_any_captured_general": {
+      "name": "has_any_captured_general",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "has_any_general_captured_by": {
+      "name": "has_any_general_captured_by",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "has_breakthrough_points": {
+      "name": "has_breakthrough_points",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "has_cavalry_ratio": {
+      "name": "has_cavalry_ratio",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Unit"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "has_completed_goal": {
+      "name": "has_completed_goal",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "has_facility_specialization": {
+      "name": "has_facility_specialization",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "has_market_access_with": {
+      "name": "has_market_access_with",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "has_mastery_level": {
+      "name": "has_mastery_level",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "has_naval_invasion_against_state": {
+      "name": "has_naval_invasion_against_state",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "has_resources_in_collection": {
+      "name": "has_resources_in_collection",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "is_general_captured": {
+      "name": "is_general_captured",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Character"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "is_in_array": {
+      "name": "is_in_array",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "is_in_state": {
+      "name": "is_in_state",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Character"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "is_leader_visible": {
+      "name": "is_leader_visible",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "is_operation_type": {
+      "name": "is_operation_type",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "is_promoted_from_unit": {
+      "name": "is_promoted_from_unit",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Character"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modulo_temp_variable": {
+      "name": "modulo_temp_variable",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "multiply_temp_variable": {
+      "name": "multiply_temp_variable",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "num_nukes_being_dropped": {
+      "name": "num_nukes_being_dropped",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "num_nukes_left_to_drop": {
+      "name": "num_nukes_left_to_drop",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "num_of_career_profile_points": {
+      "name": "num_of_career_profile_points",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "province_vp": {
+      "name": "province_vp",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Unit"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "remove_from_temp_array": {
+      "name": "remove_from_temp_array",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "resize_temp_array": {
+      "name": "resize_temp_array",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "round_temp_variable": {
+      "name": "round_temp_variable",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "scope_exists": {
+      "name": "scope_exists",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "set_temp_variable": {
+      "name": "set_temp_variable",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "set_temp_variable_to_random": {
+      "name": "set_temp_variable_to_random",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "subtract_from_temp_variable": {
+      "name": "subtract_from_temp_variable",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
     }
   },
   "effects": {
@@ -19585,6 +20495,568 @@
       "block_type": "value_effect",
       "version_added": "",
       "notes": ""
+    },
+    "add_region_efficiency": {
+      "name": "add_region_efficiency",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "StrategicRegion"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": ""
+    },
+    "add_scaled_political_power": {
+      "name": "add_scaled_political_power",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": ""
+    },
+    "add_to_temp_array": {
+      "name": "add_to_temp_array",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": ""
+    },
+    "add_to_temp_variable": {
+      "name": "add_to_temp_variable",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": ""
+    },
+    "ai_message": {
+      "name": "ai_message",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": ""
+    },
+    "boost_planning": {
+      "name": "boost_planning",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Character"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": ""
+    },
+    "capture_by": {
+      "name": "capture_by",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": ""
+    },
+    "clamp_temp_variable": {
+      "name": "clamp_temp_variable",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": ""
+    },
+    "clear_rule": {
+      "name": "clear_rule",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": ""
+    },
+    "clear_temp_array": {
+      "name": "clear_temp_array",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": ""
+    },
+    "divide_temp_variable": {
+      "name": "divide_temp_variable",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": ""
+    },
+    "for_each_loop": {
+      "name": "for_each_loop",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": ""
+    },
+    "for_each_scope_loop": {
+      "name": "for_each_scope_loop",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": ""
+    },
+    "for_loop_effect": {
+      "name": "for_loop_effect",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": ""
+    },
+    "get_highest_scored_country": {
+      "name": "get_highest_scored_country",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": ""
+    },
+    "get_sorted_scored_countries": {
+      "name": "get_sorted_scored_countries",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": ""
+    },
+    "hidden_effect": {
+      "name": "hidden_effect",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": ""
+    },
+    "if": {
+      "name": "if",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": ""
+    },
+    "meta_effect": {
+      "name": "meta_effect",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": ""
+    },
+    "modulo_temp_variable": {
+      "name": "modulo_temp_variable",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": ""
+    },
+    "multiply_temp_variable": {
+      "name": "multiply_temp_variable",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": ""
+    },
+    "print_variables": {
+      "name": "print_variables",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Character",
+          "Country",
+          "State"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": ""
+    },
+    "promote_leader": {
+      "name": "promote_leader",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Character"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": ""
+    },
+    "random": {
+      "name": "random",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": ""
+    },
+    "random_list": {
+      "name": "random_list",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": ""
+    },
+    "random_scope_in_array": {
+      "name": "random_scope_in_array",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": ""
+    },
+    "randomize_temp_variable": {
+      "name": "randomize_temp_variable",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": ""
+    },
+    "randomize_variable": {
+      "name": "randomize_variable",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": ""
+    },
+    "release_captured_generals_from": {
+      "name": "release_captured_generals_from",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": ""
+    },
+    "release_from_captivity": {
+      "name": "release_from_captivity",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Character"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": ""
+    },
+    "remove_from_temp_array": {
+      "name": "remove_from_temp_array",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": ""
+    },
+    "resize_temp_array": {
+      "name": "resize_temp_array",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": ""
+    },
+    "round_temp_variable": {
+      "name": "round_temp_variable",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": ""
+    },
+    "select_tech_tree_icon_origin": {
+      "name": "select_tech_tree_icon_origin",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": ""
+    },
+    "set_leader_description": {
+      "name": "set_leader_description",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Character"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": ""
+    },
+    "set_leader_portrait": {
+      "name": "set_leader_portrait",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Character"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": ""
+    },
+    "set_temp_variable_to_random": {
+      "name": "set_temp_variable_to_random",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": ""
+    },
+    "subtract_from_temp_variable": {
+      "name": "subtract_from_temp_variable",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": ""
+    },
+    "unlock_subunit": {
+      "name": "unlock_subunit",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": ""
+    },
+    "while_loop_effect": {
+      "name": "while_loop_effect",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Global"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_effect",
+      "version_added": ""
     }
   },
   "modifiers": {
@@ -25031,6 +26503,2684 @@
         ],
         "usage_restriction": ""
       }
+    },
+    "air_advisor_cost_factor": {
+      "name": "air_advisor_cost_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "air_doctrine_cost_factor": {
+      "name": "air_doctrine_cost_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "air_invasion_division_cap": {
+      "name": "air_invasion_division_cap",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "air_invasion_plan_cap": {
+      "name": "air_invasion_plan_cap",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "air_invasion_prep_days": {
+      "name": "air_invasion_prep_days",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "air_invasion_preparation": {
+      "name": "air_invasion_preparation",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country",
+          "Unit"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "air_strategic_bomber_defence_factor": {
+      "name": "air_strategic_bomber_defence_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "airforce_intel_decryption_bonus": {
+      "name": "airforce_intel_decryption_bonus",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "airforce_intel_factor": {
+      "name": "airforce_intel_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "airforce_intel_to_others": {
+      "name": "airforce_intel_to_others",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "amphibious_invasion_against": {
+      "name": "amphibious_invasion_against",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "annex_subject_cost_factor": {
+      "name": "annex_subject_cost_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "armor_factor": {
+      "name": "armor_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "army_advisor_cost_factor": {
+      "name": "army_advisor_cost_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "army_armor_attack_factor": {
+      "name": "army_armor_attack_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "army_armor_defence_factor": {
+      "name": "army_armor_defence_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "army_armor_speed_factor": {
+      "name": "army_armor_speed_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "army_artillery_attack_factor": {
+      "name": "army_artillery_attack_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "army_artillery_defence_factor": {
+      "name": "army_artillery_defence_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "army_experience_from_volunteers": {
+      "name": "army_experience_from_volunteers",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "army_fuel_capacity_factor": {
+      "name": "army_fuel_capacity_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "army_infantry_attack_factor": {
+      "name": "army_infantry_attack_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "army_infantry_defence_factor": {
+      "name": "army_infantry_defence_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "army_intel_decryption_bonus": {
+      "name": "army_intel_decryption_bonus",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "army_intel_factor": {
+      "name": "army_intel_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "army_intel_to_others": {
+      "name": "army_intel_to_others",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "army_non_core_attack_factor": {
+      "name": "army_non_core_attack_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "army_non_core_defence_factor": {
+      "name": "army_non_core_defence_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "army_retreat_speed_factor": {
+      "name": "army_retreat_speed_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "automatic_grant_medal_chance": {
+      "name": "automatic_grant_medal_chance",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "autonomy_manpower_share_from_subjects": {
+      "name": "autonomy_manpower_share_from_subjects",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "boost_ideology_mission_factor": {
+      "name": "boost_ideology_mission_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "boost_resistance_factor": {
+      "name": "boost_resistance_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "can_guarantee_other_ideologies": {
+      "name": "can_guarantee_other_ideologies",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "cannot_retreat_while_attacking": {
+      "name": "cannot_retreat_while_attacking",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "cannot_retreat_while_defending": {
+      "name": "cannot_retreat_while_defending",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "casualty_trickleback": {
+      "name": "casualty_trickleback",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "cavalry_attack_factor": {
+      "name": "cavalry_attack_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "cavalry_defence_factor": {
+      "name": "cavalry_defence_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "choose_preferred_tactics_cost": {
+      "name": "choose_preferred_tactics_cost",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "civilian_intel_decryption_bonus": {
+      "name": "civilian_intel_decryption_bonus",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "civilian_intel_factor": {
+      "name": "civilian_intel_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "civilian_intel_to_others": {
+      "name": "civilian_intel_to_others",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "combat_entrenchment": {
+      "name": "combat_entrenchment",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "control_trade_mission_factor": {
+      "name": "control_trade_mission_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "diplomatic_pressure_mission_factor": {
+      "name": "diplomatic_pressure_mission_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "energy_gain_factor": {
+      "name": "energy_gain_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "energy_scale_per_trade_factory_export_factor": {
+      "name": "energy_scale_per_trade_factory_export_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "faction_influence_contribution_factor": {
+      "name": "faction_influence_contribution_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "faction_influence_war_score_factor": {
+      "name": "faction_influence_war_score_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "faction_subject_contribution_gain": {
+      "name": "faction_subject_contribution_gain",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "female_random_army_leader_chance": {
+      "name": "female_random_army_leader_chance",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "female_random_scientist_chance": {
+      "name": "female_random_scientist_chance",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Character",
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "ground_attack": {
+      "name": "ground_attack",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "headquarters_experience_gain_factor": {
+      "name": "headquarters_experience_gain_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "industrial_capacity_dockyard_powered": {
+      "name": "industrial_capacity_dockyard_powered",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "industrial_capacity_factory_powered": {
+      "name": "industrial_capacity_factory_powered",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "intelligence_operation_speed": {
+      "name": "intelligence_operation_speed",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "invasion_preparation_against": {
+      "name": "invasion_preparation_against",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "land_doctrine_cost_factor": {
+      "name": "land_doctrine_cost_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "license_air_purchase_cost": {
+      "name": "license_air_purchase_cost",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "license_anti_tank_eq_cost_factor": {
+      "name": "license_anti_tank_eq_cost_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "license_anti_tank_eq_production_speed_factor": {
+      "name": "license_anti_tank_eq_production_speed_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "license_anti_tank_eq_tech_difference_speed_factor": {
+      "name": "license_anti_tank_eq_tech_difference_speed_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "license_armor_purchase_cost": {
+      "name": "license_armor_purchase_cost",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "license_artillery_eq_cost_factor": {
+      "name": "license_artillery_eq_cost_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "license_artillery_eq_production_speed_factor": {
+      "name": "license_artillery_eq_production_speed_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "license_artillery_eq_tech_difference_speed_factor": {
+      "name": "license_artillery_eq_tech_difference_speed_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "license_infantry_eq_cost_factor": {
+      "name": "license_infantry_eq_cost_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "license_infantry_eq_production_speed_factor": {
+      "name": "license_infantry_eq_production_speed_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "license_infantry_eq_tech_difference_speed_factor": {
+      "name": "license_infantry_eq_tech_difference_speed_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "license_infantry_purchase_cost": {
+      "name": "license_infantry_purchase_cost",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "license_light_tank_eq_cost_factor": {
+      "name": "license_light_tank_eq_cost_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "license_light_tank_eq_production_speed_factor": {
+      "name": "license_light_tank_eq_production_speed_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "license_light_tank_eq_tech_difference_speed_factor": {
+      "name": "license_light_tank_eq_tech_difference_speed_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "license_naval_purchase_cost": {
+      "name": "license_naval_purchase_cost",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "max_organisation": {
+      "name": "max_organisation",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "mechanized_attack_factor": {
+      "name": "mechanized_attack_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "mechanized_defence_factor": {
+      "name": "mechanized_defence_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "military_industrial_organization_policy_cost": {
+      "name": "military_industrial_organization_policy_cost",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_armored_car_attack_factor": {
+      "name": "modifier_army_sub_unit_armored_car_attack_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_armored_car_defence_factor": {
+      "name": "modifier_army_sub_unit_armored_car_defence_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_armored_car_max_org_factor": {
+      "name": "modifier_army_sub_unit_armored_car_max_org_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_armored_car_recon_attack_factor": {
+      "name": "modifier_army_sub_unit_armored_car_recon_attack_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_armored_car_recon_defence_factor": {
+      "name": "modifier_army_sub_unit_armored_car_recon_defence_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_armored_car_recon_max_org_factor": {
+      "name": "modifier_army_sub_unit_armored_car_recon_max_org_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_armored_car_recon_speed_factor": {
+      "name": "modifier_army_sub_unit_armored_car_recon_speed_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_armored_car_speed_factor": {
+      "name": "modifier_army_sub_unit_armored_car_speed_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_blackshirt_assault_battalion_attack_factor": {
+      "name": "modifier_army_sub_unit_blackshirt_assault_battalion_attack_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_blackshirt_assault_battalion_defence_factor": {
+      "name": "modifier_army_sub_unit_blackshirt_assault_battalion_defence_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_blackshirt_assault_battalion_max_org_factor": {
+      "name": "modifier_army_sub_unit_blackshirt_assault_battalion_max_org_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_blackshirt_assault_battalion_speed_factor": {
+      "name": "modifier_army_sub_unit_blackshirt_assault_battalion_speed_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_camelry_attack_factor": {
+      "name": "modifier_army_sub_unit_camelry_attack_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_camelry_defence_factor": {
+      "name": "modifier_army_sub_unit_camelry_defence_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_camelry_speed_factor": {
+      "name": "modifier_army_sub_unit_camelry_speed_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_category_rocket_artillery_attack_factor": {
+      "name": "modifier_army_sub_unit_category_rocket_artillery_attack_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_category_special_forces_max_org_factor": {
+      "name": "modifier_army_sub_unit_category_special_forces_max_org_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_cavalry_attack_factor": {
+      "name": "modifier_army_sub_unit_cavalry_attack_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_cavalry_defence_factor": {
+      "name": "modifier_army_sub_unit_cavalry_defence_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_cavalry_speed_factor": {
+      "name": "modifier_army_sub_unit_cavalry_speed_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_infantry_attack_factor": {
+      "name": "modifier_army_sub_unit_infantry_attack_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_infantry_defence_factor": {
+      "name": "modifier_army_sub_unit_infantry_defence_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_infantry_speed_factor": {
+      "name": "modifier_army_sub_unit_infantry_speed_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_irregular_infantry_attack_factor": {
+      "name": "modifier_army_sub_unit_irregular_infantry_attack_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_irregular_infantry_defence_factor": {
+      "name": "modifier_army_sub_unit_irregular_infantry_defence_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_irregular_infantry_max_org_factor": {
+      "name": "modifier_army_sub_unit_irregular_infantry_max_org_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_irregular_infantry_speed_factor": {
+      "name": "modifier_army_sub_unit_irregular_infantry_speed_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_light_tank_recon_attack_factor": {
+      "name": "modifier_army_sub_unit_light_tank_recon_attack_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_light_tank_recon_defence_factor": {
+      "name": "modifier_army_sub_unit_light_tank_recon_defence_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_light_tank_recon_max_org_factor": {
+      "name": "modifier_army_sub_unit_light_tank_recon_max_org_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_light_tank_recon_speed_factor": {
+      "name": "modifier_army_sub_unit_light_tank_recon_speed_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_long_range_patrol_support_attack_factor": {
+      "name": "modifier_army_sub_unit_long_range_patrol_support_attack_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_long_range_patrol_support_defence_factor": {
+      "name": "modifier_army_sub_unit_long_range_patrol_support_defence_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_marine_attack_factor": {
+      "name": "modifier_army_sub_unit_marine_attack_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_marine_defence_factor": {
+      "name": "modifier_army_sub_unit_marine_defence_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_marine_max_org_factor": {
+      "name": "modifier_army_sub_unit_marine_max_org_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_marine_speed_factor": {
+      "name": "modifier_army_sub_unit_marine_speed_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_military_police_attack_factor": {
+      "name": "modifier_army_sub_unit_military_police_attack_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_military_police_defence_factor": {
+      "name": "modifier_army_sub_unit_military_police_defence_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_military_police_max_org_factor": {
+      "name": "modifier_army_sub_unit_military_police_max_org_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_military_police_speed_factor": {
+      "name": "modifier_army_sub_unit_military_police_speed_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_militia_attack_factor": {
+      "name": "modifier_army_sub_unit_militia_attack_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_militia_defence_factor": {
+      "name": "modifier_army_sub_unit_militia_defence_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_militia_max_org_factor": {
+      "name": "modifier_army_sub_unit_militia_max_org_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_militia_org_recovery_cap_factor": {
+      "name": "modifier_army_sub_unit_militia_org_recovery_cap_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_militia_speed_factor": {
+      "name": "modifier_army_sub_unit_militia_speed_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_mountaineers_attack_factor": {
+      "name": "modifier_army_sub_unit_mountaineers_attack_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_mountaineers_defence_factor": {
+      "name": "modifier_army_sub_unit_mountaineers_defence_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_mountaineers_max_org_factor": {
+      "name": "modifier_army_sub_unit_mountaineers_max_org_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_mountaineers_speed_factor": {
+      "name": "modifier_army_sub_unit_mountaineers_speed_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_paratrooper_attack_factor": {
+      "name": "modifier_army_sub_unit_paratrooper_attack_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_paratrooper_defence_factor": {
+      "name": "modifier_army_sub_unit_paratrooper_defence_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_paratrooper_max_org_factor": {
+      "name": "modifier_army_sub_unit_paratrooper_max_org_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "modifier_army_sub_unit_paratrooper_speed_factor": {
+      "name": "modifier_army_sub_unit_paratrooper_speed_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "motorized_attack_factor": {
+      "name": "motorized_attack_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "motorized_defence_factor": {
+      "name": "motorized_defence_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "naval_commando_raid_distance": {
+      "name": "naval_commando_raid_distance",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "naval_critical_score_chance_factor_against": {
+      "name": "naval_critical_score_chance_factor_against",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country",
+          "Unit"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "naval_doctrine_cost_factor": {
+      "name": "naval_doctrine_cost_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "naval_hit_chance_against": {
+      "name": "naval_hit_chance_against",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "naval_invasion_division_cap": {
+      "name": "naval_invasion_division_cap",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "naval_invasion_plan_cap": {
+      "name": "naval_invasion_plan_cap",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "naval_invasion_prep_days": {
+      "name": "naval_invasion_prep_days",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "naval_mission_xp_factor": {
+      "name": "naval_mission_xp_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "naval_ship_recovery_chance": {
+      "name": "naval_ship_recovery_chance",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "naval_ship_recovery_chance_factor": {
+      "name": "naval_ship_recovery_chance_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "naval_strike_agility_factor": {
+      "name": "naval_strike_agility_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "naval_strike_attack_factor": {
+      "name": "naval_strike_attack_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "naval_supply_consumption_factor": {
+      "name": "naval_supply_consumption_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "navy_advisor_cost_factor": {
+      "name": "navy_advisor_cost_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "navy_capital_ship_attack_factor_against": {
+      "name": "navy_capital_ship_attack_factor_against",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "navy_capital_ship_defence_factor_against": {
+      "name": "navy_capital_ship_defence_factor_against",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "navy_intel_decryption_bonus": {
+      "name": "navy_intel_decryption_bonus",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "navy_intel_factor": {
+      "name": "navy_intel_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "navy_intel_to_others": {
+      "name": "navy_intel_to_others",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "navy_screen_attack_factor_against": {
+      "name": "navy_screen_attack_factor_against",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "navy_screen_defence_factor_against": {
+      "name": "navy_screen_defence_factor_against",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "navy_submarine_attack_factor_against": {
+      "name": "navy_submarine_attack_factor_against",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "navy_submarine_defence_factor_against": {
+      "name": "navy_submarine_defence_factor_against",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "navy_weather_penalty": {
+      "name": "navy_weather_penalty",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "night_spotting_chance": {
+      "name": "night_spotting_chance",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "operation_infiltrate_outcome": {
+      "name": "operation_infiltrate_outcome",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "opinion_gain_monthly_same_ideology": {
+      "name": "opinion_gain_monthly_same_ideology",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "org_damage_multiplier": {
+      "name": "org_damage_multiplier",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "out_of_power_impact_factor": {
+      "name": "out_of_power_impact_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "peace_score_ratio_transferred_to_overlord": {
+      "name": "peace_score_ratio_transferred_to_overlord",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "peace_score_ratio_transferred_to_players": {
+      "name": "peace_score_ratio_transferred_to_players",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "planning_decay_rate_factor": {
+      "name": "planning_decay_rate_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "production_speed_buildings_powered_factor": {
+      "name": "production_speed_buildings_powered_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "production_speed_facility_factor": {
+      "name": "production_speed_facility_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "propaganda_mission_factor": {
+      "name": "propaganda_mission_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "resources_to_overlord_factor": {
+      "name": "resources_to_overlord_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "river_crossing_factor_against": {
+      "name": "river_crossing_factor_against",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "shore_bombardment_collateral_damage_factor": {
+      "name": "shore_bombardment_collateral_damage_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "special_forces_attack_factor": {
+      "name": "special_forces_attack_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "special_forces_defence_factor": {
+      "name": "special_forces_defence_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "special_forces_doctrine_cost_factor": {
+      "name": "special_forces_doctrine_cost_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "special_project_facility_supply_consumption_factor": {
+      "name": "special_project_facility_supply_consumption_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "special_project_speed_factor": {
+      "name": "special_project_speed_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "spotting_chance_against": {
+      "name": "spotting_chance_against",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "state_production_speed_buildings_factor": {
+      "name": "state_production_speed_buildings_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country",
+          "State"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "state_production_speed_facility_factor": {
+      "name": "state_production_speed_facility_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "State"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "str_damage_multiplier": {
+      "name": "str_damage_multiplier",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "target_sabotage_factor": {
+      "name": "target_sabotage_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "thermonuclear_production": {
+      "name": "thermonuclear_production",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "thermonuclear_production_factor": {
+      "name": "thermonuclear_production_factor",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "training_time_army": {
+      "name": "training_time_army",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "underway_replenishment_convoy_cost": {
+      "name": "underway_replenishment_convoy_cost",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "underway_replenishment_range": {
+      "name": "underway_replenishment_range",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "unit_medal_effectiveness": {
+      "name": "unit_medal_effectiveness",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
+    },
+    "war_support_reduction_on_damage": {
+      "name": "war_support_reduction_on_damage",
+      "description": "",
+      "scopes": {
+        "usage": [
+          "Country"
+        ],
+        "usage_restriction": ""
+      },
+      "pushes_scope": null,
+      "stack_behaviour": "passthrough",
+      "block_type": "value_trigger",
+      "version_added": ""
     }
   },
   "scopes": {
