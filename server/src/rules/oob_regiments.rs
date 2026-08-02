@@ -3,7 +3,6 @@ use crate::rules::ValidationContext;
 use crate::rules::visitor::AstVisitor;
 use crate::scanner::unit_scanner;
 use crate::scope::scope::ScopeStack;
-use crate::utils::lsp_convert::ast_range_to_lsp;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
 /// Validates that:
@@ -150,7 +149,7 @@ impl AstVisitor for OobRegimentVisitor {
                 {
                     // Tier 2: exists with different casing
                     diags.push(Diagnostic {
-                        range: ast_range_to_lsp(&ass.key_range),
+                        range: ctx.range(&ass.key_range),
                         severity: Some(DiagnosticSeverity::HINT),
                         message: format!(
                             "Unit type '{}' should probably be '{}' (the game accepts \
@@ -168,7 +167,7 @@ impl AstVisitor for OobRegimentVisitor {
                 } else {
                     // Tier 3: completely unknown
                     diags.push(Diagnostic {
-                        range: ast_range_to_lsp(&ass.key_range),
+                        range: ctx.range(&ass.key_range),
                         severity: Some(DiagnosticSeverity::WARNING),
                         message: format!(
                             "Unknown unit type: '{}' — not defined in common/units/*.txt",
@@ -218,7 +217,7 @@ impl AstVisitor for OobRegimentVisitor {
             let exists = self.template_names.iter().any(|n| n == ref_name);
             if !exists {
                 diags.push(Diagnostic {
-                    range: ast_range_to_lsp(key_range),
+                    range: _ctx.range(key_range),
                     severity: Some(DiagnosticSeverity::WARNING),
                     message: format!(
                         "Unknown division template: '{}' — no template with that name is defined in this file",

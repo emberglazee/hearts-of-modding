@@ -1,7 +1,6 @@
 use crate::parser::ast;
 use crate::rules::{ValidationContext, ValidationRule};
 use crate::scope::scope::ScopeStack;
-use crate::utils::lsp_convert::ast_range_to_lsp;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
 /// Checks that string values assigned to `name`, `desc`, `text`,
@@ -78,7 +77,7 @@ impl ValidationRule for LocalizationRule {
 
                     if !is_regex_ignored {
                         diags.push(Diagnostic {
-                            range: ast_range_to_lsp(&ass.value.range),
+                            range: ctx.range(&ass.value.range),
                             severity: Some(DiagnosticSeverity::HINT),
                             message: format!(
                                 "Missing localization key: '{}' (or literal name)",

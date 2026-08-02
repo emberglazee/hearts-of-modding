@@ -2,7 +2,6 @@ use crate::parser::ast;
 use crate::rules::ValidationContext;
 use crate::rules::visitor::AstVisitor;
 use crate::scope::scope::ScopeStack;
-use crate::utils::lsp_convert::ast_range_to_lsp;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
 /// Validates `add_ace = { type = X }` references against known ace modifiers.
@@ -43,7 +42,7 @@ impl AstVisitor for AceVisitor {
             if let Some(type_val) = ass.value.value.as_str(ctx.source) {
                 if !ctx.ace_modifiers.contains_key(type_val) {
                     diags.push(Diagnostic {
-                        range: ast_range_to_lsp(&ass.key_range),
+                        range: ctx.range(&ass.key_range),
                         severity: Some(DiagnosticSeverity::WARNING),
                         message: format!(
                             "'{}' is not a known ace modifier tag. Must match a tag defined in common/aces/*.txt",

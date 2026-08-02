@@ -3,7 +3,6 @@ use crate::rules::visitor::AstVisitor;
 use crate::rules::{ValidationContext, ValidationRule};
 use crate::scanner::event_namespace_scanner;
 use crate::scope::scope::ScopeStack;
-use crate::utils::lsp_convert::ast_range_to_lsp;
 use std::collections::HashSet;
 use std::str::FromStr;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString, Uri};
@@ -105,7 +104,7 @@ impl EventVisitor {
     ) {
         if !state.has_name {
             diags.push(Diagnostic {
-                range: ast_range_to_lsp(&state.key_range),
+                range: _ctx.range(&state.key_range),
                 severity: Some(DiagnosticSeverity::WARNING),
                 message: "Event option is missing a 'name' field. Players will not see \
                           a descriptive label for this option."
@@ -135,7 +134,7 @@ impl EventVisitor {
         // HOM3016: non-hidden event without title AND desc
         if !state.is_hidden && !state.has_title && !state.has_desc {
             diags.push(Diagnostic {
-                range: ast_range_to_lsp(&state.key_range),
+                range: ctx.range(&state.key_range),
                 severity: Some(DiagnosticSeverity::WARNING),
                 message: "Event is missing both 'title' and 'desc'. A non-hidden event \
                           requires at least one of them to display anything to the player."
@@ -156,7 +155,7 @@ impl EventVisitor {
                     if !ctx.loc.iter().any(|e| e.key().starts_with(&prefix)) {
                         let d = state.title_range.as_ref().unwrap_or(&state.key_range);
                         diags.push(Diagnostic {
-                        range: ast_range_to_lsp(d),
+                        range: ctx.range(d),
                         severity: Some(DiagnosticSeverity::WARNING),
                         message: format!(
                             "Event title localization key '{}' not found in any localization file.",
@@ -180,7 +179,7 @@ impl EventVisitor {
                     if !ctx.loc.iter().any(|e| e.key().starts_with(&prefix)) {
                         let d = state.desc_range.as_ref().unwrap_or(&state.key_range);
                         diags.push(Diagnostic {
-                        range: ast_range_to_lsp(d),
+                        range: ctx.range(d),
                         severity: Some(DiagnosticSeverity::WARNING),
                         message: format!(
                             "Event description localization key '{}' not found in any localization file.",
@@ -203,7 +202,7 @@ impl EventVisitor {
             if sprite.starts_with("GFX_") && !ctx.sprites.contains_key(sprite.as_str()) {
                 let d = state.picture_range.as_ref().unwrap_or(&state.key_range);
                 diags.push(Diagnostic {
-                    range: ast_range_to_lsp(d),
+                    range: ctx.range(d),
                     severity: Some(DiagnosticSeverity::WARNING),
                     message: format!(
                         "Event picture sprite '{}' not found. Define it in an interface/*.gfx file.",
@@ -224,8 +223,8 @@ impl EventVisitor {
             let diag_range = state
                 .last_missing_ai_chance_range
                 .as_ref()
-                .map(ast_range_to_lsp)
-                .unwrap_or_else(|| ast_range_to_lsp(&state.key_range));
+                .map(|r| ctx.range(r))
+                .unwrap_or_else(|| ctx.range(&state.key_range));
             diags.push(Diagnostic {
                 range: diag_range,
                 severity: Some(DiagnosticSeverity::INFORMATION),
@@ -259,7 +258,7 @@ impl EventVisitor {
         // HOM3009: non-integer event ID suffix
         if !parsed.is_valid_integer {
             diags.push(Diagnostic {
-                range: ast_range_to_lsp(&ass.value.range),
+                range: ctx.range(&ass.value.range),
                 severity: Some(DiagnosticSeverity::WARNING),
                 message: format!(
                     "Event ID '{}' has non-integer suffix '{}'. Event IDs must be in the format \
@@ -280,7 +279,7 @@ impl EventVisitor {
         if let Some(n) = parsed.numeric_value {
             if n >= 100_000 {
                 diags.push(Diagnostic {
-                    range: ast_range_to_lsp(&ass.value.range),
+                    range: ctx.range(&ass.value.range),
                     severity: Some(DiagnosticSeverity::WARNING),
                     message: format!(
                         "Event ID '{}' uses numeric ID {}, which is >= 100000. This encroaches \
@@ -321,7 +320,7 @@ impl EventVisitor {
                 || ctx.event_namespaces.get(ns_lower.as_str()).is_some();
             if !available {
                 diags.push(Diagnostic {
-                    range: ast_range_to_lsp(&ass.value.range),
+                    range: ctx.range(&ass.value.range),
                     severity: Some(DiagnosticSeverity::ERROR),
                     message: format!(
                         "Event ID '{}' uses namespace '{}' which has not been declared. \
@@ -407,7 +406,7 @@ impl EventVisitor {
                     // aaa_mod.txt sorts before zzz_vanilla.txt), emit directly.
                     let decl_file_label = decl_filename.as_deref().unwrap_or("other file");
                     diags.push(Diagnostic {
-                        range: ast_range_to_lsp(&ass.value.range),
+                        range: ctx.range(&ass.value.range),
                         severity: Some(DiagnosticSeverity::ERROR),
                         message: format!(
                             "Event ID '{}' uses namespace '{}' declared in mod file '{}', \
@@ -428,7 +427,7 @@ impl EventVisitor {
                         (Some(cur), Some(decl)) if decl.as_str() == cur.as_str() => {
                             // Same file → declared LATER → reorder needed
                             diags.push(Diagnostic {
-                                range: ast_range_to_lsp(&ass.value.range),
+                                range: ctx.range(&ass.value.range),
                                 severity: Some(DiagnosticSeverity::ERROR),
                                 message: format!(
                                     "Event ID '{}' uses namespace '{}' which is declared LATER \
@@ -448,7 +447,7 @@ impl EventVisitor {
                         (Some(cur), Some(decl)) if decl.as_str() > cur.as_str() => {
                             // Other file loads AFTER → namespace unavailable at this point
                             diags.push(Diagnostic {
-                                range: ast_range_to_lsp(&ass.value.range),
+                                range: ctx.range(&ass.value.range),
                                 severity: Some(DiagnosticSeverity::ERROR),
                                 message: format!(
                                     "Event ID '{}' uses namespace '{}' which is declared in '{}'. \
@@ -477,7 +476,7 @@ impl EventVisitor {
             None => {
                 // Namespace not declared anywhere → genuinely missing
                 diags.push(Diagnostic {
-                    range: ast_range_to_lsp(&ass.value.range),
+                    range: ctx.range(&ass.value.range),
                     severity: Some(DiagnosticSeverity::ERROR),
                     message: format!(
                         "Event ID '{}' uses namespace '{}' which has not been declared. \
@@ -564,7 +563,7 @@ impl AstVisitor for EventVisitor {
                 && !ctx.events.contains_key(id)
             {
                 diags.push(Diagnostic {
-                    range: ast_range_to_lsp(&ass.key_range),
+                    range: ctx.range(&ass.key_range),
                     severity: Some(DiagnosticSeverity::WARNING),
                     message: format!(
                         "Event reference '{}' does not match any defined event in the workspace.",
@@ -833,7 +832,7 @@ impl ValidationRule for EventValidationRule {
                     };
                     if !same_file {
                         diags.push(Diagnostic {
-                            range: ast_range_to_lsp(&ass.value.range),
+                            range: ctx.range(&ass.value.range),
                             severity: Some(DiagnosticSeverity::INFORMATION),
                             message: format!(
                                 "Duplicate event namespace '{}' (also declared in {})",

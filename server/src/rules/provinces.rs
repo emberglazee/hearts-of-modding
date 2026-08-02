@@ -4,7 +4,6 @@ use crate::parser::ast;
 use crate::rules::visitor::AstVisitor;
 use crate::rules::{ValidationContext, ValidationRule};
 use crate::scope::scope::ScopeStack;
-use crate::utils::lsp_convert::ast_range_to_lsp;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
 /// Validates province references.
@@ -66,7 +65,7 @@ fn check_is_province(val: &ast::NodeedValue, ctx: &ValidationContext, diags: &mu
     if let Some(id) = id_opt {
         if !ctx.provinces.is_empty() && !ctx.provinces.contains_key(&id) {
             diags.push(Diagnostic {
-                range: ast_range_to_lsp(&val.range),
+                range: ctx.range(&val.range),
                 severity: Some(DiagnosticSeverity::WARNING),
                 message: format!("Unknown province ID: {}", id),
                 code: Some(NumberOrString::String(
@@ -177,7 +176,7 @@ impl AstVisitor for ProvinceVpVisitor {
             for (vp_province, range) in vps {
                 if !provs.contains(vp_province) {
                     diags.push(Diagnostic {
-                        range: ast_range_to_lsp(range),
+                        range: _ctx.range(range),
                         severity: Some(DiagnosticSeverity::HINT),
                         message: format!(
                             "Victory point province {} is not in the state's province list",

@@ -1,7 +1,6 @@
 use crate::parser::ast;
 use crate::rules::{ValidationContext, ValidationRule};
 use crate::scope::scope::{Scope, ScopeStack};
-use crate::utils::lsp_convert::ast_range_to_lsp;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity};
 
 /// Keywords that should never have picture validation in an idea context.
@@ -110,7 +109,7 @@ impl ValidationRule for IdeaRule {
                     return;
                 }
                 diags.push(Diagnostic {
-                    range: ast_range_to_lsp(&ass.value.range),
+                    range: ctx.range(&ass.value.range),
                     severity: Some(DiagnosticSeverity::WARNING),
                     message: format!("Unknown idea: '{}'", val),
                     source: Some("Hearts of Modding".to_string()),
@@ -155,7 +154,7 @@ impl ValidationRule for IdeaRule {
                             .any(|e| e.key().starts_with(&format!("{}_", default_gfx)));
                     if !exists {
                         diags.push(Diagnostic {
-                            range: ast_range_to_lsp(&ass.key_range),
+                            range: ctx.range(&ass.key_range),
                             severity: Some(DiagnosticSeverity::WARNING),
                             message: format!(
                                 "Idea '{}' is missing a 'picture' field and the default GFX '{}' was not found.",

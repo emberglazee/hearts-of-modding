@@ -8,15 +8,20 @@ mod tests {
     use crate::scanner::province_scanner::Province;
     use crate::scanner::strategic_region_scanner::StrategicRegion;
     use crate::scope::scope::Scope;
+    use crate::utils::lsp_convert::RangeMapper;
     use dashmap::DashMap;
     use regex::Regex;
     use tower_lsp_server::ls_types::Diagnostic;
 
     /// Build a minimal ValidationContext with empty scanner data.
     fn empty_ctx(source: &str) -> ValidationContext<'_> {
+        // Leak the mapper so the returned context (which borrows it) is valid;
+        // matches the existing leak_map() pattern used for the other fields.
+        let range_mapper: &'static RangeMapper = Box::leak(Box::new(RangeMapper::new(source)));
         ValidationContext {
             uri: "test://ideas.txt",
             source,
+            range_mapper,
             loc: leak_map(),
             scripted_triggers: leak_map(),
             scripted_effects: leak_map(),

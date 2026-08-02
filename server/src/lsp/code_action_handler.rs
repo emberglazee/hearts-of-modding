@@ -1,6 +1,6 @@
 use crate::Backend;
 use crate::parser::loc_parser;
-use crate::utils::lsp_convert::ast_range_to_lsp;
+use crate::utils::lsp_convert::RangeMapper;
 use std::collections::HashMap;
 use tower_lsp_server::jsonrpc::Result;
 use tower_lsp_server::ls_types::*;
@@ -396,6 +396,7 @@ impl Backend {
         // Add "Fix all" if any casing diagnostic is present
         if has_casing_diagnostic {
             if let Some((ref script, _)) = fresh_ast {
+                let mapper = RangeMapper::new(&script.source);
                 let mut all_fixes = Vec::new();
                 self.collect_casing_fixes(&script.entries, &mut all_fixes, &script.source);
 
@@ -404,7 +405,7 @@ impl Backend {
                     let edits: Vec<TextEdit> = all_fixes
                         .into_iter()
                         .map(|(range, text)| TextEdit {
-                            range: ast_range_to_lsp(&range),
+                            range: mapper.range(&range),
                             new_text: text,
                         })
                         .collect();
@@ -428,6 +429,7 @@ impl Backend {
         // Add "Fix all path separators" if any such diagnostic is present
         if has_path_separator_diagnostic {
             if let Some((ref script, _)) = fresh_ast {
+                let mapper = RangeMapper::new(&script.source);
                 let mut all_fixes = Vec::new();
                 self.collect_path_separator_fixes(&script.entries, &mut all_fixes, &script.source);
 
@@ -436,7 +438,7 @@ impl Backend {
                     let edits: Vec<TextEdit> = all_fixes
                         .into_iter()
                         .map(|(range, text)| TextEdit {
-                            range: ast_range_to_lsp(&range),
+                            range: mapper.range(&range),
                             new_text: text,
                         })
                         .collect();
@@ -532,6 +534,7 @@ impl Backend {
         if has_assignment_space_diagnostic {
             if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
                 if let Some((ref script, _)) = fresh_ast {
+                    let mapper = RangeMapper::new(&content);
                     let mut all_fixes = Vec::new();
                     Self::collect_assignment_space_fixes(&script.entries, &mut all_fixes, &content);
 
@@ -540,7 +543,7 @@ impl Backend {
                         let edits: Vec<TextEdit> = all_fixes
                             .into_iter()
                             .map(|(range, text)| TextEdit {
-                                range: ast_range_to_lsp(&range),
+                                range: mapper.range(&range),
                                 new_text: text,
                             })
                             .collect();
@@ -567,6 +570,7 @@ impl Backend {
         if has_brace_space_diagnostic {
             if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
                 if let Some((ref script, _)) = fresh_ast {
+                    let mapper = RangeMapper::new(&content);
                     let mut all_fixes = Vec::new();
                     self.collect_brace_space_fixes(&script.entries, &mut all_fixes, &content);
                     self.collect_brace_newline_fixes(&script.entries, &mut all_fixes);
@@ -576,7 +580,7 @@ impl Backend {
                         let edits: Vec<TextEdit> = all_fixes
                             .into_iter()
                             .map(|(range, text)| TextEdit {
-                                range: ast_range_to_lsp(&range),
+                                range: mapper.range(&range),
                                 new_text: text,
                             })
                             .collect();
@@ -601,6 +605,7 @@ impl Backend {
         // Add "Remove all unnecessary version numbers" if any such diagnostic is present
         if has_unnecessary_version_diagnostic {
             if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
+                let mapper = RangeMapper::new(&content);
                 let path_str = params
                     .text_document
                     .uri
@@ -622,7 +627,7 @@ impl Backend {
                     let edits: Vec<TextEdit> = all_fixes
                         .into_iter()
                         .map(|(range, text)| TextEdit {
-                            range: ast_range_to_lsp(&range),
+                            range: mapper.range(&range),
                             new_text: text,
                         })
                         .collect();
@@ -646,6 +651,7 @@ impl Backend {
         // Add "Escape all unescaped double quotes" if any such diagnostic is present
         if has_unescaped_quote_diagnostic {
             if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
+                let mapper = RangeMapper::new(&content);
                 let diagnostics = loc_parser::validate_unescaped_quotes_in_file(&content);
 
                 if !diagnostics.is_empty() {
@@ -653,7 +659,7 @@ impl Backend {
                     let edits: Vec<TextEdit> = diagnostics
                         .into_iter()
                         .map(|d| TextEdit {
-                            range: ast_range_to_lsp(&d.range),
+                            range: mapper.range(&d.range),
                             new_text: "\\\"".to_string(),
                         })
                         .collect();
@@ -687,6 +693,7 @@ impl Backend {
         if has_any_styling_diagnostic {
             if let Some(content) = self.documents.get(&params.text_document.uri.to_string()) {
                 if let Some((ref script, _)) = fresh_ast {
+                    let mapper = RangeMapper::new(&content);
                     let mut all_changes = Vec::new();
                     let is_yaml = fresh_uri.ends_with(".yml");
                     let lines: Vec<&str> = content.lines().collect();
@@ -730,7 +737,7 @@ impl Backend {
                     self.collect_casing_fixes(&script.entries, &mut casing_fixes, &script.source);
                     for (range, text) in casing_fixes {
                         all_changes.push(TextEdit {
-                            range: ast_range_to_lsp(&range),
+                            range: mapper.range(&range),
                             new_text: text,
                         });
                     }
@@ -762,7 +769,7 @@ impl Backend {
                     );
                     for (range, text) in assign_fixes {
                         all_changes.push(TextEdit {
-                            range: ast_range_to_lsp(&range),
+                            range: mapper.range(&range),
                             new_text: text,
                         });
                     }
@@ -772,7 +779,7 @@ impl Backend {
                     self.collect_brace_newline_fixes(&script.entries, &mut brace_fixes);
                     for (range, text) in brace_fixes {
                         all_changes.push(TextEdit {
-                            range: ast_range_to_lsp(&range),
+                            range: mapper.range(&range),
                             new_text: text,
                         });
                     }
@@ -788,7 +795,7 @@ impl Backend {
                     for entry in parsed.values() {
                         if let Some(d) = loc_parser::check_unnecessary_version(entry) {
                             all_changes.push(TextEdit {
-                                range: ast_range_to_lsp(&d.range),
+                                range: mapper.range(&d.range),
                                 new_text: "".to_string(),
                             });
                         }
@@ -802,7 +809,7 @@ impl Backend {
                     );
                     for (range, text) in path_sep_fixes {
                         all_changes.push(TextEdit {
-                            range: ast_range_to_lsp(&range),
+                            range: mapper.range(&range),
                             new_text: text,
                         });
                     }
@@ -810,7 +817,7 @@ impl Backend {
                     let quote_diagnostics = loc_parser::validate_unescaped_quotes_in_file(&content);
                     for d in quote_diagnostics {
                         all_changes.push(TextEdit {
-                            range: ast_range_to_lsp(&d.range),
+                            range: mapper.range(&d.range),
                             new_text: "\"".to_string(),
                         });
                     }
@@ -853,6 +860,7 @@ impl Backend {
             }
 
             if let Some((ref script, _)) = fresh_ast {
+                let mapper = RangeMapper::new(&script.source);
                 // ── Per-type bulk actions ─────────────────────────────
                 for canonical in &seen_types {
                     let mut fixes = Vec::new();
@@ -868,7 +876,7 @@ impl Backend {
                         let edits: Vec<TextEdit> = fixes
                             .into_iter()
                             .map(|(range, text)| TextEdit {
-                                range: ast_range_to_lsp(&range),
+                                range: mapper.range(&range),
                                 new_text: text,
                             })
                             .collect();
@@ -902,7 +910,7 @@ impl Backend {
                     let edits: Vec<TextEdit> = all_fixes
                         .into_iter()
                         .map(|(range, text)| TextEdit {
-                            range: ast_range_to_lsp(&range),
+                            range: mapper.range(&range),
                             new_text: text,
                         })
                         .collect();

@@ -1,5 +1,6 @@
-use crate::parser::ast::Range;
 use crate::utils::fs_util::fuzzy_match;
+use crate::utils::lsp_convert::RangeMapper;
+use std::collections::HashMap;
 
 use tower_lsp_server::ls_types::{
     Location, Position as LspPosition, Range as LspRange, SymbolInformation, SymbolKind, Uri,
@@ -22,6 +23,8 @@ pub async fn generate_workspace_symbols(
     data: &crate::ScannerData,
 ) -> Vec<SymbolInformation> {
     let mut symbols = Vec::new();
+    // Cache a UTF-16 RangeMapper per source file (paths are interned, so one per schema).
+    let mut mapper_cache: HashMap<String, RangeMapper> = HashMap::new();
     let query_lower = query.to_ascii_lowercase();
 
     // Search custom modifiers
@@ -38,7 +41,8 @@ pub async fn generate_workspace_symbols(
                 deprecated: None,
                 location: Location {
                     uri: path_to_url(&modifier.path),
-                    range: range_to_lsp(&modifier.range),
+                    range: mapper_for_path(&mut mapper_cache, &modifier.path)
+                        .range(&modifier.range),
                 },
                 container_name: Some("Modifier".to_string()),
             });
@@ -59,7 +63,8 @@ pub async fn generate_workspace_symbols(
                 deprecated: None,
                 location: Location {
                     uri: path_to_url(&achievement.path),
-                    range: range_to_lsp(&achievement.range),
+                    range: mapper_for_path(&mut mapper_cache, &achievement.path)
+                        .range(&achievement.range),
                 },
                 container_name: Some("Achievement".to_string()),
             });
@@ -80,7 +85,7 @@ pub async fn generate_workspace_symbols(
                 deprecated: None,
                 location: Location {
                     uri: path_to_url(&event.path),
-                    range: range_to_lsp(&event.range),
+                    range: mapper_for_path(&mut mapper_cache, &event.path).range(&event.range),
                 },
                 container_name: Some(format!("{:?}", event.event_type)),
             });
@@ -101,7 +106,7 @@ pub async fn generate_workspace_symbols(
                 deprecated: None,
                 location: Location {
                     uri: path_to_url(&idea.path),
-                    range: range_to_lsp(&idea.range),
+                    range: mapper_for_path(&mut mapper_cache, &idea.path).range(&idea.range),
                 },
                 container_name: Some(format!("{:?}", idea.category)),
             });
@@ -122,7 +127,8 @@ pub async fn generate_workspace_symbols(
                 deprecated: None,
                 location: Location {
                     uri: path_to_url(&trait_data.path),
-                    range: range_to_lsp(&trait_data.range),
+                    range: mapper_for_path(&mut mapper_cache, &trait_data.path)
+                        .range(&trait_data.range),
                 },
                 container_name: Some(format!("{:?}", trait_data.trait_type)),
             });
@@ -143,7 +149,7 @@ pub async fn generate_workspace_symbols(
                 deprecated: None,
                 location: Location {
                     uri: path_to_url(&trigger.path),
-                    range: range_to_lsp(&trigger.range),
+                    range: mapper_for_path(&mut mapper_cache, &trigger.path).range(&trigger.range),
                 },
                 container_name: Some("Scripted Trigger".to_string()),
             });
@@ -164,7 +170,7 @@ pub async fn generate_workspace_symbols(
                 deprecated: None,
                 location: Location {
                     uri: path_to_url(&effect.path),
-                    range: range_to_lsp(&effect.range),
+                    range: mapper_for_path(&mut mapper_cache, &effect.path).range(&effect.range),
                 },
                 container_name: Some("Scripted Effect".to_string()),
             });
@@ -185,7 +191,7 @@ pub async fn generate_workspace_symbols(
                 deprecated: None,
                 location: Location {
                     uri: path_to_url(&loc.path),
-                    range: range_to_lsp(&loc.range),
+                    range: mapper_for_path(&mut mapper_cache, &loc.path).range(&loc.range),
                 },
                 container_name: Some("Scripted Localisation".to_string()),
             });
@@ -206,7 +212,7 @@ pub async fn generate_workspace_symbols(
                 deprecated: None,
                 location: Location {
                     uri: path_to_url(&state.path),
-                    range: range_to_lsp(&state.range),
+                    range: mapper_for_path(&mut mapper_cache, &state.path).range(&state.range),
                 },
                 container_name: Some("State".to_string()),
             });
@@ -414,7 +420,7 @@ pub async fn generate_workspace_symbols(
                 deprecated: None,
                 location: Location {
                     uri: path_to_url(&rule.path),
-                    range: range_to_lsp(&rule.range),
+                    range: mapper_for_path(&mut mapper_cache, &rule.path).range(&rule.range),
                 },
                 container_name: Some("Adjacency Rule".to_string()),
             });
@@ -435,7 +441,7 @@ pub async fn generate_workspace_symbols(
                 deprecated: None,
                 location: Location {
                     uri: path_to_url(&region.path),
-                    range: range_to_lsp(&region.range),
+                    range: mapper_for_path(&mut mapper_cache, &region.path).range(&region.range),
                 },
                 container_name: Some("Strategic Region".to_string()),
             });
@@ -459,7 +465,8 @@ pub async fn generate_workspace_symbols(
                 deprecated: None,
                 location: Location {
                     uri: path_to_url(&loc_entry.path),
-                    range: range_to_lsp(&loc_entry.range),
+                    range: mapper_for_path(&mut mapper_cache, &loc_entry.path)
+                        .range(&loc_entry.range),
                 },
                 container_name: Some("Localisation".to_string()),
             });
@@ -485,7 +492,8 @@ pub async fn generate_workspace_symbols(
                 deprecated: None,
                 location: Location {
                     uri: path_to_url(&ideology.path),
-                    range: range_to_lsp(&ideology.range),
+                    range: mapper_for_path(&mut mapper_cache, &ideology.path)
+                        .range(&ideology.range),
                 },
                 container_name: Some("Ideology".to_string()),
             });
@@ -506,7 +514,7 @@ pub async fn generate_workspace_symbols(
                 deprecated: None,
                 location: Location {
                     uri: path_to_url(path),
-                    range: range_to_lsp(range),
+                    range: mapper_for_path(&mut mapper_cache, path).range(range),
                 },
                 container_name: Some(format!("Sub-Ideology ({})", parent)),
             });
@@ -527,7 +535,7 @@ pub async fn generate_workspace_symbols(
                 deprecated: None,
                 location: Location {
                     uri: path_to_url(&sprite.path),
-                    range: range_to_lsp(&sprite.range),
+                    range: mapper_for_path(&mut mapper_cache, &sprite.path).range(&sprite.range),
                 },
                 container_name: Some("Sprite".to_string()),
             });
@@ -548,7 +556,8 @@ pub async fn generate_workspace_symbols(
                 deprecated: None,
                 location: Location {
                     uri: path_to_url(&character.path),
-                    range: range_to_lsp(&character.range),
+                    range: mapper_for_path(&mut mapper_cache, &character.path)
+                        .range(&character.range),
                 },
                 container_name: Some("Character".to_string()),
             });
@@ -569,7 +578,7 @@ pub async fn generate_workspace_symbols(
                 deprecated: None,
                 location: Location {
                     uri: path_to_url(&ability.path),
-                    range: range_to_lsp(&ability.range),
+                    range: mapper_for_path(&mut mapper_cache, &ability.path).range(&ability.range),
                 },
                 container_name: Some("Leader Ability".to_string()),
             });
@@ -590,7 +599,8 @@ pub async fn generate_workspace_symbols(
                 deprecated: None,
                 location: Location {
                     uri: path_to_url(&portrait.path),
-                    range: range_to_lsp(&portrait.range),
+                    range: mapper_for_path(&mut mapper_cache, &portrait.path)
+                        .range(&portrait.range),
                 },
                 container_name: Some("Portrait".to_string()),
             });
@@ -615,7 +625,7 @@ pub async fn generate_workspace_symbols(
                 deprecated: None,
                 location: Location {
                     uri: path_to_url(&code.path),
-                    range: range_to_lsp(&code.range),
+                    range: mapper_for_path(&mut mapper_cache, &code.path).range(&code.range),
                 },
                 container_name: Some("Color Code".to_string()),
             });
@@ -638,7 +648,7 @@ pub async fn generate_workspace_symbols(
                     deprecated: None,
                     location: Location {
                         uri: path_to_url(&var.path),
-                        range: range_to_lsp(&var.range),
+                        range: mapper_for_path(&mut mapper_cache, &var.path).range(&var.range),
                     },
                     container_name: Some("Variable".to_string()),
                 });
@@ -660,7 +670,7 @@ pub async fn generate_workspace_symbols(
                 deprecated: None,
                 location: Location {
                     uri: path_to_url(&sound.path),
-                    range: range_to_lsp(&sound.range),
+                    range: mapper_for_path(&mut mapper_cache, &sound.path).range(&sound.range),
                 },
                 container_name: Some("Sound".to_string()),
             });
@@ -681,7 +691,7 @@ pub async fn generate_workspace_symbols(
                 deprecated: None,
                 location: Location {
                     uri: path_to_url(&effect.path),
-                    range: range_to_lsp(&effect.range),
+                    range: mapper_for_path(&mut mapper_cache, &effect.path).range(&effect.range),
                 },
                 container_name: Some("Sound Effect".to_string()),
             });
@@ -702,7 +712,7 @@ pub async fn generate_workspace_symbols(
                 deprecated: None,
                 location: Location {
                     uri: path_to_url(&falloff.path),
-                    range: range_to_lsp(&falloff.range),
+                    range: mapper_for_path(&mut mapper_cache, &falloff.path).range(&falloff.range),
                 },
                 container_name: Some("Sound Falloff".to_string()),
             });
@@ -723,7 +733,8 @@ pub async fn generate_workspace_symbols(
                 deprecated: None,
                 location: Location {
                     uri: path_to_url(&category.path),
-                    range: range_to_lsp(&category.range),
+                    range: mapper_for_path(&mut mapper_cache, &category.path)
+                        .range(&category.range),
                 },
                 container_name: Some("Sound Category".to_string()),
             });
@@ -733,16 +744,12 @@ pub async fn generate_workspace_symbols(
     symbols
 }
 
-/// Convert AST Range to LSP Range
-fn range_to_lsp(range: &Range) -> LspRange {
-    LspRange {
-        start: LspPosition {
-            line: range.start_line,
-            character: range.start_col,
-        },
-        end: LspPosition {
-            line: range.end_line,
-            character: range.end_col,
-        },
-    }
+/// Get (or lazily insert) the UTF-16 `RangeMapper` for a source file path.
+/// Each indexed entry stores byte-based ranges plus its source file path; we
+/// rebuild the mapper on first use per file to convert to UTF-16 columns.
+fn mapper_for_path<'a>(cache: &'a mut HashMap<String, RangeMapper>, path: &str) -> &'a RangeMapper {
+    cache.entry(path.to_string()).or_insert_with(|| {
+        let source = std::fs::read_to_string(path).unwrap_or_default();
+        RangeMapper::new(&source)
+    })
 }

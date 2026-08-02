@@ -7,6 +7,7 @@ use crate::rules::visitor::{AstVisitor, walk_script};
 use crate::rules::{ValidationContext, ValidationRule};
 use crate::scanner::event_scanner::Event;
 use crate::scope::scope::Scope;
+use crate::utils::lsp_convert::RangeMapper;
 use dashmap::DashMap;
 use std::sync::Arc;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
@@ -67,9 +68,11 @@ fn run_event_visitor(
         );
     }
 
+    let range_mapper = RangeMapper::new(&script.source);
     let ctx = ValidationContext {
         uri,
         source: &script.source,
+        range_mapper: &range_mapper,
         loc: &loc,
         scripted_triggers: &st,
         scripted_effects: &se,
@@ -173,9 +176,11 @@ fn run_event_visitor_with_events(
         );
     }
 
+    let range_mapper = RangeMapper::new(&script.source);
     let ctx = ValidationContext {
         uri,
         source: &script.source,
+        range_mapper: &range_mapper,
         loc: &loc,
         scripted_triggers: &st,
         scripted_effects: &se,
@@ -282,9 +287,11 @@ fn run_event_visitor_with_game_path(
         );
     }
 
+    let range_mapper = RangeMapper::new(&script.source);
     let ctx = ValidationContext {
         uri,
         source: &script.source,
+        range_mapper: &range_mapper,
         loc: &loc,
         scripted_triggers: &st,
         scripted_effects: &se,

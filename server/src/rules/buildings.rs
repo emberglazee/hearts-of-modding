@@ -1,7 +1,6 @@
 use crate::parser::ast;
 use crate::rules::visitor::AstVisitor;
 use crate::rules::{ValidationContext, ValidationRule};
-use crate::utils::lsp_convert::ast_range_to_lsp;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
 /// Validates building level values against their maximum allowed levels.
@@ -79,7 +78,7 @@ impl AstVisitor for BuildingVisitor {
                 if let Some(max_level) = building.max_level {
                     if level > max_level {
                         diags.push(Diagnostic {
-                            range: ast_range_to_lsp(&ass.value.range),
+                            range: ctx.range(&ass.value.range),
                             severity: Some(DiagnosticSeverity::ERROR),
                             message: format!(
                                 "Building level {} exceeds maximum level {} for '{}'",

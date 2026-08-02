@@ -1,4 +1,5 @@
 use crate::parser::ast::{Entry, Range, Value};
+use crate::utils::lsp_convert::RangeMapper;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tower_lsp_server::ls_types::{
@@ -51,14 +52,16 @@ pub async fn prepare_call_hierarchy(
         let id = entry.key();
         let event = entry.value();
         if &*event.path == path.as_ref() && position_in_range(&position, &event.range) {
+            let content = std::fs::read_to_string(&*event.path).unwrap_or_default();
+            let mapper = RangeMapper::new(&content);
             return Some(CallHierarchyItem {
                 name: id.to_string(),
                 kind: SymbolKind::EVENT,
                 tags: None,
                 detail: Some(format!("{:?}", event.event_type)),
                 uri: path_to_url(&event.path),
-                range: range_to_lsp(&event.range),
-                selection_range: range_to_lsp(&event.range),
+                range: mapper.range(&event.range),
+                selection_range: mapper.range(&event.range),
                 data: None,
             });
         }
@@ -70,14 +73,16 @@ pub async fn prepare_call_hierarchy(
         let name = entry.key();
         let trigger = entry.value();
         if &*trigger.path == path.as_ref() && position_in_range(&position, &trigger.range) {
+            let content = std::fs::read_to_string(&*trigger.path).unwrap_or_default();
+            let mapper = RangeMapper::new(&content);
             return Some(CallHierarchyItem {
                 name: name.to_string(),
                 kind: SymbolKind::FUNCTION,
                 tags: None,
                 detail: Some("Scripted Trigger".to_string()),
                 uri: path_to_url(&trigger.path),
-                range: range_to_lsp(&trigger.range),
-                selection_range: range_to_lsp(&trigger.range),
+                range: mapper.range(&trigger.range),
+                selection_range: mapper.range(&trigger.range),
                 data: None,
             });
         }
@@ -89,14 +94,16 @@ pub async fn prepare_call_hierarchy(
         let name = entry.key();
         let effect = entry.value();
         if &*effect.path == path.as_ref() && position_in_range(&position, &effect.range) {
+            let content = std::fs::read_to_string(&*effect.path).unwrap_or_default();
+            let mapper = RangeMapper::new(&content);
             return Some(CallHierarchyItem {
                 name: name.to_string(),
                 kind: SymbolKind::FUNCTION,
                 tags: None,
                 detail: Some("Scripted Effect".to_string()),
                 uri: path_to_url(&effect.path),
-                range: range_to_lsp(&effect.range),
-                selection_range: range_to_lsp(&effect.range),
+                range: mapper.range(&effect.range),
+                selection_range: mapper.range(&effect.range),
                 data: None,
             });
         }
@@ -124,6 +131,7 @@ pub async fn get_incoming_calls(
     for entry in document_asts.iter() {
         let uri = entry.key();
         let (script, _) = entry.value();
+        let mapper = RangeMapper::new(&script.source);
 
         let references = find_references_in_entries(&script.entries, target_name, &script.source);
 
@@ -132,7 +140,7 @@ pub async fn get_incoming_calls(
             if let Some(container) = find_container_symbol(uri, &references[0], data).await {
                 incoming.push(CallHierarchyIncomingCall {
                     from: container,
-                    from_ranges: references.iter().map(range_to_lsp).collect(),
+                    from_ranges: references.iter().map(|r| mapper.range(r)).collect(),
                 });
             }
         }
@@ -158,6 +166,7 @@ pub async fn get_outgoing_calls(
     // Get the document content
     if let Some(entry) = document_asts.get(item.uri.as_str()) {
         let (script, _) = &*entry;
+        let mapper = RangeMapper::new(&script.source);
 
         // Find all calls within this symbol's range
         let calls =
@@ -168,7 +177,7 @@ pub async fn get_outgoing_calls(
             if let Some(target) = find_symbol_by_name(&call_name, data).await {
                 outgoing.push(CallHierarchyOutgoingCall {
                     to: target,
-                    from_ranges: call_ranges.iter().map(range_to_lsp).collect(),
+                    from_ranges: call_ranges.iter().map(|r| mapper.range(r)).collect(),
                 });
             }
         }
@@ -324,14 +333,16 @@ async fn find_container_symbol(
         let id = entry.key();
         let event = entry.value();
         if &*event.path == path.as_ref() && range_contains(&event.range, range) {
+            let content = std::fs::read_to_string(&*event.path).unwrap_or_default();
+            let mapper = RangeMapper::new(&content);
             return Some(CallHierarchyItem {
                 name: id.to_string(),
                 kind: SymbolKind::EVENT,
                 tags: None,
                 detail: Some(format!("{:?}", event.event_type)),
                 uri: path_to_url(&event.path),
-                range: range_to_lsp(&event.range),
-                selection_range: range_to_lsp(&event.range),
+                range: mapper.range(&event.range),
+                selection_range: mapper.range(&event.range),
                 data: None,
             });
         }
@@ -343,14 +354,16 @@ async fn find_container_symbol(
         let name = entry.key();
         let trigger = entry.value();
         if &*trigger.path == path.as_ref() && range_contains(&trigger.range, range) {
+            let content = std::fs::read_to_string(&*trigger.path).unwrap_or_default();
+            let mapper = RangeMapper::new(&content);
             return Some(CallHierarchyItem {
                 name: name.to_string(),
                 kind: SymbolKind::FUNCTION,
                 tags: None,
                 detail: Some("Scripted Trigger".to_string()),
                 uri: path_to_url(&trigger.path),
-                range: range_to_lsp(&trigger.range),
-                selection_range: range_to_lsp(&trigger.range),
+                range: mapper.range(&trigger.range),
+                selection_range: mapper.range(&trigger.range),
                 data: None,
             });
         }
@@ -362,14 +375,16 @@ async fn find_container_symbol(
         let name = entry.key();
         let effect = entry.value();
         if &*effect.path == path.as_ref() && range_contains(&effect.range, range) {
+            let content = std::fs::read_to_string(&*effect.path).unwrap_or_default();
+            let mapper = RangeMapper::new(&content);
             return Some(CallHierarchyItem {
                 name: name.to_string(),
                 kind: SymbolKind::FUNCTION,
                 tags: None,
                 detail: Some("Scripted Effect".to_string()),
                 uri: path_to_url(&effect.path),
-                range: range_to_lsp(&effect.range),
-                selection_range: range_to_lsp(&effect.range),
+                range: mapper.range(&effect.range),
+                selection_range: mapper.range(&effect.range),
                 data: None,
             });
         }
@@ -383,14 +398,16 @@ async fn find_symbol_by_name(name: &str, data: &crate::ScannerData) -> Option<Ca
     // Check events
     let events = &data.events;
     if let Some(event) = events.get(name) {
+        let content = std::fs::read_to_string(&*event.path).unwrap_or_default();
+        let mapper = RangeMapper::new(&content);
         return Some(CallHierarchyItem {
             name: name.to_string(),
             kind: SymbolKind::EVENT,
             tags: None,
             detail: Some(format!("{:?}", event.event_type)),
             uri: path_to_url(&event.path),
-            range: range_to_lsp(&event.range),
-            selection_range: range_to_lsp(&event.range),
+            range: mapper.range(&event.range),
+            selection_range: mapper.range(&event.range),
             data: None,
         });
     }
@@ -398,14 +415,16 @@ async fn find_symbol_by_name(name: &str, data: &crate::ScannerData) -> Option<Ca
     // Check scripted triggers
     let triggers = &data.scripted_triggers;
     if let Some(trigger) = triggers.get(name) {
+        let content = std::fs::read_to_string(&*trigger.path).unwrap_or_default();
+        let mapper = RangeMapper::new(&content);
         return Some(CallHierarchyItem {
             name: name.to_string(),
             kind: SymbolKind::FUNCTION,
             tags: None,
             detail: Some("Scripted Trigger".to_string()),
             uri: path_to_url(&trigger.path),
-            range: range_to_lsp(&trigger.range),
-            selection_range: range_to_lsp(&trigger.range),
+            range: mapper.range(&trigger.range),
+            selection_range: mapper.range(&trigger.range),
             data: None,
         });
     }
@@ -413,14 +432,16 @@ async fn find_symbol_by_name(name: &str, data: &crate::ScannerData) -> Option<Ca
     // Check scripted effects
     let effects = &data.scripted_effects;
     if let Some(effect) = effects.get(name) {
+        let content = std::fs::read_to_string(&*effect.path).unwrap_or_default();
+        let mapper = RangeMapper::new(&content);
         return Some(CallHierarchyItem {
             name: name.to_string(),
             kind: SymbolKind::FUNCTION,
             tags: None,
             detail: Some("Scripted Effect".to_string()),
             uri: path_to_url(&effect.path),
-            range: range_to_lsp(&effect.range),
-            selection_range: range_to_lsp(&effect.range),
+            range: mapper.range(&effect.range),
+            selection_range: mapper.range(&effect.range),
             data: None,
         });
     }
@@ -449,19 +470,6 @@ fn range_overlaps(a: &Range, b: &Range) -> bool {
         || (a.end_line == b.start_line && a.end_col < b.start_col)
         || b.end_line < a.start_line
         || (b.end_line == a.start_line && b.end_col < a.start_col))
-}
-
-fn range_to_lsp(range: &Range) -> LspRange {
-    LspRange {
-        start: LspPosition {
-            line: range.start_line,
-            character: range.start_col,
-        },
-        end: LspPosition {
-            line: range.end_line,
-            character: range.end_col,
-        },
-    }
 }
 
 fn lsp_to_range(range: &LspRange) -> Range {

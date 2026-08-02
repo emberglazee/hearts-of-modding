@@ -1,7 +1,6 @@
 use crate::parser::ast;
 use crate::rules::visitor::AstVisitor;
 use crate::rules::{ValidationContext, ValidationRule};
-use crate::utils::lsp_convert::ast_range_to_lsp;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
 /// Sub-skill keys whose gameplay bonus is capped at level 10.
@@ -104,7 +103,7 @@ impl AstVisitor for CharacterVisitor {
                 if let Some(skill) = parse_i32_value(ass, ctx.source) {
                     if skill < 0 {
                         diags.push(Diagnostic {
-                            range: ast_range_to_lsp(&ass.value.range),
+                            range: ctx.range(&ass.value.range),
                             severity: Some(DiagnosticSeverity::WARNING),
                             message: format!(
                                 "Skill level {} for {} is negative; the game will clamp it to 0 in-game",
@@ -122,7 +121,7 @@ impl AstVisitor for CharacterVisitor {
                         });
                     } else if skill > MAX_SKILL {
                         diags.push(Diagnostic {
-                            range: ast_range_to_lsp(&ass.value.range),
+                            range: ctx.range(&ass.value.range),
                             severity: Some(DiagnosticSeverity::ERROR),
                             message: format!(
                                 "Skill level {} exceeds maximum {} for {}",
@@ -147,7 +146,7 @@ impl AstVisitor for CharacterVisitor {
                 if let Some(val) = parse_i32_value(ass, ctx.source) {
                     if val < 0 {
                         diags.push(Diagnostic {
-                            range: ast_range_to_lsp(&ass.value.range),
+                            range: ctx.range(&ass.value.range),
                             severity: Some(DiagnosticSeverity::WARNING),
                             message: format!(
                                 "{} is {}; negative values are clamped to 1 in-game",
@@ -165,7 +164,7 @@ impl AstVisitor for CharacterVisitor {
                         });
                     } else if val > SUB_SKILL_PRACTICAL_CAP {
                         diags.push(Diagnostic {
-                            range: ast_range_to_lsp(&ass.value.range),
+                            range: ctx.range(&ass.value.range),
                             severity: Some(DiagnosticSeverity::WARNING),
                             message: format!(
                                 "{} is {}; the gameplay bonus caps at level 10 (higher values are accepted but confer no extra benefit)",

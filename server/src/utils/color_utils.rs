@@ -1,11 +1,12 @@
 use crate::parser::ast;
-use crate::utils::lsp_convert::ast_range_to_lsp;
+use crate::utils::lsp_convert::RangeMapper;
 use tower_lsp_server::ls_types::{Color, ColorInformation};
 
 pub fn find_colors(script: &ast::Script) -> Vec<ColorInformation> {
     let mut colors = Vec::new();
+    let mapper = RangeMapper::new(&script.source);
     for entry in &script.entries {
-        find_colors_in_entry(entry, &mut colors, &[], &script.source);
+        find_colors_in_entry(entry, &mut colors, &[], &script.source, &mapper);
     }
     colors
 }
@@ -15,6 +16,7 @@ fn find_colors_in_entry(
     colors: &mut Vec<ColorInformation>,
     parent_keys: &[&str],
     content: &str,
+    mapper: &RangeMapper,
 ) {
     if let ast::Entry::Assignment(ass) = entry {
         let is_color_context = ass.key_text(content).to_ascii_lowercase().contains("color")
@@ -22,9 +24,16 @@ fn find_colors_in_entry(
         let mut keys: Vec<String> = parent_keys.iter().map(|s| s.to_string()).collect();
         keys.push(ass.key_text(content).to_string());
         let keys_refs: Vec<&str> = keys.iter().map(|s| s.as_str()).collect();
-        find_colors_in_value(&ass.value, colors, is_color_context, &keys_refs, content);
+        find_colors_in_value(
+            &ass.value,
+            colors,
+            is_color_context,
+            &keys_refs,
+            content,
+            mapper,
+        );
     } else if let ast::Entry::Value(val) = entry {
-        find_colors_in_value(val, colors, false, parent_keys, content);
+        find_colors_in_value(val, colors, false, parent_keys, content, mapper);
     }
 }
 
@@ -34,6 +43,7 @@ fn find_colors_in_value(
     is_color_context: bool,
     parent_keys: &[&str],
     content: &str,
+    mapper: &RangeMapper,
 ) {
     match &val.value {
         ast::Value::Block(entries) => {
@@ -64,7 +74,7 @@ fn find_colors_in_value(
                     (nums[0] as f32, nums[1] as f32, nums[2] as f32)
                 };
                 colors.push(ColorInformation {
-                    range: ast_range_to_lsp(&val.range),
+                    range: mapper.range(&val.range),
                     color: Color {
                         red: r,
                         green: g,
@@ -74,7 +84,7 @@ fn find_colors_in_value(
                 });
             } else {
                 for e in entries {
-                    find_colors_in_entry(e, colors, parent_keys, content);
+                    find_colors_in_entry(e, colors, parent_keys, content, mapper);
                 }
             }
         }
@@ -101,7 +111,7 @@ fn find_colors_in_value(
                     let g = (nums[1] / 255.0) as f32;
                     let b = (nums[2] / 255.0) as f32;
                     colors.push(ColorInformation {
-                        range: ast_range_to_lsp(&val.range),
+                        range: mapper.range(&val.range),
                         color: Color {
                             red: r,
                             green: g,
@@ -112,7 +122,7 @@ fn find_colors_in_value(
                 } else if tag_lower == "hsv" {
                     let (r, g, b) = hsv_to_rgb(nums[0], nums[1], nums[2]);
                     colors.push(ColorInformation {
-                        range: ast_range_to_lsp(&val.range),
+                        range: mapper.range(&val.range),
                         color: Color {
                             red: r as f32,
                             green: g as f32,
@@ -123,7 +133,7 @@ fn find_colors_in_value(
                 }
             } else {
                 for e in entries {
-                    find_colors_in_entry(e, colors, parent_keys, content);
+                    find_colors_in_entry(e, colors, parent_keys, content, mapper);
                 }
             }
         }

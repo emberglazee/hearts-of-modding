@@ -1,6 +1,7 @@
 use crate::parser::ast;
 use crate::rules::ValidationContext;
-use crate::utils::lsp_convert::ast_range_to_lsp;
+#[cfg(test)]
+use crate::utils::lsp_convert::RangeMapper;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity};
 
 /// Validates texture file paths in `.gfx` and `.gui` files.
@@ -41,7 +42,7 @@ impl<'a> GfxTextureRule<'a> {
                             if ctx.styling_enabled && (has_double_slash || has_backslash) {
                                 let suggestion = val.replace("//", "/").replace('\\', "/");
                                 diags.push(Diagnostic {
-                                    range: ast_range_to_lsp(&ass.value.range),
+                                    range: ctx.range(&ass.value.range),
                                     severity: Some(DiagnosticSeverity::INFORMATION),
                                     code: Some(tower_lsp_server::ls_types::NumberOrString::String(
                                         "styling_path_separator".to_string(),
@@ -91,7 +92,7 @@ impl<'a> GfxTextureRule<'a> {
 
                             if !found {
                                 diags.push(Diagnostic {
-                                    range: ast_range_to_lsp(&ass.value.range),
+                                    range: ctx.range(&ass.value.range),
                                     severity: Some(DiagnosticSeverity::WARNING),
                                     message: format!("Texture file not found: '{}'", val),
                                     source: Some("Hearts of Modding".to_string()),
@@ -143,9 +144,11 @@ mod tests {
         let (script, _) = parser::parse_script(gfx_content);
         let game_path_owned = game_path.map(|s| s.to_string());
 
+        let range_mapper = RangeMapper::new(&script.source);
         let ctx = ValidationContext {
             uri: "test.gfx",
             source: &script.source,
+            range_mapper: &range_mapper,
             loc: &DashMap::new(),
             scripted_triggers: &DashMap::new(),
             scripted_effects: &DashMap::new(),

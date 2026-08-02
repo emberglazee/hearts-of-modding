@@ -2,7 +2,6 @@ use crate::parser::ast;
 use crate::rules::visitor::AstVisitor;
 use crate::rules::{ValidationContext, ValidationRule};
 use crate::scope::scope::ScopeStack;
-use crate::utils::lsp_convert::ast_range_to_lsp;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
 /// Validates AI area definitions: checks that continents and strategic
@@ -71,7 +70,7 @@ impl AstVisitor for AiAreaVisitor {
                             if let Some(name) = val.value.as_str(ctx.source) {
                                 if !ctx.continents.contains_key(name) {
                                     diags.push(Diagnostic {
-                                        range: ast_range_to_lsp(&val.range),
+                                        range: ctx.range(&val.range),
                                         severity: Some(DiagnosticSeverity::WARNING),
                                         message: format!("Unknown continent: '{}'", name),
                                         code: Some(NumberOrString::String("HOM6001".to_string())),
@@ -92,7 +91,7 @@ impl AstVisitor for AiAreaVisitor {
                                 let id = *n as u32;
                                 if !ctx.strategic_regions.contains_key(&id) {
                                     diags.push(Diagnostic {
-                                        range: ast_range_to_lsp(&val.range),
+                                        range: ctx.range(&val.range),
                                         severity: Some(DiagnosticSeverity::WARNING),
                                         message: format!("Unknown strategic region: {}", id),
                                         code: Some(NumberOrString::String("HOM6002".to_string())),

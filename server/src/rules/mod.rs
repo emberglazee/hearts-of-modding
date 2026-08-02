@@ -4,6 +4,7 @@ use crate::parser::ast;
 use crate::scanner::building_scanner;
 use crate::scanner::event_namespace_scanner;
 use crate::scope::scope;
+use crate::utils::lsp_convert::RangeMapper;
 use dashmap::DashMap;
 use regex::Regex;
 use tower_lsp_server::ls_types::Diagnostic;
@@ -104,6 +105,17 @@ pub(crate) struct ValidationContext<'a> {
     pub(crate) decisions:
         &'a DashMap<InternedStr, LayeredValue<crate::scanner::decision_scanner::Decision>>,
     pub(crate) decision_categories: &'a DashMap<InternedStr, LayeredValue<()>>,
+    /// Byte→UTF-16 range mapper for this document (built once from `source`).
+    /// Rules must emit diagnostics through [`ValidationContext::range`] so the
+    /// squiggle columns are correct even on lines with multi-byte characters.
+    pub(crate) range_mapper: &'a RangeMapper,
+}
+
+impl<'a> ValidationContext<'a> {
+    /// Convert an AST byte range to an LSP UTF-16 range for this document.
+    pub(crate) fn range(&self, r: &ast::Range) -> tower_lsp_server::ls_types::Range {
+        self.range_mapper.range(r)
+    }
 }
 
 /// A validation rule for HOI4 script semantics.

@@ -1,7 +1,6 @@
 use crate::parser::ast;
 use crate::rules::{ValidationContext, ValidationRule};
 use crate::scope::scope::ScopeStack;
-use crate::utils::lsp_convert::ast_range_to_lsp;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
 /// Validates country tag references and dynamic/static tag ratios.
@@ -69,7 +68,7 @@ impl ValidationRule for CountryTagRule {
             && !ctx.tag_aliases.contains_key(val)
         {
             diags.push(Diagnostic {
-                range: ast_range_to_lsp(&ass.value.range),
+                range: ctx.range(&ass.value.range),
                 severity: Some(DiagnosticSeverity::WARNING),
                 message: format!("Unknown country tag: '{}'", val),
                 code: Some(NumberOrString::String(
@@ -100,7 +99,7 @@ impl ValidationRule for CountryTagRule {
 
         if total > 0 && dynamic_count == 0 {
             diags.push(Diagnostic {
-                range: crate::utils::lsp_convert::ast_range_to_lsp(&ast::Range {
+                range: ctx.range(&ast::Range {
                     start_line: 0,
                     start_col: 0,
                     end_line: 0,
@@ -114,7 +113,7 @@ impl ValidationRule for CountryTagRule {
             });
         } else if static_count > 10 && dynamic_count < (static_count / 10).max(3) {
             diags.push(Diagnostic {
-                range: crate::utils::lsp_convert::ast_range_to_lsp(&ast::Range {
+                range: ctx.range(&ast::Range {
                     start_line: 0,
                     start_col: 0,
                     end_line: 0,

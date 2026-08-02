@@ -1,14 +1,14 @@
 use crate::parser::ast::{Entry, NodeedValue, Range, Value};
-use tower_lsp_server::ls_types::{
-    DocumentSymbol, Position as LspPosition, Range as LspRange, SymbolKind,
-};
+use crate::utils::lsp_convert::RangeMapper;
+use tower_lsp_server::ls_types::{DocumentSymbol, SymbolKind};
 
 /// Generate document symbols for outline view
 pub fn generate_document_symbols(entries: &[Entry], source: &str) -> Vec<DocumentSymbol> {
+    let mapper = RangeMapper::new(source);
     let mut symbols = Vec::new();
 
     for entry in entries {
-        if let Some(symbol) = entry_to_symbol(entry, source) {
+        if let Some(symbol) = entry_to_symbol(entry, source, &mapper) {
             symbols.push(symbol);
         }
     }
@@ -17,7 +17,7 @@ pub fn generate_document_symbols(entries: &[Entry], source: &str) -> Vec<Documen
 }
 
 /// Convert an AST entry to a DocumentSymbol
-fn entry_to_symbol(entry: &Entry, source: &str) -> Option<DocumentSymbol> {
+fn entry_to_symbol(entry: &Entry, source: &str, mapper: &RangeMapper) -> Option<DocumentSymbol> {
     match entry {
         Entry::Assignment(assignment) => {
             let key_text = assignment.key_text(source);
@@ -29,7 +29,7 @@ fn entry_to_symbol(entry: &Entry, source: &str) -> Option<DocumentSymbol> {
             let children = if let Value::Block(entries) = &assignment.value.value {
                 let child_symbols: Vec<DocumentSymbol> = entries
                     .iter()
-                    .filter_map(|e| entry_to_symbol(e, source))
+                    .filter_map(|e| entry_to_symbol(e, source, mapper))
                     .collect();
 
                 if child_symbols.is_empty() {
@@ -55,8 +55,8 @@ fn entry_to_symbol(entry: &Entry, source: &str) -> Option<DocumentSymbol> {
                 kind: symbol_kind,
                 tags: None,
                 deprecated: None,
-                range: range_to_lsp(&range),
-                selection_range: range_to_lsp(&assignment.key_range),
+                range: mapper.range(&range),
+                selection_range: mapper.range(&assignment.key_range),
                 children,
             })
         }
@@ -65,7 +65,7 @@ fn entry_to_symbol(entry: &Entry, source: &str) -> Option<DocumentSymbol> {
             Value::Block(entries) => {
                 let children: Vec<DocumentSymbol> = entries
                     .iter()
-                    .filter_map(|e| entry_to_symbol(e, source))
+                    .filter_map(|e| entry_to_symbol(e, source, mapper))
                     .collect();
                 let children = if children.is_empty() {
                     None
@@ -73,7 +73,7 @@ fn entry_to_symbol(entry: &Entry, source: &str) -> Option<DocumentSymbol> {
                     Some(children)
                 };
 
-                let range = range_to_lsp(&nodeed_value.range);
+                let range = mapper.range(&nodeed_value.range);
 
                 #[allow(deprecated)]
                 Some(DocumentSymbol {
@@ -91,7 +91,7 @@ fn entry_to_symbol(entry: &Entry, source: &str) -> Option<DocumentSymbol> {
                 let tag = tag_span.resolve(source);
                 let children: Vec<DocumentSymbol> = entries
                     .iter()
-                    .filter_map(|e| entry_to_symbol(e, source))
+                    .filter_map(|e| entry_to_symbol(e, source, mapper))
                     .collect();
                 let children = if children.is_empty() {
                     None
@@ -99,7 +99,7 @@ fn entry_to_symbol(entry: &Entry, source: &str) -> Option<DocumentSymbol> {
                     Some(children)
                 };
 
-                let range = range_to_lsp(&nodeed_value.range);
+                let range = mapper.range(&nodeed_value.range);
 
                 #[allow(deprecated)]
                 Some(DocumentSymbol {
@@ -301,20 +301,6 @@ fn extract_symbol_detail(key: &str, value: &NodeedValue, source: &str) -> Option
             }
         }
         _ => None,
-    }
-}
-
-/// Convert AST Range to LSP Range
-fn range_to_lsp(range: &Range) -> LspRange {
-    LspRange {
-        start: LspPosition {
-            line: range.start_line,
-            character: range.start_col,
-        },
-        end: LspPosition {
-            line: range.end_line,
-            character: range.end_col,
-        },
     }
 }
 

@@ -1,7 +1,6 @@
 use crate::parser::ast;
 use crate::rules::visitor::AstVisitor;
 use crate::rules::{ValidationContext, ValidationRule};
-use crate::utils::lsp_convert::ast_range_to_lsp;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
 /// Validates portrait GFX references inside `portraits = { ... }` blocks.
@@ -71,7 +70,7 @@ impl AstVisitor for PortraitVisitor {
         if let Some(s) = ass.value.value.as_str(ctx.source) {
             if s.starts_with("GFX_") && !ctx.sprites.contains_key(s) {
                 diags.push(Diagnostic {
-                    range: ast_range_to_lsp(&ass.value.range),
+                    range: ctx.range(&ass.value.range),
                     severity: Some(DiagnosticSeverity::WARNING),
                     message: format!(
                         "Unknown portrait sprite '{}' — not found in any .gfx sprite definition",

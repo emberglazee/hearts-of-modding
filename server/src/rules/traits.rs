@@ -1,7 +1,6 @@
 use crate::parser::ast;
 use crate::rules::{ValidationContext, ValidationRule};
 use crate::scope::scope::ScopeStack;
-use crate::utils::lsp_convert::ast_range_to_lsp;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
 /// Validates trait references in `add_trait`, `has_trait`, and `remove_trait` assignments.
@@ -27,7 +26,7 @@ impl ValidationRule for TraitRule {
 
         if !ctx.traits.contains_key(val) {
             diags.push(Diagnostic {
-                range: ast_range_to_lsp(&ass.value.range),
+                range: ctx.range(&ass.value.range),
                 severity: Some(DiagnosticSeverity::WARNING),
                 message: format!("Unknown trait: '{}'", val),
                 code: Some(NumberOrString::String(

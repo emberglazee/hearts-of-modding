@@ -22,7 +22,7 @@ use crate::rules;
 use crate::rules::{ValidationContext, ValidationRule};
 use crate::scope::scope;
 use crate::utf16_len;
-use crate::utils::lsp_convert::{ast_range_to_lsp, ast_related_info_to_lsp, ast_tag_to_lsp};
+use crate::utils::lsp_convert::{RangeMapper, ast_related_info_to_lsp, ast_tag_to_lsp};
 use crate::validation::advanced_validation;
 use crate::{EFFECTS, MODIFIERS, SCOPES, TRIGGERS};
 
@@ -448,6 +448,8 @@ impl Backend {
     ) -> Vec<Diagnostic> {
         let mut diagnostics = Vec::new();
 
+        let mapper = RangeMapper::new(content);
+
         // Skip known-ignored files: internal Paradox data, gfx/fonts credits, etc.
         if let Some(path) = uri.to_file_path() {
             if crate::utils::fs_util::is_known_ignored_file(&path) {
@@ -573,7 +575,7 @@ impl Backend {
                     )
                 };
                 diagnostics.push(Diagnostic {
-                    range: ast_range_to_lsp(range),
+                    range: mapper.range(range),
                     severity,
                     message: msg.clone(),
                     code,
@@ -630,7 +632,7 @@ impl Backend {
                     )
                 };
                 diagnostics.push(Diagnostic {
-                    range: ast_range_to_lsp(range),
+                    range: mapper.range(range),
                     severity,
                     message: msg.clone(),
                     code,
@@ -1242,9 +1244,10 @@ impl Backend {
     ) {
         let provs = &self.scanner_data.provinces;
         let (script, errors) = parser::parse_script(content);
+        let mapper = RangeMapper::new(content);
         for (msg, range) in errors {
             diagnostics.push(Diagnostic {
-                range: ast_range_to_lsp(&range),
+                range: mapper.range(&range),
                 severity: Some(DiagnosticSeverity::ERROR),
                 message: msg,
                 ..Default::default()
@@ -1270,7 +1273,7 @@ impl Backend {
                                                         && !provs.contains_key(&prov_id)
                                                     {
                                                         diagnostics.push(Diagnostic {
-                                                            range: ast_range_to_lsp(&p_val.range),
+                                                            range: mapper.range(&p_val.range),
                                                             severity: Some(
                                                                 DiagnosticSeverity::WARNING,
                                                             ),
@@ -1300,6 +1303,7 @@ impl Backend {
         diagnostics: &mut Vec<Diagnostic>,
     ) {
         let provs = &self.scanner_data.provinces;
+        let mapper = RangeMapper::new(&script.source);
 
         for entry in &script.entries {
             if let ast::Entry::Assignment(ass) = entry {
@@ -1323,7 +1327,7 @@ impl Backend {
                                                         && !provs.contains_key(&id_u32)
                                                     {
                                                         diagnostics.push(Diagnostic {
-                                                            range: ast_range_to_lsp(&val.range),
+                                                            range: mapper.range(&val.range),
                                                             severity: Some(
                                                                 DiagnosticSeverity::WARNING,
                                                             ),
@@ -1348,7 +1352,7 @@ impl Backend {
                                                         && !provs.contains_key(&id_u32)
                                                     {
                                                         diagnostics.push(Diagnostic {
-                                                            range: ast_range_to_lsp(&val.range),
+                                                            range: mapper.range(&val.range),
                                                             severity: Some(
                                                                 DiagnosticSeverity::WARNING,
                                                             ),
@@ -1385,6 +1389,7 @@ impl Backend {
             .to_string();
         let (parsed, loc_diagnostics_structural, doc_lang) =
             loc_parser::parse_loc_file(content, &path_str);
+        let mapper = RangeMapper::new(content);
         let doc_lang_str = doc_lang.unwrap_or_else(|| "unknown".to_string());
         let event_targets = &self.scanner_data.event_targets;
         let scripted_locs = &self.scanner_data.scripted_locs;
@@ -1395,7 +1400,7 @@ impl Backend {
         // Add structural diagnostics
         for d in loc_diagnostics_structural {
             diagnostics.push(Diagnostic {
-                range: ast_range_to_lsp(&d.range),
+                range: mapper.range(&d.range),
                 severity: Some(match d.severity {
                     ast::DiagnosticSeverity::Error => DiagnosticSeverity::ERROR,
                     ast::DiagnosticSeverity::Warning => DiagnosticSeverity::WARNING,
@@ -1446,7 +1451,7 @@ impl Backend {
             // Check for unnecessary version numbers
             if let Some(d) = loc_parser::check_unnecessary_version(entry) {
                 diagnostics.push(Diagnostic {
-                    range: ast_range_to_lsp(&d.range),
+                    range: mapper.range(&d.range),
                     severity: Some(match d.severity {
                         ast::DiagnosticSeverity::Error => DiagnosticSeverity::ERROR,
                         ast::DiagnosticSeverity::Warning => DiagnosticSeverity::WARNING,
@@ -1484,7 +1489,7 @@ impl Backend {
             );
             for d in loc_diagnostics {
                 diagnostics.push(Diagnostic {
-                    range: ast_range_to_lsp(&d.range),
+                    range: mapper.range(&d.range),
                     severity: Some(match d.severity {
                         ast::DiagnosticSeverity::Error => DiagnosticSeverity::ERROR,
                         ast::DiagnosticSeverity::Warning => DiagnosticSeverity::WARNING,
@@ -1535,7 +1540,7 @@ impl Backend {
 
                     if !is_intentional_override {
                         diagnostics.push(Diagnostic {
-                            range: ast_range_to_lsp(&entry.range),
+                            range: mapper.range(&entry.range),
                             severity: Some(DiagnosticSeverity::WARNING),
                             message: format!("Duplicate localization key found: '{}'. The game will only use one of them unless one is in a 'replace' folder.", entry.key),
                             source: Some("Hearts of Modding".to_string()),
@@ -1560,7 +1565,15 @@ impl Backend {
         diagnostics: &mut Vec<Diagnostic>,
     ) {
         let lines: Vec<&str> = content.lines().collect();
-        Self::check_styling_ast(entries, &lines, diagnostics, &mut HashMap::new(), 0);
+        let mapper = RangeMapper::new(content);
+        Self::check_styling_ast(
+            entries,
+            &lines,
+            &mapper,
+            diagnostics,
+            &mut HashMap::new(),
+            0,
+        );
     }
 
     /// Compute expected indentation depth for each line in the AST.
@@ -1634,6 +1647,7 @@ impl Backend {
     fn check_styling_ast(
         entries: &[ast::Entry],
         lines: &[&str],
+        mapper: &RangeMapper,
         diagnostics: &mut Vec<Diagnostic>,
         expected_indents: &mut HashMap<u32, usize>,
         depth: usize,
@@ -1702,6 +1716,7 @@ impl Backend {
                         &ass.value.range,
                         &ass.value.value,
                         lines,
+                        mapper,
                         diagnostics,
                     );
 
@@ -1711,6 +1726,7 @@ impl Backend {
                             Self::check_styling_ast(
                                 inner,
                                 lines,
+                                mapper,
                                 diagnostics,
                                 expected_indents,
                                 depth + 1,
@@ -1724,6 +1740,7 @@ impl Backend {
                             Self::check_styling_ast(
                                 inner,
                                 lines,
+                                mapper,
                                 diagnostics,
                                 expected_indents,
                                 depth + 1,
@@ -1742,6 +1759,7 @@ impl Backend {
                         &val.range,
                         &val.value,
                         lines,
+                        mapper,
                         diagnostics,
                     );
 
@@ -1751,6 +1769,7 @@ impl Backend {
                             Self::check_styling_ast(
                                 inner,
                                 lines,
+                                mapper,
                                 diagnostics,
                                 expected_indents,
                                 depth + 1,
@@ -1764,6 +1783,7 @@ impl Backend {
                             Self::check_styling_ast(
                                 inner,
                                 lines,
+                                mapper,
                                 diagnostics,
                                 expected_indents,
                                 depth + 1,
@@ -1790,6 +1810,7 @@ impl Backend {
         range: &ast::Range,
         value: &ast::Value,
         lines: &[&str],
+        mapper: &RangeMapper,
         diagnostics: &mut Vec<Diagnostic>,
     ) {
         match value {
@@ -1836,7 +1857,7 @@ impl Backend {
 
                             if needs_fix {
                                 diagnostics.push(Diagnostic {
-                                    range: ast_range_to_lsp(range),
+                                    range: mapper.range(range),
                                     severity: Some(DiagnosticSeverity::INFORMATION),
                                     code: Some(NumberOrString::String(
                                         "styling_brace_space".to_string(),
@@ -1902,10 +1923,12 @@ impl Backend {
         // check_single_line_braces, check_assignment_spacing) with a single traversal.
         // Also passes the pre-cached lines slice so helpers get O(1) line lookups.
         let mut expected_indents = HashMap::new();
+        let mapper = RangeMapper::new(content);
         if let Some(script) = script_opt {
             Self::check_styling_ast(
                 &script.entries,
                 &lines,
+                &mapper,
                 diagnostics,
                 &mut expected_indents,
                 0,
@@ -2103,11 +2126,13 @@ impl Backend {
 
         // Lock workspace roots for texture path resolution
         let workspace_roots = self.workspace_roots.lock().unwrap();
+        let range_mapper = RangeMapper::new(&script.source);
 
         // Build validation context
         let ctx = ValidationContext {
             uri,
             source: &script.source,
+            range_mapper: &range_mapper,
             loc,
             scripted_triggers: st,
             scripted_effects: se,
@@ -2737,6 +2762,7 @@ pub(crate) fn check_duplicate_keys<'a>(
     // set of key patterns.
     const COMMON_KEYS: [&str; 3] = ["name", "id", "icon"];
 
+    let mapper = RangeMapper::new(source);
     let mut seen_keys: FxHashMap<&'a str, ast::Range> = FxHashMap::default();
 
     for entry in entries {
@@ -2769,7 +2795,7 @@ pub(crate) fn check_duplicate_keys<'a>(
             if is_modifier && !is_exception {
                 if let Some(prev_range) = seen_keys.get(key) {
                     diagnostics.push(Diagnostic {
-                            range: ast_range_to_lsp(prev_range),
+                            range: mapper.range(prev_range),
                             severity: Some(DiagnosticSeverity::WARNING),
                             code: Some(NumberOrString::String("duplicate_key".to_string())),
                             message: format!("Duplicate modifier/key '{}' detected in the same scope. The game will ignore this value and use the last one.", key),

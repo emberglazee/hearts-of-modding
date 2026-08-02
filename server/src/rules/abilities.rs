@@ -2,7 +2,6 @@ use crate::parser::ast;
 use crate::rules::visitor::AstVisitor;
 use crate::rules::{ValidationContext, ValidationRule};
 use crate::scope::scope::ScopeStack;
-use crate::utils::lsp_convert::ast_range_to_lsp;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
 /// Validates ability references and ability definition completeness.
@@ -33,7 +32,7 @@ impl ValidationRule for AbilityRule {
 
         if !ctx.abilities.contains_key(val) {
             diags.push(Diagnostic {
-                range: ast_range_to_lsp(&ass.value.range),
+                range: ctx.range(&ass.value.range),
                 severity: Some(DiagnosticSeverity::WARNING),
                 message: format!("Unknown ability: '{}'", val),
                 code: Some(NumberOrString::String(
@@ -143,7 +142,7 @@ impl AstVisitor for AbilityVisitor {
                     if let Some(s) = ass.value.value.as_str(ctx.source) {
                         if !ctx.loc.is_empty() && !ctx.loc.contains_key(s) {
                             diags.push(Diagnostic {
-                                range: ast_range_to_lsp(&ass.value.range),
+                                range: ctx.range(&ass.value.range),
                                 severity: Some(DiagnosticSeverity::WARNING),
                                 message: format!(
                                     "Ability '{}' is missing localization key: '{}'",
@@ -163,7 +162,7 @@ impl AstVisitor for AbilityVisitor {
                     if let Some(s) = ass.value.value.as_str(ctx.source) {
                         if !ctx.loc.is_empty() && !ctx.loc.contains_key(s) {
                             diags.push(Diagnostic {
-                                range: ast_range_to_lsp(&ass.value.range),
+                                range: ctx.range(&ass.value.range),
                                 severity: Some(DiagnosticSeverity::WARNING),
                                 message: format!(
                                     "Ability '{}' is missing localization key: '{}'",
@@ -216,7 +215,7 @@ impl AstVisitor for AbilityVisitor {
                     if let Some(state) = self.ability_stack.pop() {
                         if !state.has_name {
                             diags.push(Diagnostic {
-                                range: ast_range_to_lsp(&state.key_range),
+                                range: ctx.range(&state.key_range),
                                 severity: Some(DiagnosticSeverity::WARNING),
                                 message: format!(
                                     "Ability '{}' is missing required 'name' field",
@@ -232,7 +231,7 @@ impl AstVisitor for AbilityVisitor {
                         }
                         if !state.has_desc {
                             diags.push(Diagnostic {
-                                range: ast_range_to_lsp(&state.key_range),
+                                range: ctx.range(&state.key_range),
                                 severity: Some(DiagnosticSeverity::WARNING),
                                 message: format!(
                                     "Ability '{}' is missing required 'desc' field",
@@ -248,7 +247,7 @@ impl AstVisitor for AbilityVisitor {
                         }
                         if !state.has_cost {
                             diags.push(Diagnostic {
-                                range: ast_range_to_lsp(&state.key_range),
+                                range: ctx.range(&state.key_range),
                                 severity: Some(DiagnosticSeverity::WARNING),
                                 message: format!(
                                     "Ability '{}' is missing required 'cost' field",
@@ -264,7 +263,7 @@ impl AstVisitor for AbilityVisitor {
                         }
                         if !state.has_duration {
                             diags.push(Diagnostic {
-                                range: ast_range_to_lsp(&state.key_range),
+                                range: ctx.range(&state.key_range),
                                 severity: Some(DiagnosticSeverity::INFORMATION),
                                 message: format!(
                                     "Ability '{}' is missing 'duration' field (ability will use indefinite duration)",
@@ -280,7 +279,7 @@ impl AstVisitor for AbilityVisitor {
                         }
                         if !state.has_type {
                             diags.push(Diagnostic {
-                                range: ast_range_to_lsp(&state.key_range),
+                                range: ctx.range(&state.key_range),
                                 severity: Some(DiagnosticSeverity::INFORMATION),
                                 message: format!(
                                     "Ability '{}' is missing 'type' field (defaults may apply)",
@@ -296,7 +295,7 @@ impl AstVisitor for AbilityVisitor {
                         }
                         if !state.has_ai_will_do {
                             diags.push(Diagnostic {
-                                range: ast_range_to_lsp(&state.key_range),
+                                range: ctx.range(&state.key_range),
                                 severity: Some(DiagnosticSeverity::INFORMATION),
                                 message: format!(
                                     "Ability '{}' is missing 'ai_will_do' block (AI will never use this ability)",

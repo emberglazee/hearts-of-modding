@@ -3,6 +3,7 @@ use crate::rules::abilities::AbilityRule;
 use crate::rules::visitor::{AstVisitor, walk_script};
 use crate::rules::{ValidationContext, ValidationRule};
 use crate::scope::scope::Scope;
+use crate::utils::lsp_convert::RangeMapper;
 use dashmap::DashMap;
 use tower_lsp_server::ls_types::{Diagnostic, NumberOrString};
 
@@ -36,9 +37,11 @@ fn run_ability_visitor(input: &str, uri: &str) -> Vec<Diagnostic> {
     let terrain_categories = DashMap::new();
     let abilities = DashMap::new();
 
+    let range_mapper = RangeMapper::new(&script.source);
     let ctx = ValidationContext {
         uri,
         source: &script.source,
+        range_mapper: &range_mapper,
         loc: &loc,
         scripted_triggers: &st,
         scripted_effects: &se,
@@ -497,9 +500,11 @@ mod tests {
         let terrain_categories = DashMap::new();
         let abilities = DashMap::new();
 
+        let range_mapper = RangeMapper::new(&script.source);
         let ctx = ValidationContext {
             uri,
             source: &script.source,
+            range_mapper: &range_mapper,
             loc: &loc,
             scripted_triggers: &st,
             scripted_effects: &se,

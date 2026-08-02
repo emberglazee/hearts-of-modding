@@ -233,9 +233,12 @@ async fn cli_validate(path: &str) {
     let unit_types: DashMap<InternedStr, LayeredValue<crate::scanner::unit_scanner::UnitType>> =
         DashMap::new();
 
+    let range_mapper = crate::utils::lsp_convert::RangeMapper::new(source);
+
     let ctx = crate::rules::ValidationContext {
         uri: path,
         source,
+        range_mapper: &range_mapper,
         loc: &loc,
         scripted_triggers: &st,
         scripted_effects: &se,

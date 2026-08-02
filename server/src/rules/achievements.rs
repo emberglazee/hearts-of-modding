@@ -1,6 +1,5 @@
 use crate::parser::ast;
 use crate::rules::{ValidationContext, ValidationRule};
-use crate::utils::lsp_convert::ast_range_to_lsp;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
 /// Validates achievement and ribbon definitions for localization coverage.
@@ -29,7 +28,7 @@ impl ValidationRule for AchievementRule {
 
                     if !ctx.loc.contains_key(name_key.as_str()) {
                         diags.push(Diagnostic {
-                        range: ast_range_to_lsp(&ass.key_range),
+                        range: ctx.range(&ass.key_range),
                         severity: Some(DiagnosticSeverity::WARNING),
                         message: format!(
                             "Achievement '{}' is missing localization key: '{}'",
@@ -45,7 +44,7 @@ impl ValidationRule for AchievementRule {
                     }
                     if !ctx.loc.contains_key(desc_key.as_str()) {
                         diags.push(Diagnostic {
-                        range: ast_range_to_lsp(&ass.key_range),
+                        range: ctx.range(&ass.key_range),
                         severity: Some(DiagnosticSeverity::WARNING),
                         message: format!(
                             "Achievement '{}' is missing localization key: '{}'",

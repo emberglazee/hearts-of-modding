@@ -1,7 +1,6 @@
 use crate::parser::ast;
 use crate::rules::{ValidationContext, ValidationRule};
 use crate::scope::scope::ScopeStack;
-use crate::utils::lsp_convert::ast_range_to_lsp;
 use std::collections::HashSet;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
@@ -39,7 +38,7 @@ impl ValidationRule for TerrainRule {
                 {
                     let known = format_naval_terrains(ctx);
                     diags.push(Diagnostic {
-                        range: ast_range_to_lsp(&ass.value.range),
+                        range: ctx.range(&ass.value.range),
                         severity: Some(DiagnosticSeverity::WARNING),
                         message: format!(
                             "Unknown naval terrain '{}'{}. Naval terrains must be defined in common/terrain/*.txt with naval_terrain = yes",
@@ -91,7 +90,7 @@ impl ValidationRule for TerrainRule {
             let prov_terrain = province.prov_type.trim().to_lowercase();
             if !prov_terrain.is_empty() && !terrain_names.contains(&prov_terrain) {
                 diags.push(Diagnostic {
-                    range: crate::utils::lsp_convert::ast_range_to_lsp(
+                    range: ctx.range(
                         &crate::parser::ast::Range {
                             start_line: 0,
                             start_col: 0,

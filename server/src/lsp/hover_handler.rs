@@ -4,7 +4,7 @@ use crate::parser::loc_parser;
 use crate::parser::parser;
 use crate::scope::scope;
 use crate::utils::loc_preview::paradox_to_markdown;
-use crate::utils::lsp_convert::ast_range_to_lsp;
+use crate::utils::lsp_convert::RangeMapper;
 use crate::utils::modifier_display;
 use crate::utils::symbol_search::find_identifier_at;
 use crate::validation::modifier_format::format_modifier_value;
@@ -24,6 +24,7 @@ impl Backend {
 
         let color_map = crate::utils::loc_preview::build_color_map(&self.scanner_data);
         if let Some(content) = self.documents.get(&uri) {
+            let mapper = RangeMapper::new(&content);
             if uri.ends_with(".yml") {
                 let (locs, _, _) = loc_parser::parse_loc_file(&content, &uri);
                 let global_loc = &self.scanner_data.localization;
@@ -86,7 +87,7 @@ impl Backend {
                                 kind: MarkupKind::Markdown,
                                 value: hover_text,
                             }),
-                            range: Some(ast_range_to_lsp(&entry.range)),
+                            range: Some(mapper.range(&entry.range)),
                         }));
                     }
                     // Check value
@@ -106,7 +107,7 @@ impl Backend {
                                 kind: MarkupKind::Markdown,
                                 value: hover_text,
                             }),
-                            range: Some(ast_range_to_lsp(&entry.range)),
+                            range: Some(mapper.range(&entry.range)),
                         }));
                     }
                 }

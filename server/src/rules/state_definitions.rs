@@ -3,7 +3,6 @@ use crate::data::layered_value::LayeredValue;
 use crate::parser::ast;
 use crate::rules::{ValidationContext, ValidationRule};
 use crate::scope::scope::ScopeStack;
-use crate::utils::lsp_convert::ast_range_to_lsp;
 use dashmap::DashMap;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
@@ -35,7 +34,7 @@ impl ValidationRule for StateDefinitionRule {
                 {
                     let known = format_known_list(ctx.state_categories);
                     diags.push(Diagnostic {
-                        range: ast_range_to_lsp(&ass.value.range),
+                        range: ctx.range(&ass.value.range),
                         severity: Some(DiagnosticSeverity::WARNING),
                         message: format!(
                             "Unknown state category '{}'{}",
@@ -69,6 +68,7 @@ impl ValidationRule for StateDefinitionRule {
                     crate::validation::advanced_validation::UNKNOWN_RESOURCE,
                     diags,
                     ctx.source,
+                    ctx.range_mapper,
                 );
             }
             return;
@@ -94,13 +94,14 @@ impl ValidationRule for StateDefinitionRule {
                                     crate::validation::advanced_validation::UNKNOWN_BUILDING,
                                     diags,
                                     ctx.source,
+                                    ctx.range_mapper,
                                 );
                             }
                         } else {
                             // State-level building: infrastructure = 2
                             if !ctx.buildings.is_empty() && !ctx.buildings.contains_key(key) {
                                 diags.push(Diagnostic {
-                                    range: ast_range_to_lsp(&inner_ass.key_range),
+                                    range: ctx.range(&inner_ass.key_range),
                                     severity: Some(DiagnosticSeverity::WARNING),
                                     message: format!(
                                         "Unknown building '{}'. buildings are defined in common/buildings/*.txt",
@@ -136,6 +137,7 @@ fn validate_keys_in_dashmap<T>(
     error_code: &str,
     diags: &mut Vec<Diagnostic>,
     source: &str,
+    range: &crate::utils::lsp_convert::RangeMapper,
 ) {
     if map.is_empty() {
         return;
@@ -145,7 +147,7 @@ fn validate_keys_in_dashmap<T>(
             let name = ass.key_text(source);
             if !map.contains_key(name) {
                 diags.push(Diagnostic {
-                    range: ast_range_to_lsp(&ass.key_range),
+                    range: range.range(&ass.key_range),
                     severity: Some(DiagnosticSeverity::WARNING),
                     message: format!(
                         "Unknown {} '{}'. {}s are defined in {}",

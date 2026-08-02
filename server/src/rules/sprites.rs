@@ -1,7 +1,6 @@
 use crate::parser::ast;
 use crate::rules::{ValidationContext, ValidationRule};
 use crate::scope::scope::{Scope, ScopeStack};
-use crate::utils::lsp_convert::ast_range_to_lsp;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
 /// Validates sprite/GFX references in `sprite`, `icon`, `sprite_name`,
@@ -54,7 +53,7 @@ impl ValidationRule for SpriteRule {
                 || (key_lower == "picture" && scope.current() == Scope::Idea))
         {
             diags.push(Diagnostic {
-                range: ast_range_to_lsp(&ass.value.range),
+                range: ctx.range(&ass.value.range),
                 severity: Some(DiagnosticSeverity::WARNING),
                 message: format!(
                     "Unknown sprite/GFX: '{}' (resolved from '{}')",

@@ -21,6 +21,7 @@ use crate::scope::scope;
 use crate::utils::color_utils::find_colors;
 use crate::utils::enhanced_color;
 use crate::utils::loc_preview::find_identifier_in_loc;
+use crate::utils::lsp_convert::RangeMapper;
 use crate::utils::lsp_convert::ast_range_to_lsp_location;
 use crate::utils::symbol_search::find_identifier_at;
 
@@ -1044,6 +1045,7 @@ impl LanguageServer for Backend {
         let position = params.text_document_position_params.position;
 
         if let Some(content) = self.documents.get(&uri) {
+            let mapper = RangeMapper::new(&content);
             let identifier = if uri.ends_with(".yml") {
                 find_identifier_in_loc(&content, position)
             } else {
@@ -1063,7 +1065,7 @@ impl LanguageServer for Backend {
                 if !locations.is_empty() {
                     let lsp_locations: Vec<Location> = locations
                         .iter()
-                        .map(|loc| ast_range_to_lsp_location(&loc.range, &loc.path))
+                        .map(|loc| ast_range_to_lsp_location(&loc.range, &loc.path, &mapper))
                         .collect();
                     return Ok(Some(GotoDefinitionResponse::Array(lsp_locations)));
                 }

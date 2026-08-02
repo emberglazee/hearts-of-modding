@@ -1,5 +1,6 @@
 use crate::data::interner::InternedStr;
-use crate::parser::ast::{Entry, Range, Value};
+use crate::parser::ast::{Entry, Value};
+use crate::utils::lsp_convert::RangeMapper;
 use dashmap::DashSet;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -31,7 +32,9 @@ pub async fn prepare_rename(
     let path_str = path.to_string_lossy();
     let lookup = crate::data::entity_lookup::EntityLookup::new(data);
     if let Some((_, range, _)) = lookup.entity_at(&path_str, position) {
-        return Some(PrepareRenameResponse::Range(range_to_lsp(&range)));
+        let content = std::fs::read_to_string(&path).ok()?;
+        let mapper = RangeMapper::new(&content);
+        return Some(PrepareRenameResponse::Range(mapper.range(&range)));
     }
     None
 }
@@ -244,6 +247,7 @@ fn find_event_references_in_entries(
     edits: &mut Vec<TextEdit>,
     source: &str,
 ) {
+    let mapper = RangeMapper::new(source);
     for entry in entries {
         if let Entry::Assignment(ass) = entry {
             // Check for event triggers: country_event = { id = old_name }
@@ -259,7 +263,7 @@ fn find_event_references_in_entries(
                                 if let Some(id) = child_ass.value.value.as_str(source) {
                                     if id == old_name {
                                         edits.push(TextEdit {
-                                            range: range_to_lsp(&child_ass.value.range),
+                                            range: mapper.range(&child_ass.value.range),
                                             new_text: format!("\"{}\"", new_name),
                                         });
                                     }
@@ -408,6 +412,7 @@ fn find_scripted_references_in_entries(
     edits: &mut Vec<TextEdit>,
     source: &str,
 ) {
+    let mapper = RangeMapper::new(source);
     for entry in entries {
         if let Entry::Assignment(ass) = entry {
             // Key matches the scripted trigger/effect name — this is both the
@@ -415,7 +420,7 @@ fn find_scripted_references_in_entries(
             // usage: old_name = yes). Emit exactly one edit per occurrence.
             if ass.key_text(source) == old_name {
                 edits.push(TextEdit {
-                    range: range_to_lsp(&ass.key_range),
+                    range: mapper.range(&ass.key_range),
                     new_text: new_name.to_string(),
                 });
             }
@@ -497,12 +502,13 @@ fn find_idea_references_in_entries(
     edits: &mut Vec<TextEdit>,
     source: &str,
 ) {
+    let mapper = RangeMapper::new(source);
     for entry in entries {
         if let Entry::Assignment(ass) = entry {
             // Check for idea definition or usage
             if ass.key_text(source) == old_name {
                 edits.push(TextEdit {
-                    range: range_to_lsp(&ass.key_range),
+                    range: mapper.range(&ass.key_range),
                     new_text: new_name.to_string(),
                 });
             }
@@ -516,7 +522,7 @@ fn find_idea_references_in_entries(
                 if let Some(idea_name) = ass.value.value.as_str(source) {
                     if idea_name == old_name {
                         edits.push(TextEdit {
-                            range: range_to_lsp(&ass.value.range),
+                            range: mapper.range(&ass.value.range),
                             new_text: format!("\"{}\"", new_name),
                         });
                     }
@@ -600,12 +606,13 @@ fn find_character_references_in_entries(
     edits: &mut Vec<TextEdit>,
     source: &str,
 ) {
+    let mapper = RangeMapper::new(source);
     for entry in entries {
         if let Entry::Assignment(ass) = entry {
             // Character definition
             if ass.key_text(source) == old_name {
                 edits.push(TextEdit {
-                    range: range_to_lsp(&ass.key_range),
+                    range: mapper.range(&ass.key_range),
                     new_text: new_name.to_string(),
                 });
             }
@@ -619,7 +626,7 @@ fn find_character_references_in_entries(
                 if let Some(char_name) = ass.value.value.as_str(source) {
                     if char_name == old_name {
                         edits.push(TextEdit {
-                            range: range_to_lsp(&ass.value.range),
+                            range: mapper.range(&ass.value.range),
                             new_text: new_name.to_string(),
                         });
                     }
@@ -631,7 +638,7 @@ fn find_character_references_in_entries(
                 if let Some(char_name) = ass.value.value.as_str(source) {
                     if char_name == old_name {
                         edits.push(TextEdit {
-                            range: range_to_lsp(&ass.value.range),
+                            range: mapper.range(&ass.value.range),
                             new_text: new_name.to_string(),
                         });
                     }
@@ -715,6 +722,7 @@ fn find_variable_references_in_entries(
     edits: &mut Vec<TextEdit>,
     source: &str,
 ) {
+    let mapper = RangeMapper::new(source);
     for entry in entries {
         if let Entry::Assignment(ass) = entry {
             // Check for variable operations (set_variable, add_to_variable, etc.)
@@ -758,7 +766,7 @@ fn find_variable_references_in_entries(
                                     if let Some(var_name) = child_ass.value.value.as_str(source) {
                                         if var_name == old_name {
                                             edits.push(TextEdit {
-                                                range: range_to_lsp(&child_ass.value.range),
+                                                range: mapper.range(&child_ass.value.range),
                                                 new_text: format!("\"{}\"", new_name),
                                             });
                                             found = true;
@@ -772,7 +780,7 @@ fn find_variable_references_in_entries(
                             if let Entry::Assignment(child_ass) = &children[0] {
                                 if child_ass.key_text(source) == old_name {
                                     edits.push(TextEdit {
-                                        range: range_to_lsp(&child_ass.key_range),
+                                        range: mapper.range(&child_ass.key_range),
                                         new_text: format!("\"{}\"", new_name),
                                     });
                                 }
@@ -784,7 +792,7 @@ fn find_variable_references_in_entries(
                         if let Some(var_name) = ass.value.value.as_str(source) {
                             if var_name == old_name {
                                 edits.push(TextEdit {
-                                    range: range_to_lsp(&ass.value.range),
+                                    range: mapper.range(&ass.value.range),
                                     new_text: format!("\"{}\"", new_name),
                                 });
                             }
@@ -870,11 +878,12 @@ fn find_ability_references_in_entries(
     edits: &mut Vec<TextEdit>,
     source: &str,
 ) {
+    let mapper = RangeMapper::new(source);
     for entry in entries {
         if let Entry::Assignment(ass) = entry {
             if ass.key_text(source) == old_name {
                 edits.push(TextEdit {
-                    range: range_to_lsp(&ass.key_range),
+                    range: mapper.range(&ass.key_range),
                     new_text: new_name.to_string(),
                 });
             }
@@ -888,7 +897,7 @@ fn find_ability_references_in_entries(
                         || ass.key_text(source) == "remove_ability")
                 {
                     edits.push(TextEdit {
-                        range: range_to_lsp(&ass.value.range),
+                        range: mapper.range(&ass.value.range),
                         new_text: new_name.to_string(),
                     });
                 }
@@ -987,20 +996,6 @@ fn find_color_code_references(
                 changes.insert(url, edits);
             }
         }
-    }
-}
-
-/// Helper functions
-fn range_to_lsp(range: &Range) -> LspRange {
-    LspRange {
-        start: LspPosition {
-            line: range.start_line,
-            character: range.start_col,
-        },
-        end: LspPosition {
-            line: range.end_line,
-            character: range.end_col,
-        },
     }
 }
 

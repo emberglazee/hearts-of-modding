@@ -6,7 +6,8 @@ use crate::rules::{ValidationContext, ValidationRule};
 #[cfg(test)]
 use crate::scanner::decision_scanner::Decision;
 use crate::scope::scope::ScopeStack;
-use crate::utils::lsp_convert::ast_range_to_lsp;
+#[cfg(test)]
+use crate::utils::lsp_convert::RangeMapper;
 use dashmap::DashMap;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
@@ -89,7 +90,7 @@ impl ValidationRule for DecisionsRule {
             });
             if has_decision_children && !cats.contains(&category_key.to_string()) {
                 diags.push(Diagnostic {
-                    range: ast_range_to_lsp(&ass.key_range),
+                    range: ctx.range(&ass.key_range),
                     severity: Some(DiagnosticSeverity::ERROR),
                     message: format!(
                         "Decision category '{}' is not declared anywhere. \
@@ -201,7 +202,7 @@ impl AstVisitor for DecisionsVisitor {
         // `create_country_leader = { ... }`).
         if self.directly_in_decision() && CATEGORY_ONLY_KEYS.contains(&key) {
             diags.push(Diagnostic {
-                range: ast_range_to_lsp(&ass.key_range),
+                range: ctx.range(&ass.key_range),
                 severity: Some(DiagnosticSeverity::ERROR),
                 message: format!(
                     "'{}' is a category-only key and has no effect inside a decision block.",
@@ -287,7 +288,7 @@ impl AstVisitor for DecisionsVisitor {
             });
             if is_real_decision && !self.has_complete_effect {
                 diags.push(Diagnostic {
-                    range: ast_range_to_lsp(&ass.key_range),
+                    range: ctx.range(&ass.key_range),
                     severity: Some(DiagnosticSeverity::WARNING),
                     message: format!(
                         "Decision '{}' has no complete_effect — it does nothing when selected.",
@@ -304,7 +305,7 @@ impl AstVisitor for DecisionsVisitor {
             // HOM5009: Both cost and custom_cost_trigger
             if self.has_cost && self.has_custom_cost {
                 diags.push(Diagnostic {
-                    range: ast_range_to_lsp(&ass.key_range),
+                    range: ctx.range(&ass.key_range),
                     severity: Some(DiagnosticSeverity::WARNING),
                     message: format!("Decision '{}' has both 'cost' and 'custom_cost_trigger'. \
                              These are mutually exclusive per the wiki — custom_cost_trigger will be ignored.", key),
@@ -346,9 +347,11 @@ mod tests {
     fn check_block_diags(source: &str, uri: &str, scanner_data: &ScannerData) -> Vec<Diagnostic> {
         let (script, _) = parser::parse_script(source);
         let rule = DecisionsRule;
+        let range_mapper = RangeMapper::new(&script.source);
         let ctx = ValidationContext {
             uri,
             source: &script.source,
+            range_mapper: &range_mapper,
             loc: &scanner_data.localization,
             scripted_triggers: &scanner_data.scripted_triggers,
             scripted_effects: &scanner_data.scripted_effects,
@@ -391,9 +394,11 @@ mod tests {
 
     fn visitor_diags(source: &str, uri: &str, scanner_data: &ScannerData) -> Vec<Diagnostic> {
         let (script, _) = parser::parse_script(source);
+        let range_mapper = RangeMapper::new(&script.source);
         let ctx = ValidationContext {
             uri,
             source: &script.source,
+            range_mapper: &range_mapper,
             loc: &scanner_data.localization,
             scripted_triggers: &scanner_data.scripted_triggers,
             scripted_effects: &scanner_data.scripted_effects,

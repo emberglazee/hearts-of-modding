@@ -1,7 +1,6 @@
 use crate::parser::ast;
 use crate::rules::{ValidationContext, ValidationRule};
 use crate::scope::scope::{Scope, ScopeStack};
-use crate::utils::lsp_convert::ast_range_to_lsp;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
 /// Validates triggers, effects, and modifiers against V2 data.
@@ -127,7 +126,7 @@ impl ValidationRule for V2ScopeRule {
             }
 
             diags.push(Diagnostic {
-                range: ast_range_to_lsp(&ass.key_range),
+                range: ctx.range(&ass.key_range),
                 severity: Some(DiagnosticSeverity::WARNING),
                 message: format!(
                     "'{}' is not valid in {} scope. Expected scopes: {}",

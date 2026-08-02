@@ -5,6 +5,7 @@ use crate::rules::oob_regiments::OobRegimentVisitor;
 use crate::rules::visitor::{AstVisitor, walk_script};
 use crate::rules::{ValidationContext, ValidationRule};
 use crate::scope::scope::Scope;
+use crate::utils::lsp_convert::RangeMapper;
 use dashmap::DashMap;
 use tower_lsp_server::ls_types::{Diagnostic, NumberOrString};
 
@@ -61,9 +62,11 @@ fn run_oob_visitor(input: &str, unit_types: &[&str]) -> Vec<Diagnostic> {
         );
     }
 
+    let range_mapper = RangeMapper::new(&script.source);
     let ctx = ValidationContext {
         uri: "test:///history/units/test_oob.txt",
         source: &script.source,
+        range_mapper: &range_mapper,
         loc: &loc,
         scripted_triggers: &st,
         scripted_effects: &se,
