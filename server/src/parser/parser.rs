@@ -171,7 +171,10 @@ fn number(input: Span) -> IResult<Span, (f64, Range)> {
 
     let next_char = input.fragment().chars().next();
     if let Some(c) = next_char {
-        if c.is_alphanumeric() && c != '%' {
+        // Same prefix-splitting guard as boolean(): a number must not run into
+        // more identifier chars (`5_something`, `5.5` is already consumed here).
+        // Keep the `%` carve-out (`50%` follows a number with no space).
+        if is_identifier_char(c) && c != '%' {
             return Err(nom::Err::Error(nom::error::Error::new(
                 input,
                 nom::error::ErrorKind::Tag,
@@ -186,7 +189,11 @@ fn boolean(input: Span) -> IResult<Span, (bool, Range)> {
     let (input, s) = alt((tag("yes"), tag("no"))).parse(input)?;
     let next_char = input.fragment().chars().next();
     if let Some(c) = next_char {
-        if c.is_alphanumeric() {
+        // Reject when the `yes`/`no` is only a prefix of a longer identifier
+        // (e.g. `no_focus`, `yes_picture`). `is_alphanumeric()` alone let `_`,
+        // `.`, `-`, etc. through, mis-parsing `no_focus` as false + dangling
+        // `_focus`. Identifier chars cover the full HOI4 identifier set.
+        if is_identifier_char(c) {
             return Err(nom::Err::Error(nom::error::Error::new(
                 input,
                 nom::error::ErrorKind::Tag,
@@ -696,6 +703,10 @@ pub fn parse_script(input: &str) -> (ast::Script, Vec<(String, Range)>) {
     )
 }
 
+// ---------------------------------------------------------------------------
+// SECTION - Tests
+// ---------------------------------------------------------------------------
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -831,6 +842,41 @@ mod tests {
         } else {
             panic!("Expected Entry::Value with TaggedBlock");
         }
+    }
+
+    /// `yes`/`no` followed by more identifier chars must NOT parse as a boolean
+    /// prefix (was splitting `no_focus` into `false` + a dangling `_focus`).
+    #[test]
+    fn test_boolean_prefix_does_not_split_identifier() {
+        let (script, errors) = parse_script("a = no_focus\nb = yes_picture\n");
+        assert!(errors.is_empty());
+        let strings: Vec<&str> = script
+            .entries
+            .iter()
+            .filter_map(|e| match e {
+                ast::Entry::Assignment(a) => a.value.value.as_str(&script.source),
+                _ => None,
+            })
+            .collect();
+        // Both must be kept as whole String identifiers, not split.
+        assert_eq!(strings, vec!["no_focus", "yes_picture"]);
+    }
+
+    /// A number followed by identifier chars is a String identifier, not a bare
+    /// number + dangling suffix (e.g. `5_something`).
+    #[test]
+    fn test_number_prefix_does_not_split_identifier() {
+        let (script, errors) = parse_script("a = 5_something\n");
+        assert!(errors.is_empty());
+        let vals: Vec<&str> = script
+            .entries
+            .iter()
+            .filter_map(|e| match e {
+                ast::Entry::Assignment(a) => a.value.value.as_str(&script.source),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(vals, vec!["5_something"]);
     }
 
     #[test]
@@ -1382,3 +1428,7 @@ mod tests {
         assert!(!script.closed_by_eof);
     }
 }
+
+// ---------------------------------------------------------------------------
+// !SECTION
+// ---------------------------------------------------------------------------
