@@ -203,28 +203,32 @@ impl ScopeNode {
 /// This ensures the achievement-override logic lives in one place.
 pub fn resolve_key_scope(
     key: &str,
-    achievements: &DashMap<InternedStr, LayeredValue<Achievement>>,
+    achievements: Option<&DashMap<InternedStr, LayeredValue<Achievement>>>,
 ) -> Scope {
-    if let Some(achievement) = achievements.get(key) {
-        if achievement.is_ribbon {
-            Scope::Ribbon
-        } else {
-            Scope::Achievement
+    if let Some(achievements) = achievements {
+        if let Some(achievement) = achievements.get(key) {
+            if achievement.is_ribbon {
+                return Scope::Ribbon;
+            } else {
+                return Scope::Achievement;
+            }
         }
-    } else {
-        Scope::from_str(key)
     }
+    Scope::from_str(key)
 }
 
 /// External context for unified scope resolution via [`ScopeStack::resolve_entry_scope`].
 ///
-/// Pass whatever data is available at the call site. Fields that aren't available
-/// can be passed as empty DashMaps — the resolution is a no-op for empty maps.
+/// Pass whatever data is available at the call site. Maps that aren't available
+/// are `None` — the corresponding lookups are simply skipped.
 pub struct ScopeCtx<'a> {
     pub uri: &'a str,
-    pub event_targets: &'a DashMap<InternedStr, Vec<EventTarget>>,
-    pub characters: &'a DashMap<InternedStr, LayeredValue<Character>>,
-    pub achievements: &'a DashMap<InternedStr, LayeredValue<Achievement>>,
+    /// Optional scanner maps so callers that lack them (hover/symbol paths)
+    /// don't have to allocate empty DashMaps just to satisfy a non-Optional
+    /// span. `None` simply means "no data for this lookup".
+    pub event_targets: Option<&'a DashMap<InternedStr, Vec<EventTarget>>>,
+    pub characters: Option<&'a DashMap<InternedStr, LayeredValue<Character>>>,
+    pub achievements: Option<&'a DashMap<InternedStr, LayeredValue<Achievement>>>,
     pub in_random_list: bool,
     pub state_targeted: bool,
 }
@@ -469,12 +473,11 @@ impl ScopeStack {
         }
 
         // 3. V2: Saved event target
-        {
+        if let Some(event_targets) = ctx.event_targets {
             let lower_key = key.to_ascii_lowercase();
-            let result = ctx
-                .event_targets
+            let result = event_targets
                 .get(&*lower_key)
-                .or_else(|| ctx.event_targets.get(key));
+                .or_else(|| event_targets.get(key));
             if let Some(scope) = result
                 .and_then(|targets| targets.value().first().map(|t| t.scope))
                 .filter(|s| *s != Scope::Unknown)
@@ -506,8 +509,12 @@ impl ScopeStack {
             .unwrap_or_else(|| resolve_key_scope(key, ctx.achievements));
 
         // 7c. Known character tokens -> Character scope
-        if s == Scope::Unknown && ctx.characters.contains_key(key) {
-            s = Scope::Character;
+        if s == Scope::Unknown {
+            if let Some(characters) = ctx.characters {
+                if characters.contains_key(key) {
+                    s = Scope::Character;
+                }
+            }
         }
 
         // 7d. Numeric keys (state IDs) -> State scope (outside random_list)
@@ -542,9 +549,9 @@ impl ScopeStack {
     ) -> Scope {
         let ctx = ScopeCtx {
             uri: "",
-            event_targets: &DashMap::new(),
-            characters: &DashMap::new(),
-            achievements,
+            event_targets: None,
+            characters: None,
+            achievements: Some(achievements),
             in_random_list: false,
             state_targeted: false,
         };

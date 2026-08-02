@@ -163,19 +163,15 @@ fn walk_entries(
                 let mut pushed_scope = false;
 
                 let key_text = ass.key_text(ctx.source);
-                let empty_achievements: dashmap::DashMap<
-                    crate::data::interner::InternedStr,
-                    crate::data::layered_value::LayeredValue<
-                        crate::scanner::achievement_scanner::Achievement,
-                    >,
-                > = dashmap::DashMap::new();
                 let (mut s, is_transparent) = scope_stack.resolve_entry_scope(
                     key_text,
                     &ScopeCtx {
                         uri: ctx.uri,
-                        event_targets: ctx.event_targets,
-                        characters: ctx.characters,
-                        achievements: &empty_achievements,
+                        // Pass the real maps directly; ScopeCtx fields are
+                        // Option so no empty DashMap needs allocating here.
+                        event_targets: Some(ctx.event_targets),
+                        characters: Some(ctx.characters),
+                        achievements: None,
                         in_random_list,
                         state_targeted,
                     },
@@ -186,9 +182,11 @@ fn walk_entries(
                 // inside `country = { ... }`). EXCLUDE known idea structure/sub-block
                 // keywords — those are never valid idea names.
                 if s == Scope::Unknown {
-                    let stack = scope_stack.stack();
-                    if stack.contains(&Scope::Idea)
-                        && (stack.len() == 2 || stack.len() == 3)
+                    // Inspect the scope stack without allocating a Vec (nodes() is
+                    // a slice; stack() materialised a copy on every unknown key).
+                    let nodes = scope_stack.nodes();
+                    if nodes.iter().any(|n| n.scope_type == Scope::Idea)
+                        && (nodes.len() == 2 || nodes.len() == 3)
                         && !is_idea_structure_key(key_text)
                     {
                         s = Scope::Idea;
