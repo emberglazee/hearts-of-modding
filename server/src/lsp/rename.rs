@@ -410,15 +410,9 @@ fn find_scripted_references_in_entries(
 ) {
     for entry in entries {
         if let Entry::Assignment(ass) = entry {
-            // Check for definition
-            if ass.key_text(source) == old_name {
-                edits.push(TextEdit {
-                    range: range_to_lsp(&ass.key_range),
-                    new_text: new_name.to_string(),
-                });
-            }
-
-            // Check for usage: old_name = yes
+            // Key matches the scripted trigger/effect name — this is both the
+            // definition site and any usage (definition: old_name = { .. },
+            // usage: old_name = yes). Emit exactly one edit per occurrence.
             if ass.key_text(source) == old_name {
                 edits.push(TextEdit {
                     range: range_to_lsp(&ass.key_range),
@@ -1007,5 +1001,40 @@ fn range_to_lsp(range: &Range) -> LspRange {
             line: range.end_line,
             character: range.end_col,
         },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::parser::parser::parse_script;
+
+    /// Regression test: renaming a scripted trigger/effect must produce exactly
+    /// ONE edit per occurrence. Previously the `find_scripted_references_in_entries`
+    /// walker had two byte-identical guards pushing the same TextEdit for both the
+    /// definition and usage paths, doubling every edit (VS Code rejects or
+    /// double-applies the overlapping edits).
+    #[test]
+    fn test_scripted_rename_emits_one_edit_per_occurrence() {
+        // Two occurrences: a definition block and a usage. A definition and a
+        // usage on separate keys would each match once.
+        let source = "my_trigger = {\n    some_effect = yes\n}\nmy_trigger = yes\n";
+        let (script, errors) = parse_script(source);
+        assert!(errors.is_empty(), "parse errors: {errors:?}");
+
+        let mut edits = Vec::new();
+        find_scripted_references_in_entries(
+            &script.entries,
+            "my_trigger",
+            "renamed_trigger",
+            &mut edits,
+            &script.source,
+        );
+
+        // Two occurrences → exactly two edits, not four (the pre-fix doubling).
+        assert_eq!(edits.len(), 2, "expected one edit per occurrence");
+        for edit in &edits {
+            assert_eq!(edit.new_text, "renamed_trigger");
+        }
     }
 }
