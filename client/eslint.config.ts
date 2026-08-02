@@ -4,6 +4,7 @@ import globals from 'globals'
 import tseslint, { type FlatConfig } from 'typescript-eslint'
 import stylistic from '@stylistic/eslint-plugin'
 import eslint from '@eslint/js'
+import { defineConfig, globalIgnores } from 'eslint/config'
 
 function stylisticRules(): FlatConfig.Rules {
     return {
@@ -38,10 +39,8 @@ function stylisticRules(): FlatConfig.Rules {
     }
 }
 
-export default tseslint.config(
-    {
-        ignores: ['out/']
-    },
+export default defineConfig(
+    globalIgnores(['out/']),
     eslint.configs.recommended,
     tseslint.configs.recommended,
     {
