@@ -196,16 +196,21 @@ where
 }
 
 /// Like scan_category_declarations but for pre-filtered files.
+/// Returns a map of file path → category names it declares, so callers can feed
+/// both the flat category set AND a per-file reverse index (which the
+/// incremental scanner needs to remove/update a single file's categories).
 pub fn scan_category_declarations_files<F>(
     files: &[PathBuf],
     filter: &F,
-) -> std::collections::HashSet<String>
+) -> std::collections::HashMap<PathBuf, std::collections::HashSet<String>>
 where
     F: Fn(&Path) -> bool,
 {
-    let mut cats = std::collections::HashSet::new();
-    crate::utils::fs_util::parse_winning_files(files, filter, |_path, content| {
+    let mut per_path: std::collections::HashMap<PathBuf, std::collections::HashSet<String>> =
+        std::collections::HashMap::new();
+    crate::utils::fs_util::parse_winning_files(files, filter, |path, content| {
         let (script, _) = parser::parse_script(&content);
+        let mut cats = std::collections::HashSet::new();
         for entry in &script.entries {
             if let ast::Entry::Assignment(ass) = entry {
                 if let ast::Value::Block(_) = &ass.value.value {
@@ -213,8 +218,9 @@ where
                 }
             }
         }
+        per_path.insert(path.to_path_buf(), cats);
     });
-    cats
+    per_path
 }
 
 #[cfg(test)]

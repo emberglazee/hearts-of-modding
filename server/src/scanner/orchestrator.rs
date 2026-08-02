@@ -554,7 +554,14 @@ impl Backend {
         .await
         .unwrap();
         self.scanner_data.custom_modifiers.clear();
-        self.scanner_data.modifier_mappings.clear();
+        // NOTE: do NOT clear `modifier_mappings` here. It is populated from two
+        // independent, additive sources that run concurrently in the init join:
+        // this scan (builtin modifier→loc mappings) and `load_assets`
+        // (assets/modifier_mappings.json). Both run in the same `tokio::join!`;
+        // clearing here races with `load_assets`' inserts — if assets inserted
+        // first, this clear wipes them and the asset mappings are lost
+        // nondeterministically. Both sets are static, so building up the map is
+        // the correct union regardless of join ordering.
         for (k, v) in result.custom_modifiers {
             self.scanner_data
                 .custom_modifiers
@@ -617,11 +624,28 @@ impl Backend {
             .unwrap();
             self.scanner_data.decision_categories.clear();
             self.scanner_data.decision_categories_file_index.clear();
-            for cat in cats {
-                self.scanner_data.decision_categories.insert(
-                    cat.into(),
-                    crate::data::layered_value::LayeredValue::new(()),
-                );
+            // Seed both the flat category set AND the per-file reverse index so
+            // later incremental edits/deletes can attribute a category to the
+            // file that declared it (otherwise the index is empty until each file
+            // is edited, and stale categories survive an edit/delete).
+            for (path, names) in &cats {
+                let mut file_cats: Vec<crate::data::interner::InternedStr> =
+                    Vec::with_capacity(names.len());
+                for name in names {
+                    let ik = crate::data::interner::InternedStr::from(name.as_str());
+                    if !self.scanner_data.decision_categories.contains_key(&ik) {
+                        self.scanner_data.decision_categories.insert(
+                            ik.clone(),
+                            crate::data::layered_value::LayeredValue::new(()),
+                        );
+                    }
+                    file_cats.push(ik);
+                }
+                let path_key =
+                    crate::data::interner::InternedStr::from(path.to_string_lossy().into_owned());
+                self.scanner_data
+                    .decision_categories_file_index
+                    .insert(path_key, file_cats);
             }
             self.client
                 .log_message(

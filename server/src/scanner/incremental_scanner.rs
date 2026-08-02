@@ -1359,16 +1359,12 @@ fn update_decision_categories(scanner_data: &ScannerData, path_str: &str, script
     new_cats.dedup();
 
     let key_path = InternedStr::from(path_str);
-    if let Some((_, old_cats)) = scanner_data
-        .decision_categories_file_index
-        .remove(&key_path)
-    {
-        for old in old_cats {
-            if !new_cats.contains(&old)
-                && !category_still_declared_elsewhere(scanner_data, &key_path, &old)
-            {
-                scanner_data.decision_categories.remove(&old);
-            }
+    let old_cats = take_decision_categories_for_path(scanner_data, path_str);
+    for old in old_cats {
+        if !new_cats.contains(&old)
+            && !category_still_declared_elsewhere(scanner_data, &key_path, &old)
+        {
+            scanner_data.decision_categories.remove(&old);
         }
     }
 
@@ -1385,22 +1381,40 @@ fn update_decision_categories(scanner_data: &ScannerData, path_str: &str, script
         .insert(key_path, new_cats);
 }
 
-/// Remove a `categories/*.txt` file's declared categories from the map.
+/// Remove a `categories/*.txt` file's declared categories and update its map.
 fn remove_decision_categories(scanner_data: &ScannerData, path_str: &str) {
     let key_path = InternedStr::from(path_str);
-    if let Some((_, old_cats)) = scanner_data
-        .decision_categories_file_index
-        .remove(&key_path)
-    {
-        for old in old_cats {
-            if !category_still_declared_elsewhere(scanner_data, &key_path, &old) {
-                scanner_data.decision_categories.remove(&old);
-            }
+    let old_cats = take_decision_categories_for_path(scanner_data, path_str);
+    for old in old_cats {
+        if !category_still_declared_elsewhere(scanner_data, &key_path, &old) {
+            scanner_data.decision_categories.remove(&old);
         }
     }
 }
 
-/// Whether any file OTHER than `exclude_path` still declares category `cat`.
+/// Remove every `decision_categories_file_index` entry matching `path_str`
+/// (tolerant path match, so the full-scan seed key format needn't be byte-
+/// identical to the incremental `path_str`) and return the categories those
+/// entries declared.
+fn take_decision_categories_for_path(
+    scanner_data: &ScannerData,
+    path_str: &str,
+) -> Vec<InternedStr> {
+    let mut hits: Vec<InternedStr> = Vec::new();
+    let mut old_cats: Vec<InternedStr> = Vec::new();
+    for entry in scanner_data.decision_categories_file_index.iter() {
+        if path_matches(entry.key().as_ref(), path_str) {
+            hits.push(entry.key().clone());
+            old_cats.extend(entry.value().iter().cloned());
+        }
+    }
+    for hit in hits {
+        scanner_data.decision_categories_file_index.remove(&hit);
+    }
+    old_cats
+}
+
+/// Whether any file OTHER than those matching `exclude_path` still declares `cat`.
 fn category_still_declared_elsewhere(
     scanner_data: &ScannerData,
     exclude_path: &InternedStr,
@@ -1409,7 +1423,7 @@ fn category_still_declared_elsewhere(
     scanner_data
         .decision_categories_file_index
         .iter()
-        .any(|e| e.key() != exclude_path && e.value().contains(cat))
+        .any(|e| !path_matches(e.key().as_ref(), exclude_path.as_ref()) && e.value().contains(cat))
 }
 
 /// Remove all scanner data entries originating from a given file path.
