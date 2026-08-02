@@ -315,8 +315,11 @@ fn classify_file(path: &str) -> Vec<FileCategory> {
             cats.push(FileCategory::Portraits);
         }
 
-        // Strategic regions
-        if lower.contains("/common/strategic_regions/") {
+        // Strategic regions — engine path is map/strategicregions (no underscore).
+        // NB: the full scan (orchestrator.rs) and scanner (strategic_region_scanner.rs)
+        // read `map/strategicregions`, so incremental classification MUST match that
+        // same path or edits/renames/deletes never refresh the region index.
+        if lower.contains("/map/strategicregions/") {
             cats.push(FileCategory::StrategicRegions);
         }
 
@@ -1597,5 +1600,36 @@ pub fn remove_path_from_scanner_data(scanner_data: &ScannerData, path_str: &str)
                 // TODO: implement proper defines removal if needed
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Regression test: strategic-region files live under `map/strategicregions`
+    /// (the path the full scan and scanner actually read), NOT
+    /// `common/strategic_regions`. A mismatch here meant edits/renames/deletes of
+    /// region files never refreshed the incremental strategic-region index.
+    #[test]
+    fn test_classify_strategic_regions_matches_engine_path() {
+        let realistic = "/home/embi/mod/map/strategicregions/00_strategicregions.txt";
+        let cats = classify_file(realistic);
+        assert!(
+            cats.contains(&FileCategory::StrategicRegions),
+            "map/strategicregions/*.txt should classify as StrategicRegions"
+        );
+    }
+
+    /// The obsolete `common/strategic_regions` path must NOT classify as
+    /// StrategicRegions — that directory doesn't exist in the engine layout.
+    #[test]
+    fn test_classify_old_strategic_regions_path_does_not_match() {
+        let wrong = "/mod/common/strategic_regions/00_strategicregions.txt";
+        let cats = classify_file(wrong);
+        assert!(
+            !cats.contains(&FileCategory::StrategicRegions),
+            "common/strategic_regions is not the engine path"
+        );
     }
 }
