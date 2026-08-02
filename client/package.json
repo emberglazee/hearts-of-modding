@@ -1,300 +1,298 @@
 {
-    "name": "hearts-of-modding",
-    "displayName": "Hearts of Modding",
-    "description": "VS Code extension for Hearts of Iron IV modding",
-    "version": "0.23.1",
-    "publisher": "emberglaze",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/emberglazee/Hearts-of-Modding"
-    },
-    "engines": {
-        "vscode": "^1.82.0"
-    },
-    "categories": [
-        "Programming Languages"
-    ],
-    "activationEvents": [
-        "workspaceContains:./descriptor.mod"
-    ],
-    "main": "./out/extension.js",
-    "contributes": {
-        "configuration": {
-            "type": "object",
-            "title": "Hearts of Modding",
-            "properties": {
-                "hoi4.lsp.enabled": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Start the language server automatically on workspace open."
-                },
-                "hoi4.lsp.suppressDisabledPrompt": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Suppress the notification when the LSP is disabled on workspace open."
-                },
-                "hoi4.gamePath": {
-                    "type": "string",
-                    "default": "",
-                    "description": "The absolute path to your Hearts of Iron IV installation directory."
-                },
-                "hoi4.modPaths": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "default": [],
-                    "description": "Extra dependency mod paths (absolute). These are resolved AFTER auto-discovered dependencies from the mod registry, so they take higher priority. Use this to override or add dependencies not declared in your descriptor.mod. Workspace always wins."
-                },
-                "hoi4.modRegistryPath": {
-                    "type": "string",
-                    "default": "",
-                    "description": "Optional: absolute path to the Paradox mod registry folder (e.g. ~/.local/share/Paradox Interactive/Hearts of Iron IV/mod on Linux). If unset, the extension auto-detects the path based on your OS. Set this to override auto-detection for non-standard Steam library setups."
-                },
-                "hoi4.validator.ignoreLocalization": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "default": [],
-                    "description": "List of regex patterns for localization keys that should be ignored if missing."
-                },
-                "hoi4.validator.ignoreFiles": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "default": [],
-                    "description": "List of regex patterns for files or directories that should be ignored during workspace-wide diagnostic scanning."
-                },
-                "hoi4.validator.workspaceScan.enabled": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Enable automatic workspace-wide diagnostic scanning upon initialization. Large mods may experience high CPU usage during the initial scan."
-                },
-                "hoi4.validator.scopeValidationEnabled": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Enable scope mismatch validation (HOM004). Warnings when triggers/effects are used outside their documented scope. Disabled by default — scope resolution is incomplete for many edge cases."
-                },
-                "hoi4.styling.enabled": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Enable cosmetic and styling checks (casing convention, mixed indentation, trailing whitespace)."
-                },
-                "hoi4.styling.cosmeticLocalizationIndentation": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Indent variant localization keys (e.g., _DEF, _ADJ, _desc) with an additional tab to improve visual hierarchy."
-                },
-                "hoi4.showMemoryUsage.enabled": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Show memory usage in the status bar. Updates every 10 seconds."
-                },
-                "hoi4.logLevel": {
-                    "type": "string",
-                    "default": "info",
-                    "enum": [
-                        "error",
-                        "warn",
-                        "info",
-                        "debug",
-                        "trace"
-                    ],
-                    "description": "Log verbosity level. ERROR=only failures, INFO=scan results and progress (default), DEBUG=per-file timing, TRACE=every LSP event.",
-                    "scope": "window"
-                },
-                "hoi4.themePromptDismissed": {
-                    "type": "boolean",
-                    "default": false,
-                    "scope": "window",
-                    "description": "Whether the Hearts of Modding theme prompt has been dismissed for this workspace."
-                }
-            }
-        },
-        "commands": [
-            {
-                "command": "hearts-of-modding.toggleLsp",
-                "title": "Toggle LSP",
-                "category": "Hearts of Modding"
-            },
-            {
-                "command": "hearts-of-modding.setGamePath",
-                "title": "Set Game Path",
-                "category": "Hearts of Modding"
-            },
-            {
-                "command": "hearts-of-modding.toggleStyling",
-                "title": "Toggle Styling Checks",
-                "category": "Hearts of Modding"
-            },
-            {
-                "command": "hearts-of-modding.toggleWorkspaceScan",
-                "title": "Toggle Workspace Scan",
-                "category": "Hearts of Modding"
-            },
-            {
-                "command": "hearts-of-modding.showMemoryUsage",
-                "title": "Show Memory Usage",
-                "category": "Hearts of Modding"
-            },
-            {
-                "command": "hearts-of-modding.toggleTheme",
-                "title": "Toggle Workspace Theme",
-                "category": "Hearts of Modding"
-            },
-            {
-                "command": "hearts-of-modding.showLog",
-                "title": "Show Log Panel",
-                "category": "Hearts of Modding"
-            }
-        ],
-        "viewsContainers": {
-            "panel": [
-                {
-                    "id": "hoi4-log",
-                    "title": "HoM Log",
-                    "icon": "icons/hoi4-log.svg"
-                }
-            ]
-        },
-        "views": {
-            "hoi4-log": [
-                {
-                    "type": "webview",
-                    "id": "hoi4Log",
-                    "name": "HoM Log"
-                }
-            ]
-        },
-        "languages": [
-            {
-                "id": "hoi4",
-                "aliases": [
-                    "Hearts of Iron IV",
-                    "hoi4"
-                ],
-                "extensions": [
-                    ".gui",
-                    ".gfx",
-                    ".asset"
-                ],
-                "filenamePatterns": [
-                    "**/common/**/*.txt",
-                    "**/country_metadata/**/*.txt",
-                    "**/music/**/*.txt",
-                    "**/events/**/*.txt",
-                    "**/map/**/*.txt",
-                    "**/map/**/*.map",
-                    "**/history/**/*.txt",
-                    "**/script/**/*.txt",
-                    "**/descriptor.mod"
-                ],
-                "configuration": "./language-configuration.json"
-            },
-            {
-                "id": "hoi4-localisation",
-                "aliases": [
-                    "HOI4 Localisation",
-                    "hoi4-localisation"
-                ],
-                "filenamePatterns": [
-                    "**/localisation/**/*.yml"
-                ],
-                "configuration": "./language-configuration.json"
-            },
-            {
-                "id": "hoi4-csv",
-                "aliases": [
-                    "HOI4 Map CSV",
-                    "hoi4-csv"
-                ],
-                "filenamePatterns": [
-                    "**/map/**/*.csv"
-                ],
-                "configuration": "./language-configuration.json"
-            },
-            {
-                "id": "cwt",
-                "aliases": [
-                    "CWTools Schema",
-                    "cwt"
-                ],
-                "extensions": [
-                    ".cwt"
-                ],
-                "configuration": "./language-configuration.json"
-            }
-        ],
-        "grammars": [
-            {
-                "language": "hoi4",
-                "scopeName": "source.hoi4",
-                "path": "./syntaxes/hoi4.tmLanguage.json"
-            },
-            {
-                "language": "hoi4-localisation",
-                "scopeName": "source.hoi4-localisation",
-                "path": "./syntaxes/hoi4-localisation.tmLanguage.json"
-            },
-            {
-                "language": "hoi4-csv",
-                "scopeName": "source.hoi4-csv",
-                "path": "./syntaxes/hoi4-csv.tmLanguage.json"
-            },
-            {
-                "language": "cwt",
-                "scopeName": "source.cwt",
-                "path": "./syntaxes/cwt.tmLanguage.json"
-            }
-        ],
-        "themes": [
-            {
-                "label": "Hearts of Modding Dark",
-                "uiTheme": "vs-dark",
-                "path": "./themes/hoi4-dark-color-theme.json"
-            },
-            {
-                "label": "Hearts of Modding Light",
-                "uiTheme": "vs",
-                "path": "./themes/hoi4-light-color-theme.json"
-            }
-        ]
-    },
-    "scripts": {
-        "vscode:prepublish": "npm run package-ext",
-        "compile": "tsc -p ./",
-        "watch": "tsc -watch -p ./",
-        "package-ext": "node esbuild.js --production",
-        "compile-ext": "node esbuild.js",
-        "watch-ext": "node esbuild.js --watch",
-        "lint": "eslint .",
-        "lint:fix": "eslint . --fix",
-        "package": "cd ../server && cargo build --release && mkdir -p ../client/server-bin && (cp target/release/server ../client/server-bin/server-linux 2>/dev/null || cp target/release/server.exe ../client/server-bin/server-win.exe 2>/dev/null || true) && cp -r assets ../client/server-bin/ && cd ../client && npm install && npm run compile && npm run package-ext && vsce package",
-        "cargo:test": "cd ../server && cargo test",
-        "cargo:check": "cd ../server && cargo check",
-        "cargo:fmt": "cd ../server && cargo fmt",
-        "cargo:clippy": "cd ../server && cargo clippy --all-targets -- -D warnings",
-        "check-all": "npm run lint:fix && npm run cargo:fmt && npm run cargo:check && npm run cargo:clippy && npm run cargo:test",
-        "check-all-package": "npm run check-all && npm run package"
-    },
-    "dependencies": {
-        "vscode-languageclient": "9.0.1"
-    },
-    "devDependencies": {
-        "@eslint/js": "^10.0.1",
-        "@stylistic/eslint-plugin": "^5.10.0",
-        "@types/node": "18.15.0",
-        "@types/vscode": "1.82.0",
-        "@typescript-eslint/eslint-plugin": "^8.61.1",
-        "@typescript-eslint/parser": "^8.62.0",
-        "@vscode/vsce": "^3.9.2",
-        "esbuild": "^0.28.1",
-        "eslint": "^10.6.0",
-        "globals": "^17.7.0",
-        "jiti": "^2.7.0",
-        "typescript": "^6.0.3",
-        "typescript-eslint": "^8.62.0"
-    }
+	"name": "hearts-of-modding",
+	"displayName": "Hearts of Modding",
+	"description": "VS Code extension for Hearts of Iron IV modding",
+	"version": "0.23.1",
+	"publisher": "emberglaze",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/emberglazee/Hearts-of-Modding"
+	},
+	"engines": {
+		"vscode": "^1.82.0"
+	},
+	"categories": [
+		"Programming Languages"
+	],
+	"activationEvents": [
+		"workspaceContains:./descriptor.mod"
+	],
+	"main": "./out/extension.js",
+	"contributes": {
+		"configuration": {
+			"type": "object",
+			"title": "Hearts of Modding",
+			"properties": {
+				"hoi4.lsp.enabled": {
+					"type": "boolean",
+					"default": true,
+					"description": "Start the language server automatically on workspace open."
+				},
+				"hoi4.lsp.suppressDisabledPrompt": {
+					"type": "boolean",
+					"default": false,
+					"description": "Suppress the notification when the LSP is disabled on workspace open."
+				},
+				"hoi4.gamePath": {
+					"type": "string",
+					"default": "",
+					"description": "The absolute path to your Hearts of Iron IV installation directory."
+				},
+				"hoi4.modPaths": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					},
+					"default": [],
+					"description": "Extra dependency mod paths (absolute). These are resolved AFTER auto-discovered dependencies from the mod registry, so they take higher priority. Use this to override or add dependencies not declared in your descriptor.mod. Workspace always wins."
+				},
+				"hoi4.modRegistryPath": {
+					"type": "string",
+					"default": "",
+					"description": "Optional: absolute path to the Paradox mod registry folder (e.g. ~/.local/share/Paradox Interactive/Hearts of Iron IV/mod on Linux). If unset, the extension auto-detects the path based on your OS. Set this to override auto-detection for non-standard Steam library setups."
+				},
+				"hoi4.validator.ignoreLocalization": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					},
+					"default": [],
+					"description": "List of regex patterns for localization keys that should be ignored if missing."
+				},
+				"hoi4.validator.ignoreFiles": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					},
+					"default": [],
+					"description": "List of regex patterns for files or directories that should be ignored during workspace-wide diagnostic scanning."
+				},
+				"hoi4.validator.workspaceScan.enabled": {
+					"type": "boolean",
+					"default": false,
+					"description": "Enable automatic workspace-wide diagnostic scanning upon initialization. Large mods may experience high CPU usage during the initial scan."
+				},
+				"hoi4.validator.scopeValidationEnabled": {
+					"type": "boolean",
+					"default": false,
+					"description": "Enable scope mismatch validation (HOM004). Warnings when triggers/effects are used outside their documented scope. Disabled by default — scope resolution is incomplete for many edge cases."
+				},
+				"hoi4.styling.enabled": {
+					"type": "boolean",
+					"default": true,
+					"description": "Enable cosmetic and styling checks (casing convention, mixed indentation, trailing whitespace)."
+				},
+				"hoi4.styling.cosmeticLocalizationIndentation": {
+					"type": "boolean",
+					"default": false,
+					"description": "Indent variant localization keys (e.g., _DEF, _ADJ, _desc) with an additional tab to improve visual hierarchy."
+				},
+				"hoi4.showMemoryUsage.enabled": {
+					"type": "boolean",
+					"default": true,
+					"description": "Show memory usage in the status bar. Updates every 10 seconds."
+				},
+				"hoi4.logLevel": {
+					"type": "string",
+					"default": "info",
+					"enum": [
+						"error",
+						"warn",
+						"info",
+						"debug",
+						"trace"
+					],
+					"description": "Log verbosity level. ERROR=only failures, INFO=scan results and progress (default), DEBUG=per-file timing, TRACE=every LSP event.",
+					"scope": "window"
+				},
+				"hoi4.themePromptDismissed": {
+					"type": "boolean",
+					"default": false,
+					"scope": "window",
+					"description": "Whether the Hearts of Modding theme prompt has been dismissed for this workspace."
+				}
+			}
+		},
+		"commands": [
+			{
+				"command": "hearts-of-modding.toggleLsp",
+				"title": "Toggle LSP",
+				"category": "Hearts of Modding"
+			},
+			{
+				"command": "hearts-of-modding.setGamePath",
+				"title": "Set Game Path",
+				"category": "Hearts of Modding"
+			},
+			{
+				"command": "hearts-of-modding.toggleStyling",
+				"title": "Toggle Styling Checks",
+				"category": "Hearts of Modding"
+			},
+			{
+				"command": "hearts-of-modding.toggleWorkspaceScan",
+				"title": "Toggle Workspace Scan",
+				"category": "Hearts of Modding"
+			},
+			{
+				"command": "hearts-of-modding.showMemoryUsage",
+				"title": "Show Memory Usage",
+				"category": "Hearts of Modding"
+			},
+			{
+				"command": "hearts-of-modding.toggleTheme",
+				"title": "Toggle Workspace Theme",
+				"category": "Hearts of Modding"
+			},
+			{
+				"command": "hearts-of-modding.showLog",
+				"title": "Show Log Panel",
+				"category": "Hearts of Modding"
+			}
+		],
+		"viewsContainers": {
+			"panel": [
+				{
+					"id": "hoi4-log",
+					"title": "HoM Log",
+					"icon": "icons/hoi4-log.svg"
+				}
+			]
+		},
+		"views": {
+			"hoi4-log": [
+				{
+					"type": "webview",
+					"id": "hoi4Log",
+					"name": "HoM Log"
+				}
+			]
+		},
+		"languages": [
+			{
+				"id": "hoi4",
+				"aliases": [
+					"Hearts of Iron IV",
+					"hoi4"
+				],
+				"extensions": [
+					".gui",
+					".gfx",
+					".asset"
+				],
+				"filenamePatterns": [
+					"**/common/**/*.txt",
+					"**/country_metadata/**/*.txt",
+					"**/music/**/*.txt",
+					"**/events/**/*.txt",
+					"**/map/**/*.txt",
+					"**/map/**/*.map",
+					"**/history/**/*.txt",
+					"**/script/**/*.txt",
+					"**/descriptor.mod"
+				],
+				"configuration": "./language-configuration.json"
+			},
+			{
+				"id": "hoi4-localisation",
+				"aliases": [
+					"HOI4 Localisation",
+					"hoi4-localisation"
+				],
+				"filenamePatterns": [
+					"**/localisation/**/*.yml"
+				],
+				"configuration": "./language-configuration.json"
+			},
+			{
+				"id": "hoi4-csv",
+				"aliases": [
+					"HOI4 Map CSV",
+					"hoi4-csv"
+				],
+				"filenamePatterns": [
+					"**/map/**/*.csv"
+				],
+				"configuration": "./language-configuration.json"
+			},
+			{
+				"id": "cwt",
+				"aliases": [
+					"CWTools Schema",
+					"cwt"
+				],
+				"extensions": [
+					".cwt"
+				],
+				"configuration": "./language-configuration.json"
+			}
+		],
+		"grammars": [
+			{
+				"language": "hoi4",
+				"scopeName": "source.hoi4",
+				"path": "./syntaxes/hoi4.tmLanguage.json"
+			},
+			{
+				"language": "hoi4-localisation",
+				"scopeName": "source.hoi4-localisation",
+				"path": "./syntaxes/hoi4-localisation.tmLanguage.json"
+			},
+			{
+				"language": "hoi4-csv",
+				"scopeName": "source.hoi4-csv",
+				"path": "./syntaxes/hoi4-csv.tmLanguage.json"
+			},
+			{
+				"language": "cwt",
+				"scopeName": "source.cwt",
+				"path": "./syntaxes/cwt.tmLanguage.json"
+			}
+		],
+		"themes": [
+			{
+				"label": "Hearts of Modding Dark",
+				"uiTheme": "vs-dark",
+				"path": "./themes/hoi4-dark-color-theme.json"
+			},
+			{
+				"label": "Hearts of Modding Light",
+				"uiTheme": "vs",
+				"path": "./themes/hoi4-light-color-theme.json"
+			}
+		]
+	},
+	"scripts": {
+		"vscode:prepublish": "npm run package-ext",
+		"compile": "tsc -p ./",
+		"watch": "tsc -watch -p ./",
+		"package-ext": "node esbuild.js --production",
+		"compile-ext": "node esbuild.js",
+		"watch-ext": "node esbuild.js --watch",
+		"lint": "eslint .",
+		"lint:fix": "eslint . --fix",
+		"package": "cd ../server && cargo build --release && mkdir -p ../client/server-bin && (cp target/release/server ../client/server-bin/server-linux 2>/dev/null || cp target/release/server.exe ../client/server-bin/server-win.exe 2>/dev/null || true) && cp -r assets ../client/server-bin/ && cd ../client && npm install && npm run compile && npm run package-ext && vsce package",
+		"cargo:test": "cd ../server && cargo test",
+		"cargo:check": "cd ../server && cargo check",
+		"cargo:fmt": "cd ../server && cargo fmt",
+		"cargo:clippy": "cd ../server && cargo clippy --all-targets -- -D warnings",
+		"check-all": "npm run lint:fix && npm run cargo:fmt && npm run cargo:check && npm run cargo:clippy && npm run cargo:test",
+		"check-all-package": "npm run check-all && npm run package"
+	},
+	"dependencies": {
+		"vscode-languageclient": "9.0.1"
+	},
+	"devDependencies": {
+		"@eslint/js": "^10.0.1",
+		"@stylistic/eslint-plugin": "^5.10.0",
+		"@types/node": "18.15.0",
+		"@types/vscode": "1.82.0",
+		"@vscode/vsce": "^3.9.2",
+		"esbuild": "^0.28.1",
+		"eslint": "^10.8.0",
+		"globals": "^17.8.0",
+		"jiti": "^2.7.0",
+		"typescript": "^6.0.3",
+		"typescript-eslint": "^8.65.0"
+	}
 }
