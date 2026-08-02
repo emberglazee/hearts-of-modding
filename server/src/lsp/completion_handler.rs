@@ -387,317 +387,77 @@ impl Backend {
             .unwrap_or(scope::Scope::Global)
             .effective_scope();
 
-        for trigger in crate::TRIGGERS.values() {
-            if !trigger.scopes.contains(&scope::Scope::Unknown)
-                && !trigger.scopes.contains(&current_scope)
-                && !trigger.scopes.contains(&scope::Scope::Global)
-            {
-                continue;
-            }
-            items.push(CompletionItem {
-                label: trigger.name.to_string(),
-                kind: Some(CompletionItemKind::KEYWORD),
-                detail: Some("Trigger".to_string()),
-                documentation: Some(Documentation::MarkupContent(MarkupContent {
-                    kind: MarkupKind::Markdown,
-                    value: trigger.description.to_string(),
-                })),
-                ..Default::default()
-            });
-        }
-
-        for effect in crate::EFFECTS.values() {
-            if !effect.scopes.contains(&scope::Scope::Unknown)
-                && !effect.scopes.contains(&current_scope)
-                && !effect.scopes.contains(&scope::Scope::Global)
-            {
-                continue;
-            }
-            items.push(CompletionItem {
-                label: effect.name.to_string(),
-                kind: Some(CompletionItemKind::FUNCTION),
-                detail: Some("Effect".to_string()),
-                documentation: Some(Documentation::MarkupContent(MarkupContent {
-                    kind: MarkupKind::Markdown,
-                    value: effect.description.to_string(),
-                })),
-                ..Default::default()
-            });
-        }
-
-        let st = &self.scanner_data.scripted_triggers;
-        for entry in st.iter() {
-            let trigger = entry.value();
-            items.push(CompletionItem {
-                label: trigger.name.clone(),
-                kind: Some(CompletionItemKind::EVENT),
-                detail: Some("Scripted Trigger".to_string()),
-                documentation: Some(Documentation::String(format!(
-                    "Defined in: {}",
-                    trigger.path
-                ))),
-                ..Default::default()
-            });
-        }
-
-        let se = &self.scanner_data.scripted_effects;
-        for entry in se.iter() {
-            let effect = entry.value();
-            items.push(CompletionItem {
-                label: effect.name.clone(),
-                kind: Some(CompletionItemKind::EVENT),
-                detail: Some("Scripted Effect".to_string()),
-                documentation: Some(Documentation::String(format!(
-                    "Defined in: {}",
-                    effect.path
-                ))),
-                ..Default::default()
-            });
-        }
-
-        let ids = &self.scanner_data.ideologies;
-        for entry in ids.iter() {
-            let ideology = entry.value();
-            items.push(CompletionItem {
-                label: ideology.name.clone(),
-                kind: Some(CompletionItemKind::ENUM),
-                detail: Some("Ideology".to_string()),
-                documentation: Some(Documentation::String(format!(
-                    "Defined in: {}",
-                    ideology.path
-                ))),
-                ..Default::default()
-            });
-        }
-
-        let sids = &self.scanner_data.sub_ideologies;
-        for entry in sids.iter() {
-            let sid = entry.key();
-            let (parent, _, _) = entry.value().resolve();
-            items.push(CompletionItem {
-                label: sid.to_string(),
-                kind: Some(CompletionItemKind::ENUM_MEMBER),
-                detail: Some(format!("Sub-Ideology (Parent: {})", parent)),
-                ..Default::default()
-            });
-        }
-
-        let traits = &self.scanner_data.traits;
-        for entry in traits.iter() {
-            let trait_info = entry.value();
-            items.push(CompletionItem {
-                label: trait_info.name.clone(),
-                kind: Some(CompletionItemKind::INTERFACE),
-                detail: Some(trait_info.trait_type.clone()),
-                documentation: Some(Documentation::String(format!(
-                    "Defined in: {}",
-                    trait_info.path
-                ))),
-                ..Default::default()
-            });
-        }
-
-        let s_map = &self.scanner_data.sprites;
-        for entry in s_map.iter() {
-            let sprite = entry.value();
-            items.push(CompletionItem {
-                label: sprite.name.clone(),
-                kind: Some(CompletionItemKind::FILE),
-                detail: Some("Sprite/GFX".to_string()),
-                documentation: Some(Documentation::String(format!(
-                    "Defined in: {}",
-                    sprite.path
-                ))),
-                ..Default::default()
-            });
-        }
-
-        let id_map = &self.scanner_data.ideas;
-        for entry in id_map.iter() {
-            let idea = entry.value();
-            items.push(CompletionItem {
-                label: idea.name.clone(),
-                kind: Some(CompletionItemKind::CONSTANT),
-                detail: Some(format!("Idea ({})", idea.category)),
-                documentation: Some(Documentation::String(format!(
-                    "Defined in: {}",
-                    idea.category
-                ))),
-                ..Default::default()
-            });
-        }
-
-        let ability_map = &self.scanner_data.abilities;
-        for entry in ability_map.iter() {
-            let ability = entry.value();
-            items.push(CompletionItem {
-                label: ability.key.clone(),
-                kind: Some(CompletionItemKind::FUNCTION),
-                detail: Some("Leader Ability".to_string()),
-                ..Default::default()
-            });
-        }
-
-        let a_map = &self.scanner_data.achievements;
-        for entry in a_map.iter() {
-            let achievement = entry.value();
-            items.push(CompletionItem {
-                label: achievement.name.clone(),
-                kind: Some(CompletionItemKind::EVENT),
-                detail: Some("Achievement".to_string()),
-                documentation: Some(Documentation::String(format!(
-                    "Defined in: {}",
-                    achievement.path
-                ))),
-                ..Default::default()
-            });
-        }
-
-        // Portrait definitions
-        let p_map = &self.scanner_data.portraits;
-        for entry in p_map.iter() {
-            let portrait = entry.value();
-            items.push(CompletionItem {
-                label: portrait.name.clone(),
-                kind: Some(CompletionItemKind::ENUM),
-                detail: Some("Portrait Definition".to_string()),
-                documentation: Some(Documentation::String(format!(
-                    "Defined in: {}",
-                    portrait.path
-                ))),
-                ..Default::default()
-            });
-        }
-
-        // Character definitions
-        let char_map = &self.scanner_data.characters;
-        for entry in char_map.iter() {
-            let character = entry.value();
-            items.push(CompletionItem {
-                label: character.id.clone(),
-                kind: Some(CompletionItemKind::STRUCT),
-                detail: Some("Character".to_string()),
-                documentation: Some(Documentation::String(format!(
-                    "Defined in: {}",
-                    character.path
-                ))),
-                ..Default::default()
-            });
-        }
-
-        let ap_map = &self.scanner_data.ai_strategy_plans;
-        for entry in ap_map.iter() {
-            let plan = entry.value();
-            items.push(CompletionItem {
-                label: plan.name.clone(),
-                kind: Some(CompletionItemKind::FOLDER),
-                detail: Some("AI Strategy Plan".to_string()),
-                documentation: Some(Documentation::String(format!("Defined in: {}", plan.path))),
-                ..Default::default()
-            });
-        }
-
-        let var_map = &self.scanner_data.variables;
-        for entry in var_map.iter() {
-            let var_name = entry.key();
-            items.push(CompletionItem {
-                label: var_name.to_string(),
-                kind: Some(CompletionItemKind::VARIABLE),
-                detail: Some("Variable".to_string()),
-                ..Default::default()
-            });
-        }
-
-        let target_map = &self.scanner_data.event_targets;
-        for entry in target_map.iter() {
-            let target_name = entry.key();
-            items.push(CompletionItem {
-                label: target_name.to_string(),
-                kind: Some(CompletionItemKind::STRUCT),
-                detail: Some("Event Target".to_string()),
-                ..Default::default()
-            });
-        }
-
-        let m_assets = &self.scanner_data.music_assets;
-        for entry in m_assets.iter() {
-            let asset = entry.value();
-            items.push(CompletionItem {
-                label: asset.name.clone(),
-                kind: Some(CompletionItemKind::FILE),
-                detail: Some("Music Asset".to_string()),
-                documentation: Some(Documentation::String(format!("File: {}", asset.file))),
-                ..Default::default()
-            });
-        }
-
-        let m_stations = &self.scanner_data.music_stations;
-        for entry in m_stations.iter() {
-            let station = entry.value();
-            items.push(CompletionItem {
-                label: station.name.clone(),
-                kind: Some(CompletionItemKind::FOLDER),
-                detail: Some("Music Station".to_string()),
-                ..Default::default()
-            });
-        }
-
-        let m_songs = &self.scanner_data.songs;
-        for entry in m_songs.iter() {
-            let song = entry.value();
-            items.push(CompletionItem {
-                label: song.name.clone(),
-                kind: Some(CompletionItemKind::FILE),
-                detail: Some("Song".to_string()),
-                ..Default::default()
-            });
-        }
-
-        let s_sounds = &self.scanner_data.sounds;
-        for entry in s_sounds.iter() {
-            let sound = entry.value();
-            items.push(CompletionItem {
-                label: sound.name.clone(),
-                kind: Some(CompletionItemKind::FILE),
-                detail: Some("Sound".to_string()),
-                documentation: Some(Documentation::String(format!("File: {}", sound.file))),
-                ..Default::default()
-            });
-        }
-
-        let s_effects = &self.scanner_data.sound_effects;
-        for entry in s_effects.iter() {
-            let effect = entry.value();
-            items.push(CompletionItem {
-                label: effect.name.clone(),
-                kind: Some(CompletionItemKind::EVENT),
-                detail: Some("Sound Effect".to_string()),
-                ..Default::default()
-            });
-        }
-
-        let s_falloffs = &self.scanner_data.falloffs;
-        for entry in s_falloffs.iter() {
-            let falloff = entry.value();
-            items.push(CompletionItem {
-                label: falloff.name.clone(),
-                kind: Some(CompletionItemKind::UNIT),
-                detail: Some("Sound Falloff".to_string()),
-                ..Default::default()
-            });
-        }
-
-        let s_categories = &self.scanner_data.sound_categories;
-        for entry in s_categories.iter() {
-            let category = entry.value();
-            items.push(CompletionItem {
-                label: category.name.clone(),
-                kind: Some(CompletionItemKind::FOLDER),
-                detail: Some("Sound Category".to_string()),
-                ..Default::default()
-            });
-        }
+        // Static triggers + effects, prebuilt per scope and cached (cheap clone).
+        let scope_items = scope_trigger_effect_items(current_scope);
+        // Scanner-derived entities, prebuilt after scans and cached (cheap clone).
+        let entity_items = self.completion_entity_cache.load_full();
+        let total = scope_items.len() + entity_items.len();
+        items.reserve(total);
+        items.extend(scope_items.iter().cloned());
+        items.extend(entity_items.iter().cloned());
 
         Ok(Some(CompletionResponse::Array(items)))
     }
+}
+
+/// Prebuilt `triggers` + `effects` completion items for a given scope.
+///
+/// These come from the static `TRIGGERS`/`EFFECTS` data bases and depend only on
+/// the current scope, so each scope's list is built once and cached (the vec is
+/// Arc-cloned per completion request instead of re-iterating and re-forming every
+/// CompletionItem on each keystroke).
+fn scope_trigger_effect_items(current_scope: scope::Scope) -> std::sync::Arc<Vec<CompletionItem>> {
+    use once_cell::sync::Lazy;
+    use std::collections::HashMap;
+    use std::sync::{Arc, Mutex};
+
+    static CACHE: Lazy<Mutex<HashMap<String, Arc<Vec<CompletionItem>>>>> =
+        Lazy::new(|| Mutex::new(HashMap::new()));
+
+    let key = current_scope.as_str().to_string();
+    if let Some(cached) = CACHE.lock().unwrap().get(&key) {
+        return cached.clone();
+    }
+
+    let mut items: Vec<CompletionItem> = Vec::new();
+    for trigger in crate::TRIGGERS.values() {
+        if !trigger.scopes.contains(&scope::Scope::Unknown)
+            && !trigger.scopes.contains(&current_scope)
+            && !trigger.scopes.contains(&scope::Scope::Global)
+        {
+            continue;
+        }
+        items.push(CompletionItem {
+            label: trigger.name.to_string(),
+            kind: Some(CompletionItemKind::KEYWORD),
+            detail: Some("Trigger".to_string()),
+            documentation: Some(Documentation::MarkupContent(MarkupContent {
+                kind: MarkupKind::Markdown,
+                value: trigger.description.to_string(),
+            })),
+            ..Default::default()
+        });
+    }
+    for effect in crate::EFFECTS.values() {
+        if !effect.scopes.contains(&scope::Scope::Unknown)
+            && !effect.scopes.contains(&current_scope)
+            && !effect.scopes.contains(&scope::Scope::Global)
+        {
+            continue;
+        }
+        items.push(CompletionItem {
+            label: effect.name.to_string(),
+            kind: Some(CompletionItemKind::FUNCTION),
+            detail: Some("Effect".to_string()),
+            documentation: Some(Documentation::MarkupContent(MarkupContent {
+                kind: MarkupKind::Markdown,
+                value: effect.description.to_string(),
+            })),
+            ..Default::default()
+        });
+    }
+
+    let cached = Arc::new(items);
+    CACHE.lock().unwrap().insert(key, cached.clone());
+    cached
 }

@@ -63,6 +63,12 @@ pub(crate) struct Backend {
     /// Stored in ArcSwap so semantic tokens rebuilds are cheap (Arc::clone + HashMap::clone
     /// of the inner value) without iterating all scanner DashMaps on every keystroke.
     pub(crate) entity_token_context: ArcSwap<HashMap<String, entity_lookup::EntityKind>>,
+    /// Prebuilt completion catalogue for scanner-derived entities (scripted
+    /// triggers, ideologies, traits, sprites, characters, music/sounds, etc.),
+    /// rebuilt whenever [`update_entity_token_context`] runs (after scans). The
+    /// completion handler clones this Arc per request instead of iterating ~20
+    /// DashMaps and rebuilding CompletionItems on every keystroke.
+    pub(crate) completion_entity_cache: ArcSwap<Vec<tower_lsp_server::ls_types::CompletionItem>>,
 }
 
 impl Backend {
@@ -2269,6 +2275,214 @@ impl Backend {
         let lookup = entity_lookup::EntityLookup::new(&self.scanner_data);
         let names = lookup.entity_names();
         self.entity_token_context.store(Arc::new(names));
+        self.completion_entity_cache
+            .store(Arc::new(self.build_completion_entity_cache()));
+    }
+
+    /// Rebuild the scanner-derived portion of the completion catalogue.
+    /// Called whenever the entity token context is refreshed (after full scans
+    /// and rescans). Static triggers/effects are not included here (the completion
+    /// handler precomputes those per scope); this covers the ~20 entity DashMaps.
+    fn build_completion_entity_cache(&self) -> Vec<tower_lsp_server::ls_types::CompletionItem> {
+        use tower_lsp_server::ls_types::{CompletionItem, CompletionItemKind, Documentation};
+        let mut items: Vec<CompletionItem> = Vec::new();
+        let sd = &self.scanner_data;
+
+        for entry in sd.scripted_triggers.iter() {
+            let t = entry.value();
+            items.push(CompletionItem {
+                label: t.name.clone(),
+                kind: Some(CompletionItemKind::EVENT),
+                detail: Some("Scripted Trigger".to_string()),
+                documentation: Some(Documentation::String(format!("Defined in: {}", t.path))),
+                ..Default::default()
+            });
+        }
+        for entry in sd.scripted_effects.iter() {
+            let e = entry.value();
+            items.push(CompletionItem {
+                label: e.name.clone(),
+                kind: Some(CompletionItemKind::EVENT),
+                detail: Some("Scripted Effect".to_string()),
+                documentation: Some(Documentation::String(format!("Defined in: {}", e.path))),
+                ..Default::default()
+            });
+        }
+        for entry in sd.ideologies.iter() {
+            let i = entry.value();
+            items.push(CompletionItem {
+                label: i.name.clone(),
+                kind: Some(CompletionItemKind::ENUM),
+                detail: Some("Ideology".to_string()),
+                documentation: Some(Documentation::String(format!("Defined in: {}", i.path))),
+                ..Default::default()
+            });
+        }
+        for entry in sd.sub_ideologies.iter() {
+            let (parent, _, _) = entry.value().resolve();
+            items.push(CompletionItem {
+                label: entry.key().to_string(),
+                kind: Some(CompletionItemKind::ENUM_MEMBER),
+                detail: Some(format!("Sub-Ideology (Parent: {})", parent)),
+                ..Default::default()
+            });
+        }
+        for entry in sd.traits.iter() {
+            let t = entry.value();
+            items.push(CompletionItem {
+                label: t.name.clone(),
+                kind: Some(CompletionItemKind::INTERFACE),
+                detail: Some(t.trait_type.clone()),
+                documentation: Some(Documentation::String(format!("Defined in: {}", t.path))),
+                ..Default::default()
+            });
+        }
+        for entry in sd.sprites.iter() {
+            let s = entry.value();
+            items.push(CompletionItem {
+                label: s.name.clone(),
+                kind: Some(CompletionItemKind::FILE),
+                detail: Some("Sprite/GFX".to_string()),
+                documentation: Some(Documentation::String(format!("Defined in: {}", s.path))),
+                ..Default::default()
+            });
+        }
+        for entry in sd.ideas.iter() {
+            let i = entry.value();
+            items.push(CompletionItem {
+                label: i.name.clone(),
+                kind: Some(CompletionItemKind::CONSTANT),
+                detail: Some(format!("Idea ({})", i.category)),
+                documentation: Some(Documentation::String(format!("Defined in: {}", i.category))),
+                ..Default::default()
+            });
+        }
+        for entry in sd.abilities.iter() {
+            let a = entry.value();
+            items.push(CompletionItem {
+                label: a.key.clone(),
+                kind: Some(CompletionItemKind::FUNCTION),
+                detail: Some("Leader Ability".to_string()),
+                ..Default::default()
+            });
+        }
+        for entry in sd.achievements.iter() {
+            let a = entry.value();
+            items.push(CompletionItem {
+                label: a.name.clone(),
+                kind: Some(CompletionItemKind::EVENT),
+                detail: Some("Achievement".to_string()),
+                documentation: Some(Documentation::String(format!("Defined in: {}", a.path))),
+                ..Default::default()
+            });
+        }
+        for entry in sd.portraits.iter() {
+            let p = entry.value();
+            items.push(CompletionItem {
+                label: p.name.clone(),
+                kind: Some(CompletionItemKind::ENUM),
+                detail: Some("Portrait Definition".to_string()),
+                documentation: Some(Documentation::String(format!("Defined in: {}", p.path))),
+                ..Default::default()
+            });
+        }
+        for entry in sd.characters.iter() {
+            let c = entry.value();
+            items.push(CompletionItem {
+                label: c.id.clone(),
+                kind: Some(CompletionItemKind::STRUCT),
+                detail: Some("Character".to_string()),
+                documentation: Some(Documentation::String(format!("Defined in: {}", c.path))),
+                ..Default::default()
+            });
+        }
+        for entry in sd.ai_strategy_plans.iter() {
+            let p = entry.value();
+            items.push(CompletionItem {
+                label: p.name.clone(),
+                kind: Some(CompletionItemKind::FOLDER),
+                detail: Some("AI Strategy Plan".to_string()),
+                documentation: Some(Documentation::String(format!("Defined in: {}", p.path))),
+                ..Default::default()
+            });
+        }
+        for entry in sd.variables.iter() {
+            items.push(CompletionItem {
+                label: entry.key().to_string(),
+                kind: Some(CompletionItemKind::VARIABLE),
+                detail: Some("Variable".to_string()),
+                ..Default::default()
+            });
+        }
+        for entry in sd.event_targets.iter() {
+            items.push(CompletionItem {
+                label: entry.key().to_string(),
+                kind: Some(CompletionItemKind::STRUCT),
+                detail: Some("Event Target".to_string()),
+                ..Default::default()
+            });
+        }
+        for entry in sd.music_assets.iter() {
+            let a = entry.value();
+            items.push(CompletionItem {
+                label: a.name.clone(),
+                kind: Some(CompletionItemKind::FILE),
+                detail: Some("Music Asset".to_string()),
+                documentation: Some(Documentation::String(format!("File: {}", a.file))),
+                ..Default::default()
+            });
+        }
+        for entry in sd.music_stations.iter() {
+            items.push(CompletionItem {
+                label: entry.value().name.clone(),
+                kind: Some(CompletionItemKind::FOLDER),
+                detail: Some("Music Station".to_string()),
+                ..Default::default()
+            });
+        }
+        for entry in sd.songs.iter() {
+            items.push(CompletionItem {
+                label: entry.value().name.clone(),
+                kind: Some(CompletionItemKind::FILE),
+                detail: Some("Song".to_string()),
+                ..Default::default()
+            });
+        }
+        for entry in sd.sounds.iter() {
+            let s = entry.value();
+            items.push(CompletionItem {
+                label: s.name.clone(),
+                kind: Some(CompletionItemKind::FILE),
+                detail: Some("Sound".to_string()),
+                documentation: Some(Documentation::String(format!("File: {}", s.file))),
+                ..Default::default()
+            });
+        }
+        for entry in sd.sound_effects.iter() {
+            items.push(CompletionItem {
+                label: entry.value().name.clone(),
+                kind: Some(CompletionItemKind::EVENT),
+                detail: Some("Sound Effect".to_string()),
+                ..Default::default()
+            });
+        }
+        for entry in sd.falloffs.iter() {
+            items.push(CompletionItem {
+                label: entry.value().name.clone(),
+                kind: Some(CompletionItemKind::UNIT),
+                detail: Some("Sound Falloff".to_string()),
+                ..Default::default()
+            });
+        }
+        for entry in sd.sound_categories.iter() {
+            items.push(CompletionItem {
+                label: entry.value().name.clone(),
+                kind: Some(CompletionItemKind::FOLDER),
+                detail: Some("Sound Category".to_string()),
+                ..Default::default()
+            });
+        }
+        items
     }
 }
 

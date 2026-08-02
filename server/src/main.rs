@@ -110,6 +110,7 @@ async fn main() {
             pending_tasks: AtomicU64::new(0),
             static_token_keywords: static_keywords,
             entity_token_context: ArcSwap::from_pointee(HashMap::new()),
+            completion_entity_cache: ArcSwap::from_pointee(Vec::new()),
         }
     });
     Server::new(stdin, stdout, socket).serve(service).await;
