@@ -263,22 +263,32 @@ impl<'a> EntityLookup<'a> {
 
         {
             let loc = &self.data.localization;
-            if let Some(entry) = loc.get(key) {
-                results.push(EntityLocation {
-                    kind: EntityKind::Localization,
-                    range: entry.range.clone(),
-                    path: entry.path.clone(),
-                });
-            }
-            let prefix = format!("{}:", key);
-            for entry in loc.iter() {
-                let k = entry.key();
-                if k.starts_with(&prefix) {
+            // The `{key}:` prefix scan only makes sense when `key` is itself a
+            // localization key. Stored loc keys are the text before the `:`
+            // (e.g. `foo` from `foo:0 "..."`), so they contain no `:` — the
+            // starts_with("{key}:") scan almost never matches. For the common
+            // goto-definition targets (triggers/effects/modifiers/variables) the
+            // exact match misses, and iterating ALL localization entries just to
+            // check that prefix was O(N) per goto-def for zero results. Gate the
+            // entire scan behind the exact-loc hit so non-loc keys return O(1).
+            if loc.contains_key(key) {
+                if let Some(entry) = loc.get(key) {
                     results.push(EntityLocation {
                         kind: EntityKind::Localization,
-                        range: entry.value().range.clone(),
-                        path: entry.value().path.clone(),
+                        range: entry.range.clone(),
+                        path: entry.path.clone(),
                     });
+                }
+                let prefix = format!("{}:", key);
+                for entry in loc.iter() {
+                    let k = entry.key();
+                    if k.starts_with(&prefix) {
+                        results.push(EntityLocation {
+                            kind: EntityKind::Localization,
+                            range: entry.value().range.clone(),
+                            path: entry.value().path.clone(),
+                        });
+                    }
                 }
             }
         }
