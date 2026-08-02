@@ -1,6 +1,7 @@
 use crate::data::entity_lookup::EntityKind;
 use crate::utils::line_index::LineIndex;
 use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 use tower_lsp_server::ls_types::{SemanticToken, SemanticTokens, SemanticTokensResult};
 
 /// Indices into the LSP semantic token legend registered in lsp_handler.rs.
@@ -43,12 +44,15 @@ const LOCALIZATION_VALUE_FIELDS: [&str; 4] = ["name", "desc", "custom_descriptio
 /// Context struct that replaces the 18-parameter threading pattern.
 /// Carries all data needed to resolve token types for a document.
 pub struct SemanticTokenContext {
-    pub keywords: HashSet<String>,
-    pub entity_names: HashMap<String, EntityKind>,
+    pub keywords: Arc<HashSet<String>>,
+    pub entity_names: Arc<HashMap<String, EntityKind>>,
 }
 
 impl SemanticTokenContext {
-    pub fn new(keywords: HashSet<String>, entity_names: HashMap<String, EntityKind>) -> Self {
+    pub fn new(
+        keywords: Arc<HashSet<String>>,
+        entity_names: Arc<HashMap<String, EntityKind>>,
+    ) -> Self {
         SemanticTokenContext {
             keywords,
             entity_names,
@@ -1465,7 +1469,7 @@ country_event = {
         keywords.insert("option".to_string());
         keywords.insert("name".to_string());
 
-        let ctx = SemanticTokenContext::new(keywords, HashMap::new());
+        let ctx = SemanticTokenContext::new(Arc::new(keywords), Arc::new(HashMap::new()));
         let result = get_semantic_tokens(&script, &ctx);
 
         // Decode delta-encoded tokens

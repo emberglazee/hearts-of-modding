@@ -2222,9 +2222,15 @@ impl Backend {
     /// This used to rebuild the entire keyword set from scratch on every semantic
     /// token request, iterating all DashMaps — now it's just two cheap clones.
     pub(crate) fn build_semantic_token_context(&self) -> semantic_tokens::SemanticTokenContext {
-        let keywords = (*self.static_token_keywords).clone();
-        let entity_names = self.entity_token_context.load_full();
-        semantic_tokens::SemanticTokenContext::new(keywords, (*entity_names).clone())
+        // Both maps are already stored behind Arc (static_token_keywords is
+        // Arc<HashSet>, entity_token_context is ArcSwap<HashMap>), and
+        // SemanticTokenContext now holds Arc references — so this is exactly
+        // two cheap Arc::clone calls, no deep copies of the underlying
+        // collections on every keystroke.
+        semantic_tokens::SemanticTokenContext::new(
+            Arc::clone(&self.static_token_keywords),
+            self.entity_token_context.load_full(),
+        )
     }
 
     /// Refresh the entity name map from current scanner data.
