@@ -59,17 +59,29 @@ export async function activate(context: ExtensionContext) {
         const currentTheme = workbenchConfig.inspect<string>('colorTheme')
         const current = currentTheme?.workspaceValue || currentTheme?.globalValue || 'Default Dark+'
 
+        // Friendly display label → registered workbench.colorTheme id.
+        // These MUST match the theme "name"/"label" contributed in package.json
+        // (themes/hoi4-*-color-theme.json). Passing the short name to
+        // workbench.update('colorTheme', ...) would silently set an unknown theme.
+        const THEME_OPTIONS = [
+            { label: 'HoM Dark', themeId: 'Hearts of Modding Dark' },
+            { label: 'HoM Light', themeId: 'Hearts of Modding Light' },
+            { label: 'Reset to Global Theme', themeId: undefined }
+        ] as const
+
         const pick = await window.showQuickPick(
-            ['HoM Dark', 'HoM Light', 'Reset to Global Theme'],
+            THEME_OPTIONS,
             { placeHolder: `Current: ${current}` }
         )
 
-        if (pick === 'Reset to Global Theme') {
+        if (!pick) return
+
+        if (pick.themeId === undefined) {
             await workbenchConfig.update('colorTheme', undefined, ConfigurationTarget.Workspace)
             window.showInformationMessage('✓ Theme reset to your global preference!')
-        } else if (pick) {
-            await workbenchConfig.update('colorTheme', pick, ConfigurationTarget.Workspace)
-            window.showInformationMessage(`✓ Switched to ${pick}!`)
+        } else {
+            await workbenchConfig.update('colorTheme', pick.themeId, ConfigurationTarget.Workspace)
+            window.showInformationMessage(`✓ Switched to ${pick.themeId}!`)
         }
     }))
 
