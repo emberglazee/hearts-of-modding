@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import path from 'node:path'
 import globals from 'globals'
 import tseslint, { type FlatConfig } from 'typescript-eslint'
