@@ -92,6 +92,25 @@ impl EventDependencyGraph {
         }
     }
 
+    /// Remove a set of events from the graph entirely — as callers AND as
+    /// callees (i.e. an event file was deleted).
+    ///
+    /// For each id: strips its outgoing edges (`remove_caller`), removes it from
+    /// every live caller's forward callee set (so live events no longer point at
+    /// a dead event), and drops its reverse index so `callers_of(id)`/hover stop
+    /// reporting edges that reference the now-deleted event.
+    pub(crate) fn remove_events(&self, ids: &[String]) {
+        for id in ids {
+            self.remove_caller(id);
+            // Strip `id` from every live event's forward edge list.
+            for mut entry in self.forward.iter_mut() {
+                entry.value_mut().remove(id.as_str());
+            }
+            // Drop the reverse index mapping `id` → its (former) callers.
+            self.reverse.remove(id.as_str());
+        }
+    }
+
     /// Events directly triggered/called by `event_id`.
     ///
     /// Returns an empty `Vec` if `event_id` has no outgoing edges
@@ -172,6 +191,10 @@ impl EventDependencyGraph {
         }
     }
 }
+
+// ---------------------------------------------------------------------------
+// SECTION - Tests
+// ---------------------------------------------------------------------------
 
 #[cfg(test)]
 mod tests {
@@ -296,6 +319,30 @@ mod tests {
         assert_eq!(graph.caller_count_total(), 0);
     }
 
+    /// Regression: when an event file is deleted, `remove_events` must scrub the
+    /// deleted events BOTH as callers (their outgoing edges) and as callees (live
+    /// events must stop pointing at them, and the reverse index must clear).
+    #[test]
+    fn test_remove_events_cleans_caller_and_callee_sides() {
+        let graph = EventDependencyGraph::new();
+        // A → B → C
+        graph.add_edge("A.1", "B.1");
+        graph.add_edge("B.1", "C.1");
+        // B is deleted.
+        graph.remove_events(&["B.1".to_string()]);
+
+        // Caller side: B no longer calls anything.
+        assert!(graph.callees_of("B.1").is_empty());
+        // C's callers no longer include (the now-deleted) B.
+        assert!(!graph.callers_of("C.1").contains(&"B.1".to_string()));
+        // Callee side: A no longer points at B.
+        assert!(!graph.callees_of("A.1").contains(&"B.1".to_string()));
+        // Reverse index for B is gone.
+        assert!(graph.callers_of("B.1").is_empty());
+        // A's only callee was B (now removed) — not scrubbed to anything else.
+        assert!(graph.callees_of("A.1").is_empty());
+    }
+
     #[test]
     fn test_idempotent_duplicate_edge() {
         let graph = EventDependencyGraph::new();
@@ -305,3 +352,7 @@ mod tests {
         assert_eq!(graph.callers_of("B.1").len(), 1);
     }
 }
+
+// ---------------------------------------------------------------------------
+// !SECTION
+// ---------------------------------------------------------------------------

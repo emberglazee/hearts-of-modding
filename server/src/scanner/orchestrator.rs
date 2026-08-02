@@ -616,6 +616,7 @@ impl Backend {
             .await
             .unwrap();
             self.scanner_data.decision_categories.clear();
+            self.scanner_data.decision_categories_file_index.clear();
             for cat in cats {
                 self.scanner_data.decision_categories.insert(
                     cat.into(),

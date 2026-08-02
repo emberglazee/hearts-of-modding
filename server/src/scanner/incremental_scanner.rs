@@ -334,6 +334,14 @@ fn classify_file(path: &str) -> Vec<FileCategory> {
             cats.push(FileCategory::Decisions);
         }
 
+        // Decision category declarations (common/decisions/categories/*.txt).
+        // Distinct from decision bodies — they declare category names that the
+        // decisions rule checks (HOM5006). Previously these fell through to only
+        // Variables, so category edits never refreshed and HOM5006 went stale.
+        if lower.contains("/common/decisions/categories/") {
+            cats.push(FileCategory::DecisionCategories);
+        }
+
         // Unit type definitions (common/units/*.txt)
         if lower.contains("/common/units/") {
             cats.push(FileCategory::Units);
@@ -506,6 +514,7 @@ enum FileCategory {
     Oob,
     Units,
     Decisions,
+    DecisionCategories,
 }
 
 /// Update `ScannerData` with fresh entities extracted from a single saved file.
@@ -586,6 +595,9 @@ fn update_from_ast(
         FileCategory::Oob => update_oobs(scanner_data, path_str, script),
         FileCategory::Units => update_units(scanner_data, path_str, script),
         FileCategory::Decisions => update_decisions(scanner_data, path_str, script),
+        FileCategory::DecisionCategories => {
+            update_decision_categories(scanner_data, path_str, script)
+        }
         FileCategory::Localization | FileCategory::Defines | FileCategory::Countries => {
             // Handled directly in update_scanner_data_for_file, unreachable here
         }
@@ -1327,6 +1339,79 @@ fn update_decisions(scanner_data: &ScannerData, path_str: &str, script: &ast::Sc
     );
 }
 
+/// Incrementally update `decision_categories` from a `categories/*.txt` file.
+///
+/// Unlike `decision`/`events` (whose layered values carry a `path`), the
+/// category layer is `LayeredValue<()>` with no per-file path, so `retain_path!`
+/// can't attribute a category to its declaring file. We keep our own reverse
+/// index (file path → declared category names) and only drop a category when no
+/// other indexed file still declares it.
+fn update_decision_categories(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
+    let mut new_cats: Vec<InternedStr> = Vec::new();
+    for entry in &script.entries {
+        if let ast::Entry::Assignment(ass) = entry {
+            if let ast::Value::Block(_) = &ass.value.value {
+                new_cats.push(InternedStr::from(ass.key_text(&script.source)));
+            }
+        }
+    }
+    new_cats.sort();
+    new_cats.dedup();
+
+    let key_path = InternedStr::from(path_str);
+    if let Some((_, old_cats)) = scanner_data
+        .decision_categories_file_index
+        .remove(&key_path)
+    {
+        for old in old_cats {
+            if !new_cats.contains(&old)
+                && !category_still_declared_elsewhere(scanner_data, &key_path, &old)
+            {
+                scanner_data.decision_categories.remove(&old);
+            }
+        }
+    }
+
+    for cat in &new_cats {
+        if !scanner_data.decision_categories.contains_key(cat) {
+            scanner_data.decision_categories.insert(
+                cat.clone(),
+                crate::data::layered_value::LayeredValue::new(()),
+            );
+        }
+    }
+    scanner_data
+        .decision_categories_file_index
+        .insert(key_path, new_cats);
+}
+
+/// Remove a `categories/*.txt` file's declared categories from the map.
+fn remove_decision_categories(scanner_data: &ScannerData, path_str: &str) {
+    let key_path = InternedStr::from(path_str);
+    if let Some((_, old_cats)) = scanner_data
+        .decision_categories_file_index
+        .remove(&key_path)
+    {
+        for old in old_cats {
+            if !category_still_declared_elsewhere(scanner_data, &key_path, &old) {
+                scanner_data.decision_categories.remove(&old);
+            }
+        }
+    }
+}
+
+/// Whether any file OTHER than `exclude_path` still declares category `cat`.
+fn category_still_declared_elsewhere(
+    scanner_data: &ScannerData,
+    exclude_path: &InternedStr,
+    cat: &InternedStr,
+) -> bool {
+    scanner_data
+        .decision_categories_file_index
+        .iter()
+        .any(|e| e.key() != exclude_path && e.value().contains(cat))
+}
+
 /// Remove all scanner data entries originating from a given file path.
 /// Used by `did_change_watched_files` when a file is deleted externally
 /// (Git branch switch, file explorer rename, etc.).
@@ -1343,6 +1428,15 @@ pub fn remove_path_from_scanner_data(scanner_data: &ScannerData, path_str: &str)
                 );
             }
             FileCategory::Events => {
+                // Collect the IDs this file defined BEFORE removal so we can
+                // scrub them from the dependency graph (both as callers and as
+                // callees) — otherwise hover "called-by / calls-ed by" data keeps
+                // stale edges referencing deleted events.
+                let old_event_ids: Vec<String> = scanner_data
+                    .events_file_index
+                    .get(path_str)
+                    .map(|keys| keys.value().iter().map(|k| k.to_string()).collect())
+                    .unwrap_or_default();
                 remove_path!(
                     scanner_data.events,
                     scanner_data.events_file_index,
@@ -1353,6 +1447,7 @@ pub fn remove_path_from_scanner_data(scanner_data: &ScannerData, path_str: &str)
                     scanner_data.event_namespaces_file_index,
                     path_str
                 );
+                scanner_data.event_dep_graph.remove_events(&old_event_ids);
             }
             FileCategory::ScriptedTriggers => {
                 remove_path!(
@@ -1592,6 +1687,9 @@ pub fn remove_path_from_scanner_data(scanner_data: &ScannerData, path_str: &str)
                     path_str
                 );
             }
+            FileCategory::DecisionCategories => {
+                remove_decision_categories(scanner_data, path_str);
+            }
             FileCategory::Defines => {
                 // Defines are cumulative (multiple files contribute to a single
                 // defines struct). A full rescan of all remaining defines files
@@ -1602,6 +1700,10 @@ pub fn remove_path_from_scanner_data(scanner_data: &ScannerData, path_str: &str)
         }
     }
 }
+
+// ---------------------------------------------------------------------------
+// SECTION - Tests
+// ---------------------------------------------------------------------------
 
 #[cfg(test)]
 mod tests {
@@ -1632,4 +1734,44 @@ mod tests {
             "common/strategic_regions is not the engine path"
         );
     }
+
+    /// Decision-category declarations must classify as DecisionCategories (not
+    /// fall through to Variables-only), so edits refresh the category map.
+    #[test]
+    fn test_classify_decision_categories_path() {
+        let cat = "/mod/common/decisions/categories/eth_categories.txt";
+        let cats = classify_file(cat);
+        assert!(cats.contains(&FileCategory::DecisionCategories));
+        // A decision body file in the same dir is a Decisions file, not categories.
+        let body = "/mod/common/decisions/some_decisions.txt";
+        let body_cats = classify_file(body);
+        assert!(body_cats.contains(&FileCategory::Decisions));
+        assert!(!body_cats.contains(&FileCategory::DecisionCategories));
+    }
+
+    /// update_decision_categories populates the map from a categories file;
+    /// remove_decision_categories clears just that file's entries.
+    #[test]
+    fn test_update_remove_decision_categories() {
+        let data = crate::data::scanner_data::ScannerData::new();
+        let script =
+            crate::parser::parser::parse_script("cat_alpha = { picture = x }\ncat_beta = { }\n").0;
+        update_decision_categories(&data, "/mod/common/decisions/categories/eth.txt", &script);
+        assert!(data.decision_categories.contains_key("cat_alpha"));
+        assert!(data.decision_categories.contains_key("cat_beta"));
+
+        // Re-parse dropping cat_beta -> incremental update removes it, keeps alpha.
+        let script2 = crate::parser::parser::parse_script("cat_alpha = { picture = x }\n").0;
+        update_decision_categories(&data, "/mod/common/decisions/categories/eth.txt", &script2);
+        assert!(data.decision_categories.contains_key("cat_alpha"));
+        assert!(!data.decision_categories.contains_key("cat_beta"));
+
+        // Deleting the whole file removes the remaining category.
+        remove_decision_categories(&data, "/mod/common/decisions/categories/eth.txt");
+        assert!(!data.decision_categories.contains_key("cat_alpha"));
+    }
 }
+
+// ---------------------------------------------------------------------------
+// !SECTION
+// ---------------------------------------------------------------------------

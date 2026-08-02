@@ -2,7 +2,7 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
-## [v0.24.0] - 2026-07-29
+## [v0.24.0] - 2026-08-03
 
 > been a while, eh?
 
@@ -44,7 +44,9 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Fixed parsing of `hidden = yes` in events.** Led to wrongful `HOM3016` (`EVENT_MISSING_TITLE`) diagnostics. Neither titles nor pictures are expected for `hidden` events.
 
-> ...and many more undocumented changes/fixes, this update has turned my whole brain into a slushie
+> ...and _many_ more undocumented changes and fixes, i had to shift my workflows to better understand my own codebase due to how huge it got
+
+> full list of 100+ commits: https://github.com/emberglazee/hearts-of-modding/compare/v0.23.1...v0.24.0
 
 ## [v0.23.1] - 2026-06-30
 

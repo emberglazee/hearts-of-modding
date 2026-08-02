@@ -97,6 +97,8 @@ pub(crate) struct ScannerData {
     pub custom_modifiers: DashMap<InternedStr, LayeredValue<modifier_scanner::Modifier>>,
     pub decisions: DashMap<InternedStr, LayeredValue<decision_scanner::Decision>>,
     pub decision_categories: DashMap<InternedStr, LayeredValue<()>>,
+    /// Reverse index for incremental updates: file path → category names it declares.
+    pub decision_categories_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub modifier_mappings: DashMap<InternedStr, String>,
     pub modifier_formats: DashMap<InternedStr, String>,
     pub events: DashMap<InternedStr, LayeredValue<event_scanner::Event>>,
@@ -216,6 +218,7 @@ impl ScannerData {
             custom_modifiers: DashMap::new(),
             decisions: DashMap::new(),
             decision_categories: DashMap::new(),
+            decision_categories_file_index: DashMap::new(),
             modifier_mappings: DashMap::new(),
             modifier_formats: DashMap::new(),
             events: DashMap::new(),
