@@ -184,6 +184,7 @@
 					"**/common/**/*.txt",
 					"**/country_metadata/**/*.txt",
 					"**/music/**/*.txt",
+					"**/portraits/**/*.txt",
 					"**/events/**/*.txt",
 					"**/map/**/*.txt",
 					"**/map/**/*.map",

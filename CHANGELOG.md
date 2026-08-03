@@ -10,6 +10,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Fixed a call hierarchy UTF-16 inception bug.**
 
+- **Associate `portraits/**/*.txt` with HoM's `hoi4` language mode.**
+
 ## [v0.24.1] - 2026-08-03
 
 ### ✨ Added
