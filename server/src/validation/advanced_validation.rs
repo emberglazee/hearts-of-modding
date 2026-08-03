@@ -38,6 +38,12 @@ pub const STRAY_BRACE: &str = "HOM6001";
 /// Added because this was encountered in v1.18.3 `ship_hull_carrier.txt:708`.
 pub const SECTION_SIGN_IN_VALUE: &str = "HOM6002";
 
+/// Double assignment on one line (`key = value = value`) — a modder slip the
+/// engine does NOT recover from (Clausewitz throws "Unexpected token: =").
+/// We recover the AST (last value wins) so the file doesn't cascade, but still
+/// surface a specific, descriptive ERROR so the modder knows to fix it.
+pub const DOUBLE_ASSIGNMENT: &str = "HOM6003";
+
 // ── Event option & structure validation (HOM3013–HOM3020) ──
 pub const EVENT_MISSING_OPTION_NAME: &str = "HOM3013";
 #[allow(dead_code)]

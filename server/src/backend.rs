@@ -572,6 +572,13 @@ impl Backend {
                             advanced_validation::SECTION_SIGN_IN_VALUE.to_string(),
                         )),
                     )
+                } else if msg.starts_with(advanced_validation::DOUBLE_ASSIGNMENT) {
+                    (
+                        Some(DiagnosticSeverity::ERROR),
+                        Some(NumberOrString::String(
+                            advanced_validation::DOUBLE_ASSIGNMENT.to_string(),
+                        )),
+                    )
                 } else {
                     (
                         Some(DiagnosticSeverity::ERROR),
@@ -627,6 +634,13 @@ impl Backend {
                         Some(DiagnosticSeverity::WARNING),
                         Some(NumberOrString::String(
                             advanced_validation::SECTION_SIGN_IN_VALUE.to_string(),
+                        )),
+                    )
+                } else if msg.starts_with(advanced_validation::DOUBLE_ASSIGNMENT) {
+                    (
+                        Some(DiagnosticSeverity::ERROR),
+                        Some(NumberOrString::String(
+                            advanced_validation::DOUBLE_ASSIGNMENT.to_string(),
                         )),
                     )
                 } else {

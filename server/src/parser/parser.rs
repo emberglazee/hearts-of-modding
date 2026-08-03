@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::parser::ast::{self, ByteSpan, Range, Value};
 use crate::validation::advanced_validation::{
-    IMPLICIT_EOF_CLOSE, SECTION_SIGN_IN_VALUE, STRAY_BRACE,
+    DOUBLE_ASSIGNMENT, IMPLICIT_EOF_CLOSE, SECTION_SIGN_IN_VALUE, STRAY_BRACE,
 };
 use nom::{
     IResult, Parser,
@@ -448,6 +448,117 @@ fn parse_entry(input: Span) -> IResult<Span, ast::Entry> {
     .parse(input)
 }
 
+/// Byte-scan for accidental double assignments on one line: `key = value = value`.
+///
+/// Matches exactly what `recover_chained_equals` recovers (a scalar value
+/// immediately followed by another standalone `=`), so we can surface a specific,
+/// descriptive ERROR (HOM6003) instead of the generic "Parsing error" the engine
+/// otherwise drowns the file in. Returns AST ranges (byte columns).
+fn collect_double_assignment_ranges(input: &str) -> Vec<Range> {
+    let b = input.as_bytes();
+    let n = b.len();
+    let mut out = Vec::new();
+
+    // byte index just past whitespace/comments from `pos`
+    fn skip_ws(b: &[u8], n: usize, mut i: usize) -> usize {
+        loop {
+            while i < n && matches!(b[i], b' ' | b'\t' | b'\r' | b'\n') {
+                i += 1;
+            }
+            if i < n && b[i] == b'#' {
+                while i < n && b[i] != b'\n' {
+                    i += 1;
+                }
+                continue;
+            }
+            break;
+        }
+        i
+    }
+    let loc = |pos: usize| -> (u32, u32) {
+        let line = input[..pos].matches('\n').count() as u32;
+        let col = (pos - input[..pos].rfind('\n').map_or(0, |p| p + 1)) as u32;
+        (line, col)
+    };
+    let is_assign_eq = |i: usize| -> bool {
+        i < n
+            && b[i] == b'='
+            && (i == 0 || !matches!(b[i - 1], b'<' | b'>' | b'!' | b'='))
+            && (i + 1 >= n || !matches!(b[i + 1], b'>' | b'<' | b'='))
+    };
+
+    let mut i = 0;
+    while i < n {
+        match b[i] {
+            b'#' => {
+                while i < n && b[i] != b'\n' {
+                    i += 1;
+                }
+            }
+            b'"' => {
+                i += 1;
+                while i < n && b[i] != b'"' {
+                    if b[i] == b'\\' {
+                        i += 1;
+                    }
+                    i += 1;
+                }
+            }
+            _ => {
+                if is_assign_eq(i) {
+                    let vs = skip_ws(b, n, i + 1);
+                    if vs < n && b[vs] != b'{' && b[vs] != b'}' && b[vs] != b'=' {
+                        let ve = if b[vs] == b'"' {
+                            let mut j = vs + 1;
+                            while j < n && b[j] != b'"' {
+                                if b[j] == b'\\' {
+                                    j += 1;
+                                }
+                                j += 1;
+                            }
+                            (j + 1).min(n)
+                        } else {
+                            let mut j = vs;
+                            while j < n
+                                && !matches!(
+                                    b[j],
+                                    b' ' | b'\t'
+                                        | b'\r'
+                                        | b'\n'
+                                        | b'='
+                                        | b'{'
+                                        | b'}'
+                                        | b'#'
+                                        | b';'
+                                        | b','
+                                )
+                            {
+                                j += 1;
+                            }
+                            j
+                        };
+                        let nxt = skip_ws(b, n, ve);
+                        if nxt < n && is_assign_eq(nxt) {
+                            let (l0, c0) = loc(i);
+                            let (l1, c1) = loc(nxt);
+                            out.push(Range {
+                                start_line: l0,
+                                start_col: c0,
+                                end_line: l1,
+                                end_col: c1 + 1,
+                            });
+                            i = nxt;
+                            continue;
+                        }
+                    }
+                }
+            }
+        }
+        i += 1;
+    }
+    out
+}
+
 /// Scan forward from the given span to find a brace that resynchronizes block depth.
 ///
 /// Skips comments (`#` to EOL) and quoted strings (`"..."` with escape handling)
@@ -703,6 +814,22 @@ pub fn parse_script(input: &str) -> (ast::Script, Vec<(String, Range)>) {
         }
     }
 
+    // Surface a SPECIFIC ERROR (HOM6003) for an accidental double assignment
+    // (`key = value = value`) instead of letting it degrade into the generic
+    // "Parsing error". The AST was already recovered (last value wins), so the
+    // file keeps parsing — this just tells the modder it's a real engine error.
+    for r in collect_double_assignment_ranges(&input_clean) {
+        errors.push((
+            format!(
+                "{}: Accidental double assignment `key = value = value` on one line. \
+                 HOI4 does not allow this (Clausewitz throws \"Unexpected token: =\"). \
+                 Remove the extra `=`: use `key = value`, or a block `key = {{ ... }}`.",
+                DOUBLE_ASSIGNMENT
+            ),
+            r,
+        ));
+    }
+
     let closed_by_eof = brace_balance(&input_clean) > 0;
 
     // Emit HOM6001 INFO for each stray closing brace silently consumed
@@ -929,11 +1056,14 @@ mod tests {
         let (script, errors) = parse_script(
             "foo = bar = baz\none = two = three\ncustom_effect_tooltip = tooltip = ZHI_decrease_damage_by_10\n",
         );
-        // No hard parse error — the file must survive.
+        // No hard generic parse error — the AST recovers (file keeps parsing), but
+        // the parser surfaces a SPECIFIC HOM6003 diagnostic per occurrence.
+        assert!(!errors.is_empty());
         assert!(
-            errors.is_empty(),
-            "double-assignment should recover: {errors:?}"
+            errors.iter().all(|(m, _)| m.starts_with(DOUBLE_ASSIGNMENT)),
+            "expected only HOM6003 double-assignment errors, got: {errors:?}"
         );
+        assert_eq!(errors.len(), 3, "one HOM6003 per double-assignment line");
 
         let keys: Vec<&str> = script
             .entries
@@ -965,7 +1095,14 @@ mod tests {
         // recovers when a scalar is wrongly followed by `=`.
         let (script, errors) =
             parse_script("plain = val\ntooltip = tt = to1\nblock = { inner = 1 }\n");
-        assert!(errors.is_empty());
+        // Exactly one double-assignment (tooltip), surfaced as HOM6003; the plain
+        // assignment and the block produce no diagnostic.
+        assert_eq!(errors.len(), 1);
+        assert!(
+            errors[0].0.starts_with(DOUBLE_ASSIGNMENT),
+            "expected HOM6003 for tooltip, got: {:?}",
+            errors
+        );
         let vals: Vec<&str> = script
             .entries
             .iter()
