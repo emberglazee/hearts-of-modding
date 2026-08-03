@@ -565,14 +565,19 @@ mod tests {
         std::fs::create_dir_all(&tmp).unwrap();
         let content = "\u{feff}country_event = {\n    id = test_event\n}\n";
         std::fs::write(&file, content).unwrap();
-        let path_str = file.to_string_lossy().to_string();
+
+        let uri = tower_lsp_server::ls_types::Uri::from_file_path(&file).unwrap();
+        let uri_str = uri.as_str().to_string();
+        // Derive the index key the SAME way `prepare_call_hierarchy` does
+        // (`Uri::to_file_path`). On Windows the fork's Uri normalizes the
+        // path (capitalized drive letter, forward slashes), so the raw
+        // `PathBuf` string must not be used as the key — key and lookup must
+        // come from the identical derivation or they never match.
+        let path_str = uri.to_file_path().unwrap().to_string_lossy().to_string();
 
         // Scanner-side range: key starts at byte col 3 (after the 3-byte BOM),
         // block ends on line 2 at byte col 1.
         insert_event(&data, &path_str, "test_event", rng(0, 3, 2, 1));
-
-        let uri = tower_lsp_server::ls_types::Uri::from_file_path(&file).unwrap();
-        let uri_str = uri.as_str().to_string();
 
         // Demonstrate the raw UTF-16 position fails the byte-range hit-test.
         let raw = tower_lsp_server::ls_types::Position {
@@ -606,7 +611,11 @@ mod tests {
         std::fs::create_dir_all(file.parent().unwrap()).unwrap();
         let content = "\u{feff}my_trigger = {\n    hidden = yes\n}\n";
         std::fs::write(&file, content).unwrap();
-        let path_str = file.to_string_lossy().to_string();
+
+        let uri = tower_lsp_server::ls_types::Uri::from_file_path(&file).unwrap();
+        // Same derivation as `prepare_call_hierarchy` (see the other test):
+        // the index key must match `Uri::to_file_path()` on every platform.
+        let path_str = uri.to_file_path().unwrap().to_string_lossy().to_string();
 
         data.scripted_triggers.insert(
             InternedStr::from("my_trigger"),
@@ -621,7 +630,6 @@ mod tests {
             vec![InternedStr::from("my_trigger")],
         );
 
-        let uri = tower_lsp_server::ls_types::Uri::from_file_path(&file).unwrap();
         let position = tower_lsp_server::ls_types::Position {
             line: 0,
             character: 1,
