@@ -1126,6 +1126,43 @@ mod tests {
         assert_eq!(vals, vec!["5_something"]);
     }
 
+    /// Leading-dot numbers (`.5`) — the engine REJECTS them (empirically:
+    /// `Malformed token: .5`), so `.5` stays a String and gets a SPECIFIC HOM6004
+    /// error telling the modder to use `0.5`. Negative/decimal numbers stay Number.
+    #[test]
+    fn test_leading_dot_number_is_number() {
+        let (script, errors) = parse_script("a = .5\nb = -0.5\nc = 0.5\nd = not_a_number\n");
+        use ast::Value;
+        let kinds: Vec<String> = script
+            .entries
+            .iter()
+            .filter_map(|e| match e {
+                ast::Entry::Assignment(a) => Some(match &a.value.value {
+                    Value::Number(n) => format!("num:{n}"),
+                    Value::String(_) => "str".to_string(),
+                    _ => "other".to_string(),
+                }),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(kinds[0], "str", ".5 stays String (engine rejects leading-dot numbers)");
+        assert_eq!(kinds[1], "num:-0.5", "-0.5 must be Number");
+        assert_eq!(kinds[2], "num:0.5", "0.5 must be Number");
+        assert_eq!(kinds[3], "str", "non-numeric identifier stays String");
+
+        // A specific HOM6004 ERROR is surfaced for the `.5`; no generic parse error.
+        assert!(
+            errors
+                .iter()
+                .any(|(m, _)| m.starts_with(MALFORMED_LEADING_DOT_NUMBER)),
+            "expected HOM6004 for .5, got: {errors:?}"
+        );
+        assert!(
+            errors.iter().all(|(m, _)| m.starts_with(MALFORMED_LEADING_DOT_NUMBER)),
+            "no generic parse errors expected, got: {errors:?}"
+        );
+    }
+
     /// REGRESSION: a `key = v1 = v2` on a single line (no scope change, no braces)
     /// is a common modding slip (`custom_effect_tooltip = tooltip = SOME_LOC`). The
     /// parser must RECOVER instead of hard-failing the whole file: the assignment's
