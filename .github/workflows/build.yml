@@ -78,7 +78,6 @@ jobs:
 
       - name: Copy Resources
         run: |
-          cp -r server/assets client/server-bin/
           mv README.md client/README.md
           mv CHANGELOG.md client/CHANGELOG.md
 

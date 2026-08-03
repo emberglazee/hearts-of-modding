@@ -1,7 +1,10 @@
-// Stage the natively-built hom-lsp binary (+ server assets) into client/server-bin
-// using the unified `hom-lsp-<os>-<arch>[.exe]` naming. Used by `npm run package`
-// for local VSIX builds; CI does its own per-target staging in the workflow.
-import { existsSync, mkdirSync, copyFileSync, chmodSync, readdirSync, statSync } from 'fs';
+// Stage the natively-built hom-lsp binary into client/server-bin using the
+// unified `hom-lsp-<os>-<arch>[.exe]` naming. Used by `npm run package` for
+// local VSIX builds; CI does its own per-target staging in the workflow.
+// NOTE: server/assets is NOT copied — hoi4_data_v2.json is embedded into the
+// binary at compile time via include_str! (see server/build.rs), so a
+// server-bin/assets copy would be dead weight in the VSIX.
+import { existsSync, mkdirSync, copyFileSync, chmodSync, rmSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -26,22 +29,11 @@ copyFileSync(src, dst);
 if (process.platform !== 'win32') chmodSync(dst, 0o755);
 console.log(`[stage-binary] staged ${dst}`);
 
-// Copy server/assets -> server-bin/assets (replace any stale copy).
-const assetsSrc = join(serverRoot, 'assets');
+// Remove any stale server-bin/assets copy from older packaging runs — it is
+// dead weight in the VSIX (assets are compiled into the binary, not read from
+// disk at runtime).
 const assetsDst = join(serverBin, 'assets');
-if (existsSync(assetsSrc)) {
-    mkdirSync(assetsDst, { recursive: true });
-    for (const entry of readdirSync(assetsSrc)) {
-        const from = join(assetsSrc, entry);
-        const to = join(assetsDst, entry);
-        if (statSync(from).isDirectory()) {
-            mkdirSync(to, { recursive: true });
-            for (const inner of readdirSync(from)) {
-                copyFileSync(join(from, inner), join(to, inner));
-            }
-        } else {
-            copyFileSync(from, to);
-        }
-    }
-    console.log(`[stage-binary] staged assets`);
+rmSync(assetsDst, { recursive: true, force: true });
+if (existsSync(join(serverRoot, 'assets'))) {
+    console.log('[stage-binary] removed stale server-bin/assets (data is embedded in the binary)');
 }

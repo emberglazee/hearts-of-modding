@@ -3,6 +3,9 @@ src/**
 node_modules/**
 esbuild.js
 tsconfig.json
+tsconfig.eslint.json
+eslint.config.ts
+scripts/**
 .gitignore
 !LICENSE
 !README.md

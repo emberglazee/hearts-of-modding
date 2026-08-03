@@ -8,9 +8,13 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Changing `hoi4.modRegistryPath` now prompts a reload.**
 
-- **Associate `portraits/**/*.txt` with HoM's `hoi4` language mode.**
+- **Associated `portraits/**/*.txt` with HoM's `hoi4` language mode.**
 
 - **Scan `common/continuous_focuses/**/*.txt` as focuses.**
+
+### 🔧 Changed
+
+- **Slightly optimized the extension VSIX file size.**
 
 ### 🩹 Fixed
 

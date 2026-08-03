@@ -120,7 +120,6 @@ jobs:
           cp bin-stage/hom-lsp-macos-amd64/hom-lsp release-assets/hom-lsp-macos-amd64
           chmod +x client/server-bin/hom-lsp-linux-amd64 client/server-bin/hom-lsp-macos-arm64
           chmod +x release-assets/hom-lsp-linux-* release-assets/hom-lsp-macos-*
-          cp -r server/assets client/server-bin/
           mv README.md client/README.md
           mv CHANGELOG.md client/CHANGELOG.md
 
