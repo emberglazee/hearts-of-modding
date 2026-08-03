@@ -2116,31 +2116,8 @@ impl Backend {
             }
         }
 
-        // Detect file type from URI for scope inference
-        let initial_scope = if uri.contains("/common/abilities/") {
-            scope::Scope::Character
-        } else if uri.contains("/common/decisions/") {
-            scope::Scope::Country
-        } else if uri.contains("/common/aces/") {
-            scope::Scope::Ace
-        } else if uri.contains("/common/ai_faction_theaters/")
-            || uri.contains("/common/ai_focuses/")
-            || uri.contains("/common/ai_navy/taskforce/")
-            || uri.contains("/common/ai_equipment/")
-            || uri.contains("/common/ai_strategy/")
-            || uri.contains("/common/ai_strategy_plans/")
-            || uri.contains("/common/ai_templates/")
-        {
-            // NOTE: No scanner or validation for these yet — just mapped to
-            // Country scope to avoid false positives. Each needs its own
-            // scanner module, validation rules, and scope push handling.
-            // TODO: faction_theater_scanner, ai_focus_scanner, ai_equipment_scanner,
-            // ai_strategy_scanner, ai_strategy_plans_scanner, ai_templates_scanner,
-            // ai_navy_fleet_scanner, ai_navy_goals_scanner
-            scope::Scope::Country
-        } else {
-            scope::Scope::Global
-        };
+        // Detect file type from URI for scope inference (shared with hover/completion).
+        let initial_scope = scope::initial_scope_for_uri(uri);
 
         let game_path = self.config.game_path();
 

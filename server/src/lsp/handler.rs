@@ -1053,9 +1053,16 @@ impl LanguageServer for Backend {
                     let (s, e) = parser::parse_script(&content);
                     (Arc::new(s), e)
                 });
-                let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
-                let achievements = &self.scanner_data.achievements;
-                find_identifier_at(&script, position, &mut scope_stack, achievements)
+                let mut scope_stack = scope::ScopeStack::new(scope::initial_scope_for_uri(&uri));
+                let sctx = scope::ScopeCtx {
+                    uri: &uri,
+                    event_targets: Some(&self.scanner_data.event_targets),
+                    characters: Some(&self.scanner_data.characters),
+                    achievements: Some(&self.scanner_data.achievements),
+                    in_random_list: false,
+                    state_targeted: false,
+                };
+                find_identifier_at(&script, position, &mut scope_stack, &sctx)
                     .map(|(id, _, _, _)| id)
             };
 
@@ -1080,10 +1087,17 @@ impl LanguageServer for Backend {
         let position = params.text_document_position.position;
 
         if let Some((script, _)) = self.ensure_ast_cached(&uri) {
-            let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
-            let achievements = &self.scanner_data.achievements;
+            let mut scope_stack = scope::ScopeStack::new(scope::initial_scope_for_uri(&uri));
+            let sctx = scope::ScopeCtx {
+                uri: &uri,
+                event_targets: Some(&self.scanner_data.event_targets),
+                characters: Some(&self.scanner_data.characters),
+                achievements: Some(&self.scanner_data.achievements),
+                in_random_list: false,
+                state_targeted: false,
+            };
             if let Some((identifier, _, _, _)) =
-                find_identifier_at(&script, position, &mut scope_stack, achievements)
+                find_identifier_at(&script, position, &mut scope_stack, &sctx)
             {
                 let mut locations = Vec::new();
 

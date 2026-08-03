@@ -1,24 +1,19 @@
-use crate::data::interner::InternedStr;
-use crate::data::layered_value::LayeredValue;
 use crate::parser::ast;
-use crate::scanner::achievement_scanner;
 use crate::scope::scope;
 use crate::utils::lsp_convert::is_pos_in_range;
-use dashmap::DashMap;
 use tower_lsp_server::ls_types::Position;
 
 pub fn find_scope_context_at(
     script: &ast::Script,
     pos: Position,
-    achievements: &DashMap<InternedStr, LayeredValue<achievement_scanner::Achievement>>,
+    initial_scope: scope::Scope,
+    sctx: &scope::ScopeCtx,
 ) -> (Option<String>, Vec<scope::Scope>) {
     let pos = crate::utils::lsp_convert::to_byte_position(&script.source, pos);
-    let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
+    let mut scope_stack = scope::ScopeStack::new(initial_scope);
     let mut context = None;
     for entry in &script.entries {
-        if let Some(ctx) =
-            find_scope_context_in_entry(entry, pos, &mut scope_stack, achievements, script)
-        {
+        if let Some(ctx) = find_scope_context_in_entry(entry, pos, &mut scope_stack, sctx, script) {
             context = Some(ctx);
             break;
         }
@@ -30,7 +25,7 @@ fn find_scope_context_in_entry(
     entry: &ast::Entry,
     pos: Position,
     scope_stack: &mut scope::ScopeStack,
-    achievements: &DashMap<InternedStr, LayeredValue<achievement_scanner::Achievement>>,
+    sctx: &scope::ScopeCtx,
     script: &ast::Script,
 ) -> Option<String> {
     match entry {
@@ -38,14 +33,15 @@ fn find_scope_context_in_entry(
             if is_pos_in_range(pos, &ass.value.range) {
                 if let ast::Value::Block(_) | ast::Value::TaggedBlock(_, _, _) = &ass.value.value {
                     let key = ass.key_text(&script.source);
-                    // Try dynamic meta-scope resolution for THIS/ROOT/PREV/FROM
-                    // before falling back to static resolution.
-                    let s = scope_stack.resolve_scope_key(key, achievements);
+                    // Unified resolution — the SAME path the validation walker
+                    // uses (file-type initial scope + full ScopeCtx maps), so
+                    // hover/completion never diverge from HOM004.
+                    let (s, _) = scope_stack.resolve_entry_scope(key, sctx);
                     scope_stack.push(s);
                 }
 
                 if let Some(inner) =
-                    find_scope_context_in_value(&ass.value, pos, scope_stack, achievements, script)
+                    find_scope_context_in_value(&ass.value, pos, scope_stack, sctx, script)
                 {
                     return Some(inner);
                 }
@@ -54,9 +50,7 @@ fn find_scope_context_in_entry(
             }
             None
         }
-        ast::Entry::Value(val) => {
-            find_scope_context_in_value(val, pos, scope_stack, achievements, script)
-        }
+        ast::Entry::Value(val) => find_scope_context_in_value(val, pos, scope_stack, sctx, script),
         _ => None,
     }
 }
@@ -65,14 +59,14 @@ fn find_scope_context_in_value(
     val: &ast::NodeedValue,
     pos: Position,
     scope_stack: &mut scope::ScopeStack,
-    achievements: &DashMap<InternedStr, LayeredValue<achievement_scanner::Achievement>>,
+    sctx: &scope::ScopeCtx,
     script: &ast::Script,
 ) -> Option<String> {
     match &val.value {
         ast::Value::Block(entries) => {
             for entry in entries {
                 if let Some(ctx) =
-                    find_scope_context_in_entry(entry, pos, scope_stack, achievements, script)
+                    find_scope_context_in_entry(entry, pos, scope_stack, sctx, script)
                 {
                     return Some(ctx);
                 }
@@ -82,7 +76,7 @@ fn find_scope_context_in_value(
         ast::Value::TaggedBlock(_, entries, _) => {
             for entry in entries {
                 if let Some(ctx) =
-                    find_scope_context_in_entry(entry, pos, scope_stack, achievements, script)
+                    find_scope_context_in_entry(entry, pos, scope_stack, sctx, script)
                 {
                     return Some(ctx);
                 }

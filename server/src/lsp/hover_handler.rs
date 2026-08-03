@@ -560,15 +560,19 @@ impl Backend {
                     let (s, e) = parser::parse_script(&content);
                     (Arc::new(s), e)
                 });
-                let initial_scope = if uri.contains("/common/aces/") {
-                    scope::Scope::Ace
-                } else {
-                    scope::Scope::Global
-                };
+                let initial_scope = scope::initial_scope_for_uri(&uri);
                 let mut scope_stack = scope::ScopeStack::new(initial_scope);
                 let achievements = &self.scanner_data.achievements;
+                let sctx = scope::ScopeCtx {
+                    uri: &uri,
+                    event_targets: Some(&self.scanner_data.event_targets),
+                    characters: Some(&self.scanner_data.characters),
+                    achievements: Some(achievements),
+                    in_random_list: false,
+                    state_targeted: false,
+                };
                 if let Some((identifier, final_scopes, assigned_value, context_key)) =
-                    find_identifier_at(&script, position, &mut scope_stack, achievements)
+                    find_identifier_at(&script, position, &mut scope_stack, &sctx)
                 {
                     let mut hover_text = String::new();
                     let context_key_lower = context_key.as_ref().map(|s| s.to_ascii_lowercase());

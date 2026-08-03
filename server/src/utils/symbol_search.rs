@@ -1,17 +1,13 @@
-use crate::data::interner::InternedStr;
-use crate::data::layered_value::LayeredValue;
 use crate::parser::ast;
-use crate::scanner::achievement_scanner;
 use crate::scope::scope;
 use crate::utils::lsp_convert::is_pos_in_range;
-use dashmap::DashMap;
 use tower_lsp_server::ls_types::Position;
 
 pub fn find_identifier_at(
     script: &ast::Script,
     pos: Position,
     scope_stack: &mut scope::ScopeStack,
-    achievements: &DashMap<InternedStr, LayeredValue<achievement_scanner::Achievement>>,
+    sctx: &scope::ScopeCtx,
 ) -> Option<(
     String,
     Vec<scope::Scope>,
@@ -22,9 +18,7 @@ pub fn find_identifier_at(
     // here so `is_pos_in_range`/slicing match on multi-byte lines too.
     let pos = crate::utils::lsp_convert::to_byte_position(&script.source, pos);
     for entry in &script.entries {
-        if let Some(res) =
-            find_in_entry(entry, pos, scope_stack, achievements, None, &script.source)
-        {
+        if let Some(res) = find_in_entry(entry, pos, scope_stack, sctx, None, &script.source) {
             return Some(res);
         }
     }
@@ -35,7 +29,7 @@ pub fn find_in_entry(
     entry: &ast::Entry,
     pos: Position,
     scope_stack: &mut scope::ScopeStack,
-    achievements: &DashMap<InternedStr, LayeredValue<achievement_scanner::Achievement>>,
+    sctx: &scope::ScopeCtx,
     context_key: Option<String>,
     source: &str,
 ) -> Option<(
@@ -58,9 +52,10 @@ pub fn find_in_entry(
             let mut pushed_scope = None;
             if let ast::Value::Block(_) | ast::Value::TaggedBlock(_, _, _) = &ass.value.value {
                 let key_text = ass.key_text(source);
-                // Try dynamic meta-scope resolution for THIS/ROOT/PREV/FROM
-                // before falling back to static resolution.
-                let s = scope_stack.resolve_scope_key(key_text, achievements);
+                // Unified resolution — the SAME path the validation walker uses
+                // (file-type initial scope + full ScopeCtx maps), so hover never
+                // diverges from HOM004 scope inference.
+                let (s, _) = scope_stack.resolve_entry_scope(key_text, sctx);
 
                 if s != scope::Scope::Unknown || key_text.contains(':') || key_text.contains('.') {
                     scope_stack.push(s);
@@ -72,7 +67,7 @@ pub fn find_in_entry(
                 &ass.value,
                 pos,
                 scope_stack,
-                achievements,
+                sctx,
                 Some(ass.key_text(source).to_string()),
                 source,
             );
@@ -89,9 +84,7 @@ pub fn find_in_entry(
             }
             res
         }
-        ast::Entry::Value(val) => {
-            find_in_value(val, pos, scope_stack, achievements, context_key, source)
-        }
+        ast::Entry::Value(val) => find_in_value(val, pos, scope_stack, sctx, context_key, source),
         _ => None,
     }
 }
@@ -100,7 +93,7 @@ pub fn find_in_value(
     val: &ast::NodeedValue,
     pos: Position,
     scope_stack: &mut scope::ScopeStack,
-    achievements: &DashMap<InternedStr, LayeredValue<achievement_scanner::Achievement>>,
+    sctx: &scope::ScopeCtx,
     context_key: Option<String>,
     source: &str,
 ) -> Option<(
@@ -189,14 +182,9 @@ pub fn find_in_value(
         }
         ast::Value::Block(entries) => {
             for entry in entries {
-                if let Some(res) = find_in_entry(
-                    entry,
-                    pos,
-                    scope_stack,
-                    achievements,
-                    context_key.clone(),
-                    source,
-                ) {
+                if let Some(res) =
+                    find_in_entry(entry, pos, scope_stack, sctx, context_key.clone(), source)
+                {
                     return Some(res);
                 }
             }
@@ -204,14 +192,9 @@ pub fn find_in_value(
         }
         ast::Value::TaggedBlock(_, entries, _) => {
             for entry in entries {
-                if let Some(res) = find_in_entry(
-                    entry,
-                    pos,
-                    scope_stack,
-                    achievements,
-                    context_key.clone(),
-                    source,
-                ) {
+                if let Some(res) =
+                    find_in_entry(entry, pos, scope_stack, sctx, context_key.clone(), source)
+                {
                     return Some(res);
                 }
             }

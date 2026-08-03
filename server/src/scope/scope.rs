@@ -233,6 +233,31 @@ pub struct ScopeCtx<'a> {
     pub state_targeted: bool,
 }
 
+/// Detect the initial scope for a script file based on its path — the SAME
+/// single source of truth used by the validation walker, hover, and completion
+/// so they never diverge on file-type scope inference.
+pub fn initial_scope_for_uri(uri: &str) -> Scope {
+    if uri.contains("/common/abilities/") {
+        Scope::Character
+    } else if uri.contains("/common/decisions/") {
+        Scope::Country
+    } else if uri.contains("/common/aces/") {
+        Scope::Ace
+    } else if uri.contains("/common/ai_faction_theaters/")
+        || uri.contains("/common/ai_focuses/")
+        || uri.contains("/common/ai_navy/taskforce/")
+        || uri.contains("/common/ai_equipment/")
+        || uri.contains("/common/ai_strategy/")
+        || uri.contains("/common/ai_strategy_plans/")
+        || uri.contains("/common/ai_templates/")
+    {
+        // Mapped to Country to avoid false positives (no scanners yet).
+        Scope::Country
+    } else {
+        Scope::Global
+    }
+}
+
 pub struct ScopeStack {
     nodes: Vec<ScopeNode>,
 }
@@ -532,30 +557,5 @@ impl ScopeStack {
         }
 
         (s, false)
-    }
-
-    /// Resolve a key to its semantic scope, trying meta-scope resolution
-    /// first, then falling back to achievement-aware resolution, then
-    /// static [`Scope::from_str`].
-    ///
-    /// This is the preferred single-call API when both a `ScopeStack`
-    /// and an achievements map are available. For full resolution
-    /// (including event targets, chain targets, file-type overrides),
-    /// use [`resolve_entry_scope`] instead.
-    pub fn resolve_scope_key(
-        &self,
-        key: &str,
-        achievements: &DashMap<InternedStr, LayeredValue<Achievement>>,
-    ) -> Scope {
-        let ctx = ScopeCtx {
-            uri: "",
-            event_targets: None,
-            characters: None,
-            achievements: Some(achievements),
-            in_random_list: false,
-            state_targeted: false,
-        };
-        let (scope, _) = self.resolve_entry_scope(key, &ctx);
-        scope
     }
 }
