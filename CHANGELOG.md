@@ -2,6 +2,12 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
+## [v0.24.1] - 2026-08-03
+
+### ✨ Added
+
+- **Experimental LSP support for ARM64 Linux and Windows, as well as AMD64 (Intel) MacOS.** Not bundled with the extension (only AMD64 Linux and Windows, and ARM64 MacOS are bundled), downloaded separately upon extension install/update.
+
 ## [v0.24.0] - 2026-08-03
 
 > been a while, eh?
