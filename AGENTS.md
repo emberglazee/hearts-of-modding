@@ -137,7 +137,7 @@ server/src/
 
 - **Version:** `0.23.1` — `client/package.json` is the single source of truth; `server/Cargo.toml` is kept in sync.
 - **Edition:** Rust 2024 (server/Cargo.toml).
-- **Allocator:** `tikv-jemallocator` (see fork at `emberglazee/jemallocator` fix-windows-msvc-spaces for Windows CI compat).
+- **Allocator:** `tikv-jemallocator` via fork at `emberglazee/jemallocator` (rev pinned in `[patch.crates-io]`; Windows MSVC path + `aarch64-pc-windows-msvc` support via the `fix-aarch64-msvc` branch — `gnu_target()` maps it to the `aarch64-w64-mingw32` alias so jemalloc's `config.sub` accepts the host). Keep the fork rev bump in sync with `client/package.json`'s version workflow. Do NOT gate jemalloc off any target without re-checking the fork's `gnu_target()` mapping first.
 - **Activation:** `workspaceContains:./descriptor.mod` — root-only glob. Extension activates on detection; LSP then auto-starts unless `hoi4.lsp.enabled` is false (user gets a prompt on first open if disabled). Toggle with `Hearts of Modding: Toggle LSP` command.
 - **Key settings:** `hoi4.lsp.enabled`, `hoi4.lsp.suppressDisabledPrompt`, `hoi4.gamePath`, `hoi4.modPaths`, `hoi4.modRegistryPath`, `hoi4.validator.workspaceScan.enabled`, `hoi4.styling.enabled`, `hoi4.styling.cosmeticLocalizationIndentation`, `hoi4.validator.ignoreFiles`, `hoi4.validator.ignoreLocalization`, `hoi4.showMemoryUsage.enabled`, `hoi4.themePromptDismissed`.
 

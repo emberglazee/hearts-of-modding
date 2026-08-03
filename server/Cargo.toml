@@ -28,8 +28,8 @@ tikv-jemallocator = "0.7.0"
 tokio-util = "0.7.19"
 
 [patch.crates-io]
-tikv-jemalloc-sys = { git = "https://github.com/emberglazee/jemallocator", rev = "da06d4a" }
-tikv-jemallocator = { git = "https://github.com/emberglazee/jemallocator", rev = "da06d4a" }
+tikv-jemalloc-sys = { git = "https://github.com/emberglazee/jemallocator", rev = "fca9a5ea15704a0bff6685c5d4f07c4ef01fa8b8" }
+tikv-jemallocator = { git = "https://github.com/emberglazee/jemallocator", rev = "fca9a5ea15704a0bff6685c5d4f07c4ef01fa8b8" }
 
 [profile.release]
 strip = true
