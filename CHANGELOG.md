@@ -8,7 +8,7 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Fixed wrong balance of power and character portrait paths in overlay prefix and scanners.**
 
-- **Fixed a call hierarchy UTF-16 inception bug.**
+- **Fixed call hierarchy and localization goto-definition UTF-16 inception bugs.**
 
 - **Associate `portraits/**/*.txt` with HoM's `hoi4` language mode.**
 

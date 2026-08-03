@@ -283,7 +283,16 @@ pub fn paradox_to_markdown(
     String::new()
 }
 
+/// Find the identifier inside a `[...]` scope or `$key$` reference on the
+/// cursor's line of a `.yml` localization file.
+///
+/// Inception contract: the client's `pos.character` is UTF-16 code units but
+/// the regex capture offsets (`m.start()`/`m.end()`) are byte columns on the
+/// line. Convert once at this public entry (the caller's `content` is the
+/// document the position refers to) so multi-byte chars (§, accents) before
+/// the reference don't mis-resolve the identifier.
 pub fn find_identifier_in_loc(content: &str, pos: Position) -> Option<String> {
+    let pos = crate::utils::lsp_convert::to_byte_position(content, pos);
     let lines: Vec<&str> = content.lines().collect();
     let line = lines.get(pos.line as usize)?;
     let char_offset = pos.character as usize;
@@ -466,5 +475,75 @@ mod tests {
         assert!(decoded.contains("foo</tspan><tspan"));
         assert!(decoded.contains(">bar</tspan>"));
         assert!(!decoded.contains("> <"));
+    }
+
+    /// Regression: the cursor comes in as UTF-16 code units but the regex
+    /// capture offsets are byte columns. On a line with § markers before a
+    /// `[Root.GetName]` reference, a raw UTF-16 cursor on 'G' lands inside
+    /// 'Root' (relative offset math off by the byte/UTF-16 delta) and resolves
+    /// the WRONG identifier. The byte-converted position must resolve to
+    /// 'GetName'.
+    #[test]
+    fn test_find_identifier_in_loc_utf16_to_byte_scope() {
+        use tower_lsp_server::ls_types::Position;
+
+        // § = 1 UTF-16 unit but 2 bytes; the two § markers before the scope
+        // reference shift byte vs UTF-16 columns by 2.
+        let line = "foo:0 \"§Rtext§![Root.GetName]\"";
+        // 'G' of GetName: byte col 23, UTF-16 col 21.
+        let pos = Position {
+            line: 0,
+            character: 21,
+        };
+        assert_eq!(
+            find_identifier_in_loc(line, pos).as_deref(),
+            Some("GetName"),
+            "cursor on 'G' must resolve to 'GetName', not 'Root' \
+             (raw UTF-16 col 21 would compute relative offset 3, inside 'Root')"
+        );
+        // Control: cursor on 'R' of Root — pure-ASCII region, byte == UTF-16.
+        let pos_root = Position {
+            line: 0,
+            character: 16,
+        };
+        assert_eq!(
+            find_identifier_in_loc(line, pos_root).as_deref(),
+            Some("Root")
+        );
+    }
+
+    /// Same contract for `$key$` references: the membership test
+    /// `char_offset < m.end()` is byte-based, so a UTF-16 cursor near the end
+    /// of the key (where the byte/UTF-16 delta pushes it past the closing `$`
+    /// in byte space) must NOT resolve the key.
+    #[test]
+    fn test_find_identifier_in_loc_utf16_to_byte_key() {
+        use tower_lsp_server::ls_types::Position;
+
+        let line = "foo:0 \"§Rtext§! $TAG_NAME$\"";
+        // Cursor on 'N' inside the key: byte col 23, UTF-16 col 21.
+        let pos = Position {
+            line: 0,
+            character: 21,
+        };
+        assert_eq!(
+            find_identifier_in_loc(line, pos).as_deref(),
+            Some("TAG_NAME")
+        );
+
+        // Cursor at end of line: UTF-16 col 26. In raw UTF-16 units that value
+        // (26) still lies inside the byte window [18, 28) of the capture, so
+        // the unconverted code resolves TAG_NAME even though the cursor is
+        // past the closing `$`. The byte-converted position (28) is past
+        // m.end() (exclusive) → None, which is the byte-consistent answer.
+        let pos_delim = Position {
+            line: 0,
+            character: 26,
+        };
+        assert_eq!(
+            find_identifier_in_loc(line, pos_delim),
+            None,
+            "cursor past the closing $ must not resolve the key"
+        );
     }
 }
