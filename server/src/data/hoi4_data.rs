@@ -218,12 +218,24 @@ pub fn get_transparent_block_types() -> &'static [String] {
 
 /// Look up what scope a keyword pushes (if it has a pushes_scope)
 pub fn lookup_pushes_scope(key: &str) -> Option<Scope> {
+    // DB keys are lowercase in JSON; HOI4 files can write them in any case, so
+    // fall back to a case-insensitive lookup (mirrors lookup_chain_target). The
+    // exact hit short-circuits, so the lowercase fallback only allocates when
+    // the raw key isn't found.
     // Check triggers first
-    if let Some(entity) = DATA.triggers.get(key) {
+    if let Some(entity) = DATA
+        .triggers
+        .get(key)
+        .or_else(|| DATA.triggers.get(&key.to_ascii_lowercase()))
+    {
         return entity.pushes_scope;
     }
     // Then effects
-    if let Some(entity) = DATA.effects.get(key) {
+    if let Some(entity) = DATA
+        .effects
+        .get(key)
+        .or_else(|| DATA.effects.get(&key.to_ascii_lowercase()))
+    {
         return entity.pushes_scope;
     }
     None
@@ -450,6 +462,15 @@ mod tests {
         // Unknown entity has no pushes_scope
         let result = lookup_pushes_scope("nonexistent_trigger_xyz");
         assert!(result.is_none());
+
+        // Case-insensitive: DB keys are lowercase, files may write any case
+        // (mirrors lookup_chain_target). Uppercase must resolve identically.
+        assert_eq!(
+            lookup_pushes_scope("every_country"),
+            lookup_pushes_scope("EVERY_COUNTRY"),
+            "lookup_pushes_scope must be case-insensitive"
+        );
+        assert_eq!(lookup_pushes_scope("ALL_CORE_STATE"), Some(Scope::State));
     }
 
     #[test]
