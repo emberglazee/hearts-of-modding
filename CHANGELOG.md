@@ -34,6 +34,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Incremental scanner now correctly re-inserts layers at their correct priority.**
 
+- **Client color-code query raced the workspace scan resulting in only the default color codes being displayed.** Now event-driven by the server instead.
+
 ## [v0.24.1] - 2026-08-03
 
 ### ✨ Added

@@ -33,6 +33,17 @@ enum DocParse {
     Loc(crate::parser::loc_parser::LocParseOutcome),
 }
 
+/// Server → client push of the scanned §-color-code map, sent after the
+/// initial workspace scan completes. The client's old startup one-shot
+/// `hoi4/getColorCodes` request raced this ~12s scan and almost always got an
+/// empty map, leaving the loc decorator on wiki defaults forever.
+struct ColorCodesNotification;
+
+impl tower_lsp_server::ls_types::notification::Notification for ColorCodesNotification {
+    type Params = std::collections::HashMap<String, String>;
+    const METHOD: &'static str = "hoi4/colorCodes";
+}
+
 impl LanguageServer for Backend {
     async fn initialize(&self, params: InitializeParams) -> Result<InitializeResult> {
         if let Some(options) = params.initialization_options {
@@ -501,6 +512,15 @@ impl LanguageServer for Backend {
         self.scanner_data.rebuild_all_file_indices();
         // Update entity token context so semantic tokens reflect the freshly scanned entities
         self.update_entity_token_context();
+
+        // Push scanned color codes to the client — the startup one-shot query
+        // raced this scan and got an empty map, so without this push the loc
+        // decorator kept wiki defaults. Sent after update_entity_token_context
+        // so every color code the scan found is included.
+        let color_codes = self.color_codes_map();
+        self.client
+            .send_notification::<ColorCodesNotification>(color_codes)
+            .await;
 
         // Collect workspace file paths for rename operations
         // Use the workspace root (last element) — not the game path
@@ -1242,16 +1262,7 @@ impl LanguageServer for Backend {
             }
             return Ok(None);
         } else if params.command == "hoi4/getColorCodes" {
-            let color_codes: std::collections::HashMap<String, String> = self
-                .scanner_data
-                .color_codes
-                .iter()
-                .map(|entry| {
-                    let cc = entry.value().resolve();
-                    let hex = format!("#{:02X}{:02X}{:02X}", cc.rgb.0, cc.rgb.1, cc.rgb.2);
-                    (cc.symbol.clone(), hex)
-                })
-                .collect();
+            let color_codes = self.color_codes_map();
             let json = serde_json::to_value(&color_codes).unwrap();
             return Ok(Some(json));
         }

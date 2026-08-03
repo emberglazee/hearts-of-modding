@@ -106,6 +106,21 @@ impl Backend {
         }
     }
 
+    /// Build the §-symbol → hex-colour map from scanned `interface/*.gfx`
+    /// color codes. Shared by the `hoi4/getColorCodes` command and the
+    /// `hoi4/colorCodes` push notification sent after the initial scan.
+    pub(crate) fn color_codes_map(&self) -> std::collections::HashMap<String, String> {
+        self.scanner_data
+            .color_codes
+            .iter()
+            .map(|entry| {
+                let cc = entry.value().resolve();
+                let hex = format!("#{:02X}{:02X}{:02X}", cc.rgb.0, cc.rgb.1, cc.rgb.2);
+                (cc.symbol.clone(), hex)
+            })
+            .collect()
+    }
+
     pub(crate) fn make_file_link(&self, path: &str) -> String {
         // Try to canonicalize for absolute path if possible
         let abs_path = std::path::Path::new(path)
