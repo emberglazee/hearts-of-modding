@@ -1,134 +1,134 @@
 {
-    "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
-    "name": "Hearts of Iron IV",
-    "patterns": [
-        { "include": "#comments" },
-        { "include": "#strings" },
-        { "include": "#variables" },
-        { "include": "#numbers" },
-        { "include": "#operators" },
-        { "include": "#scopes" },
-        { "include": "#event_ids" },
-        { "include": "#keywords" },
-        { "include": "#punctuation" },
-        { "include": "#keys" }
-    ],
-    "repository": {
-        "comments": {
-            "patterns": [
-                {
-                    "name": "comment.line.number-sign.hoi4",
-                    "match": "#.*$"
-                }
-            ]
-        },
-        "strings": {
-            "name": "string.quoted.double.hoi4",
-            "begin": "\"",
-            "end": "\"",
-            "patterns": [
-                {
-                    "name": "constant.character.escape.hoi4",
-                    "match": "\\\\."
-                },
-                {
-                    "name": "variable.parameter.hoi4",
-                    "match": "\\[[^\\]]+\\]"
-                },
-                {
-                    "name": "entity.name.tag.hoi4",
-                    "match": "§[a-zA-Z0-9!]"
-                }
-            ]
-        },
-        "variables": {
-            "patterns": [
-                {
-                    "name": "variable.other.hoi4",
-                    "match": "\\[\\?[a-zA-Z0-9_\\.-]+\\]"
-                },
-                {
-                    "name": "variable.other.scoped.hoi4",
-                    "match": "\\b(var|temp_var|global|local|event_target|global_event_target):[a-zA-Z0-9_\\.-]+(@[a-zA-Z0-9_\\.-]+)?\\b"
-                }
-            ]
-        },
-        "numbers": {
-            "patterns": [
-                {
-                    "name": "constant.numeric.hoi4",
-                    "match": "\\b[0-9]+(\\.[0-9]+)?\\b"
-                },
-                {
-                    "name": "constant.numeric.percent.hoi4",
-                    "match": "\\b[0-9]+(\\.[0-9]+)?%+\\b"
-                }
-            ]
-        },
-        "operators": {
-            "patterns": [
-                {
-                    "name": "keyword.operator.hoi4",
-                    "match": "(=|<|>|!|<=|>=)"
-                }
-            ]
-        },
-        "scopes": {
-            "patterns": [
-                {
-                    "name": "entity.name.type.scope.hoi4",
-                    "match": "\\b(CAPITAL|CONTROLLER|FROM|FROM\\.FROM|FROM\\.FROM\\.FROM|OWNER|PREV|ROOT|THIS|character|country|global|state|unit)\\b"
-                }
-            ]
-        },
-        "event_ids": {
-            "patterns": [
-                {
-                    "name": "entity.name.constant.event.hoi4",
-                    "match": "\\b[a-zA-Z0-9_\\.-]+\\.[0-9]+\\b"
-                }
-            ]
-        },
-        "keywords": {
-            "patterns": [
-                {
-                    "name": "keyword.control.hoi4",
-                    "match": "\\b(AND|ANY|ELSE|ELSE_IF|EVERY|IF|LIMIT|NOT|OR|RANDOM|WHILE|no|yes)\\b"
-                },
-                {
-                    "name": "keyword.other.gui.hoi4",
-                    "match": "\\b(ADVISOR_CONTAINER_POS_Y|ADVISOR_POS_Y|AIR_ICON_X|AIR_ICON_Y|AIR_TEXT_X|AIR_TEXT_Y|ARMY_ICON_X|ARMY_ICON_Y|ARMY_TEXT_X|ARMY_TEXT_Y|ASCENDED_ADVISOR_CONTAINER_HEIGHT|ASCENDED_ADVISOR_CONTAINER_POS_Y|ASCENDED_ADVISOR_CONTAINER_WIDTH|ASCENDED_ADVISOR_FRAME_POS_Y|ASCENDED_ADVISOR_TEXT_POS_X|ASCENDED_ADVISOR_TEXT_POS_Y|B|BACKGROUND_X|BACKGROUND_Y|BG_X|BG_Y|Background|ButtonType|C|CHANCE_TEXT_X|DECISION_PROGRESS_BAR_X|DECISION_PROGRESS_BAR_Y|FACTION_CONTAINER_POS_Y|FACTION_ICONS_X|FACTION_NAMES_X|FACTION_POS_Y|FACTION_TEXT_X|FOLKHEMMET_ICON_X|FOLKHEMMET_ICON_Y|FOLKHEMMET_TEXT_X|FOLKHEMMET_TEXT_Y|G|H|HEADERS_Y|HOUSE_TEXT_X|IMPERIAL_DECISION_TEXT_POS_X|IMPERIAL_FACTION_CONTAINER_HEIGHT|IMPERIAL_FACTION_CONTAINER_POS_Y|IMPERIAL_FACTION_CONTAINER_WIDTH|IMPERIAL_FACTION_FRAME_POS_Y|IMPERIAL_FACTION_NAME_POS_X|IMPERIAL_FACTION_TEXT_POS_X|IMPERIAL_FACTION_TEXT_POS_Y|INVESTMENTS_TEXT_X|INVESTMENT_TYPE_ICONS_X|INVESTMENT_TYPE_NAMES_X|L|LOYALTY_TEXT_X|LineChartType|NAVY_ICON_X|NAVY_ICON_Y|NAVY_TEXT_X|NAVY_TEXT_Y|O|Orientation|Origo|OverlappingElementsBoxType|PARANOIA_PARANOIAMETER_BG_X|PARANOIA_PARANOIAMETER_BG_Y|PARANOIA_PARANOIAMETER_MAIN_X|PARANOIA_PARANOIAMETER_MAIN_Y|PARANOIA_TEXT_X|PARANOIA_TEXT_Y|PHOTO_1_X|PHOTO_1_Y|PHOTO_2_X|PHOTO_2_Y|PHOTO_3_X|PHOTO_3_Y|PHOTO_4_X|PHOTO_4_Y|PHOTO_5_X|PHOTO_5_Y|POPULARITY_TEXT_X|POSTERS_Y|POSTER_CENTER_X|POSTER_LEFT_X|POSTER_RIGHT_X|R|SENATE_TEXT_X|STATUS_Y|SpriteType|T|TEXTS_Y|TEXT_CENTER_X|TEXT_LEFT_X|TEXT_RIGHT_X|W|Y|add_horizontal|allwaystransparent|alwaysTransparent|alwaystransparent|amount|animatedmaptext|animation|animation_rate_fps|animation_rate_spf|animation_time|animation_type|animationblendmode|animationdelay|animationframes|animationlooping|animationmaskfile|animationrotation|animationrotationoffset|animationtexturefile|animationtexturescale|animationtime|animationtype|arrowType|attrition_column|attrition_title_column|b|backGround|background|background_margin|bitmapfont|bitmapfont_override|bitmapfonts|borderSize|bordersize|browserType|buttonType|checkBoxType|checkboxType|circularProgressBarType|closed_position|color|colors|colortwo|containerWindowType|corneredTileSpriteType|cursor|cursor_offset|decreaseButton|drag_scroll|dropDownBoxType|dx_offset|editBoxType|expandButton|expandedWindow|extendedScrollbarType|fontfiles|frameAnimatedSpriteType|g|gridBoxType|gridboxType|gridboxtype|guiButtonType|guiTypes|hide_position|iconType|increaseButton|instantTextBoxType|instantTextboxType|languages|listboxType|margin|maskedShieldType|max|max_slots|min|objectTypes|open_position|overlappingElementsBoxType|padding|pdx_tooltip_anchor|peek_check_size|peek_check_top_left|peek_position|pieChartType|position|positionType|progressBarType|progressbartype|rgb|scrollbarType|show_position|size|slider|slotsize|smoothListBoxType|spriteType|spriteTypes|t|textBoxType|textSpriteType|textblock|textcolors|tileSize|track|windowType)\\b"
-                }
-            ]
-        },
-        "punctuation": {
-            "patterns": [
-                {
-                    "name": "punctuation.section.block.begin.hoi4",
-                    "match": "\\{"
-                },
-                {
-                    "name": "punctuation.section.block.end.hoi4",
-                    "match": "\\}"
-                },
-                {
-                    "name": "punctuation.section.bracket.begin.hoi4",
-                    "match": "\\["
-                },
-                {
-                    "name": "punctuation.section.bracket.end.hoi4",
-                    "match": "\\]"
-                }
-            ]
-        },
-        "keys": {
-            "patterns": [
-                {
-                    "name": "variable.other.property.hoi4",
-                    "match": "\\b[a-zA-Z0-9_\\.-]+(?=\\s*(=|<|>|!|<=|>=))"
-                }
-            ]
-        }
-    },
-    "scopeName": "source.hoi4"
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "Hearts of Iron IV",
+	"patterns": [
+		{ "include": "#comments" },
+		{ "include": "#strings" },
+		{ "include": "#variables" },
+		{ "include": "#numbers" },
+		{ "include": "#operators" },
+		{ "include": "#scopes" },
+		{ "include": "#event_ids" },
+		{ "include": "#keywords" },
+		{ "include": "#punctuation" },
+		{ "include": "#keys" }
+	],
+	"repository": {
+		"comments": {
+			"patterns": [
+				{
+					"name": "comment.line.number-sign.hoi4",
+					"match": "#.*$"
+				}
+			]
+		},
+		"strings": {
+			"name": "string.quoted.double.hoi4",
+			"begin": "\"",
+			"end": "\"",
+			"patterns": [
+				{
+					"name": "constant.character.escape.hoi4",
+					"match": "\\\\."
+				},
+				{
+					"name": "variable.parameter.hoi4",
+					"match": "\\[[^\\]]+\\]"
+				},
+				{
+					"name": "entity.name.tag.hoi4",
+					"match": "§[a-zA-Z0-9!]"
+				}
+			]
+		},
+		"variables": {
+			"patterns": [
+				{
+					"name": "variable.other.hoi4",
+					"match": "\\[\\?[a-zA-Z0-9_\\.-]+\\]"
+				},
+				{
+					"name": "variable.other.scoped.hoi4",
+					"match": "\\b(var|temp_var|global|local|event_target|global_event_target):[a-zA-Z0-9_\\.-]+(@[a-zA-Z0-9_\\.-]+)?\\b"
+				}
+			]
+		},
+		"numbers": {
+			"patterns": [
+				{
+					"name": "constant.numeric.hoi4",
+					"match": "\\b[0-9]+(\\.[0-9]+)?\\b"
+				},
+				{
+					"name": "constant.numeric.percent.hoi4",
+					"match": "\\b[0-9]+(\\.[0-9]+)?%+\\b"
+				}
+			]
+		},
+		"operators": {
+			"patterns": [
+				{
+					"name": "keyword.operator.hoi4",
+					"match": "(=|<|>|!|<=|>=)"
+				}
+			]
+		},
+		"scopes": {
+			"patterns": [
+				{
+					"name": "entity.name.type.scope.hoi4",
+					"match": "\\b(CAPITAL|CONTROLLER|FROM|FROM\\.FROM|FROM\\.FROM\\.FROM|OWNER|PREV|ROOT|THIS|character|country|global|state|unit)\\b"
+				}
+			]
+		},
+		"event_ids": {
+			"patterns": [
+				{
+					"name": "entity.name.constant.event.hoi4",
+					"match": "\\b[a-zA-Z0-9_\\.-]+\\.[0-9]+\\b"
+				}
+			]
+		},
+		"keywords": {
+			"patterns": [
+				{
+					"name": "keyword.control.hoi4",
+					"match": "\\b(AND|ANY|ELSE|ELSE_IF|EVERY|IF|LIMIT|NOT|OR|RANDOM|WHILE|no|yes)\\b"
+				},
+				{
+					"name": "keyword.other.gui.hoi4",
+					"match": "\\b(ADVISOR_CONTAINER_POS_Y|ADVISOR_POS_Y|AIR_ICON_X|AIR_ICON_Y|AIR_TEXT_X|AIR_TEXT_Y|ARMY_ICON_X|ARMY_ICON_Y|ARMY_TEXT_X|ARMY_TEXT_Y|ASCENDED_ADVISOR_CONTAINER_HEIGHT|ASCENDED_ADVISOR_CONTAINER_POS_Y|ASCENDED_ADVISOR_CONTAINER_WIDTH|ASCENDED_ADVISOR_FRAME_POS_Y|ASCENDED_ADVISOR_TEXT_POS_X|ASCENDED_ADVISOR_TEXT_POS_Y|B|BACKGROUND_X|BACKGROUND_Y|BG_X|BG_Y|Background|ButtonType|C|CHANCE_TEXT_X|DECISION_PROGRESS_BAR_X|DECISION_PROGRESS_BAR_Y|FACTION_CONTAINER_POS_Y|FACTION_ICONS_X|FACTION_NAMES_X|FACTION_POS_Y|FACTION_TEXT_X|FOLKHEMMET_ICON_X|FOLKHEMMET_ICON_Y|FOLKHEMMET_TEXT_X|FOLKHEMMET_TEXT_Y|G|H|HEADERS_Y|HOUSE_TEXT_X|IMPERIAL_DECISION_TEXT_POS_X|IMPERIAL_FACTION_CONTAINER_HEIGHT|IMPERIAL_FACTION_CONTAINER_POS_Y|IMPERIAL_FACTION_CONTAINER_WIDTH|IMPERIAL_FACTION_FRAME_POS_Y|IMPERIAL_FACTION_NAME_POS_X|IMPERIAL_FACTION_TEXT_POS_X|IMPERIAL_FACTION_TEXT_POS_Y|INVESTMENTS_TEXT_X|INVESTMENT_TYPE_ICONS_X|INVESTMENT_TYPE_NAMES_X|L|LOYALTY_TEXT_X|LineChartType|NAVY_ICON_X|NAVY_ICON_Y|NAVY_TEXT_X|NAVY_TEXT_Y|O|Orientation|Origo|OverlappingElementsBoxType|PARANOIA_PARANOIAMETER_BG_X|PARANOIA_PARANOIAMETER_BG_Y|PARANOIA_PARANOIAMETER_MAIN_X|PARANOIA_PARANOIAMETER_MAIN_Y|PARANOIA_TEXT_X|PARANOIA_TEXT_Y|PHOTO_1_X|PHOTO_1_Y|PHOTO_2_X|PHOTO_2_Y|PHOTO_3_X|PHOTO_3_Y|PHOTO_4_X|PHOTO_4_Y|PHOTO_5_X|PHOTO_5_Y|POPULARITY_TEXT_X|POSTERS_Y|POSTER_CENTER_X|POSTER_LEFT_X|POSTER_RIGHT_X|R|SENATE_TEXT_X|STATUS_Y|SpriteType|T|TEXTS_Y|TEXT_CENTER_X|TEXT_LEFT_X|TEXT_RIGHT_X|W|Y|add_horizontal|allwaystransparent|alwaysTransparent|alwaystransparent|amount|animatedmaptext|animation|animation_rate_fps|animation_rate_spf|animation_time|animation_type|animationblendmode|animationdelay|animationframes|animationlooping|animationmaskfile|animationrotation|animationrotationoffset|animationtexturefile|animationtexturescale|animationtime|animationtype|arrowType|attrition_column|attrition_title_column|b|backGround|background|background_margin|bitmapfont|bitmapfont_override|bitmapfonts|borderSize|bordersize|browserType|buttonType|checkBoxType|checkboxType|circularProgressBarType|closed_position|color|colors|colortwo|containerWindowType|corneredTileSpriteType|cursor|cursor_offset|decreaseButton|drag_scroll|dropDownBoxType|dx_offset|editBoxType|expandButton|expandedWindow|extendedScrollbarType|fontfiles|frameAnimatedSpriteType|g|gridBoxType|gridboxType|gridboxtype|guiButtonType|guiTypes|hide_position|iconType|increaseButton|instantTextBoxType|instantTextboxType|languages|listboxType|margin|maskedShieldType|max|max_slots|min|objectTypes|open_position|overlappingElementsBoxType|padding|pdx_tooltip_anchor|peek_check_size|peek_check_top_left|peek_position|pieChartType|position|positionType|progressBarType|progressbartype|rgb|scrollbarType|show_position|size|slider|slotsize|smoothListBoxType|spriteType|spriteTypes|t|textBoxType|textSpriteType|textblock|textcolors|tileSize|track|windowType)\\b"
+				}
+			]
+		},
+		"punctuation": {
+			"patterns": [
+				{
+					"name": "punctuation.section.block.begin.hoi4",
+					"match": "\\{"
+				},
+				{
+					"name": "punctuation.section.block.end.hoi4",
+					"match": "\\}"
+				},
+				{
+					"name": "punctuation.section.bracket.begin.hoi4",
+					"match": "\\["
+				},
+				{
+					"name": "punctuation.section.bracket.end.hoi4",
+					"match": "\\]"
+				}
+			]
+		},
+		"keys": {
+			"patterns": [
+				{
+					"name": "variable.other.property.hoi4",
+					"match": "\\b[a-zA-Z0-9_\\.-]+(?=\\s*(=|<|>|!|<=|>=))"
+				}
+			]
+		}
+	},
+	"scopeName": "source.hoi4"
 }
