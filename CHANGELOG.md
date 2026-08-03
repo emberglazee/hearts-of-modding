@@ -38,6 +38,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Client color-code query raced the workspace scan resulting in only the default color codes being displayed.** Now event-driven by the server instead.
 
+- **Toggling `hoi4.validator.scopeValidationEnabled` while the LSP was running had no effect** until a server restart. The setting is now applied live via `workspace/didChangeConfiguration`.
+
 ## [v0.24.1] - 2026-08-03
 
 ### ✨ Added

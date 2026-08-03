@@ -601,6 +601,17 @@ impl LanguageServer for Backend {
                         let _ig = self.config.ignored_files_regex();
                     }
                     if let Some(enabled) = validator
+                        .get("scopeValidationEnabled")
+                        .and_then(|v| v.as_bool())
+                    {
+                        // Live-toggle HOM004 scope validation. The client sends
+                        // this in workspace/didChangeConfiguration on setting
+                        // change; without this arm the toggle only applied on
+                        // server restart.
+                        self.config.set_scope_validation_enabled(enabled);
+                        let _sv = self.config.scope_validation_enabled();
+                    }
+                    if let Some(enabled) = validator
                         .get("workspaceScan")
                         .and_then(|v| v.as_object())
                         .and_then(|v| v.get("enabled"))
