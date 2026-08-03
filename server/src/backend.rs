@@ -84,6 +84,21 @@ impl Backend {
             .await;
     }
 
+    /// Resolve the `map/default.map` config for the workspace root that
+    /// contains `uri`. Multi-root-safe: the longest matching root wins (most
+    /// specific), falling back to the first root, then to the legacy server
+    /// CWD (`.`) for documents outside every root (e.g. opened from elsewhere).
+    pub(crate) fn map_config_for_uri(&self, uri: &str) -> crate::utils::map_config::MapConfig {
+        let roots = self.workspace_roots.lock().unwrap();
+        match crate::utils::map_config::matching_root(&roots, uri) {
+            Some(root) => crate::utils::map_config::get_map_config(root),
+            None => match roots.first() {
+                Some(root) => crate::utils::map_config::get_map_config(root),
+                None => crate::utils::map_config::get_map_config(std::path::Path::new(".")),
+            },
+        }
+    }
+
     pub(crate) fn make_file_link(&self, path: &str) -> String {
         // Try to canonicalize for absolute path if possible
         let abs_path = std::path::Path::new(path)
@@ -498,7 +513,9 @@ impl Backend {
 
         let styling_enabled = self.config.styling_enabled();
         let mut script_opt: Option<Arc<ast::Script>> = None;
-        let map_config = crate::utils::map_config::get_map_config(std::path::Path::new("."));
+        // Map config resolved against the workspace root containing this
+        // document (multi-root safe), not the server CWD.
+        let map_config = self.map_config_for_uri(uri.as_str());
 
         if uri.as_str().ends_with(".yml") {
             self.validate_localization_content(uri, content, &mut diagnostics)

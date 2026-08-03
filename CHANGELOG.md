@@ -2,7 +2,7 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
-## [v0.24.2] - 2026-08-03
+## [v0.25.0] - 2026-08-04
 
 ### ✨ Added
 
@@ -25,6 +25,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 - **Fixed call hierarchy and localization goto-definition UTF-16 inception bugs.**
 
 - **Removed provably dead localization scans that resulted in wasted O(N)** from the hover handler, entity lookup, and the events parser.
+
+- **Resolve the map files per-URI instead of server CWD.**
 
 ## [v0.24.1] - 2026-08-03
 

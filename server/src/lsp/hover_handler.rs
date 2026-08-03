@@ -20,7 +20,9 @@ impl Backend {
             .uri
             .to_string();
         let position = params.text_document_position_params.position;
-        let map_config = crate::utils::map_config::get_map_config(std::path::Path::new("."));
+        // Map config resolved against the workspace root CONTAINING this
+        // document (multi-root safe), not the server CWD.
+        let map_config = self.map_config_for_uri(&uri);
 
         let color_map = crate::utils::loc_preview::build_color_map(&self.scanner_data);
         if let Some(content) = self.documents.get(&uri) {

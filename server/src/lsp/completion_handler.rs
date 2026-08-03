@@ -64,7 +64,7 @@ impl Backend {
 
         // Handle adjacency files
         {
-            let map_config = crate::utils::map_config::get_map_config(std::path::Path::new("."));
+            let map_config = self.map_config_for_uri(&uri);
             if uri.ends_with(&map_config.adjacencies) {
                 if let Some(content) = self.documents.get(&uri) {
                     if let Some(line) = content.lines().nth(position.line as usize) {

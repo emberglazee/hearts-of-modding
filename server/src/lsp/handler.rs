@@ -416,8 +416,15 @@ impl LanguageServer for Backend {
             roots.push(std::path::PathBuf::from("."));
         }
 
-        // Store roots for texture file path resolution and other validation
-        *self.workspace_roots.lock().unwrap() = roots.clone();
+        // Store roots for texture file path resolution and other validation.
+        // Canonicalize so the `.` workspace root becomes its real absolute
+        // path — per-URI lookups (map config resolution, etc.) match document
+        // URIs against these roots, and a bare `.` never matches a URI prefix.
+        let stored_roots: Vec<std::path::PathBuf> = roots
+            .iter()
+            .map(|r| r.canonicalize().unwrap_or_else(|_| r.clone()))
+            .collect();
+        *self.workspace_roots.lock().unwrap() = stored_roots;
 
         // Build file-level overlay for path-priority-based scanning.
         // Script files (events, ideas, focuses, etc.) use file-path-level override:
