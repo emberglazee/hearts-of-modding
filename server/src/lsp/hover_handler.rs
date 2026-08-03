@@ -802,19 +802,16 @@ impl Backend {
                         );
                     }
 
-                    // Check localization
+                    // Check localization — exact key match only.
+                    // (A `{key}:`-prefixed fallback scan used to live here:
+                    // stored loc keys are the text before the first `:` — e.g.
+                    // `foo` from `foo:0 "..."` — so they can never contain `:`
+                    // and the scan was O(N) dead work on every hover that
+                    // missed the exact key.)
                     let loc = &self.scanner_data.localization;
-                    // Try exact match first, then try keys starting with ID:
                     let entry: Option<loc_parser::LocEntry> = loc
                         .get(identifier.as_str())
-                        .map(|e| e.value().resolve().clone())
-                        .or_else(|| {
-                            // Find any key that starts with "identifier:"
-                            let target = format!("{}:", identifier);
-                            loc.iter()
-                                .find(|entry| entry.key().starts_with(&target))
-                                .map(|entry| entry.value().resolve().clone())
-                        });
+                        .map(|e| e.value().resolve().clone());
 
                     if let Some(e) = entry {
                         let mut text = format!("### 🌐 Localization: {}\n\n", e.key);

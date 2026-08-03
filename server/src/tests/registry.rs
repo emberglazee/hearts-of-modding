@@ -235,6 +235,41 @@ fn test_bop_and_portraits_overlay_paths() {
     let _ = fs::remove_dir_all(&tmp);
 }
 
+/// find_definition resolves localization via exact key match only (the
+/// `{key}:`-prefixed scan was provably dead: stored loc keys never contain
+/// `:`). Guards the loc branch against resurrecting an O(N) scan.
+#[test]
+fn test_find_definition_localization_exact_match() {
+    let data = ScannerData::new();
+    data.localization.insert(
+        InternedStr::from("test_loc"),
+        LayeredValue::new(crate::parser::loc_parser::LocEntry {
+            key: InternedStr::from("test_loc"),
+            value: "Value".to_string(),
+            range: dummy_range(),
+            path: InternedStr::from("test.yml"),
+            value_start_col: 0,
+            version: None,
+            version_range: None,
+        }),
+    );
+
+    let lookup = EntityLookup::new(&data);
+    let defs = lookup.find_definition("test_loc");
+    assert_eq!(
+        defs.len(),
+        1,
+        "exact loc key must resolve to exactly one location"
+    );
+    assert_eq!(
+        defs[0].kind,
+        crate::data::entity_lookup::EntityKind::Localization,
+    );
+
+    // Non-loc key → zero results without any scan.
+    assert!(lookup.find_definition("not_a_loc_key").is_empty());
+}
+
 /// Verify EntityLookup::entity_at works with standard scanners.
 #[test]
 fn test_standard_scanner_entity_at() {

@@ -12,6 +12,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Associate `portraits/**/*.txt` with HoM's `hoi4` language mode.**
 
+- **Removed provably dead localization scans that resulted in wasted O(N)** from the hover handler, entity lookup, and the events parser.
+
 ## [v0.24.1] - 2026-08-03
 
 ### ✨ Added

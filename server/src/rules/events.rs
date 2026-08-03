@@ -156,13 +156,15 @@ impl EventVisitor {
         }
 
         // HOM3018: title loc key missing from localization
+        // (A `{key}:`-prefixed suppression scan used to live here; stored loc
+        // keys are the text before the first `:` — e.g. `foo` from `foo:0 "..."`
+        // — so they can never contain `:` and the scan never suppressed
+        // anything, just cost O(N) per missing key.)
         if !ctx.loc.is_empty() {
             if let Some(ref key) = state.title_key {
                 if !ctx.loc.contains_key(key.as_str()) {
-                    let prefix = format!("{}:", key);
-                    if !ctx.loc.iter().any(|e| e.key().starts_with(&prefix)) {
-                        let d = state.title_range.as_ref().unwrap_or(&state.key_range);
-                        diags.push(Diagnostic {
+                    let d = state.title_range.as_ref().unwrap_or(&state.key_range);
+                    diags.push(Diagnostic {
                         range: ctx.range(d),
                         severity: Some(DiagnosticSeverity::WARNING),
                         message: format!(
@@ -176,17 +178,14 @@ impl EventVisitor {
                         source: Some("Hearts of Modding".to_string()),
                         ..Default::default()
                     });
-                    }
                 }
             }
 
             // HOM3019: desc loc key missing from localization
             if let Some(ref key) = state.desc_key {
                 if !ctx.loc.contains_key(key.as_str()) {
-                    let prefix = format!("{}:", key);
-                    if !ctx.loc.iter().any(|e| e.key().starts_with(&prefix)) {
-                        let d = state.desc_range.as_ref().unwrap_or(&state.key_range);
-                        diags.push(Diagnostic {
+                    let d = state.desc_range.as_ref().unwrap_or(&state.key_range);
+                    diags.push(Diagnostic {
                         range: ctx.range(d),
                         severity: Some(DiagnosticSeverity::WARNING),
                         message: format!(
@@ -200,7 +199,6 @@ impl EventVisitor {
                         source: Some("Hearts of Modding".to_string()),
                         ..Default::default()
                     });
-                    }
                 }
             }
         } // end loc_ready guard

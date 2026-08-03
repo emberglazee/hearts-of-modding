@@ -326,4 +326,26 @@ mod tests {
             "loc formatter column should account for § bytes: byte 7 → UTF-16 6, start_col=2+6+1=9"
         );
     }
+
+    /// Loc keys are the text before the FIRST colon (`foo` from `foo:0 "..."`),
+    /// so they can never contain `:`. This is the parser property that makes
+    /// `{key}:`-prefixed fallback scans (hover, goto-definition, HOM3018/3019
+    /// suppression) provably dead — they were removed as O(N) dead work. A
+    /// regression here (keys gaining a colon) would silently resurrect them.
+    #[test]
+    fn test_loc_keys_never_contain_colon() {
+        let content = "l_english:\n\
+            foo:0 \"Value\"\n\
+            foo.bar:5 \"Nested\"\n\
+            baz_qux: \"No version\"\n";
+        let (parsed, _, _) = loc_parser::parse_loc_file(content, "test.yml");
+        let keys: Vec<String> = parsed.keys().map(|k| k.to_string()).collect();
+        assert!(
+            keys.iter().all(|k| !k.contains(':')),
+            "loc keys must be colon-free, got: {keys:?}"
+        );
+        assert!(parsed.contains_key("foo"));
+        assert!(parsed.contains_key("foo.bar"));
+        assert!(parsed.contains_key("baz_qux"));
+    }
 }
