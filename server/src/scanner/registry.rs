@@ -81,7 +81,7 @@ macro_rules! for_each_standard_scanner {
             Portrait,
             Portrait,
             portraits,
-            "gfx/portraits",
+            "portraits",
             &["txt"]
         );
         $mac!(
@@ -129,7 +129,7 @@ macro_rules! for_each_standard_scanner {
             BalanceOfPower,
             BalanceOfPower,
             balance_of_powers,
-            "common/balance_of_power",
+            "common/bop",
             &["txt"]
         );
         $mac!(

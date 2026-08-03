@@ -2,6 +2,12 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
+## [v0.24.2] - 2026-08-03
+
+### 🩹 Fixed
+
+- **Fixed wrong balance of power and character portrait paths in overlay prefix and scanners.**
+
 ## [v0.24.1] - 2026-08-03
 
 ### ✨ Added

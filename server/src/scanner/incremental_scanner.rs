@@ -407,9 +407,10 @@ pub(crate) fn dependency_affected_prefixes(path: &str) -> Vec<&'static str> {
     }
     if lower.contains("/interface/") {
         // Sprite/GFX definitions consumed by idea sprite, event picture, portrait
+        // (portrait pools live at top-level portraits/, not gfx/portraits)
         affected.push("/common/ideas/");
         affected.push("/events/");
-        affected.push("/gfx/portraits/");
+        affected.push("/portraits/");
     }
     if lower.contains("/events/") {
         // Event definitions and namespaces consumed by cross-event references

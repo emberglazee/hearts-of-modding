@@ -135,6 +135,106 @@ fn test_standard_scanner_count() {
     );
 }
 
+/// Verify the registry's scanner directories match the engine's real paths.
+/// Regression guard: balance-of-power files live at `common/bop` (there is NO
+/// `common/balance_of_power` dir) and portrait pools at top-level `portraits/`
+/// (there is NO `gfx/portraits` dir). The orchestrator feeds these dir strings
+/// to the FileOverlay, so a wrong dir silently empties the whole DashMap.
+#[test]
+fn test_standard_scanner_dir_paths() {
+    macro_rules! dir_check {
+        ($mod:ident, $ty:ident, $kind:ident, $field:ident, $dir:expr, $ext:expr) => {
+            match stringify!($mod) {
+                "bop_scanner" => assert_eq!(
+                    $dir, "common/bop",
+                    "balance of power files live at common/bop, not common/balance_of_power"
+                ),
+                "portrait_scanner" => assert_eq!(
+                    $dir, "portraits",
+                    "portrait pools live at top-level portraits/, not gfx/portraits"
+                ),
+                _ => {}
+            }
+        };
+    }
+    crate::for_each_standard_scanner!(dir_check);
+}
+
+/// End-to-end: the FileOverlay must index `common/bop/*.txt` and `portraits/*.txt`
+/// under their engine paths, and the scanners must extract from the winning files.
+/// Guards the orchestrator's `winning_files_in()` prefixes — the old wrong
+/// prefixes (`common/balance_of_power`, `gfx/portraits`) must stay empty.
+#[test]
+fn test_bop_and_portraits_overlay_paths() {
+    use crate::scanner::file_overlay::FileOverlay;
+    use std::fs;
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    static COUNTER: AtomicU64 = AtomicU64::new(0);
+    let id = COUNTER.fetch_add(1, Ordering::Relaxed);
+    let tmp = std::env::temp_dir().join(format!("hom_path_test_{}_{}", std::process::id(), id));
+    let root = tmp.join("mod");
+    fs::create_dir_all(root.join("common/bop")).unwrap();
+    fs::create_dir_all(root.join("portraits")).unwrap();
+
+    fs::write(
+        root.join("common/bop/test_power.txt"),
+        "test_power = {\n\
+         \tinitial_value = 50\n\
+         \tleft_side = test_left\n\
+         \tright_side = test_right\n\
+         \trange = { id = r0 min = -1 max = 1 }\n\
+         }\n",
+    )
+    .unwrap();
+    fs::write(
+        root.join("portraits/test_pool.txt"),
+        "ENG = {\n\tarmy = { }\n}\n",
+    )
+    .unwrap();
+
+    let roots = vec![root.clone()];
+    let filter = |_: &std::path::Path| false;
+    let overlay = FileOverlay::build_script_only(&roots, &["txt"], filter, &[]);
+
+    // Engine paths must be indexed; the old wrong prefixes must stay empty.
+    let bop_files = overlay.winning_files_in("common/bop");
+    assert_eq!(bop_files.len(), 1, "overlay must index common/bop/*.txt");
+    assert!(
+        overlay
+            .winning_files_in("common/balance_of_power")
+            .is_empty(),
+        "common/balance_of_power is not an engine path"
+    );
+
+    let portrait_files = overlay.winning_files_in("portraits");
+    assert_eq!(
+        portrait_files.len(),
+        1,
+        "overlay must index portraits/*.txt"
+    );
+    assert!(
+        overlay.winning_files_in("gfx/portraits").is_empty(),
+        "gfx/portraits is not an engine path"
+    );
+
+    // Extraction from the winning files must actually produce entities.
+    let bops = crate::scanner::bop_scanner::scan_balance_of_power_files(&bop_files, &filter);
+    assert!(
+        bops.contains_key("test_power"),
+        "bop extractor should parse the file"
+    );
+    assert_eq!(bops["test_power"].initial_value, Some(50.0));
+
+    let portraits = crate::scanner::portrait_scanner::scan_portrait_files(&portrait_files, &filter);
+    assert!(
+        portraits.contains_key("ENG"),
+        "portrait extractor should parse the pool file"
+    );
+
+    let _ = fs::remove_dir_all(&tmp);
+}
+
 /// Verify EntityLookup::entity_at works with standard scanners.
 #[test]
 fn test_standard_scanner_entity_at() {

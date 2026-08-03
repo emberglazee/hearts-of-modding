@@ -432,10 +432,13 @@ impl Backend {
     }
 
     pub(crate) async fn scan_portraits(&self, overlay: &crate::scanner::file_overlay::FileOverlay) {
+        // Portrait pools live at top-level portraits/*.txt (NOT gfx/portraits).
+        // Must match the incremental classifier (incremental_scanner.rs) and the
+        // roots-based scan_portraits in portrait_scanner.rs.
         scan_dashmap_overlay!(
             self,
             overlay,
-            "gfx/portraits",
+            "portraits",
             portrait_scanner::scan_portrait_files,
             portraits,
             &["txt"],
@@ -705,10 +708,13 @@ impl Backend {
         &self,
         overlay: &crate::scanner::file_overlay::FileOverlay,
     ) {
+        // Engine path is common/bop (no underscore / no "balance_of_power" dir).
+        // Must match the incremental classifier (incremental_scanner.rs) and the
+        // roots-based scan_balance_of_powers in bop_scanner.rs.
         scan_dashmap_overlay!(
             self,
             overlay,
-            "common/balance_of_power",
+            "common/bop",
             bop_scanner::scan_balance_of_power_files,
             balance_of_powers,
             &["txt"],
