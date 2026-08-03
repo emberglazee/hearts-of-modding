@@ -4,6 +4,7 @@ on:
   workflow_call:
 
 jobs:
+  # ── Static gate: formatting + lint, fast feedback on the cheapest runner. ──
   check:
     name: Check
     runs-on: ubuntu-latest
@@ -30,16 +31,50 @@ jobs:
           cd server
           cargo clippy -- --deny warnings
 
-      - name: Test
+  # ── Native test matrix: every target that gets a release binary, tested on
+  # ── its own runner. macOS amd64 is excluded — it is a cross-build from the
+  # ── arm64 macos runner (no Intel mac runners), not a native target. ──
+  test:
+    name: Test (${{ matrix.os }} - ${{ matrix.target }})
+    needs: check
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+          - os: windows-11-arm
+            target: aarch64-pc-windows-msvc
+          - os: macos-latest
+            target: aarch64-apple-darwin
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: server -> target
+
+      - name: Run Tests
         run: |
           cd server
           cargo test
         env:
           RUST_BACKTRACE: 1
 
+  # ── Release builds: only after ALL native tests pass (check + 5-target
+  # ── matrix). Builds 6 combos; asset names follow hom-lsp-<os>-<arch>[.exe]. ──
   build:
     name: Build (${{ matrix.os }} - ${{ matrix.target }})
-    needs: check
+    needs: [check, test]
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -92,30 +127,3 @@ jobs:
             server/target/${{ matrix.target }}/release/hom-lsp
             server/target/${{ matrix.target }}/release/hom-lsp.exe
           if-no-files-found: error
-
-  test:
-    name: Test (${{ matrix.os }})
-    needs: check
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os:
-          - windows-latest
-          - macos-latest
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Rust Cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: server -> target
-
-      - name: Run Tests
-        run: |
-          cd server
-          cargo test
-        env:
-          RUST_BACKTRACE: 1
