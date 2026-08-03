@@ -2,7 +2,8 @@ use std::sync::Arc;
 
 use crate::parser::ast::{self, ByteSpan, Range, Value};
 use crate::validation::advanced_validation::{
-    DOUBLE_ASSIGNMENT, IMPLICIT_EOF_CLOSE, SECTION_SIGN_IN_VALUE, STRAY_BRACE,
+    DOUBLE_ASSIGNMENT, IMPLICIT_EOF_CLOSE, MALFORMED_LEADING_DOT_NUMBER, SECTION_SIGN_IN_VALUE,
+    STRAY_BRACE,
 };
 use nom::{
     IResult, Parser,
@@ -253,8 +254,11 @@ fn parse_identifier_value(input: Span) -> IResult<Span, ast::NodeedValue> {
     let byte_span = to_byte_span(raw);
     let text = raw.fragment();
 
-    // Fast-path: only try f64 parsing if the string starts with a digit, '-', or '+'
-    // This avoids the expensive str::parse::<f64> call on every identifier.
+    // Fast-path: only try f64 parsing if the string starts with a digit, '-', or '+'.
+    // NOTE: NOT '.' — HOI4 rejects leading-dot numbers (empirically verified:
+    // `Malformed token: .5`). A `.5` stays a String and is flagged by the
+    // leading-dot-number scan (HOM6004) instead. This avoids the expensive
+    // str::parse::<f64> call on every identifier.
     if let Some(first_byte) = text.as_bytes().first() {
         if first_byte.is_ascii_digit() || *first_byte == b'-' || *first_byte == b'+' {
             if let Ok(n) = text.parse::<f64>() {
@@ -437,6 +441,68 @@ fn recover_chained_equals(input: Span, first: ast::NodeedValue) -> IResult<Span,
         }
     }
     Ok((cur, val))
+}
+
+/// Byte-scan for leading-dot numbers (`.5`) which the engine REJECTS
+/// (empirically: `Malformed token: .5`). `.5` must be written `0.5`. The parser
+/// keeps it as a String so the file parses; this supplies the specific HOM6004
+/// ERROR pointing at the offending token. Skips strings/comments; never flags
+/// `0.5` (digit before the dot) or dotted identifiers (`foo.bar`).
+fn collect_leading_dot_number_ranges(input: &str) -> Vec<Range> {
+    let b = input.as_bytes();
+    let n = b.len();
+    let mut out = Vec::new();
+    let loc = |pos: usize| -> (u32, u32) {
+        let line = input[..pos].matches('\n').count() as u32;
+        let col = (pos - input[..pos].rfind('\n').map_or(0, |p| p + 1)) as u32;
+        (line, col)
+    };
+
+    let mut i = 0;
+    while i < n {
+        match b[i] {
+            b'#' => {
+                while i < n && b[i] != b'\n' {
+                    i += 1;
+                }
+            }
+            b'"' => {
+                i += 1;
+                while i < n && b[i] != b'"' {
+                    if b[i] == b'\\' {
+                        i += 1;
+                    }
+                    i += 1;
+                }
+            }
+            b'.' => {
+                // Token-start dot (previous char not part of an identifier) with
+                // a digit right after = a leading-dot number.
+                let prev_ok =
+                    i == 0 || !(b[i - 1].is_ascii() && is_identifier_char(b[i - 1] as char));
+                let next_ok = i + 1 < n && b[i + 1].is_ascii_digit();
+                if prev_ok && next_ok {
+                    let mut j = i + 1;
+                    while j < n && b[j].is_ascii_digit() {
+                        j += 1;
+                    }
+                    let (l0, c0) = loc(i);
+                    let (l1, c1) = loc(j);
+                    out.push(Range {
+                        start_line: l0,
+                        start_col: c0,
+                        end_line: l1,
+                        end_col: c1,
+                    });
+                    i = j;
+                    continue;
+                }
+            }
+            _ => {}
+        }
+        i += 1;
+    }
+    out
 }
 
 fn parse_entry(input: Span) -> IResult<Span, ast::Entry> {
@@ -825,6 +891,19 @@ pub fn parse_script(input: &str) -> (ast::Script, Vec<(String, Range)>) {
                  HOI4 does not allow this (Clausewitz throws \"Unexpected token: =\"). \
                  Remove the extra `=`: use `key = value`, or a block `key = {{ ... }}`.",
                 DOUBLE_ASSIGNMENT
+            ),
+            r,
+        ));
+    }
+
+    // Leading-dot numbers (`.5`) — engine REJECTS them (`Malformed token: .5`);
+    // keep the AST as String but surface a specific ERROR telling them to use `0.5`.
+    for r in collect_leading_dot_number_ranges(&input_clean) {
+        errors.push((
+            format!(
+                "{}: Malformed number starting with a dot. The engine rejects `.5` \
+                 (\"Malformed token: .5\") — write it with a leading zero: `0.5`.",
+                MALFORMED_LEADING_DOT_NUMBER
             ),
             r,
         ));

@@ -157,6 +157,11 @@ fn test_standard_scanner_entity_at() {
             },
         }),
     );
+    // The reverse per-path index `entity_at` now relies on (path -> names).
+    data.achievements_file_index.insert(
+        InternedStr::from("test.txt"),
+        vec![InternedStr::from("test")],
+    );
 
     let lookup = EntityLookup::new(&data);
     let pos = tower_lsp_server::ls_types::Position {

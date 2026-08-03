@@ -579,6 +579,13 @@ impl Backend {
                             advanced_validation::DOUBLE_ASSIGNMENT.to_string(),
                         )),
                     )
+                } else if msg.starts_with(advanced_validation::MALFORMED_LEADING_DOT_NUMBER) {
+                    (
+                        Some(DiagnosticSeverity::ERROR),
+                        Some(NumberOrString::String(
+                            advanced_validation::MALFORMED_LEADING_DOT_NUMBER.to_string(),
+                        )),
+                    )
                 } else {
                     (
                         Some(DiagnosticSeverity::ERROR),
@@ -641,6 +648,13 @@ impl Backend {
                         Some(DiagnosticSeverity::ERROR),
                         Some(NumberOrString::String(
                             advanced_validation::DOUBLE_ASSIGNMENT.to_string(),
+                        )),
+                    )
+                } else if msg.starts_with(advanced_validation::MALFORMED_LEADING_DOT_NUMBER) {
+                    (
+                        Some(DiagnosticSeverity::ERROR),
+                        Some(NumberOrString::String(
+                            advanced_validation::MALFORMED_LEADING_DOT_NUMBER.to_string(),
                         )),
                     )
                 } else {

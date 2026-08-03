@@ -5,7 +5,6 @@ pub const PARSE_ERROR: &str = "HOM001";
 pub const UNKNOWN_TRIGGER: &str = "HOM002";
 #[allow(dead_code)]
 pub const UNKNOWN_EFFECT: &str = "HOM003";
-#[allow(dead_code)]
 pub const SCOPE_MISMATCH: &str = "HOM004";
 pub const MISSING_LOCALIZATION: &str = "HOM005";
 
@@ -24,25 +23,8 @@ pub const UNKNOWN_DIVISION_TEMPLATE: &str = "HOM3006";
 pub const MISSING_EVENT_NAMESPACE: &str = "HOM3008";
 pub const NON_INTEGER_EVENT_ID: &str = "HOM3009";
 pub const EVENT_ID_TOO_LARGE: &str = "HOM3010";
-#[allow(dead_code)]
 pub const DUPLICATE_EVENT_ID: &str = "HOM3011";
 pub const DUPLICATE_EVENT_NAMESPACE: &str = "HOM3012";
-/// Block implicitly closed at end-of-file (Clausewitz engine accepts this)
-pub const IMPLICIT_EOF_CLOSE: &str = "HOM6000";
-/// Extra closing brace `}` that doesn't match any open block — the engine
-/// silently discards it, but it's worth flagging as INFO for cleanliness.
-pub const STRAY_BRACE: &str = "HOM6001";
-/// Section sign `§` in an unquoted script value — the engine either silently
-/// corrupts the value to 0 or errors out depending on position. Check the
-/// actual file content and consider replacing or quoting it.
-/// Added because this was encountered in v1.18.3 `ship_hull_carrier.txt:708`.
-pub const SECTION_SIGN_IN_VALUE: &str = "HOM6002";
-
-/// Double assignment on one line (`key = value = value`) — a modder slip the
-/// engine does NOT recover from (Clausewitz throws "Unexpected token: =").
-/// We recover the AST (last value wins) so the file doesn't cascade, but still
-/// surface a specific, descriptive ERROR so the modder knows to fix it.
-pub const DOUBLE_ASSIGNMENT: &str = "HOM6003";
 
 // ── Event option & structure validation (HOM3013–HOM3020) ──
 pub const EVENT_MISSING_OPTION_NAME: &str = "HOM3013";
@@ -71,6 +53,31 @@ pub const UNDECLARED_DECISION_CATEGORY: &str = "HOM5006";
 pub const CATEGORY_KEY_IN_DECISION: &str = "HOM5007";
 pub const DECISION_MISSING_COMPLETE_EFFECT: &str = "HOM5008";
 pub const DECISION_DUAL_COST: &str = "HOM5009";
+
+// ── Syntax validation (HOM6000–HOM6004) ──
+/// Block implicitly closed at end-of-file (Clausewitz engine accepts this)
+pub const IMPLICIT_EOF_CLOSE: &str = "HOM6000";
+
+/// Extra closing brace `}` that doesn't match any open block — the engine
+/// silently discards it, but it's worth flagging as INFO for cleanliness.
+pub const STRAY_BRACE: &str = "HOM6001";
+
+/// Section sign `§` in an unquoted script value — the engine either silently
+/// corrupts the value to 0 or errors out depending on position. Check the
+/// actual file content and consider replacing or quoting it.
+/// Added because this was encountered in v1.18.3 `ship_hull_carrier.txt:708`.
+pub const SECTION_SIGN_IN_VALUE: &str = "HOM6002";
+
+/// Double assignment on one line (`key = value = value`) — a modder slip the
+/// engine does NOT recover from (Clausewitz throws "Unexpected token: =").
+/// We recover the AST (last value wins) so the file doesn't cascade, but still
+/// surface a specific, descriptive ERROR so the modder knows to fix it.
+pub const DOUBLE_ASSIGNMENT: &str = "HOM6003";
+
+/// Leading-dot number (`.5`) — the engine REJECTS these (empirically:
+/// `Malformed token: .5`). The parser keeps `.5` as a String (no cascade) but
+/// surfaces a specific ERROR telling the modder to write `0.5`.
+pub const MALFORMED_LEADING_DOT_NUMBER: &str = "HOM6004";
 
 #[derive(Debug, Clone)]
 /// Kept for public API compatibility; no longer directly constructed by validation rules.
