@@ -124,6 +124,11 @@ pub fn ast_range_to_lsp_location(range: &ast::Range, path: &str, mapper: &RangeM
 }
 
 /// Check if an LSP Position falls within an AST Range (inclusive).
+///
+/// NOTE: `pos.character` MUST be expressed in **byte** columns on its line (the
+/// same unit `ast::Range` uses). LSP sends UTF-16 characters, so callers that
+/// receive a client position must convert it first via [`to_byte_position`];
+/// otherwise multi-byte chars (§, accents) before the cursor mis-match the range.
 pub(crate) fn is_pos_in_range(pos: Position, range: &ast::Range) -> bool {
     if pos.line < range.start_line || pos.line > range.end_line {
         return false;
@@ -135,6 +140,25 @@ pub(crate) fn is_pos_in_range(pos: Position, range: &ast::Range) -> bool {
         return false;
     }
     true
+}
+
+/// Convert an LSP position (UTF-16 `character`) into a *byte*-column position on
+/// the same line, so it can be compared against byte-based `ast::Range` columns
+/// (see [`is_pos_in_range`]). This is the mirror step of `RangeMapper` — it bites
+/// at the inception side (client cursor → byte) where the source is available.
+pub(crate) fn to_byte_position(content: &str, pos: Position) -> Position {
+    let byte_ch = match content.lines().nth(pos.line as usize) {
+        Some(line) => {
+            let li = LineIndex::new(line);
+            let idx = pos.character.min(li.utf16_len());
+            li.utf16_to_byte(idx as usize) as u32
+        }
+        None => pos.character, // line out of range — keep (won't match anyway)
+    };
+    Position {
+        line: pos.line,
+        character: byte_ch,
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -191,6 +215,30 @@ mod tests {
             end_col: 8,
         };
         assert_eq!(mapper.range(&r).end.character, 8);
+    }
+
+    /// Inception side: a client UTF-16 position on a multi-byte line must map to
+    /// the correct BYTE column so `is_pos_in_range`/slicing match AST ranges.
+    #[test]
+    fn test_to_byte_position_multibyte() {
+        // line 0 "plain", line 1 "a§b" (a=1B, §=2B, b=1B).
+        let content = "plain\na§b\n";
+        // UTF-16 character 2 on line 1 = 'b' (0:a, 1:§, 2:b).
+        let pos = Position {
+            line: 1,
+            character: 2,
+        };
+        let bp = to_byte_position(content, pos);
+        // byte column of 'b' = b'a'(1) + b'§'(2) = index 3.
+        assert_eq!(bp.line, 1);
+        assert_eq!(bp.character, 3, "UTF-16 col 2 -> byte col 3 on 'a§b'");
+
+        // ASCII line: unchanged.
+        let pos2 = Position {
+            line: 0,
+            character: 3,
+        };
+        assert_eq!(to_byte_position(content, pos2).character, 3);
     }
 }
 

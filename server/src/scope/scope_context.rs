@@ -12,6 +12,7 @@ pub fn find_scope_context_at(
     pos: Position,
     achievements: &DashMap<InternedStr, LayeredValue<achievement_scanner::Achievement>>,
 ) -> (Option<String>, Vec<scope::Scope>) {
+    let pos = crate::utils::lsp_convert::to_byte_position(&script.source, pos);
     let mut scope_stack = scope::ScopeStack::new(scope::Scope::Global);
     let mut context = None;
     for entry in &script.entries {
@@ -93,6 +94,7 @@ fn find_scope_context_in_value(
 }
 
 pub fn find_context_at(script: &ast::Script, pos: Position) -> Option<String> {
+    let pos = crate::utils::lsp_convert::to_byte_position(&script.source, pos);
     for entry in &script.entries {
         if let Some(ctx) = find_context_in_entry(entry, pos, &script.source) {
             return Some(ctx);

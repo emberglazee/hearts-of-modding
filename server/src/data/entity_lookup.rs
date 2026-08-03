@@ -4,7 +4,7 @@ use crate::ScannerData;
 use crate::data::interner::InternedStr;
 use crate::for_each_standard_scanner;
 use crate::parser::ast;
-use crate::utils::lsp_convert::is_pos_in_range;
+use crate::utils::lsp_convert::{is_pos_in_range, to_byte_position};
 use std::collections::HashMap;
 use tower_lsp_server::ls_types::Position;
 
@@ -296,7 +296,15 @@ impl<'a> EntityLookup<'a> {
         results
     }
 
-    pub fn entity_at(&self, path: &str, pos: Position) -> Option<(EntityKind, ast::Range, String)> {
+    pub fn entity_at(
+        &self,
+        path: &str,
+        content: &str,
+        pos: Position,
+    ) -> Option<(EntityKind, ast::Range, String)> {
+        // The client position is in UTF-16; AST ranges are byte columns. Convert
+        // the cursor to byte so `is_pos_in_range` matches multi-byte lines too.
+        let pos = to_byte_position(content, pos);
         macro_rules! check_entity {
             ($kind:ident, $name:ident) => {
                 for entry in self.data.$name.iter() {

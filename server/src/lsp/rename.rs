@@ -30,10 +30,10 @@ pub async fn prepare_rename(
     let parsed_uri = uri.parse::<Uri>().ok()?;
     let path = parsed_uri.to_file_path()?;
     let path_str = path.to_string_lossy();
+    let raw_content = std::fs::read_to_string(&path).ok()?;
+    let mapper = RangeMapper::new(&raw_content);
     let lookup = crate::data::entity_lookup::EntityLookup::new(data);
-    if let Some((_, range, _)) = lookup.entity_at(&path_str, position) {
-        let content = std::fs::read_to_string(&path).ok()?;
-        let mapper = RangeMapper::new(&content);
+    if let Some((_, range, _)) = lookup.entity_at(&path_str, &raw_content, position) {
         return Some(PrepareRenameResponse::Range(mapper.range(&range)));
     }
     None
@@ -60,7 +60,14 @@ pub async fn rename_symbol(
     let path_str = path.to_string_lossy();
 
     // Find what symbol we're renaming
-    let symbol = find_symbol_at_position(&path_str, &position, data).await?;
+    let content = match documents.get(uri).map(|s| s.clone()) {
+        Some(c) => Some(c),
+        None => std::fs::read_to_string(&path).ok(),
+    };
+    let symbol = match content.as_deref() {
+        Some(c) => find_symbol_at_position(&path_str, &position, data, c).await?,
+        None => return None,
+    };
 
     // Find all references to this symbol
     let mut changes: HashMap<Uri, Vec<TextEdit>> = HashMap::new();
@@ -156,9 +163,10 @@ async fn find_symbol_at_position(
     path: &str,
     position: &LspPosition,
     data: &crate::ScannerData,
+    content: &str,
 ) -> Option<RenameableSymbol> {
     let lookup = crate::data::entity_lookup::EntityLookup::new(data);
-    if let Some((kind, _, name)) = lookup.entity_at(path, *position) {
+    if let Some((kind, _, name)) = lookup.entity_at(path, content, *position) {
         return Some(match kind {
             crate::data::entity_lookup::EntityKind::Event => RenameableSymbol::Event(name),
             crate::data::entity_lookup::EntityKind::ScriptedTrigger => {

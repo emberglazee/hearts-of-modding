@@ -18,6 +18,9 @@ pub fn find_identifier_at(
     Option<ast::Value>,
     Option<String>,
 )> {
+    // Client position is UTF-16; the AST ranges are byte columns. Convert once
+    // here so `is_pos_in_range`/slicing match on multi-byte lines too.
+    let pos = crate::utils::lsp_convert::to_byte_position(&script.source, pos);
     for entry in &script.entries {
         if let Some(res) =
             find_in_entry(entry, pos, scope_stack, achievements, None, &script.source)

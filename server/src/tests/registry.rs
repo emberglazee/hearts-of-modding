@@ -164,7 +164,7 @@ fn test_standard_scanner_entity_at() {
         character: 5,
     };
 
-    let result = lookup.entity_at("test.txt", pos);
+    let result = lookup.entity_at("test.txt", "\n0123456789\n", pos);
     assert!(result.is_some(), "entity_at should find the test entity");
     let (kind, range, name) = result.unwrap();
     assert_eq!(kind, crate::data::entity_lookup::EntityKind::Achievement);
