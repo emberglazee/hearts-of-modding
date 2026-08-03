@@ -40,7 +40,7 @@ function stylisticRules(): FlatConfig.Rules {
 }
 
 export default defineConfig(
-    globalIgnores(['out/']),
+    globalIgnores(['out/', 'scripts/']),
     eslint.configs.recommended,
     tseslint.configs.recommended,
     {

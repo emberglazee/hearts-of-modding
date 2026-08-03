@@ -2,6 +2,15 @@ import * as path from 'path'
 import * as fs from 'fs'
 import { workspace, ExtensionContext, window, OutputChannel, commands, StatusBarAlignment, ConfigurationTarget, StatusBarItem } from 'vscode'
 
+// The extension host runs on Node >=18 where `fetch` is a global, but the
+// project's @types/node (18.15) predates the global fetch typings — declare the
+// minimal surface we use so `tsc` stays green without pulling in DOM libs.
+declare function fetch(input: string, init?: object): Promise<{
+    ok: boolean
+    status: number
+    arrayBuffer(): Promise<ArrayBuffer>
+}>
+
 import {
     LanguageClient,
     LanguageClientOptions,
@@ -27,6 +36,74 @@ function formatBytes(bytes: number): string {
     const i = Math.floor(Math.log(bytes) / Math.log(k))
     const size = (bytes / Math.pow(k, i)).toFixed(2)
     return `${size} ${sizes[i]}`
+}
+
+// ── hom-lsp binary resolution ────────────────────────────────────────────────
+// The server binary ships as `hom-lsp-<os>-<arch>[.exe]`, bundled in the VSIX
+// for the three "primary" combos (linux-amd64, win-amd64, macos-arm64) and
+// published as standalone release assets for ALL combos. Any other platform/arch
+// downloads its binary from the matching GitHub release (pinned to the installed
+// extension version, falling back to latest) into the extension's global storage.
+const HOM_REPO = 'emberglazee/Hearts-of-Modding'
+
+function homLspAssetName(platform: string, arch: string): string {
+    const os = platform === 'win32' ? 'win' : platform === 'darwin' ? 'macos' : 'linux'
+    const a = arch === 'x64' ? 'amd64' : arch === 'arm64' ? 'arm64' : arch
+    return `hom-lsp-${os}-${a}${platform === 'win32' ? '.exe' : ''}`
+}
+
+function logInfo(msg: string): void {
+    logPanelProvider.append('INFO', msg)
+    outputChannel.appendLine(msg)
+}
+
+function logWarn(msg: string): void {
+    logPanelProvider.append('WARN', msg)
+    outputChannel.appendLine(msg)
+}
+
+async function downloadHomLspBinary(
+    context: ExtensionContext,
+    asset: string
+): Promise<string | null> {
+    const version: string = (context.extension?.packageJSON?.version as string) ?? '0.0.0'
+    const dir = path.join(context.globalStorageUri.fsPath, 'hom-lsp', version)
+    const dst = path.join(dir, asset)
+
+    if (fs.existsSync(dst)) {
+        logInfo(`Using cached hom-lsp binary at: ${dst}`)
+        return dst
+    }
+
+    // Pin to the release matching the installed extension version; fall back to
+    // the latest release if that tag doesn't exist yet.
+    const urls = [
+        `https://github.com/${HOM_REPO}/releases/download/v${version}/${asset}`,
+        `https://github.com/${HOM_REPO}/releases/latest/download/${asset}`
+    ]
+
+    for (const url of urls) {
+        try {
+            logInfo(`No bundled binary for this platform; downloading ${asset} from ${url}...`)
+            const res = await fetch(url)
+            if (!res.ok) {
+                logWarn(`Download failed (HTTP ${res.status}) from ${url}`)
+                continue
+            }
+            const buf = Buffer.from(await res.arrayBuffer())
+            fs.mkdirSync(dir, { recursive: true })
+            fs.writeFileSync(dst, new Uint8Array(buf))
+            if (process.platform !== 'win32') {
+                fs.chmodSync(dst, 0o755)
+            }
+            logInfo(`Downloaded ${asset} (${buf.length} bytes) to ${dst}`)
+            return dst
+        } catch (err) {
+            logWarn(`Download error from ${url}: ${err}`)
+        }
+    }
+    logWarn(`Could not download hom-lsp binary '${asset}' from any release URL.`)
+    return null
 }
 
 export async function activate(context: ExtensionContext) {
@@ -293,34 +370,35 @@ async function startServer(context: ExtensionContext, statusBarItem: StatusBarIt
     logPanelProvider.append('INFO', 'Hearts of Modding extension is now starting...')
     outputChannel.appendLine('Hearts of Modding extension is now starting...')
 
-    // The server is implemented in Rust
-    let osSuffix = '-linux'
-    if (process.platform === 'win32') {
-        osSuffix = '-win.exe'
-    } else if (process.platform === 'darwin') {
-        osSuffix = process.arch === 'arm64' ? '-macos-arm64' : '-macos-x64'
-    }
-
+    // Resolve the hom-lsp binary for this platform/arch: bundled in the VSIX →
+    // downloaded from the matching release → local build (dev fallbacks).
+    const asset = homLspAssetName(process.platform, process.arch)
     let serverModule = context.asAbsolutePath(
-        path.join('server-bin', `server${osSuffix}`)
+        path.join('server-bin', asset)
     )
 
     if (!fs.existsSync(serverModule)) {
-        logPanelProvider.append('INFO', `Server binary not found in server-bin (${serverModule}), falling back to local build...`)
-        outputChannel.appendLine(`Server binary not found in server-bin (${serverModule}), falling back to local build...`)
+        logInfo(`Server binary not bundled for this platform (${asset}); checking release...`)
+        const fetched = await downloadHomLspBinary(context, asset)
+        if (fetched) {
+            serverModule = fetched
+        }
+    }
+
+    if (!fs.existsSync(serverModule)) {
+        logInfo('Server binary not found (bundled/downloaded), falling back to local build...')
         // Fallback for development if not packaged
         const localSuffix = process.platform === 'win32' ? '.exe' : ''
         serverModule = context.asAbsolutePath(
-            path.join('..', 'server', 'target', 'release', `server${localSuffix}`)
+            path.join('..', 'server', 'target', 'release', `hom-lsp${localSuffix}`)
         )
     }
 
     if (!fs.existsSync(serverModule)) {
-        logPanelProvider.append('INFO', 'Release binary not found, falling back to debug build...')
-        outputChannel.appendLine('Release binary not found, falling back to debug build...')
+        logInfo('Release binary not found, falling back to debug build...')
         const localSuffix = process.platform === 'win32' ? '.exe' : ''
         serverModule = context.asAbsolutePath(
-            path.join('..', 'server', 'target', 'debug', `server${localSuffix}`)
+            path.join('..', 'server', 'target', 'debug', `hom-lsp${localSuffix}`)
         )
     }
 
@@ -328,8 +406,7 @@ async function startServer(context: ExtensionContext, statusBarItem: StatusBarIt
         logPanelProvider.append('ERROR', 'CRITICAL: No server binary found! Language features will not be available.')
         outputChannel.appendLine('CRITICAL: No server binary found! Language features will not be available.')
     } else {
-        logPanelProvider.append('INFO', `Using server binary at: ${serverModule}`)
-        outputChannel.appendLine(`Using server binary at: ${serverModule}`)
+        logInfo(`Using server binary at: ${serverModule}`)
     }
 
     // If the extension is launched in debug mode then the debug server options are used

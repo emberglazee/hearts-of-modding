@@ -94,23 +94,11 @@ jobs:
 
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Download Linux Binary
+      - name: Download Server Binaries
         uses: actions/download-artifact@v8
         with:
-          name: server-linux
-          path: client/server-bin/linux/
-
-      - name: Download Windows Binary
-        uses: actions/download-artifact@v8
-        with:
-          name: server-win.exe
-          path: client/server-bin/win/
-
-      - name: Download macOS ARM64 Binary
-        uses: actions/download-artifact@v8
-        with:
-          name: server-macos-arm64
-          path: client/server-bin/macos-arm64/
+          path: bin-stage
+          pattern: hom-lsp-*
 
       - name: Extract Release Notes
         run: |
@@ -118,11 +106,20 @@ jobs:
 
       - name: Prepare Binaries
         run: |
-          mkdir -p client/server-bin
-          mv client/server-bin/linux/server client/server-bin/server-linux
-          mv client/server-bin/win/server.exe client/server-bin/server-win.exe
-          mv client/server-bin/macos-arm64/server client/server-bin/server-macos-arm64
-          chmod +x client/server-bin/server-linux client/server-bin/server-macos-arm64
+          mkdir -p client/server-bin release-assets
+          # Bundle the three primary combos inside the VSIX
+          cp bin-stage/hom-lsp-linux-amd64/hom-lsp client/server-bin/hom-lsp-linux-amd64
+          cp bin-stage/hom-lsp-win-amd64.exe/hom-lsp.exe client/server-bin/hom-lsp-win-amd64.exe
+          cp bin-stage/hom-lsp-macos-arm64/hom-lsp client/server-bin/hom-lsp-macos-arm64
+          # Standalone binaries for ALL six combos (published alongside the VSIX)
+          cp bin-stage/hom-lsp-linux-amd64/hom-lsp release-assets/hom-lsp-linux-amd64
+          cp bin-stage/hom-lsp-linux-arm64/hom-lsp release-assets/hom-lsp-linux-arm64
+          cp bin-stage/hom-lsp-win-amd64.exe/hom-lsp.exe release-assets/hom-lsp-win-amd64.exe
+          cp bin-stage/hom-lsp-win-arm64.exe/hom-lsp.exe release-assets/hom-lsp-win-arm64.exe
+          cp bin-stage/hom-lsp-macos-arm64/hom-lsp release-assets/hom-lsp-macos-arm64
+          cp bin-stage/hom-lsp-macos-amd64/hom-lsp release-assets/hom-lsp-macos-amd64
+          chmod +x client/server-bin/hom-lsp-linux-amd64 client/server-bin/hom-lsp-macos-arm64
+          chmod +x release-assets/hom-lsp-linux-* release-assets/hom-lsp-macos-*
           cp -r server/assets client/server-bin/
           mv README.md client/README.md
           mv CHANGELOG.md client/CHANGELOG.md
@@ -138,7 +135,9 @@ jobs:
         with:
           tag_name: v${{ steps.bump.outputs.VERSION }}
           name: v${{ steps.bump.outputs.VERSION }}
-          files: hearts-of-modding-${{ steps.bump.outputs.VERSION }}.vsix
+          files: |
+            hearts-of-modding-${{ steps.bump.outputs.VERSION }}.vsix
+            release-assets/*
           body_path: release_notes.md
           draft: false
           prerelease: ${{ contains(steps.bump.outputs.VERSION, '-') }}

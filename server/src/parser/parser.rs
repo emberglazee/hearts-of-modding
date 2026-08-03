@@ -1145,7 +1145,10 @@ mod tests {
                 _ => None,
             })
             .collect();
-        assert_eq!(kinds[0], "str", ".5 stays String (engine rejects leading-dot numbers)");
+        assert_eq!(
+            kinds[0], "str",
+            ".5 stays String (engine rejects leading-dot numbers)"
+        );
         assert_eq!(kinds[1], "num:-0.5", "-0.5 must be Number");
         assert_eq!(kinds[2], "num:0.5", "0.5 must be Number");
         assert_eq!(kinds[3], "str", "non-numeric identifier stays String");
@@ -1158,7 +1161,9 @@ mod tests {
             "expected HOM6004 for .5, got: {errors:?}"
         );
         assert!(
-            errors.iter().all(|(m, _)| m.starts_with(MALFORMED_LEADING_DOT_NUMBER)),
+            errors
+                .iter()
+                .all(|(m, _)| m.starts_with(MALFORMED_LEADING_DOT_NUMBER)),
             "no generic parse errors expected, got: {errors:?}"
         );
     }

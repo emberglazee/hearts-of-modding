@@ -219,6 +219,30 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e5274423e17b7c9fc20b6e7e208532f9b19825d82dfd615708b70edd83df41f1"
 
 [[package]]
+name = "hom-lsp"
+version = "0.24.0"
+dependencies = [
+ "arc-swap",
+ "base64",
+ "dashmap",
+ "futures",
+ "nom",
+ "nom_locate",
+ "once_cell",
+ "pastey",
+ "regex",
+ "rustc-hash",
+ "serde",
+ "serde_json",
+ "smallvec",
+ "sysinfo",
+ "tikv-jemallocator",
+ "tokio",
+ "tokio-util",
+ "tower-lsp-server",
+]
+
+[[package]]
 name = "httparse"
 version = "1.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -543,30 +567,6 @@ dependencies = [
  "serde",
  "serde_core",
  "zmij",
-]
-
-[[package]]
-name = "server"
-version = "0.24.0"
-dependencies = [
- "arc-swap",
- "base64",
- "dashmap",
- "futures",
- "nom",
- "nom_locate",
- "once_cell",
- "pastey",
- "regex",
- "rustc-hash",
- "serde",
- "serde_json",
- "smallvec",
- "sysinfo",
- "tikv-jemallocator",
- "tokio",
- "tokio-util",
- "tower-lsp-server",
 ]
 
 [[package]]

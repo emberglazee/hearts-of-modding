@@ -1,7 +1,11 @@
 [package]
-name = "server"
+name = "hom-lsp"
 version = "0.24.0"
 edition = "2024"
+
+[[bin]]
+name = "hom-lsp"
+path = "src/main.rs"
 
 [dependencies]
 tower-lsp-server = "0.23.0"

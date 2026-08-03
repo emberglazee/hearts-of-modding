@@ -44,15 +44,32 @@ jobs:
     strategy:
       matrix:
         include:
+          # Primary (bundled in the VSIX) + cross-compiled (standalone release assets).
+          # Asset names follow `hom-lsp-<os>-<arch>[.exe]` — the client's fetch table.
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            suffix: linux
+            asset: hom-lsp-linux-amd64
+            zig: false
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            asset: hom-lsp-linux-arm64
+            zig: true
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            suffix: win.exe
+            asset: hom-lsp-win-amd64.exe
+            zig: false
+          - os: windows-latest
+            target: aarch64-pc-windows-msvc
+            asset: hom-lsp-win-arm64.exe
+            zig: false
           - os: macos-latest
             target: aarch64-apple-darwin
-            suffix: macos-arm64
+            asset: hom-lsp-macos-arm64
+            zig: false
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            asset: hom-lsp-macos-amd64
+            zig: false
     steps:
       - uses: actions/checkout@v6
 
@@ -66,19 +83,32 @@ jobs:
         with:
           workspaces: server -> target
 
+      - name: Setup Zig (Linux ARM64 cross-compile)
+        if: matrix.zig
+        uses: goto-bus-stop/setup-zig@v2
+
+      - name: Install cargo-zigbuild (Linux ARM64 cross-compile)
+        if: matrix.zig
+        run: cargo install cargo-zigbuild --locked
+
       - name: Build Server
+        shell: bash
         run: |
           cd server
-          cargo build --release --target ${{ matrix.target }}
+          if [ "${{ matrix.zig }}" = "true" ]; then
+            cargo zigbuild --release --target ${{ matrix.target }}
+          else
+            cargo build --release --target ${{ matrix.target }}
+          fi
 
       - name: Upload Binary
         uses: actions/upload-artifact@v7
         with:
-          name: server-${{ matrix.suffix }}
+          name: ${{ matrix.asset }}
           path: |
-            server/target/${{ matrix.target }}/release/server
-            server/target/${{ matrix.target }}/release/server.exe
-          if-no-files-found: ignore
+            server/target/${{ matrix.target }}/release/hom-lsp
+            server/target/${{ matrix.target }}/release/hom-lsp.exe
+          if-no-files-found: error
 
   test:
     name: Test (${{ matrix.os }})
