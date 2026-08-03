@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tower_lsp_server::ls_types::{
     CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall,
-    Position as LspPosition, Range as LspRange, SymbolKind, Uri,
+    Position as LspPosition, SymbolKind, Uri,
 };
 
 fn path_to_url(path: &str) -> Uri {
@@ -37,75 +37,95 @@ pub enum CallKind {
 }
 
 /// Prepare call hierarchy item at the given position
+///
+/// `content` is the open document's text (used to convert the client's UTF-16
+/// position to byte columns for hit-testing against scanner-data ranges);
+/// `None` falls back to reading the file from disk (unopened files), matching
+/// the rename handler's pattern.
 pub async fn prepare_call_hierarchy(
     uri: &str,
     position: LspPosition,
     data: &crate::ScannerData,
+    content: Option<&str>,
 ) -> Option<CallHierarchyItem> {
     let parsed_uri = uri.parse::<Uri>().ok()?;
     let path = parsed_uri.to_file_path()?;
     let path = path.to_string_lossy();
 
-    // Check if position is on an event
-    let events = &data.events;
-    for entry in events.iter() {
-        let id = entry.key();
-        let event = entry.value();
-        if &*event.path == path.as_ref() && position_in_range(&position, &event.range) {
-            let content = std::fs::read_to_string(&*event.path).unwrap_or_default();
-            let mapper = RangeMapper::new(&content);
-            return Some(CallHierarchyItem {
-                name: id.to_string(),
-                kind: SymbolKind::EVENT,
-                tags: None,
-                detail: Some(format!("{:?}", event.event_type)),
-                uri: path_to_url(&event.path),
-                range: mapper.range(&event.range),
-                selection_range: mapper.range(&event.range),
-                data: None,
-            });
+    // Inception contract: the client position is UTF-16 code units but entity
+    // ranges are byte columns. Convert once at this public entry — the source
+    // we convert against must match what produced the ranges (the open
+    // document, which the incremental scanner keeps in sync).
+    let source = match content {
+        Some(c) => c.to_owned(),
+        None => std::fs::read_to_string(&*path).unwrap_or_default(),
+    };
+    let pos = crate::utils::lsp_convert::to_byte_position(&source, position);
+    let mapper = RangeMapper::new(&source);
+    let path_ref: &str = &path;
+
+    // Check if position is on an event — only entities declared in THIS file
+    // (via the reverse per-path index), not a scan of every event in the
+    // workspace.
+    if let Some(names) = data.events_file_index.get(path_ref) {
+        for name in names.value() {
+            if let Some(event) = data.events.get(&**name) {
+                let event = event.value();
+                if position_in_range(&pos, &event.range) {
+                    return Some(CallHierarchyItem {
+                        name: name.to_string(),
+                        kind: SymbolKind::EVENT,
+                        tags: None,
+                        detail: Some(format!("{:?}", event.event_type)),
+                        uri: path_to_url(&event.path),
+                        range: mapper.range(&event.range),
+                        selection_range: mapper.range(&event.range),
+                        data: None,
+                    });
+                }
+            }
         }
     }
 
     // Check if position is on a scripted trigger
-    let triggers = &data.scripted_triggers;
-    for entry in triggers.iter() {
-        let name = entry.key();
-        let trigger = entry.value();
-        if &*trigger.path == path.as_ref() && position_in_range(&position, &trigger.range) {
-            let content = std::fs::read_to_string(&*trigger.path).unwrap_or_default();
-            let mapper = RangeMapper::new(&content);
-            return Some(CallHierarchyItem {
-                name: name.to_string(),
-                kind: SymbolKind::FUNCTION,
-                tags: None,
-                detail: Some("Scripted Trigger".to_string()),
-                uri: path_to_url(&trigger.path),
-                range: mapper.range(&trigger.range),
-                selection_range: mapper.range(&trigger.range),
-                data: None,
-            });
+    if let Some(names) = data.scripted_triggers_file_index.get(path_ref) {
+        for name in names.value() {
+            if let Some(trigger) = data.scripted_triggers.get(&**name) {
+                let trigger = trigger.value();
+                if position_in_range(&pos, &trigger.range) {
+                    return Some(CallHierarchyItem {
+                        name: name.to_string(),
+                        kind: SymbolKind::FUNCTION,
+                        tags: None,
+                        detail: Some("Scripted Trigger".to_string()),
+                        uri: path_to_url(&trigger.path),
+                        range: mapper.range(&trigger.range),
+                        selection_range: mapper.range(&trigger.range),
+                        data: None,
+                    });
+                }
+            }
         }
     }
 
     // Check if position is on a scripted effect
-    let effects = &data.scripted_effects;
-    for entry in effects.iter() {
-        let name = entry.key();
-        let effect = entry.value();
-        if &*effect.path == path.as_ref() && position_in_range(&position, &effect.range) {
-            let content = std::fs::read_to_string(&*effect.path).unwrap_or_default();
-            let mapper = RangeMapper::new(&content);
-            return Some(CallHierarchyItem {
-                name: name.to_string(),
-                kind: SymbolKind::FUNCTION,
-                tags: None,
-                detail: Some("Scripted Effect".to_string()),
-                uri: path_to_url(&effect.path),
-                range: mapper.range(&effect.range),
-                selection_range: mapper.range(&effect.range),
-                data: None,
-            });
+    if let Some(names) = data.scripted_effects_file_index.get(path_ref) {
+        for name in names.value() {
+            if let Some(effect) = data.scripted_effects.get(&**name) {
+                let effect = effect.value();
+                if position_in_range(&pos, &effect.range) {
+                    return Some(CallHierarchyItem {
+                        name: name.to_string(),
+                        kind: SymbolKind::FUNCTION,
+                        tags: None,
+                        detail: Some("Scripted Effect".to_string()),
+                        uri: path_to_url(&effect.path),
+                        range: mapper.range(&effect.range),
+                        selection_range: mapper.range(&effect.range),
+                        data: None,
+                    });
+                }
+            }
         }
     }
 
@@ -163,22 +183,38 @@ pub async fn get_outgoing_calls(
 ) -> Vec<CallHierarchyOutgoingCall> {
     let mut outgoing = Vec::new();
 
+    // The item's LSP range is UTF-16 (as emitted to the client); round-tripping
+    // it through lsp_to_range and comparing against byte-based AST ranges would
+    // mis-overlap on multi-byte lines. Resolve the symbol's BYTE range from
+    // scanner data instead — it is the same range the client's item was built
+    // from, just pre-UTF-16-conversion.
+    let symbol_range = if let Some(event) = data.events.get(item.name.as_str()) {
+        Some(event.range.clone())
+    } else if let Some(trigger) = data.scripted_triggers.get(item.name.as_str()) {
+        Some(trigger.range.clone())
+    } else if let Some(effect) = data.scripted_effects.get(item.name.as_str()) {
+        Some(effect.range.clone())
+    } else {
+        None
+    };
+
     // Get the document content
     if let Some(entry) = document_asts.get(item.uri.as_str()) {
         let (script, _) = &*entry;
         let mapper = RangeMapper::new(&script.source);
 
         // Find all calls within this symbol's range
-        let calls =
-            find_calls_in_range(&script.entries, &lsp_to_range(&item.range), &script.source);
+        if let Some(symbol_range) = symbol_range {
+            let calls = find_calls_in_range(&script.entries, &symbol_range, &script.source);
 
-        for (call_name, call_ranges) in calls {
-            // Try to find the target symbol
-            if let Some(target) = find_symbol_by_name(&call_name, data).await {
-                outgoing.push(CallHierarchyOutgoingCall {
-                    to: target,
-                    from_ranges: call_ranges.iter().map(|r| mapper.range(r)).collect(),
-                });
+            for (call_name, call_ranges) in calls {
+                // Try to find the target symbol
+                if let Some(target) = find_symbol_by_name(&call_name, data).await {
+                    outgoing.push(CallHierarchyOutgoingCall {
+                        to: target,
+                        from_ranges: call_ranges.iter().map(|r| mapper.range(r)).collect(),
+                    });
+                }
             }
         }
     }
@@ -327,66 +363,73 @@ async fn find_container_symbol(
     let path = parsed_uri.to_file_path()?;
     let path = path.to_string_lossy();
 
-    // Check events
-    let events = &data.events;
-    for entry in events.iter() {
-        let id = entry.key();
-        let event = entry.value();
-        if &*event.path == path.as_ref() && range_contains(&event.range, range) {
-            let content = std::fs::read_to_string(&*event.path).unwrap_or_default();
-            let mapper = RangeMapper::new(&content);
-            return Some(CallHierarchyItem {
-                name: id.to_string(),
-                kind: SymbolKind::EVENT,
-                tags: None,
-                detail: Some(format!("{:?}", event.event_type)),
-                uri: path_to_url(&event.path),
-                range: mapper.range(&event.range),
-                selection_range: mapper.range(&event.range),
-                data: None,
-            });
+    // Check events — only entities declared in THIS file (reverse per-path
+    // index), not a scan of every event in the workspace.
+    if let Some(names) = data.events_file_index.get(path.as_ref()) {
+        for name in names.value() {
+            if let Some(event) = data.events.get(&**name) {
+                let event = event.value();
+                if range_contains(&event.range, range) {
+                    let content = std::fs::read_to_string(&*event.path).unwrap_or_default();
+                    let mapper = RangeMapper::new(&content);
+                    return Some(CallHierarchyItem {
+                        name: name.to_string(),
+                        kind: SymbolKind::EVENT,
+                        tags: None,
+                        detail: Some(format!("{:?}", event.event_type)),
+                        uri: path_to_url(&event.path),
+                        range: mapper.range(&event.range),
+                        selection_range: mapper.range(&event.range),
+                        data: None,
+                    });
+                }
+            }
         }
     }
 
     // Check scripted triggers
-    let triggers = &data.scripted_triggers;
-    for entry in triggers.iter() {
-        let name = entry.key();
-        let trigger = entry.value();
-        if &*trigger.path == path.as_ref() && range_contains(&trigger.range, range) {
-            let content = std::fs::read_to_string(&*trigger.path).unwrap_or_default();
-            let mapper = RangeMapper::new(&content);
-            return Some(CallHierarchyItem {
-                name: name.to_string(),
-                kind: SymbolKind::FUNCTION,
-                tags: None,
-                detail: Some("Scripted Trigger".to_string()),
-                uri: path_to_url(&trigger.path),
-                range: mapper.range(&trigger.range),
-                selection_range: mapper.range(&trigger.range),
-                data: None,
-            });
+    if let Some(names) = data.scripted_triggers_file_index.get(path.as_ref()) {
+        for name in names.value() {
+            if let Some(trigger) = data.scripted_triggers.get(&**name) {
+                let trigger = trigger.value();
+                if range_contains(&trigger.range, range) {
+                    let content = std::fs::read_to_string(&*trigger.path).unwrap_or_default();
+                    let mapper = RangeMapper::new(&content);
+                    return Some(CallHierarchyItem {
+                        name: name.to_string(),
+                        kind: SymbolKind::FUNCTION,
+                        tags: None,
+                        detail: Some("Scripted Trigger".to_string()),
+                        uri: path_to_url(&trigger.path),
+                        range: mapper.range(&trigger.range),
+                        selection_range: mapper.range(&trigger.range),
+                        data: None,
+                    });
+                }
+            }
         }
     }
 
     // Check scripted effects
-    let effects = &data.scripted_effects;
-    for entry in effects.iter() {
-        let name = entry.key();
-        let effect = entry.value();
-        if &*effect.path == path.as_ref() && range_contains(&effect.range, range) {
-            let content = std::fs::read_to_string(&*effect.path).unwrap_or_default();
-            let mapper = RangeMapper::new(&content);
-            return Some(CallHierarchyItem {
-                name: name.to_string(),
-                kind: SymbolKind::FUNCTION,
-                tags: None,
-                detail: Some("Scripted Effect".to_string()),
-                uri: path_to_url(&effect.path),
-                range: mapper.range(&effect.range),
-                selection_range: mapper.range(&effect.range),
-                data: None,
-            });
+    if let Some(names) = data.scripted_effects_file_index.get(path.as_ref()) {
+        for name in names.value() {
+            if let Some(effect) = data.scripted_effects.get(&**name) {
+                let effect = effect.value();
+                if range_contains(&effect.range, range) {
+                    let content = std::fs::read_to_string(&*effect.path).unwrap_or_default();
+                    let mapper = RangeMapper::new(&content);
+                    return Some(CallHierarchyItem {
+                        name: name.to_string(),
+                        kind: SymbolKind::FUNCTION,
+                        tags: None,
+                        detail: Some("Scripted Effect".to_string()),
+                        uri: path_to_url(&effect.path),
+                        range: mapper.range(&effect.range),
+                        selection_range: mapper.range(&effect.range),
+                        data: None,
+                    });
+                }
+            }
         }
     }
 
@@ -450,6 +493,8 @@ async fn find_symbol_by_name(name: &str, data: &crate::ScannerData) -> Option<Ca
 }
 
 /// Helper functions
+/// NOTE: `position.character` must be a BYTE column (the same unit `ast::Range`
+/// uses). LSP sends UTF-16 — convert at the public entry (see `prepare_call_hierarchy`).
 fn position_in_range(position: &LspPosition, range: &Range) -> bool {
     let line = position.line;
     let character = position.character;
@@ -472,11 +517,122 @@ fn range_overlaps(a: &Range, b: &Range) -> bool {
         || (b.end_line == a.start_line && b.end_col < a.start_col))
 }
 
-fn lsp_to_range(range: &LspRange) -> Range {
-    Range {
-        start_line: range.start.line,
-        start_col: range.start.character,
-        end_line: range.end.line,
-        end_col: range.end.character,
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::data::interner::InternedStr;
+    use crate::data::layered_value::LayeredValue;
+    use crate::data::scanner_data::ScannerData;
+    use crate::scanner::event_scanner::Event;
+
+    fn rng(sl: u32, sc: u32, el: u32, ec: u32) -> Range {
+        Range {
+            start_line: sl,
+            start_col: sc,
+            end_line: el,
+            end_col: ec,
+        }
+    }
+
+    fn insert_event(data: &ScannerData, path: &str, id: &str, range: Range) {
+        data.events.insert(
+            InternedStr::from(id),
+            LayeredValue::new(Event {
+                id: id.to_string(),
+                event_type: "country_event".to_string(),
+                path: InternedStr::from(path),
+                range,
+                triggered_events: vec![],
+            }),
+        );
+        data.events_file_index
+            .entry(InternedStr::from(path))
+            .or_default()
+            .push(InternedStr::from(id));
+    }
+
+    /// Regression for the UTF-16 inception bug: the client's position is UTF-16
+    /// code units but scanner-data ranges are byte columns. A UTF-8 BOM at the
+    /// file start shifts the first event's key range by 3 bytes while the
+    /// client sees the BOM as 1 UTF-16 unit. A raw UTF-16 position of char 1
+    /// (on the 'c' of `country_event`) is rejected by the byte range
+    /// (1 < start_col 3); the byte-converted position (3) must match.
+    #[tokio::test]
+    async fn prepare_call_hierarchy_converts_utf16_to_byte() {
+        let data = ScannerData::new();
+        let tmp = std::env::temp_dir().join(format!("hom_callh_{}", std::process::id()));
+        let file = tmp.join("test_events.txt");
+        std::fs::create_dir_all(&tmp).unwrap();
+        let content = "\u{feff}country_event = {\n    id = test_event\n}\n";
+        std::fs::write(&file, content).unwrap();
+        let path_str = file.to_string_lossy().to_string();
+
+        // Scanner-side range: key starts at byte col 3 (after the 3-byte BOM),
+        // block ends on line 2 at byte col 1.
+        insert_event(&data, &path_str, "test_event", rng(0, 3, 2, 1));
+
+        let uri = tower_lsp_server::ls_types::Uri::from_file_path(&file).unwrap();
+        let uri_str = uri.as_str().to_string();
+
+        // Demonstrate the raw UTF-16 position fails the byte-range hit-test.
+        let raw = tower_lsp_server::ls_types::Position {
+            line: 0,
+            character: 1,
+        };
+        assert!(
+            !position_in_range(&raw, &rng(0, 3, 2, 1)),
+            "raw UTF-16 char 1 must NOT match a range starting at byte col 3"
+        );
+
+        let item = prepare_call_hierarchy(&uri_str, raw, &data, Some(content)).await;
+        assert!(
+            item.is_some(),
+            "converted position should initiate call hierarchy"
+        );
+        let item = item.unwrap();
+        assert_eq!(item.name, "test_event");
+        assert_eq!(item.kind, SymbolKind::EVENT);
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    /// The same conversion must apply to scripted triggers/effects (same
+    /// byte-range hit-test, different index/map).
+    #[tokio::test]
+    async fn prepare_call_hierarchy_scripted_trigger() {
+        let data = ScannerData::new();
+        let tmp = std::env::temp_dir().join(format!("hom_callh_st_{}", std::process::id()));
+        let file = tmp.join("common/scripted_triggers/test_triggers.txt");
+        std::fs::create_dir_all(file.parent().unwrap()).unwrap();
+        let content = "\u{feff}my_trigger = {\n    hidden = yes\n}\n";
+        std::fs::write(&file, content).unwrap();
+        let path_str = file.to_string_lossy().to_string();
+
+        data.scripted_triggers.insert(
+            InternedStr::from("my_trigger"),
+            LayeredValue::new(crate::scanner::scripted_scanner::ScriptedEntity {
+                name: "my_trigger".to_string(),
+                path: InternedStr::from(path_str.clone()),
+                range: rng(0, 3, 2, 1),
+            }),
+        );
+        data.scripted_triggers_file_index.insert(
+            InternedStr::from(path_str.clone()),
+            vec![InternedStr::from("my_trigger")],
+        );
+
+        let uri = tower_lsp_server::ls_types::Uri::from_file_path(&file).unwrap();
+        let position = tower_lsp_server::ls_types::Position {
+            line: 0,
+            character: 1,
+        };
+        let item = prepare_call_hierarchy(uri.as_str(), position, &data, Some(content)).await;
+        assert!(
+            item.is_some(),
+            "converted position should find the scripted trigger"
+        );
+        assert_eq!(item.unwrap().name, "my_trigger");
+
+        let _ = std::fs::remove_dir_all(&tmp);
     }
 }

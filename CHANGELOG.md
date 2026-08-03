@@ -8,6 +8,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Fixed wrong balance of power and character portrait paths in overlay prefix and scanners.**
 
+- **Fixed a call hierarchy UTF-16 inception bug.**
+
 ## [v0.24.1] - 2026-08-03
 
 ### ✨ Added

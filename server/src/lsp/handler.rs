@@ -1209,7 +1209,17 @@ impl LanguageServer for Backend {
             .as_str();
         let position = params.text_document_position_params.position;
 
-        let item = call_hierarchy::prepare_call_hierarchy(uri, position, &self.scanner_data).await;
+        // Pass the open document's content so the UTF-16 → byte position
+        // conversion matches what the client is showing (disk fallback inside
+        // for unopened files).
+        let content = self.documents.get(uri).map(|c| c.clone());
+        let item = call_hierarchy::prepare_call_hierarchy(
+            uri,
+            position,
+            &self.scanner_data,
+            content.as_deref(),
+        )
+        .await;
 
         Ok(item.map(|i| vec![i]))
     }
