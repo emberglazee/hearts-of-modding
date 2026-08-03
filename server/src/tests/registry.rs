@@ -270,6 +270,75 @@ fn test_find_definition_localization_exact_match() {
     assert!(lookup.find_definition("not_a_loc_key").is_empty());
 }
 
+/// entity_at must resolve variables through the reverse per-path index — the
+/// last entity type without one. The old code iterated EVERY workspace
+/// variable per entity_at call (prepare_rename, find_symbol_at_position).
+#[test]
+fn test_entity_at_variables_via_file_index() {
+    let data = ScannerData::new();
+    data.variables.insert(
+        InternedStr::from("my_var"),
+        vec![crate::scanner::variable_scanner::Variable {
+            name: "my_var".to_string(),
+            path: InternedStr::from("test.txt"),
+            range: ast::Range {
+                start_line: 1,
+                start_col: 1,
+                end_line: 1,
+                end_col: 10,
+            },
+        }],
+    );
+    data.variables_file_index.insert(
+        InternedStr::from("test.txt"),
+        vec![InternedStr::from("my_var")],
+    );
+
+    let lookup = EntityLookup::new(&data);
+    let pos = tower_lsp_server::ls_types::Position {
+        line: 1,
+        character: 5,
+    };
+    let result = lookup.entity_at("test.txt", "\n0123456789\n", pos);
+    assert!(result.is_some(), "variable under the index must resolve");
+    let (kind, _, name_out) = result.unwrap();
+    assert_eq!(kind, crate::data::entity_lookup::EntityKind::Variable);
+    assert_eq!(name_out, "my_var");
+
+    // A path with no index entry resolves nothing (no workspace-wide scan).
+    assert!(
+        lookup
+            .entity_at("other.txt", "\n0123456789\n", pos)
+            .is_none()
+    );
+}
+
+/// rebuild_all_file_indices must include variables (Vec-valued — rebuilt
+/// manually, not via rebuild_index!), so incremental O(K) lookups work right
+/// after the full scan.
+#[test]
+fn test_rebuild_all_file_indices_includes_variables() {
+    let data = ScannerData::new();
+    data.variables.insert(
+        InternedStr::from("my_var"),
+        vec![crate::scanner::variable_scanner::Variable {
+            name: "my_var".to_string(),
+            path: InternedStr::from("test.txt"),
+            range: ast::Range {
+                start_line: 0,
+                start_col: 0,
+                end_line: 0,
+                end_col: 5,
+            },
+        }],
+    );
+
+    data.rebuild_all_file_indices();
+    let names = data.variables_file_index.get("test.txt").unwrap();
+    assert_eq!(names.value().len(), 1);
+    assert_eq!(names.value()[0].as_ref(), "my_var");
+}
+
 /// Verify EntityLookup::entity_at works with standard scanners.
 #[test]
 fn test_standard_scanner_entity_at() {

@@ -14,6 +14,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Localization file cache** to avoid wasteful re-parsing.
 
+- **Reverse per-path index for workspace variables.**
+
 ### 🔧 Changed
 
 - **Slightly optimized the extension VSIX file size.**

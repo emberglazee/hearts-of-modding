@@ -1181,6 +1181,23 @@ fn update_variables(scanner_data: &ScannerData, path_str: &str, script: &ast::Sc
         vec.retain(|v| !path_matches(v.path(), path_str));
         !vec.is_empty()
     });
+
+    // Maintain the reverse per-path index (path → variable names) so entity_at
+    // stays O(variables-in-file). The old entry is dropped and rebuilt from
+    // this file's fresh declarations.
+    scanner_data.variables_file_index.remove(path_str);
+    let mut file_keys = Vec::new();
+    for (k, v) in &new_vars {
+        if v.iter().any(|var| path_matches(var.path(), path_str)) {
+            file_keys.push(InternedStr::from(k.as_str()));
+        }
+    }
+    if !file_keys.is_empty() {
+        scanner_data
+            .variables_file_index
+            .insert(InternedStr::from(path_str), file_keys);
+    }
+
     for (k, mut v) in new_vars {
         scanner_data
             .variables
@@ -1686,6 +1703,7 @@ pub fn remove_path_from_scanner_data(scanner_data: &ScannerData, path_str: &str)
                     vec.retain(|t| !path_matches(t.path(), &p_owned));
                     !vec.is_empty()
                 });
+                scanner_data.variables_file_index.remove(path_str);
             }
             FileCategory::MusicAssets => {
                 let path = std::path::Path::new(path_str);

@@ -92,6 +92,11 @@ pub(crate) struct ScannerData {
     pub ideas: DashMap<InternedStr, LayeredValue<idea_scanner::Idea>>,
     pub characters: DashMap<InternedStr, LayeredValue<character_scanner::Character>>,
     pub variables: DashMap<InternedStr, Vec<variable_scanner::Variable>>,
+    /// Reverse per-path index for `variables` (path → variable names declared
+    /// there). Vec-valued maps can't use the `rebuild_index!` macro's
+    /// `resolve().path()` shape, so this is maintained manually — it makes
+    /// `entity_at` O(variables-in-file) instead of O(all workspace variables).
+    pub variables_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub event_targets: DashMap<InternedStr, Vec<variable_scanner::EventTarget>>,
     pub provinces: DashMap<u32, province_scanner::Province>,
     pub custom_modifiers: DashMap<InternedStr, LayeredValue<modifier_scanner::Modifier>>,
@@ -213,6 +218,7 @@ impl ScannerData {
             ideas: DashMap::new(),
             characters: DashMap::new(),
             variables: DashMap::new(),
+            variables_file_index: DashMap::new(),
             event_targets: DashMap::new(),
             provinces: DashMap::new(),
             custom_modifiers: DashMap::new(),
@@ -389,5 +395,19 @@ impl ScannerData {
         rebuild_index!(self.color_codes, self.color_codes_file_index);
         rebuild_index!(self.continents, self.continents_file_index);
         rebuild_index!(self.adjacency_rules, self.adjacency_rules_file_index);
+
+        // variables is Vec-valued (name → definitions across files) — build
+        // the reverse index manually, deduped per (name, path).
+        self.variables_file_index.clear();
+        for entry in self.variables.iter() {
+            let name = entry.key().clone();
+            for var in entry.value().iter() {
+                let path = self.interner.intern(var.path());
+                let mut idx = self.variables_file_index.entry(path).or_default();
+                if !idx.contains(&name) {
+                    idx.push(name.clone());
+                }
+            }
+        }
     }
 }

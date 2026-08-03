@@ -344,12 +344,23 @@ impl<'a> EntityLookup<'a> {
         check_entity!(Event, events);
 
         {
-            let map = &self.data.variables;
-            for entry in map.iter() {
-                let name = entry.key();
-                for var in entry.value().iter() {
-                    if var.path.as_ref() == path && is_pos_in_range(pos, &var.range) {
-                        return Some((EntityKind::Variable, var.range.clone(), name.to_string()));
+            // Reverse per-path index (path → variable names) — the last
+            // O(workspace)-per-call entity type; everything else uses an index.
+            // The variables map is Vec-valued, so check each declaration's path
+            // + range after the index narrows to this file's names.
+            let index = &self.data.variables_file_index;
+            if let Some(names) = index.get(path) {
+                for name in names.value() {
+                    if let Some(vars) = self.data.variables.get(&**name) {
+                        for var in vars.iter() {
+                            if var.path.as_ref() == path && is_pos_in_range(pos, &var.range) {
+                                return Some((
+                                    EntityKind::Variable,
+                                    var.range.clone(),
+                                    name.to_string(),
+                                ));
+                            }
+                        }
                     }
                 }
             }
