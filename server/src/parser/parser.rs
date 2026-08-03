@@ -9,7 +9,7 @@ use nom::{
     branch::alt,
     bytes::complete::{tag, take, take_while, take_while1},
     character::complete::{anychar, char, multispace0},
-    combinator::{map, opt, recognize},
+    combinator::{map, opt, peek, recognize},
     multi::many0,
     sequence::preceded,
 };
@@ -385,6 +385,9 @@ fn parse_assignment(input: Span) -> IResult<Span, ast::Assignment> {
         alt((ident, map(quoted_string, |(_, bs, r)| (bs, r)))).parse(input)?;
     let (input, (op, op_range)) = preceded(skip_ws_comments, operator).parse(input)?;
     let (input, val) = preceded(skip_ws_comments, parse_value).parse(input)?;
+    // Recover from `key = v1 = v2` on the same line (no scope change) — a common
+    // slip e.g. `custom_effect_tooltip = tooltip = SOME_LOC`. Not a hard error.
+    let (input, val) = recover_chained_equals(input, val)?;
 
     Ok((
         input,
@@ -396,6 +399,44 @@ fn parse_assignment(input: Span) -> IResult<Span, ast::Assignment> {
             value: val,
         },
     ))
+}
+
+/// Recover from an accidental double assignment on one line: `key = v1 = v2 [=..]`.
+///
+/// HOI4 has no `key = v1 = v2` construct without a scope change (`key = { ... }`),
+/// so a scalar value immediately followed by another `=` is a user slip. We treat
+/// the LAST value as the assignment's value and drop the stray middle, so the file
+/// keeps parsing instead of hard-failing and cascading bogus errors (as seen in
+/// `ZHI_decisions.txt`). Only a non-block value can be chained — a block consumed
+/// its own `}` already, so a following `=` belongs to the next entry.
+fn recover_chained_equals(input: Span, first: ast::NodeedValue) -> IResult<Span, ast::NodeedValue> {
+    if matches!(
+        first.value,
+        ast::Value::Block(_) | ast::Value::TaggedBlock(..)
+    ) {
+        return Ok((input, first));
+    }
+
+    let mut cur = input;
+    let mut val = first;
+    loop {
+        let ahead = peek(preceded(skip_ws_comments, char('='))).parse(cur);
+        if ahead.is_err() {
+            break;
+        }
+        let after_eq = match preceded(skip_ws_comments, char('=')).parse(cur) {
+            Ok((rem, _)) => rem,
+            Err(_) => break,
+        };
+        match preceded(skip_ws_comments, parse_value).parse(after_eq) {
+            Ok((rem, nv)) => {
+                val = nv;
+                cur = rem;
+            }
+            Err(_) => break,
+        }
+    }
+    Ok((cur, val))
 }
 
 fn parse_entry(input: Span) -> IResult<Span, ast::Entry> {
@@ -877,6 +918,69 @@ mod tests {
             })
             .collect();
         assert_eq!(vals, vec!["5_something"]);
+    }
+
+    /// REGRESSION: a `key = v1 = v2` on a single line (no scope change, no braces)
+    /// is a common modding slip (`custom_effect_tooltip = tooltip = SOME_LOC`). The
+    /// parser must RECOVER instead of hard-failing the whole file: the assignment's
+    /// value becomes the LAST token after the extra `=` (drop the stray middle).
+    #[test]
+    fn test_double_assignment_same_line_recovery_last_value_wins() {
+        let (script, errors) = parse_script(
+            "foo = bar = baz\none = two = three\ncustom_effect_tooltip = tooltip = ZHI_decrease_damage_by_10\n",
+        );
+        // No hard parse error — the file must survive.
+        assert!(
+            errors.is_empty(),
+            "double-assignment should recover: {errors:?}"
+        );
+
+        let keys: Vec<&str> = script
+            .entries
+            .iter()
+            .filter_map(|e| match e {
+                ast::Entry::Assignment(a) => Some(a.key_text(&script.source)),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(keys, vec!["foo", "one", "custom_effect_tooltip"]);
+
+        // Recovery semantics: last value wins (and the real-world slip resolves to
+        // the intended loc key, not the stray `tooltip` middle).
+        let vals: Vec<&str> = script
+            .entries
+            .iter()
+            .filter_map(|e| match e {
+                ast::Entry::Assignment(a) => a.value.value.as_str(&script.source),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(vals, vec!["baz", "three", "ZHI_decrease_damage_by_10"]);
+    }
+
+    /// The recovery must NOT collapse distinct entries or a block value.
+    #[test]
+    fn test_double_assignment_recovery_does_not_affect_blocks() {
+        // `key = value` and `key = { block }` are unchanged; chained `=` only
+        // recovers when a scalar is wrongly followed by `=`.
+        let (script, errors) =
+            parse_script("plain = val\ntooltip = tt = to1\nblock = { inner = 1 }\n");
+        assert!(errors.is_empty());
+        let vals: Vec<&str> = script
+            .entries
+            .iter()
+            .filter_map(|e| match e {
+                ast::Entry::Assignment(a) => a.value.value.as_str(&script.source),
+                _ => None,
+            })
+            .collect();
+        // plain=val, tooltip=to1 (last wins). block's as_str is None.
+        assert_eq!(vals, vec!["val", "to1"]);
+        // The block entry is still a block.
+        let block_present = script.entries.iter().any(|e| {
+            matches!(e, ast::Entry::Assignment(a) if matches!(a.value.value, ast::Value::Block(_)))
+        });
+        assert!(block_present, "block value must be untouched");
     }
 
     #[test]

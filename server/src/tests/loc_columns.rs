@@ -42,6 +42,17 @@ mod tests {
 
     // ─── color code column tests ────────────────────────────────────────
 
+    /// Runs a loc range (now byte columns) through RangeMapper over the synthetic
+    /// line (value_start_col leading spaces + value) and returns (start,end) as
+    /// UTF-16 characters — the same conversion the backend applies on emission,
+    /// so these keep asserting the visible editor columns.
+    fn to_utf16(e: &LocEntry, r: &crate::parser::ast::Range) -> (u32, u32) {
+        let line_n = " ".repeat(e.value_start_col as usize) + &e.value;
+        let mapper = crate::utils::lsp_convert::RangeMapper::new(&line_n);
+        let l = mapper.range(r);
+        (l.start.character, l.end.character)
+    }
+
     #[test]
     fn test_dangling_color_reset_column_with_section_symbols() {
         let e = entry("§8Is home to a §gNovice§! exploitation effort.§!", 11, 0);
@@ -65,11 +76,13 @@ mod tests {
         );
 
         assert_eq!(
-            dangling[0].range.start_col, 57,
+            to_utf16(&e, &dangling[0].range).0,
+            57,
             "dangling §! should be at UTF-16 column 57, not byte-based 60"
         );
         assert_eq!(
-            dangling[0].range.end_col, 59,
+            to_utf16(&e, &dangling[0].range).1,
+            59,
             "dangling §! end should be at UTF-16 column 59 (§! = 2 units)"
         );
     }
@@ -91,8 +104,8 @@ mod tests {
             .collect();
         assert_eq!(dangling.len(), 1);
 
-        assert_eq!(dangling[0].range.start_col, 15);
-        assert_eq!(dangling[0].range.end_col, 17);
+        assert_eq!(to_utf16(&e, &dangling[0].range).0, 15);
+        assert_eq!(to_utf16(&e, &dangling[0].range).1, 17);
     }
 
     #[test]
@@ -119,10 +132,11 @@ mod tests {
         );
 
         assert_eq!(
-            unclosed[0].range.start_col, 15,
+            to_utf16(&e, &unclosed[0].range).0,
+            15,
             "unclosed §R at byte=14 should be at UTF-16 col=15 with 3 § prefix"
         );
-        assert_eq!(unclosed[0].range.end_col, 17);
+        assert_eq!(to_utf16(&e, &unclosed[0].range).1, 17);
     }
 
     // ─── bracket / scope column tests ───────────────────────────────────
@@ -147,7 +161,8 @@ mod tests {
             "all-parts-invalid diagnostic expected"
         );
         assert_eq!(
-            unescaped[0].range.start_col, 8,
+            to_utf16(&e, &unescaped[0].range).0,
+            8,
             "unescaped bracket [ at byte 7 → UTF-16 col 8 after § prefix"
         );
 
@@ -158,7 +173,8 @@ mod tests {
         assert!(!invalid.is_empty());
 
         assert_eq!(
-            invalid[0].range.start_col, 9,
+            to_utf16(&e, &invalid[0].range).0,
+            9,
             "invalid scope at byte 8 → UTF-16 col 9"
         );
     }
@@ -183,7 +199,8 @@ mod tests {
 
         assert!(!invalid.is_empty());
         assert_eq!(
-            invalid[0].range.start_col, 10,
+            to_utf16(&e, &invalid[0].range).0,
+            10,
             "ASCII-only bracket should have matching byte/UTF-16 column"
         );
     }
@@ -214,7 +231,8 @@ mod tests {
         );
 
         assert_eq!(
-            var_fmts[0].range.start_col, 19,
+            to_utf16(&e, &var_fmts[0].range).0,
+            19,
             "var formatting '@' column should account for § prefix"
         );
     }
@@ -243,7 +261,8 @@ mod tests {
         );
 
         assert_eq!(
-            var_fmts[0].range.start_col, 19,
+            to_utf16(&e, &var_fmts[0].range).0,
+            19,
             "nested $key$ formatting column should account for § prefix"
         );
     }
@@ -272,7 +291,8 @@ mod tests {
         );
 
         assert_eq!(
-            escaped[0].range.start_col, 9,
+            to_utf16(&e, &escaped[0].range).0,
+            9,
             "escaped bracket at byte 8 → UTF-16 col 9 (backslash at char 6)"
         );
     }
@@ -301,7 +321,8 @@ mod tests {
         );
 
         assert_eq!(
-            unknown_fmt[0].range.start_col, 9,
+            to_utf16(&e, &unknown_fmt[0].range).0,
+            9,
             "loc formatter column should account for § bytes: byte 7 → UTF-16 6, start_col=2+6+1=9"
         );
     }
