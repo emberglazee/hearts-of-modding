@@ -307,11 +307,23 @@ impl<'a> EntityLookup<'a> {
         let pos = to_byte_position(content, pos);
         macro_rules! check_entity {
             ($kind:ident, $name:ident) => {
-                for entry in self.data.$name.iter() {
-                    let entity = entry.value();
-                    let name = entry.key();
-                    if entity.path.as_ref() == path && is_pos_in_range(pos, &entity.range) {
-                        return Some((EntityKind::$kind, entity.range.clone(), name.to_string()));
+                // Reverse per-path index (path -> declared names) — O(entities-at-path),
+                // and uses the same path format as `entity.path` so it's Windows-safe.
+                paste::paste! {
+                    let index = &self.data.[<$name _file_index>];
+                    if let Some(names) = index.get(path) {
+                        for name in names.value() {
+                            if let Some(entity) = self.data.$name.get(&**name) {
+                                let e = entity.value();
+                                if is_pos_in_range(pos, &e.range) {
+                                    return Some((
+                                        EntityKind::$kind,
+                                        e.range.clone(),
+                                        name.to_string(),
+                                    ));
+                                }
+                            }
+                        }
                     }
                 }
             };
@@ -320,11 +332,25 @@ impl<'a> EntityLookup<'a> {
         // Standard scanners (generated)
         macro_rules! std_check_entity {
             ($mod:ident, $ty:ident, $kind:ident, $field:ident, $dir:expr, $ext:expr) => {
-                for entry in self.data.$field.iter() {
-                    let entity = entry.value();
-                    let name = entry.key();
-                    if entity.path.as_ref() == path && is_pos_in_range(pos, &entity.range) {
-                        return Some((EntityKind::$kind, entity.range.clone(), name.to_string()));
+                // Reverse the reverse index (`<field>_file_index`: path → declared
+                // names) so we only iterate the entities declared in THIS file,
+                // instead of scanning every entity in the map. The index is keyed
+                // by the same `entity.path` format, so it's Windows-safe too.
+                paste::paste! {
+                    let index = &self.data.[<$field _file_index>];
+                    if let Some(names) = index.get(path) {
+                        for name in names.value() {
+                            if let Some(entity) = self.data.$field.get(&**name) {
+                                let e = entity.value();
+                                if is_pos_in_range(pos, &e.range) {
+                                    return Some((
+                                        EntityKind::$kind,
+                                        e.range.clone(),
+                                        name.to_string(),
+                                    ));
+                                }
+                            }
+                        }
                     }
                 }
             };
