@@ -251,6 +251,17 @@ export async function activate(context: ExtensionContext) {
                 }
             })
         }
+        if (e.affectsConfiguration('hoi4.modRegistryPath')) {
+            // The mod registry path is consumed at server initialize time and
+            // feeds dependency-mod resolution during the scan — a live
+            // didChangeConfiguration notification can't re-run it, so prompt
+            // for a reload like gamePath/modPaths do.
+            window.showInformationMessage('HOI4 mod registry path changed. Reload window to re-index dependency mods.', 'Reload').then(selection => {
+                if (selection === 'Reload') {
+                    commands.executeCommand('workbench.action.reloadWindow')
+                }
+            })
+        }
         if (e.affectsConfiguration('hoi4.validator.ignoreLocalization')) {
             const newValue = workspace.getConfiguration('hoi4.validator').get('ignoreLocalization')
             client.sendNotification('workspace/didChangeConfiguration', {

@@ -4,6 +4,10 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ## [v0.24.2] - 2026-08-03
 
+### ✨ Added
+
+- **Changing `hoi4.modRegistryPath` now prompts a reload.**
+
 ### 🩹 Fixed
 
 - **Fixed wrong balance of power and character portrait paths in overlay prefix and scanners.**
