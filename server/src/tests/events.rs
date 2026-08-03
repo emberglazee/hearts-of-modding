@@ -1124,3 +1124,42 @@ my_decision = {
         title_diags.len()
     );
 }
+
+/// Two `country_event` blocks with the SAME id in one file must flag HOM3011
+/// (duplicate event ID) — HOI4 loads only one event per ID.
+#[test]
+fn test_duplicate_event_id_hom3011() {
+    let input = r#"
+country_event = {
+    id = test_dup.1
+    title = "Some Title"
+    desc = "Some desc"
+    option = { name = OK ai_chance = { base = 1 } }
+}
+country_event = {
+    id = test_dup.1
+    title = "A Title"
+    desc = "A desc"
+    option = { name = OK ai_chance = { base = 1 } }
+}
+"#;
+    let diags = run_event_visitor(input, "file:///common/events/test.txt", &[]);
+    let dup: Vec<_> = diags
+        .iter()
+        .filter(|d| {
+            matches!(
+                d.code.as_ref(),
+                Some(NumberOrString::String(s))
+                    if s == crate::validation::advanced_validation::DUPLICATE_EVENT_ID
+            )
+        })
+        .collect();
+    assert_eq!(
+        dup.len(),
+        1,
+        "expected exactly one HOM3011 (duplicate event ID); got {}: {:?}",
+        dup.len(),
+        diags
+    );
+    assert!(dup[0].message.contains("test_dup.1"));
+}

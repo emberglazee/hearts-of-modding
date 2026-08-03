@@ -3,7 +3,7 @@ use crate::rules::visitor::AstVisitor;
 use crate::rules::{ValidationContext, ValidationRule};
 use crate::scanner::event_namespace_scanner;
 use crate::scope::scope::ScopeStack;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString, Uri};
 
@@ -52,6 +52,10 @@ struct EventDef {
     desc_key: Option<String>,
     /// Sprite name extracted from `picture = GFX_...` (not quoted or block form).
     picture_sprite: Option<String>,
+    /// Event id (`id = <name>`) — used for duplicate-event-ID detection.
+    id: Option<String>,
+    /// Range of the `id` value (for pinpointing a duplicate).
+    id_range: Option<ast::Range>,
 }
 
 /// AstVisitor that validates event structure, option blocks, and namespace IDs.
@@ -69,6 +73,9 @@ struct EventVisitor {
     /// Namespace declarations seen so far in the current file walk (lowercased).
     /// Populated by `add_namespace = X` entries in document order.
     seen_namespaces: HashSet<String>,
+    /// Event IDs already defined in the current file (lowercased → first range).
+    /// Used to flag duplicate event IDs (HOM3011), which HOI4 silently drops.
+    seen_event_ids: HashMap<String, ast::Range>,
 }
 
 impl EventVisitor {
@@ -78,6 +85,7 @@ impl EventVisitor {
             event_stack: Vec::new(),
             option_stack: Vec::new(),
             seen_namespaces: HashSet::new(),
+            seen_event_ids: HashMap::new(),
         }
     }
 
@@ -613,6 +621,8 @@ impl AstVisitor for EventVisitor {
                 title_key: None,
                 desc_key: None,
                 picture_sprite: None,
+                id: None,
+                id_range: None,
             });
             self.event_depth += 1;
             return;
@@ -657,6 +667,12 @@ impl AstVisitor for EventVisitor {
                             ast::Value::Boolean(b) => *b,
                             _ => ass.value.value.as_str(ctx.source) == Some("yes"),
                         };
+                    }
+                    "id" => {
+                        if let Some(s) = ass.value.value.as_str(ctx.source) {
+                            state.id = Some(s.to_string());
+                            state.id_range = Some(ass.value.range.clone());
+                        }
                     }
                     _ => {}
                 }
@@ -746,6 +762,39 @@ impl AstVisitor for EventVisitor {
             // Always validate when popping
             if let Some(state) = self.event_stack.pop() {
                 self.validate_event(&state, ctx, diags);
+
+                // HOM3011: duplicate event ID within this file. HOI4 loads only
+                // one event per ID, so the second identical definition silently
+                // never fires — a definite conflict (not a candidate).
+                if !state.is_call {
+                    if let Some(id) = &state.id {
+                        let key = id.to_ascii_lowercase();
+                        if let Some(_first) =
+                            self.seen_event_ids.insert(key, state.key_range.clone())
+                        {
+                            let range = state
+                                .id_range
+                                .clone()
+                                .unwrap_or_else(|| state.key_range.clone());
+                            diags.push(Diagnostic {
+                                range: ctx.range(&range),
+                                severity: Some(DiagnosticSeverity::ERROR),
+                                message: format!(
+                                    "Duplicate event ID '{}' defined more than once in this \
+                                     file. HOI4 loads only one event per ID; the other \
+                                     definition will never fire. Rename one of them.",
+                                    id,
+                                ),
+                                code: Some(NumberOrString::String(
+                                    crate::validation::advanced_validation::DUPLICATE_EVENT_ID
+                                        .to_string(),
+                                )),
+                                source: Some("Hearts of Modding".to_string()),
+                                ..Default::default()
+                            });
+                        }
+                    }
+                }
             }
         }
     }
