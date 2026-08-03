@@ -16,6 +16,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Slightly optimized the extension VSIX file size.**
 
+- **Optimized the localization color decorator.**
+
 ### 🩹 Fixed
 
 - **Fixed wrong balance of power and character portrait paths in overlay prefix and scanners.**

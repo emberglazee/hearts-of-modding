@@ -49,6 +49,8 @@ const COLOR_CODE_RE = /§([a-zA-Z0-9!])/g
 export class LocColorDecorator {
     private disposables: vscode.Disposable[] = []
     private decorationTypes = new Map<string, vscode.TextEditorDecorationType>()
+    /** Debounce timer for document-change re-decoration. */
+    private decorationTimer: NodeJS.Timeout | undefined
 
     /**
      * Active colour map: LSP-provided values merged over wiki defaults.
@@ -71,13 +73,27 @@ export class LocColorDecorator {
             })
         )
 
-        // Decorate when the document content changes (typing, undo, etc.)
+        // Decorate when the document content changes (typing, undo, etc.).
+        // Fast path: a full re-scan is only needed when something structural
+        // changed — a § marker was inserted, a string boundary (quote or
+        // newline) moved, or text was deleted. Pure insertions of ordinary
+        // text leave the existing decoration ranges valid (VS Code shifts
+        // ranges automatically with edits), so skipping the O(document) scan
+        // there is both faster and correct.
         this.disposables.push(
             vscode.workspace.onDidChangeTextDocument(event => {
                 const editor = vscode.window.activeTextEditor
-                if (editor && event.document === editor.document) {
-                    this.updateDecorations(editor)
-                }
+                if (!editor || event.document !== editor.document) return
+                if (editor.document.languageId !== 'hoi4-localisation') return
+
+                const needsRescan = event.contentChanges.some(c =>
+                    c.rangeLength > 0 // deletion/replacement — markers or boundaries may be gone
+                    || c.text.includes('§') // marker added
+                    || c.text.includes('"') // string end may have moved
+                    || c.text.includes('\n') // line structure changed
+                )
+                if (!needsRescan) return
+                this.scheduleDecorations(editor)
             })
         )
 
@@ -85,6 +101,19 @@ export class LocColorDecorator {
         if (vscode.window.activeTextEditor) {
             this.updateDecorations(vscode.window.activeTextEditor)
         }
+    }
+
+    /** Debounce re-decoration so rapid typing coalesces into one scan. */
+    private scheduleDecorations(editor: vscode.TextEditor): void {
+        if (this.decorationTimer) clearTimeout(this.decorationTimer)
+        this.decorationTimer = setTimeout(() => {
+            this.decorationTimer = undefined
+            // The active editor may have changed while debouncing.
+            const current = vscode.window.activeTextEditor
+            if (current && current.document === editor.document) {
+                this.updateDecorations(current)
+            }
+        }, 100)
     }
 
     /**
@@ -261,6 +290,10 @@ export class LocColorDecorator {
      * Dispose all decoration types and event listeners.
      */
     dispose(): void {
+        if (this.decorationTimer) {
+            clearTimeout(this.decorationTimer)
+            this.decorationTimer = undefined
+        }
         for (const dt of this.decorationTypes.values()) {
             dt.dispose()
         }
