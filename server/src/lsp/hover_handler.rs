@@ -28,11 +28,14 @@ impl Backend {
             if uri.ends_with(".yml") {
                 let (locs, _, _) = loc_parser::parse_loc_file(&content, &uri);
                 let global_loc = &self.scanner_data.localization;
+                // Loc entry columns are byte-based; convert the UTF-16 cursor to
+                // byte so hover hits the key/value on multi-byte lines.
+                let byte_position = crate::utils::lsp_convert::to_byte_position(&content, position);
                 for entry in locs.values() {
                     // Check key
-                    if position.line == entry.range.start_line
-                        && position.character >= entry.range.start_col
-                        && position.character <= entry.range.end_col
+                    if byte_position.line == entry.range.start_line
+                        && byte_position.character >= entry.range.start_col
+                        && byte_position.character <= entry.range.end_col
                     {
                         let mut hover_text = format!("### 🌐 Localization: {}\n\n", entry.key);
 
@@ -91,9 +94,10 @@ impl Backend {
                         }));
                     }
                     // Check value
-                    if position.line == entry.range.start_line
-                        && position.character >= entry.value_start_col
-                        && position.character <= entry.value_start_col + entry.value.len() as u32
+                    if byte_position.line == entry.range.start_line
+                        && byte_position.character >= entry.value_start_col
+                        && byte_position.character
+                            <= entry.value_start_col + entry.value.len() as u32
                     {
                         let mut hover_text = "### 👁️ Localization Preview\n\n".to_string();
                         hover_text.push_str(&paradox_to_markdown(
