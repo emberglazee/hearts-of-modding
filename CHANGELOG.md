@@ -8,13 +8,15 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Changing `hoi4.modRegistryPath` now prompts a reload.**
 
+- **Associate `portraits/**/*.txt` with HoM's `hoi4` language mode.**
+
+- **Scan `common/continuous_focuses/**/*.txt` as focuses.**
+
 ### 🩹 Fixed
 
 - **Fixed wrong balance of power and character portrait paths in overlay prefix and scanners.**
 
 - **Fixed call hierarchy and localization goto-definition UTF-16 inception bugs.**
-
-- **Associate `portraits/**/*.txt` with HoM's `hoi4` language mode.**
 
 - **Removed provably dead localization scans that resulted in wasted O(N)** from the hover handler, entity lookup, and the events parser.
 

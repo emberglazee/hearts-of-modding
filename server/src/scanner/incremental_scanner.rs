@@ -17,6 +17,7 @@ use crate::scanner::continent_scanner;
 use crate::scanner::country_scanner;
 use crate::scanner::event_namespace_scanner;
 use crate::scanner::event_scanner;
+use crate::scanner::focus_scanner;
 use crate::scanner::idea_scanner;
 use crate::scanner::ideology_scanner;
 use crate::scanner::modifier_scanner;
@@ -357,6 +358,15 @@ fn classify_file(path: &str) -> Vec<FileCategory> {
             cats.push(FileCategory::Terrains);
         }
 
+        // Focus definitions — BOTH engine dirs: common/national_focus (regular
+        // + shared focuses) and common/continuous_focus (continuous focus
+        // palettes, 1.15+). Must match the full scan's prefixes in
+        // orchestrator.rs::scan_focuses or edits/renames/deletes never refresh.
+        if lower.contains("/common/national_focus/") || lower.contains("/common/continuous_focus/")
+        {
+            cats.push(FileCategory::Focuses);
+        }
+
         // Music song/txt files
         if lower.contains("/music/") {
             cats.push(FileCategory::MusicAssets);
@@ -427,8 +437,10 @@ pub(crate) fn dependency_affected_prefixes(path: &str) -> Vec<&'static str> {
     if lower.contains("/common/decisions/") {
         affected.push("/common/decisions/");
     }
-    if lower.contains("/common/national_focus/") {
+    if lower.contains("/common/national_focus/") || lower.contains("/common/continuous_focus/") {
+        // Focus definitions consumed by focus-tree validation (both engine dirs)
         affected.push("/common/national_focus/");
+        affected.push("/common/continuous_focus/");
     }
     if lower.contains("/common/ideas/") {
         // Ideas reference other ideas (categories, picture sprites)
@@ -514,6 +526,7 @@ enum FileCategory {
     BalanceOfPower,
     Oob,
     Units,
+    Focuses,
     Decisions,
     DecisionCategories,
 }
@@ -595,6 +608,7 @@ fn update_from_ast(
         FileCategory::BalanceOfPower => update_balance_of_powers(scanner_data, path_str, script),
         FileCategory::Oob => update_oobs(scanner_data, path_str, script),
         FileCategory::Units => update_units(scanner_data, path_str, script),
+        FileCategory::Focuses => update_focuses(scanner_data, path_str, script),
         FileCategory::Decisions => update_decisions(scanner_data, path_str, script),
         FileCategory::DecisionCategories => {
             update_decision_categories(scanner_data, path_str, script)
@@ -983,6 +997,23 @@ fn update_ai_areas(scanner_data: &ScannerData, path_str: &str, script: &ast::Scr
     retain_path!(
         scanner_data.ai_areas,
         scanner_data.ai_areas_file_index,
+        path_str,
+        new_entries
+    );
+}
+
+fn update_focuses(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
+    let mut new_entries = HashMap::new();
+    focus_scanner::find_focuses_in_entries(
+        &script.entries,
+        &script.source,
+        path_str,
+        &mut new_entries,
+    );
+
+    retain_path!(
+        scanner_data.focuses,
+        scanner_data.focuses_file_index,
         path_str,
         new_entries
     );
@@ -1676,6 +1707,13 @@ pub fn remove_path_from_scanner_data(scanner_data: &ScannerData, path_str: &str)
                     path_str
                 );
             }
+            FileCategory::Focuses => {
+                remove_path!(
+                    scanner_data.focuses,
+                    scanner_data.focuses_file_index,
+                    path_str
+                );
+            }
             FileCategory::Oob => {
                 remove_path!(
                     scanner_data.oob_division_templates,
@@ -1784,6 +1822,55 @@ mod tests {
         // Deleting the whole file removes the remaining category.
         remove_decision_categories(&data, "/mod/common/decisions/categories/eth.txt");
         assert!(!data.decision_categories.contains_key("cat_alpha"));
+    }
+
+    /// Both engine focus dirs must classify as Focuses so edits refresh the
+    /// focus map incrementally — the full scan (orchestrator.rs::scan_focuses)
+    /// reads BOTH common/national_focus and common/continuous_focus.
+    #[test]
+    fn test_classify_focus_paths() {
+        let nf = "/mod/common/national_focus/finland.txt";
+        let cats = classify_file(nf);
+        assert!(
+            cats.contains(&FileCategory::Focuses),
+            "common/national_focus/*.txt should classify as Focuses"
+        );
+
+        let cf = "/mod/common/continuous_focus/generic.txt";
+        let cats_cf = classify_file(cf);
+        assert!(
+            cats_cf.contains(&FileCategory::Focuses),
+            "common/continuous_focus/*.txt should classify as Focuses"
+        );
+    }
+
+    /// Continuous-focus palettes nest `focus = { id = ... }` inside
+    /// `continuous_focus_palette = { ... }`; the incremental update must
+    /// extract them (same recursion the full scan uses) and remove them on
+    /// file deletion.
+    #[test]
+    fn test_update_focuses_continuous_palette() {
+        let data = crate::data::scanner_data::ScannerData::new();
+        let path = "/mod/common/continuous_focus/generic.txt";
+        let script = crate::parser::parser::parse_script(
+            "continuous_focus_palette = {\n\
+             \tid = generic_focus\n\
+             \tfocus = {\n\
+             \t\tid = DEN_continuous_focus\n\
+             \t}\n\
+             }\n",
+        )
+        .0;
+        update_focuses(&data, path, &script);
+        assert!(
+            data.focuses.contains_key("DEN_continuous_focus"),
+            "nested focus inside continuous_focus_palette must be extracted"
+        );
+        assert_eq!(data.focuses_file_index.get(path).unwrap().value().len(), 1);
+
+        // Deleting the file removes the focus.
+        remove_path!(data.focuses, data.focuses_file_index, path);
+        assert!(!data.focuses.contains_key("DEN_continuous_focus"));
     }
 }
 

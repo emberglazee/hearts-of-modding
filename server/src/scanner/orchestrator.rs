@@ -341,15 +341,42 @@ impl Backend {
     }
 
     pub(crate) async fn scan_focuses(&self, overlay: &crate::scanner::file_overlay::FileOverlay) {
-        scan_dashmap_overlay!(
-            self,
-            overlay,
-            "common/national_focus",
-            focus_scanner::scan_focus_files,
-            focuses,
-            &["txt"],
-            "Total: Loaded {} national focus definitions"
-        );
+        // Both engine focus dirs: common/national_focus (regular + shared
+        // focuses) and common/continuous_focus (continuous focus palettes,
+        // 1.15+). The scanner recurses into focus_tree/continuous_focus_palette
+        // blocks, so one file list over both dirs extracts everything.
+        // NB: scan_dashmap_overlay! clears the field, so the two prefixes must
+        // be concatenated into a single call rather than two macro invocations.
+        let filter = self.get_sync_filter();
+        let mut all_files: Vec<std::path::PathBuf> =
+            overlay.winning_files_in("common/national_focus");
+        all_files.extend(overlay.winning_files_in("common/continuous_focus"));
+        let filtered: Vec<std::path::PathBuf> = all_files
+            .into_iter()
+            .filter(|p| {
+                p.extension()
+                    .and_then(|e| e.to_str())
+                    .is_some_and(|e| ["txt"].contains(&e))
+            })
+            .collect();
+        let result = tokio::task::spawn_blocking(move || {
+            focus_scanner::scan_focus_files(&filtered, &filter)
+        })
+        .await
+        .unwrap();
+        self.scanner_data.focuses.clear();
+        for (k, v) in result {
+            self.scanner_data
+                .focuses
+                .insert(k.into(), crate::data::layered_value::LayeredValue::new(v));
+        }
+        let count = self.scanner_data.focuses.len();
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!("Total: Loaded {} focus definitions", count),
+            )
+            .await;
     }
 
     pub(crate) async fn scan_abilities(&self, overlay: &crate::scanner::file_overlay::FileOverlay) {
