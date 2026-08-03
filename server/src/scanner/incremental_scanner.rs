@@ -33,8 +33,10 @@ use crate::scanner::terrain_scanner;
 use crate::scanner::trait_scanner;
 use crate::scanner::unit_scanner;
 use crate::scanner::variable_scanner;
+use once_cell::sync::Lazy;
 use std::collections::{HashMap, HashSet};
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 
 /// Determine whether a stored scanner path matches a target absolute path.
 /// Stored paths may be relative (`./events/x.txt`) or absolute.
@@ -44,6 +46,51 @@ fn path_matches(stored: &str, target: &str) -> bool {
     }
     let normalized = stored.strip_prefix("./").unwrap_or(stored);
     normalized == target || target.ends_with(normalized)
+}
+
+/// Priority-ordered workspace roots (lowest priority first — game path, then
+/// dependency mods, then the workspace root), used by `retain_path!` to
+/// re-insert a re-scanned file's layer at its CORRECT priority position.
+///
+/// Without this, every re-scan pushed the layer onto the top of the
+/// `LayeredValue` stack (highest priority), so editing a LOWER-priority
+/// sub-mod file mid-session promoted it above the higher-priority layers it
+/// should sit under — changing which entity `resolve()` returns until the
+/// next full scan. Roots never change mid-session (set once at scan
+/// orchestration), so a plain static is safe.
+static SCAN_ROOTS: Lazy<Mutex<Vec<PathBuf>>> = Lazy::new(|| Mutex::new(Vec::new()));
+
+/// Record the priority-ordered scan roots (lowest priority first). Called at
+/// scan orchestration with the same canonicalized roots the overlay walks.
+pub(crate) fn set_scan_roots(roots: Vec<PathBuf>) {
+    *SCAN_ROOTS.lock().unwrap() = roots;
+}
+
+/// Index of the root containing `path` in a priority-ordered roots list, or
+/// `None` when no root contains it.
+fn root_priority(roots: &[PathBuf], path: &str) -> Option<usize> {
+    let matched = crate::utils::map_config::matching_root(roots, path)?;
+    roots.iter().position(|r| r == matched)
+}
+
+/// Compute the insertion index for a re-scanned layer of `path` among
+/// `layers` (priority order, index 0 = lowest). The new layer goes after
+/// every existing layer whose root has LOWER priority than `path`'s root;
+/// layers whose root is unknown are treated as lower priority (the new
+/// matched layer lands above them). Falls back to `layers.len()` — the
+/// legacy top-push, highest-priority slot — when `path`'s own root cannot
+/// be determined.
+fn layer_insert_index<F, T>(roots: &[PathBuf], layers: &[T], path_of: F, path: &str) -> usize
+where
+    F: Fn(&T) -> &str,
+{
+    let Some(path_root_idx) = root_priority(roots, path) else {
+        return layers.len();
+    };
+    layers
+        .iter()
+        .filter(|layer| root_priority(roots, path_of(layer)).is_none_or(|i| i < path_root_idx))
+        .count()
 }
 
 /// O(K) replacement for DashMap::retain + insert pattern using a reverse
@@ -86,13 +133,21 @@ macro_rules! retain_path {
                 !lv.layers().is_empty()
             });
         }
-        // Insert new entries — push into LayeredValue (higher priority = last in vec)
+        // Insert new entries — at the priority position matching each file's
+        // root (not always the top: re-scanning a LOWER-priority sub-mod file
+        // must not promote it above the higher-priority layers it sits under).
         let mut file_keys = Vec::with_capacity($new_entries.len());
         for (key, value) in $new_entries {
             let ik: InternedStr = std::sync::Arc::from(key.as_ref());
             match $map.get_mut(&ik) {
                 Some(mut existing) => {
-                    existing.push(value);
+                    let idx = layer_insert_index(
+                        &SCAN_ROOTS.lock().unwrap(),
+                        existing.layers(),
+                        |v: &_| v.path(),
+                        p,
+                    );
+                    existing.layers_mut().insert(idx, value);
                 }
                 None => {
                     $map.insert(
@@ -133,13 +188,19 @@ macro_rules! retain_path {
                 !lv.layers().is_empty()
             });
         }
-        // Insert new entries — push into LayeredValue
+        // Insert new entries — priority-aware, same as the 4-arg form.
         let mut file_keys = Vec::with_capacity($new_entries.len());
         for (key, value) in $new_entries {
             let ik: InternedStr = std::sync::Arc::from(key.as_ref());
             match $map.get_mut(&ik) {
                 Some(mut existing) => {
-                    existing.push(value);
+                    let idx = layer_insert_index(
+                        &SCAN_ROOTS.lock().unwrap(),
+                        existing.layers(),
+                        $path_fn,
+                        p,
+                    );
+                    existing.layers_mut().insert(idx, value);
                 }
                 None => {
                     $map.insert(
@@ -1871,6 +1932,112 @@ mod tests {
         // Deleting the file removes the focus.
         remove_path!(data.focuses, data.focuses_file_index, path);
         assert!(!data.focuses.contains_key("DEN_continuous_focus"));
+    }
+
+    /// Minimal layer type for the priority test.
+    struct TestLayer {
+        path: String,
+        name: &'static str,
+    }
+    impl HasPath for TestLayer {
+        fn path(&self) -> &str {
+            &self.path
+        }
+    }
+
+    /// Regression for the retain_path! priority bug: re-scanning a file from a
+    /// LOWER-priority root (dependency sub-mod) must re-insert its layer in the
+    /// correct priority slot — between vanilla and the workspace layer — NOT
+    /// on top. Before the fix, `push` put the re-scanned layer at the highest
+    /// priority, so editing a sub-mod file mid-session changed which entity
+    /// `resolve()` returned until the next full scan.
+    #[test]
+    fn test_retain_path_preserves_layer_priority() {
+        set_scan_roots(vec![
+            PathBuf::from("/vanilla"),
+            PathBuf::from("/mod/dep"),
+            PathBuf::from("/mod/workspace"),
+        ]);
+
+        let map: dashmap::DashMap<
+            InternedStr,
+            crate::data::layered_value::LayeredValue<TestLayer>,
+        > = dashmap::DashMap::new();
+        let index: dashmap::DashMap<InternedStr, Vec<InternedStr>> = dashmap::DashMap::new();
+
+        // 1. Workspace (highest priority) declares the key first.
+        let mut ws = HashMap::new();
+        ws.insert(
+            "shared_key".to_string(),
+            TestLayer {
+                path: "/mod/workspace/common/x.txt".into(),
+                name: "workspace",
+            },
+        );
+        retain_path!(map, index, "/mod/workspace/common/x.txt", ws);
+        assert_eq!(map.get("shared_key").unwrap().resolve().name, "workspace");
+
+        // 2. Vanilla (lowest) declares the same key — must land BELOW workspace.
+        let mut van = HashMap::new();
+        van.insert(
+            "shared_key".to_string(),
+            TestLayer {
+                path: "/vanilla/common/x.txt".into(),
+                name: "vanilla",
+            },
+        );
+        retain_path!(map, index, "/vanilla/common/x.txt", van);
+        let names: Vec<&str> = map
+            .get("shared_key")
+            .unwrap()
+            .layers()
+            .iter()
+            .map(|l| l.name)
+            .collect();
+        assert_eq!(names, vec!["vanilla", "workspace"]);
+        assert_eq!(map.get("shared_key").unwrap().resolve().name, "workspace");
+
+        // 3. Dependency mod (middle priority) re-scan — must land BETWEEN
+        //    vanilla and workspace, not on top.
+        let mut dep = HashMap::new();
+        dep.insert(
+            "shared_key".to_string(),
+            TestLayer {
+                path: "/mod/dep/common/x.txt".into(),
+                name: "dependency",
+            },
+        );
+        retain_path!(map, index, "/mod/dep/common/x.txt", dep);
+        let names: Vec<&str> = map
+            .get("shared_key")
+            .unwrap()
+            .layers()
+            .iter()
+            .map(|l| l.name)
+            .collect();
+        assert_eq!(names, vec!["vanilla", "dependency", "workspace"]);
+        assert_eq!(
+            map.get("shared_key").unwrap().resolve().name,
+            "workspace",
+            "re-scanning a lower-priority sub-mod file must not promote it above the workspace layer"
+        );
+
+        // Re-scanning the WORKSPACE file (highest priority) still lands on top.
+        let mut ws2 = HashMap::new();
+        ws2.insert(
+            "shared_key".to_string(),
+            TestLayer {
+                path: "/mod/workspace/common/x.txt".into(),
+                name: "workspace_v2",
+            },
+        );
+        retain_path!(map, index, "/mod/workspace/common/x.txt", ws2);
+        assert_eq!(
+            map.get("shared_key").unwrap().resolve().name,
+            "workspace_v2"
+        );
+
+        set_scan_roots(Vec::new());
     }
 }
 

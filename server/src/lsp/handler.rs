@@ -424,7 +424,9 @@ impl LanguageServer for Backend {
             .iter()
             .map(|r| r.canonicalize().unwrap_or_else(|_| r.clone()))
             .collect();
-        *self.workspace_roots.lock().unwrap() = stored_roots;
+        *self.workspace_roots.lock().unwrap() = stored_roots.clone();
+        // Priority order for retain_path! layer re-insertion (lowest first).
+        crate::scanner::incremental_scanner::set_scan_roots(stored_roots);
 
         // Build file-level overlay for path-priority-based scanning.
         // Script files (events, ideas, focuses, etc.) use file-path-level override:

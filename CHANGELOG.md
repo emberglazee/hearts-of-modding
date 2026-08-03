@@ -28,6 +28,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Resolve the map files per-URI instead of server CWD.**
 
+- **Incremental scanner's `retain_path!` now correctly re-inserts layers at their correct priority.**
+
 ## [v0.24.1] - 2026-08-03
 
 ### ✨ Added
