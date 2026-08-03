@@ -12,11 +12,15 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Scan `common/continuous_focuses/**/*.txt` as focuses.**
 
+- **Localization file cache** to avoid wasteful re-parsing.
+
 ### 🔧 Changed
 
 - **Slightly optimized the extension VSIX file size.**
 
 - **Optimized the localization color decorator.**
+
+- **Optimized the localization parsing done by the hover handler and localization validation.**
 
 ### 🩹 Fixed
 
@@ -28,7 +32,7 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Resolve the map files per-URI instead of server CWD.**
 
-- **Incremental scanner's `retain_path!` now correctly re-inserts layers at their correct priority.**
+- **Incremental scanner now correctly re-inserts layers at their correct priority.**
 
 ## [v0.24.1] - 2026-08-03
 

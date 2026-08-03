@@ -103,6 +103,7 @@ async fn main() {
             documents: DashMap::new(),
             document_asts: DashMap::new(),
             document_cancellation_tokens: DashMap::new(),
+            document_locs: DashMap::new(),
             scanner_data: ScannerData::new(),
             config: Config::new(),
             system_info: Mutex::new(sysinfo::System::new()),

@@ -25,6 +25,14 @@ use crate::utils::lsp_convert::RangeMapper;
 use crate::utils::lsp_convert::ast_range_to_lsp_location;
 use crate::utils::symbol_search::find_identifier_at;
 
+/// Outcome of the debounced document parse in `did_change`/`did_save` — either
+/// a script AST (`.txt` etc.) or a localization parse (`.yml`, cached in
+/// `document_locs` so hover and validation share one parse per file).
+enum DocParse {
+    Script(Arc<ast::Script>, Vec<(String, ast::Range)>),
+    Loc(crate::parser::loc_parser::LocParseOutcome),
+}
+
 impl LanguageServer for Backend {
     async fn initialize(&self, params: InitializeParams) -> Result<InitializeResult> {
         if let Some(options) = params.initialization_options {
@@ -626,25 +634,49 @@ impl LanguageServer for Backend {
         let text = params.text_document.text;
         self.documents.insert(uri.clone(), text.clone());
 
-        // Parse on a blocking thread to avoid blocking the LSP event loop.
-        let result = tokio::task::spawn_blocking(move || {
-            let (script, errors) = parser::parse_script(&text);
-            (Arc::new(script), errors)
-        })
-        .await
-        .unwrap_or_else(|e| {
-            eprintln!("[hoi4] Parse task panicked: {e}");
-            (
-                Arc::new(ast::Script {
-                    source: Arc::from(""),
-                    entries: vec![],
-                    closed_by_eof: false,
-                }),
-                vec![],
-            )
-        });
+        if uri.ends_with(".yml") {
+            // Localization files populate the loc parse cache, not the script
+            // AST — the script parser would wastefully re-parse the .yml as
+            // HOI4 script. Loc scanner data refreshes on save / watched-file
+            // changes (update_localization), not here.
+            let path = params
+                .text_document
+                .uri
+                .to_file_path()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string();
+            let text_for_parse = text.clone();
+            let result = tokio::task::spawn_blocking(move || {
+                crate::parser::loc_parser::parse_loc_file(&text_for_parse, &path)
+            })
+            .await
+            .unwrap_or_else(|e| {
+                eprintln!("[hoi4] Loc parse task panicked: {e}");
+                (std::collections::HashMap::new(), Vec::new(), None)
+            });
+            self.cache_loc_parse(&uri, result);
+        } else {
+            // Parse on a blocking thread to avoid blocking the LSP event loop.
+            let result = tokio::task::spawn_blocking(move || {
+                let (script, errors) = parser::parse_script(&text);
+                (Arc::new(script), errors)
+            })
+            .await
+            .unwrap_or_else(|e| {
+                eprintln!("[hoi4] Parse task panicked: {e}");
+                (
+                    Arc::new(ast::Script {
+                        source: Arc::from(""),
+                        entries: vec![],
+                        closed_by_eof: false,
+                    }),
+                    vec![],
+                )
+            });
 
-        self.document_asts.insert(uri, result);
+            self.document_asts.insert(uri, result);
+        }
         self.validate_document(params.text_document.uri).await;
     }
 
@@ -687,21 +719,39 @@ impl LanguageServer for Backend {
         };
 
         // Parse on a blocking thread (CPU-bound work, off the event loop).
+        // .yml files get the loc parse cache; everything else the script AST.
+        let is_yml = uri.ends_with(".yml");
+        let path_str_owned = params
+            .text_document
+            .uri
+            .to_file_path()
+            .map(|p| p.to_string_lossy().to_string());
         let result = tokio::task::spawn_blocking(move || {
-            let (script, errors) = parser::parse_script(&text);
-            (Arc::new(script), errors)
+            if is_yml {
+                DocParse::Loc(crate::parser::loc_parser::parse_loc_file(
+                    &text,
+                    &path_str_owned.unwrap_or_default(),
+                ))
+            } else {
+                let (script, errors) = parser::parse_script(&text);
+                DocParse::Script(Arc::new(script), errors)
+            }
         })
         .await
         .unwrap_or_else(|e| {
             eprintln!("[hoi4] Parse task panicked: {e}");
-            (
-                Arc::new(ast::Script {
-                    source: Arc::from(""),
-                    entries: vec![],
-                    closed_by_eof: false,
-                }),
-                vec![],
-            )
+            if is_yml {
+                DocParse::Loc((std::collections::HashMap::new(), Vec::new(), None))
+            } else {
+                DocParse::Script(
+                    Arc::new(ast::Script {
+                        source: Arc::from(""),
+                        entries: vec![],
+                        closed_by_eof: false,
+                    }),
+                    vec![],
+                )
+            }
         });
 
         // Gate 2: if cancelled during spawn_blocking, discard.
@@ -709,18 +759,24 @@ impl LanguageServer for Backend {
             return;
         }
 
-        let (script, errors) = result;
-        let script_for_scanner = script.clone();
-        self.document_asts.insert(uri.clone(), (script, errors));
+        match result {
+            DocParse::Script(script, errors) => {
+                let script_for_scanner = script.clone();
+                self.document_asts.insert(uri.clone(), (script, errors));
 
-        // Live-update scanner data from cached AST (no re-parse needed)
-        if let Some(file_path) = params.text_document.uri.to_file_path() {
-            let path_str = file_path.to_string_lossy().to_string();
-            crate::scanner::incremental_scanner::update_scanner_data_from_ast(
-                &self.scanner_data,
-                &path_str,
-                &script_for_scanner,
-            );
+                // Live-update scanner data from cached AST (no re-parse needed)
+                if let Some(file_path) = params.text_document.uri.to_file_path() {
+                    let path_str = file_path.to_string_lossy().to_string();
+                    crate::scanner::incremental_scanner::update_scanner_data_from_ast(
+                        &self.scanner_data,
+                        &path_str,
+                        &script_for_scanner,
+                    );
+                }
+            }
+            DocParse::Loc(outcome) => {
+                self.cache_loc_parse(&uri, outcome);
+            }
         }
 
         self.validate_document(params.text_document.uri).await;
@@ -751,24 +807,45 @@ impl LanguageServer for Backend {
         }
 
         // Parse on a blocking thread to avoid blocking the LSP event loop.
+        // .yml files populate the loc parse cache; everything else the AST.
+        let is_yml = uri_str.ends_with(".yml");
+        let path_str_owned = uri.to_file_path().map(|p| p.to_string_lossy().to_string());
         let result = tokio::task::spawn_blocking(move || {
-            let (script, errors) = parser::parse_script(&content);
-            (Arc::new(script), errors)
+            if is_yml {
+                DocParse::Loc(crate::parser::loc_parser::parse_loc_file(
+                    &content,
+                    &path_str_owned.unwrap_or_default(),
+                ))
+            } else {
+                let (script, errors) = parser::parse_script(&content);
+                DocParse::Script(Arc::new(script), errors)
+            }
         })
         .await
         .unwrap_or_else(|e| {
             eprintln!("[hoi4] Parse task panicked: {e}");
-            (
-                Arc::new(ast::Script {
-                    source: Arc::from(""),
-                    entries: vec![],
-                    closed_by_eof: false,
-                }),
-                vec![],
-            )
+            if is_yml {
+                DocParse::Loc((std::collections::HashMap::new(), Vec::new(), None))
+            } else {
+                DocParse::Script(
+                    Arc::new(ast::Script {
+                        source: Arc::from(""),
+                        entries: vec![],
+                        closed_by_eof: false,
+                    }),
+                    vec![],
+                )
+            }
         });
 
-        self.document_asts.insert(uri_str, result);
+        match result {
+            DocParse::Script(script, errors) => {
+                self.document_asts.insert(uri_str, (script, errors));
+            }
+            DocParse::Loc(outcome) => {
+                self.cache_loc_parse(&uri_str, outcome);
+            }
+        }
         self.validate_document(uri).await;
     }
 
@@ -781,6 +858,7 @@ impl LanguageServer for Backend {
         self.document_cancellation_tokens.remove(&uri);
         self.documents.remove(&uri);
         self.document_asts.remove(&uri);
+        self.document_locs.remove(&uri);
         // Run interner GC: the dropped AST may free interned strings
         // that were only referenced by this document's parse tree.
         self.scanner_data.interner.gc();

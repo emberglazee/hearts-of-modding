@@ -44,6 +44,13 @@ pub(crate) struct Backend {
     pub(crate) client: Client,
     pub(crate) documents: DashMap<String, String>,
     pub(crate) document_asts: DashMap<String, (Arc<ast::Script>, Vec<(String, ast::Range)>)>,
+    /// Cached `.yml` loc parse results, mirroring `document_asts` — hover and
+    /// validation share ONE parse instead of re-parsing the whole loc file per
+    /// request. Populated in did_open/did_change/did_save; evicted in
+    /// did_close. Only OPEN documents are cached (unopened workspace-scan
+    /// files parse fresh — no did_close ever evicts them, so caching them
+    /// would leak RAM).
+    pub(crate) document_locs: DashMap<String, Arc<crate::parser::loc_parser::LocParseOutcome>>,
     pub(crate) document_cancellation_tokens: DashMap<String, CancellationToken>,
     pub(crate) scanner_data: ScannerData,
     pub(crate) config: Config,
@@ -136,6 +143,38 @@ impl Backend {
         self.documents
             .get(uri)
             .map(|content| self.cache_ast(uri, &content))
+    }
+
+    /// Cache a freshly-parsed loc outcome under `uri` (did_open/did_change/
+    /// did_save call this after parsing on a blocking thread).
+    pub(crate) fn cache_loc_parse(
+        &self,
+        uri: &str,
+        outcome: crate::parser::loc_parser::LocParseOutcome,
+    ) {
+        self.document_locs
+            .insert(uri.to_string(), std::sync::Arc::new(outcome));
+    }
+
+    /// Get the cached loc parse for `uri`, or parse fresh. Mirrors
+    /// `ensure_ast_cached`'s contract: only OPEN documents are cached —
+    /// unopened workspace-scan files parse fresh without caching, since no
+    /// `did_close` ever evicts them.
+    pub(crate) fn ensure_loc_cached(
+        &self,
+        uri: &str,
+        content: &str,
+        path: &str,
+    ) -> std::sync::Arc<crate::parser::loc_parser::LocParseOutcome> {
+        if let Some(cached) = self.document_locs.get(uri) {
+            return cached.clone();
+        }
+        if !self.documents.contains_key(uri) {
+            return std::sync::Arc::new(crate::parser::loc_parser::parse_loc_file(content, path));
+        }
+        let outcome = std::sync::Arc::new(crate::parser::loc_parser::parse_loc_file(content, path));
+        self.document_locs.insert(uri.to_string(), outcome.clone());
+        outcome
     }
 
     /// Get an AST that is guaranteed to match the current document content.
@@ -1438,10 +1477,12 @@ impl Backend {
             .unwrap_or_default()
             .to_string_lossy()
             .to_string();
-        let (parsed, loc_diagnostics_structural, doc_lang) =
-            loc_parser::parse_loc_file(content, &path_str);
+        // Use the shared loc parse cache (populated by did_open/did_change/
+        // did_save) instead of re-parsing the whole .yml on every validation.
+        let cached = self.ensure_loc_cached(uri.as_str(), content, &path_str);
+        let (parsed, loc_diagnostics_structural, doc_lang) = (&cached.0, &cached.1, &cached.2);
         let mapper = RangeMapper::new(content);
-        let doc_lang_str = doc_lang.unwrap_or_else(|| "unknown".to_string());
+        let doc_lang_str = doc_lang.clone().unwrap_or_else(|| "unknown".to_string());
         let event_targets = &self.scanner_data.event_targets;
         let scripted_locs = &self.scanner_data.scripted_locs;
         let color_codes = &self.scanner_data.color_codes;
@@ -1449,6 +1490,7 @@ impl Backend {
         let game_loc_keys = &self.scanner_data.game_loc_keys;
 
         // Add structural diagnostics
+        // (d is a &LocDiagnostic from the shared cache — clone the owned fields)
         for d in loc_diagnostics_structural {
             diagnostics.push(Diagnostic {
                 range: mapper.range(&d.range),
@@ -1458,8 +1500,8 @@ impl Backend {
                     ast::DiagnosticSeverity::Information => DiagnosticSeverity::INFORMATION,
                     ast::DiagnosticSeverity::Hint => DiagnosticSeverity::HINT,
                 }),
-                message: d.message,
-                code: d.code.map(NumberOrString::String),
+                message: d.message.clone(),
+                code: d.code.clone().map(NumberOrString::String),
                 source: Some("Hearts of Modding".to_string()),
                 tags: if d.tags.is_empty() {
                     None

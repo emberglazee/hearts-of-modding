@@ -634,6 +634,15 @@ pub fn validate_loc_file_structure(input: &str) -> Vec<LocDiagnostic> {
     diagnostics
 }
 
+/// Parsed localization-file outcome — the return of [`parse_loc_file`], kept
+/// as a named tuple so the LSP server can share one parse between hover and
+/// validation via an `Arc` (instead of re-parsing a whole `.yml` per request).
+pub type LocParseOutcome = (
+    HashMap<InternedStr, LocEntry>,
+    Vec<LocDiagnostic>,
+    Option<String>,
+);
+
 pub fn parse_loc_file(
     input: &str,
     path: &str,

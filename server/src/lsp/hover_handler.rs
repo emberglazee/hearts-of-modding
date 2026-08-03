@@ -28,7 +28,11 @@ impl Backend {
         if let Some(content) = self.documents.get(&uri) {
             let mapper = RangeMapper::new(&content);
             if uri.ends_with(".yml") {
-                let (locs, _, _) = loc_parser::parse_loc_file(&content, &uri);
+                // Use the shared loc parse cache (populated by did_open/
+                // did_change/did_save) — parse_loc_file used to re-parse the
+                // whole .yml on every hover.
+                let cached = self.ensure_loc_cached(&uri, &content, &uri);
+                let locs = &cached.0;
                 let global_loc = &self.scanner_data.localization;
                 // Loc entry columns are byte-based; convert the UTF-16 cursor to
                 // byte so hover hits the key/value on multi-byte lines.
