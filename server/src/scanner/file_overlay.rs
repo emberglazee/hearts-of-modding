@@ -92,14 +92,24 @@ impl FileOverlay {
         let filter_with_exceptions = |path: &Path| {
             // Skip the merge-by-key directories — they are NOT resolved
             // through the file-level overlay.
-            let path_str = path.to_string_lossy().to_ascii_lowercase();
-            if path_str.contains("localisation")
-                || path_str.contains("localisation")
+            let path_str = path
+                .to_string_lossy()
+                .to_ascii_lowercase()
+                .replace('\\', "/");
+            // Only the TOP-LEVEL `localisation/` directory is merge-by-key.
+            // `common/scripted_localisation/` is an ordinary script directory
+            // and must stay in the overlay. A bare `contains("localisation")`
+            // substring would also match scripted_localisation and silently
+            // drop every scripted loc from the workspace — so match the
+            // `localisation` *path segment* instead.
+            let is_merge_by_key_localisation = path_str == "localisation"
+                || path_str.starts_with("localisation/")
+                || path_str.ends_with("/localisation")
+                || path_str.contains("/localisation/");
+            if is_merge_by_key_localisation
                 || path_str.contains("common/defines")
-                || path_str.contains("common\\defines")
                 // Skip gfx/fonts/ — .txt files here are font credits, not script
                 || path_str.contains("/gfx/fonts/")
-                || path_str.contains("\\gfx\\fonts\\")
             {
                 return true;
             }
@@ -461,9 +471,11 @@ mod tests {
         create_file(&vanilla.join("common/national_focus/ger.txt"));
         create_file(&vanilla.join("localisation/english.yml"));
         create_file(&vanilla.join("common/defines/00_defines.txt"));
+        create_file(&vanilla.join("common/scripted_localisation/vanilla_loc.txt"));
         create_file(&mod_root.join("common/national_focus/new_focus.txt"));
         create_file(&mod_root.join("localisation/english.yml"));
         create_file(&mod_root.join("common/defines/00_defines.txt"));
+        create_file(&mod_root.join("common/scripted_localisation/mod_loc.txt"));
 
         let roots = vec![vanilla.clone(), mod_root.clone()];
         let replace_paths = vec!["common/national_focus".to_string()];
@@ -480,6 +492,19 @@ mod tests {
         // (they're resolved by key-level merge, not file-level overlay)
         assert!(!entries.contains_key("localisation/english.yml"));
         assert!(!entries.contains_key("common/defines/00_defines.txt"));
+
+        // common/scripted_localisation/ is a NORMAL script directory —
+        // it must stay in the overlay. A bare `contains("localisation")`
+        // filter check would have dropped these (regression: 0 scripted locs
+        // loaded). The filter must only skip the top-level `localisation/`.
+        assert!(
+            entries.contains_key("common/scripted_localisation/vanilla_loc.txt"),
+            "vanilla scripted loc must remain in overlay"
+        );
+        assert!(
+            entries.contains_key("common/scripted_localisation/mod_loc.txt"),
+            "mod scripted loc must remain in overlay"
+        );
 
         fs::remove_dir_all(&root).ok();
     }

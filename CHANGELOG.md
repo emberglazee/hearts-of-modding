@@ -44,6 +44,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Fixed incremental updates on Windows never matching the file's own stored entries.**
 
+- **Fixed scripted localization being dropped during scans.** Long standing bug since the v0.17.0 VFS overhaul.
+
 ## [v0.24.1] - 2026-08-03
 
 ### ✨ Added
