@@ -6,7 +6,7 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### ✨ Added
 
-- **Go to definition (F12) for states.**
+- **Go to definition (F12) for states and provinces.**
 
 ## [v0.25.0] - 2026-08-05
 

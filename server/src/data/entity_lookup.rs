@@ -281,7 +281,7 @@ impl<'a> EntityLookup<'a> {
     }
 
     /// Resolve a **numeric** reference to a u32-keyed entity (state, strategic
-    /// region) to its definition location.
+    /// region, province) to its definition location.
     ///
     /// `find_definition` looks up string-keyed entities and can never resolve
     /// `state = 422` — for a `key = <number>` assignment the identifier
@@ -290,11 +290,6 @@ impl<'a> EntityLookup<'a> {
     /// parsed number plus the surrounding identifier/context key and applies
     /// the same guards the hover uses (a bare number in an unrelated key must
     /// not jump to a state of the same id).
-    ///
-    /// Provinces are deliberately absent: the `Province` struct carries no
-    /// `path`/`range` (it is parsed line-by-line from `map/definition.csv`),
-    /// so there is no definition location to jump to — matching the hover,
-    /// which shows province info but no "Defined in" link.
     pub fn find_numeric_definition(
         &self,
         id: u32,
@@ -318,6 +313,12 @@ impl<'a> EntityLookup<'a> {
                 && ctx_lower
                     .as_ref()
                     .is_some_and(|ck| ck.contains("strategic_region")));
+        let is_province_key = ident_lower.contains("province")
+            || ident_lower == "victory_points"
+            || (identifier.parse::<u32>().is_ok()
+                && ctx_lower
+                    .as_ref()
+                    .is_some_and(|ck| ck.contains("province") || ck == "victory_points"));
 
         if is_state_key {
             if let Some(state) = self.data.states.get(&id) {
@@ -334,6 +335,15 @@ impl<'a> EntityLookup<'a> {
                     kind: EntityKind::StrategicRegion,
                     range: region.range.clone(),
                     path: region.path.clone(),
+                });
+            }
+        }
+        if is_province_key {
+            if let Some(province) = self.data.provinces.get(&id) {
+                results.push(EntityLocation {
+                    kind: EntityKind::Province,
+                    range: province.range.clone(),
+                    path: province.path.clone(),
                 });
             }
         }
@@ -877,6 +887,7 @@ mod tests {
     use super::*;
     use crate::data::interner::InternedStr;
     use crate::parser::ast;
+    use crate::scanner::province_scanner::Province;
     use crate::scanner::state_scanner::State;
     use crate::scanner::strategic_region_scanner::StrategicRegion;
 
@@ -911,6 +922,24 @@ mod tests {
                 naval_terrain: None,
                 path: InternedStr::from("map/strategicregions/12.txt"),
                 range: range(0),
+            },
+        );
+        data.provinces.insert(
+            422,
+            Province {
+                id: 422,
+                rgb: (255, 0, 0),
+                terrain: "plains".to_string(),
+                is_coastal: false,
+                prov_type: "land".to_string(),
+                continent: 1,
+                path: InternedStr::from("map/definition.csv"),
+                range: ast::Range {
+                    start_line: 422,
+                    start_col: 0,
+                    end_line: 422,
+                    end_col: 30,
+                },
             },
         );
         (EntityLookup { data }, path)
@@ -952,6 +981,34 @@ mod tests {
             lookup.find_numeric_definition(12, "strategic_region", Some("strategic_region"));
         assert_eq!(locations.len(), 1, "strategic_region=12 should resolve");
         assert_eq!(locations[0].kind, EntityKind::StrategicRegion);
+    }
+
+    /// `province = 422` resolves to the province's line in definition.csv.
+    #[test]
+    fn test_numeric_province_resolves() {
+        let (lookup, _) = lookup_with_state();
+        let locations = lookup.find_numeric_definition(422, "province", Some("province"));
+        assert_eq!(locations.len(), 1, "province=422 should resolve");
+        assert_eq!(locations[0].kind, EntityKind::Province);
+        assert_eq!(locations[0].path, InternedStr::from("map/definition.csv"));
+        assert_eq!(
+            locations[0].range.start_line, 422,
+            "range must point at the definition.csv line"
+        );
+    }
+
+    /// `victory_points = { 422 3 }`-style bare number in a province-ish block
+    /// also resolves via the number-parse guard.
+    #[test]
+    fn test_victory_points_province_resolves() {
+        let (lookup, _) = lookup_with_state();
+        let locations = lookup.find_numeric_definition(422, "422", Some("victory_points"));
+        assert_eq!(
+            locations.len(),
+            1,
+            "bare 422 in victory_points context should resolve"
+        );
+        assert_eq!(locations[0].kind, EntityKind::Province);
     }
 
     /// A bare number in a *non*-state key must NOT jump to a state with the

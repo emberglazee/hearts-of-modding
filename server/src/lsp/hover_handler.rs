@@ -732,6 +732,10 @@ impl Backend {
                                     "**Color (RGB):** `{}, {}, {}`\n",
                                     province.rgb.0, province.rgb.1, province.rgb.2
                                 ));
+                                text.push_str(&format!(
+                                    "\nDefined in: {}",
+                                    self.make_file_link(&province.path)
+                                ));
                                 push_section(&mut hover_text, &text);
                             }
                         }

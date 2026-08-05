@@ -1,4 +1,6 @@
 #![allow(dead_code)]
+use crate::data::interner::InternedStr;
+use crate::parser::ast;
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
@@ -12,6 +14,66 @@ pub struct Province {
     pub is_coastal: bool,
     pub prov_type: String, // land, sea, lake
     pub continent: u32,
+    pub path: InternedStr,
+    pub range: ast::Range,
+}
+
+/// Parse one definition.csv line, recording the byte range of the whole line so
+/// goto-definition can jump the user straight to it.
+fn insert_province(
+    id: u32,
+    line_idx: usize,
+    line: &str,
+    parts: &[&str],
+    path: &std::path::Path,
+    provinces: &mut HashMap<u32, Province>,
+) {
+    if parts.len() >= 8 {
+        let r = parts[1].parse::<u8>().unwrap_or(0);
+        let g = parts[2].parse::<u8>().unwrap_or(0);
+        let b = parts[3].parse::<u8>().unwrap_or(0);
+        let terrain = parts[4].to_string();
+        let is_coastal = parts[5].eq_ignore_ascii_case("true");
+        let prov_type = parts[6].to_string();
+        let continent = parts[7].parse::<u32>().unwrap_or(0);
+        provinces.insert(
+            id,
+            Province {
+                id,
+                rgb: (r, g, b),
+                terrain,
+                is_coastal,
+                prov_type,
+                continent,
+                path: InternedStr::from(path.to_string_lossy().as_ref()),
+                range: ast::Range {
+                    start_line: line_idx as u32,
+                    start_col: 0,
+                    end_line: line_idx as u32,
+                    end_col: line.len() as u32,
+                },
+            },
+        );
+    } else {
+        provinces.insert(
+            id,
+            Province {
+                id,
+                rgb: (0, 0, 0),
+                terrain: String::new(),
+                is_coastal: false,
+                prov_type: String::new(),
+                continent: 0,
+                path: InternedStr::from(path.to_string_lossy().as_ref()),
+                range: ast::Range {
+                    start_line: line_idx as u32,
+                    start_col: 0,
+                    end_line: line_idx as u32,
+                    end_col: line.len() as u32,
+                },
+            },
+        );
+    }
 }
 
 pub fn scan_provinces<F>(roots: &[PathBuf], filter: &F) -> HashMap<u32, Province>
@@ -27,44 +89,22 @@ where
             && !filter(&definition_path)
             && let Ok(content) = fs::read_to_string(&definition_path)
         {
-            for line in content.lines() {
+            for (line_idx, line) in content.lines().enumerate() {
                 // HOI4 definition.csv format: ID;R;G;B;Terrain;IsCoastal;ProvinceType;Continent
                 let parts: Vec<&str> = line.split(';').collect();
                 if parts.len() >= 8
                     && let Ok(id) = parts[0].parse::<u32>()
                 {
-                    let r = parts[1].parse::<u8>().unwrap_or(0);
-                    let g = parts[2].parse::<u8>().unwrap_or(0);
-                    let b = parts[3].parse::<u8>().unwrap_or(0);
-                    let terrain = parts[4].to_string();
-                    let is_coastal = parts[5].eq_ignore_ascii_case("true");
-                    let prov_type = parts[6].to_string();
-                    let continent = parts[7].parse::<u32>().unwrap_or(0);
-
-                    provinces.insert(
-                        id,
-                        Province {
-                            id,
-                            rgb: (r, g, b),
-                            terrain,
-                            is_coastal,
-                            prov_type,
-                            continent,
-                        },
-                    );
+                    insert_province(id, line_idx, line, &parts, &definition_path, &mut provinces);
                 } else if let Some(id_str) = parts.first() {
-                    // Fallback if missing fields
                     if let Ok(id) = id_str.parse::<u32>() {
-                        provinces.insert(
+                        insert_province(
                             id,
-                            Province {
-                                id,
-                                rgb: (0, 0, 0),
-                                terrain: String::new(),
-                                is_coastal: false,
-                                prov_type: String::new(),
-                                continent: 0,
-                            },
+                            line_idx,
+                            line,
+                            &parts,
+                            &definition_path,
+                            &mut provinces,
                         );
                     }
                 }
@@ -81,44 +121,16 @@ where
 {
     let mut provinces = HashMap::new();
 
-    crate::utils::fs_util::parse_winning_files(files, filter, |_path, content| {
-        for line in content.lines() {
+    crate::utils::fs_util::parse_winning_files(files, filter, |path, content| {
+        for (line_idx, line) in content.lines().enumerate() {
             let parts: Vec<&str> = line.split(';').collect();
             if parts.len() >= 8
                 && let Ok(id) = parts[0].parse::<u32>()
             {
-                let r = parts[1].parse::<u8>().unwrap_or(0);
-                let g = parts[2].parse::<u8>().unwrap_or(0);
-                let b = parts[3].parse::<u8>().unwrap_or(0);
-                let terrain = parts[4].to_string();
-                let is_coastal = parts[5].eq_ignore_ascii_case("true");
-                let prov_type = parts[6].to_string();
-                let continent = parts[7].parse::<u32>().unwrap_or(0);
-
-                provinces.insert(
-                    id,
-                    Province {
-                        id,
-                        rgb: (r, g, b),
-                        terrain,
-                        is_coastal,
-                        prov_type,
-                        continent,
-                    },
-                );
+                insert_province(id, line_idx, line, &parts, path, &mut provinces);
             } else if let Some(id_str) = parts.first() {
                 if let Ok(id) = id_str.parse::<u32>() {
-                    provinces.insert(
-                        id,
-                        Province {
-                            id,
-                            rgb: (0, 0, 0),
-                            terrain: String::new(),
-                            is_coastal: false,
-                            prov_type: String::new(),
-                            continent: 0,
-                        },
-                    );
+                    insert_province(id, line_idx, line, &parts, path, &mut provinces);
                 }
             }
         }
