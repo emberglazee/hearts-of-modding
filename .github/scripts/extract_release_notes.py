@@ -12,10 +12,16 @@ from pathlib import Path
 
 
 def parse_changelog(path):
+    """Return {version: (full_header, body)}.
+
+    `version` is `vX.Y.Z` (lookup key); `full_header` is the whole header line
+    after `## ` (e.g. `[v0.25.1] - 2026-08-05 (Hotfix)`), so the full version
+    header can be reproduced verbatim in the output.
+    """
     text = path.read_text()
-    pattern = r'^## \[(v\d+\.\d+\.\d+)\].*?$(.*?)(?=^## \[|\Z)'
+    pattern = r'^## (\[v\d+\.\d+\.\d+\][^\n]*)(.*?)(?=^## \[|\Z)'
     matches = re.findall(pattern, text, re.MULTILINE | re.DOTALL)
-    return {v: body.strip() for v, body in matches}
+    return {re.match(r'\[(v\d+\.\d+\.\d+)\]', header).group(1): (header, body.strip()) for header, body in matches}
 
 
 def load_version(path):
@@ -45,12 +51,14 @@ def main():
         print(f"error: no changelog entry for {current_key}", file=sys.stderr)
         sys.exit(1)
 
-    out = f"## [{current_key}]\n\n{sections[current_key]}"
+    current_header, current_body = sections[current_key]
+    out = f"## {current_header}\n\n{current_body}"
 
     if is_patch(version):
         minor_key = f"v{minor_version_of(version)}"
         if minor_key in sections and minor_key != current_key:
-            out += f"\n\n## [{minor_key}]\n\n{sections[minor_key]}"
+            minor_header, minor_body = sections[minor_key]
+            out += f"\n\n## {minor_header}\n\n{minor_body}"
 
     print(out)
 
