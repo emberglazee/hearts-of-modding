@@ -2,7 +2,7 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
-## [v0.25.0] - 2026-08-04
+## [v0.25.0] - 2026-08-05
 
 ### ✨ Added
 
@@ -15,6 +15,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 - **Localization file cache** to avoid wasteful re-parsing.
 
 - **Reverse per-path index for workspace variables.**
+
+- **Recognize mission and timer type decisions** to prevent false HOM5008 `DECISION_MISSING_COMPLETE_EFFECT` diagnostics.
 
 ### 🔧 Changed
 

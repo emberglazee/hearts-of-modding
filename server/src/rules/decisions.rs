@@ -143,6 +143,11 @@ struct DecisionsVisitor {
     has_complete_effect: bool,
     has_cost: bool,
     has_custom_cost: bool,
+    has_timeout_effect: bool,
+    has_days_mission_timeout: bool,
+    has_remove_effect: bool,
+    has_days_remove: bool,
+    has_modifier: bool,
 }
 
 impl DecisionsVisitor {
@@ -155,6 +160,11 @@ impl DecisionsVisitor {
             has_complete_effect: false,
             has_cost: false,
             has_custom_cost: false,
+            has_timeout_effect: false,
+            has_days_mission_timeout: false,
+            has_remove_effect: false,
+            has_days_remove: false,
+            has_modifier: false,
         }
     }
 
@@ -179,6 +189,11 @@ impl DecisionsVisitor {
         self.has_complete_effect = false;
         self.has_cost = false;
         self.has_custom_cost = false;
+        self.has_timeout_effect = false;
+        self.has_days_mission_timeout = false;
+        self.has_remove_effect = false;
+        self.has_days_remove = false;
+        self.has_modifier = false;
     }
 }
 
@@ -222,8 +237,20 @@ impl AstVisitor for DecisionsVisitor {
                 "complete_effect" => self.has_complete_effect = true,
                 "cost" => self.has_cost = true,
                 "custom_cost_trigger" => self.has_custom_cost = true,
+                "timeout_effect" => self.has_timeout_effect = true,
+                "days_mission_timeout" => self.has_days_mission_timeout = true,
+                "remove_effect" => self.has_remove_effect = true,
+                "days_remove" => self.has_days_remove = true,
                 _ => {}
             }
+        }
+        // `modifier` / `targeted_modifier` are only a decision-level payload
+        // when they sit directly under the decision (timer modifier applied for
+        // the days_remove / days_mission_timeout duration). Nested inside an
+        // effect block (`add_opinion_modifier = { modifier = { ... } }`) they
+        // are effect parameters and must not count as a decision payload.
+        if self.directly_in_decision() && (key == "modifier" || key == "targeted_modifier") {
+            self.has_modifier = true;
         }
 
         // Empty-block / non-decision top-level types: don't open a scope.
@@ -282,16 +309,39 @@ impl AstVisitor for DecisionsVisitor {
 
         // End-of-decision checks fire when leaving the decision scope itself.
         if scope.kind == BlockScopeKind::Decision && scope.decision_key.as_deref() == Some(key) {
-            // HOM5008: Missing complete_effect
+            // HOM5008: Missing complete_effect.
+            //
+            // `complete_effect` is only required for decisions whose entire
+            // payload is the click reward. Two other legitimate timer-based
+            // patterns ship in vanilla WITHOUT complete_effect:
+            //   * Missions — `days_mission_timeout` + `timeout_effect` (the
+            //     payload runs when the mission timer expires; `available = {
+            //     hidden_trigger = { always = no } }` makes it unclickable).
+            //     Vanilla has 280 such missions (CHL nacista chain, ARG coup,
+            //     AST elections, ...).
+            //   * Timed decisions — `days_remove` + `remove_effect` and/or a
+            //     `modifier` block (the payload applies when the timer ends).
+            //     Vanilla has 609 of those (AFG_nationalize_oil, ...).
+            // Flagging either pattern is a false positive — the message claims
+            // "does nothing when selected", but these decisions do their work
+            // on the timer, not on click.
             let is_real_decision = inner.iter().any(|e| {
                 matches!(e, ast::Entry::Assignment(a) if !CATEGORY_ONLY_KEYS.contains(&a.key_text(ctx.source)))
             });
-            if is_real_decision && !self.has_complete_effect {
+            let has_timer_payload = self.has_days_mission_timeout
+                && (self.has_timeout_effect || self.has_complete_effect);
+            let has_remove_payload = self.has_days_remove
+                && (self.has_remove_effect || self.has_modifier || self.has_complete_effect);
+            if is_real_decision
+                && !self.has_complete_effect
+                && !has_timer_payload
+                && !has_remove_payload
+            {
                 diags.push(Diagnostic {
                     range: ctx.range(&ass.key_range),
                     severity: Some(DiagnosticSeverity::WARNING),
                     message: format!(
-                        "Decision '{}' has no complete_effect — it does nothing when selected.",
+                        "Decision '{}' has no complete_effect and no timer-based effect (timeout_effect / remove_effect) — it does nothing when selected.",
                         key
                     ),
                     code: Some(NumberOrString::String(
@@ -651,6 +701,153 @@ mod tests {
             .filter(|d| d.code == Some(NumberOrString::String("HOM5008".to_string())))
             .collect();
         assert!(missing_diags.is_empty());
+    }
+
+    /// Regression test: a mission (days_mission_timeout + timeout_effect, no
+    /// complete_effect) is legitimate — its payload runs on timer expiry. This
+    /// matches the vanilla pattern (`CHL_nacistas_gathering_support_mission`,
+    /// `ARG_military_coup_attempt`, etc., 280 shipped missions). HOM5008 must
+    /// NOT fire for it.
+    #[test]
+    fn test_mission_with_timeout_effect_no_missing_complete_diag() {
+        let data = ScannerData::new();
+        let key: InternedStr = InternedStr::from("test_hom_decision");
+        data.decisions.insert(
+            key,
+            LayeredValue::new(Decision {
+                key: "gold_monthly_tick".to_string(),
+                category: "hom_test_cat".to_string(),
+                path: InternedStr::from("test.txt"),
+                range: dummy_range(),
+            }),
+        );
+        let source = r#"hom_test_cat = { gold_monthly_tick = { allowed = { always = yes } activation = { always = yes } available = { hidden_trigger = { always = no } } fire_only_once = yes days_mission_timeout = 30 is_good = yes timeout_effect = { hidden_effect = { activate_mission = gold_monthly_tick } } } }"#;
+        let diags = visitor_diags(source, "/common/decisions/test.txt", &data);
+        let missing_diags: Vec<&Diagnostic> = diags
+            .iter()
+            .filter(|d| d.code == Some(NumberOrString::String("HOM5008".to_string())))
+            .collect();
+        assert!(
+            missing_diags.is_empty(),
+            "Expected no HOM5008 for a mission with timeout_effect, got: {:?}",
+            missing_diags
+        );
+    }
+
+    /// A decision with a timeout but NO timeout_effect and NO complete_effect
+    /// genuinely does nothing on selection — HOM5008 should still fire.
+    #[test]
+    fn test_decision_neither_complete_nor_timeout_effect_still_flagged() {
+        let data = ScannerData::new();
+        let key: InternedStr = InternedStr::from("test_hom_decision");
+        data.decisions.insert(
+            key,
+            LayeredValue::new(Decision {
+                key: "does_nothing".to_string(),
+                category: "hom_test_cat".to_string(),
+                path: InternedStr::from("test.txt"),
+                range: dummy_range(),
+            }),
+        );
+        let source = r#"hom_test_cat = { does_nothing = { icon = generic_research so_trigger = { always = yes } } }"#;
+        let diags = visitor_diags(source, "/common/decisions/test.txt", &data);
+        let missing_diags: Vec<&Diagnostic> = diags
+            .iter()
+            .filter(|d| d.code == Some(NumberOrString::String("HOM5008".to_string())))
+            .collect();
+        assert_eq!(
+            missing_diags.len(),
+            1,
+            "Expected HOM5008 for a decision with no effect of any kind"
+        );
+    }
+
+    /// Regression test: a timed decision (days_remove + remove_effect, no
+    /// complete_effect) is legitimate — vanilla AFG_nationalize_oil pattern.
+    /// Its payload runs when the timer ends. HOM5008 must NOT fire.
+    #[test]
+    fn test_timed_decision_with_remove_effect_no_missing_complete_diag() {
+        let data = ScannerData::new();
+        let key: InternedStr = InternedStr::from("test_hom_decision");
+        data.decisions.insert(
+            key,
+            LayeredValue::new(Decision {
+                key: "nationalize_oil".to_string(),
+                category: "hom_test_cat".to_string(),
+                path: InternedStr::from("test.txt"),
+                range: dummy_range(),
+            }),
+        );
+        let source = r#"hom_test_cat = { nationalize_oil = { icon = generic_oil available = { has_completed_focus = AFG_75_year_oil_concessions } days_remove = 14 modifier = { political_power_factor = -0.1 } remove_effect = { country_event = { id = AFG_industrial_events.13 } } } }"#;
+        let diags = visitor_diags(source, "/common/decisions/test.txt", &data);
+        let missing_diags: Vec<&Diagnostic> = diags
+            .iter()
+            .filter(|d| d.code == Some(NumberOrString::String("HOM5008".to_string())))
+            .collect();
+        assert!(
+            missing_diags.is_empty(),
+            "Expected no HOM5008 for a timed decision with remove_effect, got: {:?}",
+            missing_diags
+        );
+    }
+
+    /// Regression test: a modifier-only timer decision (days_remove + modifier,
+    /// no complete_effect and no remove_effect) is legitimate — vanilla
+    /// ENG_the_mosley_plan pattern (38 such decisions). The timer grants the
+    /// modifier for days_remove days. HOM5008 must NOT fire.
+    #[test]
+    fn test_timed_decision_with_modifier_only_no_missing_complete_diag() {
+        let data = ScannerData::new();
+        let key: InternedStr = InternedStr::from("test_hom_decision");
+        data.decisions.insert(
+            key,
+            LayeredValue::new(Decision {
+                key: "mosley_plan".to_string(),
+                category: "hom_test_cat".to_string(),
+                path: InternedStr::from("test.txt"),
+                range: dummy_range(),
+            }),
+        );
+        let source = r#"hom_test_cat = { mosley_plan = { available = { always = yes } days_remove = 365 modifier = { political_power_factor = -0.05 } } }"#;
+        let diags = visitor_diags(source, "/common/decisions/test.txt", &data);
+        let missing_diags: Vec<&Diagnostic> = diags
+            .iter()
+            .filter(|d| d.code == Some(NumberOrString::String("HOM5008".to_string())))
+            .collect();
+        assert!(
+            missing_diags.is_empty(),
+            "Expected no HOM5008 for a modifier-only timer decision, got: {:?}",
+            missing_diags
+        );
+    }
+
+    /// A nested `modifier` inside a sub-block (e.g. ai_will_do weight modifier)
+    /// must NOT count as a decision payload: this decision has no complete_effect,
+    /// no timer, no remove — it still gets HOM5008 even though `modifier` appears.
+    #[test]
+    fn test_nested_modifier_in_subblock_not_counted_as_payload() {
+        let data = ScannerData::new();
+        let key: InternedStr = InternedStr::from("test_hom_decision");
+        data.decisions.insert(
+            key,
+            LayeredValue::new(Decision {
+                key: "fake_payload".to_string(),
+                category: "hom_test_cat".to_string(),
+                path: InternedStr::from("test.txt"),
+                range: dummy_range(),
+            }),
+        );
+        let source = r#"hom_test_cat = { fake_payload = { icon = generic_research visible = { always = yes } ai_will_do = { base = 1 modifier = { factor = 0 } } } }"#;
+        let diags = visitor_diags(source, "/common/decisions/test.txt", &data);
+        let missing_diags: Vec<&Diagnostic> = diags
+            .iter()
+            .filter(|d| d.code == Some(NumberOrString::String("HOM5008".to_string())))
+            .collect();
+        assert_eq!(
+            missing_diags.len(),
+            1,
+            "Expected HOM5008 for a decision with no payload"
+        );
     }
 
     #[test]
