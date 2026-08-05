@@ -9,6 +9,7 @@
 <div align="center">
 <table>
 <tbody>
+<tr>
 <td align="center">
 <a href="https://github.com/emberglazee/hearts-of-modding" target="_blank"><strong>GitHub</strong></a>
 </td>
@@ -21,6 +22,7 @@
 <td align="center">
 <a href="https://open-vsx.org/extension/emberglaze/hearts-of-modding" target="_blank"><strong>OVSX Registry</strong></a>
 </td>
+</tr>
 </tbody>
 </table>
 </div>
