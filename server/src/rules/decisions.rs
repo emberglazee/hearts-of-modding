@@ -141,7 +141,8 @@ struct BlockScope {
 struct DecisionsVisitor {
     scopes: Vec<BlockScope>,
     has_complete_effect: bool,
-    has_cost: bool,
+    /// Numeric value of `cost = N` (None when absent or non-numeric).
+    cost_value: Option<f64>,
     has_custom_cost: bool,
     has_timeout_effect: bool,
     has_remove_effect: bool,
@@ -156,7 +157,7 @@ impl DecisionsVisitor {
                 decision_key: None,
             }],
             has_complete_effect: false,
-            has_cost: false,
+            cost_value: None,
             has_custom_cost: false,
             has_timeout_effect: false,
             has_remove_effect: false,
@@ -183,7 +184,7 @@ impl DecisionsVisitor {
 
     fn reset_decision_flags(&mut self) {
         self.has_complete_effect = false;
-        self.has_cost = false;
+        self.cost_value = None;
         self.has_custom_cost = false;
         self.has_timeout_effect = false;
         self.has_remove_effect = false;
@@ -229,7 +230,15 @@ impl AstVisitor for DecisionsVisitor {
         if self.inside_decision() {
             match key {
                 "complete_effect" => self.has_complete_effect = true,
-                "cost" => self.has_cost = true,
+                "cost" => {
+                    // Record the numeric value so HOM5009 can distinguish a
+                    // real (non-zero) cost from the canonical
+                    // `cost = 0` + custom_cost display pattern (71 of 75
+                    // vanilla dual-cost decisions use cost = 0).
+                    if let ast::Value::Number(n) = &ass.value.value {
+                        self.cost_value = Some(*n);
+                    }
+                }
                 "custom_cost_trigger" => self.has_custom_cost = true,
                 "timeout_effect" => self.has_timeout_effect = true,
                 "remove_effect" => self.has_remove_effect = true,
@@ -343,13 +352,26 @@ impl AstVisitor for DecisionsVisitor {
                     ..Default::default()
                 });
             }
-            // HOM5009: Both cost and custom_cost_trigger
-            if self.has_cost && self.has_custom_cost {
+            // HOM5009: A real cost AND custom_cost_trigger.
+            //
+            // Empirically (scanned all 4125 vanilla decisions) `cost` and
+            // `custom_cost_trigger` are NOT mutually exclusive — 75 vanilla
+            // decisions use both, and 71 of those use `cost = 0` (a custom cost
+            // is a display-only mechanism; the real resource is deducted inside
+            // complete_effect). Pairing them is only worth flagging when there
+            // is an actual non-zero `cost` value — the rare (4/75) genuinely
+            // ambiguous case.
+            let real_cost = self.cost_value.is_some_and(|v| v > 0.0);
+            if real_cost && self.has_custom_cost {
                 diags.push(Diagnostic {
                     range: ctx.range(&ass.key_range),
                     severity: Some(DiagnosticSeverity::WARNING),
-                    message: format!("Decision '{}' has both 'cost' and 'custom_cost_trigger'. \
-                             These are mutually exclusive per the wiki — custom_cost_trigger will be ignored.", key),
+                    message: format!(
+                        "Decision '{}' has a non-zero 'cost' and 'custom_cost_trigger'. \
+                         A custom cost is display-only — nothing is deducted — so 'cost' may \
+                         be redundant or misleading; deduct the real resource inside complete_effect.",
+                        key
+                    ),
                     code: Some(NumberOrString::String(
                         crate::validation::advanced_validation::DECISION_DUAL_COST.to_string(),
                     )),
@@ -937,6 +959,37 @@ mod tests {
             .filter(|d| d.code == Some(NumberOrString::String("HOM5009".to_string())))
             .collect();
         assert!(dual_diags.is_empty());
+    }
+
+    /// Regression test (2026-08): `cost = 0` + `custom_cost_trigger` is the
+    /// canonical vanilla dual-cost pattern (71 of 75 such decisions use
+    /// `cost = 0`; the custom cost is display-only). HOM5009 must NOT fire —
+    /// it only fires on an actual non-zero cost AND custom_cost_trigger.
+    #[test]
+    fn test_zero_cost_with_custom_cost_trigger_no_diag() {
+        let data = ScannerData::new();
+        let key: InternedStr = InternedStr::from("test_hom_decision");
+        data.decisions.insert(
+            key,
+            LayeredValue::new(Decision {
+                key: "zero_cost_custom".to_string(),
+                category: "hom_test_cat".to_string(),
+                path: InternedStr::from("test.txt"),
+                range: dummy_range(),
+            }),
+        );
+        // Mirrors AUS_arm_border_guards_shape but with cost = 0 (canonical).
+        let source = r#"hom_test_cat = { zero_cost_custom = { icon = generic_research cost = 0 custom_cost_trigger = { has_equipment = { infantry_equipment > 499 } } custom_cost_text = decision_cost_ie_500 complete_effect = { add_war_support = 0.05 } } }"#;
+        let diags = visitor_diags(source, "/common/decisions/test.txt", &data);
+        let dual_diags: Vec<&Diagnostic> = diags
+            .iter()
+            .filter(|d| d.code == Some(NumberOrString::String("HOM5009".to_string())))
+            .collect();
+        assert!(
+            dual_diags.is_empty(),
+            "cost = 0 + custom_cost_trigger must not fire HOM5009, got: {:?}",
+            dual_diags
+        );
     }
 
     /// Regression test: decisions with sub-blocks (available, visible, ai_will_do,

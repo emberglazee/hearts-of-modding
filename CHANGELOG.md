@@ -2,6 +2,14 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
+## [v0.25.2] - 2026-08-06
+
+### 🔧 Changed
+
+- **HOM5009 (`DECISION_DUAL_COST`) now fires only for decisions with both `cost > 0` and `custom_cost_trigger`.**
+
+  - Decisions with both `custom_cost_trigger` and `cost = 0` are observed 71 times in vanilla as of 1.19.
+
 ## [v0.25.1] - 2026-08-05 (Hotfix)
 
 ### ✨ Added
