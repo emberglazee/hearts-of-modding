@@ -40,12 +40,34 @@ use std::sync::Mutex;
 
 /// Determine whether a stored scanner path matches a target absolute path.
 /// Stored paths may be relative (`./events/x.txt`) or absolute.
-fn path_matches(stored: &str, target: &str) -> bool {
+///
+/// Both sides are compared in forward-slash form: the full scan stores raw
+/// `PathBuf` strings (backslashes on Windows) while incremental updates derive
+/// paths from `Uri::to_file_path()` (FORWARD slashes on Windows). Without the
+/// normalization, `retain_path!`/`remove_path!` could never match a re-scanned
+/// file's own layers on Windows — every edit stacked a duplicate layer and
+/// saved loc files re-flagged every key as duplicated.
+pub(crate) fn path_matches(stored: &str, target: &str) -> bool {
+    let stored = stored.replace('\\', "/");
+    let target = target.replace('\\', "/");
     if stored == target {
         return true;
     }
-    let normalized = stored.strip_prefix("./").unwrap_or(stored);
+    let normalized = stored.strip_prefix("./").unwrap_or(&stored);
     normalized == target || target.ends_with(normalized)
+}
+
+/// Reverse file-index key for a path: forward slashes on every platform, so
+/// full-scan stored paths (backslashes on Windows) and incremental
+/// `to_file_path()` paths (forward slashes on Windows) share one index entry.
+/// All `*_file_index` keys must go through this (or [`normalize_path_str`]).
+pub(crate) fn index_key(s: &str) -> InternedStr {
+    InternedStr::from(normalize_path_str(s))
+}
+
+/// Forward-slash-normalized copy of a path (see [`index_key`]).
+pub(crate) fn normalize_path_str(s: &str) -> String {
+    s.replace('\\', "/")
 }
 
 /// Priority-ordered workspace roots (lowest priority first — game path, then
@@ -109,7 +131,7 @@ macro_rules! retain_path {
     ($map:expr, $index:expr, $path:expr, $new_entries:expr $(,)?) => {{
         let p: &str = $path;
         // Remove old entries from THIS path only (preserve other layers)
-        if let Some((_, old_keys)) = $index.remove(p) {
+        if let Some((_, old_keys)) = $index.remove(&index_key(p)) {
             for key in &old_keys {
                 let p_inner: &str = p;
                 let empty = match $map.get_mut(key) {
@@ -158,13 +180,13 @@ macro_rules! retain_path {
             }
             file_keys.push(ik);
         }
-        $index.insert(std::sync::Arc::from(p), file_keys);
+        $index.insert(index_key(p), file_keys);
     }};
     // 5-arg: custom path accessor for tuple types (rarely used)
     ($map:expr, $index:expr, $path:expr, $new_entries:expr, $path_fn:expr $(,)?) => {{
         let p: &str = $path;
         // Remove old entries from THIS path only (preserve other layers)
-        if let Some((_, old_keys)) = $index.remove(p) {
+        if let Some((_, old_keys)) = $index.remove(&index_key(p)) {
             for key in &old_keys {
                 let p_inner: &str = p;
                 let empty = match $map.get_mut(key) {
@@ -211,7 +233,7 @@ macro_rules! retain_path {
             }
             file_keys.push(ik);
         }
-        $index.insert(std::sync::Arc::from(p), file_keys);
+        $index.insert(index_key(p), file_keys);
     }};
 }
 
@@ -222,7 +244,7 @@ macro_rules! remove_path {
     ($map:expr, $index:expr, $path:expr) => {{
         let p: &str = $path;
         // Remove only layers matching this path — keep other layers alive
-        if let Some((_, old_keys)) = $index.remove(p) {
+        if let Some((_, old_keys)) = $index.remove(&index_key(p)) {
             for key in old_keys {
                 if let ::dashmap::Entry::Occupied(mut entry) = $map.entry(key) {
                     let p_inner: &str = p;
@@ -719,7 +741,7 @@ fn update_events(scanner_data: &ScannerData, path_str: &str, script: &ast::Scrip
     // These are needed to clear stale outgoing edges from the dependency graph.
     let old_event_ids: Vec<String> = scanner_data
         .events_file_index
-        .get(path_str)
+        .get(&index_key(path_str))
         .map(|keys| keys.value().iter().map(|k| k.to_string()).collect())
         .unwrap_or_default();
 
@@ -904,7 +926,10 @@ fn update_ideologies(scanner_data: &ScannerData, path_str: &str, script: &ast::S
 
     // sub_ideologies is a tuple (String, Range, String) — handle manually
     // since tuples can't implement HasPath or use the retain_path! macro
-    if let Some((_, old_keys)) = scanner_data.sub_ideologies_file_index.remove(path_str) {
+    if let Some((_, old_keys)) = scanner_data
+        .sub_ideologies_file_index
+        .remove(&index_key(path_str))
+    {
         for key in &old_keys {
             let empty = match scanner_data.sub_ideologies.get_mut(key) {
                 Some(mut value) => {
@@ -942,7 +967,7 @@ fn update_ideologies(scanner_data: &ScannerData, path_str: &str, script: &ast::S
     }
     scanner_data
         .sub_ideologies_file_index
-        .insert(std::sync::Arc::from(path_str), sub_keys);
+        .insert(index_key(path_str), sub_keys);
 }
 
 fn update_traits(
@@ -1184,8 +1209,11 @@ fn update_variables(scanner_data: &ScannerData, path_str: &str, script: &ast::Sc
 
     // Maintain the reverse per-path index (path → variable names) so entity_at
     // stays O(variables-in-file). The old entry is dropped and rebuilt from
-    // this file's fresh declarations.
-    scanner_data.variables_file_index.remove(path_str);
+    // this file's fresh declarations. Keys are normalized (see `index_key`) so
+    // they match the full-scan-built index on Windows.
+    scanner_data
+        .variables_file_index
+        .remove(&index_key(path_str));
     let mut file_keys = Vec::new();
     for (k, v) in &new_vars {
         if v.iter().any(|var| path_matches(var.path(), path_str)) {
@@ -1195,7 +1223,7 @@ fn update_variables(scanner_data: &ScannerData, path_str: &str, script: &ast::Sc
     if !file_keys.is_empty() {
         scanner_data
             .variables_file_index
-            .insert(InternedStr::from(path_str), file_keys);
+            .insert(index_key(path_str), file_keys);
     }
 
     for (k, mut v) in new_vars {
@@ -1347,7 +1375,10 @@ fn update_strategic_regions(scanner_data: &ScannerData, path_str: &str, script: 
     );
 
     let p: &str = path_str;
-    if let Some((_, old_keys)) = scanner_data.strategic_regions_file_index.remove(p) {
+    if let Some((_, old_keys)) = scanner_data
+        .strategic_regions_file_index
+        .remove(&index_key(p))
+    {
         for key in old_keys {
             scanner_data.strategic_regions.remove(&key);
         }
@@ -1364,7 +1395,7 @@ fn update_strategic_regions(scanner_data: &ScannerData, path_str: &str, script: 
     }
     scanner_data
         .strategic_regions_file_index
-        .insert(std::sync::Arc::from(path_str), file_keys);
+        .insert(index_key(path_str), file_keys);
 }
 
 fn update_terrains(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
@@ -1468,7 +1499,7 @@ fn update_decision_categories(scanner_data: &ScannerData, path_str: &str, script
     new_cats.sort();
     new_cats.dedup();
 
-    let key_path = InternedStr::from(path_str);
+    let key_path = index_key(path_str);
     let old_cats = take_decision_categories_for_path(scanner_data, path_str);
     for old in old_cats {
         if !new_cats.contains(&old)
@@ -1493,7 +1524,7 @@ fn update_decision_categories(scanner_data: &ScannerData, path_str: &str, script
 
 /// Remove a `categories/*.txt` file's declared categories and update its map.
 fn remove_decision_categories(scanner_data: &ScannerData, path_str: &str) {
-    let key_path = InternedStr::from(path_str);
+    let key_path = index_key(path_str);
     let old_cats = take_decision_categories_for_path(scanner_data, path_str);
     for old in old_cats {
         if !category_still_declared_elsewhere(scanner_data, &key_path, &old) {
@@ -1617,7 +1648,9 @@ pub fn remove_path_from_scanner_data(scanner_data: &ScannerData, path_str: &str)
                 // sub_ideologies stores (InternedStr, Range, InternedStr)
                 // tuples — handle separately since tuples don't impl HasPath
                 let p: &str = path_str;
-                if let Some((_, old_keys)) = scanner_data.sub_ideologies_file_index.remove(p) {
+                if let Some((_, old_keys)) =
+                    scanner_data.sub_ideologies_file_index.remove(&index_key(p))
+                {
                     for key in &old_keys {
                         let empty = match scanner_data.sub_ideologies.get_mut(key) {
                             Some(mut value) => {
@@ -1703,7 +1736,9 @@ pub fn remove_path_from_scanner_data(scanner_data: &ScannerData, path_str: &str)
                     vec.retain(|t| !path_matches(t.path(), &p_owned));
                     !vec.is_empty()
                 });
-                scanner_data.variables_file_index.remove(path_str);
+                scanner_data
+                    .variables_file_index
+                    .remove(&index_key(path_str));
             }
             FileCategory::MusicAssets => {
                 let path = std::path::Path::new(path_str);
@@ -1761,7 +1796,10 @@ pub fn remove_path_from_scanner_data(scanner_data: &ScannerData, path_str: &str)
             }
             FileCategory::StrategicRegions => {
                 let p: &str = path_str;
-                if let Some((_, old_keys)) = scanner_data.strategic_regions_file_index.remove(p) {
+                if let Some((_, old_keys)) = scanner_data
+                    .strategic_regions_file_index
+                    .remove(&index_key(p))
+                {
                     for key in old_keys {
                         scanner_data.strategic_regions.remove(&key);
                     }
@@ -1961,6 +1999,76 @@ mod tests {
         fn path(&self) -> &str {
             &self.path
         }
+    }
+
+    /// Windows path-separator regression: stored layer paths (backslash form
+    /// from the full scan) must match re-scan paths (forward-slash form from
+    /// `Uri::to_file_path()`) so incremental updates remove the old layer
+    /// instead of stacking a duplicate.
+    #[test]
+    fn test_path_matches_windows_separators() {
+        assert!(path_matches(r"C:\mod\events\x.txt", "C:/mod/events/x.txt"));
+        assert!(path_matches("C:/mod/events/x.txt", r"C:\mod\events\x.txt"));
+        assert!(!path_matches(r"C:\mod\events\x.txt", "C:/mod/events/y.txt"));
+        assert!(!path_matches(
+            r"C:\mod\events\x2.txt",
+            "C:/mod/events/x.txt"
+        ));
+        // Relative stored paths still match an absolute target.
+        assert!(path_matches("./events/x.txt", "C:/mod/events/x.txt"));
+    }
+
+    /// End-to-end Windows regression: a layer stored with a backslash path
+    /// (full-scan spelling) must be REPLACED, not duplicated, when the same
+    /// file is re-scanned with a forward-slash path (to_file_path spelling),
+    /// and the reverse index must let both spellings remove it.
+    ///
+    /// NOTE: this test deliberately does NOT touch the global `SCAN_ROOTS`
+    /// (which `test_retain_path_preserves_layer_priority` owns). Tests run in
+    /// parallel; writing the global here races that test. The assertions below
+    /// hold under any roots value: the paths match no root, so
+    /// `layer_insert_index` falls back to top-push, which is exactly what a
+    /// single-layer map needs.
+    #[test]
+    fn test_retain_path_windows_separators() {
+        let map: dashmap::DashMap<
+            InternedStr,
+            crate::data::layered_value::LayeredValue<TestLayer>,
+        > = dashmap::DashMap::new();
+        let index: dashmap::DashMap<InternedStr, Vec<InternedStr>> = dashmap::DashMap::new();
+
+        // Initial scan stores a backslash path (Windows PathBuf form).
+        let mut first = HashMap::new();
+        first.insert(
+            "evt".to_string(),
+            TestLayer {
+                path: r"C:\mod\events\x.txt".into(),
+                name: "v1",
+            },
+        );
+        retain_path!(map, index, r"C:\mod\events\x.txt", first);
+        assert_eq!(map.get("evt").unwrap().layers().len(), 1);
+
+        // Re-scan arrives with a forward-slash path (ls-types to_file_path form).
+        let mut second = HashMap::new();
+        second.insert(
+            "evt".to_string(),
+            TestLayer {
+                path: "C:/mod/events/x.txt".into(),
+                name: "v2",
+            },
+        );
+        retain_path!(map, index, "C:/mod/events/x.txt", second);
+        assert_eq!(
+            map.get("evt").unwrap().layers().len(),
+            1,
+            "old layer must be replaced, not stacked"
+        );
+        assert_eq!(map.get("evt").unwrap().resolve().name, "v2");
+
+        // Deleting via the other spelling also removes it.
+        remove_path!(map, index, "C:/mod/events/x.txt");
+        assert!(!map.contains_key("evt"));
     }
 
     /// Regression for the retain_path! priority bug: re-scanning a file from a

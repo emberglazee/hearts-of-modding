@@ -40,6 +40,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Toggling `hoi4.validator.scopeValidationEnabled` while the LSP was running had no effect** until a server restart. The setting is now applied live via `workspace/didChangeConfiguration`.
 
+- **Fixed incremental updates on Windows never matching the file's own stored entries.**
+
 ## [v0.24.1] - 2026-08-03
 
 ### ✨ Added

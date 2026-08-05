@@ -4,6 +4,7 @@ use crate::ScannerData;
 use crate::data::interner::InternedStr;
 use crate::for_each_standard_scanner;
 use crate::parser::ast;
+use crate::scanner::incremental_scanner::{index_key, path_matches};
 use crate::utils::lsp_convert::{is_pos_in_range, to_byte_position};
 use std::collections::HashMap;
 use tower_lsp_server::ls_types::Position;
@@ -290,11 +291,14 @@ impl<'a> EntityLookup<'a> {
         let pos = to_byte_position(content, pos);
         macro_rules! check_entity {
             ($kind:ident, $name:ident) => {
-                // Reverse per-path index (path -> declared names) — O(entities-at-path),
-                // and uses the same path format as `entity.path` so it's Windows-safe.
+                // Reverse per-path index (path -> declared names) — O(entities-at-path).
+                // The index is keyed by forward-slash-normalized paths, so the
+                // lookup normalizes too — on Windows, `path` arrives from
+                // `Uri::to_file_path()` (forward slashes) while the index was
+                // built from raw PathBuf strings (backslashes).
                 paste::paste! {
                     let index = &self.data.[<$name _file_index>];
-                    if let Some(names) = index.get(path) {
+                    if let Some(names) = index.get(&index_key(path)) {
                         for name in names.value() {
                             if let Some(entity) = self.data.$name.get(&**name) {
                                 let e = entity.value();
@@ -315,13 +319,14 @@ impl<'a> EntityLookup<'a> {
         // Standard scanners (generated)
         macro_rules! std_check_entity {
             ($mod:ident, $ty:ident, $kind:ident, $field:ident, $dir:expr, $ext:expr) => {
-                // Reverse the reverse index (`<field>_file_index`: path → declared
+                // Reverse per-path index (`<field>_file_index`: path → declared
                 // names) so we only iterate the entities declared in THIS file,
-                // instead of scanning every entity in the map. The index is keyed
-                // by the same `entity.path` format, so it's Windows-safe too.
+                // instead of scanning every entity in the map. The index is
+                // keyed by forward-slash-normalized paths; the lookup
+                // normalizes `path` to match (see `index_key`).
                 paste::paste! {
                     let index = &self.data.[<$field _file_index>];
-                    if let Some(names) = index.get(path) {
+                    if let Some(names) = index.get(&index_key(path)) {
                         for name in names.value() {
                             if let Some(entity) = self.data.$field.get(&**name) {
                                 let e = entity.value();
@@ -349,11 +354,16 @@ impl<'a> EntityLookup<'a> {
             // The variables map is Vec-valued, so check each declaration's path
             // + range after the index narrows to this file's names.
             let index = &self.data.variables_file_index;
-            if let Some(names) = index.get(path) {
+            if let Some(names) = index.get(&index_key(path)) {
                 for name in names.value() {
                     if let Some(vars) = self.data.variables.get(&**name) {
                         for var in vars.iter() {
-                            if var.path.as_ref() == path && is_pos_in_range(pos, &var.range) {
+                            // Normalized compare: var.path is a raw stored path
+                            // (backslashes on Windows), `path` comes from
+                            // to_file_path (forward slashes).
+                            if path_matches(var.path.as_ref(), path)
+                                && is_pos_in_range(pos, &var.range)
+                            {
                                 return Some((
                                     EntityKind::Variable,
                                     var.range.clone(),

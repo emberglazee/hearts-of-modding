@@ -22,7 +22,7 @@ use crate::scanner::focus_scanner;
 use crate::scanner::gfx_scanner;
 use crate::scanner::idea_scanner;
 use crate::scanner::ideology_scanner;
-use crate::scanner::incremental_scanner::HasPath;
+use crate::scanner::incremental_scanner::{HasPath, normalize_path_str};
 use crate::scanner::logistics_scanner;
 use crate::scanner::map_object_scanner;
 use crate::scanner::modifier_scanner;
@@ -332,8 +332,13 @@ impl ScannerData {
             ($map:expr, $index:expr) => {
                 $index.clear();
                 for entry in $map.iter() {
-                    // LayeredValue — take the resolved entry for path tracking
-                    let path = self.interner.intern(entry.value().resolve().path());
+                    // LayeredValue — take the resolved entry for path tracking.
+                    // Keys are forward-slash normalized so incremental
+                    // (to_file_path) and full-scan (PathBuf) spellings match on
+                    // Windows (see incremental_scanner::index_key).
+                    let path = self
+                        .interner
+                        .intern(&normalize_path_str(entry.value().resolve().path()));
                     $index.entry(path).or_default().push(entry.key().clone());
                 }
             };
@@ -343,7 +348,9 @@ impl ScannerData {
             ($map:expr, $index:expr) => {
                 $index.clear();
                 for entry in $map.iter() {
-                    let path = self.interner.intern(entry.value().path());
+                    let path = self
+                        .interner
+                        .intern(&normalize_path_str(entry.value().path()));
                     $index.entry(path).or_default().push(entry.key().clone());
                 }
             };
@@ -367,7 +374,7 @@ impl ScannerData {
         // sub_ideologies is a tuple (InternedStr, Range, InternedStr) — path is v.2
         self.sub_ideologies_file_index.clear();
         for entry in self.sub_ideologies.iter() {
-            let path = entry.value().resolve().2.clone();
+            let path = InternedStr::from(normalize_path_str(entry.value().resolve().2.as_ref()));
             self.sub_ideologies_file_index
                 .entry(path)
                 .or_default()
@@ -402,7 +409,7 @@ impl ScannerData {
         for entry in self.variables.iter() {
             let name = entry.key().clone();
             for var in entry.value().iter() {
-                let path = self.interner.intern(var.path());
+                let path = self.interner.intern(&normalize_path_str(var.path()));
                 let mut idx = self.variables_file_index.entry(path).or_default();
                 if !idx.contains(&name) {
                     idx.push(name.clone());

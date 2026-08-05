@@ -1,4 +1,5 @@
 use crate::parser::ast::{Entry, Range, Value};
+use crate::scanner::incremental_scanner::index_key;
 use crate::utils::lsp_convert::RangeMapper;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -67,7 +68,7 @@ pub async fn prepare_call_hierarchy(
     // Check if position is on an event — only entities declared in THIS file
     // (via the reverse per-path index), not a scan of every event in the
     // workspace.
-    if let Some(names) = data.events_file_index.get(path_ref) {
+    if let Some(names) = data.events_file_index.get(&index_key(path_ref)) {
         for name in names.value() {
             if let Some(event) = data.events.get(&**name) {
                 let event = event.value();
@@ -88,7 +89,7 @@ pub async fn prepare_call_hierarchy(
     }
 
     // Check if position is on a scripted trigger
-    if let Some(names) = data.scripted_triggers_file_index.get(path_ref) {
+    if let Some(names) = data.scripted_triggers_file_index.get(&index_key(path_ref)) {
         for name in names.value() {
             if let Some(trigger) = data.scripted_triggers.get(&**name) {
                 let trigger = trigger.value();
@@ -109,7 +110,7 @@ pub async fn prepare_call_hierarchy(
     }
 
     // Check if position is on a scripted effect
-    if let Some(names) = data.scripted_effects_file_index.get(path_ref) {
+    if let Some(names) = data.scripted_effects_file_index.get(&index_key(path_ref)) {
         for name in names.value() {
             if let Some(effect) = data.scripted_effects.get(&**name) {
                 let effect = effect.value();
@@ -365,7 +366,7 @@ async fn find_container_symbol(
 
     // Check events — only entities declared in THIS file (reverse per-path
     // index), not a scan of every event in the workspace.
-    if let Some(names) = data.events_file_index.get(path.as_ref()) {
+    if let Some(names) = data.events_file_index.get(&index_key(path.as_ref())) {
         for name in names.value() {
             if let Some(event) = data.events.get(&**name) {
                 let event = event.value();
@@ -388,7 +389,10 @@ async fn find_container_symbol(
     }
 
     // Check scripted triggers
-    if let Some(names) = data.scripted_triggers_file_index.get(path.as_ref()) {
+    if let Some(names) = data
+        .scripted_triggers_file_index
+        .get(&index_key(path.as_ref()))
+    {
         for name in names.value() {
             if let Some(trigger) = data.scripted_triggers.get(&**name) {
                 let trigger = trigger.value();
@@ -411,7 +415,10 @@ async fn find_container_symbol(
     }
 
     // Check scripted effects
-    if let Some(names) = data.scripted_effects_file_index.get(path.as_ref()) {
+    if let Some(names) = data
+        .scripted_effects_file_index
+        .get(&index_key(path.as_ref()))
+    {
         for name in names.value() {
             if let Some(effect) = data.scripted_effects.get(&**name) {
                 let effect = effect.value();
