@@ -19,7 +19,7 @@ once_cell = "1.21.4"
 regex = "1.13.1"
 futures = "0.3.33"
 sysinfo = "0.39.6"
-base64 = "0.23.0"
+base64 = "0.23.1"
 arc-swap = "1.9.2"
 paste = { package = "pastey", version = "0.2.3" }
 rustc-hash = "2.1.3"
