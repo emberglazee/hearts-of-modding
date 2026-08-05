@@ -1,17 +1,20 @@
+# Reference code
+references/
+
 # Dependencies
-/node_modules/
+node_modules/
 
 # Rust build artifacts
-/server/target/
+server/target/
 
 # VS Code extension build artifacts
-/client/out/
-/client/dist/
-/client/server-bin/
-/client/*.vsix
+client/out/
+client/dist/
+client/server-bin/
+client/*.vsix
 
 # Playwright MCP cache
-/.playwright-mcp/
+.playwright-mcp/
 
 # Log files
 *console-*.log
