@@ -2,11 +2,15 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
-## [v0.25.1] - 2026-08-05
+## [v0.25.1] - 2026-08-05 (Hotfix)
 
 ### ✨ Added
 
 - **Go to definition (F12) for states and provinces.**
+
+### 🩹 Fixed
+
+- **False HOM5008 on `remove_effect`-only decisions.**
 
 ## [v0.25.0] - 2026-08-05
 

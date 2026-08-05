@@ -144,9 +144,7 @@ struct DecisionsVisitor {
     has_cost: bool,
     has_custom_cost: bool,
     has_timeout_effect: bool,
-    has_days_mission_timeout: bool,
     has_remove_effect: bool,
-    has_days_remove: bool,
     has_modifier: bool,
 }
 
@@ -161,9 +159,7 @@ impl DecisionsVisitor {
             has_cost: false,
             has_custom_cost: false,
             has_timeout_effect: false,
-            has_days_mission_timeout: false,
             has_remove_effect: false,
-            has_days_remove: false,
             has_modifier: false,
         }
     }
@@ -190,9 +186,7 @@ impl DecisionsVisitor {
         self.has_cost = false;
         self.has_custom_cost = false;
         self.has_timeout_effect = false;
-        self.has_days_mission_timeout = false;
         self.has_remove_effect = false;
-        self.has_days_remove = false;
         self.has_modifier = false;
     }
 }
@@ -238,9 +232,7 @@ impl AstVisitor for DecisionsVisitor {
                 "cost" => self.has_cost = true,
                 "custom_cost_trigger" => self.has_custom_cost = true,
                 "timeout_effect" => self.has_timeout_effect = true,
-                "days_mission_timeout" => self.has_days_mission_timeout = true,
                 "remove_effect" => self.has_remove_effect = true,
-                "days_remove" => self.has_days_remove = true,
                 _ => {}
             }
         }
@@ -311,37 +303,36 @@ impl AstVisitor for DecisionsVisitor {
         if scope.kind == BlockScopeKind::Decision && scope.decision_key.as_deref() == Some(key) {
             // HOM5008: Missing complete_effect.
             //
-            // `complete_effect` is only required for decisions whose entire
-            // payload is the click reward. Two other legitimate timer-based
-            // patterns ship in vanilla WITHOUT complete_effect:
-            //   * Missions — `days_mission_timeout` + `timeout_effect` (the
-            //     payload runs when the mission timer expires; `available = {
-            //     hidden_trigger = { always = no } }` makes it unclickable).
-            //     Vanilla has 280 such missions (CHL nacista chain, ARG coup,
-            //     AST elections, ...).
-            //   * Timed decisions — `days_remove` + `remove_effect` and/or a
-            //     `modifier` block (the payload applies when the timer ends).
-            //     Vanilla has 609 of those (AFG_nationalize_oil, ...).
-            // Flagging either pattern is a false positive — the message claims
-            // "does nothing when selected", but these decisions do their work
-            // on the timer, not on click.
+            // `complete_effect` is only required for a decision whose *entire*
+            // payload is the click reward. Several other payload shapes ship in
+            // vanilla WITHOUT complete_effect:
+            //   * `remove_effect` — fires on take/removal. Vanilla ships these
+            //     standalone (`PHI_create_faction` = cost + remove_effect, no
+            //     days_remove), and combined with `days_remove` timers
+            //     (AFG_nationalize_oil, ...).
+            //   * Missions — `timeout_effect` fires when the mission timer
+            //     expires (`available = { hidden_trigger = { always = no } }`
+            //     makes them unclickable). Vanilla: 280 missions (CHL nacista
+            //     chain, ARG coup, ...).
+            //   * `modifier` / `targeted_modifier` — applied for the
+            //     `days_remove` duration (ENG_the_mosley_plan, ...).
+            // Flagging any of these is a false positive — the message claims
+            // "does nothing when selected", but the decision does its work via
+            // remove/timeout/modifier. Only a decision with NONE of the four
+            // effect-bearing blocks genuinely does nothing when selected.
             let is_real_decision = inner.iter().any(|e| {
                 matches!(e, ast::Entry::Assignment(a) if !CATEGORY_ONLY_KEYS.contains(&a.key_text(ctx.source)))
             });
-            let has_timer_payload = self.has_days_mission_timeout
-                && (self.has_timeout_effect || self.has_complete_effect);
-            let has_remove_payload = self.has_days_remove
-                && (self.has_remove_effect || self.has_modifier || self.has_complete_effect);
-            if is_real_decision
-                && !self.has_complete_effect
-                && !has_timer_payload
-                && !has_remove_payload
-            {
+            let has_payload = self.has_complete_effect
+                || self.has_remove_effect
+                || self.has_timeout_effect
+                || self.has_modifier;
+            if is_real_decision && !has_payload {
                 diags.push(Diagnostic {
                     range: ctx.range(&ass.key_range),
                     severity: Some(DiagnosticSeverity::WARNING),
                     message: format!(
-                        "Decision '{}' has no complete_effect and no timer-based effect (timeout_effect / remove_effect) — it does nothing when selected.",
+                        "Decision '{}' has no effect of any kind (complete_effect / remove_effect / timeout_effect / modifier) — it does nothing when selected.",
                         key
                     ),
                     code: Some(NumberOrString::String(
@@ -787,6 +778,37 @@ mod tests {
         assert!(
             missing_diags.is_empty(),
             "Expected no HOM5008 for a timed decision with remove_effect, got: {:?}",
+            missing_diags
+        );
+    }
+
+    /// Regression test (hotfix): `remove_effect` ALONE (no days_remove, no
+    /// complete_effect) is a legitimate payload — it fires on take/removal.
+    /// Vanilla `PHI_create_faction` (cost + remove_effect only). The user's
+    /// `FKE_supply_warning` / `FKE_reform_eastern_kingdom_decision` are this
+    /// shape. HOM5008 must NOT fire.
+    #[test]
+    fn test_standalone_remove_effect_no_missing_complete_diag() {
+        let data = ScannerData::new();
+        let key: InternedStr = InternedStr::from("test_hom_decision");
+        data.decisions.insert(
+            key,
+            LayeredValue::new(Decision {
+                key: "supply_warning".to_string(),
+                category: "hom_test_cat".to_string(),
+                path: InternedStr::from("test.txt"),
+                range: dummy_range(),
+            }),
+        );
+        let source = r#"hom_test_cat = { supply_warning = { icon = GFX_decision_generic_scorched_earth fire_only_once = yes available = { controls_state = 422 } remove_effect = { add_war_support = 0.05 } ai_will_do = { base = 10 } } }"#;
+        let diags = visitor_diags(source, "/common/decisions/test.txt", &data);
+        let missing_diags: Vec<&Diagnostic> = diags
+            .iter()
+            .filter(|d| d.code == Some(NumberOrString::String("HOM5008".to_string())))
+            .collect();
+        assert!(
+            missing_diags.is_empty(),
+            "Expected no HOM5008 for a decision with standalone remove_effect, got: {:?}",
             missing_diags
         );
     }
