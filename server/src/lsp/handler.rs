@@ -1164,8 +1164,14 @@ impl LanguageServer for Backend {
 
         if let Some(content) = self.documents.get(&uri) {
             let mapper = RangeMapper::new(&content);
-            let identifier = if uri.ends_with(".yml") {
-                find_identifier_in_loc(&content, position)
+
+            // Find the identifier under the cursor. For script files, keep the
+            // full tuple: for `state = 422` the identifier reported by
+            // `find_identifier_at` is the *key text* ("state") and the actual
+            // number lives in `assigned_value` — the string-keyed
+            // `find_definition` can never resolve u32-keyed entities from it.
+            let (identifier, assigned_value, context_key) = if uri.ends_with(".yml") {
+                (find_identifier_in_loc(&content, position), None, None)
             } else {
                 let (script, _) = self.ensure_ast_cached(&uri).unwrap_or_else(|| {
                     let (s, e) = parser::parse_script(&content);
@@ -1180,17 +1186,48 @@ impl LanguageServer for Backend {
                     in_random_list: false,
                     state_targeted: false,
                 };
-                find_identifier_at(&script, position, &mut scope_stack, &sctx)
-                    .map(|(id, _, _, _)| id)
+                match find_identifier_at(&script, position, &mut scope_stack, &sctx) {
+                    Some((id, _, assigned_value, context_key)) => {
+                        (Some(id), assigned_value, context_key)
+                    }
+                    None => (None, None, None),
+                }
             };
 
             if let Some(identifier) = identifier {
                 let lookup = entity_lookup::EntityLookup::new(&self.scanner_data);
-                let locations = lookup.find_definition(&identifier);
+                let mut locations = lookup.find_definition(&identifier);
+                // Numeric references (`state = 422`, `strategic_region = 12`)
+                // are keyed by u32, so the string lookup above can never match
+                // them. Resolve via the number at the cursor, guarded by the
+                // same key/context checks the hover uses (a bare number in an
+                // unrelated key must not jump to a state of the same id).
+                if locations.is_empty()
+                    && let Some(ast::Value::Number(n)) = &assigned_value
+                {
+                    locations.extend(lookup.find_numeric_definition(
+                        *n as u32,
+                        &identifier,
+                        context_key.as_deref(),
+                    ));
+                }
                 if !locations.is_empty() {
                     let lsp_locations: Vec<Location> = locations
                         .iter()
-                        .map(|loc| ast_range_to_lsp_location(&loc.range, &loc.path, &mapper))
+                        .map(|loc| {
+                            // The definition lives in ANOTHER file (states,
+                            // regions, events, ...) whose byte range must be
+                            // mapped with THAT file's content so UTF-16 columns
+                            // are correct there (`loc.path` is a raw path, not a
+                            // URI, so the `documents` map won't match it). Go
+                            // to disk — go-to-definition is user-triggered and
+                            // single-shot, so the read is cheap.
+                            let target_text = std::fs::read_to_string(loc.path.as_ref()).ok();
+                            let target_mapper = target_text
+                                .map(|t| RangeMapper::new(&t))
+                                .unwrap_or_else(|| mapper.clone());
+                            ast_range_to_lsp_location(&loc.range, &loc.path, &target_mapper)
+                        })
                         .collect();
                     return Ok(Some(GotoDefinitionResponse::Array(lsp_locations)));
                 }

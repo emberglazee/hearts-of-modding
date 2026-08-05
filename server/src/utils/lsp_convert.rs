@@ -15,6 +15,7 @@ use tower_lsp_server::ls_types::{
 /// a global byte→UTF-16 index (`LineIndex`) with the byte offset of each line
 /// start, so a line's byte column maps to a UTF-16 column by a difference of two
 /// global positions.
+#[derive(Clone)]
 pub(crate) struct RangeMapper {
     index: LineIndex,
     line_starts: Vec<u32>,

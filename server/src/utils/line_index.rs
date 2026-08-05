@@ -8,6 +8,7 @@
 /// are identical, but any non-ASCII character (§ = 2 bytes = 1 code unit,
 /// emoji = 4 bytes = 2 code units) creates a divergence. Without precomputation,
 /// every conversion walks the string from the start — leading to O(N²) in loops.
+#[derive(Clone)]
 pub(crate) struct LineIndex {
     /// `utf16_offsets[byte_offset]` = cumulative UTF-16 code units at this
     /// byte position.  Length = `text.len() + 1`; the final entry is a
@@ -86,6 +87,10 @@ impl LineIndex {
         *self.utf16_offsets.last().unwrap()
     }
 }
+
+// ---------------------------------------------------------------------------
+// SECTION - Tests
+// ---------------------------------------------------------------------------
 
 #[cfg(test)]
 mod tests {
@@ -296,3 +301,7 @@ mod tests {
         let _bracket_pos = prefix.rfind('[');
     }
 }
+
+// ---------------------------------------------------------------------------
+// !SECTION
+// ---------------------------------------------------------------------------

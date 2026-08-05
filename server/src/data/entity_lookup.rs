@@ -280,6 +280,66 @@ impl<'a> EntityLookup<'a> {
         results
     }
 
+    /// Resolve a **numeric** reference to a u32-keyed entity (state, strategic
+    /// region) to its definition location.
+    ///
+    /// `find_definition` looks up string-keyed entities and can never resolve
+    /// `state = 422` — for a `key = <number>` assignment the identifier
+    /// returned by `find_identifier_at` is the *key text* (`"state"`), not the
+    /// number, and the maps below are keyed by `u32`. This method takes the
+    /// parsed number plus the surrounding identifier/context key and applies
+    /// the same guards the hover uses (a bare number in an unrelated key must
+    /// not jump to a state of the same id).
+    ///
+    /// Provinces are deliberately absent: the `Province` struct carries no
+    /// `path`/`range` (it is parsed line-by-line from `map/definition.csv`),
+    /// so there is no definition location to jump to — matching the hover,
+    /// which shows province info but no "Defined in" link.
+    pub fn find_numeric_definition(
+        &self,
+        id: u32,
+        identifier: &str,
+        context_key: Option<&str>,
+    ) -> Vec<EntityLocation> {
+        let mut results = Vec::new();
+        let ident_lower = identifier.to_ascii_lowercase();
+        let ctx_lower = context_key.map(|s| s.to_ascii_lowercase());
+        // Mirrors `hover_handler`'s guards for the state/region sections.
+        let is_state_key = ident_lower.contains("state")
+            || ident_lower.contains("capital")
+            || (ident_lower == "id" && ctx_lower.as_deref() == Some("state"))
+            || ident_lower == "add_core_of"
+            || ident_lower == "add_claim_by"
+            || (identifier.parse::<u32>().is_ok()
+                && ctx_lower.as_ref().is_some_and(|ck| ck.contains("state")));
+        let is_region_key = ident_lower.contains("strategic_region")
+            || (ident_lower == "id" && ctx_lower.as_deref() == Some("strategic_region"))
+            || (identifier.parse::<u32>().is_ok()
+                && ctx_lower
+                    .as_ref()
+                    .is_some_and(|ck| ck.contains("strategic_region")));
+
+        if is_state_key {
+            if let Some(state) = self.data.states.get(&id) {
+                results.push(EntityLocation {
+                    kind: EntityKind::State,
+                    range: state.range.clone(),
+                    path: state.path.clone(),
+                });
+            }
+        }
+        if is_region_key {
+            if let Some(region) = self.data.strategic_regions.get(&id) {
+                results.push(EntityLocation {
+                    kind: EntityKind::StrategicRegion,
+                    range: region.range.clone(),
+                    path: region.path.clone(),
+                });
+            }
+        }
+        results
+    }
+
     pub fn entity_at(
         &self,
         path: &str,
@@ -807,3 +867,183 @@ impl<'a> EntityLookup<'a> {
         results
     }
 }
+
+// ---------------------------------------------------------------------------
+// SECTION - Tests
+// ---------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::data::interner::InternedStr;
+    use crate::parser::ast;
+    use crate::scanner::state_scanner::State;
+    use crate::scanner::strategic_region_scanner::StrategicRegion;
+
+    fn range(line: u32) -> ast::Range {
+        ast::Range {
+            start_line: line,
+            start_col: 0,
+            end_line: line,
+            end_col: 5,
+        }
+    }
+
+    fn lookup_with_state() -> (EntityLookup<'static>, InternedStr) {
+        let data = Box::leak(Box::new(ScannerData::new()));
+        let path: InternedStr = InternedStr::from("history/states/422.txt");
+        data.states.insert(
+            422,
+            State {
+                id: 422,
+                name: "STATE_422".to_string(),
+                path: path.clone(),
+                range: range(0),
+            },
+        );
+        data.strategic_regions.insert(
+            12,
+            StrategicRegion {
+                id: 12,
+                name: "STRATEGICREGION_12".to_string(),
+                provinces: vec![422],
+                weather: None,
+                naval_terrain: None,
+                path: InternedStr::from("map/strategicregions/12.txt"),
+                range: range(0),
+            },
+        );
+        (EntityLookup { data }, path)
+    }
+
+    /// `state = 422` resolves to the state definition.
+    #[test]
+    fn test_numeric_state_resolves() {
+        let (lookup, state_path) = lookup_with_state();
+        let locations = lookup.find_numeric_definition(422, "state", Some("state"));
+        assert_eq!(
+            locations.len(),
+            1,
+            "state=422 should resolve to exactly one location"
+        );
+        assert_eq!(locations[0].kind, EntityKind::State);
+        assert_eq!(locations[0].path, state_path);
+    }
+
+    /// A bare number inside a state-context block (e.g. `any_state_of = { 422 }`)
+    /// resolves via the number-parse guard.
+    #[test]
+    fn test_bare_number_in_state_context_resolves() {
+        let (lookup, _) = lookup_with_state();
+        let locations = lookup.find_numeric_definition(422, "422", Some("any_state_of"));
+        assert_eq!(
+            locations.len(),
+            1,
+            "bare 422 in state context should resolve"
+        );
+        assert_eq!(locations[0].kind, EntityKind::State);
+    }
+
+    /// `strategic_region = 12` resolves to the region definition.
+    #[test]
+    fn test_numeric_strategic_region_resolves() {
+        let (lookup, _) = lookup_with_state();
+        let locations =
+            lookup.find_numeric_definition(12, "strategic_region", Some("strategic_region"));
+        assert_eq!(locations.len(), 1, "strategic_region=12 should resolve");
+        assert_eq!(locations[0].kind, EntityKind::StrategicRegion);
+    }
+
+    /// A bare number in a *non*-state key must NOT jump to a state with the
+    /// same id — guards must keep unrelated numeric keys out.
+    #[test]
+    fn test_unrelated_numeric_key_does_not_resolve() {
+        let (lookup, _) = lookup_with_state();
+        // `factor = 422` — the id exists as a state, but the key is unrelated.
+        let locations = lookup.find_numeric_definition(422, "factor", Some("factor"));
+        assert!(
+            locations.is_empty(),
+            "a bare number under an unrelated key must not resolve to a state"
+        );
+    }
+
+    /// `capital = 422` (a state reference) resolves; `add_core_of` too.
+    #[test]
+    fn test_capital_and_core_keys_resolve() {
+        let (lookup, _) = lookup_with_state();
+        assert_eq!(
+            lookup
+                .find_numeric_definition(422, "capital", Some("capital"))
+                .len(),
+            1,
+            "capital=422 should resolve to a state"
+        );
+        assert_eq!(
+            lookup
+                .find_numeric_definition(422, "add_core_of", Some("add_core_of"))
+                .len(),
+            1,
+            "add_core_of=422 should resolve to a state"
+        );
+    }
+
+    /// End-to-end: replicate the goto_definition resolution for the real
+    /// snippet shape (`highlight_states_trigger = { state = 422 }` inside a
+    /// decision). `find_identifier_at` must report "state" with the number in
+    /// `assigned_value`, and the string lookup must stay empty so the numeric
+    /// fallback fires.
+    #[test]
+    fn test_goto_path_state_nested_in_decision() {
+        use crate::scope::scope::ScopeStack;
+        use crate::utils::symbol_search::find_identifier_at;
+        use tower_lsp_server::ls_types::Position;
+
+        let content = "X = {\n\thighlight_states_trigger = { state = 422 }\n}\n";
+        let (script, _) = crate::parser::parser::parse_script(content);
+        let uri = "/common/decisions/fke_decisions.txt".to_string();
+
+        let (lookup, _) = lookup_with_state();
+        let data = lookup.data;
+
+        let mut scope_stack = ScopeStack::new(crate::scope::scope::initial_scope_for_uri(&uri));
+        let sctx = crate::scope::scope::ScopeCtx {
+            uri: &uri,
+            event_targets: Some(&data.event_targets),
+            characters: Some(&data.characters),
+            achievements: Some(&data.achievements),
+            in_random_list: false,
+            state_targeted: false,
+        };
+        let line = 1u32;
+        let col = content.lines().nth(1).unwrap().find("422").unwrap() as u32;
+        let res = find_identifier_at(
+            &script,
+            Position {
+                line,
+                character: col,
+            },
+            &mut scope_stack,
+            &sctx,
+        );
+        let (identifier, _, assigned_value, context_key) = res.expect("identifier at cursor");
+        assert_eq!(identifier, "state", "identifier must be the key text");
+        let mut locations = lookup.find_definition(&identifier);
+        assert!(
+            locations.is_empty(),
+            "string lookup must stay empty for 'state' so the numeric fallback fires"
+        );
+        if let Some(ast::Value::Number(n)) = &assigned_value {
+            locations.extend(lookup.find_numeric_definition(
+                *n as u32,
+                &identifier,
+                context_key.as_deref(),
+            ));
+        }
+        assert_eq!(locations.len(), 1, "goto must resolve state 422");
+        assert_eq!(locations[0].kind, EntityKind::State);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// !SECTION
+// ---------------------------------------------------------------------------
