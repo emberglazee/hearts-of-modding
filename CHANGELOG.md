@@ -10,6 +10,10 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
   - Decisions with both `custom_cost_trigger` and `cost = 0` are observed 71 times in vanilla as of 1.19.
 
+### 🩹 Fixed
+
+- **HOM005 (`MISSING_LOCALIZATION`) no longer fires on scripted localization identifiers.**
+
 ## [v0.25.1] - 2026-08-05 (Hotfix)
 
 ### ✨ Added
