@@ -54,17 +54,63 @@ impl ValidationRule for IdeaRule {
         // Idea existence checks (add_ideas, has_idea, remove_ideas)
         if key_lower == "add_ideas" || key_lower == "has_idea" || key_lower == "remove_ideas" {
             if let Some(val) = ass.value.value.as_str(ctx.source) {
-                // Skip if value is a known idea, or "all", or a character idea token
-                if val == "all" || ctx.ideas.contains_key(val) {
+                if val == "all" {
+                    return;
+                }
+
+                // Idea references are CASE-INSENSITIVE in the engine — verified
+                // empirically via probe mod: `add_ideas = probe_pale_idea`
+                // resolves the definition `PROBE_PALE_IDEA` (mismatched case)
+                // exactly like the exact-name control. Exact `contains_key` is
+                // the O(1) fast path; a case-insensitive scan only runs when the
+                // exact lookup misses (rare) — ideas maps are small (~2-3k).
+                //
+                // Three outcomes:
+                //  * exact match -> silent (canonical)
+                //  * case-insensitive match (different case) -> HINT: works,
+                //    but casing differs from the definition (consistency)
+                //  * no match at all -> WARNING: genuinely unknown idea
+                let exact = ctx.ideas.contains_key(val);
+                let case_insensitive =
+                    !exact && ctx.ideas.iter().any(|e| e.key().eq_ignore_ascii_case(val));
+                if case_insensitive {
+                    let defined = ctx
+                        .ideas
+                        .iter()
+                        .find(|e| e.key().eq_ignore_ascii_case(val))
+                        .map(|e| e.key().to_string())
+                        .unwrap_or_else(|| val.to_string());
+                    diags.push(Diagnostic {
+                        range: ctx.range(&ass.value.range),
+                        severity: Some(DiagnosticSeverity::HINT),
+                        message: format!(
+                            "Idea reference '{}' differs in case from its definition '{}'. \
+                             This still works (HOI4 is case-insensitive here), but keeping the \
+                             same casing is recommended.",
+                            val, defined
+                        ),
+                        code: Some(NumberOrString::String(
+                            crate::validation::advanced_validation::IDEA_CASE_MISMATCH.to_string(),
+                        )),
+                        // Store the canonical casing so a code action can offer
+                        // a one-click "change to canonical casing" fix (mirrors
+                        // the HOM3007 unit-type casing quick-fix pattern).
+                        data: Some(serde_json::Value::String(defined.clone())),
+                        source: Some("Hearts of Modding".to_string()),
+                        ..Default::default()
+                    });
+                    return;
+                }
+                if exact {
                     return;
                 }
                 // Check if any character has a role with this idea_token
                 if ctx.characters.iter().any(|entry| {
-                    entry
-                        .value()
-                        .roles
-                        .iter()
-                        .any(|r| r.idea_token.as_deref() == Some(val))
+                    entry.value().roles.iter().any(|r| {
+                        r.idea_token
+                            .as_deref()
+                            .is_some_and(|t| t.eq_ignore_ascii_case(val))
+                    })
                 }) {
                     return;
                 }

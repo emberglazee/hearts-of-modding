@@ -1,10 +1,13 @@
 #[cfg(test)]
 mod tests {
+    use crate::data::interner::InternedStr;
+    use crate::data::layered_value::LayeredValue;
     use crate::parser::ast;
     use crate::parser::parser::parse_script;
     use crate::rules::ideas::IdeaRule;
     use crate::rules::visitor::walk_script;
     use crate::rules::{ValidationContext, ValidationRule};
+    use crate::scanner::idea_scanner::Idea;
     use crate::scanner::province_scanner::Province;
     use crate::scanner::strategic_region_scanner::StrategicRegion;
     use crate::scope::scope::Scope;
@@ -14,10 +17,29 @@ mod tests {
     use tower_lsp_server::ls_types::{Diagnostic, NumberOrString};
 
     /// Build a minimal ValidationContext with empty scanner data.
-    fn empty_ctx(source: &str) -> ValidationContext<'_> {
+    fn empty_ctx_with_ideas<'a>(source: &'a str, idea_names: &[&str]) -> ValidationContext<'a> {
         // Leak the mapper so the returned context (which borrows it) is valid;
         // matches the existing leak_map() pattern used for the other fields.
         let range_mapper: &'static RangeMapper = Box::leak(Box::new(RangeMapper::new(source)));
+        let ideas: &'static DashMap<InternedStr, LayeredValue<Idea>> =
+            Box::leak(Box::new(DashMap::new()));
+        for name in idea_names {
+            ideas.insert(
+                InternedStr::from(*name),
+                LayeredValue::new(Idea {
+                    name: (*name).to_string(),
+                    category: "country".to_string(),
+                    picture: None,
+                    path: InternedStr::from("test.txt"),
+                    range: ast::Range {
+                        start_line: 0,
+                        start_col: 0,
+                        end_line: 0,
+                        end_col: 0,
+                    },
+                }),
+            );
+        }
         ValidationContext {
             uri: "test://ideas.txt",
             source,
@@ -29,7 +51,7 @@ mod tests {
             sub_ideologies: leak_map(),
             traits: leak_map(),
             sprites: leak_map(),
-            ideas: leak_map(),
+            ideas,
             characters: leak_map(),
             provinces: Box::leak(Box::new(DashMap::<u32, Province>::new())),
             modifier_mappings: leak_map(),
@@ -65,8 +87,13 @@ mod tests {
 
     /// Run only IdeaRule against the parsed script, returning diagnostics.
     fn run_idea_rules(source: &str) -> Vec<Diagnostic> {
+        run_idea_rules_with_ideas(source, &[])
+    }
+
+    /// Like [`run_idea_rules`] but pre-populates the ideas map with `idea_names`.
+    fn run_idea_rules_with_ideas(source: &str, idea_names: &[&str]) -> Vec<Diagnostic> {
         let (script, _) = parse_script(source);
-        let ctx = empty_ctx(&script.source);
+        let ctx = empty_ctx_with_ideas(&script.source, idea_names);
 
         let rule: Box<dyn ValidationRule> = Box::new(IdeaRule);
         let rules: [Box<dyn ValidationRule>; 1] = [rule];
@@ -467,6 +494,95 @@ mod tests {
             category_hits.is_empty(),
             "Category names triggered false warnings: {:?}",
             category_hits,
+        );
+    }
+
+    // ── Case-insensitive idea references ───────────────────────────────
+
+    /// `add_ideas = SPE_pale_unit_idea` referencing an idea defined as
+    /// `SPE_PALE_unit_idea` (case mismatch) works in the engine (verified
+    /// empirically via probe mod) — it must NOT fire "Unknown idea". Instead
+    /// it gets a HINT about the casing inconsistency (HOM4004).
+    #[test]
+    fn test_case_mismatched_idea_reference_hint() {
+        let diags = run_idea_rules_with_ideas(
+            r#"focus = {
+                completion_reward = {
+                    add_ideas = SPE_pale_unit_idea
+                }
+            }"#,
+            &["SPE_PALE_unit_idea"],
+        );
+        let unknown: Vec<_> = diags
+            .iter()
+            .filter(|d| d.message.contains("Unknown idea"))
+            .collect();
+        assert!(
+            unknown.is_empty(),
+            "case-mismatched idea reference must not be flagged as unknown, got: {:?}",
+            unknown,
+        );
+        let hints: Vec<_> = diags
+            .iter()
+            .filter(|d| d.code == Some(NumberOrString::String("HOM4004".to_string())))
+            .collect();
+        assert_eq!(
+            hints.len(),
+            1,
+            "Expected 1 HOM4004 case-mismatch hint, got {:?}",
+            diags,
+        );
+        assert_eq!(
+            hints[0].severity,
+            Some(tower_lsp_server::ls_types::DiagnosticSeverity::HINT)
+        );
+        // Data must carry the canonical casing for the code-action fix.
+        assert_eq!(
+            hints[0].data.as_ref().and_then(|v| v.as_str()),
+            Some("SPE_PALE_unit_idea"),
+            "HOM4004 diagnostic must store the canonical casing in data"
+        );
+    }
+
+    /// An exact-case idea reference is silent (canonical — no hint, no warning).
+    #[test]
+    fn test_exact_idea_reference_silent() {
+        let diags = run_idea_rules_with_ideas(
+            r#"focus = {
+                completion_reward = {
+                    add_ideas = SPE_PALE_unit_idea
+                }
+            }"#,
+            &["SPE_PALE_unit_idea"],
+        );
+        assert!(
+            diags.is_empty(),
+            "exact-case idea reference must be silent, got: {:?}",
+            diags,
+        );
+    }
+
+    /// A genuinely unknown idea (no matching definition in ANY case) still
+    /// fires "Unknown idea".
+    #[test]
+    fn test_truly_unknown_idea_still_flagged() {
+        let diags = run_idea_rules_with_ideas(
+            r#"focus = {
+                completion_reward = {
+                    add_ideas = TOTALLY_MISSING_IDEA
+                }
+            }"#,
+            &["SPE_PALE_unit_idea"],
+        );
+        let unknown: Vec<_> = diags
+            .iter()
+            .filter(|d| d.message.contains("Unknown idea"))
+            .collect();
+        assert_eq!(
+            unknown.len(),
+            1,
+            "Expected 1 Unknown idea warning, got {:?}",
+            unknown,
         );
     }
 }

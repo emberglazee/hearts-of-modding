@@ -2,6 +2,16 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
+## [v0.25.3] - 2026-08-06
+
+### ✨ Added
+
+- **HOM4004 (`IDEA_CASE_MISMATCH`) hint level diagnostic.** Offers a code action to fix the case mismatch.
+
+### 🔧 Changed
+
+- **National ideas are now parsed without case sensitivity to fire HOM4004 instead of "Unknown idea".**
+
 ## [v0.25.2] - 2026-08-06
 
 ### ✨ Added

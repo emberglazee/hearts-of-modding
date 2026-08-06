@@ -100,6 +100,29 @@ impl Backend {
                             is_preferred: Some(true),
                             ..Default::default()
                         }));
+                    } else if code == "HOM4004" {
+                        // Idea reference differs in case from its definition —
+                        // change it to the canonical casing stored in `data`.
+                        let mut changes = HashMap::new();
+                        changes.insert(
+                            params.text_document.uri.clone(),
+                            vec![TextEdit {
+                                range: diagnostic.range,
+                                new_text: target_casing.to_string(),
+                            }],
+                        );
+
+                        actions.push(CodeActionOrCommand::CodeAction(CodeAction {
+                            title: format!("Change idea reference casing to: '{}'", target_casing),
+                            kind: Some(CodeActionKind::QUICKFIX),
+                            edit: Some(WorkspaceEdit {
+                                changes: Some(changes),
+                                ..Default::default()
+                            }),
+                            diagnostics: Some(vec![diagnostic.clone()]),
+                            is_preferred: Some(true),
+                            ..Default::default()
+                        }));
                     }
                 }
             } else {
