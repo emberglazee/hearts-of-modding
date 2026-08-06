@@ -98,7 +98,7 @@ Type "Hearts of Modding" in the command palette (`Ctrl+Shift+P`) to see all comm
 
 - **Toggle Theme:** Switch between the extension themes.
 
-## ☝️ Requirements
+## ✌️ Requirements
 
 - **VSCode v1.82.0+**
 
@@ -110,4 +110,8 @@ A HOI4 install is optional but strongly recommended for the complete experience.
 
 ---
 
-*Made with ❤️ by a [Hearts of Minecraft](https://steamcommunity.com/sharedfiles/filedetails/?id=2624254320) mod developer.*
+*This whole project is a solo-dev effort. All contributions, from reporting bugs and suggesting new ideas, to direct code contribution, are welcome!*
+
+*Made with* 💙 *by a [Hearts of Minecraft](https://steamcommunity.com/sharedfiles/filedetails/?id=2624254320) mod developer.*
+
+*- embi*
