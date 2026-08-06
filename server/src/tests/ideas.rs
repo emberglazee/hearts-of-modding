@@ -11,7 +11,7 @@ mod tests {
     use crate::utils::lsp_convert::RangeMapper;
     use dashmap::DashMap;
     use regex::Regex;
-    use tower_lsp_server::ls_types::Diagnostic;
+    use tower_lsp_server::ls_types::{Diagnostic, NumberOrString};
 
     /// Build a minimal ValidationContext with empty scanner data.
     fn empty_ctx(source: &str) -> ValidationContext<'_> {
@@ -177,6 +177,46 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_allowed_subblock_does_not_trigger_picture_warning() {
+        // Regression: `allowed = { ... }` and `available = { ... }` inside an
+        // idea definition (irresistible for country-restrictive national
+        // spirits) are transparent sub-blocks, not nested ideas — they must
+        // never be flagged as ideas missing a picture. Mirrors the real
+        // Hearts-Of-Minecraft `common/ideas/ENC.txt` `enc_fractured_1` shape.
+        let diags = run_idea_rules(
+            r#"ideas = {
+                country = {
+                    enc_fractured_1 = {
+                        picture = IMP_rump_state
+                        allowed = {
+                            tag = ENC
+                        }
+                        allowed_civil_war = { always = yes }
+                        modifier = {
+                            political_power_gain = -0.4
+                        }
+                    }
+                    enc_propaganda_1 = {
+                        picture = FRA_scw_intervention_republicans_focus
+                        available = { tag = ENC }
+                        modifier = { stability_weekly = 0.005 }
+                    }
+                }
+            }"#,
+        );
+        let forbidden = ["allowed", "available"];
+        for kw in &forbidden {
+            let hits: Vec<_> = diags.iter().filter(|d| d.message.contains(kw)).collect();
+            assert!(
+                hits.is_empty(),
+                "'{}' triggered false picture warning(s): {:?}",
+                kw,
+                hits,
+            );
+        }
+    }
+
     // ── Real ideas without pictures SHOULD get warnings ──
 
     #[test]
@@ -201,6 +241,51 @@ mod tests {
         );
         assert!(diags[0].message.contains("my_unpictured_idea"));
         assert!(diags[0].message.contains("GFX_idea_my_unpictured_idea"));
+        assert_eq!(
+            diags[0].code,
+            Some(NumberOrString::String("HOM4003".to_string())),
+            "picture warning must carry the HOM4003 code"
+        );
+    }
+
+    /// Regression: `NOT` inside an idea sub-block (cancel/available/...) is a
+    /// transparent logical block that passes the parent Idea scope through —
+    /// it must NOT be flagged as an idea missing a picture. Mirrors the real
+    /// Hearts-Of-Minecraft `common/ideas/SPE.txt` `SPE_military_advisors`
+    /// shape (cancel -> NOT -> is_in_faction_with).
+    #[test]
+    fn test_not_in_subblock_does_not_trigger_picture_warning() {
+        let diags = run_idea_rules(
+            r#"ideas = {
+                country = {
+                    SPE_military_advisors = {
+                        picture = SPE_burden_of_hegemony
+                        allowed_civil_war = {
+                            always = yes
+                        }
+                        cancel = {
+                            NOT = {
+                                is_in_faction_with = SPE
+                            }
+                        }
+                        removal_cost = -1
+                        modifier = {
+                            experience_gain_army_factor = 0.1
+                        }
+                    }
+                }
+            }"#,
+        );
+        let forbidden = ["NOT", "is_in_faction_with", "cancel"];
+        for kw in &forbidden {
+            let hits: Vec<_> = diags.iter().filter(|d| d.message.contains(kw)).collect();
+            assert!(
+                hits.is_empty(),
+                "'{}' triggered false picture warning(s): {:?}",
+                kw,
+                hits,
+            );
+        }
     }
 
     #[test]

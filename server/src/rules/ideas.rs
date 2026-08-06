@@ -1,48 +1,8 @@
 use crate::parser::ast;
+use crate::rules::visitor::is_idea_structure_key;
 use crate::rules::{ValidationContext, ValidationRule};
 use crate::scope::scope::{Scope, ScopeStack};
-use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity};
-
-/// Keywords that should never have picture validation in an idea context.
-/// Covers category structure keys, category attributes, and idea sub-block
-/// properties. Keys that resolve to a non-Idea scope (e.g. `modifier`,
-/// `allowed`, `available` → Scope::Country) are handled implicitly — they
-/// won't be at `scope.current() == Scope::Idea` when the check fires.
-/// This list catches the rest that would otherwise hit Scope::Unknown and
-/// trip the picture validation.
-fn is_idea_structure_key(key: &str) -> bool {
-    matches!(
-        key.to_ascii_lowercase().as_str(),
-        // Category structure & attributes
-        "ideas"
-        | "hidden_ideas"
-        | "designer"
-        | "law"
-        | "use_list_view"
-        | "slot_ledgers"
-        | "slot"
-        | "character_slot"
-        // Idea sub-block properties
-        | "picture"
-        | "targeted_modifier"
-        | "research_bonus"
-        | "equipment_bonus"
-        | "rule"
-        | "traits"
-        | "on_add"
-        | "on_remove"
-        | "cancel"
-        | "allowed_civil_war"
-        | "do_effect"
-        | "visible"
-        | "allowed_to_remove"
-        | "removal_cost"
-        | "level"
-        | "ledger"
-        | "hidden"
-        | "politics_tab"
-    )
-}
+use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
 /// Check if an assignment is an idea category container rather than an actual idea.
 /// Category containers (e.g. `economy = { law = yes skulk_economy = { ... } }`)
@@ -123,9 +83,15 @@ impl ValidationRule for IdeaRule {
         // Fires only when the assignment caused a scope push (structural
         // entry) AND the current scope is Idea (actual idea definition,
         // not a sub-block like modifier/on_add), excluding structural
-        // keywords like `ideas`, `hidden_ideas`, `designer`, `law`.
+        // keywords like `ideas`, `hidden_ideas`, `designer`, `law` — and
+        // ONLY when the pushed node is a genuine (non-transparent) Idea.
+        // Transparent blocks (NOT, AND, OR, limit, if, modifier bags, etc.)
+        // pass the parent scope through and happen to read as `Scope::Idea`
+        // when nested inside cancel/allowed/cancel_effect — they must not be
+        // treated as ideas needing a picture.
         if pushed_scope
             && scope.current() == Scope::Idea
+            && !scope.current_node().is_some_and(|n| n.is_transparent)
             && !is_idea_structure_key(ass.key_text(ctx.source))
             && !is_idea_category_block(ass, ctx)
         {
@@ -160,6 +126,10 @@ impl ValidationRule for IdeaRule {
                                 "Idea '{}' is missing a 'picture' field and the default GFX '{}' was not found.",
                                 ass.key_text(ctx.source), default_gfx
                             ),
+                            code: Some(NumberOrString::String(
+                                crate::validation::advanced_validation::IDEA_PICTURE_NOT_FOUND
+                                    .to_string(),
+                            )),
                             source: Some("Hearts of Modding".to_string()),
                             ..Default::default()
                         });
@@ -172,39 +142,18 @@ impl ValidationRule for IdeaRule {
 
 #[cfg(test)]
 mod tests {
-    use super::is_idea_structure_key;
+    use crate::rules::visitor::is_idea_structure_key;
 
     #[test]
     fn test_idea_structure_keys_are_excluded() {
-        let excluded = [
-            "ideas",
-            "hidden_ideas",
-            "designer",
-            "law",
-            "use_list_view",
-            "slot_ledgers",
-            "slot",
-            "character_slot",
-            "picture",
-            "targeted_modifier",
-            "research_bonus",
-            "equipment_bonus",
-            "rule",
-            "traits",
-            "on_add",
-            "on_remove",
-            "cancel",
-            "allowed_civil_war",
-            "do_effect",
-            "visible",
-            "allowed_to_remove",
-            "removal_cost",
-            "level",
-            "ledger",
-            "hidden",
-            "politics_tab",
-        ];
-        for key in &excluded {
+        // Iterate the shared const directly (single source of truth) so the
+        // test can't drift from the list the walker + IdeaRule actually use.
+        use crate::rules::visitor::IDEA_STRUCTURE_KEYS;
+        assert!(
+            IDEA_STRUCTURE_KEYS.len() >= 25,
+            "guard: idea-structure-key list should stay comprehensive"
+        );
+        for key in IDEA_STRUCTURE_KEYS {
             assert!(
                 is_idea_structure_key(key),
                 "'{}' should be recognised as a structure key",

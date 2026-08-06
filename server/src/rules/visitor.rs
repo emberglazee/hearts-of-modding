@@ -3,43 +3,54 @@ use crate::rules::{ValidationContext, ValidationRule};
 use crate::scope::scope::{Scope, ScopeCtx, ScopeStack};
 use tower_lsp_server::ls_types::Diagnostic;
 
-/// Idea-adjacent keywords that should never be promoted to `Scope::Idea`.
-/// Mirrors the list in [`crate::rules::ideas::is_idea_structure_key`].
-/// Kept separate to avoid circular module deps between rules::visitor and
-/// rules::ideas.
+/// Idea-adjacent keywords that should never be treated as an idea definition.
+///
+/// This is the SINGLE source of truth for idea structure keys. It is consumed by:
+/// 1. The scope-promotion logic below (`walk_script`) — these keys must not be
+///    promoted to `Scope::Idea`.
+/// 2. `rules::ideas::IdeaRule` — these keys must not be flagged as ideas
+///    missing a `picture` field.
+/// 3. `rules::ideas` tests, which assert membership against this same array.
+///
+/// It lives in `rules::visitor` (not `rules::ideas`) so the walker can use it
+/// without a dependency back into `rules::ideas`.
+pub(crate) const IDEA_STRUCTURE_KEYS: &[&str] = &[
+    // Category structure & attributes
+    "ideas",
+    "hidden_ideas",
+    "designer",
+    "law",
+    "use_list_view",
+    "slot_ledgers",
+    "slot",
+    "character_slot",
+    // Idea sub-block properties
+    "picture",
+    "targeted_modifier",
+    "research_bonus",
+    "equipment_bonus",
+    "rule",
+    "traits",
+    "on_add",
+    "on_remove",
+    "cancel",
+    "allowed",
+    "available",
+    "allowed_civil_war",
+    "do_effect",
+    "visible",
+    "allowed_to_remove",
+    "removal_cost",
+    "cost",
+    "level",
+    "ledger",
+    "hidden",
+    "politics_tab",
+];
+
+/// True when `key` is one of [`IDEA_STRUCTURE_KEYS`] (case-insensitive).
 pub(crate) fn is_idea_structure_key(key: &str) -> bool {
-    matches!(
-        key.to_ascii_lowercase().as_str(),
-        // Category structure & attributes
-        "ideas"
-        | "hidden_ideas"
-        | "designer"
-        | "law"
-        | "use_list_view"
-        | "slot_ledgers"
-        | "slot"
-        | "character_slot"
-        // Idea sub-block properties
-        | "picture"
-        | "targeted_modifier"
-        | "research_bonus"
-        | "equipment_bonus"
-        | "rule"
-        | "traits"
-        | "on_add"
-        | "on_remove"
-        | "cancel"
-        | "allowed_civil_war"
-        | "do_effect"
-        | "visible"
-        | "allowed_to_remove"
-        | "removal_cost"
-        | "cost"
-        | "level"
-        | "ledger"
-        | "hidden"
-        | "politics_tab"
-    )
+    IDEA_STRUCTURE_KEYS.contains(&key.to_ascii_lowercase().as_str())
 }
 
 /// A visitor that receives AST events during a single centralized traversal.

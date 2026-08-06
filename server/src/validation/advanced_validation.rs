@@ -42,6 +42,7 @@ pub const BROKEN_EVENT_REFERENCE: &str = "HOM3022";
 
 pub const PORTRAIT_UNKNOWN_GFX: &str = "HOM4001";
 pub const UNKNOWN_COUNTRY_METADATA_GFX: &str = "HOM4002";
+pub const IDEA_PICTURE_NOT_FOUND: &str = "HOM4003";
 pub const UNKNOWN_STATE_CATEGORY: &str = "HOM5001";
 pub const UNKNOWN_RESOURCE: &str = "HOM5002";
 pub const UNKNOWN_BUILDING: &str = "HOM5003";

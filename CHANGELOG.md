@@ -4,15 +4,21 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ## [v0.25.2] - 2026-08-06
 
+### ✨ Added
+
+- **HOM4003 `IDEA_PICTURE_NOT_FOUND` code for an existing related warning diagnostic.**
+
 ### 🔧 Changed
 
 - **HOM5009 (`DECISION_DUAL_COST`) now fires only for decisions with both `cost > 0` and `custom_cost_trigger`.**
 
-  - Decisions with both `custom_cost_trigger` and `cost = 0` are observed 71 times in vanilla as of 1.19.
+  - Decisions with both `custom_cost_trigger` and `cost = 0` are observed 71 times in vanilla as of 1.19.2.0.
 
 ### 🩹 Fixed
 
 - **HOM005 (`MISSING_LOCALIZATION`) no longer fires on scripted localization identifiers.**
+
+- **Idea parsing fixes to prevent false HOM4003 diagnostics.**
 
 ## [v0.25.1] - 2026-08-05 (Hotfix)
 
