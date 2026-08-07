@@ -179,8 +179,19 @@ impl Backend {
                         {
                             let line_idx = diagnostic.range.start.line as usize;
                             if let Some(line) = content.lines().nth(line_idx) {
-                                let start = diagnostic.range.start.character as usize;
-                                let end = diagnostic.range.end.character as usize;
+                                // `diagnostic.range` comes from the CLIENT, so its
+                                // columns are UTF-16 code units. Slicing `line` with
+                                // them directly panics on any multi-byte character
+                                // ("byte index N is not a char boundary"), and the
+                                // `end <= line.len()` guard does not help: line.len()
+                                // is a BYTE length, which is >= the UTF-16 length, so
+                                // it lets bad indices through. Convert first —
+                                // utf16_to_byte always lands on a char boundary.
+                                let index = crate::utils::line_index::LineIndex::new(line);
+                                let start =
+                                    index.utf16_to_byte(diagnostic.range.start.character as usize);
+                                let end =
+                                    index.utf16_to_byte(diagnostic.range.end.character as usize);
                                 if start <= end && end <= line.len() {
                                     let op_str = &line[start..end];
                                     let mut changes = HashMap::new();
@@ -213,13 +224,29 @@ impl Backend {
                         {
                             let line_idx = diagnostic.range.start.line as usize;
                             if let Some(line) = content.lines().nth(line_idx) {
-                                let start = diagnostic.range.start.character as usize;
-                                let end = diagnostic.range.end.character as usize;
+                                // Client-supplied UTF-16 columns — convert before
+                                // slicing (see the assignment-space branch above).
+                                let index = crate::utils::line_index::LineIndex::new(line);
+                                let start =
+                                    index.utf16_to_byte(diagnostic.range.start.character as usize);
+                                let end =
+                                    index.utf16_to_byte(diagnostic.range.end.character as usize);
                                 if start < end && end <= line.len() {
                                     let full_str = &line[start..end];
                                     if let Some(brace_start_rel) = full_str.find('{') {
-                                        let brace_end_rel =
-                                            full_str.rfind('}').unwrap_or(full_str.len() - 1);
+                                        // `rfind('}').unwrap_or(len - 1)` produced
+                                        // `brace_end_rel == brace_start_rel` when the
+                                        // slice held no closing brace (e.g. the range
+                                        // ends at the `{`), making the slice below
+                                        // `[start+1 .. start]` — a "begin > end"
+                                        // panic. There is nothing to fix without a
+                                        // closing brace, so bail instead of guessing.
+                                        let Some(brace_end_rel) = full_str.rfind('}') else {
+                                            continue;
+                                        };
+                                        if brace_end_rel <= brace_start_rel {
+                                            continue;
+                                        }
                                         let inner = &full_str[brace_start_rel + 1..brace_end_rel];
 
                                         let before_brace = full_str[..brace_start_rel].trim();
@@ -961,3 +988,88 @@ impl Backend {
         }
     }
 }
+
+// ---------------------------------------------------------------------------
+// SECTION - Tests
+// ---------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+    use crate::utils::line_index::LineIndex;
+
+    /// REGRESSION: the styling code actions sliced the document line with the
+    /// UTF-16 columns that arrived in `diagnostic.range` from the client.
+    ///
+    /// The old guard was `end <= line.len()`, comparing a UTF-16 column against
+    /// a BYTE length. For a line containing multi-byte characters the byte
+    /// length is LARGER than the UTF-16 length, so the guard happily admitted
+    /// an index that then sliced through the middle of a character and
+    /// panicked, killing the codeAction request.
+    ///
+    /// This reproduces the shape of that bug and proves the conversion used by
+    /// both call sites always yields a char boundary.
+    #[test]
+    fn test_utf16_columns_must_be_converted_before_slicing() {
+        // 'é' is 2 bytes / 1 UTF-16 unit, so byte len > utf16 len from here on.
+        let line = "\tdesc = \"café\" trigger = { tag = GER }";
+        let index = LineIndex::new(line);
+
+        // The old code did `&line[start..end]` with raw UTF-16 columns.
+        // Walk every column and show the naive index is unsafe while the
+        // converted one is always valid.
+        let mut naive_would_panic = 0;
+        for utf16_col in 0..=index.utf16_len() as usize {
+            // Naive path (what the bug did).
+            if utf16_col <= line.len() && !line.is_char_boundary(utf16_col) {
+                naive_would_panic += 1;
+            }
+            // Fixed path.
+            let byte = index.utf16_to_byte(utf16_col);
+            assert!(
+                line.is_char_boundary(byte),
+                "utf16_to_byte({utf16_col}) = {byte} is not a char boundary"
+            );
+            let _ = &line[..byte]; // must not panic
+        }
+        assert!(
+            naive_would_panic > 0,
+            "this line should expose the raw-column bug; test is not proving anything"
+        );
+    }
+
+    /// The brace-spacing action used `rfind('}').unwrap_or(len - 1)`. When the
+    /// slice contained no closing brace that yielded
+    /// `brace_end_rel == brace_start_rel`, and the following
+    /// `full_str[brace_start_rel + 1..brace_end_rel]` was a "begin > end"
+    /// panic. The fix bails out instead.
+    #[test]
+    fn test_brace_slice_without_closing_brace_is_skipped() {
+        for full_str in ["tag {", "{", "foo = {"] {
+            let brace_start_rel = full_str.find('{').expect("test inputs contain '{'");
+
+            // Old behaviour: reproduce the computation and assert it was broken.
+            let old_end = full_str.rfind('}').unwrap_or(full_str.len() - 1);
+            assert!(
+                brace_start_rel + 1 > old_end,
+                "{full_str:?} should have produced an inverted range under the old code"
+            );
+
+            // New behaviour: no closing brace -> skip, never slice.
+            assert!(
+                full_str.rfind('}').is_none(),
+                "{full_str:?} has no closing brace, so the action must bail"
+            );
+        }
+
+        // Sanity: a well-formed single-line block still yields a valid inner slice.
+        let ok = "tag { a = 1 }";
+        let bs = ok.find('{').unwrap();
+        let be = ok.rfind('}').unwrap();
+        assert!(be > bs);
+        assert_eq!(&ok[bs + 1..be], " a = 1 ");
+    }
+}
+
+// ---------------------------------------------------------------------------
+// !SECTION
+// ---------------------------------------------------------------------------

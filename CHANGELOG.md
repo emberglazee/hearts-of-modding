@@ -14,6 +14,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### 🩹 Fixed
 
+- **Quick fixes for spacing no longer crash the LSP on lines with non-English characters.** Requesting a code action on a line containing something like `café` could abort the request, as could a brace-spacing fix on a line whose closing brace fell outside the highlighted range.
+
 - **Editing resources, state categories, continents or country tag aliases now takes effect immediately.** These four were only ever read on startup, so changes needed a window reload and deleting a file left its entries behind — most visibly, a removed tag alias kept producing wrong diagnostics in `common/country_tags/`.
 
 - **Toggling the LSP off and back on left the extension half-broken.** The log panel command was re-registered on every start, which threw after the server was already up — silently skipping the color code listener (leaving loc colours on wiki defaults) and the RAM usage indicator.
