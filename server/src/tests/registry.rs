@@ -380,3 +380,121 @@ fn test_standard_scanner_entity_at() {
     assert_eq!(&name, "test");
     assert!(is_pos_in_range(pos, &range));
 }
+
+/// REGRESSION: four registries were populated by the full scan but had NO
+/// incremental path at all — no `classify_file` arm, no `update_*`, no
+/// `remove_path` arm. Editing `common/country_tag_aliases/`,
+/// `common/resources/`, `common/state_category/` or `map/continent.txt` was
+/// silently ignored until the whole workspace was re-scanned, and deleting
+/// such a file left its entries behind forever.
+///
+/// `tag_aliases` is the worst of the four: `rules/country_tags.rs` consults it
+/// live, so a stale entry means a wrong diagnostic on the user's screen.
+///
+/// This walks the full lifecycle (add -> edit -> delete) for each registry.
+#[test]
+fn test_incremental_updates_for_late_wired_registries() {
+    use crate::parser::parser::parse_script;
+    use crate::scanner::incremental_scanner::{
+        remove_path_from_scanner_data, update_scanner_data_from_ast,
+    };
+
+    struct Case {
+        name: &'static str,
+        path: &'static str,
+        initial: &'static str,
+        edited: &'static str,
+        first_key: &'static str,
+        second_key: &'static str,
+        count: fn(&ScannerData) -> usize,
+        has: fn(&ScannerData, &str) -> bool,
+    }
+
+    let cases = [
+        Case {
+            name: "tag_aliases",
+            path: "/mod/common/country_tag_aliases/00_aliases.txt",
+            initial: "AAA = { original_tag = GER }\n",
+            edited: "BBB = { original_tag = ITA }\n",
+            first_key: "AAA",
+            second_key: "BBB",
+            count: |d| d.tag_aliases.len(),
+            has: |d, k| d.tag_aliases.contains_key(k),
+        },
+        Case {
+            name: "resources",
+            path: "/mod/common/resources/00_resources.txt",
+            initial: "resources = {\n    unobtainium = { icon_frame = 1 }\n}\n",
+            edited: "resources = {\n    handwavium = { icon_frame = 2 }\n}\n",
+            first_key: "unobtainium",
+            second_key: "handwavium",
+            count: |d| d.resources.len(),
+            has: |d, k| d.resources.contains_key(k),
+        },
+        Case {
+            name: "state_categories",
+            path: "/mod/common/state_category/00_state_categories.txt",
+            initial: "state_categories = {\n    tiny_hamlet = { local_building_slots = 1 }\n}\n",
+            edited: "state_categories = {\n    huge_sprawl = { local_building_slots = 9 }\n}\n",
+            first_key: "tiny_hamlet",
+            second_key: "huge_sprawl",
+            count: |d| d.state_categories.len(),
+            has: |d, k| d.state_categories.contains_key(k),
+        },
+        Case {
+            name: "continents",
+            path: "/mod/map/continent.txt",
+            initial: "continents = {\n    atlantis\n}\n",
+            edited: "continents = {\n    lemuria\n}\n",
+            first_key: "atlantis",
+            second_key: "lemuria",
+            count: |d| d.continents.len(),
+            has: |d, k| d.continents.contains_key(k),
+        },
+    ];
+
+    for c in cases {
+        let data = ScannerData::new();
+
+        // ── add ──
+        let (script, _) = parse_script(c.initial);
+        update_scanner_data_from_ast(&data, c.path, &script);
+        assert!(
+            (c.has)(&data, c.first_key),
+            "{}: `{}` should be registered after an incremental add",
+            c.name,
+            c.first_key
+        );
+
+        // ── edit: the old key must go, the new one must appear ──
+        let (script2, _) = parse_script(c.edited);
+        update_scanner_data_from_ast(&data, c.path, &script2);
+        assert!(
+            (c.has)(&data, c.second_key),
+            "{}: `{}` missing after edit",
+            c.name,
+            c.second_key
+        );
+        assert!(
+            !(c.has)(&data, c.first_key),
+            "{}: stale `{}` survived the edit",
+            c.name,
+            c.first_key
+        );
+        assert_eq!(
+            (c.count)(&data),
+            1,
+            "{}: exactly one entry after edit",
+            c.name
+        );
+
+        // ── delete ──
+        remove_path_from_scanner_data(&data, c.path);
+        assert_eq!(
+            (c.count)(&data),
+            0,
+            "{}: entries survived deletion of their file",
+            c.name
+        );
+    }
+}

@@ -24,11 +24,14 @@ use crate::scanner::modifier_scanner;
 use crate::scanner::music_scanner;
 use crate::scanner::oob_scanner;
 use crate::scanner::portrait_scanner;
+use crate::scanner::resource_scanner;
 use crate::scanner::scripted_loc_scanner;
 use crate::scanner::scripted_scanner;
 use crate::scanner::sound_scanner;
 use crate::scanner::sprite_scanner;
+use crate::scanner::state_category_scanner;
 use crate::scanner::strategic_region_scanner;
+use crate::scanner::tag_alias_scanner;
 use crate::scanner::terrain_scanner;
 use crate::scanner::trait_scanner;
 use crate::scanner::unit_scanner;
@@ -304,6 +307,7 @@ impl_has_path!(sound_scanner::SoundEffect);
 impl_has_path!(sound_scanner::Falloff);
 impl_has_path!(sound_scanner::SoundCategory);
 impl_has_path!(continent_scanner::Continent);
+impl_has_path!(tag_alias_scanner::TagAlias);
 impl_has_path!(adjacency_scanner::AdjacencyRule);
 
 // Standard scanners (generated via registry)
@@ -370,6 +374,20 @@ fn classify_file(path: &str) -> Vec<FileCategory> {
         if lower.contains("/common/buildings/") {
             cats.push(FileCategory::Buildings);
         }
+        // Prefixes MUST match the full scan in orchestrator.rs, or the file is
+        // scanned at startup and then never updated again (the bug this fixes).
+        // scan_resources -> "common/resources", scan_state_categories ->
+        // "common/state_category", scan_tag_aliases ->
+        // "common/country_tag_aliases", scan_continents -> map/continent.txt.
+        if lower.contains("/common/resources/") {
+            cats.push(FileCategory::Resources);
+        }
+        if lower.contains("/common/state_category/") {
+            cats.push(FileCategory::StateCategories);
+        }
+        if lower.contains("/common/country_tag_aliases/") {
+            cats.push(FileCategory::TagAliases);
+        }
         if lower.contains("/common/abilities/") {
             cats.push(FileCategory::Abilities);
         }
@@ -397,6 +415,12 @@ fn classify_file(path: &str) -> Vec<FileCategory> {
         // Portraits
         if lower.contains("/portraits/") {
             cats.push(FileCategory::Portraits);
+        }
+
+        // Continents live in the single file map/continent.txt (the full scan
+        // filters `winning_files_in("map")` down to that filename).
+        if lower.ends_with("/map/continent.txt") {
+            cats.push(FileCategory::Continents);
         }
 
         // Strategic regions — engine path is map/strategicregions (no underscore).
@@ -550,6 +574,21 @@ pub(crate) fn dependency_affected_prefixes(path: &str) -> Vec<&'static str> {
     if lower.contains("/common/abilities/") {
         affected.push("/common/abilities/");
     }
+    // Registries consumed by rules in OTHER directories — an edit here must
+    // re-validate those documents, or their diagnostics stay stale until the
+    // file is touched.
+    if lower.contains("/common/country_tag_aliases/") {
+        // country_tags.rs resolves aliases when checking tags
+        affected.push("/common/country_tags/");
+    }
+    if lower.contains("/common/resources/") || lower.contains("/common/state_category/") {
+        // state_definitions.rs validates `resources` and `state_category`
+        affected.push("/history/states/");
+    }
+    if lower.ends_with("/map/continent.txt") {
+        // ai_areas.rs validates continent names
+        affected.push("/common/ai_areas/");
+    }
     if lower.contains("/common/ai_areas/") {
         affected.push("/common/ai_areas/");
     }
@@ -594,6 +633,10 @@ enum FileCategory {
     Ideas,
     Characters,
     Buildings,
+    Resources,
+    StateCategories,
+    Continents,
+    TagAliases,
     Abilities,
     AiStrategyPlans,
     AiAreas,
@@ -678,6 +721,10 @@ fn update_from_ast(
         FileCategory::Ideas => update_ideas(scanner_data, path_str, script),
         FileCategory::Characters => update_characters(scanner_data, path_str, script),
         FileCategory::Buildings => update_buildings(scanner_data, path_str, script),
+        FileCategory::Resources => update_resources(scanner_data, path_str, script),
+        FileCategory::StateCategories => update_state_categories(scanner_data, path_str, script),
+        FileCategory::Continents => update_continents(scanner_data, path_str, script),
+        FileCategory::TagAliases => update_tag_aliases(scanner_data, path_str, script),
         FileCategory::Abilities => update_abilities(scanner_data, path_str, script),
         FileCategory::AiStrategyPlans => update_ai_strategy_plans(scanner_data, path_str, script),
         FileCategory::AiAreas => update_ai_areas(scanner_data, path_str, script),
@@ -1035,6 +1082,67 @@ fn update_buildings(scanner_data: &ScannerData, path_str: &str, script: &ast::Sc
     retain_path!(
         scanner_data.buildings,
         scanner_data.buildings_file_index,
+        path_str,
+        new_entries
+    );
+}
+
+fn update_resources(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
+    let mut new_entries = HashMap::new();
+    let path = Path::new(path_str);
+    resource_scanner::extract_resources(&script.entries, &script.source, path, &mut new_entries);
+
+    retain_path!(
+        scanner_data.resources,
+        scanner_data.resources_file_index,
+        path_str,
+        new_entries
+    );
+}
+
+fn update_state_categories(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
+    let mut new_entries = HashMap::new();
+    let path = Path::new(path_str);
+    state_category_scanner::extract_categories(
+        &script.entries,
+        &script.source,
+        path,
+        &mut new_entries,
+    );
+
+    retain_path!(
+        scanner_data.state_categories,
+        scanner_data.state_categories_file_index,
+        path_str,
+        new_entries
+    );
+}
+
+fn update_continents(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
+    let mut new_entries = HashMap::new();
+    let path = Path::new(path_str);
+    continent_scanner::extract_continents(&script.entries, &script.source, path, &mut new_entries);
+
+    retain_path!(
+        scanner_data.continents,
+        scanner_data.continents_file_index,
+        path_str,
+        new_entries
+    );
+}
+
+fn update_tag_aliases(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
+    let mut new_entries = HashMap::new();
+    tag_alias_scanner::find_tag_aliases_in_entries(
+        &script.entries,
+        &script.source,
+        path_str,
+        &mut new_entries,
+    );
+
+    retain_path!(
+        scanner_data.tag_aliases,
+        scanner_data.tag_aliases_file_index,
         path_str,
         new_entries
     );
@@ -1695,6 +1803,34 @@ pub fn remove_path_from_scanner_data(scanner_data: &ScannerData, path_str: &str)
                 remove_path!(
                     scanner_data.buildings,
                     scanner_data.buildings_file_index,
+                    path_str
+                );
+            }
+            FileCategory::Resources => {
+                remove_path!(
+                    scanner_data.resources,
+                    scanner_data.resources_file_index,
+                    path_str
+                );
+            }
+            FileCategory::StateCategories => {
+                remove_path!(
+                    scanner_data.state_categories,
+                    scanner_data.state_categories_file_index,
+                    path_str
+                );
+            }
+            FileCategory::Continents => {
+                remove_path!(
+                    scanner_data.continents,
+                    scanner_data.continents_file_index,
+                    path_str
+                );
+            }
+            FileCategory::TagAliases => {
+                remove_path!(
+                    scanner_data.tag_aliases,
+                    scanner_data.tag_aliases_file_index,
                     path_str
                 );
             }

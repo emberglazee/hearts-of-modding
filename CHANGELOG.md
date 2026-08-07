@@ -14,6 +14,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### 🩹 Fixed
 
+- **Editing resources, state categories, continents or country tag aliases now takes effect immediately.** These four were only ever read on startup, so changes needed a window reload and deleting a file left its entries behind — most visibly, a removed tag alias kept producing wrong diagnostics in `common/country_tags/`.
+
 - **Toggling the LSP off and back on left the extension half-broken.** The log panel command was re-registered on every start, which threw after the server was already up — silently skipping the color code listener (leaving loc colours on wiki defaults) and the RAM usage indicator.
 
 - **HOM6004 (`MALFORMED_LEADING_DOT_NUMBER`) no longer fires on identifiers containing non-English characters.** Accented and Cyrillic names are valid in HOI4 (vanilla uses them in `00_names.txt`), so IDs like `crisé.12` or `событие.1` were wrongly reported as errors. Genuine `.5` values are still caught.

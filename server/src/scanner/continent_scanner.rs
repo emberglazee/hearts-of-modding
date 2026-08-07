@@ -16,6 +16,45 @@ pub struct Continent {
     pub range: ast::Range,
 }
 
+/// Extract continent names from an already-parsed `map/continent.txt` AST.
+///
+/// Shared by the full scan, the winning-files scan, and the incremental
+/// updater so all three agree on what counts as a continent.
+pub(crate) fn extract_continents(
+    entries: &[ast::Entry],
+    source: &str,
+    path: &Path,
+    map: &mut HashMap<String, Continent>,
+) {
+    for entry in entries {
+        if let ast::Entry::Assignment(ass) = entry {
+            if ass.key_text(source) == "continents" {
+                if let ast::Value::Block(inner) = &ass.value.value {
+                    for inner_entry in inner.iter() {
+                        if let ast::Entry::Value(val) = inner_entry {
+                            if let Some(name) = val.value.as_str(source) {
+                                map.insert(
+                                    name.to_string(),
+                                    Continent {
+                                        name: name.to_string(),
+                                        path: std::sync::Arc::from(path.to_string_lossy().as_ref()),
+                                        range: ast::Range {
+                                            start_line: val.range.start_line,
+                                            start_col: val.range.start_col,
+                                            end_line: val.range.end_line,
+                                            end_col: val.range.end_col,
+                                        },
+                                    },
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 pub fn scan_continents(root: &Path) -> HashMap<String, Continent> {
     let mut map = HashMap::new();
     let path = root.join("map/continent.txt");
@@ -24,35 +63,7 @@ pub fn scan_continents(root: &Path) -> HashMap<String, Continent> {
     }
     if let Ok(content) = fs::read_to_string(&path) {
         let (script, _) = parser::parse_script(&content);
-        for entry in &script.entries {
-            if let ast::Entry::Assignment(ass) = entry {
-                if ass.key_text(&script.source) == "continents" {
-                    if let ast::Value::Block(inner) = &ass.value.value {
-                        for inner_entry in inner.iter() {
-                            if let ast::Entry::Value(val) = inner_entry {
-                                if let Some(name) = val.value.as_str(&script.source) {
-                                    map.insert(
-                                        name.to_string(),
-                                        Continent {
-                                            name: name.to_string(),
-                                            path: std::sync::Arc::from(
-                                                path.to_string_lossy().as_ref(),
-                                            ),
-                                            range: ast::Range {
-                                                start_line: val.range.start_line,
-                                                start_col: val.range.start_col,
-                                                end_line: val.range.end_line,
-                                                end_col: val.range.end_col,
-                                            },
-                                        },
-                                    );
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        extract_continents(&script.entries, &script.source, &path, &mut map);
     }
     map
 }
@@ -64,35 +75,7 @@ pub fn scan_continent_files(files: &[PathBuf]) -> HashMap<String, Continent> {
         if filename.ends_with("continent.txt") {
             if let Ok(content) = std::fs::read_to_string(path) {
                 let (script, _) = parser::parse_script(&content);
-                for entry in &script.entries {
-                    if let ast::Entry::Assignment(ass) = entry {
-                        if ass.key_text(&script.source) == "continents" {
-                            if let ast::Value::Block(inner) = &ass.value.value {
-                                for inner_entry in inner.iter() {
-                                    if let ast::Entry::Value(val) = inner_entry {
-                                        if let Some(name) = val.value.as_str(&script.source) {
-                                            map.insert(
-                                                name.to_string(),
-                                                Continent {
-                                                    name: name.to_string(),
-                                                    path: std::sync::Arc::from(
-                                                        path.to_string_lossy().as_ref(),
-                                                    ),
-                                                    range: ast::Range {
-                                                        start_line: val.range.start_line,
-                                                        start_col: val.range.start_col,
-                                                        end_line: val.range.end_line,
-                                                        end_col: val.range.end_col,
-                                                    },
-                                                },
-                                            );
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                extract_continents(&script.entries, &script.source, path, &mut map);
             }
         }
     }

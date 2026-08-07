@@ -52,7 +52,7 @@ where
     map
 }
 
-fn find_tag_aliases_in_entries(
+pub(crate) fn find_tag_aliases_in_entries(
     entries: &[ast::Entry],
     source: &str,
     file_path: &str,

@@ -185,6 +185,7 @@ pub(crate) struct ScannerData {
     pub oob_division_templates_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub oob_fleets_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub color_codes_file_index: DashMap<InternedStr, Vec<InternedStr>>,
+    pub tag_aliases_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub continents_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub adjacency_rules_file_index: DashMap<InternedStr, Vec<InternedStr>>,
 
@@ -298,6 +299,7 @@ impl ScannerData {
             oob_division_templates_file_index: DashMap::new(),
             oob_fleets_file_index: DashMap::new(),
             color_codes_file_index: DashMap::new(),
+            tag_aliases_file_index: DashMap::new(),
             continents_file_index: DashMap::new(),
             adjacency_rules_file_index: DashMap::new(),
             duplicated_loc_keys: DashSet::new(),
@@ -400,6 +402,9 @@ impl ScannerData {
         rebuild_index!(self.oob_fleets, self.oob_fleets_file_index);
         rebuild_index!(self.event_namespaces, self.event_namespaces_file_index);
         rebuild_index!(self.color_codes, self.color_codes_file_index);
+        rebuild_index!(self.tag_aliases, self.tag_aliases_file_index);
+        rebuild_index!(self.resources, self.resources_file_index);
+        rebuild_index!(self.state_categories, self.state_categories_file_index);
         rebuild_index!(self.continents, self.continents_file_index);
         rebuild_index!(self.adjacency_rules, self.adjacency_rules_file_index);
 
