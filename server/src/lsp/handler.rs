@@ -103,6 +103,14 @@ impl LanguageServer for Backend {
             {
                 self.config.set_scope_validation_enabled(enabled);
             }
+            if let Some(level_str) = options.get("logLevel").and_then(|v| v.as_str()) {
+                // Read at startup, not just on change: without this the server
+                // ran at the default INFO until the user re-picked the setting
+                // live, so a configured `debug`/`trace` never applied to the
+                // workspace scan — the noisiest, most useful part to trace.
+                self.config
+                    .set_log_level(crate::log_level::LogLevel::from_setting(level_str));
+            }
             if let Some(dep_paths) = options.get("dependencyModPaths").and_then(|v| v.as_array()) {
                 let mut paths = Vec::new();
                 for val in dep_paths {
@@ -639,15 +647,8 @@ impl LanguageServer for Backend {
                     }
                 }
                 if let Some(level_str) = hoi4.get("logLevel").and_then(|v| v.as_str()) {
-                    let level = match level_str {
-                        "error" => crate::log_level::LogLevel::Error,
-                        "warn" => crate::log_level::LogLevel::Warn,
-                        "info" => crate::log_level::LogLevel::Info,
-                        "debug" => crate::log_level::LogLevel::Debug,
-                        "trace" => crate::log_level::LogLevel::Trace,
-                        _ => crate::log_level::LogLevel::Info,
-                    };
-                    self.config.set_log_level(level);
+                    self.config
+                        .set_log_level(crate::log_level::LogLevel::from_setting(level_str));
                 }
                 // Re-validate all documents
                 for entry in self.documents.iter() {

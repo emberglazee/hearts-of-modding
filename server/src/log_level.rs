@@ -32,6 +32,22 @@ impl LogLevel {
         self as u8
     }
 
+    /// Parse the `hoi4.logLevel` VS Code setting string.
+    ///
+    /// Shared by `initialize` and `did_change_configuration` so the startup
+    /// value and the live-toggle value can never disagree. Unknown strings
+    /// fall back to INFO, matching the setting's declared default.
+    pub fn from_setting(s: &str) -> Self {
+        match s {
+            "error" => LogLevel::Error,
+            "warn" => LogLevel::Warn,
+            "info" => LogLevel::Info,
+            "debug" => LogLevel::Debug,
+            "trace" => LogLevel::Trace,
+            _ => LogLevel::Info,
+        }
+    }
+
     pub fn prefix(self) -> &'static str {
         match self {
             LogLevel::Error => "ERROR",

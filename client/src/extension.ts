@@ -430,6 +430,18 @@ export async function activate(context: ExtensionContext) {
                 }
             })
         }
+        if (e.affectsConfiguration('hoi4.logLevel')) {
+            // Sits directly under `hoi4`, not under `hoi4.validator` like the
+            // arms above — that's the shape the server's handler reads.
+            const newValue = workspace.getConfiguration('hoi4').get('logLevel')
+            client.sendNotification('workspace/didChangeConfiguration', {
+                settings: {
+                    hoi4: {
+                        logLevel: newValue
+                    }
+                }
+            })
+        }
     }))
 }
 
@@ -545,7 +557,8 @@ async function startServer(context: ExtensionContext, statusBarItem: StatusBarIt
             ignoreFiles: workspace.getConfiguration('hoi4.validator').get('ignoreFiles'),
             workspaceScanEnabled: workspace.getConfiguration('hoi4.validator.workspaceScan').get('enabled'),
             stylingEnabled: workspace.getConfiguration('hoi4.styling').get('enabled'),
-            cosmeticLocIndent: workspace.getConfiguration('hoi4.styling').get('cosmeticLocalizationIndentation')
+            cosmeticLocIndent: workspace.getConfiguration('hoi4.styling').get('cosmeticLocalizationIndentation'),
+            logLevel: workspace.getConfiguration('hoi4').get('logLevel')
         }
     }
 
