@@ -914,6 +914,60 @@ fn find_ability_references_in_entries(
     }
 }
 
+/// Collect the color-code edits for a single loc file's content.
+///
+/// Three things this must get right, all of which the two inlined copies of
+/// this loop previously got wrong:
+///
+/// 1. **Advance by the whole match.** `§` is 2 bytes (`0xC2 0xA7`), so a match
+///    always starts on a lead byte and `abs_pos + 1` lands *inside* the
+///    character — the next `line[search_start..]` slice then panics with
+///    "byte index N is not a char boundary". Advancing by `old_pattern.len()`
+///    keeps the cursor on a boundary (and skips the match we just handled).
+/// 2. **Emit UTF-16 columns.** `str::find` returns a BYTE offset but
+///    `Position.character` is UTF-16 code units. Since `§` is itself
+///    multi-byte, every code on a line drifts the columns further right,
+///    corrupting the file when the edits are applied.
+/// 3. **Use the UTF-16 length of the pattern.** `"§R".len()` is 3 bytes but
+///    only 2 UTF-16 units, so the end column was one unit too wide and ate
+///    the following character.
+fn collect_color_code_edits(content: &str, old_name: &str, new_name: &str) -> Vec<TextEdit> {
+    let old_pattern = format!("§{old_name}");
+    let new_pattern = format!("§{new_name}");
+    let pattern_utf16_len = old_pattern.chars().map(char::len_utf16).sum::<usize>() as u32;
+    let mut edits = Vec::new();
+
+    for (line_idx, line) in content.lines().enumerate() {
+        if !line.contains(&old_pattern) {
+            continue;
+        }
+        // One index per line; byte->UTF-16 lookups are then O(1).
+        let index = crate::utils::line_index::LineIndex::new(line);
+        let mut search_start = 0;
+        while let Some(pos) = line[search_start..].find(&old_pattern) {
+            let abs_pos = search_start + pos;
+            let start_utf16 = index.byte_to_utf16(abs_pos);
+            edits.push(TextEdit {
+                range: LspRange {
+                    start: LspPosition {
+                        line: line_idx as u32,
+                        character: start_utf16,
+                    },
+                    end: LspPosition {
+                        line: line_idx as u32,
+                        character: start_utf16 + pattern_utf16_len,
+                    },
+                },
+                new_text: new_pattern.clone(),
+            });
+            // Skip past the whole match — stays on a char boundary and avoids
+            // rescanning overlapping matches.
+            search_start = abs_pos + old_pattern.len();
+        }
+    }
+    edits
+}
+
 /// Find all references to a color code in loc files and gfx files
 fn find_color_code_references(
     old_name: &str,
@@ -923,7 +977,7 @@ fn find_color_code_references(
     changes: &mut HashMap<Uri, Vec<TextEdit>>,
 ) {
     // Only allow single-character color codes
-    if old_name.len() != 1 || new_name.len() != 1 {
+    if old_name.chars().count() != 1 || new_name.chars().count() != 1 {
         return;
     }
 
@@ -931,33 +985,12 @@ fn find_color_code_references(
     for entry in documents.iter() {
         let uri_str = entry.key();
         let content = entry.value();
-        let mut edits = Vec::new();
 
-        if uri_str.ends_with(".yml") {
-            // In loc files, replace §old with §new
-            for (line_idx, line) in content.lines().enumerate() {
-                let old_pattern = format!("§{}", old_name);
-                let new_pattern = format!("§{}", new_name);
-                let mut search_start = 0;
-                while let Some(pos) = line[search_start..].find(&old_pattern) {
-                    let abs_pos = search_start + pos;
-                    edits.push(TextEdit {
-                        range: LspRange {
-                            start: LspPosition {
-                                line: line_idx as u32,
-                                character: abs_pos as u32,
-                            },
-                            end: LspPosition {
-                                line: line_idx as u32,
-                                character: (abs_pos + old_pattern.len()) as u32,
-                            },
-                        },
-                        new_text: new_pattern.clone(),
-                    });
-                    search_start = abs_pos + 1;
-                }
-            }
+        if !uri_str.ends_with(".yml") {
+            continue;
         }
+        // In loc files, replace §old with §new
+        let edits = collect_color_code_edits(content, old_name, new_name);
 
         if !edits.is_empty() {
             if let Ok(url) = uri_str.parse::<Uri>() {
@@ -969,6 +1002,9 @@ fn find_color_code_references(
     // Process unopened workspace files
     for entry in workspace_files.iter() {
         let file_path: &str = &entry;
+        if !file_path.ends_with(".yml") {
+            continue;
+        }
         let Some(url) = Uri::from_file_path(std::path::Path::new(file_path)) else {
             continue;
         };
@@ -977,29 +1013,7 @@ fn find_color_code_references(
             continue;
         }
         if let Ok(content) = std::fs::read_to_string(file_path) {
-            let mut edits = Vec::new();
-            for (line_idx, line) in content.lines().enumerate() {
-                let old_pattern = format!("§{}", old_name);
-                let new_pattern = format!("§{}", new_name);
-                let mut search_start = 0;
-                while let Some(pos) = line[search_start..].find(&old_pattern) {
-                    let abs_pos = search_start + pos;
-                    edits.push(TextEdit {
-                        range: LspRange {
-                            start: LspPosition {
-                                line: line_idx as u32,
-                                character: abs_pos as u32,
-                            },
-                            end: LspPosition {
-                                line: line_idx as u32,
-                                character: (abs_pos + old_pattern.len()) as u32,
-                            },
-                        },
-                        new_text: new_pattern.clone(),
-                    });
-                    search_start = abs_pos + 1;
-                }
-            }
+            let edits = collect_color_code_edits(&content, old_name, new_name);
             if !edits.is_empty() {
                 changes.insert(url, edits);
             }
@@ -1038,6 +1052,74 @@ mod tests {
         assert_eq!(edits.len(), 2, "expected one edit per occurrence");
         for edit in &edits {
             assert_eq!(edit.new_text, "renamed_trigger");
+        }
+    }
+
+    /// Regression: renaming a color code used to PANIC.
+    ///
+    /// `search_start = abs_pos + 1` landed on the continuation byte of `§`
+    /// (0xC2 0xA7), so the next `line[search_start..]` slice sliced mid-char:
+    /// "byte index 8 is not a char boundary". Any loc line with two color
+    /// codes killed the whole textDocument/rename request.
+    #[test]
+    fn test_color_code_rename_no_panic_multiple_codes() {
+        let content = " KEY: \"\u{a7}Rred \u{a7}Ggreen \u{a7}Rmore\"\n";
+        let edits = collect_color_code_edits(content, "R", "B");
+        assert_eq!(edits.len(), 2, "both \u{a7}R occurrences found: {edits:?}");
+        for e in &edits {
+            assert_eq!(e.new_text, "\u{a7}B");
+        }
+    }
+
+    /// Columns must be UTF-16, not byte offsets. `\u{a7}` is 2 bytes but 1 UTF-16
+    /// unit, so byte offsets drift right by one per preceding code.
+    #[test]
+    fn test_color_code_rename_emits_utf16_columns() {
+        //            0    1234   5 6789...      (UTF-16 columns)
+        let content = "KEY: \"\u{a7}Rred \u{a7}Ggreen\"\n";
+        let edits = collect_color_code_edits(content, "G", "Y");
+        assert_eq!(edits.len(), 1);
+        let r = edits[0].range;
+        // Count UTF-16 units before the "\u{a7}G" ourselves.
+        let line = content.lines().next().unwrap();
+        let byte_pos = line.find("\u{a7}G").unwrap();
+        let expected: u32 = line[..byte_pos].chars().map(char::len_utf16).sum::<usize>() as u32;
+        assert_eq!(r.start.character, expected, "start must be a UTF-16 column");
+        // "\u{a7}G" is 2 UTF-16 units (not the 3 bytes it occupies).
+        assert_eq!(r.end.character, expected + 2, "width must be UTF-16 length");
+        assert_eq!(r.start.line, 0);
+    }
+
+    /// A 4-byte astral char before the code shifts bytes by 4 but UTF-16 by 2.
+    #[test]
+    fn test_color_code_rename_columns_with_astral_char() {
+        let content = "KEY: \"\u{1f396} \u{a7}Rred\"\n";
+        let edits = collect_color_code_edits(content, "R", "B");
+        assert_eq!(edits.len(), 1);
+        let line = content.lines().next().unwrap();
+        let byte_pos = line.find("\u{a7}R").unwrap();
+        let expected: u32 = line[..byte_pos].chars().map(char::len_utf16).sum::<usize>() as u32;
+        assert_eq!(edits[0].range.start.character, expected);
+        assert_ne!(
+            edits[0].range.start.character, byte_pos as u32,
+            "byte offset and UTF-16 column must differ here (proves conversion)"
+        );
+    }
+
+    /// Adjacent codes (`\u{a7}R\u{a7}G`) must not produce overlapping edits — advancing by
+    /// the full match length also prevents rescanning.
+    #[test]
+    fn test_color_code_rename_adjacent_codes_no_overlap() {
+        let content = "KEY: \"\u{a7}R\u{a7}R\u{a7}Rx\"\n";
+        let edits = collect_color_code_edits(content, "R", "B");
+        assert_eq!(edits.len(), 3);
+        for w in edits.windows(2) {
+            assert!(
+                w[0].range.end.character <= w[1].range.start.character,
+                "edits must not overlap: {:?} then {:?}",
+                w[0].range,
+                w[1].range
+            );
         }
     }
 }
