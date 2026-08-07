@@ -2611,13 +2611,11 @@ pub(crate) fn build_static_semantic_keywords() -> HashSet<String> {
     keywords.insert("scientist".to_string());
     keywords.insert("portraits".to_string());
     keywords.insert("traits".to_string());
-    keywords.insert("skill".to_string());
     keywords.insert("gender".to_string());
     keywords.insert("instance".to_string());
     keywords.insert("idea_token".to_string());
     keywords.insert("legacy_id".to_string());
     keywords.insert("expire".to_string());
-    keywords.insert("recruit_character".to_string());
     keywords.insert("ideology".to_string());
     // Unit leader skill properties
     keywords.insert("attack_skill".to_string());
@@ -2643,13 +2641,11 @@ pub(crate) fn build_static_semantic_keywords() -> HashSet<String> {
     keywords.insert("duration".to_string());
     keywords.insert("cooldown".to_string());
     keywords.insert("icon".to_string());
-    keywords.insert("sound_effect".to_string());
     keywords.insert("cancelable".to_string());
     keywords.insert("allowed".to_string());
     keywords.insert("one_time_effect".to_string());
     keywords.insert("unit_modifiers".to_string());
     keywords.insert("ai_will_do".to_string());
-    keywords.insert("has_ability".to_string());
     keywords.insert("add_ability".to_string());
     keywords.insert("remove_ability".to_string());
 
@@ -2753,7 +2749,6 @@ pub(crate) fn build_static_semantic_keywords() -> HashSet<String> {
     keywords.insert("continue_if_invalid".to_string());
     keywords.insert("historical_ai".to_string());
     keywords.insert("completion_reward".to_string());
-    keywords.insert("hidden_effect".to_string());
     keywords.insert("complete_tooltip".to_string());
     keywords.insert("select_effect".to_string());
     keywords.insert("bypass_effect".to_string());
@@ -2764,8 +2759,6 @@ pub(crate) fn build_static_semantic_keywords() -> HashSet<String> {
     keywords.insert("offset".to_string());
     keywords.insert("relative_position_id".to_string());
     keywords.insert("id".to_string());
-    keywords.insert("cost".to_string());
-    keywords.insert("icon".to_string());
     keywords.insert("default".to_string());
     keywords.insert("reset_on_civilwar".to_string());
     keywords.insert("target".to_string());
@@ -2796,32 +2789,23 @@ pub(crate) fn build_static_semantic_keywords() -> HashSet<String> {
     keywords.insert("ai_strategy".to_string());
 
     // State definition keywords (history/states/*.txt)
-    keywords.insert("state".to_string());
-    keywords.insert("id".to_string());
     keywords.insert("manpower".to_string());
     keywords.insert("state_category".to_string());
-    keywords.insert("impassable".to_string());
     keywords.insert("resources".to_string());
-    keywords.insert("local_supplies".to_string());
     keywords.insert("buildings_max_level_factor".to_string());
     keywords.insert("history".to_string());
     keywords.insert("provinces".to_string());
 
     // State history sub-keywords
     keywords.insert("owner".to_string());
-    keywords.insert("controller".to_string());
     keywords.insert("victory_points".to_string());
     keywords.insert("buildings".to_string());
-    keywords.insert("add_core_of".to_string());
-    keywords.insert("add_claim_by".to_string());
-    keywords.insert("set_state_name".to_string());
 
     // Strategic region definition keywords (map/strategicregions/*.txt)
     keywords.insert("strategic_region".to_string());
     keywords.insert("weather".to_string());
     keywords.insert("period".to_string());
     keywords.insert("between".to_string());
-    keywords.insert("temperature".to_string());
     keywords.insert("no_phenomenon".to_string());
     keywords.insert("rain_light".to_string());
     keywords.insert("rain_heavy".to_string());
@@ -2848,8 +2832,6 @@ pub(crate) fn build_static_semantic_keywords() -> HashSet<String> {
     keywords.insert("match_value".to_string());
     keywords.insert("buildings_max_level".to_string());
     keywords.insert("supply_flow_penalty_factor".to_string());
-    keywords.insert("truck_attrition_factor".to_string());
-    keywords.insert("navy_fuel_consumption_factor".to_string());
     keywords.insert("units".to_string());
     keywords.insert("battle_cruiser".to_string());
     keywords.insert("battleship".to_string());
@@ -2876,11 +2858,6 @@ pub(crate) fn build_static_semantic_keywords() -> HashSet<String> {
 
     // Event definition keywords (events/*.txt) structural — not in triggers/effects data
     keywords.insert("add_namespace".to_string());
-    keywords.insert("country_event".to_string());
-    keywords.insert("state_event".to_string());
-    keywords.insert("news_event".to_string());
-    keywords.insert("unit_leader_event".to_string());
-    keywords.insert("operative_leader_event".to_string());
     keywords.insert("mean_time_to_happen".to_string());
     keywords.insert("fire_only_once".to_string());
     keywords.insert("is_triggered_only".to_string());
@@ -2891,13 +2868,11 @@ pub(crate) fn build_static_semantic_keywords() -> HashSet<String> {
     keywords.insert("timeout_days".to_string());
     keywords.insert("immediate".to_string());
     keywords.insert("after".to_string());
-    keywords.insert("option".to_string());
     keywords.insert("original_recipient_only".to_string());
     keywords.insert("ai_chance".to_string());
     keywords.insert("title".to_string());
     keywords.insert("text".to_string());
     keywords.insert("tooltip".to_string());
-    keywords.insert("trigger".to_string());
 
     // Event time / delay keywords (MTTH + event firing effect)
     keywords.insert("days".to_string());
@@ -2906,7 +2881,6 @@ pub(crate) fn build_static_semantic_keywords() -> HashSet<String> {
     keywords.insert("hours".to_string());
     keywords.insert("random_hours".to_string());
     keywords.insert("random_days".to_string());
-    keywords.insert("random".to_string());
 
     // Event-type-specific effect sub-keys
     keywords.insert("trigger_for".to_string());
@@ -2939,8 +2913,6 @@ pub(crate) fn build_static_semantic_keywords() -> HashSet<String> {
     keywords.insert("multiplier".to_string());
 
     // OOB (Order of Battle) keywords (history/units/*.txt)
-    keywords.insert("division_template".to_string());
-    keywords.insert("units".to_string());
     keywords.insert("air_wings".to_string());
     keywords.insert("amount".to_string());
     keywords.insert("instant_effect".to_string());
@@ -2968,7 +2940,6 @@ pub(crate) fn build_static_semantic_keywords() -> HashSet<String> {
     keywords.insert("pride_of_the_fleet".to_string());
     keywords.insert("ship".to_string());
     keywords.insert("definition".to_string());
-    keywords.insert("add_equipment_production".to_string());
     keywords.insert("requested_factories".to_string());
     keywords.insert("efficiency".to_string());
     keywords.insert("version_name".to_string());
@@ -3006,14 +2977,11 @@ pub(crate) fn build_static_semantic_keywords() -> HashSet<String> {
     keywords.insert("transfer_troops".to_string());
     keywords.insert("autonomy_state".to_string());
     keywords.insert("scope".to_string());
-    keywords.insert("random_list".to_string());
     keywords.insert("producer".to_string());
     keywords.insert("var".to_string());
     keywords.insert("value".to_string());
     keywords.insert("fixed_random_seed".to_string());
     keywords.insert("instant_build".to_string());
-    keywords.insert("add_to_temp_variable".to_string());
-    keywords.insert("divide_temp_variable".to_string());
     keywords.insert("add_idea".to_string());
     keywords.insert("remove_idea".to_string());
     keywords.insert("province".to_string());
@@ -3027,7 +2995,6 @@ pub(crate) fn build_static_semantic_keywords() -> HashSet<String> {
     keywords.insert("and".to_string());
     keywords.insert("or".to_string());
     keywords.insert("not".to_string());
-    keywords.insert("if".to_string());
 
     // Add transparent block types from V2 data
     for block in crate::data::hoi4_data::get_transparent_block_types() {
