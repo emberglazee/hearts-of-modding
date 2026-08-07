@@ -10,6 +10,14 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
   - e.g. `add_timed_idea = { idea = ... days = ... }`
 
+### 🩹 Fixed
+
+- **3 color code rename bugs:**
+
+  - Accidental mid-character slicing causing a critical LSP crash;
+  - Byte offsets emitted as UTF-16 columns, drifting edits off-target;
+  - Range width in bytes, causing each edit to be one unit too wide.
+
 ## [v0.25.3] - 2026-08-06
 
 ### ✨ Added
