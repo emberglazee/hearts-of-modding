@@ -2,6 +2,14 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
+## [v0.26.0] - 2026-08-08
+
+### ✨ Added
+
+- **Structured-block sub-key awareness:** For a lot of relevant modifiers/triggers/effects, documented scope data for their sub-keys/parameters.
+
+  - e.g. `add_timed_idea = { idea = ... days = ... }`
+
 ## [v0.25.3] - 2026-08-06
 
 ### ✨ Added
