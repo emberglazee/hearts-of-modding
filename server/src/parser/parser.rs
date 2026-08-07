@@ -478,8 +478,20 @@ fn collect_leading_dot_number_ranges(input: &str) -> Vec<Range> {
             b'.' => {
                 // Token-start dot (previous char not part of an identifier) with
                 // a digit right after = a leading-dot number.
-                let prev_ok =
-                    i == 0 || !(b[i - 1].is_ascii() && is_identifier_char(b[i - 1] as char));
+                //
+                // The previous CHARACTER must be checked, not the previous BYTE:
+                // for a non-ASCII char the preceding byte is a UTF-8
+                // continuation byte (0x80-0xBF), which is not ASCII, so a
+                // byte-level `is_ascii() && is_identifier_char(...)` test
+                // reported "no identifier before the dot" and flagged valid
+                // identifiers. `is_identifier_char` deliberately admits
+                // non-ASCII alphanumerics (vanilla 00_names.txt), so event IDs
+                // like `crisé.12` or `событие.1` are legal and must not fire
+                // HOM6004. Slicing at `i` is safe: `b[i]` is the ASCII '.'.
+                let prev_ok = input[..i]
+                    .chars()
+                    .next_back()
+                    .is_none_or(|c| !is_identifier_char(c));
                 let next_ok = i + 1 < n && b[i + 1].is_ascii_digit();
                 if prev_ok && next_ok {
                     let mut j = i + 1;
@@ -1166,6 +1178,72 @@ mod tests {
                 .all(|(m, _)| m.starts_with(MALFORMED_LEADING_DOT_NUMBER)),
             "no generic parse errors expected, got: {errors:?}"
         );
+    }
+
+    /// REGRESSION (HOM6004 false positive): the "is there an identifier before
+    /// the dot?" guard tested the previous BYTE. For a non-ASCII character the
+    /// preceding byte is a UTF-8 continuation byte, which is not ASCII, so the
+    /// guard concluded the dot started a token and flagged perfectly legal
+    /// identifiers as malformed leading-dot numbers.
+    ///
+    /// `is_identifier_char` deliberately accepts non-ASCII alphanumerics (they
+    /// appear in vanilla `00_names.txt`), so accented / Cyrillic event IDs are
+    /// valid HOI4 and must not produce an ERROR. False positives are the one
+    /// thing this validator must never do.
+    #[test]
+    fn test_leading_dot_no_false_positive_on_non_ascii_identifiers() {
+        let valid = [
+            "name = café.5",
+            "id = событие.1",
+            "country_event = { id = crisé.12 }",
+            "a = foo.bar",
+            "b = 0.5",
+            "c = ワールド.7",
+        ];
+        for src in valid {
+            let ranges = collect_leading_dot_number_ranges(src);
+            assert!(
+                ranges.is_empty(),
+                "HOM6004 false positive on valid input {src:?}: {ranges:?}"
+            );
+        }
+
+        // Counter-case: a non-ASCII SYMBOL (not alphanumeric) is not an
+        // identifier char, so a dot after it really does start a token and
+        // must still be flagged. This is the boundary the fix must respect —
+        // "non-ASCII" alone is not the test, `is_identifier_char` is.
+        assert_eq!(
+            collect_leading_dot_number_ranges("x = 🎖.5").len(),
+            1,
+            "a dot after a non-identifier symbol is still a leading-dot number"
+        );
+    }
+
+    /// The genuine `.5` cases must still be caught after the char-boundary fix,
+    /// including when a multi-byte character sits earlier on the same line.
+    #[test]
+    fn test_leading_dot_still_detects_real_cases() {
+        for src in [
+            "a = .5",
+            "a = { .5 }",
+            "threshold = .25",
+            // multi-byte earlier on the line must not mask a real one
+            "desc = \"café\" value = .5",
+            "х = .5",
+        ] {
+            assert_eq!(
+                collect_leading_dot_number_ranges(src).len(),
+                1,
+                "expected exactly one HOM6004 for {src:?}"
+            );
+        }
+        // Strings and comments are still skipped.
+        for src in ["a = \".5\"", "# a = .5", "a = 1 # .5 in a comment"] {
+            assert!(
+                collect_leading_dot_number_ranges(src).is_empty(),
+                "must not flag inside string/comment: {src:?}"
+            );
+        }
     }
 
     /// REGRESSION: a `key = v1 = v2` on a single line (no scope change, no braces)

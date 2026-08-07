@@ -12,6 +12,11 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### 🩹 Fixed
 
+- **HOM6004 (`MALFORMED_LEADING_DOT_NUMBER`) no longer fires on identifiers containing non-English characters.**
+
+  - Accented, Cyrillic and other non-ASCII names are valid in HOI4 (vanilla uses them in `00_names.txt`), so IDs like `crisé.12` or `событие.1` were wrongly reported as errors.
+  - Genuine `.5` values are still caught — they must be written `0.5`.
+
 - **3 color code rename bugs:**
 
   - Accidental mid-character slicing causing a critical LSP crash;
