@@ -556,6 +556,7 @@ async function startServer(context: ExtensionContext, statusBarItem: StatusBarIt
             ignoreLocalization: workspace.getConfiguration('hoi4.validator').get('ignoreLocalization'),
             ignoreFiles: workspace.getConfiguration('hoi4.validator').get('ignoreFiles'),
             workspaceScanEnabled: workspace.getConfiguration('hoi4.validator.workspaceScan').get('enabled'),
+            scopeValidationEnabled: workspace.getConfiguration('hoi4.validator').get('scopeValidationEnabled'),
             stylingEnabled: workspace.getConfiguration('hoi4.styling').get('enabled'),
             cosmeticLocIndent: workspace.getConfiguration('hoi4.styling').get('cosmeticLocalizationIndentation'),
             logLevel: workspace.getConfiguration('hoi4').get('logLevel')
