@@ -10,6 +10,13 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
   - e.g. `add_timed_idea = { idea = ... days = ... }`
 
+### 🔧 Changed
+
+- **Renaming is dramatically faster in large mods.**
+
+  - The position index was being rebuilt for every nested block instead of once per file; on a 100 KB event file a single pass went from ~175 ms to ~0.17 ms.
+  - Rename scans every open file *and* every file in the workspace, so this previously caused a multi-second stall on real mods.
+
 ### 🩹 Fixed
 
 - **HOM6004 (`MALFORMED_LEADING_DOT_NUMBER`) no longer fires on identifiers containing non-English characters.**

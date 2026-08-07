@@ -204,6 +204,8 @@ fn find_event_references(
         let uri_str = entry.key();
         let (script, _) = entry.value();
 
+        // Built ONCE per document: RangeMapper::new is O(len(source)).
+        let mapper = RangeMapper::new(&script.source);
         let mut edits = Vec::new();
         find_event_references_in_entries(
             &script.entries,
@@ -211,6 +213,7 @@ fn find_event_references(
             new_name,
             &mut edits,
             &script.source,
+            &mapper,
         );
 
         if !edits.is_empty() {
@@ -232,6 +235,8 @@ fn find_event_references(
         }
         if let Ok(content) = std::fs::read_to_string(file_path) {
             let (script, _) = crate::parser::parser::parse_script(&content);
+            // Built ONCE per document: RangeMapper::new is O(len(source)).
+            let mapper = RangeMapper::new(&script.source);
             let mut edits = Vec::new();
             find_event_references_in_entries(
                 &script.entries,
@@ -239,6 +244,7 @@ fn find_event_references(
                 new_name,
                 &mut edits,
                 &script.source,
+                &mapper,
             );
             if !edits.is_empty() {
                 changes.insert(url, edits);
@@ -254,8 +260,8 @@ fn find_event_references_in_entries(
     new_name: &str,
     edits: &mut Vec<TextEdit>,
     source: &str,
+    mapper: &RangeMapper,
 ) {
-    let mapper = RangeMapper::new(source);
     for entry in entries {
         if let Entry::Assignment(ass) = entry {
             // Check for event triggers: country_event = { id = old_name }
@@ -284,7 +290,9 @@ fn find_event_references_in_entries(
 
             // Recurse into blocks
             if let Value::Block(children) = &ass.value.value {
-                find_event_references_in_entries(children, old_name, new_name, edits, source);
+                find_event_references_in_entries(
+                    children, old_name, new_name, edits, source, mapper,
+                );
             }
         }
     }
@@ -308,6 +316,8 @@ fn find_scripted_trigger_references(
         let uri_str = entry.key();
         let (script, _) = entry.value();
 
+        // Built ONCE per document: RangeMapper::new is O(len(source)).
+        let mapper = RangeMapper::new(&script.source);
         let mut edits = Vec::new();
         find_scripted_references_in_entries(
             &script.entries,
@@ -315,6 +325,7 @@ fn find_scripted_trigger_references(
             new_name,
             &mut edits,
             &script.source,
+            &mapper,
         );
 
         if !edits.is_empty() {
@@ -336,6 +347,8 @@ fn find_scripted_trigger_references(
         }
         if let Ok(content) = std::fs::read_to_string(file_path) {
             let (script, _) = crate::parser::parser::parse_script(&content);
+            // Built ONCE per document: RangeMapper::new is O(len(source)).
+            let mapper = RangeMapper::new(&script.source);
             let mut edits = Vec::new();
             find_scripted_references_in_entries(
                 &script.entries,
@@ -343,6 +356,7 @@ fn find_scripted_trigger_references(
                 new_name,
                 &mut edits,
                 &script.source,
+                &mapper,
             );
             if !edits.is_empty() {
                 changes.insert(url, edits);
@@ -369,6 +383,8 @@ fn find_scripted_effect_references(
         let uri_str = entry.key();
         let (script, _) = entry.value();
 
+        // Built ONCE per document: RangeMapper::new is O(len(source)).
+        let mapper = RangeMapper::new(&script.source);
         let mut edits = Vec::new();
         find_scripted_references_in_entries(
             &script.entries,
@@ -376,6 +392,7 @@ fn find_scripted_effect_references(
             new_name,
             &mut edits,
             &script.source,
+            &mapper,
         );
 
         if !edits.is_empty() {
@@ -397,6 +414,8 @@ fn find_scripted_effect_references(
         }
         if let Ok(content) = std::fs::read_to_string(file_path) {
             let (script, _) = crate::parser::parser::parse_script(&content);
+            // Built ONCE per document: RangeMapper::new is O(len(source)).
+            let mapper = RangeMapper::new(&script.source);
             let mut edits = Vec::new();
             find_scripted_references_in_entries(
                 &script.entries,
@@ -404,6 +423,7 @@ fn find_scripted_effect_references(
                 new_name,
                 &mut edits,
                 &script.source,
+                &mapper,
             );
             if !edits.is_empty() {
                 changes.insert(url, edits);
@@ -419,8 +439,8 @@ fn find_scripted_references_in_entries(
     new_name: &str,
     edits: &mut Vec<TextEdit>,
     source: &str,
+    mapper: &RangeMapper,
 ) {
-    let mapper = RangeMapper::new(source);
     for entry in entries {
         if let Entry::Assignment(ass) = entry {
             // Key matches the scripted trigger/effect name — this is both the
@@ -435,7 +455,9 @@ fn find_scripted_references_in_entries(
 
             // Recurse into blocks
             if let Value::Block(children) = &ass.value.value {
-                find_scripted_references_in_entries(children, old_name, new_name, edits, source);
+                find_scripted_references_in_entries(
+                    children, old_name, new_name, edits, source, mapper,
+                );
             }
         }
     }
@@ -459,6 +481,8 @@ fn find_idea_references(
         let uri_str = entry.key();
         let (script, _) = entry.value();
 
+        // Built ONCE per document: RangeMapper::new is O(len(source)).
+        let mapper = RangeMapper::new(&script.source);
         let mut edits = Vec::new();
         find_idea_references_in_entries(
             &script.entries,
@@ -466,6 +490,7 @@ fn find_idea_references(
             new_name,
             &mut edits,
             &script.source,
+            &mapper,
         );
 
         if !edits.is_empty() {
@@ -487,6 +512,8 @@ fn find_idea_references(
         }
         if let Ok(content) = std::fs::read_to_string(file_path) {
             let (script, _) = crate::parser::parser::parse_script(&content);
+            // Built ONCE per document: RangeMapper::new is O(len(source)).
+            let mapper = RangeMapper::new(&script.source);
             let mut edits = Vec::new();
             find_idea_references_in_entries(
                 &script.entries,
@@ -494,6 +521,7 @@ fn find_idea_references(
                 new_name,
                 &mut edits,
                 &script.source,
+                &mapper,
             );
             if !edits.is_empty() {
                 changes.insert(url, edits);
@@ -509,8 +537,8 @@ fn find_idea_references_in_entries(
     new_name: &str,
     edits: &mut Vec<TextEdit>,
     source: &str,
+    mapper: &RangeMapper,
 ) {
-    let mapper = RangeMapper::new(source);
     for entry in entries {
         if let Entry::Assignment(ass) = entry {
             // Check for idea definition or usage
@@ -539,7 +567,9 @@ fn find_idea_references_in_entries(
 
             // Recurse into blocks
             if let Value::Block(children) = &ass.value.value {
-                find_idea_references_in_entries(children, old_name, new_name, edits, source);
+                find_idea_references_in_entries(
+                    children, old_name, new_name, edits, source, mapper,
+                );
             }
         }
     }
@@ -563,6 +593,8 @@ fn find_character_references(
         let uri_str = entry.key();
         let (script, _) = entry.value();
 
+        // Built ONCE per document: RangeMapper::new is O(len(source)).
+        let mapper = RangeMapper::new(&script.source);
         let mut edits = Vec::new();
         find_character_references_in_entries(
             &script.entries,
@@ -570,6 +602,7 @@ fn find_character_references(
             new_name,
             &mut edits,
             &script.source,
+            &mapper,
         );
 
         if !edits.is_empty() {
@@ -591,6 +624,8 @@ fn find_character_references(
         }
         if let Ok(content) = std::fs::read_to_string(file_path) {
             let (script, _) = crate::parser::parser::parse_script(&content);
+            // Built ONCE per document: RangeMapper::new is O(len(source)).
+            let mapper = RangeMapper::new(&script.source);
             let mut edits = Vec::new();
             find_character_references_in_entries(
                 &script.entries,
@@ -598,6 +633,7 @@ fn find_character_references(
                 new_name,
                 &mut edits,
                 &script.source,
+                &mapper,
             );
             if !edits.is_empty() {
                 changes.insert(url, edits);
@@ -613,8 +649,8 @@ fn find_character_references_in_entries(
     new_name: &str,
     edits: &mut Vec<TextEdit>,
     source: &str,
+    mapper: &RangeMapper,
 ) {
-    let mapper = RangeMapper::new(source);
     for entry in entries {
         if let Entry::Assignment(ass) = entry {
             // Character definition
@@ -655,7 +691,9 @@ fn find_character_references_in_entries(
 
             // Recurse into blocks
             if let Value::Block(children) = &ass.value.value {
-                find_character_references_in_entries(children, old_name, new_name, edits, source);
+                find_character_references_in_entries(
+                    children, old_name, new_name, edits, source, mapper,
+                );
             }
         }
     }
@@ -679,6 +717,8 @@ fn find_variable_references(
         let uri_str = entry.key();
         let (script, _) = entry.value();
 
+        // Built ONCE per document: RangeMapper::new is O(len(source)).
+        let mapper = RangeMapper::new(&script.source);
         let mut edits = Vec::new();
         find_variable_references_in_entries(
             &script.entries,
@@ -686,6 +726,7 @@ fn find_variable_references(
             new_name,
             &mut edits,
             &script.source,
+            &mapper,
         );
 
         if !edits.is_empty() {
@@ -707,6 +748,8 @@ fn find_variable_references(
         }
         if let Ok(content) = std::fs::read_to_string(file_path) {
             let (script, _) = crate::parser::parser::parse_script(&content);
+            // Built ONCE per document: RangeMapper::new is O(len(source)).
+            let mapper = RangeMapper::new(&script.source);
             let mut edits = Vec::new();
             find_variable_references_in_entries(
                 &script.entries,
@@ -714,6 +757,7 @@ fn find_variable_references(
                 new_name,
                 &mut edits,
                 &script.source,
+                &mapper,
             );
             if !edits.is_empty() {
                 changes.insert(url, edits);
@@ -729,8 +773,8 @@ fn find_variable_references_in_entries(
     new_name: &str,
     edits: &mut Vec<TextEdit>,
     source: &str,
+    mapper: &RangeMapper,
 ) {
-    let mapper = RangeMapper::new(source);
     for entry in entries {
         if let Entry::Assignment(ass) = entry {
             // Check for variable operations (set_variable, add_to_variable, etc.)
@@ -811,7 +855,9 @@ fn find_variable_references_in_entries(
 
             // Recurse into blocks
             if let Value::Block(children) = &ass.value.value {
-                find_variable_references_in_entries(children, old_name, new_name, edits, source);
+                find_variable_references_in_entries(
+                    children, old_name, new_name, edits, source, mapper,
+                );
             }
         }
     }
@@ -835,6 +881,8 @@ fn find_ability_references(
         let uri_str = entry.key();
         let (script, _) = entry.value();
 
+        // Built ONCE per document: RangeMapper::new is O(len(source)).
+        let mapper = RangeMapper::new(&script.source);
         let mut edits = Vec::new();
         find_ability_references_in_entries(
             &script.entries,
@@ -842,6 +890,7 @@ fn find_ability_references(
             new_name,
             &mut edits,
             &script.source,
+            &mapper,
         );
 
         if !edits.is_empty() {
@@ -863,6 +912,8 @@ fn find_ability_references(
         }
         if let Ok(content) = std::fs::read_to_string(file_path) {
             let (script, _) = crate::parser::parser::parse_script(&content);
+            // Built ONCE per document: RangeMapper::new is O(len(source)).
+            let mapper = RangeMapper::new(&script.source);
             let mut edits = Vec::new();
             find_ability_references_in_entries(
                 &script.entries,
@@ -870,6 +921,7 @@ fn find_ability_references(
                 new_name,
                 &mut edits,
                 &script.source,
+                &mapper,
             );
             if !edits.is_empty() {
                 changes.insert(url, edits);
@@ -885,8 +937,8 @@ fn find_ability_references_in_entries(
     new_name: &str,
     edits: &mut Vec<TextEdit>,
     source: &str,
+    mapper: &RangeMapper,
 ) {
-    let mapper = RangeMapper::new(source);
     for entry in entries {
         if let Entry::Assignment(ass) = entry {
             if ass.key_text(source) == old_name {
@@ -897,7 +949,9 @@ fn find_ability_references_in_entries(
             }
 
             if let Value::Block(children) = &ass.value.value {
-                find_ability_references_in_entries(children, old_name, new_name, edits, source);
+                find_ability_references_in_entries(
+                    children, old_name, new_name, edits, source, mapper,
+                );
             } else if let Some(s) = ass.value.value.as_str(source) {
                 if s == old_name
                     && (ass.key_text(source) == "has_ability"
@@ -1040,12 +1094,14 @@ mod tests {
         assert!(errors.is_empty(), "parse errors: {errors:?}");
 
         let mut edits = Vec::new();
+        let mapper = RangeMapper::new(&script.source);
         find_scripted_references_in_entries(
             &script.entries,
             "my_trigger",
             "renamed_trigger",
             &mut edits,
             &script.source,
+            &mapper,
         );
 
         // Two occurrences → exactly two edits, not four (the pre-fix doubling).
@@ -1121,5 +1177,46 @@ mod tests {
                 w[1].range
             );
         }
+    }
+
+    /// REGRESSION (performance): the six `*_in_entries` walkers used to build a
+    /// `RangeMapper` at the top of their own body, then recurse into themselves
+    /// — so a whole-document O(n) index was rebuilt once per nested block
+    /// instead of once per document. On a 102 KB vanilla event file (1442
+    /// nested blocks) that was ~175 ms per file, and rename walks every open
+    /// document PLUS every unopened workspace file.
+    ///
+    /// The mapper is now built by the callers and threaded through as `&RangeMapper`.
+    /// This test pins the contract structurally: deep nesting must not change
+    /// the cost per edit, and the walker must still find references at depth.
+    #[test]
+    fn test_deeply_nested_walk_is_not_quadratic() {
+        // Deep, but within what the recursive parser handles: real vanilla
+        // tops out at 16 levels (deepest scanned: 08_bba_on_actions.txt), and
+        // the recursive descent overflows a 2 MB test stack somewhere past 64.
+        const DEPTH: usize = 48;
+        let mut src = String::new();
+        for _ in 0..DEPTH {
+            src.push_str("hidden_effect = {\n");
+        }
+        src.push_str("country_event = { id = deep.1 }\n");
+        for _ in 0..DEPTH {
+            src.push_str("}\n");
+        }
+
+        let (script, _) = parse_script(&src);
+        let mapper = RangeMapper::new(&script.source);
+        let mut edits = Vec::new();
+        find_event_references_in_entries(
+            &script.entries,
+            "deep.1",
+            "deep.2",
+            &mut edits,
+            &script.source,
+            &mapper,
+        );
+
+        assert_eq!(edits.len(), 1, "reference at depth {DEPTH} must be found");
+        assert_eq!(edits[0].new_text, "\"deep.2\"");
     }
 }
