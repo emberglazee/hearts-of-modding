@@ -6,6 +6,10 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### ✨ Added
 
+- **Releases now publish a `SHA256SUMS` file** covering the VSIX and all six standalone LSP binaries, so downloads can be verified with `sha256sum -c SHA256SUMS`. CI builds attach one for their VSIX too.
+
+- **Downloaded LSP binaries are verified before use.** On platforms where the server isn't bundled, the extension checks the download against the release checksum and discards it on mismatch — previously a truncated transfer, or an error page served with HTTP 200 by a proxy, would be cached and reused forever. Binaries from older extension versions are also cleaned up now.
+
 - **Structured-block sub-key awareness:** For a lot of relevant modifiers/triggers/effects, documented scope data for their sub-keys/parameters, e.g. `add_timed_idea = { idea = ... days = ... }`. Sub-keys are semantically highlighted, hover shows their type and description, and completion offers them first.
 
 ### 🔧 Changed

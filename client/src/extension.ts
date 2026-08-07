@@ -1,5 +1,6 @@
 import * as path from 'path'
 import * as fs from 'fs'
+import { createHash } from 'crypto'
 import { workspace, ExtensionContext, window, OutputChannel, commands, StatusBarAlignment, ConfigurationTarget, StatusBarItem } from 'vscode'
 
 // The extension host runs on Node >=18 where `fetch` is a global, but the
@@ -62,27 +63,71 @@ function logWarn(msg: string): void {
     outputChannel.appendLine(msg)
 }
 
+/// Fetch `SHA256SUMS` for a release and return the digest for `asset`.
+///
+/// Returns `undefined` when the file is missing or has no line for the asset —
+/// releases published before checksums existed, in which case the download
+/// proceeds unverified rather than breaking older installs.
+async function fetchExpectedSha256(
+    baseUrl: string,
+    asset: string
+): Promise<string | undefined> {
+    try {
+        const res = await fetch(`${baseUrl}/SHA256SUMS`)
+        if (!res.ok) return undefined
+        const text = Buffer.from(await res.arrayBuffer()).toString('utf8')
+        for (const line of text.split('\n')) {
+            // `sha256sum` format: "<64 hex>  <filename>"
+            const m = line.trim().match(/^([a-fA-F0-9]{64})\s+\*?(.+)$/)
+            if (m && m[2].trim() === asset) return m[1].toLowerCase()
+        }
+    } catch {
+        // Network/parse failure — treat as "no checksum available".
+    }
+    return undefined
+}
+
+/// Delete cached binaries for versions other than the one in use, so global
+/// storage does not accumulate a ~10 MB binary per extension update.
+function pruneOldBinaryCaches(rootDir: string, keepVersion: string): void {
+    try {
+        if (!fs.existsSync(rootDir)) return
+        for (const entry of fs.readdirSync(rootDir)) {
+            if (entry === keepVersion) continue
+            fs.rmSync(path.join(rootDir, entry), { recursive: true, force: true })
+        }
+    } catch {
+        // Best-effort cleanup — never block startup on it.
+    }
+}
+
 async function downloadHomLspBinary(
     context: ExtensionContext,
     asset: string
 ): Promise<string | null> {
     const version: string = (context.extension?.packageJSON?.version as string) ?? '0.0.0'
-    const dir = path.join(context.globalStorageUri.fsPath, 'hom-lsp', version)
+    const root = path.join(context.globalStorageUri.fsPath, 'hom-lsp')
+    const dir = path.join(root, version)
     const dst = path.join(dir, asset)
 
     if (fs.existsSync(dst)) {
         logInfo(`Using cached hom-lsp binary at: ${dst}`)
+        pruneOldBinaryCaches(root, version)
         return dst
     }
 
     // Pin to the release matching the installed extension version; fall back to
     // the latest release if that tag doesn't exist yet.
-    const urls = [
-        `https://github.com/${HOM_REPO}/releases/download/v${version}/${asset}`,
-        `https://github.com/${HOM_REPO}/releases/latest/download/${asset}`
+    const bases = [
+        `https://github.com/${HOM_REPO}/releases/download/v${version}`,
+        `https://github.com/${HOM_REPO}/releases/latest/download`
     ]
 
-    for (const url of urls) {
+    for (const base of bases) {
+        const url = `${base}/${asset}`
+        // Write to a temp file and rename only after the bytes check out, so an
+        // interrupted or corrupt download can never be served from cache later.
+        const tmp = `${dst}.part`
         try {
             logInfo(`No bundled binary for this platform; downloading ${asset} from ${url}...`)
             const res = await fetch(url)
@@ -91,15 +136,46 @@ async function downloadHomLspBinary(
                 continue
             }
             const buf = Buffer.from(await res.arrayBuffer())
+
+            if (buf.length === 0) {
+                logWarn(`Downloaded ${asset} was empty — discarding.`)
+                continue
+            }
+
+            const expected = await fetchExpectedSha256(base, asset)
+            if (expected) {
+                const actual = createHash('sha256').update(new Uint8Array(buf)).digest('hex')
+                if (actual !== expected) {
+                    // A proxy or captive portal returning an HTML error page with
+                    // HTTP 200 lands here, as does a truncated transfer.
+                    logWarn(
+                        `Checksum mismatch for ${asset} — expected ${expected}, got ${actual}. Discarding.`
+                    )
+                    continue
+                }
+                logInfo(`Verified ${asset} against SHA256SUMS.`)
+            } else {
+                logWarn(`No SHA256SUMS entry for ${asset}; skipping integrity check.`)
+            }
+
             fs.mkdirSync(dir, { recursive: true })
-            fs.writeFileSync(dst, new Uint8Array(buf))
+            fs.writeFileSync(tmp, new Uint8Array(buf))
+            fs.renameSync(tmp, dst)
             if (process.platform !== 'win32') {
                 fs.chmodSync(dst, 0o755)
             }
             logInfo(`Downloaded ${asset} (${buf.length} bytes) to ${dst}`)
+            pruneOldBinaryCaches(root, version)
             return dst
         } catch (err) {
             logWarn(`Download error from ${url}: ${err}`)
+        } finally {
+            // Never leave a partial file behind for a later run to trip over.
+            try {
+                if (fs.existsSync(tmp)) fs.rmSync(tmp, { force: true })
+            } catch {
+                /* ignore */
+            }
         }
     }
     logWarn(`Could not download hom-lsp binary '${asset}' from any release URL.`)

@@ -104,7 +104,7 @@ Type "Hearts of Modding" in the command palette (`Ctrl+Shift+P`) to see all comm
 
 - **Windows or Linux (`amd64`/x64) or macOS (`arm64`)**
 
-  - *LSP also compiled for Windows/Linux `arm64` and macOS `amd64` but stability is not guaranteed. Not bundled with the extension, automatically downloaded separately from the latest release.*
+  - *LSP also compiled for Windows/Linux `arm64` and macOS `amd64` but stability is not guaranteed. Not bundled with the extension, automatically downloaded separately from the latest release, and verified against the release's `SHA256SUMS` before use.*
 
 A HOI4 install is optional but strongly recommended for the complete experience.
 

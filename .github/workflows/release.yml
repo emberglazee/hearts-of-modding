@@ -129,6 +129,23 @@ jobs:
           npm run compile
           npx vsce package -o ../hearts-of-modding-${{ steps.bump.outputs.VERSION }}.vsix
 
+      # Checksums for every published artifact. The extension downloads this
+      # file alongside a standalone binary and verifies the bytes before
+      # caching them, which catches truncated downloads and proxy/captive-portal
+      # HTML served with a 200. Users can verify manually with
+      # `sha256sum -c SHA256SUMS`.
+      - name: Generate SHA256SUMS
+        run: |
+          cp hearts-of-modding-${{ steps.bump.outputs.VERSION }}.vsix release-assets/
+          cd release-assets
+          # Bare filenames (no ./ prefix) so the client can match on the asset
+          # name exactly as it requests it.
+          sha256sum hom-lsp-* *.vsix > SHA256SUMS
+          # Drop the VSIX copy again — it is published from the repo root.
+          rm -f *.vsix
+          echo "── SHA256SUMS ──"
+          cat SHA256SUMS
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:

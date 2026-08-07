@@ -87,8 +87,22 @@ jobs:
           npm run compile
           npx vsce package -o ../hearts-of-modding.vsix
 
+      # Checksum for the CI artifact so a locally downloaded build can be
+      # verified with `sha256sum -c SHA256SUMS` before installing it. Only the
+      # VSIX is listed: the server binaries are packaged *inside* it, so naming
+      # them here would produce a SHA256SUMS that fails `-c` from the artifact
+      # root. Release builds publish a fuller file covering the standalone
+      # binaries as well.
+      - name: Generate SHA256SUMS
+        run: |
+          sha256sum hearts-of-modding.vsix > SHA256SUMS
+          echo "── SHA256SUMS ──"
+          cat SHA256SUMS
+
       - name: Upload VSIX
         uses: actions/upload-artifact@v7
         with:
           name: extension-vsix
-          path: hearts-of-modding.vsix
+          path: |
+            hearts-of-modding.vsix
+            SHA256SUMS
