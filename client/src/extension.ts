@@ -124,6 +124,24 @@ export async function activate(context: ExtensionContext) {
     locColorDecorator.activate()
     context.subscriptions.push(locColorDecorator)
 
+    // ── Command: Show the HoM Log panel ──
+    // Registered in activate(), NOT in startServer(): startServer runs again on
+    // every LSP toggle, and re-registering an existing command id throws. That
+    // throw happened AFTER client.start() had already succeeded, so the LSP came
+    // up but everything below the registration was skipped — the
+    // `hoi4/colorCodes` listener never attached (loc colours stuck on wiki
+    // defaults) and the RAM status-bar poll never started, with no error shown.
+    // The panel is a webview owned by the extension, so it works whether or not
+    // the server is running.
+    context.subscriptions.push(commands.registerCommand('hearts-of-modding.showLog', () => {
+        // executeCommand returns a Thenable and rejects asynchronously — it
+        // never throws synchronously, so a try/catch here would catch nothing.
+        void commands.executeCommand('workbench.view.extension.hoi4-log').then(
+            undefined,
+            () => { /* view unavailable — the output channel still has the logs */ }
+        )
+    }))
+
     context.subscriptions.push(commands.registerCommand('hearts-of-modding.showMemoryUsage', async () => {
         const config = workspace.getConfiguration('hoi4.showMemoryUsage')
         const currentState = config.get('enabled')
@@ -469,7 +487,7 @@ async function startServer(context: ExtensionContext, statusBarItem: StatusBarIt
     // ── Intercept server log messages for the HoM Log panel ──
     // Captures window/logMessage notifications from the server and
     // maps the LSP MessageType to log panel severity levels.
-    client.onNotification('window/logMessage', (params: { type?: number, message?: string }) => {
+    context.subscriptions.push(client.onNotification('window/logMessage', (params: { type?: number, message?: string }) => {
         if (!params.message) return
 
         // Map LSP MessageType to our log levels:
@@ -483,15 +501,6 @@ async function startServer(context: ExtensionContext, statusBarItem: StatusBarIt
         const body = levelMatch ? params.message.slice(levelMatch[0].length) : params.message
 
         logPanelProvider.append(level, body)
-    })
-
-    // ── Command: Show the HoM Log panel ──
-    context.subscriptions.push(commands.registerCommand('hearts-of-modding.showLog', () => {
-        try {
-            commands.executeCommand('workbench.view.extension.hoi4-log')
-        } catch {
-            // Silently ignore — fallback to the output channel
-        }
     }))
 
     // ── Scanned color codes pushed by the LSP after each scan ──
@@ -499,12 +508,12 @@ async function startServer(context: ExtensionContext, statusBarItem: StatusBarIt
     // workspace scan and almost always got an empty map, leaving the
     // decorator on wiki defaults forever. The server now pushes the map
     // after the scan completes.
-    client.onNotification('hoi4/colorCodes', (colorMap: Record<string, string>) => {
+    context.subscriptions.push(client.onNotification('hoi4/colorCodes', (colorMap: Record<string, string>) => {
         if (colorMap && Object.keys(colorMap).length > 0) {
             locColorDecorator.updateColors(colorMap)
             outputChannel.appendLine(`HoM color decorator: loaded ${Object.keys(colorMap).length} color codes from LSP`)
         }
-    })
+    }))
 
     const updateMemoryUsage = async () => {
         const enabled = workspace.getConfiguration('hoi4.showMemoryUsage').get('enabled')

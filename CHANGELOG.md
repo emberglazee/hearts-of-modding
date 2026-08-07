@@ -6,23 +6,17 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### ✨ Added
 
-- **Structured-block sub-key awareness:** For a lot of relevant modifiers/triggers/effects, documented scope data for their sub-keys/parameters.
-
-  - e.g. `add_timed_idea = { idea = ... days = ... }`
+- **Structured-block sub-key awareness:** For a lot of relevant modifiers/triggers/effects, documented scope data for their sub-keys/parameters, e.g. `add_timed_idea = { idea = ... days = ... }`. Sub-keys are semantically highlighted, hover shows their type and description, and completion offers them first.
 
 ### 🔧 Changed
 
-- **Renaming is dramatically faster in large mods.**
-
-  - The position index was being rebuilt for every nested block instead of once per file; on a 100 KB event file a single pass went from ~175 ms to ~0.17 ms.
-  - Rename scans every open file *and* every file in the workspace, so this previously caused a multi-second stall on real mods.
+- **Renaming is dramatically faster in large mods.** The position index was rebuilt for every nested block instead of once per file; a single pass over a 100 KB event file went from ~175ms to ~0.17ms.
 
 ### 🩹 Fixed
 
-- **HOM6004 (`MALFORMED_LEADING_DOT_NUMBER`) no longer fires on identifiers containing non-English characters.**
+- **Toggling the LSP off and back on left the extension half-broken.** The log panel command was re-registered on every start, which threw after the server was already up — silently skipping the color code listener (leaving loc colours on wiki defaults) and the RAM usage indicator.
 
-  - Accented, Cyrillic and other non-ASCII names are valid in HOI4 (vanilla uses them in `00_names.txt`), so IDs like `crisé.12` or `событие.1` were wrongly reported as errors.
-  - Genuine `.5` values are still caught — they must be written `0.5`.
+- **HOM6004 (`MALFORMED_LEADING_DOT_NUMBER`) no longer fires on identifiers containing non-English characters.** Accented and Cyrillic names are valid in HOI4 (vanilla uses them in `00_names.txt`), so IDs like `crisé.12` or `событие.1` were wrongly reported as errors. Genuine `.5` values are still caught.
 
 - **3 color code rename bugs:**
 
