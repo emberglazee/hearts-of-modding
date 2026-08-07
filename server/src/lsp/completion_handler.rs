@@ -352,6 +352,10 @@ impl Backend {
         }
 
         let mut current_scopes = vec![scope::Scope::Global];
+        // Documented sub-keys of the block under the cursor, prepended to the
+        // generic list below (see the `entity_parameters` block for why these
+        // must be additive rather than a replacement).
+        let mut param_items: Vec<CompletionItem> = Vec::new();
 
         // Try to find context for HOI4 scripts
         if let Some((script, _)) = self.ensure_ast_cached(&uri) {
@@ -388,6 +392,62 @@ impl Backend {
                     return Ok(Some(CompletionResponse::Array(color_items)));
                 }
             }
+
+            // Structured block with documented parameters: surface the block's
+            // own sub-keys FIRST (e.g. inside `add_timed_idea = { ... }` offer
+            // idea/days/months/years at the top of the list).
+            //
+            // These are ADDITIVE, never a replacement. The wiki only documents
+            // a block's scalar sub-keys, so the `parameters` map is always a
+            // partial picture: `country_event` documents id/days/hours but not
+            // title/desc/picture/option/trigger/immediate, and `if` documents
+            // else/else_if/limit but none of the effects that make up its body.
+            // Returning only the params would hide ~23% of the child keys that
+            // appear inside these blocks in vanilla (86% for top-level event
+            // definitions). A `sort_text` prefix floats them above the generic
+            // trigger/effect list without suppressing anything.
+            if let Some(enclosing) =
+                crate::scope::scope_context::find_enclosing_block_key(&script, position)
+            {
+                if let Some(params) = crate::data::hoi4_data::entity_parameters(&enclosing) {
+                    let mut names: Vec<&String> = params.keys().collect();
+                    names.sort();
+                    param_items.reserve(names.len());
+                    for name in names {
+                        let pdef = &params[name];
+                        let mut detail = String::new();
+                        if !pdef.param_type.is_empty() {
+                            detail.push_str(&format!("Type: {}", pdef.param_type));
+                        }
+                        if !pdef.value_type.is_empty() && pdef.value_type != pdef.param_type {
+                            if !detail.is_empty() {
+                                detail.push_str(" · ");
+                            }
+                            detail.push_str(&format!("{} reference", pdef.value_type));
+                        }
+                        if pdef.optional {
+                            detail.push_str(" · optional");
+                        }
+                        param_items.push(CompletionItem {
+                            label: name.clone(),
+                            kind: Some(CompletionItemKind::PROPERTY),
+                            detail: Some(detail),
+                            // "0_" sorts ahead of the default (label-based)
+                            // sort text used by the generic entries below.
+                            sort_text: Some(format!("0_{name}")),
+                            documentation: if pdef.description.is_empty() {
+                                None
+                            } else {
+                                Some(Documentation::MarkupContent(MarkupContent {
+                                    kind: MarkupKind::Markdown,
+                                    value: pdef.description.clone(),
+                                }))
+                            },
+                            ..Default::default()
+                        });
+                    }
+                }
+            }
         }
 
         let mut items = Vec::new();
@@ -402,8 +462,11 @@ impl Backend {
         let scope_items = scope_trigger_effect_items(current_scope);
         // Scanner-derived entities, prebuilt after scans and cached (cheap clone).
         let entity_items = self.completion_entity_cache.load_full();
-        let total = scope_items.len() + entity_items.len();
+        let total = param_items.len() + scope_items.len() + entity_items.len();
         items.reserve(total);
+        // Block parameters first — they carry a "0_" sort_text so the client
+        // keeps them at the top regardless of insertion order.
+        items.append(&mut param_items);
         items.extend(scope_items.iter().cloned());
         items.extend(entity_items.iter().cloned());
 

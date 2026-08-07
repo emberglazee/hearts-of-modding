@@ -614,6 +614,37 @@ impl Backend {
                     }
                     push_section(&mut hover_text, &scope_text);
 
+                    // Documented parameter of the enclosing block (e.g.
+                    // `days` inside `add_timed_idea = { ... }`), from the
+                    // block data — not a generic trigger/effect/modifier.
+                    // Hovering a param VALUES (e.g. an idea ref `SPE_x`) does
+                    // not match a param name, so it falls through to the
+                    // entity checks below.
+                    if let Some(param) = context_key
+                        .as_deref()
+                        .and_then(|pk| crate::data::hoi4_data::lookup_parameter(pk, &identifier))
+                    {
+                        let mut p_text = format!(
+                            "### 🧩 Parameter: `{}` of `{}`\n",
+                            identifier,
+                            context_key.as_deref().unwrap_or("")
+                        );
+                        if !param.description.is_empty() {
+                            p_text.push_str(&format!("\n{}", param.description));
+                        }
+                        if !param.param_type.is_empty() {
+                            p_text.push_str(&format!(
+                                "\n\n**Type:** `{}`{}",
+                                param.param_type,
+                                if param.optional { " · optional" } else { "" }
+                            ));
+                        }
+                        if param.repeated {
+                            p_text.push_str(" · may repeat");
+                        }
+                        push_section(&mut hover_text, &p_text);
+                    }
+
                     // Achievement specialized hover
                     if let Some(achievement) = achievements.get(identifier.as_str()) {
                         let mut ach_text = if achievement.is_ribbon {

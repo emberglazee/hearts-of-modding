@@ -25,16 +25,33 @@ impl ScopeUsage {
     }
 }
 
-/// A parameter definition for autocomplete
+/// A parameter definition for a structured block (e.g. the `idea = X`,
+/// `days = 180` sub-keys of `add_timed_idea`). Documented per-entity in the
+/// JSON so sub-keys are not global keywords: a `days` key inside
+/// `add_timed_idea` is this block's parameter, not a generic modifier.
 #[derive(Debug, Clone, Deserialize)]
 #[allow(dead_code)]
 pub struct ParameterDef {
+    /// Base value kind: `string`, `int`, `float`, `bool`, ... (from `<type>`
+    /// placeholders in the wiki docs). Loose, not an enum — docs vary.
     #[serde(rename = "type")]
     pub param_type: String,
+    /// Cross-reference kind when the value points at a scanner entity
+    /// (`idea`, `country`, `equipment`, `character`, `trait`, `state`, ...).
+    /// Empty string for plain values. Powers goto-definition / value
+    /// completion / hover cross-links for reference-typed parameters.
+    #[serde(default)]
+    pub value_type: String,
     #[serde(default)]
     pub description: String,
+    /// Best-effort from docs ("optional" / "mandatory" wording); default
+    /// false = not known to be optional. Display hint only.
     #[serde(default)]
     pub optional: bool,
+    /// Key may legitimately appear multiple times in the block (e.g.
+    /// `tooltip`, `custom_effect_tooltip`, `add_idea`).
+    #[serde(default)]
+    pub repeated: bool,
 }
 
 /// How a block behaves on the scope stack
@@ -262,6 +279,56 @@ pub fn lookup_chain_target(from_scope: &Scope, target_name: &str) -> Option<&'st
     info.chain_targets.get(&lower)
 }
 
+/// Look up the entity (trigger, effect, or modifier) by key, case-insensitively.
+///
+/// DB keys are lowercase in the JSON; HOI4 files can write them in any case.
+/// The exact hit short-circuits so the lowercase fallback only allocates when
+/// the raw key isn't found. Checks triggers first, then effects, then
+/// modifiers (mirrors [`lookup_pushes_scope`]).
+pub fn lookup_entity(key: &str) -> Option<&'static HOI4Entity> {
+    if let Some(entity) = DATA
+        .triggers
+        .get(key)
+        .or_else(|| DATA.triggers.get(&key.to_ascii_lowercase()))
+    {
+        return Some(entity);
+    }
+    if let Some(entity) = DATA
+        .effects
+        .get(key)
+        .or_else(|| DATA.effects.get(&key.to_ascii_lowercase()))
+    {
+        return Some(entity);
+    }
+    if let Some(entity) = DATA
+        .modifiers
+        .get(key)
+        .or_else(|| DATA.modifiers.get(&key.to_ascii_lowercase()))
+    {
+        return Some(entity);
+    }
+    None
+}
+
+/// Look up a documented parameter (sub-key) of a structured entity block.
+///
+/// `entity_key` is the block's key (e.g. `add_timed_idea`), `param` the
+/// sub-key inside it (e.g. `days`). Returns the parameter's definition when
+/// the entity documents it, `None` otherwise. Both lookups are
+/// case-insensitive.
+pub fn lookup_parameter(entity_key: &str, param: &str) -> Option<&'static ParameterDef> {
+    let entity = lookup_entity(entity_key)?;
+    if let Some(p) = entity.parameters.get(param) {
+        return Some(p);
+    }
+    entity.parameters.get(&param.to_ascii_lowercase())
+}
+
+/// Iterate the documented parameters of an entity block, if any.
+pub fn entity_parameters(entity_key: &str) -> Option<&'static HashMap<String, ParameterDef>> {
+    lookup_entity(entity_key).map(|e| &e.parameters)
+}
+
 /// Check if a keyword is a transparent block type
 pub fn is_transparent_block(key: &str) -> bool {
     DATA.transparent_block_types
@@ -482,6 +549,144 @@ mod tests {
         assert!(is_known_entity("has_government"));
         assert!(is_known_entity("add_ideas"));
         assert!(!is_known_entity("definitely_not_a_real_trigger_xyz123"));
+    }
+
+    #[test]
+    fn test_lookup_entity_and_parameters() {
+        // Entity lookup is case-insensitive and covers all three families.
+        assert!(lookup_entity("add_ideas").is_some());
+        assert!(lookup_entity("ADD_IDEAS").is_some(), "case-insensitive");
+        assert!(lookup_entity("has_government").is_some());
+        assert!(lookup_entity("army_attack_factor").is_some(), "modifiers");
+        assert!(lookup_entity("not_a_real_entity_xyz").is_none());
+
+        // add_timed_idea documents idea/days/months/years (populated from the
+        // wiki docs by server/scripts/parse_wiki_parameters.py).
+        let entity = lookup_entity("add_timed_idea").expect("add_timed_idea in DB");
+        let params = &entity.parameters;
+        assert!(
+            params.contains_key("idea") && params.contains_key("days"),
+            "add_timed_idea should document idea + days, got: {:?}",
+            params.keys().collect::<Vec<_>>()
+        );
+
+        // lookup_parameter: case-insensitive on both the entity and the param.
+        let days = lookup_parameter("add_timed_idea", "days").expect("days param");
+        assert!(
+            !days.description.is_empty(),
+            "days should have a description"
+        );
+        assert!(lookup_parameter("ADD_TIMED_IDEA", "DAYS").is_some());
+        // Unknown param on a documented entity -> None.
+        assert!(lookup_parameter("add_timed_idea", "bogus_key").is_none());
+        // Unknown entity -> None.
+        assert!(lookup_parameter("not_a_real_entity_xyz", "days").is_none());
+
+        // entity_parameters returns the map for documented entities, an
+        // (empty) map for undocumented ones — consumers check is_empty().
+        assert!(entity_parameters("add_timed_idea").is_some());
+        assert!(
+            entity_parameters("add_timed_idea").is_some_and(|p| !p.is_empty()),
+            "documented entity should have a non-empty parameters map"
+        );
+        assert!(
+            entity_parameters("add_political_power").is_some_and(|p| p.is_empty()),
+            "undocumented entity keeps an empty parameters map"
+        );
+    }
+
+    /// The `parameters` map is a PARTIAL picture of what a block accepts — the
+    /// wiki documents scalar sub-keys but not the nested blocks or the
+    /// arbitrary effects/triggers that make up a block's body. Consumers must
+    /// therefore treat it as additive (highlight/rank these keys) and never as
+    /// an allow-list (offer only these keys / flag anything else).
+    ///
+    /// These assertions encode that contract against real data so a future
+    /// "just return the params" refactor fails loudly here.
+    #[test]
+    fn test_parameters_are_partial_not_exhaustive() {
+        // country_event documents the invocation form (id/days/hours) but NOT
+        // the definition form's keys, which are far more common in practice.
+        let ce = entity_parameters("country_event").expect("country_event documented");
+        assert!(ce.contains_key("id"), "invocation form is documented");
+        for definition_key in ["title", "desc", "picture", "option", "is_triggered_only"] {
+            assert!(
+                !ce.contains_key(definition_key),
+                "`{definition_key}` is a real country_event key but is NOT in the \
+                 parameters map — proof the map is partial and must stay additive"
+            );
+        }
+
+        // `if` documents else/else_if/limit; its body holds arbitrary effects.
+        let if_params = entity_parameters("if").expect("if documented");
+        assert!(if_params.contains_key("limit"));
+        for effect in ["set_country_flag", "country_event", "add_political_power"] {
+            assert!(
+                !if_params.contains_key(effect),
+                "`{effect}` is legal inside `if = {{}}` but undocumented"
+            );
+        }
+    }
+
+    /// Guards the generator's validity filter: a parameter must never be named
+    /// after its own block (`is_puppet = {{ is_puppet = ... }}` is nonsense),
+    /// and no type may be pure punctuation noise (`""`, `???`).
+    #[test]
+    fn test_no_malformed_parameters_in_data() {
+        let mut problems: Vec<String> = Vec::new();
+        for (family, map) in [
+            ("triggers", &DATA.triggers),
+            ("effects", &DATA.effects),
+            ("modifiers", &DATA.modifiers),
+        ] {
+            for (key, entity) in map {
+                for (pname, pdef) in &entity.parameters {
+                    if pname == key {
+                        problems.push(format!("{family}:{key}.{pname} is self-referential"));
+                    }
+                    if !pname
+                        .chars()
+                        .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
+                    {
+                        problems.push(format!("{family}:{key}.{pname} is not an identifier"));
+                    }
+                    let t = pdef.param_type.trim();
+                    if !t.is_empty() && !t.chars().any(|c| c.is_ascii_alphanumeric()) {
+                        problems.push(format!("{family}:{key}.{pname} has noise type {t:?}"));
+                    }
+                }
+            }
+        }
+        assert!(
+            problems.is_empty(),
+            "malformed parameters in hoi4_data_v2.json (re-run \
+             server/scripts/parse_wiki_parameters.py):\n{}",
+            problems.join("\n")
+        );
+    }
+
+    #[test]
+    fn test_parameter_def_deser() {
+        // Full shape written by the generator script.
+        let json = r#"{
+            "type": "int",
+            "value_type": "number",
+            "description": "The number of days to add the idea for.",
+            "optional": false,
+            "repeated": false
+        }"#;
+        let p: ParameterDef = serde_json::from_str(json).unwrap();
+        assert_eq!(p.param_type, "int");
+        assert_eq!(p.value_type, "number");
+        assert!(!p.optional);
+        assert!(!p.repeated);
+
+        // Minimal shape (older entries / hand-written) — new fields default.
+        let minimal: ParameterDef = serde_json::from_str(r#"{"type": "string"}"#).unwrap();
+        assert_eq!(minimal.value_type, "");
+        assert_eq!(minimal.description, "");
+        assert!(!minimal.optional);
+        assert!(!minimal.repeated);
     }
 
     #[test]

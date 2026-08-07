@@ -655,6 +655,14 @@ fn push_entry_tokens(
             // be highlighted distinctly.
             let is_meta = is_meta_scope(key_text);
 
+            // Documented parameter of the parent block (e.g. `days` inside
+            // `add_timed_idea = { ... }`). Context-aware: the same key is a
+            // plain keyword (or nothing) outside its documented parent.
+            // Checked before the global keyword set so block params win
+            // inside their own block.
+            let is_block_param = parent_key
+                .is_some_and(|p| crate::data::hoi4_data::lookup_parameter(p, key_text).is_some());
+
             if is_event_type {
                 tokens.push(RawToken {
                     line: key_line,
@@ -675,6 +683,13 @@ fn push_entry_tokens(
                     start: key_start,
                     length: key_len,
                     token_type: TokenType::MetaScope as u32,
+                });
+            } else if is_block_param {
+                tokens.push(RawToken {
+                    line: key_line,
+                    start: key_start,
+                    length: key_len,
+                    token_type: TokenType::Property as u32,
                 });
             } else if is_keyword {
                 tokens.push(RawToken {
@@ -1552,6 +1567,97 @@ country_event = {
             ce_token.unwrap().3,
             "event",
             "'country_event' should get Event token type",
+        );
+    }
+
+    #[test]
+    fn test_block_param_keys_get_property_token() {
+        // Sub-keys documented as parameters of their parent block (days/idea
+        // inside add_timed_idea) get Property tokens via the parent-param
+        // lookup — even with an EMPTY global keyword set, proving the
+        // classification comes from the data, not hardcoded keywords.
+        use crate::lsp::semantic_tokens::{SemanticTokenContext, get_semantic_tokens};
+        use crate::parser::parser::parse_script;
+        use std::collections::{HashMap, HashSet};
+
+        let input = "\
+add_timed_idea = {
+    idea = SPE_new_southern_worker_rights
+    days = 180
+    months = 2
+}
+add_political_power = 100
+";
+        let (script, _) = parse_script(input);
+        let ctx = SemanticTokenContext::new(Arc::new(HashSet::new()), Arc::new(HashMap::new()));
+        let result = get_semantic_tokens(&script, &ctx);
+
+        let legend = [
+            "keyword",
+            "variable",
+            "string",
+            "number",
+            "operator",
+            "comment",
+            "type",
+            "event",
+            "function",
+            "enum",
+            "enum_member",
+            "struct",
+            "class",
+            "property",
+            "escape_character",
+            "parameter",
+            "boolean",
+            "meta_scope",
+        ];
+        let mut tokens = Vec::new();
+        let mut last_line = 0u32;
+        let mut last_start = 0u32;
+        match result {
+            SemanticTokensResult::Tokens(t) => {
+                for st in &t.data {
+                    let line = last_line + st.delta_line;
+                    let start = if st.delta_line == 0 {
+                        last_start + st.delta_start
+                    } else {
+                        st.delta_start
+                    };
+                    let name = legend
+                        .get(st.token_type as usize)
+                        .map(|s| s.to_string())
+                        .unwrap_or_else(|| format!("tt({})", st.token_type));
+                    tokens.push((line, start, st.length, name));
+                    last_line = line;
+                    last_start = start;
+                }
+            }
+            _ => panic!("expected Tokens result"),
+        }
+
+        // idea/days/months inside add_timed_idea -> property tokens
+        for (expect_line, expect_len) in [(1, 4), (2, 4), (3, 6)] {
+            let found: Vec<_> = tokens
+                .iter()
+                .filter(|(l, _s, len, name)| {
+                    *l == expect_line && *len == expect_len && name == "property"
+                })
+                .collect();
+            assert!(
+                !found.is_empty(),
+                "line {} expected a property token (len {}), got:\n{:#?}",
+                expect_line,
+                expect_len,
+                tokens,
+            );
+        }
+        // `days` must NOT be keyword anywhere — the empty keyword set proves
+        // the parent-param path did the classification.
+        assert!(
+            tokens.iter().all(|(_, _, _, name)| name != "keyword"),
+            "no keywords expected with an empty keyword set: {:#?}",
+            tokens,
         );
     }
 
