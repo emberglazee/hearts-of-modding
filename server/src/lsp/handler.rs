@@ -460,7 +460,7 @@ impl LanguageServer for Backend {
             .iter()
             .map(|r| r.canonicalize().unwrap_or_else(|_| r.clone()))
             .collect();
-        *self.workspace_roots.lock().unwrap() = stored_roots.clone();
+        self.workspace_roots.store(Arc::new(stored_roots.clone()));
         // Priority order for retain_path! layer re-insertion (lowest first).
         crate::scanner::incremental_scanner::set_scan_roots(stored_roots);
 

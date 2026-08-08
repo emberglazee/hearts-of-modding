@@ -55,7 +55,7 @@ pub(crate) struct Backend {
     pub(crate) scanner_data: ScannerData,
     pub(crate) config: Config,
     pub(crate) system_info: Mutex<sysinfo::System>,
-    pub(crate) workspace_roots: Mutex<Vec<std::path::PathBuf>>,
+    pub(crate) workspace_roots: ArcSwap<Vec<std::path::PathBuf>>,
     /// Monotonic counter of in-flight handler operations.
     /// Client polls via `hoi4/getMemoryUsage` to decide whether the status
     /// bar icon should show a throbber (busy) or pulse (idle).
@@ -96,7 +96,7 @@ impl Backend {
     /// specific), falling back to the first root, then to the legacy server
     /// CWD (`.`) for documents outside every root (e.g. opened from elsewhere).
     pub(crate) fn map_config_for_uri(&self, uri: &str) -> crate::utils::map_config::MapConfig {
-        let roots = self.workspace_roots.lock().unwrap();
+        let roots = self.workspace_roots.load();
         match crate::utils::map_config::matching_root(&roots, uri) {
             Some(root) => crate::utils::map_config::get_map_config(root),
             None => match roots.first() {
@@ -374,31 +374,67 @@ impl Backend {
             return;
         }
 
-        // ── Phase 2: Concurrent validation ──────────────────────────────
-        // Validate files in bounded-concurrency batches using join_all.
-        // Each batch runs multiple validate_content futures concurrently on
-        // tokio's multi-thread runtime. The .await points inside
-        // validate_content (check_semantic, etc.) allow interleaving across
-        // files within a batch.
-        let concurrency = std::thread::available_parallelism()
-            .map(|n| (n.get() * 2).max(4))
-            .unwrap_or(16)
-            .min(validated);
+        // ── Phase 2: Parallel validation on Rayon ──────────────────────
+        // validate_content is fully synchronous CPU work (parse + semantic
+        // rules). join_all previously interleaved futures that never yield,
+        // so tokio ran them sequentially on one worker thread. Rayon's
+        // work-stealing pool gives true parallelism across cores.
+        // Record per-file wall time so we can log the slowest files (huge-file
+        // hot spots) after the parallel section — can't .await inside the
+        // Rayon closure, and a shared Vec would race. Each closure returns its
+        // timing; we split diagnostics from timings after collect().
+        use rayon::prelude::*;
+        let results: Vec<(
+            Uri,
+            Vec<Diagnostic>,
+            Option<(String, usize, std::time::Duration)>,
+        )> = read_results
+            .par_iter()
+            .map(|(content, uri)| {
+                let t0 = std::time::Instant::now();
+                let diags = self.validate_content(uri, content, false);
+                let elapsed = t0.elapsed();
+                let timing = if elapsed > std::time::Duration::from_millis(50) {
+                    Some((
+                        uri.as_str()
+                            .split('/')
+                            .next_back()
+                            .unwrap_or("?")
+                            .to_string(),
+                        content.lines().count(),
+                        elapsed,
+                    ))
+                } else {
+                    None
+                };
+                (uri.clone(), diags, timing)
+            })
+            .collect();
+
+        // Split diagnostics from timings. Log slow files (sorted slowest-first)
+        // so huge-file hot spots surface in the output channel.
+        let mut file_timings: Vec<(String, usize, std::time::Duration)> =
+            results.iter().filter_map(|(_, _, t)| t.clone()).collect();
+        file_timings.sort_by_key(|(_, _, d)| std::cmp::Reverse(*d));
+        for (name, lines, elapsed) in file_timings.iter().take(10) {
+            self.client
+                .log_message(
+                    MessageType::INFO,
+                    format!(
+                        "[perf] slow file: {} ({} lines) in {:.1?}",
+                        name, lines, elapsed,
+                    ),
+                )
+                .await;
+        }
 
         let mut pending: Vec<(Uri, Vec<Diagnostic>)> = Vec::with_capacity(validated);
-
-        for chunk in read_results.chunks(concurrency) {
-            let futures: Vec<_> = chunk
-                .iter()
-                .map(|(content, uri)| self.validate_content(uri, content, false))
-                .collect();
-            let batch = futures::future::join_all(futures).await;
-            for (i, diags) in batch.into_iter().enumerate() {
-                if !diags.is_empty() {
-                    pending.push((chunk[i].1.clone(), diags));
-                }
-            }
-        }
+        pending.extend(
+            results
+                .into_iter()
+                .filter_map(|(u, d, _)| (!d.is_empty()).then_some((u, d))),
+        );
+        let validate_elapsed = scan_start.elapsed();
 
         // ── Phase 3: Deferred diagnostics with pacing ─────────────────
         // Publish all diagnostics AFTER validation completes, avoiding
@@ -415,16 +451,21 @@ impl Backend {
                 tokio::time::sleep(std::time::Duration::from_millis(10)).await;
             }
         }
+        let publish_elapsed = scan_start.elapsed() - validate_elapsed;
 
         let total_elapsed = scan_start.elapsed();
         self.client
             .log_message(
                 MessageType::INFO,
                 format!(
-                    "Workspace scan complete. Scanned {} files with {} diagnostics in {:.1?}.",
+                    "Workspace scan complete. Scanned {} files with {} diagnostics in {:.1?} \
+                     (read {:.1?}, validate {:.1?}, publish {:.1?}).",
                     validated,
                     pending.iter().map(|(_, d)| d.len()).sum::<usize>(),
                     total_elapsed,
+                    io_elapsed,
+                    validate_elapsed - io_elapsed,
+                    publish_elapsed,
                 ),
             )
             .await;
@@ -463,7 +504,7 @@ impl Backend {
         };
 
         let start = std::time::Instant::now();
-        let diagnostics = self.validate_content(&uri, &content, false).await;
+        let diagnostics = self.validate_content(&uri, &content, false);
         let elapsed = start.elapsed();
 
         // Log slow validations (>500ms) at DEBUG level so users can
@@ -515,12 +556,7 @@ impl Backend {
             .await;
     }
 
-    async fn validate_content(
-        &self,
-        uri: &Uri,
-        content: &str,
-        skip_styling: bool,
-    ) -> Vec<Diagnostic> {
+    fn validate_content(&self, uri: &Uri, content: &str, skip_styling: bool) -> Vec<Diagnostic> {
         let mut diagnostics = Vec::new();
 
         let mapper = RangeMapper::new(content);
@@ -572,42 +608,33 @@ impl Backend {
         let map_config = self.map_config_for_uri(uri.as_str());
 
         if uri.as_str().ends_with(".yml") {
-            self.validate_localization_content(uri, content, &mut diagnostics)
-                .await;
+            self.validate_localization_content(uri, content, &mut diagnostics);
         } else if uri.as_str().ends_with("/map/supply_nodes.txt")
             || uri.as_str().ends_with("\\map\\supply_nodes.txt")
         {
-            self.validate_supply_nodes_content(content, &mut diagnostics)
-                .await;
+            self.validate_supply_nodes_content(content, &mut diagnostics);
         } else if uri.as_str().ends_with("/map/railways.txt")
             || uri.as_str().ends_with("\\map\\railways.txt")
         {
-            self.validate_railways_content(content, &mut diagnostics)
-                .await;
+            self.validate_railways_content(content, &mut diagnostics);
         } else if uri.as_str().ends_with("/map/buildings.txt")
             || uri.as_str().ends_with("\\map\\buildings.txt")
         {
-            self.validate_map_buildings_content(content, &mut diagnostics)
-                .await;
+            self.validate_map_buildings_content(content, &mut diagnostics);
         } else if uri.as_str().ends_with("/map/unitstacks.txt")
             || uri.as_str().ends_with("\\map\\unitstacks.txt")
         {
-            self.validate_unitstacks_content(content, &mut diagnostics)
-                .await;
+            self.validate_unitstacks_content(content, &mut diagnostics);
         } else if uri.as_str().ends_with("/map/weatherpositions.txt")
             || uri.as_str().ends_with("\\map\\weatherpositions.txt")
         {
-            self.validate_weather_positions_content(content, &mut diagnostics)
-                .await;
+            self.validate_weather_positions_content(content, &mut diagnostics);
         } else if uri.as_str().ends_with("adjacency_rules.txt") {
-            self.validate_adjacency_rules_content(content, &mut diagnostics)
-                .await;
+            self.validate_adjacency_rules_content(content, &mut diagnostics);
         } else if uri.as_str().ends_with(&map_config.adjacencies) {
-            self.validate_adjacencies_content(content, &mut diagnostics)
-                .await;
+            self.validate_adjacencies_content(content, &mut diagnostics);
         } else if uri.as_str().ends_with(&map_config.definitions) {
-            self.validate_definition_content(content, &mut diagnostics)
-                .await;
+            self.validate_definition_content(content, &mut diagnostics);
         } else if uri.as_str().contains("/common/strategic_regions/")
             && uri.as_str().ends_with(".txt")
         {
@@ -674,10 +701,8 @@ impl Backend {
                     ..Default::default()
                 });
             }
-            self.validate_strategic_region_content(&script, &mut diagnostics)
-                .await;
-            self.check_semantic(&script, &mut diagnostics, styling_enabled, uri.as_str())
-                .await;
+            self.validate_strategic_region_content(&script, &mut diagnostics);
+            self.check_semantic(&script, &mut diagnostics, styling_enabled, uri.as_str());
             script_opt = Some(script);
         } else if uri.as_str().ends_with(".csv") {
             // Do not parse other CSV files as clausewitz scripts
@@ -746,8 +771,7 @@ impl Backend {
                 });
             }
             // Semantic validation
-            self.check_semantic(&script, &mut diagnostics, styling_enabled, uri.as_str())
-                .await;
+            self.check_semantic(&script, &mut diagnostics, styling_enabled, uri.as_str());
             script_opt = Some(script);
         }
 
@@ -765,11 +789,7 @@ impl Backend {
         diagnostics
     }
 
-    async fn validate_supply_nodes_content(
-        &self,
-        content: &str,
-        diagnostics: &mut Vec<Diagnostic>,
-    ) {
+    fn validate_supply_nodes_content(&self, content: &str, diagnostics: &mut Vec<Diagnostic>) {
         let provs = &self.scanner_data.provinces;
         for (i, line) in content.lines().enumerate() {
             let parts: Vec<&str> = line.split_whitespace().collect();
@@ -797,7 +817,7 @@ impl Backend {
         }
     }
 
-    async fn validate_railways_content(&self, content: &str, diagnostics: &mut Vec<Diagnostic>) {
+    fn validate_railways_content(&self, content: &str, diagnostics: &mut Vec<Diagnostic>) {
         let provs = &self.scanner_data.provinces;
         for (i, line) in content.lines().enumerate() {
             let parts: Vec<&str> = line.split_whitespace().collect();
@@ -831,11 +851,7 @@ impl Backend {
         }
     }
 
-    async fn validate_map_buildings_content(
-        &self,
-        content: &str,
-        diagnostics: &mut Vec<Diagnostic>,
-    ) {
+    fn validate_map_buildings_content(&self, content: &str, diagnostics: &mut Vec<Diagnostic>) {
         let states = &self.scanner_data.states;
         for (i, line) in content.lines().enumerate() {
             if line.trim().is_empty() {
@@ -883,11 +899,7 @@ impl Backend {
         }
     }
 
-    async fn validate_weather_positions_content(
-        &self,
-        content: &str,
-        diagnostics: &mut Vec<Diagnostic>,
-    ) {
+    fn validate_weather_positions_content(&self, content: &str, diagnostics: &mut Vec<Diagnostic>) {
         let regions = &self.scanner_data.strategic_regions;
         for (i, line) in content.lines().enumerate() {
             let parts: Vec<&str> = line.split(';').collect();
@@ -915,7 +927,7 @@ impl Backend {
         }
     }
 
-    async fn validate_unitstacks_content(&self, content: &str, diagnostics: &mut Vec<Diagnostic>) {
+    fn validate_unitstacks_content(&self, content: &str, diagnostics: &mut Vec<Diagnostic>) {
         let provs = &self.scanner_data.provinces;
         for (i, line) in content.lines().enumerate() {
             let parts: Vec<&str> = line.split(';').collect();
@@ -943,7 +955,7 @@ impl Backend {
         }
     }
 
-    async fn validate_definition_content(&self, content: &str, diagnostics: &mut Vec<Diagnostic>) {
+    fn validate_definition_content(&self, content: &str, diagnostics: &mut Vec<Diagnostic>) {
         // Build known terrain category names from scanned data, falling back to
         // vanilla HOI4 defaults if no mod/game terrain files were scanned.
         // This ensures province terrain validation works even without a game path.
@@ -1128,7 +1140,7 @@ impl Backend {
         }
     }
 
-    async fn validate_adjacencies_content(&self, content: &str, diagnostics: &mut Vec<Diagnostic>) {
+    fn validate_adjacencies_content(&self, content: &str, diagnostics: &mut Vec<Diagnostic>) {
         let provs = &self.scanner_data.provinces;
         let rules = &self.scanner_data.adjacency_rules;
         for (i, line) in content.lines().enumerate() {
@@ -1342,11 +1354,7 @@ impl Backend {
         }
     }
 
-    async fn validate_adjacency_rules_content(
-        &self,
-        content: &str,
-        diagnostics: &mut Vec<Diagnostic>,
-    ) {
+    fn validate_adjacency_rules_content(&self, content: &str, diagnostics: &mut Vec<Diagnostic>) {
         let provs = &self.scanner_data.provinces;
         let (script, errors) = parser::parse_script(content);
         let mapper = RangeMapper::new(content);
@@ -1402,7 +1410,7 @@ impl Backend {
         }
     }
 
-    async fn validate_strategic_region_content(
+    fn validate_strategic_region_content(
         &self,
         script: &ast::Script,
         diagnostics: &mut Vec<Diagnostic>,
@@ -1481,7 +1489,7 @@ impl Backend {
         }
     }
 
-    async fn validate_localization_content(
+    fn validate_localization_content(
         &self,
         uri: &Uri,
         content: &str,
@@ -1548,13 +1556,9 @@ impl Backend {
             .map(|e| e.key().to_string())
             .collect();
 
-        for (entry_idx, entry) in parsed.values().enumerate() {
-            // Yield to the async executor periodically so that large loc files
-            // (e.g. countries_l_english.yml with 5688 entries) don't block LSP
-            // request handling during workspace scans.
-            if entry_idx > 0 && entry_idx % 500 == 0 {
-                tokio::task::yield_now().await;
-            }
+        for entry in parsed.values() {
+            // No yield needed: workspace scans run on Rayon's dedicated pool,
+            // so the LSP runtime never blocks during large loc files.
 
             // Check for unnecessary version numbers
             if let Some(d) = loc_parser::check_unnecessary_version(entry) {
@@ -2173,7 +2177,7 @@ impl Backend {
         }
     }
 
-    async fn check_semantic(
+    fn check_semantic(
         &self,
         script: &ast::Script,
         diagnostics: &mut Vec<Diagnostic>,
@@ -2209,8 +2213,9 @@ impl Backend {
 
         let game_path = self.config.game_path();
 
-        // Lock workspace roots for texture path resolution
-        let workspace_roots = self.workspace_roots.lock().unwrap();
+        // Load workspace roots for texture path resolution (wait-free read;
+        // written once at startup in initialize)
+        let workspace_roots = self.workspace_roots.load();
         let range_mapper = RangeMapper::new(&script.source);
 
         // Build validation context

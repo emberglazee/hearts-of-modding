@@ -107,7 +107,7 @@ async fn main() {
             scanner_data: ScannerData::new(),
             config: Config::new(),
             system_info: Mutex::new(sysinfo::System::new()),
-            workspace_roots: Mutex::new(Vec::new()),
+            workspace_roots: ArcSwap::from_pointee(Vec::new()),
             pending_tasks: AtomicU64::new(0),
             static_token_keywords: static_keywords,
             entity_token_context: ArcSwap::from_pointee(HashMap::new()),
