@@ -419,15 +419,14 @@ impl Backend {
             results.iter().filter_map(|(_, _, t)| t.clone()).collect();
         file_timings.sort_by_key(|(_, _, d)| std::cmp::Reverse(*d));
         for (name, lines, elapsed) in file_timings.iter().take(10) {
-            self.client
-                .log_message(
-                    MessageType::INFO,
-                    format!(
-                        "[perf] slow file: {} ({} lines) in {:.1?}",
-                        name, lines, elapsed,
-                    ),
-                )
-                .await;
+            self.log_msg(
+                crate::log_level::LogLevel::Debug,
+                format!(
+                    "[perf] slow file: {} ({} lines) in {:.1?}",
+                    name, lines, elapsed,
+                ),
+            )
+            .await;
         }
 
         let mut pending: Vec<(Uri, Vec<Diagnostic>)> = Vec::with_capacity(validated);
