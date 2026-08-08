@@ -28,6 +28,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Toggling the LSP off and back on left the extension half-broken.** The log panel command was re-registered on every start, which threw after the server was already up — silently skipping the color code listener (leaving loc colours on wiki defaults) and the RAM usage indicator.
 
+- **Toggling the LSP no longer leaks file watchers or leaves stray server processes behind.** Every off→on cycle created two more workspace-wide file watchers that were never released, and toggling quickly — before the previous start or stop had finished — could launch a second `hom-lsp` that the extension then lost track of, leaving it running with a full workspace scan in memory and no way to stop it short of reloading the window.
+
 - **HOM6004 (`MALFORMED_LEADING_DOT_NUMBER`) no longer fires on identifiers containing non-English characters.** Accented and Cyrillic names are valid in HOI4 (vanilla uses them in `00_names.txt`), so IDs like `crisé.12` or `событие.1` were wrongly reported as errors. Genuine `.5` values are still caught.
 
 - **3 color code rename bugs:**

@@ -1,7 +1,7 @@
 import * as path from 'path'
 import * as fs from 'fs'
 import { createHash } from 'crypto'
-import { workspace, ExtensionContext, window, OutputChannel, commands, StatusBarAlignment, ConfigurationTarget, StatusBarItem } from 'vscode'
+import { workspace, ExtensionContext, window, OutputChannel, commands, StatusBarAlignment, ConfigurationTarget, StatusBarItem, FileSystemWatcher } from 'vscode'
 
 // The extension host runs on Node >=18 where `fetch` is a global, but the
 // project's @types/node (18.15) predates the global fetch typings — declare the
@@ -27,6 +27,39 @@ let outputChannel: OutputChannel
 let logPanelProvider: LogPanelProvider
 let memoryInterval: NodeJS.Timeout | undefined
 let locColorDecorator: LocColorDecorator
+
+// Owned by the extension, NOT by the language client. `synchronize.fileEvents`
+// routes through FileSystemWatcherFeature.registerRaw(), which stores only the
+// onDidCreate/onDidChange/onDidDelete *subscriptions* — never the watcher
+// objects themselves (vscode-languageclient 9.0.1, fileSystemWatcher.js:51-57;
+// contrast the dynamic register() path at :29-50, which pushes the watcher it
+// created at :47). `client.stop()` reaches that feature's clear() via
+// cleanUp() (client.js:997-1011) and disposes the subscriptions, so a watcher
+// created per-start was orphaned on every toggle-off. Created once here and
+// reused; hookFileEvents runs inside each start() (client.js:888), so every
+// client attaches fresh listeners to the same watchers.
+let fileEventWatchers: FileSystemWatcher[] | undefined
+
+// Serializes every LSP lifecycle transition. `isRunning()` is
+// `$state === Running` only (client.js:639), and the ClientState enum
+// (client.js:164-172) has distinct `Starting`/`Stopping` states — so a guard
+// built on it is blind during both transitions.
+let lifecycle: Promise<unknown> = Promise.resolve()
+
+/// Run `op` after every previously queued lifecycle transition has settled.
+///
+/// Without this, a second toggle arriving mid-transition saw `isRunning()`
+/// false, started a SECOND hom-lsp process, and overwrote the module-level
+/// `client` — orphaning the first server with its whole workspace scan
+/// resident and no remaining handle to stop it.
+///
+/// The `.catch` on the chain is load-bearing: a rejected transition must not
+/// poison `lifecycle`, or one failed start wedges every later toggle.
+function serialize<T>(op: () => Promise<T>): Promise<T> {
+    const next = lifecycle.then(op, op)
+    lifecycle = next.catch(() => undefined)
+    return next
+}
 
 function formatBytes(bytes: number): string {
     if (!Number.isFinite(bytes) || bytes <= 0) {
@@ -200,6 +233,17 @@ export async function activate(context: ExtensionContext) {
     locColorDecorator.activate()
     context.subscriptions.push(locColorDecorator)
 
+    // ── File watchers fed to the LSP via `synchronize.fileEvents` ──
+    // Created here rather than in startServer() so a toggle cycle reuses them
+    // (see the note on `fileEventWatchers`). Registered on context.subscriptions
+    // so VS Code owns teardown — deactivate() must NOT dispose them again.
+    // Must be assigned before the first startServer() call below.
+    fileEventWatchers = [
+        workspace.createFileSystemWatcher('**/*.txt'),
+        workspace.createFileSystemWatcher('**/*.csv')
+    ]
+    context.subscriptions.push(...fileEventWatchers)
+
     // ── Command: Show the HoM Log panel ──
     // Registered in activate(), NOT in startServer(): startServer runs again on
     // every LSP toggle, and re-registering an existing command id throws. That
@@ -264,20 +308,28 @@ export async function activate(context: ExtensionContext) {
     }))
 
     context.subscriptions.push(commands.registerCommand('hearts-of-modding.toggleLsp', async () => {
-        if (client && client.isRunning()) {
-            if (memoryInterval) {
-                clearInterval(memoryInterval)
-                memoryInterval = undefined
+        // The start-vs-stop decision is read INSIDE the critical section. Read
+        // outside it, two quick toggles both observe the same pre-transition
+        // state and issue two stops (or two starts) — serializing the actions
+        // alone would not prevent that.
+        await serialize(async () => {
+            if (client && client.isRunning()) {
+                if (memoryInterval) {
+                    clearInterval(memoryInterval)
+                    memoryInterval = undefined
+                }
+                await client.stop()
+                await workspace.getConfiguration('hoi4.lsp').update('enabled', false, ConfigurationTarget.Workspace)
+                outputChannel.appendLine('Hearts of Modding LSP stopped.')
+                window.showInformationMessage('Hearts of Modding LSP stopped. Toggle again to restart.')
+            } else {
+                await workspace.getConfiguration('hoi4.lsp').update('enabled', true, ConfigurationTarget.Workspace)
+                // startServerInner, not startServer: we already hold the lock,
+                // and the wrapper would await a chain containing this callback.
+                await startServerInner(context, statusBarItem)
+                window.showInformationMessage('Hearts of Modding LSP started!')
             }
-            await client.stop()
-            await workspace.getConfiguration('hoi4.lsp').update('enabled', false, ConfigurationTarget.Workspace)
-            outputChannel.appendLine('Hearts of Modding LSP stopped.')
-            window.showInformationMessage('Hearts of Modding LSP stopped. Toggle again to restart.')
-        } else {
-            await workspace.getConfiguration('hoi4.lsp').update('enabled', true, ConfigurationTarget.Workspace)
-            await startServer(context, statusBarItem)
-            window.showInformationMessage('Hearts of Modding LSP started!')
-        }
+        })
     }))
 
     context.subscriptions.push(commands.registerCommand('hearts-of-modding.setGamePath', async () => {
@@ -470,20 +522,29 @@ async function promptForTheme(): Promise<void> {
     }
 }
 
+/// Serialized entry point. Every caller outside an existing critical section
+/// must use this rather than `startServerInner`.
 async function startServer(context: ExtensionContext, statusBarItem: StatusBarItem) {
+    return serialize(() => startServerInner(context, statusBarItem))
+}
+
+/// The actual start sequence. MUST NOT be called except while holding the
+/// lifecycle lock — calling `startServer` from in here would await a chain
+/// containing this function and deadlock.
+async function startServerInner(context: ExtensionContext, statusBarItem: StatusBarItem) {
     if (client && client.isRunning()) {
         return
     }
 
-    // Open the HoM Log panel in the bottom panel instead of the output channel
-    // Wrap in try-catch because the view container may not be registered yet
-    // during early activation — an unhandled rejection here destabilizes the
-    // extension host, cascading into session crashes and message queue backlogs.
-    try {
-        commands.executeCommand('workbench.view.extension.hoi4-log')
-    } catch {
-        // View container not ready — messages still go to outputChannel
-    }
+    // Reveal the HoM Log panel. `executeCommand` returns a Thenable and rejects
+    // asynchronously, so the try/catch that used to sit here caught nothing —
+    // the view container being unregistered during early activation produced an
+    // unhandled rejection regardless. Attach a rejection handler instead, and
+    // don't await: focusing a view must not delay server start.
+    void commands.executeCommand('workbench.view.extension.hoi4-log').then(
+        undefined,
+        () => { /* view container not ready — messages still go to outputChannel */ }
+    )
     logPanelProvider.append('INFO', 'Hearts of Modding extension is now starting...')
     outputChannel.appendLine('Hearts of Modding extension is now starting...')
 
@@ -542,11 +603,11 @@ async function startServer(context: ExtensionContext, statusBarItem: StatusBarIt
             { scheme: 'file', language: 'hoi4-csv' }
         ],
         synchronize: {
-            // Notify the server about file changes to '.txt files contained in the workspace
-            fileEvents: [
-                workspace.createFileSystemWatcher('**/*.txt'),
-                workspace.createFileSystemWatcher('**/*.csv')
-            ]
+            // Notify the server about .txt/.csv changes in the workspace.
+            // These watchers are created once in activate() and reused across
+            // clients — the language client hooks fresh listeners onto them on
+            // every start() and disposes only those listeners on stop().
+            fileEvents: fileEventWatchers ?? []
         },
         outputChannel: outputChannel,
         initializationOptions: {
