@@ -10,6 +10,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Downloaded LSP binaries are verified before use.** On platforms where the server isn't bundled, the extension checks the download against the release checksum and refuses to install it on mismatch, rather than quietly trying a different release — previously a truncated transfer, or an error page served with HTTP 200 by a proxy, would be cached and reused forever. Releases published before checksums existed still install as before, but a checksum that can't be fetched at all no longer counts as "no checksum". Binaries from older extension versions are also cleaned up now.
 
+- **The log now says which extension and server builds are actually running.** Startup records the extension version, the `hom-lsp` version and where the server binary came from — bundled, downloaded from a specific release, reused from cache, or a local build — and warns when the two don't match. Previously a stale or mismatched server looked identical to a working one, and telling them apart meant digging through the extensions directory by hand.
+
 - **Structured-block sub-key awareness:** For a lot of relevant modifiers/triggers/effects, documented scope data for their sub-keys/parameters, e.g. `add_timed_idea = { idea = ... days = ... }`. Sub-keys are semantically highlighted, hover shows their type and description, and completion offers them first.
 
 ### 🔧 Changed

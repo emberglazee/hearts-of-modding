@@ -96,6 +96,61 @@ function logWarn(msg: string): void {
     outputChannel.appendLine(msg)
 }
 
+/// The installed extension version. Single source for this string: the
+/// download path and the startup banner must never disagree about it.
+function extensionVersion(context: ExtensionContext): string {
+    return (context.extension?.packageJSON?.version as string) ?? '0.0.0'
+}
+
+/// Where the running server binary came from.
+///
+/// The version alone is not enough to diagnose "my fix isn't showing up": a
+/// local dev build and a downloaded release can report the same version and
+/// behave completely differently. Tracking the winning branch of the
+/// resolution cascade is what makes a pasted log self-sufficient.
+type BinarySource =
+    | { kind: 'bundled' }
+    | { kind: 'downloaded', release: string }
+    | { kind: 'cached', release?: string }
+    | { kind: 'local-release' }
+    | { kind: 'local-debug' }
+    | { kind: 'missing' }
+
+function describeSource(s: BinarySource): string {
+    switch (s.kind) {
+        case 'bundled': return 'bundled in VSIX'
+        case 'downloaded': return `downloaded from ${s.release}`
+        case 'cached': return s.release ? `cached from ${s.release}` : 'cached download'
+        case 'local-release': return 'local release build'
+        case 'local-debug': return 'local debug build'
+        case 'missing': return 'not found'
+    }
+}
+
+/// Provenance is written beside the binary because the cache directory cannot
+/// carry it: `downloadHomLspBinary` caches under the EXTENSION's version, so a
+/// binary fetched from `releases/latest` — a genuinely different release —
+/// lands in a directory named after the extension version. Without this
+/// sidecar the origin is lost on the very next launch, which is exactly when
+/// skew matters. Read/write are both best-effort: a missing or corrupt sidecar
+/// degrades the log line, never startup.
+function writeProvenance(dst: string, release: string): void {
+    try {
+        fs.writeFileSync(`${dst}.origin`, JSON.stringify({ release, at: new Date().toISOString() }))
+    } catch {
+        /* best-effort — provenance is a diagnostic, not a dependency */
+    }
+}
+
+function readProvenance(dst: string): string | undefined {
+    try {
+        const raw = JSON.parse(fs.readFileSync(`${dst}.origin`, 'utf8')) as { release?: unknown }
+        return typeof raw.release === 'string' ? raw.release : undefined
+    } catch {
+        return undefined
+    }
+}
+
 /// Network budgets for resolving the server binary.
 ///
 /// `SHA256SUMS` is a few hundred bytes; a release binary is ~8-9 MB, so 120s
@@ -208,16 +263,17 @@ function pruneOldBinaryCaches(rootDir: string, keepVersion: string): void {
 async function downloadHomLspBinary(
     context: ExtensionContext,
     asset: string
-): Promise<string | null> {
-    const version: string = (context.extension?.packageJSON?.version as string) ?? '0.0.0'
+): Promise<{ path: string, source: BinarySource } | null> {
+    const version: string = extensionVersion(context)
     const root = path.join(context.globalStorageUri.fsPath, 'hom-lsp')
     const dir = path.join(root, version)
     const dst = path.join(dir, asset)
 
     if (fs.existsSync(dst)) {
-        logInfo(`Using cached hom-lsp binary at: ${dst}`)
+        const release = readProvenance(dst)
+        logInfo(`Using cached hom-lsp binary at: ${dst}${release ? ` (from ${release})` : ''}`)
         pruneOldBinaryCaches(root, version)
-        return dst
+        return { path: dst, source: { kind: 'cached', release } }
     }
 
     // One deadline for the whole resolution, not just per request — see the
@@ -296,9 +352,14 @@ async function downloadHomLspBinary(
             if (process.platform !== 'win32') {
                 fs.chmodSync(dst, 0o755)
             }
-            logInfo(`Downloaded ${asset} (${buf.length} bytes) to ${dst}`)
+            // `latest` is a genuinely different release from the pinned tag, so
+            // record which one won — the cache directory is named after the
+            // EXTENSION version and cannot express that distinction.
+            const release = base.includes('/latest/') ? 'releases/latest' : `v${version}`
+            writeProvenance(dst, release)
+            logInfo(`Downloaded ${asset} (${buf.length} bytes) from ${release} to ${dst}`)
             pruneOldBinaryCaches(root, version)
-            return dst
+            return { path: dst, source: { kind: 'downloaded', release } }
         } catch (err) {
             logWarn(
                 `Download error from ${url}: ` +
@@ -652,7 +713,11 @@ async function startServerInner(context: ExtensionContext, statusBarItem: Status
 
     // Resolve the hom-lsp binary for this platform/arch: bundled in the VSIX →
     // downloaded from the matching release → local build (dev fallbacks).
+    // `source` tracks which branch won: the version alone can't distinguish a
+    // local dev build from a shipped release, and only non-bundled platforms
+    // ever reach the download path at all.
     const asset = homLspAssetName(process.platform, process.arch)
+    let source: BinarySource = { kind: 'bundled' }
     let serverModule = context.asAbsolutePath(
         path.join('server-bin', asset)
     )
@@ -661,7 +726,8 @@ async function startServerInner(context: ExtensionContext, statusBarItem: Status
         logInfo(`Server binary not bundled for this platform (${asset}); checking release...`)
         const fetched = await downloadHomLspBinary(context, asset)
         if (fetched) {
-            serverModule = fetched
+            serverModule = fetched.path
+            source = fetched.source
         }
     }
 
@@ -672,6 +738,7 @@ async function startServerInner(context: ExtensionContext, statusBarItem: Status
         serverModule = context.asAbsolutePath(
             path.join('..', 'server', 'target', 'release', `hom-lsp${localSuffix}`)
         )
+        source = { kind: 'local-release' }
     }
 
     if (!fs.existsSync(serverModule)) {
@@ -680,13 +747,17 @@ async function startServerInner(context: ExtensionContext, statusBarItem: Status
         serverModule = context.asAbsolutePath(
             path.join('..', 'server', 'target', 'debug', `hom-lsp${localSuffix}`)
         )
+        source = { kind: 'local-debug' }
     }
 
     if (!fs.existsSync(serverModule)) {
-        logPanelProvider.append('ERROR', 'CRITICAL: No server binary found! Language features will not be available.')
+        source = { kind: 'missing' }
+        // Identify the extension build even in the total-failure case — this is
+        // exactly the report where "which version are you running?" gets asked.
+        logPanelProvider.append('ERROR', `CRITICAL: No server binary found! (Hearts of Modding v${extensionVersion(context)}, looked for ${asset}) Language features will not be available.`)
         outputChannel.appendLine('CRITICAL: No server binary found! Language features will not be available.')
     } else {
-        logInfo(`Using server binary at: ${serverModule}`)
+        logInfo(`Using server binary at: ${serverModule} (${describeSource(source)})`)
     }
 
     // If the extension is launched in debug mode then the debug server options are used
@@ -736,6 +807,45 @@ async function startServerInner(context: ExtensionContext, statusBarItem: Status
 
     // Start the client. This will also launch the server
     await client.start()
+
+    // ── Startup banner: extension build, server build, and provenance ──
+    // Read only AFTER start() resolves — `initializeResult` is undefined
+    // before that. This one line replaces the manual artifact check
+    // (`ls ~/.vscode/extensions` + `strings` on the binary) that a
+    // "my fix isn't showing up" report otherwise requires.
+    const extVersion = extensionVersion(context)
+    const info = client.initializeResult?.serverInfo
+    const srvVersion = info?.version ?? 'unknown'
+    logInfo(`Hearts of Modding v${extVersion} — ${info?.name ?? 'hom-lsp'} v${srvVersion} (${describeSource(source)})`)
+
+    if (srvVersion === 'unknown') {
+        // Version reporting was added in v0.26.0, so a silent server is a
+        // binary predating it — almost always a stale cached download or an
+        // old local build.
+        logWarn(`The server did not report a version (${describeSource(source)}) — it predates version reporting and is likely stale.`)
+    } else if (srvVersion !== extVersion) {
+        const isLocal = source.kind === 'local-release' || source.kind === 'local-debug'
+        const msg = `Extension is v${extVersion} but the server reports v${srvVersion}`
+        if (isLocal) {
+            // Routine mid-development: the working tree is simply ahead of or
+            // behind the installed extension. Warning here every start would
+            // train the warning away for the cases that matter.
+            logInfo(`${msg} (local build — expected during development).`)
+        } else if (source.kind === 'bundled') {
+            // Same VSIX ships both halves, so this cannot happen unless
+            // packaging picked up a stale server-bin/ — the wrong-VSIX trap.
+            logWarn(`${msg}, but the server is bundled in this VSIX. The package was built with a stale server binary.`)
+        } else {
+            logWarn(`${msg} (${describeSource(source)}). Language features may not match this extension.`)
+        }
+    }
+
+    if (source.kind === 'local-debug') {
+        // Worth saying regardless of version: a debug-profile server is
+        // dramatically slower and reliably produces "the LSP is sluggish"
+        // reports that cost an investigation.
+        logWarn('Running a DEBUG build of hom-lsp — expect significantly worse performance than a release build.')
+    }
 
     // ── Intercept server log messages for the HoM Log panel ──
     // Captures window/logMessage notifications from the server and

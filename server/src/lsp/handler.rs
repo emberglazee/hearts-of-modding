@@ -200,6 +200,15 @@ impl LanguageServer for Backend {
                 })),
                 ..Default::default()
             },
+            // Reported back to the client so a bug report identifies which
+            // server build is actually running. `env!` is resolved at compile
+            // time from server/Cargo.toml, so this cannot drift from the
+            // binary it is baked into — unlike a filename or a cache directory
+            // name, both of which have lied about provenance before.
+            server_info: Some(ServerInfo {
+                name: "hom-lsp".to_string(),
+                version: Some(env!("CARGO_PKG_VERSION").to_string()),
+            }),
             ..Default::default()
         })
     }
