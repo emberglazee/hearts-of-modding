@@ -98,6 +98,18 @@ async fn main() {
 
     let (service, socket) = LspService::new(|client| {
         let static_keywords = Arc::new(backend::build_static_semantic_keywords());
+        // Bound the scan pool to 2/3 of logical cores (min 4). Rayon's
+        // default = all logical cores, which pegs the CPU during large-file
+        // validation and starves VS Code's extension host, causing UI
+        // stuttering. Leaving headroom keeps the editor responsive.
+        let num_threads = std::thread::available_parallelism()
+            .map(|n| (n.get() * 2 / 3).max(4))
+            .unwrap_or(8);
+        let scan_pool = rayon::ThreadPoolBuilder::new()
+            .num_threads(num_threads)
+            .thread_name(|i| format!("hom-scan-{i}"))
+            .build()
+            .expect("rayon scan pool");
         Backend {
             client,
             documents: DashMap::new(),
@@ -108,6 +120,7 @@ async fn main() {
             config: Config::new(),
             system_info: Mutex::new(sysinfo::System::new()),
             workspace_roots: ArcSwap::from_pointee(Vec::new()),
+            scan_pool,
             pending_tasks: AtomicU64::new(0),
             static_token_keywords: static_keywords,
             entity_token_context: ArcSwap::from_pointee(HashMap::new()),

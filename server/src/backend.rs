@@ -56,6 +56,11 @@ pub(crate) struct Backend {
     pub(crate) config: Config,
     pub(crate) system_info: Mutex<sysinfo::System>,
     pub(crate) workspace_roots: ArcSwap<Vec<std::path::PathBuf>>,
+    /// Bounded thread pool for the workspace scan. Using Rayon's default
+    /// global pool (all logical cores) pegs every CPU during large-file
+    /// validation and starves VS Code's extension host, causing UI
+    /// stuttering. This pool caps scan parallelism to leave headroom.
+    pub(crate) scan_pool: rayon::ThreadPool,
     /// Monotonic counter of in-flight handler operations.
     /// Client polls via `hoi4/getMemoryUsage` to decide whether the status
     /// bar icon should show a throbber (busy) or pulse (idle).
@@ -389,28 +394,33 @@ impl Backend {
             Vec<Diagnostic>,
             Option<(String, usize, std::time::Duration)>,
         )> = tokio::task::block_in_place(|| {
-            read_results
-                .par_iter()
-                .map(|(content, uri)| {
-                    let t0 = std::time::Instant::now();
-                    let diags = self.validate_content(uri, content, false);
-                    let elapsed = t0.elapsed();
-                    let timing = if elapsed > std::time::Duration::from_millis(50) {
-                        Some((
-                            uri.as_str()
-                                .split('/')
-                                .next_back()
-                                .unwrap_or("?")
-                                .to_string(),
-                            content.lines().count(),
-                            elapsed,
-                        ))
-                    } else {
-                        None
-                    };
-                    (uri.clone(), diags, timing)
-                })
-                .collect()
+            // Install our bounded pool for this scan. The global pool
+            // pegs every logical core and starves VS Code's extension host,
+            // causing UI stuttering on large mods.
+            self.scan_pool.install(|| {
+                read_results
+                    .par_iter()
+                    .map(|(content, uri)| {
+                        let t0 = std::time::Instant::now();
+                        let diags = self.validate_content(uri, content, false);
+                        let elapsed = t0.elapsed();
+                        let timing = if elapsed > std::time::Duration::from_millis(50) {
+                            Some((
+                                uri.as_str()
+                                    .split('/')
+                                    .next_back()
+                                    .unwrap_or("?")
+                                    .to_string(),
+                                content.lines().count(),
+                                elapsed,
+                            ))
+                        } else {
+                            None
+                        };
+                        (uri.clone(), diags, timing)
+                    })
+                    .collect()
+            })
         });
 
         // Split diagnostics from timings. Log slow files (sorted slowest-first)
