@@ -96,28 +96,99 @@ function logWarn(msg: string): void {
     outputChannel.appendLine(msg)
 }
 
+/// Network budgets for resolving the server binary.
+///
+/// `SHA256SUMS` is a few hundred bytes; a release binary is ~8-9 MB, so 120s
+/// tolerates a link as slow as ~75 KB/s (roughly 0.6 Mbit/s) before aborting a
+/// download that would have succeeded. One blanket cap would either false-abort
+/// on a slow link or leave the tiny checksum request hanging for minutes.
+///
+/// `DOWNLOAD_BUDGET_MS` bounds the WHOLE resolution: per-request caps multiply
+/// across base URLs (2 bases x 2 requests each), so without an overall deadline
+/// a black-holed network still stalls activate() for far longer than any single
+/// cap suggests.
+const SHA_FETCH_TIMEOUT_MS = 15_000
+const BINARY_FETCH_TIMEOUT_MS = 120_000
+const DOWNLOAD_BUDGET_MS = 150_000
+
+/// An aborted fetch rejects with a DOMException named `AbortError`. Logging
+/// that as a generic failure is what makes a stalled network indistinguishable
+/// from a 404 in a bug report.
+function isAbortError(err: unknown): boolean {
+    return typeof err === 'object' && err !== null
+        && (err as { name?: string }).name === 'AbortError'
+}
+
+/// `fetch` with a deadline covering the response BODY, not just the headers.
+///
+/// `fetch` resolves as soon as headers arrive, so a timer cleared at that point
+/// leaves `arrayBuffer()` free to hang forever on a transfer that stalls
+/// mid-body — the realistic failure mode. Keeping one signal live across both
+/// awaits means the body stream is aborted too. The timer is always cleared:
+/// a pending two-minute timer would otherwise keep a handle on the event loop
+/// after a fast response.
+///
+/// `AbortController` rather than `AbortSignal.timeout()` because each request
+/// is clamped to whatever remains of the overall budget, which the static
+/// helper cannot express.
+async function fetchWithDeadline(
+    url: string,
+    timeoutMs: number
+): Promise<{ ok: true, buf: Buffer } | { ok: false, status: number }> {
+    const ac = new AbortController()
+    const timer = setTimeout(() => ac.abort(), timeoutMs)
+    try {
+        const res = await fetch(url, { signal: ac.signal })
+        if (!res.ok) return { ok: false, status: res.status }
+        return { ok: true, buf: Buffer.from(await res.arrayBuffer()) }
+    } finally {
+        clearTimeout(timer)
+    }
+}
+
+/// Why a checksum lookup needs three outcomes rather than `string | undefined`:
+/// "this release predates checksums" and "the checksum request failed" are
+/// both absences, but only the first may proceed to an unverified install.
+/// Collapsing them lets one flaky request silently downgrade a verified
+/// download path to an unverified one.
+type ChecksumLookup =
+    | { kind: 'found', digest: string }
+    | { kind: 'absent' }
+    | { kind: 'unavailable' }
+
 /// Fetch `SHA256SUMS` for a release and return the digest for `asset`.
 ///
-/// Returns `undefined` when the file is missing or has no line for the asset —
-/// releases published before checksums existed, in which case the download
-/// proceeds unverified rather than breaking older installs.
+/// `absent` covers a 404 or a file with no line for this asset — releases
+/// published before checksums existed, which install unverified rather than
+/// breaking. `unavailable` is a network failure or timeout, which must NOT be
+/// treated as permission to skip verification.
 async function fetchExpectedSha256(
     baseUrl: string,
-    asset: string
-): Promise<string | undefined> {
+    asset: string,
+    timeoutMs: number
+): Promise<ChecksumLookup> {
+    let res: { ok: true, buf: Buffer } | { ok: false, status: number }
     try {
-        const res = await fetch(`${baseUrl}/SHA256SUMS`)
-        if (!res.ok) return undefined
-        const text = Buffer.from(await res.arrayBuffer()).toString('utf8')
-        for (const line of text.split('\n')) {
-            // `sha256sum` format: "<64 hex>  <filename>"
-            const m = line.trim().match(/^([a-fA-F0-9]{64})\s+\*?(.+)$/)
-            if (m && m[2].trim() === asset) return m[1].toLowerCase()
-        }
-    } catch {
-        // Network/parse failure — treat as "no checksum available".
+        res = await fetchWithDeadline(`${baseUrl}/SHA256SUMS`, timeoutMs)
+    } catch (err) {
+        logWarn(
+            `Could not fetch SHA256SUMS from ${baseUrl}: ` +
+            (isAbortError(err) ? `timed out after ${timeoutMs}ms` : `${err}`)
+        )
+        return { kind: 'unavailable' }
     }
-    return undefined
+    if (!res.ok) {
+        // Only a 404 means "no checksums for this release". A 5xx is a failure
+        // to answer, not an answer.
+        return res.status === 404 ? { kind: 'absent' } : { kind: 'unavailable' }
+    }
+    const text = res.buf.toString('utf8')
+    for (const line of text.split('\n')) {
+        // `sha256sum` format: "<64 hex>  <filename>"
+        const m = line.trim().match(/^([a-fA-F0-9]{64})\s+\*?(.+)$/)
+        if (m && m[2].trim() === asset) return { kind: 'found', digest: m[1].toLowerCase() }
+    }
+    return { kind: 'absent' }
 }
 
 /// Delete cached binaries for versions other than the one in use, so global
@@ -149,6 +220,11 @@ async function downloadHomLspBinary(
         return dst
     }
 
+    // One deadline for the whole resolution, not just per request — see the
+    // note on DOWNLOAD_BUDGET_MS.
+    const deadline = Date.now() + DOWNLOAD_BUDGET_MS
+    const remaining = () => deadline - Date.now()
+
     // Pin to the release matching the installed extension version; fall back to
     // the latest release if that tag doesn't exist yet.
     const bases = [
@@ -157,38 +233,61 @@ async function downloadHomLspBinary(
     ]
 
     for (const base of bases) {
+        if (remaining() <= 0) {
+            logWarn(`Gave up resolving ${asset}: exceeded the ${DOWNLOAD_BUDGET_MS}ms download budget.`)
+            break
+        }
         const url = `${base}/${asset}`
         // Write to a temp file and rename only after the bytes check out, so an
         // interrupted or corrupt download can never be served from cache later.
         const tmp = `${dst}.part`
         try {
             logInfo(`No bundled binary for this platform; downloading ${asset} from ${url}...`)
-            const res = await fetch(url)
+            const res = await fetchWithDeadline(url, Math.min(BINARY_FETCH_TIMEOUT_MS, remaining()))
             if (!res.ok) {
                 logWarn(`Download failed (HTTP ${res.status}) from ${url}`)
                 continue
             }
-            const buf = Buffer.from(await res.arrayBuffer())
+            const buf = res.buf
 
             if (buf.length === 0) {
                 logWarn(`Downloaded ${asset} was empty — discarding.`)
                 continue
             }
 
-            const expected = await fetchExpectedSha256(base, asset)
-            if (expected) {
+            // The checksum MUST come from the same base as the binary: comparing
+            // a pinned-version digest against a `latest` binary is meaningless
+            // whichever way it lands.
+            const lookup = await fetchExpectedSha256(base, asset, Math.min(SHA_FETCH_TIMEOUT_MS, Math.max(remaining(), 0)))
+            if (lookup.kind === 'found') {
                 const actual = createHash('sha256').update(new Uint8Array(buf)).digest('hex')
-                if (actual !== expected) {
+                if (actual !== lookup.digest) {
                     // A proxy or captive portal returning an HTML error page with
                     // HTTP 200 lands here, as does a truncated transfer.
+                    //
+                    // Terminal, NOT `continue`. Each base is verified against its
+                    // own SHA256SUMS, so falling through to `releases/latest`
+                    // would fetch a DIFFERENT release, verify it successfully
+                    // against its own checksum, and silently install a server
+                    // that does not match this extension. A failed integrity
+                    // check must never be answered by installing something else.
                     logWarn(
-                        `Checksum mismatch for ${asset} — expected ${expected}, got ${actual}. Discarding.`
+                        `Checksum mismatch for ${asset} — expected ${lookup.digest}, got ${actual}. ` +
+                        'Refusing to install, and not trying another release.'
                     )
-                    continue
+                    return null
                 }
                 logInfo(`Verified ${asset} against SHA256SUMS.`)
-            } else {
+            } else if (lookup.kind === 'absent') {
+                // Releases published before SHA256SUMS existed — documented
+                // non-fatal contract, so older installs keep working.
                 logWarn(`No SHA256SUMS entry for ${asset}; skipping integrity check.`)
+            } else {
+                // Couldn't reach the checksum: distinct from "there isn't one".
+                // Installing unverified here would let one flaky request
+                // downgrade a verified path, so try the next base instead.
+                logWarn(`Could not verify ${asset} (checksum unavailable) — not installing from ${base}.`)
+                continue
             }
 
             fs.mkdirSync(dir, { recursive: true })
@@ -201,7 +300,10 @@ async function downloadHomLspBinary(
             pruneOldBinaryCaches(root, version)
             return dst
         } catch (err) {
-            logWarn(`Download error from ${url}: ${err}`)
+            logWarn(
+                `Download error from ${url}: ` +
+                (isAbortError(err) ? 'timed out' : `${err}`)
+            )
         } finally {
             // Never leave a partial file behind for a later run to trip over.
             try {

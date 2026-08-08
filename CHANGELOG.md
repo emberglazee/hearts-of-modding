@@ -8,7 +8,7 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Releases now publish a `SHA256SUMS` file** covering the VSIX and all six standalone LSP binaries, so downloads can be verified with `sha256sum -c SHA256SUMS`. CI builds attach one for their VSIX too.
 
-- **Downloaded LSP binaries are verified before use.** On platforms where the server isn't bundled, the extension checks the download against the release checksum and discards it on mismatch — previously a truncated transfer, or an error page served with HTTP 200 by a proxy, would be cached and reused forever. Binaries from older extension versions are also cleaned up now.
+- **Downloaded LSP binaries are verified before use.** On platforms where the server isn't bundled, the extension checks the download against the release checksum and refuses to install it on mismatch, rather than quietly trying a different release — previously a truncated transfer, or an error page served with HTTP 200 by a proxy, would be cached and reused forever. Releases published before checksums existed still install as before, but a checksum that can't be fetched at all no longer counts as "no checksum". Binaries from older extension versions are also cleaned up now.
 
 - **Structured-block sub-key awareness:** For a lot of relevant modifiers/triggers/effects, documented scope data for their sub-keys/parameters, e.g. `add_timed_idea = { idea = ... days = ... }`. Sub-keys are semantically highlighted, hover shows their type and description, and completion offers them first.
 
@@ -27,6 +27,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 - **Editing resources, state categories, continents or country tag aliases now takes effect immediately.** These four were only ever read on startup, so changes needed a window reload and deleting a file left its entries behind — most visibly, a removed tag alias kept producing wrong diagnostics in `common/country_tags/`.
 
 - **Toggling the LSP off and back on left the extension half-broken.** The log panel command was re-registered on every start, which threw after the server was already up — silently skipping the color code listener (leaving loc colours on wiki defaults) and the RAM usage indicator.
+
+- **Downloading the server no longer hangs startup indefinitely.** On platforms without a bundled binary, a stalled or black-holed network left the extension starting up forever with no error and no way to tell what it was waiting on — the request had no time limit at all. Downloads now give up and fall back to a local build instead.
 
 - **Toggling the LSP no longer leaks file watchers or leaves stray server processes behind.** Every off→on cycle created two more workspace-wide file watchers that were never released, and toggling quickly — before the previous start or stop had finished — could launch a second `hom-lsp` that the extension then lost track of, leaving it running with a full workspace scan in memory and no way to stop it short of reloading the window.
 
