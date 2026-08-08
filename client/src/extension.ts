@@ -699,15 +699,12 @@ async function startServerInner(context: ExtensionContext, statusBarItem: Status
         return
     }
 
-    // Reveal the HoM Log panel. `executeCommand` returns a Thenable and rejects
-    // asynchronously, so the try/catch that used to sit here caught nothing —
-    // the view container being unregistered during early activation produced an
-    // unhandled rejection regardless. Attach a rejection handler instead, and
-    // don't await: focusing a view must not delay server start.
-    void commands.executeCommand('workbench.view.extension.hoi4-log').then(
-        undefined,
-        () => { /* view container not ready — messages still go to outputChannel */ }
-    )
+    // Note: we deliberately do NOT reveal the HoM Log panel here. VS Code
+    // auto-focuses the Terminal panel during startup, so revealing HoM Log
+    // causes a visible focus fight (panel flashes, Terminal steals it back).
+    // Logs are stored in the panel provider and will appear when the user
+    // manually opens the panel. The visibility listener ensures no entries
+    // are lost while the panel is hidden.
     logPanelProvider.append('INFO', 'Hearts of Modding extension is now starting...')
     outputChannel.appendLine('Hearts of Modding extension is now starting...')
 

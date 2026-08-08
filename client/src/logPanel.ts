@@ -34,6 +34,16 @@ export class LogPanelProvider implements WebviewViewProvider {
         // happens when VS Code recreates the webview on panel switch.
         webviewView.webview.html = this._buildHtml()
 
+        // Re-render on visibility change: while the panel is hidden, VS Code
+        // doesn't deliver postMessage to the webview, so entries logged in
+        // the background are lost. When the user switches back, a full
+        // re-render syncs the displayed content with _entries.
+        webviewView.onDidChangeVisibility(() => {
+            if (webviewView.visible) {
+                this._fullRender()
+            }
+        })
+
         webviewView.webview.onDidReceiveMessage(msg => {
             switch (msg.command) {
                 case 'toggleFilter':
