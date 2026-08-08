@@ -388,28 +388,30 @@ impl Backend {
             Uri,
             Vec<Diagnostic>,
             Option<(String, usize, std::time::Duration)>,
-        )> = read_results
-            .par_iter()
-            .map(|(content, uri)| {
-                let t0 = std::time::Instant::now();
-                let diags = self.validate_content(uri, content, false);
-                let elapsed = t0.elapsed();
-                let timing = if elapsed > std::time::Duration::from_millis(50) {
-                    Some((
-                        uri.as_str()
-                            .split('/')
-                            .next_back()
-                            .unwrap_or("?")
-                            .to_string(),
-                        content.lines().count(),
-                        elapsed,
-                    ))
-                } else {
-                    None
-                };
-                (uri.clone(), diags, timing)
-            })
-            .collect();
+        )> = tokio::task::block_in_place(|| {
+            read_results
+                .par_iter()
+                .map(|(content, uri)| {
+                    let t0 = std::time::Instant::now();
+                    let diags = self.validate_content(uri, content, false);
+                    let elapsed = t0.elapsed();
+                    let timing = if elapsed > std::time::Duration::from_millis(50) {
+                        Some((
+                            uri.as_str()
+                                .split('/')
+                                .next_back()
+                                .unwrap_or("?")
+                                .to_string(),
+                            content.lines().count(),
+                            elapsed,
+                        ))
+                    } else {
+                        None
+                    };
+                    (uri.clone(), diags, timing)
+                })
+                .collect()
+        });
 
         // Split diagnostics from timings. Log slow files (sorted slowest-first)
         // so huge-file hot spots surface in the output channel.
