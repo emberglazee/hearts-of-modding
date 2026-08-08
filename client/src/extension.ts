@@ -864,6 +864,10 @@ async function startServerInner(context: ExtensionContext, statusBarItem: Status
         const body = levelMatch ? params.message.slice(levelMatch[0].length) : params.message
 
         logPanelProvider.append(level, body)
+        // Also mirror to the Output channel so server logs are visible even
+        // when the HoM Log panel is hidden (e.g. Terminal steals focus during
+        // startup). The client-side logInfo/logWarn already do this.
+        outputChannel.appendLine(`[${level}] ${body}`)
     }))
 
     // ── Scanned color codes pushed by the LSP after each scan ──
