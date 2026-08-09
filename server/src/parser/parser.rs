@@ -774,6 +774,15 @@ pub fn parse_script(input: &str) -> (ast::Script, Vec<(String, Range)>) {
     let mut errors = Vec::new();
     let mut stray_braces: Vec<Range> = Vec::new();
 
+    // Brace-resync recovery is the ONLY use of find_resync_point, and it
+    // scans the *entire remaining file* on every failed parse_entry. For a
+    // brace-less file (e.g. ;-separated map data) every failure triggers a
+    // full-remaining-file scan — O(n²) over ~264k lines of unitstacks.txt
+    // (observed >200 s parse). If the whole file has no braces, resync can
+    // never succeed, so skip the scan entirely: each error then costs only
+    // the line-skip below (O(n) total).
+    let has_any_brace = input_clean.bytes().any(|b| b == b'{' || b == b'}');
+
     loop {
         // Skip leading whitespace
         if let Ok((remainder, _)) = multispace0::<Span, nom::error::Error<Span>>(span) {
@@ -800,12 +809,15 @@ pub fn parse_script(input: &str) -> (ast::Script, Vec<(String, Range)>) {
                 // location_offset() to 0, making future ByteSpan offsets relative
                 // to the subslice instead of the original source — causing
                 // &source[bad_start..] to land inside multi-byte characters.
-                if let Some(advance) = find_resync_point(span, 0) {
-                    if let Ok((remaining, _)) = take::<_, _, nom::error::Error<Span>>(advance)(span)
-                    {
-                        stray_braces.push(to_error_range(span));
-                        span = remaining;
-                        continue; // resync succeeded — silent recovery
+                if has_any_brace {
+                    if let Some(advance) = find_resync_point(span, 0) {
+                        if let Ok((remaining, _)) =
+                            take::<_, _, nom::error::Error<Span>>(advance)(span)
+                        {
+                            stray_braces.push(to_error_range(span));
+                            span = remaining;
+                            continue; // resync succeeded — silent recovery
+                        }
                     }
                 }
 

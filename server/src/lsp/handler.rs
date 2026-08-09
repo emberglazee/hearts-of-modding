@@ -697,6 +697,15 @@ impl LanguageServer for Backend {
                 (std::collections::HashMap::new(), Vec::new(), None)
             });
             self.cache_loc_parse(&uri, result);
+        } else if self.is_line_data_uri(&uri, &self.map_config_for_uri(&uri)) {
+            // Line-data files (map/unitstacks.txt, *.csv, supply_nodes, …)
+            // are NOT HOI4 scripts: the engine reads them line-by-line and
+            // validation is line-based. Running them through the script
+            // parser is catastrophic — a 10 MB unitstacks.txt takes minutes
+            // (every `;` line fails, brace-resync scans the whole remaining
+            // file: O(n²) over 264k lines). Keep the document text in
+            // `documents` (validation reads it) but store NO script AST;
+            // skip the parse entirely.
         } else {
             // Parse on a blocking thread to avoid blocking the LSP event loop.
             let result = tokio::task::spawn_blocking(move || {
@@ -716,8 +725,9 @@ impl LanguageServer for Backend {
                 )
             });
 
-            self.document_asts.insert(uri, result);
+            self.document_asts.insert(uri.clone(), result.clone());
         }
+
         self.validate_document(params.text_document.uri).await;
     }
 
@@ -760,65 +770,70 @@ impl LanguageServer for Backend {
         };
 
         // Parse on a blocking thread (CPU-bound work, off the event loop).
-        // .yml files get the loc parse cache; everything else the script AST.
+        // .yml files get the loc parse cache; line-data files (map/unitstacks,
+        // *.csv, …) get NO parse at all — script-parsing them is O(n²) and
+        // pointless (validation is line-based); everything else the script AST.
         let is_yml = uri.ends_with(".yml");
-        let path_str_owned = params
-            .text_document
-            .uri
-            .to_file_path()
-            .map(|p| p.to_string_lossy().to_string());
-        let result = tokio::task::spawn_blocking(move || {
-            if is_yml {
-                DocParse::Loc(crate::parser::loc_parser::parse_loc_file(
-                    &text,
-                    &path_str_owned.unwrap_or_default(),
-                ))
-            } else {
-                let (script, errors) = parser::parse_script(&text);
-                DocParse::Script(Arc::new(script), errors)
+        let is_line_data = self.is_line_data_uri(&uri, &self.map_config_for_uri(&uri));
+        if !is_line_data {
+            let path_str_owned = params
+                .text_document
+                .uri
+                .to_file_path()
+                .map(|p| p.to_string_lossy().to_string());
+            let result = tokio::task::spawn_blocking(move || {
+                if is_yml {
+                    DocParse::Loc(crate::parser::loc_parser::parse_loc_file(
+                        &text,
+                        &path_str_owned.unwrap_or_default(),
+                    ))
+                } else {
+                    let (script, errors) = parser::parse_script(&text);
+                    DocParse::Script(Arc::new(script), errors)
+                }
+            })
+            .await
+            .unwrap_or_else(|e| {
+                eprintln!("[hoi4] Parse task panicked: {e}");
+                if is_yml {
+                    DocParse::Loc((std::collections::HashMap::new(), Vec::new(), None))
+                } else {
+                    DocParse::Script(
+                        Arc::new(ast::Script {
+                            source: Arc::from(""),
+                            entries: vec![],
+                            closed_by_eof: false,
+                        }),
+                        vec![],
+                    )
+                }
+            });
+
+            // Gate 2: if cancelled during spawn_blocking, discard.
+            if cancellation_token.is_cancelled() {
+                return;
             }
-        })
-        .await
-        .unwrap_or_else(|e| {
-            eprintln!("[hoi4] Parse task panicked: {e}");
-            if is_yml {
-                DocParse::Loc((std::collections::HashMap::new(), Vec::new(), None))
-            } else {
-                DocParse::Script(
-                    Arc::new(ast::Script {
-                        source: Arc::from(""),
-                        entries: vec![],
-                        closed_by_eof: false,
-                    }),
-                    vec![],
-                )
-            }
-        });
 
-        // Gate 2: if cancelled during spawn_blocking, discard.
-        if cancellation_token.is_cancelled() {
-            return;
-        }
+            match result {
+                DocParse::Script(script, errors) => {
+                    let script_for_scanner = script.clone();
+                    self.document_asts.insert(uri.clone(), (script, errors));
 
-        match result {
-            DocParse::Script(script, errors) => {
-                let script_for_scanner = script.clone();
-                self.document_asts.insert(uri.clone(), (script, errors));
-
-                // Live-update scanner data from cached AST (no re-parse needed)
-                if let Some(file_path) = params.text_document.uri.to_file_path() {
-                    let path_str = file_path.to_string_lossy().to_string();
-                    crate::scanner::incremental_scanner::update_scanner_data_from_ast(
-                        &self.scanner_data,
-                        &path_str,
-                        &script_for_scanner,
-                    );
+                    // Live-update scanner data from cached AST (no re-parse needed)
+                    if let Some(file_path) = params.text_document.uri.to_file_path() {
+                        let path_str = file_path.to_string_lossy().to_string();
+                        crate::scanner::incremental_scanner::update_scanner_data_from_ast(
+                            &self.scanner_data,
+                            &path_str,
+                            &script_for_scanner,
+                        );
+                    }
+                }
+                DocParse::Loc(outcome) => {
+                    self.cache_loc_parse(&uri, outcome);
                 }
             }
-            DocParse::Loc(outcome) => {
-                self.cache_loc_parse(&uri, outcome);
-            }
-        }
+        } // else: line-data — no parse, but still validate below
 
         self.validate_document(params.text_document.uri).await;
     }
@@ -848,43 +863,48 @@ impl LanguageServer for Backend {
         }
 
         // Parse on a blocking thread to avoid blocking the LSP event loop.
-        // .yml files populate the loc parse cache; everything else the AST.
+        // .yml files populate the loc parse cache; line-data files get NO
+        // parse (script-parsing unitstacks.csv-like data is O(n²)); everything
+        // else the AST.
         let is_yml = uri_str.ends_with(".yml");
-        let path_str_owned = uri.to_file_path().map(|p| p.to_string_lossy().to_string());
-        let result = tokio::task::spawn_blocking(move || {
-            if is_yml {
-                DocParse::Loc(crate::parser::loc_parser::parse_loc_file(
-                    &content,
-                    &path_str_owned.unwrap_or_default(),
-                ))
-            } else {
-                let (script, errors) = parser::parse_script(&content);
-                DocParse::Script(Arc::new(script), errors)
-            }
-        })
-        .await
-        .unwrap_or_else(|e| {
-            eprintln!("[hoi4] Parse task panicked: {e}");
-            if is_yml {
-                DocParse::Loc((std::collections::HashMap::new(), Vec::new(), None))
-            } else {
-                DocParse::Script(
-                    Arc::new(ast::Script {
-                        source: Arc::from(""),
-                        entries: vec![],
-                        closed_by_eof: false,
-                    }),
-                    vec![],
-                )
-            }
-        });
+        let is_line_data = self.is_line_data_uri(&uri_str, &self.map_config_for_uri(&uri_str));
+        if !is_line_data {
+            let path_str_owned = uri.to_file_path().map(|p| p.to_string_lossy().to_string());
+            let result = tokio::task::spawn_blocking(move || {
+                if is_yml {
+                    DocParse::Loc(crate::parser::loc_parser::parse_loc_file(
+                        &content,
+                        &path_str_owned.unwrap_or_default(),
+                    ))
+                } else {
+                    let (script, errors) = parser::parse_script(&content);
+                    DocParse::Script(Arc::new(script), errors)
+                }
+            })
+            .await
+            .unwrap_or_else(|e| {
+                eprintln!("[hoi4] Parse task panicked: {e}");
+                if is_yml {
+                    DocParse::Loc((std::collections::HashMap::new(), Vec::new(), None))
+                } else {
+                    DocParse::Script(
+                        Arc::new(ast::Script {
+                            source: Arc::from(""),
+                            entries: vec![],
+                            closed_by_eof: false,
+                        }),
+                        vec![],
+                    )
+                }
+            });
 
-        match result {
-            DocParse::Script(script, errors) => {
-                self.document_asts.insert(uri_str, (script, errors));
-            }
-            DocParse::Loc(outcome) => {
-                self.cache_loc_parse(&uri_str, outcome);
+            match result {
+                DocParse::Script(script, errors) => {
+                    self.document_asts.insert(uri_str, (script, errors));
+                }
+                DocParse::Loc(outcome) => {
+                    self.cache_loc_parse(&uri_str, outcome);
+                }
             }
         }
         self.validate_document(uri).await;

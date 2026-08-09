@@ -130,6 +130,43 @@ impl Backend {
         }
     }
 
+    /// Non-script, line-oriented data files (csv + the map-adjacent text
+    /// files the engine parses line-by-line).
+    ///
+    /// These must NOT be run through the HOI4 script parser. Doing so for a
+    /// big file (e.g. a 10 MB `map/unitstacks.txt`) is catastrophic: every
+    /// `;`-terminated line is data, the script parser fails each one, and
+    /// every failure scans the remaining file for brace-resync — O(n²) over
+    /// ~264k lines (observed >200 s parse). The engine reads these files as
+    /// plain data; validation happens in dedicated line-based validators
+    /// (`validate_unitstacks_content` et al.) or not at all (plain `.csv`).
+    ///
+    /// Mirrors the head of the `validate_content` dispatch so open/edit/save
+    /// and validation agree on what is a script. Returns `true` for:
+    ///   - `*.csv`, and
+    ///   - `map/supply_nodes.txt`, `map/railways.txt`, `map/buildings.txt`,
+    ///     `map/unitstacks.txt`, `map/weatherpositions.txt`, any
+    ///     `*adjacency_rules.txt`, and the file names `default.map` resolves
+    ///     for adjacencies/definitions.
+    pub(crate) fn is_line_data_uri(
+        &self,
+        uri: &str,
+        map_config: &crate::utils::map_config::MapConfig,
+    ) -> bool {
+        if uri.ends_with(".csv") {
+            return true;
+        }
+        let norm = uri.replace('\\', "/");
+        norm.ends_with("/map/supply_nodes.txt")
+            || norm.ends_with("/map/railways.txt")
+            || norm.ends_with("/map/buildings.txt")
+            || norm.ends_with("/map/unitstacks.txt")
+            || norm.ends_with("/map/weatherpositions.txt")
+            || norm.ends_with("adjacency_rules.txt")
+            || norm.ends_with(&map_config.adjacencies)
+            || norm.ends_with(&map_config.definitions)
+    }
+
     /// Build the §-symbol → hex-colour map from scanned `interface/*.gfx`
     /// color codes. Shared by the `hoi4/getColorCodes` command and the
     /// `hoi4/colorCodes` push notification sent after the initial scan.
