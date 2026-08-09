@@ -18,6 +18,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Renaming is dramatically faster in large mods.** The position index was rebuilt for every nested block instead of once per file; a single pass over a 100 KB event file went from ~175ms to ~0.17ms.
 
+- **File validation no longer blocks the LSP event loop.** An open file's diagnostics were produced synchronously on the server's message loop, so validating a large file (seconds of work) stalled every other LSP request — hover, completion, and edits to other files all hung until it finished. Validation now runs on a bounded compute pool behind a cheap Arc-clone of the shared server state (the rust-analyzer `Analysis` pattern), leaving the event loop free. Workspace scanning already used the same pool.
+
 ### 🩹 Fixed
 
 - **Quick fixes for spacing no longer crash the LSP on lines with non-English characters.** Requesting a code action on a line containing something like `café` could abort the request, as could a brace-spacing fix on a line whose closing brace fell outside the highlighted range.
@@ -41,6 +43,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
   - Accidental mid-character slicing causing a critical LSP crash;
   - Byte offsets emitted as UTF-16 columns, drifting edits off-target;
   - Range width in bytes, causing each edit to be one unit too wide.
+
+- **Opening or editing a huge map data file no longer wedges the server.** `map/unitstacks.txt` and other line-oriented data files (`supply_nodes.txt`, `definition.csv`, …) were run through the HOI4 script parser on every open and edit. The engine never parses these as scripts, and the script parser's recovery is O(n²) on brace-less files scanned from the start — a 10 MB unitstacks.txt (264k lines) took minutes per keystroke, and diagnostics never appeared. These files now skip the script parse entirely (validation stays line-based and instant), and the parser's brace-resync recovery is guarded by a whole-file brace pre-scan so no large brace-less file can ever trigger the quadratic path.
 
 ## [v0.25.3] - 2026-08-06
 
