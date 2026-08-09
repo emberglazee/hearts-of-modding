@@ -42,25 +42,26 @@ impl Drop for ProcessingGuard<'_> {
 
 pub(crate) struct Backend {
     pub(crate) client: Client,
-    pub(crate) documents: DashMap<String, String>,
-    pub(crate) document_asts: DashMap<String, (Arc<ast::Script>, Vec<(String, ast::Range)>)>,
+    pub(crate) documents: Arc<DashMap<String, String>>,
+    pub(crate) document_asts: Arc<DashMap<String, (Arc<ast::Script>, Vec<(String, ast::Range)>)>>,
     /// Cached `.yml` loc parse results, mirroring `document_asts` — hover and
     /// validation share ONE parse instead of re-parsing the whole loc file per
     /// request. Populated in did_open/did_change/did_save; evicted in
     /// did_close. Only OPEN documents are cached (unopened workspace-scan
     /// files parse fresh — no did_close ever evicts them, so caching them
     /// would leak RAM).
-    pub(crate) document_locs: DashMap<String, Arc<crate::parser::loc_parser::LocParseOutcome>>,
+    pub(crate) document_locs: Arc<DashMap<String, Arc<crate::parser::loc_parser::LocParseOutcome>>>,
     pub(crate) document_cancellation_tokens: DashMap<String, CancellationToken>,
-    pub(crate) scanner_data: ScannerData,
-    pub(crate) config: Config,
+    pub(crate) scanner_data: Arc<ScannerData>,
+    pub(crate) config: Arc<Config>,
     pub(crate) system_info: Mutex<sysinfo::System>,
     pub(crate) workspace_roots: ArcSwap<Vec<std::path::PathBuf>>,
-    /// Bounded thread pool for the workspace scan. Using Rayon's default
-    /// global pool (all logical cores) pegs every CPU during large-file
-    /// validation and starves VS Code's extension host, causing UI
-    /// stuttering. This pool caps scan parallelism to leave headroom.
-    pub(crate) scan_pool: rayon::ThreadPool,
+    /// Bounded thread pool for CPU-bound work (workspace scan + single-file
+    /// validation). Using Rayon's default global pool (all logical cores)
+    /// pegs every CPU during large-file validation and starves VS Code's
+    /// extension host, causing UI stuttering. This pool caps parallelism to
+    /// leave headroom.
+    pub(crate) compute_pool: rayon::ThreadPool,
     /// Monotonic counter of in-flight handler operations.
     /// Client polls via `hoi4/getMemoryUsage` to decide whether the status
     /// bar icon should show a throbber (busy) or pulse (idle).
@@ -79,6 +80,24 @@ pub(crate) struct Backend {
     /// completion handler clones this Arc per request instead of iterating ~20
     /// DashMaps and rebuilding CompletionItems on every keystroke.
     pub(crate) completion_entity_cache: ArcSwap<Vec<tower_lsp_server::ls_types::CompletionItem>>,
+}
+
+/// Cheap-clone handle for CPU-bound validation work.
+///
+/// Clones of this struct can be sent to thread pools (`spawn_blocking`, Rayon)
+/// without borrowing `&Backend`. This mirrors rust-analyzer's
+/// `Analysis = Arc<Database>` pattern: the main thread owns `Backend`,
+/// and CPU-bound tasks clone a `ValidationCtx`.
+///
+/// All fields use interior mutability (DashMap / ArcSwap / Atomic), so
+/// validation tasks only need `&ValidationCtx` — no `&mut` required.
+pub(crate) struct ValidationCtx {
+    pub(crate) scanner_data: Arc<ScannerData>,
+    pub(crate) documents: Arc<DashMap<String, String>>,
+    pub(crate) document_asts: Arc<DashMap<String, (Arc<ast::Script>, Vec<(String, ast::Range)>)>>,
+    pub(crate) document_locs: Arc<DashMap<String, Arc<crate::parser::loc_parser::LocParseOutcome>>>,
+    pub(crate) config: Arc<Config>,
+    pub(crate) workspace_roots: ArcSwap<Vec<std::path::PathBuf>>,
 }
 
 impl Backend {
@@ -397,12 +416,13 @@ impl Backend {
             // Install our bounded pool for this scan. The global pool
             // pegs every logical core and starves VS Code's extension host,
             // causing UI stuttering on large mods.
-            self.scan_pool.install(|| {
+            let ctx = ValidationCtx::from_backend(self);
+            self.compute_pool.install(|| {
                 read_results
                     .par_iter()
                     .map(|(content, uri)| {
                         let t0 = std::time::Instant::now();
-                        let diags = self.validate_content(uri, content, false);
+                        let diags = ctx.validate_content(uri, content, false);
                         let elapsed = t0.elapsed();
                         let timing = if elapsed > std::time::Duration::from_millis(50) {
                             Some((
@@ -514,8 +534,53 @@ impl Backend {
             }
         };
 
+        // CPU-bound validation runs on the bounded compute pool, not the
+        // tokio event loop: a 10 MB large-file validate takes seconds, and
+        // blocking the loop here would hang every LSP message (hover,
+        // completion, did_change for other files). Clone the validation
+        // context (cheap Arc clones) so the closure is `'static`.
+        let ctx = ValidationCtx::from_backend(self);
+        let uri_for_validation = uri.clone();
+        let content_for_validation = content.clone();
+        let (tx, rx) = tokio::sync::oneshot::channel();
+        self.compute_pool.spawn(move || {
+            let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                ctx.validate_content(&uri_for_validation, &content_for_validation, false)
+            }));
+            let diagnostics = match res {
+                Ok(d) => d,
+                Err(panic) => {
+                    let msg = if let Some(s) = panic.downcast_ref::<&str>() {
+                        (*s).to_string()
+                    } else if let Some(s) = panic.downcast_ref::<String>() {
+                        s.clone()
+                    } else {
+                        "unknown panic".to_string()
+                    };
+                    eprintln!(
+                        "[hoi4] validate_content PANICKED for {:?}: {}",
+                        uri_for_validation, msg
+                    );
+                    Vec::new()
+                }
+            };
+            let _ = tx.send(diagnostics);
+        });
         let start = std::time::Instant::now();
-        let diagnostics = self.validate_content(&uri, &content, false);
+        // Timeout as defense-in-depth: a stuck validation must never pin the
+        // did_open/did_change handler forever. 120s is far beyond any real
+        // validation (worst known: ~5s for a 10 MB file).
+        let diagnostics = match tokio::time::timeout(std::time::Duration::from_secs(120), rx).await
+        {
+            Ok(Ok(d)) => d,
+            Ok(Err(_)) | Err(_) => {
+                eprintln!(
+                    "[hoi4] validate_document: oneshot for {} lost or timed out",
+                    uri.as_str()
+                );
+                Vec::new()
+            }
+        };
         let elapsed = start.elapsed();
 
         // Log slow validations (>500ms) at DEBUG level so users can
@@ -567,7 +632,1304 @@ impl Backend {
             .await;
     }
 
-    fn validate_content(&self, uri: &Uri, content: &str, skip_styling: bool) -> Vec<Diagnostic> {
+    /// Compatibility wrapper — delegates to the combined `check_styling_ast`.
+    ///
+    /// Kept for tests in `tests/formatting.rs` that call this function directly.
+    /// The combined walk emits both assignment and brace spacing diagnostics,
+    /// matching the superset of what the old standalone function produced.
+    #[allow(dead_code)]
+    pub(crate) fn check_assignment_spacing(
+        entries: &[ast::Entry],
+        content: &str,
+        diagnostics: &mut Vec<Diagnostic>,
+    ) {
+        let lines: Vec<&str> = content.lines().collect();
+        let mapper = RangeMapper::new(content);
+        Self::check_styling_ast(
+            entries,
+            &lines,
+            &mapper,
+            diagnostics,
+            &mut HashMap::new(),
+            0,
+        );
+    }
+
+    /// Compute expected indentation depth for each line in the AST.
+    ///
+    /// Used by the "Fix all indentation" code action in `validation/formatting.rs`.
+    /// Standalone function (not combined with other styling checks) because it's
+    /// triggered only on explicit user action, not on every keystroke.
+    pub(crate) fn compute_expected_indentations(
+        entries: &[ast::Entry],
+        depth: usize,
+        expected: &mut HashMap<u32, usize>,
+    ) {
+        for entry in entries {
+            let start_line = match entry {
+                ast::Entry::Assignment(ass) => ass.key_range.start_line,
+                ast::Entry::Value(val) => val.range.start_line,
+                ast::Entry::Comment(_, r) => r.start_line,
+            };
+
+            expected.entry(start_line).or_insert(depth);
+
+            match entry {
+                ast::Entry::Assignment(ass) => match &ass.value.value {
+                    ast::Value::Block(inner) => {
+                        Self::compute_expected_indentations(inner, depth + 1, expected);
+                        let end_line = ass.value.range.end_line;
+                        if end_line != start_line {
+                            expected.entry(end_line).or_insert(depth);
+                        }
+                    }
+                    ast::Value::TaggedBlock(_, inner, _) => {
+                        Self::compute_expected_indentations(inner, depth + 1, expected);
+                        let end_line = ass.value.range.end_line;
+                        if end_line != start_line {
+                            expected.entry(end_line).or_insert(depth);
+                        }
+                    }
+                    _ => {}
+                },
+                ast::Entry::Value(val) => match &val.value {
+                    ast::Value::Block(inner) => {
+                        Self::compute_expected_indentations(inner, depth + 1, expected);
+                        let end_line = val.range.end_line;
+                        if end_line != start_line {
+                            expected.entry(end_line).or_insert(depth);
+                        }
+                    }
+                    ast::Value::TaggedBlock(_, inner, _) => {
+                        Self::compute_expected_indentations(inner, depth + 1, expected);
+                        let end_line = val.range.end_line;
+                        if end_line != start_line {
+                            expected.entry(end_line).or_insert(depth);
+                        }
+                    }
+                    _ => {}
+                },
+                ast::Entry::Comment(_, _) => {}
+            }
+        }
+    }
+
+    /// Combined AST walk for styling checks (per-keystroke path).
+    ///
+    /// Performs a single recursive traversal of the AST to:
+    /// 1. Compute expected indentation depths
+    /// 2. Check single-line brace spacing
+    /// 3. Check assignment operator spacing
+    ///
+    /// Uses a pre-cached lines slice for O(1) line lookups instead of
+    /// `content.lines().nth()` O(n) scans.
+    fn check_styling_ast(
+        entries: &[ast::Entry],
+        lines: &[&str],
+        mapper: &RangeMapper,
+        diagnostics: &mut Vec<Diagnostic>,
+        expected_indents: &mut HashMap<u32, usize>,
+        depth: usize,
+    ) {
+        for entry in entries {
+            let start_line = match entry {
+                ast::Entry::Assignment(ass) => ass.key_range.start_line,
+                ast::Entry::Value(val) => val.range.start_line,
+                ast::Entry::Comment(_, r) => r.start_line,
+            };
+            expected_indents.entry(start_line).or_insert(depth);
+
+            match entry {
+                ast::Entry::Assignment(ass) => {
+                    // ── Assignment spacing check ──
+                    let mut needs_fix = false;
+                    if ass.key_range.end_line == ass.operator_range.start_line
+                        && ass.key_range.end_line == ass.value.range.start_line
+                    {
+                        if ass.operator_range.start_col > ass.key_range.end_col
+                            && ass.value.range.start_col > ass.operator_range.end_col
+                        {
+                            let space_before = ass.operator_range.start_col - ass.key_range.end_col;
+                            let space_after =
+                                ass.value.range.start_col - ass.operator_range.end_col;
+                            if space_before != 1 || space_after != 1 {
+                                needs_fix = true;
+                            }
+                        } else {
+                            needs_fix = true;
+                        }
+                    }
+
+                    if needs_fix {
+                        let line_idx = ass.key_range.end_line as usize;
+                        if let Some(line) = lines.get(line_idx) {
+                            let start = ass.key_range.end_col as usize;
+                            let end = ass.value.range.start_col as usize;
+                            if start <= end && end <= line.len() {
+                                diagnostics.push(Diagnostic {
+                                    range: Range {
+                                        start: Position {
+                                            line: ass.key_range.end_line,
+                                            character: start as u32,
+                                        },
+                                        end: Position {
+                                            line: ass.value.range.start_line,
+                                            character: end as u32,
+                                        },
+                                    },
+                                    severity: Some(DiagnosticSeverity::INFORMATION),
+                                    code: Some(NumberOrString::String(
+                                        "styling_assignment_space".to_string(),
+                                    )),
+                                    message: "Assignment operator should be surrounded by exactly one space on each side (e.g., 'key = value')."
+                                        .to_string(),
+                                    source: Some("Hearts of Modding".to_string()),
+                                    ..Default::default()
+                                });
+                            }
+                        }
+                    }
+
+                    // ── Single-line brace spacing check ──
+                    Self::check_brace_spacing_for_range_slice(
+                        &ass.value.range,
+                        &ass.value.value,
+                        lines,
+                        mapper,
+                        diagnostics,
+                    );
+
+                    // ── Recurse into child blocks ──
+                    match &ass.value.value {
+                        ast::Value::Block(inner) => {
+                            Self::check_styling_ast(
+                                inner,
+                                lines,
+                                mapper,
+                                diagnostics,
+                                expected_indents,
+                                depth + 1,
+                            );
+                            let end_line = ass.value.range.end_line;
+                            if end_line != start_line {
+                                expected_indents.entry(end_line).or_insert(depth);
+                            }
+                        }
+                        ast::Value::TaggedBlock(_, inner, _) => {
+                            Self::check_styling_ast(
+                                inner,
+                                lines,
+                                mapper,
+                                diagnostics,
+                                expected_indents,
+                                depth + 1,
+                            );
+                            let end_line = ass.value.range.end_line;
+                            if end_line != start_line {
+                                expected_indents.entry(end_line).or_insert(depth);
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+                ast::Entry::Value(val) => {
+                    // ── Single-line brace spacing check ──
+                    Self::check_brace_spacing_for_range_slice(
+                        &val.range,
+                        &val.value,
+                        lines,
+                        mapper,
+                        diagnostics,
+                    );
+
+                    // ── Recurse into child blocks ──
+                    match &val.value {
+                        ast::Value::Block(inner) => {
+                            Self::check_styling_ast(
+                                inner,
+                                lines,
+                                mapper,
+                                diagnostics,
+                                expected_indents,
+                                depth + 1,
+                            );
+                            let end_line = val.range.end_line;
+                            if end_line != start_line {
+                                expected_indents.entry(end_line).or_insert(depth);
+                            }
+                        }
+                        ast::Value::TaggedBlock(_, inner, _) => {
+                            Self::check_styling_ast(
+                                inner,
+                                lines,
+                                mapper,
+                                diagnostics,
+                                expected_indents,
+                                depth + 1,
+                            );
+                            let end_line = val.range.end_line;
+                            if end_line != start_line {
+                                expected_indents.entry(end_line).or_insert(depth);
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+                ast::Entry::Comment(_, _) => {}
+            }
+        }
+    }
+
+    /// Check single-line brace spacing, using a pre-cached lines slice.
+    ///
+    /// Accepts `&[&str]` instead of `&str` to avoid O(n) `content.lines().nth()` calls.
+    /// Logic is identical to the old `check_brace_spacing_for_range` which accepted
+    /// `content: &str` and scanned from the start on every call.
+    fn check_brace_spacing_for_range_slice(
+        range: &ast::Range,
+        value: &ast::Value,
+        lines: &[&str],
+        mapper: &RangeMapper,
+        diagnostics: &mut Vec<Diagnostic>,
+    ) {
+        match value {
+            ast::Value::Block(_) | ast::Value::TaggedBlock(_, _, _)
+                if range.start_line == range.end_line =>
+            {
+                let line_idx = range.start_line as usize;
+                if let Some(line) = lines.get(line_idx) {
+                    let start = range.start_col as usize;
+                    let end = range.end_col as usize;
+                    if start < end && end <= line.len() {
+                        let full_str = &line[start..end];
+                        if let Some(brace_start_rel) = full_str.find('{') {
+                            let mut needs_fix = false;
+                            let mut message = "Single-line block should have exactly one space padding inside curly braces.";
+
+                            // 1. Check space BEFORE { if it's a TaggedBlock
+                            if let ast::Value::TaggedBlock(tag, _, _) = value {
+                                if &full_str[tag.len()..brace_start_rel] != " " {
+                                    needs_fix = true;
+                                    message = "Single-line block should have exactly one space around curly braces.";
+                                }
+                            }
+
+                            // 2. Check padding INSIDE
+                            let block_str = &full_str[brace_start_rel..];
+                            if block_str.len() >= 2 {
+                                let inner = &block_str[1..block_str.len() - 1];
+                                if inner.trim().is_empty() {
+                                    if block_str != "{}" {
+                                        needs_fix = true;
+                                        message = "Empty single-line block should be '{}' without spaces.";
+                                    }
+                                } else {
+                                    if !block_str.starts_with("{ ")
+                                        || !block_str.ends_with(" }")
+                                        || block_str.starts_with("{  ")
+                                        || block_str.ends_with("  }")
+                                    {
+                                        needs_fix = true;
+                                    }
+                                }
+                            }
+
+                            if needs_fix {
+                                diagnostics.push(Diagnostic {
+                                    range: mapper.range(range),
+                                    severity: Some(DiagnosticSeverity::INFORMATION),
+                                    code: Some(NumberOrString::String(
+                                        "styling_brace_space".to_string(),
+                                    )),
+                                    message: message.to_string(),
+                                    source: Some("Hearts of Modding".to_string()),
+                                    ..Default::default()
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// Build the keyword + entity context used for semantic token resolution.
+    ///
+    /// Uses pre-computed static keywords (computed once at startup) merged with
+    /// the current scanner entity map (updated on rescans via
+    /// [`update_entity_token_context()`]).
+    ///
+    /// This used to rebuild the entire keyword set from scratch on every semantic
+    /// token request, iterating all DashMaps — now it's just two cheap clones.
+    pub(crate) fn build_semantic_token_context(&self) -> semantic_tokens::SemanticTokenContext {
+        // Both maps are already stored behind Arc (static_token_keywords is
+        // Arc<HashSet>, entity_token_context is ArcSwap<HashMap>), and
+        // SemanticTokenContext now holds Arc references — so this is exactly
+        // two cheap Arc::clone calls, no deep copies of the underlying
+        // collections on every keystroke.
+        semantic_tokens::SemanticTokenContext::new(
+            Arc::clone(&self.static_token_keywords),
+            self.entity_token_context.load_full(),
+        )
+    }
+
+    /// Refresh the entity name map from current scanner data.
+    ///
+    /// Call this after a full initial scan ([`crate::lsp::handler::Backend::initialized`])
+    /// or after any rescan triggered by [`crate::lsp::handler::Backend::did_change_watched_files`].
+    /// Without this, semantic tokens would continue using a stale entity context
+    /// (entities added or removed by rescans wouldn't be highlighted).
+    pub(crate) fn update_entity_token_context(&self) {
+        let lookup = entity_lookup::EntityLookup::new(&self.scanner_data);
+        let names = lookup.entity_names();
+        self.entity_token_context.store(Arc::new(names));
+        self.completion_entity_cache
+            .store(Arc::new(self.build_completion_entity_cache()));
+    }
+
+    /// Rebuild the scanner-derived portion of the completion catalogue.
+    /// Called whenever the entity token context is refreshed (after full scans
+    /// and rescans). Static triggers/effects are not included here (the completion
+    /// handler precomputes those per scope); this covers the ~20 entity DashMaps.
+    fn build_completion_entity_cache(&self) -> Vec<tower_lsp_server::ls_types::CompletionItem> {
+        use tower_lsp_server::ls_types::{CompletionItem, CompletionItemKind, Documentation};
+        let mut items: Vec<CompletionItem> = Vec::new();
+        let sd = &self.scanner_data;
+
+        for entry in sd.scripted_triggers.iter() {
+            let t = entry.value();
+            items.push(CompletionItem {
+                label: t.name.clone(),
+                kind: Some(CompletionItemKind::EVENT),
+                detail: Some("Scripted Trigger".to_string()),
+                documentation: Some(Documentation::String(format!("Defined in: {}", t.path))),
+                ..Default::default()
+            });
+        }
+        for entry in sd.scripted_effects.iter() {
+            let e = entry.value();
+            items.push(CompletionItem {
+                label: e.name.clone(),
+                kind: Some(CompletionItemKind::EVENT),
+                detail: Some("Scripted Effect".to_string()),
+                documentation: Some(Documentation::String(format!("Defined in: {}", e.path))),
+                ..Default::default()
+            });
+        }
+        for entry in sd.ideologies.iter() {
+            let i = entry.value();
+            items.push(CompletionItem {
+                label: i.name.clone(),
+                kind: Some(CompletionItemKind::ENUM),
+                detail: Some("Ideology".to_string()),
+                documentation: Some(Documentation::String(format!("Defined in: {}", i.path))),
+                ..Default::default()
+            });
+        }
+        for entry in sd.sub_ideologies.iter() {
+            let (parent, _, _) = entry.value().resolve();
+            items.push(CompletionItem {
+                label: entry.key().to_string(),
+                kind: Some(CompletionItemKind::ENUM_MEMBER),
+                detail: Some(format!("Sub-Ideology (Parent: {})", parent)),
+                ..Default::default()
+            });
+        }
+        for entry in sd.traits.iter() {
+            let t = entry.value();
+            items.push(CompletionItem {
+                label: t.name.clone(),
+                kind: Some(CompletionItemKind::INTERFACE),
+                detail: Some(t.trait_type.clone()),
+                documentation: Some(Documentation::String(format!("Defined in: {}", t.path))),
+                ..Default::default()
+            });
+        }
+        for entry in sd.sprites.iter() {
+            let s = entry.value();
+            items.push(CompletionItem {
+                label: s.name.clone(),
+                kind: Some(CompletionItemKind::FILE),
+                detail: Some("Sprite/GFX".to_string()),
+                documentation: Some(Documentation::String(format!("Defined in: {}", s.path))),
+                ..Default::default()
+            });
+        }
+        for entry in sd.ideas.iter() {
+            let i = entry.value();
+            items.push(CompletionItem {
+                label: i.name.clone(),
+                kind: Some(CompletionItemKind::CONSTANT),
+                detail: Some(format!("Idea ({})", i.category)),
+                documentation: Some(Documentation::String(format!("Defined in: {}", i.category))),
+                ..Default::default()
+            });
+        }
+        for entry in sd.abilities.iter() {
+            let a = entry.value();
+            items.push(CompletionItem {
+                label: a.key.clone(),
+                kind: Some(CompletionItemKind::FUNCTION),
+                detail: Some("Leader Ability".to_string()),
+                ..Default::default()
+            });
+        }
+        for entry in sd.achievements.iter() {
+            let a = entry.value();
+            items.push(CompletionItem {
+                label: a.name.clone(),
+                kind: Some(CompletionItemKind::EVENT),
+                detail: Some("Achievement".to_string()),
+                documentation: Some(Documentation::String(format!("Defined in: {}", a.path))),
+                ..Default::default()
+            });
+        }
+        for entry in sd.portraits.iter() {
+            let p = entry.value();
+            items.push(CompletionItem {
+                label: p.name.clone(),
+                kind: Some(CompletionItemKind::ENUM),
+                detail: Some("Portrait Definition".to_string()),
+                documentation: Some(Documentation::String(format!("Defined in: {}", p.path))),
+                ..Default::default()
+            });
+        }
+        for entry in sd.characters.iter() {
+            let c = entry.value();
+            items.push(CompletionItem {
+                label: c.id.clone(),
+                kind: Some(CompletionItemKind::STRUCT),
+                detail: Some("Character".to_string()),
+                documentation: Some(Documentation::String(format!("Defined in: {}", c.path))),
+                ..Default::default()
+            });
+        }
+        for entry in sd.ai_strategy_plans.iter() {
+            let p = entry.value();
+            items.push(CompletionItem {
+                label: p.name.clone(),
+                kind: Some(CompletionItemKind::FOLDER),
+                detail: Some("AI Strategy Plan".to_string()),
+                documentation: Some(Documentation::String(format!("Defined in: {}", p.path))),
+                ..Default::default()
+            });
+        }
+        for entry in sd.variables.iter() {
+            items.push(CompletionItem {
+                label: entry.key().to_string(),
+                kind: Some(CompletionItemKind::VARIABLE),
+                detail: Some("Variable".to_string()),
+                ..Default::default()
+            });
+        }
+        for entry in sd.event_targets.iter() {
+            items.push(CompletionItem {
+                label: entry.key().to_string(),
+                kind: Some(CompletionItemKind::STRUCT),
+                detail: Some("Event Target".to_string()),
+                ..Default::default()
+            });
+        }
+        for entry in sd.music_assets.iter() {
+            let a = entry.value();
+            items.push(CompletionItem {
+                label: a.name.clone(),
+                kind: Some(CompletionItemKind::FILE),
+                detail: Some("Music Asset".to_string()),
+                documentation: Some(Documentation::String(format!("File: {}", a.file))),
+                ..Default::default()
+            });
+        }
+        for entry in sd.music_stations.iter() {
+            items.push(CompletionItem {
+                label: entry.value().name.clone(),
+                kind: Some(CompletionItemKind::FOLDER),
+                detail: Some("Music Station".to_string()),
+                ..Default::default()
+            });
+        }
+        for entry in sd.songs.iter() {
+            items.push(CompletionItem {
+                label: entry.value().name.clone(),
+                kind: Some(CompletionItemKind::FILE),
+                detail: Some("Song".to_string()),
+                ..Default::default()
+            });
+        }
+        for entry in sd.sounds.iter() {
+            let s = entry.value();
+            items.push(CompletionItem {
+                label: s.name.clone(),
+                kind: Some(CompletionItemKind::FILE),
+                detail: Some("Sound".to_string()),
+                documentation: Some(Documentation::String(format!("File: {}", s.file))),
+                ..Default::default()
+            });
+        }
+        for entry in sd.sound_effects.iter() {
+            items.push(CompletionItem {
+                label: entry.value().name.clone(),
+                kind: Some(CompletionItemKind::EVENT),
+                detail: Some("Sound Effect".to_string()),
+                ..Default::default()
+            });
+        }
+        for entry in sd.falloffs.iter() {
+            items.push(CompletionItem {
+                label: entry.value().name.clone(),
+                kind: Some(CompletionItemKind::UNIT),
+                detail: Some("Sound Falloff".to_string()),
+                ..Default::default()
+            });
+        }
+        for entry in sd.sound_categories.iter() {
+            items.push(CompletionItem {
+                label: entry.value().name.clone(),
+                kind: Some(CompletionItemKind::FOLDER),
+                detail: Some("Sound Category".to_string()),
+                ..Default::default()
+            });
+        }
+        items
+    }
+}
+
+/// Pre-compute the static keyword set used for semantic token resolution.
+///
+/// This includes: all built-in triggers, effects, modifiers, scopes,
+/// and the extensive hardcoded keyword list for character definitions,
+/// abilities, focuses, events, OOB, terrain, ideologies, etc.
+///
+/// This function is called exactly once at startup (see `main.rs`). The
+/// result is stored in `Backend::static_token_keywords` as `Arc<HashSet>`
+/// so each semantic token rebuild is just a cheap `Arc::clone`.
+pub(crate) fn build_static_semantic_keywords() -> HashSet<String> {
+    let mut keywords = HashSet::new();
+
+    for k in TRIGGERS.keys() {
+        keywords.insert(k.to_string());
+    }
+    for k in EFFECTS.keys() {
+        keywords.insert(k.to_string());
+    }
+    for k in MODIFIERS.keys() {
+        keywords.insert(k.to_string());
+    }
+    for k in SCOPES.iter() {
+        keywords.insert(k.to_string());
+        keywords.insert(k.to_ascii_lowercase());
+    }
+
+    // Add hardcoded achievement keywords
+    keywords.insert("unique_id".to_string());
+    keywords.insert("possible".to_string());
+    keywords.insert("happened".to_string());
+    keywords.insert("ribbon".to_string());
+    keywords.insert("frames".to_string());
+    keywords.insert("colors".to_string());
+    keywords.insert("custom_achievement".to_string());
+    keywords.insert("custom_ribbon".to_string());
+    keywords.insert("key".to_string());
+
+    // Character keywords
+    keywords.insert("characters".to_string());
+    keywords.insert("advisor".to_string());
+    keywords.insert("country_leader".to_string());
+    keywords.insert("corps_commander".to_string());
+    keywords.insert("field_marshal".to_string());
+    keywords.insert("navy_leader".to_string());
+    keywords.insert("scientist".to_string());
+    keywords.insert("portraits".to_string());
+    keywords.insert("traits".to_string());
+    keywords.insert("gender".to_string());
+    keywords.insert("instance".to_string());
+    keywords.insert("idea_token".to_string());
+    keywords.insert("legacy_id".to_string());
+    keywords.insert("expire".to_string());
+    keywords.insert("ideology".to_string());
+    // Unit leader skill properties
+    keywords.insert("attack_skill".to_string());
+    keywords.insert("defense_skill".to_string());
+    keywords.insert("planning_skill".to_string());
+    keywords.insert("logistics_skill".to_string());
+    keywords.insert("maneuvering_skill".to_string());
+    keywords.insert("coordination_skill".to_string());
+    // Scientist specialization block
+    keywords.insert("skills".to_string());
+    // Advisor-only property
+    keywords.insert("can_be_fired".to_string());
+
+    // Custom advancement field keywords
+    keywords.insert("achievement".to_string());
+
+    // Ability keywords
+    keywords.insert("ability".to_string());
+    keywords.insert("name".to_string());
+    keywords.insert("desc".to_string());
+    keywords.insert("type".to_string());
+    keywords.insert("cost".to_string());
+    keywords.insert("duration".to_string());
+    keywords.insert("cooldown".to_string());
+    keywords.insert("icon".to_string());
+    keywords.insert("cancelable".to_string());
+    keywords.insert("allowed".to_string());
+    keywords.insert("one_time_effect".to_string());
+    keywords.insert("unit_modifiers".to_string());
+    keywords.insert("ai_will_do".to_string());
+    keywords.insert("add_ability".to_string());
+    keywords.insert("remove_ability".to_string());
+
+    // AI strategy plan keywords
+    keywords.insert("enable".to_string());
+    keywords.insert("abort".to_string());
+    keywords.insert("ai_national_focuses".to_string());
+    keywords.insert("focus_factors".to_string());
+    keywords.insert("research".to_string());
+    keywords.insert("weight".to_string());
+    keywords.insert("planned_production".to_string());
+    keywords.insert("technologies".to_string());
+
+    // AI area keywords
+    keywords.insert("continents".to_string());
+    keywords.insert("strategic_regions".to_string());
+
+    // Music keywords
+    keywords.insert("music".to_string());
+    keywords.insert("music_station".to_string());
+    keywords.insert("song".to_string());
+    keywords.insert("chance".to_string());
+    keywords.insert("base".to_string());
+    keywords.insert("factor".to_string());
+    keywords.insert("add".to_string());
+    keywords.insert("modifier".to_string());
+    keywords.insert("volume".to_string());
+    keywords.insert("file".to_string());
+
+    // Structural block keywords (scope filter, conditional, option blocks)
+    keywords.insert("limit".to_string());
+    keywords.insert("else".to_string());
+    keywords.insert("else_if".to_string());
+    keywords.insert("option".to_string());
+    keywords.insert("trigger".to_string());
+
+    // Ideology definition keywords
+    keywords.insert("types".to_string());
+    keywords.insert("dynamic_faction_names".to_string());
+    keywords.insert("rules".to_string());
+    keywords.insert("can_host_government_in_exile".to_string());
+    keywords.insert("war_impact_on_world_tension".to_string());
+    keywords.insert("faction_impact_on_world_tension".to_string());
+    keywords.insert("can_be_boosted".to_string());
+    keywords.insert("can_collaborate".to_string());
+    keywords.insert("modifiers".to_string());
+    keywords.insert("faction_modifiers".to_string());
+    keywords.insert("can_create_collaboration_government".to_string());
+    keywords.insert("can_declare_war_on_same_ideology".to_string());
+    keywords.insert("can_force_government".to_string());
+
+    // Known idea category names (game-defined, not user types)
+    keywords.insert("country".to_string());
+    keywords.insert("slot_ledgers".to_string());
+    keywords.insert("slot".to_string());
+    keywords.insert("character_slot".to_string());
+    keywords.insert("designer".to_string());
+    keywords.insert("use_list_view".to_string());
+    keywords.insert("law".to_string());
+    keywords.insert("picture".to_string());
+    keywords.insert("targeted_modifier".to_string());
+    keywords.insert("research_bonus".to_string());
+    keywords.insert("equipment_bonus".to_string());
+    keywords.insert("rule".to_string());
+    keywords.insert("on_add".to_string());
+    keywords.insert("on_remove".to_string());
+    keywords.insert("cancel".to_string());
+    keywords.insert("allowed_civil_war".to_string());
+    keywords.insert("do_effect".to_string());
+    keywords.insert("allowed_to_remove".to_string());
+    keywords.insert("visible".to_string());
+    keywords.insert("available".to_string());
+    keywords.insert("removal_cost".to_string());
+    keywords.insert("level".to_string());
+    keywords.insert("ledger".to_string());
+    keywords.insert("hidden".to_string());
+    keywords.insert("politics_tab".to_string());
+
+    // National focus tree structure keywords
+    keywords.insert("focus_tree".to_string());
+    keywords.insert("focus".to_string());
+    keywords.insert("shared_focus".to_string());
+    keywords.insert("joint_focus".to_string());
+    keywords.insert("continuous_focus_palette".to_string());
+    keywords.insert("continuous_focus_position".to_string());
+    keywords.insert("initial_show_position".to_string());
+    keywords.insert("shortcut".to_string());
+    keywords.insert("inlay_window".to_string());
+    keywords.insert("style".to_string());
+    keywords.insert("search_filter_prios".to_string());
+
+    // National focus property keywords
+    keywords.insert("prerequisite".to_string());
+    keywords.insert("mutually_exclusive".to_string());
+    keywords.insert("bypass".to_string());
+    keywords.insert("bypass_if_unavailable".to_string());
+    keywords.insert("enable_automatic_bypass".to_string());
+    keywords.insert("allow_branch".to_string());
+    keywords.insert("available_if_capitulated".to_string());
+    keywords.insert("cancel_if_invalid".to_string());
+    keywords.insert("continue_if_invalid".to_string());
+    keywords.insert("historical_ai".to_string());
+    keywords.insert("completion_reward".to_string());
+    keywords.insert("complete_tooltip".to_string());
+    keywords.insert("select_effect".to_string());
+    keywords.insert("bypass_effect".to_string());
+    keywords.insert("search_filters".to_string());
+    keywords.insert("text_icon".to_string());
+    keywords.insert("will_lead_to_war_with".to_string());
+    keywords.insert("dynamic".to_string());
+    keywords.insert("offset".to_string());
+    keywords.insert("relative_position_id".to_string());
+    keywords.insert("id".to_string());
+    keywords.insert("default".to_string());
+    keywords.insert("reset_on_civilwar".to_string());
+    keywords.insert("target".to_string());
+    keywords.insert("scroll_wheel_factor".to_string());
+
+    // Continuous focus keywords
+    keywords.insert("daily_cost".to_string());
+    keywords.insert("supports_ai_strategy".to_string());
+    keywords.insert("cancel_effect".to_string());
+
+    // Joint focus keywords
+    keywords.insert("joint_trigger".to_string());
+    keywords.insert("completion_reward_joint_originator".to_string());
+    keywords.insert("completion_reward_joint_member".to_string());
+
+    // Focus inlay window keywords
+    keywords.insert("window_name".to_string());
+    keywords.insert("internal".to_string());
+    keywords.insert("scripted_buttons".to_string());
+    keywords.insert("scripted_images".to_string());
+    keywords.insert("click_effect".to_string());
+
+    // Style definition keywords
+    keywords.insert("unavailable".to_string());
+    keywords.insert("current".to_string());
+
+    // AI strategy plan keywords
+    keywords.insert("ai_strategy".to_string());
+
+    // State definition keywords (history/states/*.txt)
+    keywords.insert("manpower".to_string());
+    keywords.insert("state_category".to_string());
+    keywords.insert("resources".to_string());
+    keywords.insert("buildings_max_level_factor".to_string());
+    keywords.insert("history".to_string());
+    keywords.insert("provinces".to_string());
+
+    // State history sub-keywords
+    keywords.insert("owner".to_string());
+    keywords.insert("victory_points".to_string());
+    keywords.insert("buildings".to_string());
+
+    // Strategic region definition keywords (map/strategicregions/*.txt)
+    keywords.insert("strategic_region".to_string());
+    keywords.insert("weather".to_string());
+    keywords.insert("period".to_string());
+    keywords.insert("between".to_string());
+    keywords.insert("no_phenomenon".to_string());
+    keywords.insert("rain_light".to_string());
+    keywords.insert("rain_heavy".to_string());
+    keywords.insert("snow".to_string());
+    keywords.insert("blizzard".to_string());
+    keywords.insert("mud".to_string());
+    keywords.insert("sandstorm".to_string());
+    keywords.insert("arctic_water".to_string());
+    keywords.insert("min_snow_level".to_string());
+    keywords.insert("naval_terrain".to_string());
+
+    // Terrain definition keywords (common/terrain/*.txt)
+    keywords.insert("categories".to_string());
+    keywords.insert("color".to_string());
+    keywords.insert("color_ui".to_string());
+    keywords.insert("terrain".to_string());
+    keywords.insert("movement_cost".to_string());
+    keywords.insert("is_water".to_string());
+    keywords.insert("sound_type".to_string());
+    keywords.insert("minimum_seazone_dominance".to_string());
+    keywords.insert("combat_width".to_string());
+    keywords.insert("combat_support_width".to_string());
+    keywords.insert("ai_terrain_importance_factor".to_string());
+    keywords.insert("match_value".to_string());
+    keywords.insert("buildings_max_level".to_string());
+    keywords.insert("supply_flow_penalty_factor".to_string());
+    keywords.insert("units".to_string());
+    keywords.insert("battle_cruiser".to_string());
+    keywords.insert("battleship".to_string());
+    keywords.insert("heavy_cruiser".to_string());
+    keywords.insert("carrier".to_string());
+    keywords.insert("destroyer".to_string());
+    keywords.insert("light_cruiser".to_string());
+    keywords.insert("submarine".to_string());
+    keywords.insert("texture".to_string());
+    keywords.insert("spawn_city".to_string());
+    keywords.insert("perm_snow".to_string());
+
+    // Balance of power definition keywords (common/bop/*.txt)
+    keywords.insert("initial_value".to_string());
+    keywords.insert("left_side".to_string());
+    keywords.insert("right_side".to_string());
+    keywords.insert("decision_category".to_string());
+    keywords.insert("side".to_string());
+    keywords.insert("range".to_string());
+    keywords.insert("min".to_string());
+    keywords.insert("max".to_string());
+    keywords.insert("on_activate".to_string());
+    keywords.insert("on_deactivate".to_string());
+
+    // Event definition keywords (events/*.txt) structural — not in triggers/effects data
+    keywords.insert("add_namespace".to_string());
+    keywords.insert("mean_time_to_happen".to_string());
+    keywords.insert("fire_only_once".to_string());
+    keywords.insert("is_triggered_only".to_string());
+    keywords.insert("major".to_string());
+    keywords.insert("show_major".to_string());
+    keywords.insert("fire_for_sender".to_string());
+    keywords.insert("minor_flavor".to_string());
+    keywords.insert("timeout_days".to_string());
+    keywords.insert("immediate".to_string());
+    keywords.insert("after".to_string());
+    keywords.insert("original_recipient_only".to_string());
+    keywords.insert("ai_chance".to_string());
+    keywords.insert("title".to_string());
+    keywords.insert("text".to_string());
+    keywords.insert("tooltip".to_string());
+
+    // Event time / delay keywords (MTTH + event firing effect)
+    keywords.insert("days".to_string());
+    keywords.insert("months".to_string());
+    keywords.insert("years".to_string());
+    keywords.insert("hours".to_string());
+    keywords.insert("random_hours".to_string());
+    keywords.insert("random_days".to_string());
+
+    // Event-type-specific effect sub-keys
+    keywords.insert("trigger_for".to_string());
+    keywords.insert("occupied".to_string());
+    keywords.insert("originator".to_string());
+    keywords.insert("recipient".to_string());
+    keywords.insert("set_root".to_string());
+    keywords.insert("set_from".to_string());
+    keywords.insert("set_from_from".to_string());
+
+    // Bookmark definition keywords (common/bookmarks/*.txt)
+    keywords.insert("bookmarks".to_string());
+    keywords.insert("bookmark".to_string());
+    keywords.insert("default_country".to_string());
+    keywords.insert("effect".to_string());
+    keywords.insert("minor".to_string());
+    keywords.insert("ideas".to_string());
+    keywords.insert("focuses".to_string());
+
+    // Game rule keywords (common/game_rules/*.txt)
+    keywords.insert("group".to_string());
+    keywords.insert("required_dlc".to_string());
+    keywords.insert("exclude_dlc".to_string());
+    keywords.insert("allow_achievements".to_string());
+
+    // Difficulty setting keywords (common/difficulty_settings/*.txt)
+    keywords.insert("difficulty_settings".to_string());
+    keywords.insert("difficulty_setting".to_string());
+    keywords.insert("countries".to_string());
+    keywords.insert("multiplier".to_string());
+
+    // OOB (Order of Battle) keywords (history/units/*.txt)
+    keywords.insert("air_wings".to_string());
+    keywords.insert("amount".to_string());
+    keywords.insert("instant_effect".to_string());
+    keywords.insert("regiments".to_string());
+    keywords.insert("support".to_string());
+    keywords.insert("division_names_group".to_string());
+    keywords.insert("is_locked".to_string());
+    keywords.insert("force_allow_recruiting".to_string());
+    keywords.insert("division_cap".to_string());
+    keywords.insert("template_counter".to_string());
+    keywords.insert("override_model".to_string());
+    keywords.insert("division_name".to_string());
+    keywords.insert("is_name_ordered".to_string());
+    keywords.insert("name_order".to_string());
+    keywords.insert("start_experience_factor".to_string());
+    keywords.insert("start_equipment_factor".to_string());
+    keywords.insert("start_manpower_factor".to_string());
+    keywords.insert("force_equipment_variants".to_string());
+    keywords.insert("officer".to_string());
+    keywords.insert("division".to_string());
+    keywords.insert("location".to_string());
+    keywords.insert("fleet".to_string());
+    keywords.insert("naval_base".to_string());
+    keywords.insert("task_force".to_string());
+    keywords.insert("pride_of_the_fleet".to_string());
+    keywords.insert("ship".to_string());
+    keywords.insert("definition".to_string());
+    keywords.insert("requested_factories".to_string());
+    keywords.insert("efficiency".to_string());
+    keywords.insert("version_name".to_string());
+    keywords.insert("creator".to_string());
+
+    // Decisions-adjacent keywords
+    keywords.insert("complete_effect".to_string());
+    keywords.insert("remove_effect".to_string());
+    keywords.insert("timeout_effect".to_string());
+    keywords.insert("highlight_states".to_string());
+    keywords.insert("highlight_states_trigger".to_string());
+    keywords.insert("days_remove".to_string());
+    keywords.insert("days_re_enable".to_string());
+    keywords.insert("on_map_mode".to_string());
+    keywords.insert("targets".to_string());
+    keywords.insert("target_trigger".to_string());
+    keywords.insert("state_target".to_string());
+    keywords.insert("cancel_trigger".to_string());
+    keywords.insert("days_mission_timeout".to_string());
+    keywords.insert("custom_cost_trigger".to_string());
+    keywords.insert("custom_cost_text".to_string());
+    keywords.insert("is_good".to_string());
+
+    // Decision-category-only keys (valid on a category block, shown/hidden logic)
+    keywords.insert("visible_when_empty".to_string());
+    keywords.insert("scripted_gui".to_string());
+    keywords.insert("on_map_area".to_string());
+    keywords.insert("day_of_week".to_string());
+
+    // lowk lazy to categorize
+    keywords.insert("popularity".to_string());
+    keywords.insert("ruling_party".to_string());
+    keywords.insert("elections_allowed".to_string());
+    keywords.insert("size".to_string());
+    keywords.insert("transfer_troops".to_string());
+    keywords.insert("autonomy_state".to_string());
+    keywords.insert("scope".to_string());
+    keywords.insert("producer".to_string());
+    keywords.insert("var".to_string());
+    keywords.insert("value".to_string());
+    keywords.insert("fixed_random_seed".to_string());
+    keywords.insert("instant_build".to_string());
+    keywords.insert("add_idea".to_string());
+    keywords.insert("remove_idea".to_string());
+    keywords.insert("province".to_string());
+    keywords.insert("build_only_on_allied".to_string());
+    keywords.insert("controller_priority".to_string());
+    keywords.insert("fallback".to_string());
+    keywords.insert("start_province".to_string());
+    keywords.insert("target_province".to_string());
+
+    // Structural flow control keywords (transparent blocks)
+    keywords.insert("and".to_string());
+    keywords.insert("or".to_string());
+    keywords.insert("not".to_string());
+
+    // Add transparent block types from V2 data
+    for block in crate::data::hoi4_data::get_transparent_block_types() {
+        keywords.insert(block.clone());
+    }
+
+    keywords
+}
+
+/// Check for duplicate modifier keys within a block of entries.
+/// This was previously a method on `Backend`, now a free function called
+/// by the centralized AST walker for every block entry.
+pub(crate) fn check_duplicate_keys<'a>(
+    entries: &[ast::Entry],
+    diagnostics: &mut Vec<Diagnostic>,
+    mod_maps: &DashMap<InternedStr, String>,
+    source: &'a str,
+    in_air_wings: bool,
+    parent_key: Option<&'a str>,
+) {
+    // Currently only checks keys that are in `mod_maps` (modifier names) plus a small
+    // hardcoded set of common structural keys (`name`, `id`, `icon`). All other keys
+    // (e.g. arbitrary custom keys from mods) are silently allowed. To extend coverage,
+    // add more entries to `COMMON_KEYS` or replace the hardcoded list with a configurable
+    // set of key patterns.
+    const COMMON_KEYS: [&str; 3] = ["name", "id", "icon"];
+
+    let mapper = RangeMapper::new(source);
+    let mut seen_keys: FxHashMap<&'a str, ast::Range> = FxHashMap::default();
+
+    for entry in entries {
+        if let ast::Entry::Assignment(ass) = entry {
+            // We only care about duplicates if they are modifiers.
+            // Some Paradox keys (like 'modifier = { ... }' or 'option = { ... }') are intended to be duplicates.
+            // But specific engine modifiers (like 'stability_factor') should NEVER be duplicated.
+
+            let key: &'a str = ass.key_text(source);
+            let is_modifier = mod_maps.contains_key(key) || COMMON_KEYS.contains(&key);
+
+            // Exceptions: Some effects/triggers are specifically designed to be used multiple times
+            // In air_wings province blocks, 'name' keys are used to label each preceding
+            // equipment type block, so duplicates are valid.
+            // 'icon' is used structurally in army_icons.txt (and similar files) where
+            // each `icon = { ... }` block is a separate entry keyed by list position.
+            // Inside `province` blocks, `id` values are list items (provinces to apply
+            // a modifier to), not genuine duplicates.
+            let is_exception = key == "modifier"
+                || key == "option"
+                || key == "limit"
+                || key == "if"
+                || key == "else"
+                || key == "else_if"
+                || key == "variable_name"
+                || key == "icon"
+                || (in_air_wings && key == "name")
+                || (parent_key == Some("province") && key == "id");
+
+            if is_modifier && !is_exception {
+                if let Some(prev_range) = seen_keys.get(key) {
+                    diagnostics.push(Diagnostic {
+                            range: mapper.range(prev_range),
+                            severity: Some(DiagnosticSeverity::WARNING),
+                            code: Some(NumberOrString::String("duplicate_key".to_string())),
+                            message: format!("Duplicate modifier/key '{}' detected in the same scope. The game will ignore this value and use the last one.", key),
+                            source: Some("Hearts of Modding".to_string()),
+                            ..Default::default()
+                        });
+                }
+
+                let full_range = ast::Range {
+                    start_line: ass.key_range.start_line,
+                    start_col: ass.key_range.start_col,
+                    end_line: ass.value.range.end_line,
+                    end_col: ass.value.range.end_col,
+                };
+                seen_keys.insert(key, full_range);
+            }
+        }
+    }
+}
+
+/// Check a single terrain value from definition.csv against known terrain
+/// categories. Returns `Some(Diagnostic)` if the terrain is unknown.
+pub(crate) fn check_province_terrain_csv(
+    terrain_value: &str,
+    terrain_names: &HashSet<String>,
+    line: u32,
+    col_start: u32,
+    col_len: u32,
+) -> Option<Diagnostic> {
+    let lower = terrain_value.trim().to_lowercase();
+    if !lower.is_empty() && !terrain_names.contains(&lower) {
+        Some(Diagnostic {
+            range: Range {
+                start: Position {
+                    line,
+                    character: col_start,
+                },
+                end: Position {
+                    line,
+                    character: col_start + col_len,
+                },
+            },
+            severity: Some(DiagnosticSeverity::WARNING),
+            message: format!(
+                "Unknown terrain '{}'. Terrains are defined in common/terrain/*.txt",
+                lower,
+            ),
+            code: Some(NumberOrString::String(
+                crate::validation::advanced_validation::UNKNOWN_PROVINCE_TERRAIN.to_string(),
+            )),
+            source: Some("Hearts of Modding".to_string()),
+            ..Default::default()
+        })
+    } else {
+        None
+    }
+}
+
+/// Collect all unit type casing mismatches in the AST for bulk-fix code actions.
+///
+/// Walks the AST looking for `regiments = { ... }` and `support = { ... }` blocks,
+/// then checks each child entry's key against the known `unit_types` DashMap.
+/// When a key exists case-insensitively but with different casing, the fix
+/// (key range + canonical text) is collected.
+///
+/// When `specific_type` is `Some(key)`, only fixes for that specific canonical
+/// unit type are collected (for per-unit-type bulk fixes). When `None`, all
+/// mismatches are collected.
+impl Backend {
+    pub(crate) fn collect_unit_type_casing_fixes(
+        &self,
+        entries: &[ast::Entry],
+        fixes: &mut Vec<(ast::Range, String)>,
+        source: &str,
+        specific_type: Option<&str>,
+    ) {
+        for entry in entries {
+            match entry {
+                ast::Entry::Assignment(ass) => {
+                    let key_lower = ass.key_text(source).to_ascii_lowercase();
+
+                    // Track when we're inside regiments/support blocks
+                    let in_slot = matches!(key_lower.as_str(), "regiments" | "support")
+                        && matches!(
+                            &ass.value.value,
+                            ast::Value::Block(_) | ast::Value::TaggedBlock(..)
+                        );
+
+                    // When inside a slot block, check each child with a Block
+                    // value as a unit type reference
+                    if in_slot {
+                        if let ast::Value::Block(inner) = &ass.value.value {
+                            for child in inner {
+                                if let ast::Entry::Assignment(child_ass) = child {
+                                    if matches!(
+                                        &child_ass.value.value,
+                                        ast::Value::Block(_) | ast::Value::TaggedBlock(..)
+                                    ) {
+                                        let child_key = child_ass.key_text(source);
+
+                                        // Tier 1: exact match → skip
+                                        if self.scanner_data.unit_types.contains_key(child_key) {
+                                            continue;
+                                        }
+
+                                        // Tier 2: case-insensitive match → fix
+                                        if let Some(canonical) =
+                                            crate::scanner::unit_scanner::find_canonical_unit_type(
+                                                &self.scanner_data.unit_types,
+                                                child_key,
+                                            )
+                                        {
+                                            let matches_specific = specific_type
+                                                .map(|s| s == canonical.as_str())
+                                                .unwrap_or(true);
+                                            if matches_specific {
+                                                fixes
+                                                    .push((child_ass.key_range.clone(), canonical));
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Recurse into child blocks
+                    match &ass.value.value {
+                        ast::Value::Block(inner) => {
+                            self.collect_unit_type_casing_fixes(
+                                inner,
+                                fixes,
+                                source,
+                                specific_type,
+                            );
+                        }
+                        ast::Value::TaggedBlock(_, inner, _) => {
+                            self.collect_unit_type_casing_fixes(
+                                inner,
+                                fixes,
+                                source,
+                                specific_type,
+                            );
+                        }
+                        _ => {}
+                    }
+                }
+                ast::Entry::Value(val) => match &val.value {
+                    ast::Value::Block(inner) => {
+                        self.collect_unit_type_casing_fixes(inner, fixes, source, specific_type);
+                    }
+                    ast::Value::TaggedBlock(_, inner, _) => {
+                        self.collect_unit_type_casing_fixes(inner, fixes, source, specific_type);
+                    }
+                    _ => {}
+                },
+                _ => {}
+            }
+        }
+    }
+}
+
+impl ValidationCtx {
+    /// Create a cheap-clone handle from `&Backend`.
+    pub(crate) fn from_backend(backend: &Backend) -> Self {
+        Self {
+            scanner_data: Arc::clone(&backend.scanner_data),
+            documents: Arc::clone(&backend.documents),
+            document_asts: Arc::clone(&backend.document_asts),
+            document_locs: Arc::clone(&backend.document_locs),
+            config: Arc::clone(&backend.config),
+            workspace_roots: ArcSwap::new(backend.workspace_roots.load_full()),
+        }
+    }
+
+    /// Resolve the `map/default.map` config for the workspace root that
+    /// contains `uri`. Multi-root-safe: the longest matching root wins (most
+    /// specific), falling back to the first root, then to the legacy server
+    /// CWD (`.`) for documents outside every root (e.g. opened from elsewhere).
+    pub(crate) fn map_config_for_uri(&self, uri: &str) -> crate::utils::map_config::MapConfig {
+        let roots = self.workspace_roots.load();
+        match crate::utils::map_config::matching_root(&roots, uri) {
+            Some(root) => crate::utils::map_config::get_map_config(root),
+            None => match roots.first() {
+                Some(root) => crate::utils::map_config::get_map_config(root),
+                None => crate::utils::map_config::get_map_config(std::path::Path::new(".")),
+            },
+        }
+    }
+
+    /// Parse and cache the AST for a URI. Returns (Arc<Script>, parse_errors).
+    pub(crate) fn cache_ast(
+        &self,
+        uri: &str,
+        content: &str,
+    ) -> (Arc<ast::Script>, Vec<(String, ast::Range)>) {
+        let (script, errors) = parser::parse_script(content);
+        let script = Arc::new(script);
+        self.document_asts
+            .insert(uri.to_string(), (script.clone(), errors.clone()));
+        (script, errors)
+    }
+
+    /// Get cached AST for a URI, or parse+cache from document text if missing.
+    pub(crate) fn ensure_ast_cached(
+        &self,
+        uri: &str,
+    ) -> Option<(Arc<ast::Script>, Vec<(String, ast::Range)>)> {
+        if let Some(cached) = self.document_asts.get(uri) {
+            return Some((cached.0.clone(), cached.1.clone()));
+        }
+        self.documents
+            .get(uri)
+            .map(|content| self.cache_ast(uri, &content))
+    }
+
+    /// Get the cached loc parse for `uri`, or parse fresh. Mirrors
+    /// `ensure_ast_cached`'s contract: only OPEN documents are cached —
+    /// unopened workspace-scan files parse fresh without caching, since no
+    /// `did_close` ever evicts them.
+    pub(crate) fn ensure_loc_cached(
+        &self,
+        uri: &str,
+        content: &str,
+        path: &str,
+    ) -> std::sync::Arc<crate::parser::loc_parser::LocParseOutcome> {
+        if let Some(cached) = self.document_locs.get(uri) {
+            return cached.clone();
+        }
+        if !self.documents.contains_key(uri) {
+            return std::sync::Arc::new(crate::parser::loc_parser::parse_loc_file(content, path));
+        }
+        let outcome = std::sync::Arc::new(crate::parser::loc_parser::parse_loc_file(content, path));
+        self.document_locs.insert(uri.to_string(), outcome.clone());
+        outcome
+    }
+
+    pub(crate) fn validate_content(
+        &self,
+        uri: &Uri,
+        content: &str,
+        skip_styling: bool,
+    ) -> Vec<Diagnostic> {
         let mut diagnostics = Vec::new();
 
         let mapper = RangeMapper::new(content);
@@ -1676,328 +3038,6 @@ impl Backend {
         }
     }
 
-    /// Compatibility wrapper — delegates to the combined `check_styling_ast`.
-    ///
-    /// Kept for tests in `tests/formatting.rs` that call this function directly.
-    /// The combined walk emits both assignment and brace spacing diagnostics,
-    /// matching the superset of what the old standalone function produced.
-    #[allow(dead_code)]
-    pub(crate) fn check_assignment_spacing(
-        entries: &[ast::Entry],
-        content: &str,
-        diagnostics: &mut Vec<Diagnostic>,
-    ) {
-        let lines: Vec<&str> = content.lines().collect();
-        let mapper = RangeMapper::new(content);
-        Self::check_styling_ast(
-            entries,
-            &lines,
-            &mapper,
-            diagnostics,
-            &mut HashMap::new(),
-            0,
-        );
-    }
-
-    /// Compute expected indentation depth for each line in the AST.
-    ///
-    /// Used by the "Fix all indentation" code action in `validation/formatting.rs`.
-    /// Standalone function (not combined with other styling checks) because it's
-    /// triggered only on explicit user action, not on every keystroke.
-    pub(crate) fn compute_expected_indentations(
-        entries: &[ast::Entry],
-        depth: usize,
-        expected: &mut HashMap<u32, usize>,
-    ) {
-        for entry in entries {
-            let start_line = match entry {
-                ast::Entry::Assignment(ass) => ass.key_range.start_line,
-                ast::Entry::Value(val) => val.range.start_line,
-                ast::Entry::Comment(_, r) => r.start_line,
-            };
-
-            expected.entry(start_line).or_insert(depth);
-
-            match entry {
-                ast::Entry::Assignment(ass) => match &ass.value.value {
-                    ast::Value::Block(inner) => {
-                        Self::compute_expected_indentations(inner, depth + 1, expected);
-                        let end_line = ass.value.range.end_line;
-                        if end_line != start_line {
-                            expected.entry(end_line).or_insert(depth);
-                        }
-                    }
-                    ast::Value::TaggedBlock(_, inner, _) => {
-                        Self::compute_expected_indentations(inner, depth + 1, expected);
-                        let end_line = ass.value.range.end_line;
-                        if end_line != start_line {
-                            expected.entry(end_line).or_insert(depth);
-                        }
-                    }
-                    _ => {}
-                },
-                ast::Entry::Value(val) => match &val.value {
-                    ast::Value::Block(inner) => {
-                        Self::compute_expected_indentations(inner, depth + 1, expected);
-                        let end_line = val.range.end_line;
-                        if end_line != start_line {
-                            expected.entry(end_line).or_insert(depth);
-                        }
-                    }
-                    ast::Value::TaggedBlock(_, inner, _) => {
-                        Self::compute_expected_indentations(inner, depth + 1, expected);
-                        let end_line = val.range.end_line;
-                        if end_line != start_line {
-                            expected.entry(end_line).or_insert(depth);
-                        }
-                    }
-                    _ => {}
-                },
-                ast::Entry::Comment(_, _) => {}
-            }
-        }
-    }
-
-    /// Combined AST walk for styling checks (per-keystroke path).
-    ///
-    /// Performs a single recursive traversal of the AST to:
-    /// 1. Compute expected indentation depths
-    /// 2. Check single-line brace spacing
-    /// 3. Check assignment operator spacing
-    ///
-    /// Uses a pre-cached lines slice for O(1) line lookups instead of
-    /// `content.lines().nth()` O(n) scans.
-    fn check_styling_ast(
-        entries: &[ast::Entry],
-        lines: &[&str],
-        mapper: &RangeMapper,
-        diagnostics: &mut Vec<Diagnostic>,
-        expected_indents: &mut HashMap<u32, usize>,
-        depth: usize,
-    ) {
-        for entry in entries {
-            let start_line = match entry {
-                ast::Entry::Assignment(ass) => ass.key_range.start_line,
-                ast::Entry::Value(val) => val.range.start_line,
-                ast::Entry::Comment(_, r) => r.start_line,
-            };
-            expected_indents.entry(start_line).or_insert(depth);
-
-            match entry {
-                ast::Entry::Assignment(ass) => {
-                    // ── Assignment spacing check ──
-                    let mut needs_fix = false;
-                    if ass.key_range.end_line == ass.operator_range.start_line
-                        && ass.key_range.end_line == ass.value.range.start_line
-                    {
-                        if ass.operator_range.start_col > ass.key_range.end_col
-                            && ass.value.range.start_col > ass.operator_range.end_col
-                        {
-                            let space_before = ass.operator_range.start_col - ass.key_range.end_col;
-                            let space_after =
-                                ass.value.range.start_col - ass.operator_range.end_col;
-                            if space_before != 1 || space_after != 1 {
-                                needs_fix = true;
-                            }
-                        } else {
-                            needs_fix = true;
-                        }
-                    }
-
-                    if needs_fix {
-                        let line_idx = ass.key_range.end_line as usize;
-                        if let Some(line) = lines.get(line_idx) {
-                            let start = ass.key_range.end_col as usize;
-                            let end = ass.value.range.start_col as usize;
-                            if start <= end && end <= line.len() {
-                                diagnostics.push(Diagnostic {
-                                    range: Range {
-                                        start: Position {
-                                            line: ass.key_range.end_line,
-                                            character: start as u32,
-                                        },
-                                        end: Position {
-                                            line: ass.value.range.start_line,
-                                            character: end as u32,
-                                        },
-                                    },
-                                    severity: Some(DiagnosticSeverity::INFORMATION),
-                                    code: Some(NumberOrString::String(
-                                        "styling_assignment_space".to_string(),
-                                    )),
-                                    message: "Assignment operator should be surrounded by exactly one space on each side (e.g., 'key = value')."
-                                        .to_string(),
-                                    source: Some("Hearts of Modding".to_string()),
-                                    ..Default::default()
-                                });
-                            }
-                        }
-                    }
-
-                    // ── Single-line brace spacing check ──
-                    Self::check_brace_spacing_for_range_slice(
-                        &ass.value.range,
-                        &ass.value.value,
-                        lines,
-                        mapper,
-                        diagnostics,
-                    );
-
-                    // ── Recurse into child blocks ──
-                    match &ass.value.value {
-                        ast::Value::Block(inner) => {
-                            Self::check_styling_ast(
-                                inner,
-                                lines,
-                                mapper,
-                                diagnostics,
-                                expected_indents,
-                                depth + 1,
-                            );
-                            let end_line = ass.value.range.end_line;
-                            if end_line != start_line {
-                                expected_indents.entry(end_line).or_insert(depth);
-                            }
-                        }
-                        ast::Value::TaggedBlock(_, inner, _) => {
-                            Self::check_styling_ast(
-                                inner,
-                                lines,
-                                mapper,
-                                diagnostics,
-                                expected_indents,
-                                depth + 1,
-                            );
-                            let end_line = ass.value.range.end_line;
-                            if end_line != start_line {
-                                expected_indents.entry(end_line).or_insert(depth);
-                            }
-                        }
-                        _ => {}
-                    }
-                }
-                ast::Entry::Value(val) => {
-                    // ── Single-line brace spacing check ──
-                    Self::check_brace_spacing_for_range_slice(
-                        &val.range,
-                        &val.value,
-                        lines,
-                        mapper,
-                        diagnostics,
-                    );
-
-                    // ── Recurse into child blocks ──
-                    match &val.value {
-                        ast::Value::Block(inner) => {
-                            Self::check_styling_ast(
-                                inner,
-                                lines,
-                                mapper,
-                                diagnostics,
-                                expected_indents,
-                                depth + 1,
-                            );
-                            let end_line = val.range.end_line;
-                            if end_line != start_line {
-                                expected_indents.entry(end_line).or_insert(depth);
-                            }
-                        }
-                        ast::Value::TaggedBlock(_, inner, _) => {
-                            Self::check_styling_ast(
-                                inner,
-                                lines,
-                                mapper,
-                                diagnostics,
-                                expected_indents,
-                                depth + 1,
-                            );
-                            let end_line = val.range.end_line;
-                            if end_line != start_line {
-                                expected_indents.entry(end_line).or_insert(depth);
-                            }
-                        }
-                        _ => {}
-                    }
-                }
-                ast::Entry::Comment(_, _) => {}
-            }
-        }
-    }
-
-    /// Check single-line brace spacing, using a pre-cached lines slice.
-    ///
-    /// Accepts `&[&str]` instead of `&str` to avoid O(n) `content.lines().nth()` calls.
-    /// Logic is identical to the old `check_brace_spacing_for_range` which accepted
-    /// `content: &str` and scanned from the start on every call.
-    fn check_brace_spacing_for_range_slice(
-        range: &ast::Range,
-        value: &ast::Value,
-        lines: &[&str],
-        mapper: &RangeMapper,
-        diagnostics: &mut Vec<Diagnostic>,
-    ) {
-        match value {
-            ast::Value::Block(_) | ast::Value::TaggedBlock(_, _, _)
-                if range.start_line == range.end_line =>
-            {
-                let line_idx = range.start_line as usize;
-                if let Some(line) = lines.get(line_idx) {
-                    let start = range.start_col as usize;
-                    let end = range.end_col as usize;
-                    if start < end && end <= line.len() {
-                        let full_str = &line[start..end];
-                        if let Some(brace_start_rel) = full_str.find('{') {
-                            let mut needs_fix = false;
-                            let mut message = "Single-line block should have exactly one space padding inside curly braces.";
-
-                            // 1. Check space BEFORE { if it's a TaggedBlock
-                            if let ast::Value::TaggedBlock(tag, _, _) = value {
-                                if &full_str[tag.len()..brace_start_rel] != " " {
-                                    needs_fix = true;
-                                    message = "Single-line block should have exactly one space around curly braces.";
-                                }
-                            }
-
-                            // 2. Check padding INSIDE
-                            let block_str = &full_str[brace_start_rel..];
-                            if block_str.len() >= 2 {
-                                let inner = &block_str[1..block_str.len() - 1];
-                                if inner.trim().is_empty() {
-                                    if block_str != "{}" {
-                                        needs_fix = true;
-                                        message = "Empty single-line block should be '{}' without spaces.";
-                                    }
-                                } else {
-                                    if !block_str.starts_with("{ ")
-                                        || !block_str.ends_with(" }")
-                                        || block_str.starts_with("{  ")
-                                        || block_str.ends_with("  }")
-                                    {
-                                        needs_fix = true;
-                                    }
-                                }
-                            }
-
-                            if needs_fix {
-                                diagnostics.push(Diagnostic {
-                                    range: mapper.range(range),
-                                    severity: Some(DiagnosticSeverity::INFORMATION),
-                                    code: Some(NumberOrString::String(
-                                        "styling_brace_space".to_string(),
-                                    )),
-                                    message: message.to_string(),
-                                    source: Some("Hearts of Modding".to_string()),
-                                    ..Default::default()
-                                });
-                            }
-                        }
-                    }
-                }
-            }
-            _ => {}
-        }
-    }
-
     fn check_styling(
         &self,
         content: &str,
@@ -2048,7 +3088,7 @@ impl Backend {
         let mut expected_indents = HashMap::new();
         let mapper = RangeMapper::new(content);
         if let Some(script) = script_opt {
-            Self::check_styling_ast(
+            Backend::check_styling_ast(
                 &script.entries,
                 &lines,
                 &mapper,
@@ -2335,900 +3375,6 @@ impl Backend {
                     let gfx_rule = rules::gfx_textures::GfxTextureRule::new(&gfx_path);
                     gfx_rule.validate(&script.entries, &ctx, diagnostics);
                 }
-            }
-        }
-    }
-
-    /// Build the keyword + entity context used for semantic token resolution.
-    ///
-    /// Uses pre-computed static keywords (computed once at startup) merged with
-    /// the current scanner entity map (updated on rescans via
-    /// [`update_entity_token_context()`]).
-    ///
-    /// This used to rebuild the entire keyword set from scratch on every semantic
-    /// token request, iterating all DashMaps — now it's just two cheap clones.
-    pub(crate) fn build_semantic_token_context(&self) -> semantic_tokens::SemanticTokenContext {
-        // Both maps are already stored behind Arc (static_token_keywords is
-        // Arc<HashSet>, entity_token_context is ArcSwap<HashMap>), and
-        // SemanticTokenContext now holds Arc references — so this is exactly
-        // two cheap Arc::clone calls, no deep copies of the underlying
-        // collections on every keystroke.
-        semantic_tokens::SemanticTokenContext::new(
-            Arc::clone(&self.static_token_keywords),
-            self.entity_token_context.load_full(),
-        )
-    }
-
-    /// Refresh the entity name map from current scanner data.
-    ///
-    /// Call this after a full initial scan ([`crate::lsp::handler::Backend::initialized`])
-    /// or after any rescan triggered by [`crate::lsp::handler::Backend::did_change_watched_files`].
-    /// Without this, semantic tokens would continue using a stale entity context
-    /// (entities added or removed by rescans wouldn't be highlighted).
-    pub(crate) fn update_entity_token_context(&self) {
-        let lookup = entity_lookup::EntityLookup::new(&self.scanner_data);
-        let names = lookup.entity_names();
-        self.entity_token_context.store(Arc::new(names));
-        self.completion_entity_cache
-            .store(Arc::new(self.build_completion_entity_cache()));
-    }
-
-    /// Rebuild the scanner-derived portion of the completion catalogue.
-    /// Called whenever the entity token context is refreshed (after full scans
-    /// and rescans). Static triggers/effects are not included here (the completion
-    /// handler precomputes those per scope); this covers the ~20 entity DashMaps.
-    fn build_completion_entity_cache(&self) -> Vec<tower_lsp_server::ls_types::CompletionItem> {
-        use tower_lsp_server::ls_types::{CompletionItem, CompletionItemKind, Documentation};
-        let mut items: Vec<CompletionItem> = Vec::new();
-        let sd = &self.scanner_data;
-
-        for entry in sd.scripted_triggers.iter() {
-            let t = entry.value();
-            items.push(CompletionItem {
-                label: t.name.clone(),
-                kind: Some(CompletionItemKind::EVENT),
-                detail: Some("Scripted Trigger".to_string()),
-                documentation: Some(Documentation::String(format!("Defined in: {}", t.path))),
-                ..Default::default()
-            });
-        }
-        for entry in sd.scripted_effects.iter() {
-            let e = entry.value();
-            items.push(CompletionItem {
-                label: e.name.clone(),
-                kind: Some(CompletionItemKind::EVENT),
-                detail: Some("Scripted Effect".to_string()),
-                documentation: Some(Documentation::String(format!("Defined in: {}", e.path))),
-                ..Default::default()
-            });
-        }
-        for entry in sd.ideologies.iter() {
-            let i = entry.value();
-            items.push(CompletionItem {
-                label: i.name.clone(),
-                kind: Some(CompletionItemKind::ENUM),
-                detail: Some("Ideology".to_string()),
-                documentation: Some(Documentation::String(format!("Defined in: {}", i.path))),
-                ..Default::default()
-            });
-        }
-        for entry in sd.sub_ideologies.iter() {
-            let (parent, _, _) = entry.value().resolve();
-            items.push(CompletionItem {
-                label: entry.key().to_string(),
-                kind: Some(CompletionItemKind::ENUM_MEMBER),
-                detail: Some(format!("Sub-Ideology (Parent: {})", parent)),
-                ..Default::default()
-            });
-        }
-        for entry in sd.traits.iter() {
-            let t = entry.value();
-            items.push(CompletionItem {
-                label: t.name.clone(),
-                kind: Some(CompletionItemKind::INTERFACE),
-                detail: Some(t.trait_type.clone()),
-                documentation: Some(Documentation::String(format!("Defined in: {}", t.path))),
-                ..Default::default()
-            });
-        }
-        for entry in sd.sprites.iter() {
-            let s = entry.value();
-            items.push(CompletionItem {
-                label: s.name.clone(),
-                kind: Some(CompletionItemKind::FILE),
-                detail: Some("Sprite/GFX".to_string()),
-                documentation: Some(Documentation::String(format!("Defined in: {}", s.path))),
-                ..Default::default()
-            });
-        }
-        for entry in sd.ideas.iter() {
-            let i = entry.value();
-            items.push(CompletionItem {
-                label: i.name.clone(),
-                kind: Some(CompletionItemKind::CONSTANT),
-                detail: Some(format!("Idea ({})", i.category)),
-                documentation: Some(Documentation::String(format!("Defined in: {}", i.category))),
-                ..Default::default()
-            });
-        }
-        for entry in sd.abilities.iter() {
-            let a = entry.value();
-            items.push(CompletionItem {
-                label: a.key.clone(),
-                kind: Some(CompletionItemKind::FUNCTION),
-                detail: Some("Leader Ability".to_string()),
-                ..Default::default()
-            });
-        }
-        for entry in sd.achievements.iter() {
-            let a = entry.value();
-            items.push(CompletionItem {
-                label: a.name.clone(),
-                kind: Some(CompletionItemKind::EVENT),
-                detail: Some("Achievement".to_string()),
-                documentation: Some(Documentation::String(format!("Defined in: {}", a.path))),
-                ..Default::default()
-            });
-        }
-        for entry in sd.portraits.iter() {
-            let p = entry.value();
-            items.push(CompletionItem {
-                label: p.name.clone(),
-                kind: Some(CompletionItemKind::ENUM),
-                detail: Some("Portrait Definition".to_string()),
-                documentation: Some(Documentation::String(format!("Defined in: {}", p.path))),
-                ..Default::default()
-            });
-        }
-        for entry in sd.characters.iter() {
-            let c = entry.value();
-            items.push(CompletionItem {
-                label: c.id.clone(),
-                kind: Some(CompletionItemKind::STRUCT),
-                detail: Some("Character".to_string()),
-                documentation: Some(Documentation::String(format!("Defined in: {}", c.path))),
-                ..Default::default()
-            });
-        }
-        for entry in sd.ai_strategy_plans.iter() {
-            let p = entry.value();
-            items.push(CompletionItem {
-                label: p.name.clone(),
-                kind: Some(CompletionItemKind::FOLDER),
-                detail: Some("AI Strategy Plan".to_string()),
-                documentation: Some(Documentation::String(format!("Defined in: {}", p.path))),
-                ..Default::default()
-            });
-        }
-        for entry in sd.variables.iter() {
-            items.push(CompletionItem {
-                label: entry.key().to_string(),
-                kind: Some(CompletionItemKind::VARIABLE),
-                detail: Some("Variable".to_string()),
-                ..Default::default()
-            });
-        }
-        for entry in sd.event_targets.iter() {
-            items.push(CompletionItem {
-                label: entry.key().to_string(),
-                kind: Some(CompletionItemKind::STRUCT),
-                detail: Some("Event Target".to_string()),
-                ..Default::default()
-            });
-        }
-        for entry in sd.music_assets.iter() {
-            let a = entry.value();
-            items.push(CompletionItem {
-                label: a.name.clone(),
-                kind: Some(CompletionItemKind::FILE),
-                detail: Some("Music Asset".to_string()),
-                documentation: Some(Documentation::String(format!("File: {}", a.file))),
-                ..Default::default()
-            });
-        }
-        for entry in sd.music_stations.iter() {
-            items.push(CompletionItem {
-                label: entry.value().name.clone(),
-                kind: Some(CompletionItemKind::FOLDER),
-                detail: Some("Music Station".to_string()),
-                ..Default::default()
-            });
-        }
-        for entry in sd.songs.iter() {
-            items.push(CompletionItem {
-                label: entry.value().name.clone(),
-                kind: Some(CompletionItemKind::FILE),
-                detail: Some("Song".to_string()),
-                ..Default::default()
-            });
-        }
-        for entry in sd.sounds.iter() {
-            let s = entry.value();
-            items.push(CompletionItem {
-                label: s.name.clone(),
-                kind: Some(CompletionItemKind::FILE),
-                detail: Some("Sound".to_string()),
-                documentation: Some(Documentation::String(format!("File: {}", s.file))),
-                ..Default::default()
-            });
-        }
-        for entry in sd.sound_effects.iter() {
-            items.push(CompletionItem {
-                label: entry.value().name.clone(),
-                kind: Some(CompletionItemKind::EVENT),
-                detail: Some("Sound Effect".to_string()),
-                ..Default::default()
-            });
-        }
-        for entry in sd.falloffs.iter() {
-            items.push(CompletionItem {
-                label: entry.value().name.clone(),
-                kind: Some(CompletionItemKind::UNIT),
-                detail: Some("Sound Falloff".to_string()),
-                ..Default::default()
-            });
-        }
-        for entry in sd.sound_categories.iter() {
-            items.push(CompletionItem {
-                label: entry.value().name.clone(),
-                kind: Some(CompletionItemKind::FOLDER),
-                detail: Some("Sound Category".to_string()),
-                ..Default::default()
-            });
-        }
-        items
-    }
-}
-
-/// Pre-compute the static keyword set used for semantic token resolution.
-///
-/// This includes: all built-in triggers, effects, modifiers, scopes,
-/// and the extensive hardcoded keyword list for character definitions,
-/// abilities, focuses, events, OOB, terrain, ideologies, etc.
-///
-/// This function is called exactly once at startup (see `main.rs`). The
-/// result is stored in `Backend::static_token_keywords` as `Arc<HashSet>`
-/// so each semantic token rebuild is just a cheap `Arc::clone`.
-pub(crate) fn build_static_semantic_keywords() -> HashSet<String> {
-    let mut keywords = HashSet::new();
-
-    for k in TRIGGERS.keys() {
-        keywords.insert(k.to_string());
-    }
-    for k in EFFECTS.keys() {
-        keywords.insert(k.to_string());
-    }
-    for k in MODIFIERS.keys() {
-        keywords.insert(k.to_string());
-    }
-    for k in SCOPES.iter() {
-        keywords.insert(k.to_string());
-        keywords.insert(k.to_ascii_lowercase());
-    }
-
-    // Add hardcoded achievement keywords
-    keywords.insert("unique_id".to_string());
-    keywords.insert("possible".to_string());
-    keywords.insert("happened".to_string());
-    keywords.insert("ribbon".to_string());
-    keywords.insert("frames".to_string());
-    keywords.insert("colors".to_string());
-    keywords.insert("custom_achievement".to_string());
-    keywords.insert("custom_ribbon".to_string());
-    keywords.insert("key".to_string());
-
-    // Character keywords
-    keywords.insert("characters".to_string());
-    keywords.insert("advisor".to_string());
-    keywords.insert("country_leader".to_string());
-    keywords.insert("corps_commander".to_string());
-    keywords.insert("field_marshal".to_string());
-    keywords.insert("navy_leader".to_string());
-    keywords.insert("scientist".to_string());
-    keywords.insert("portraits".to_string());
-    keywords.insert("traits".to_string());
-    keywords.insert("gender".to_string());
-    keywords.insert("instance".to_string());
-    keywords.insert("idea_token".to_string());
-    keywords.insert("legacy_id".to_string());
-    keywords.insert("expire".to_string());
-    keywords.insert("ideology".to_string());
-    // Unit leader skill properties
-    keywords.insert("attack_skill".to_string());
-    keywords.insert("defense_skill".to_string());
-    keywords.insert("planning_skill".to_string());
-    keywords.insert("logistics_skill".to_string());
-    keywords.insert("maneuvering_skill".to_string());
-    keywords.insert("coordination_skill".to_string());
-    // Scientist specialization block
-    keywords.insert("skills".to_string());
-    // Advisor-only property
-    keywords.insert("can_be_fired".to_string());
-
-    // Custom advancement field keywords
-    keywords.insert("achievement".to_string());
-
-    // Ability keywords
-    keywords.insert("ability".to_string());
-    keywords.insert("name".to_string());
-    keywords.insert("desc".to_string());
-    keywords.insert("type".to_string());
-    keywords.insert("cost".to_string());
-    keywords.insert("duration".to_string());
-    keywords.insert("cooldown".to_string());
-    keywords.insert("icon".to_string());
-    keywords.insert("cancelable".to_string());
-    keywords.insert("allowed".to_string());
-    keywords.insert("one_time_effect".to_string());
-    keywords.insert("unit_modifiers".to_string());
-    keywords.insert("ai_will_do".to_string());
-    keywords.insert("add_ability".to_string());
-    keywords.insert("remove_ability".to_string());
-
-    // AI strategy plan keywords
-    keywords.insert("enable".to_string());
-    keywords.insert("abort".to_string());
-    keywords.insert("ai_national_focuses".to_string());
-    keywords.insert("focus_factors".to_string());
-    keywords.insert("research".to_string());
-    keywords.insert("weight".to_string());
-    keywords.insert("planned_production".to_string());
-    keywords.insert("technologies".to_string());
-
-    // AI area keywords
-    keywords.insert("continents".to_string());
-    keywords.insert("strategic_regions".to_string());
-
-    // Music keywords
-    keywords.insert("music".to_string());
-    keywords.insert("music_station".to_string());
-    keywords.insert("song".to_string());
-    keywords.insert("chance".to_string());
-    keywords.insert("base".to_string());
-    keywords.insert("factor".to_string());
-    keywords.insert("add".to_string());
-    keywords.insert("modifier".to_string());
-    keywords.insert("volume".to_string());
-    keywords.insert("file".to_string());
-
-    // Structural block keywords (scope filter, conditional, option blocks)
-    keywords.insert("limit".to_string());
-    keywords.insert("else".to_string());
-    keywords.insert("else_if".to_string());
-    keywords.insert("option".to_string());
-    keywords.insert("trigger".to_string());
-
-    // Ideology definition keywords
-    keywords.insert("types".to_string());
-    keywords.insert("dynamic_faction_names".to_string());
-    keywords.insert("rules".to_string());
-    keywords.insert("can_host_government_in_exile".to_string());
-    keywords.insert("war_impact_on_world_tension".to_string());
-    keywords.insert("faction_impact_on_world_tension".to_string());
-    keywords.insert("can_be_boosted".to_string());
-    keywords.insert("can_collaborate".to_string());
-    keywords.insert("modifiers".to_string());
-    keywords.insert("faction_modifiers".to_string());
-    keywords.insert("can_create_collaboration_government".to_string());
-    keywords.insert("can_declare_war_on_same_ideology".to_string());
-    keywords.insert("can_force_government".to_string());
-
-    // Known idea category names (game-defined, not user types)
-    keywords.insert("country".to_string());
-    keywords.insert("slot_ledgers".to_string());
-    keywords.insert("slot".to_string());
-    keywords.insert("character_slot".to_string());
-    keywords.insert("designer".to_string());
-    keywords.insert("use_list_view".to_string());
-    keywords.insert("law".to_string());
-    keywords.insert("picture".to_string());
-    keywords.insert("targeted_modifier".to_string());
-    keywords.insert("research_bonus".to_string());
-    keywords.insert("equipment_bonus".to_string());
-    keywords.insert("rule".to_string());
-    keywords.insert("on_add".to_string());
-    keywords.insert("on_remove".to_string());
-    keywords.insert("cancel".to_string());
-    keywords.insert("allowed_civil_war".to_string());
-    keywords.insert("do_effect".to_string());
-    keywords.insert("allowed_to_remove".to_string());
-    keywords.insert("visible".to_string());
-    keywords.insert("available".to_string());
-    keywords.insert("removal_cost".to_string());
-    keywords.insert("level".to_string());
-    keywords.insert("ledger".to_string());
-    keywords.insert("hidden".to_string());
-    keywords.insert("politics_tab".to_string());
-
-    // National focus tree structure keywords
-    keywords.insert("focus_tree".to_string());
-    keywords.insert("focus".to_string());
-    keywords.insert("shared_focus".to_string());
-    keywords.insert("joint_focus".to_string());
-    keywords.insert("continuous_focus_palette".to_string());
-    keywords.insert("continuous_focus_position".to_string());
-    keywords.insert("initial_show_position".to_string());
-    keywords.insert("shortcut".to_string());
-    keywords.insert("inlay_window".to_string());
-    keywords.insert("style".to_string());
-    keywords.insert("search_filter_prios".to_string());
-
-    // National focus property keywords
-    keywords.insert("prerequisite".to_string());
-    keywords.insert("mutually_exclusive".to_string());
-    keywords.insert("bypass".to_string());
-    keywords.insert("bypass_if_unavailable".to_string());
-    keywords.insert("enable_automatic_bypass".to_string());
-    keywords.insert("allow_branch".to_string());
-    keywords.insert("available_if_capitulated".to_string());
-    keywords.insert("cancel_if_invalid".to_string());
-    keywords.insert("continue_if_invalid".to_string());
-    keywords.insert("historical_ai".to_string());
-    keywords.insert("completion_reward".to_string());
-    keywords.insert("complete_tooltip".to_string());
-    keywords.insert("select_effect".to_string());
-    keywords.insert("bypass_effect".to_string());
-    keywords.insert("search_filters".to_string());
-    keywords.insert("text_icon".to_string());
-    keywords.insert("will_lead_to_war_with".to_string());
-    keywords.insert("dynamic".to_string());
-    keywords.insert("offset".to_string());
-    keywords.insert("relative_position_id".to_string());
-    keywords.insert("id".to_string());
-    keywords.insert("default".to_string());
-    keywords.insert("reset_on_civilwar".to_string());
-    keywords.insert("target".to_string());
-    keywords.insert("scroll_wheel_factor".to_string());
-
-    // Continuous focus keywords
-    keywords.insert("daily_cost".to_string());
-    keywords.insert("supports_ai_strategy".to_string());
-    keywords.insert("cancel_effect".to_string());
-
-    // Joint focus keywords
-    keywords.insert("joint_trigger".to_string());
-    keywords.insert("completion_reward_joint_originator".to_string());
-    keywords.insert("completion_reward_joint_member".to_string());
-
-    // Focus inlay window keywords
-    keywords.insert("window_name".to_string());
-    keywords.insert("internal".to_string());
-    keywords.insert("scripted_buttons".to_string());
-    keywords.insert("scripted_images".to_string());
-    keywords.insert("click_effect".to_string());
-
-    // Style definition keywords
-    keywords.insert("unavailable".to_string());
-    keywords.insert("current".to_string());
-
-    // AI strategy plan keywords
-    keywords.insert("ai_strategy".to_string());
-
-    // State definition keywords (history/states/*.txt)
-    keywords.insert("manpower".to_string());
-    keywords.insert("state_category".to_string());
-    keywords.insert("resources".to_string());
-    keywords.insert("buildings_max_level_factor".to_string());
-    keywords.insert("history".to_string());
-    keywords.insert("provinces".to_string());
-
-    // State history sub-keywords
-    keywords.insert("owner".to_string());
-    keywords.insert("victory_points".to_string());
-    keywords.insert("buildings".to_string());
-
-    // Strategic region definition keywords (map/strategicregions/*.txt)
-    keywords.insert("strategic_region".to_string());
-    keywords.insert("weather".to_string());
-    keywords.insert("period".to_string());
-    keywords.insert("between".to_string());
-    keywords.insert("no_phenomenon".to_string());
-    keywords.insert("rain_light".to_string());
-    keywords.insert("rain_heavy".to_string());
-    keywords.insert("snow".to_string());
-    keywords.insert("blizzard".to_string());
-    keywords.insert("mud".to_string());
-    keywords.insert("sandstorm".to_string());
-    keywords.insert("arctic_water".to_string());
-    keywords.insert("min_snow_level".to_string());
-    keywords.insert("naval_terrain".to_string());
-
-    // Terrain definition keywords (common/terrain/*.txt)
-    keywords.insert("categories".to_string());
-    keywords.insert("color".to_string());
-    keywords.insert("color_ui".to_string());
-    keywords.insert("terrain".to_string());
-    keywords.insert("movement_cost".to_string());
-    keywords.insert("is_water".to_string());
-    keywords.insert("sound_type".to_string());
-    keywords.insert("minimum_seazone_dominance".to_string());
-    keywords.insert("combat_width".to_string());
-    keywords.insert("combat_support_width".to_string());
-    keywords.insert("ai_terrain_importance_factor".to_string());
-    keywords.insert("match_value".to_string());
-    keywords.insert("buildings_max_level".to_string());
-    keywords.insert("supply_flow_penalty_factor".to_string());
-    keywords.insert("units".to_string());
-    keywords.insert("battle_cruiser".to_string());
-    keywords.insert("battleship".to_string());
-    keywords.insert("heavy_cruiser".to_string());
-    keywords.insert("carrier".to_string());
-    keywords.insert("destroyer".to_string());
-    keywords.insert("light_cruiser".to_string());
-    keywords.insert("submarine".to_string());
-    keywords.insert("texture".to_string());
-    keywords.insert("spawn_city".to_string());
-    keywords.insert("perm_snow".to_string());
-
-    // Balance of power definition keywords (common/bop/*.txt)
-    keywords.insert("initial_value".to_string());
-    keywords.insert("left_side".to_string());
-    keywords.insert("right_side".to_string());
-    keywords.insert("decision_category".to_string());
-    keywords.insert("side".to_string());
-    keywords.insert("range".to_string());
-    keywords.insert("min".to_string());
-    keywords.insert("max".to_string());
-    keywords.insert("on_activate".to_string());
-    keywords.insert("on_deactivate".to_string());
-
-    // Event definition keywords (events/*.txt) structural — not in triggers/effects data
-    keywords.insert("add_namespace".to_string());
-    keywords.insert("mean_time_to_happen".to_string());
-    keywords.insert("fire_only_once".to_string());
-    keywords.insert("is_triggered_only".to_string());
-    keywords.insert("major".to_string());
-    keywords.insert("show_major".to_string());
-    keywords.insert("fire_for_sender".to_string());
-    keywords.insert("minor_flavor".to_string());
-    keywords.insert("timeout_days".to_string());
-    keywords.insert("immediate".to_string());
-    keywords.insert("after".to_string());
-    keywords.insert("original_recipient_only".to_string());
-    keywords.insert("ai_chance".to_string());
-    keywords.insert("title".to_string());
-    keywords.insert("text".to_string());
-    keywords.insert("tooltip".to_string());
-
-    // Event time / delay keywords (MTTH + event firing effect)
-    keywords.insert("days".to_string());
-    keywords.insert("months".to_string());
-    keywords.insert("years".to_string());
-    keywords.insert("hours".to_string());
-    keywords.insert("random_hours".to_string());
-    keywords.insert("random_days".to_string());
-
-    // Event-type-specific effect sub-keys
-    keywords.insert("trigger_for".to_string());
-    keywords.insert("occupied".to_string());
-    keywords.insert("originator".to_string());
-    keywords.insert("recipient".to_string());
-    keywords.insert("set_root".to_string());
-    keywords.insert("set_from".to_string());
-    keywords.insert("set_from_from".to_string());
-
-    // Bookmark definition keywords (common/bookmarks/*.txt)
-    keywords.insert("bookmarks".to_string());
-    keywords.insert("bookmark".to_string());
-    keywords.insert("default_country".to_string());
-    keywords.insert("effect".to_string());
-    keywords.insert("minor".to_string());
-    keywords.insert("ideas".to_string());
-    keywords.insert("focuses".to_string());
-
-    // Game rule keywords (common/game_rules/*.txt)
-    keywords.insert("group".to_string());
-    keywords.insert("required_dlc".to_string());
-    keywords.insert("exclude_dlc".to_string());
-    keywords.insert("allow_achievements".to_string());
-
-    // Difficulty setting keywords (common/difficulty_settings/*.txt)
-    keywords.insert("difficulty_settings".to_string());
-    keywords.insert("difficulty_setting".to_string());
-    keywords.insert("countries".to_string());
-    keywords.insert("multiplier".to_string());
-
-    // OOB (Order of Battle) keywords (history/units/*.txt)
-    keywords.insert("air_wings".to_string());
-    keywords.insert("amount".to_string());
-    keywords.insert("instant_effect".to_string());
-    keywords.insert("regiments".to_string());
-    keywords.insert("support".to_string());
-    keywords.insert("division_names_group".to_string());
-    keywords.insert("is_locked".to_string());
-    keywords.insert("force_allow_recruiting".to_string());
-    keywords.insert("division_cap".to_string());
-    keywords.insert("template_counter".to_string());
-    keywords.insert("override_model".to_string());
-    keywords.insert("division_name".to_string());
-    keywords.insert("is_name_ordered".to_string());
-    keywords.insert("name_order".to_string());
-    keywords.insert("start_experience_factor".to_string());
-    keywords.insert("start_equipment_factor".to_string());
-    keywords.insert("start_manpower_factor".to_string());
-    keywords.insert("force_equipment_variants".to_string());
-    keywords.insert("officer".to_string());
-    keywords.insert("division".to_string());
-    keywords.insert("location".to_string());
-    keywords.insert("fleet".to_string());
-    keywords.insert("naval_base".to_string());
-    keywords.insert("task_force".to_string());
-    keywords.insert("pride_of_the_fleet".to_string());
-    keywords.insert("ship".to_string());
-    keywords.insert("definition".to_string());
-    keywords.insert("requested_factories".to_string());
-    keywords.insert("efficiency".to_string());
-    keywords.insert("version_name".to_string());
-    keywords.insert("creator".to_string());
-
-    // Decisions-adjacent keywords
-    keywords.insert("complete_effect".to_string());
-    keywords.insert("remove_effect".to_string());
-    keywords.insert("timeout_effect".to_string());
-    keywords.insert("highlight_states".to_string());
-    keywords.insert("highlight_states_trigger".to_string());
-    keywords.insert("days_remove".to_string());
-    keywords.insert("days_re_enable".to_string());
-    keywords.insert("on_map_mode".to_string());
-    keywords.insert("targets".to_string());
-    keywords.insert("target_trigger".to_string());
-    keywords.insert("state_target".to_string());
-    keywords.insert("cancel_trigger".to_string());
-    keywords.insert("days_mission_timeout".to_string());
-    keywords.insert("custom_cost_trigger".to_string());
-    keywords.insert("custom_cost_text".to_string());
-    keywords.insert("is_good".to_string());
-
-    // Decision-category-only keys (valid on a category block, shown/hidden logic)
-    keywords.insert("visible_when_empty".to_string());
-    keywords.insert("scripted_gui".to_string());
-    keywords.insert("on_map_area".to_string());
-    keywords.insert("day_of_week".to_string());
-
-    // lowk lazy to categorize
-    keywords.insert("popularity".to_string());
-    keywords.insert("ruling_party".to_string());
-    keywords.insert("elections_allowed".to_string());
-    keywords.insert("size".to_string());
-    keywords.insert("transfer_troops".to_string());
-    keywords.insert("autonomy_state".to_string());
-    keywords.insert("scope".to_string());
-    keywords.insert("producer".to_string());
-    keywords.insert("var".to_string());
-    keywords.insert("value".to_string());
-    keywords.insert("fixed_random_seed".to_string());
-    keywords.insert("instant_build".to_string());
-    keywords.insert("add_idea".to_string());
-    keywords.insert("remove_idea".to_string());
-    keywords.insert("province".to_string());
-    keywords.insert("build_only_on_allied".to_string());
-    keywords.insert("controller_priority".to_string());
-    keywords.insert("fallback".to_string());
-    keywords.insert("start_province".to_string());
-    keywords.insert("target_province".to_string());
-
-    // Structural flow control keywords (transparent blocks)
-    keywords.insert("and".to_string());
-    keywords.insert("or".to_string());
-    keywords.insert("not".to_string());
-
-    // Add transparent block types from V2 data
-    for block in crate::data::hoi4_data::get_transparent_block_types() {
-        keywords.insert(block.clone());
-    }
-
-    keywords
-}
-
-/// Check for duplicate modifier keys within a block of entries.
-/// This was previously a method on `Backend`, now a free function called
-/// by the centralized AST walker for every block entry.
-pub(crate) fn check_duplicate_keys<'a>(
-    entries: &[ast::Entry],
-    diagnostics: &mut Vec<Diagnostic>,
-    mod_maps: &DashMap<InternedStr, String>,
-    source: &'a str,
-    in_air_wings: bool,
-    parent_key: Option<&'a str>,
-) {
-    // Currently only checks keys that are in `mod_maps` (modifier names) plus a small
-    // hardcoded set of common structural keys (`name`, `id`, `icon`). All other keys
-    // (e.g. arbitrary custom keys from mods) are silently allowed. To extend coverage,
-    // add more entries to `COMMON_KEYS` or replace the hardcoded list with a configurable
-    // set of key patterns.
-    const COMMON_KEYS: [&str; 3] = ["name", "id", "icon"];
-
-    let mapper = RangeMapper::new(source);
-    let mut seen_keys: FxHashMap<&'a str, ast::Range> = FxHashMap::default();
-
-    for entry in entries {
-        if let ast::Entry::Assignment(ass) = entry {
-            // We only care about duplicates if they are modifiers.
-            // Some Paradox keys (like 'modifier = { ... }' or 'option = { ... }') are intended to be duplicates.
-            // But specific engine modifiers (like 'stability_factor') should NEVER be duplicated.
-
-            let key: &'a str = ass.key_text(source);
-            let is_modifier = mod_maps.contains_key(key) || COMMON_KEYS.contains(&key);
-
-            // Exceptions: Some effects/triggers are specifically designed to be used multiple times
-            // In air_wings province blocks, 'name' keys are used to label each preceding
-            // equipment type block, so duplicates are valid.
-            // 'icon' is used structurally in army_icons.txt (and similar files) where
-            // each `icon = { ... }` block is a separate entry keyed by list position.
-            // Inside `province` blocks, `id` values are list items (provinces to apply
-            // a modifier to), not genuine duplicates.
-            let is_exception = key == "modifier"
-                || key == "option"
-                || key == "limit"
-                || key == "if"
-                || key == "else"
-                || key == "else_if"
-                || key == "variable_name"
-                || key == "icon"
-                || (in_air_wings && key == "name")
-                || (parent_key == Some("province") && key == "id");
-
-            if is_modifier && !is_exception {
-                if let Some(prev_range) = seen_keys.get(key) {
-                    diagnostics.push(Diagnostic {
-                            range: mapper.range(prev_range),
-                            severity: Some(DiagnosticSeverity::WARNING),
-                            code: Some(NumberOrString::String("duplicate_key".to_string())),
-                            message: format!("Duplicate modifier/key '{}' detected in the same scope. The game will ignore this value and use the last one.", key),
-                            source: Some("Hearts of Modding".to_string()),
-                            ..Default::default()
-                        });
-                }
-
-                let full_range = ast::Range {
-                    start_line: ass.key_range.start_line,
-                    start_col: ass.key_range.start_col,
-                    end_line: ass.value.range.end_line,
-                    end_col: ass.value.range.end_col,
-                };
-                seen_keys.insert(key, full_range);
-            }
-        }
-    }
-}
-
-/// Check a single terrain value from definition.csv against known terrain
-/// categories. Returns `Some(Diagnostic)` if the terrain is unknown.
-pub(crate) fn check_province_terrain_csv(
-    terrain_value: &str,
-    terrain_names: &HashSet<String>,
-    line: u32,
-    col_start: u32,
-    col_len: u32,
-) -> Option<Diagnostic> {
-    let lower = terrain_value.trim().to_lowercase();
-    if !lower.is_empty() && !terrain_names.contains(&lower) {
-        Some(Diagnostic {
-            range: Range {
-                start: Position {
-                    line,
-                    character: col_start,
-                },
-                end: Position {
-                    line,
-                    character: col_start + col_len,
-                },
-            },
-            severity: Some(DiagnosticSeverity::WARNING),
-            message: format!(
-                "Unknown terrain '{}'. Terrains are defined in common/terrain/*.txt",
-                lower,
-            ),
-            code: Some(NumberOrString::String(
-                crate::validation::advanced_validation::UNKNOWN_PROVINCE_TERRAIN.to_string(),
-            )),
-            source: Some("Hearts of Modding".to_string()),
-            ..Default::default()
-        })
-    } else {
-        None
-    }
-}
-
-/// Collect all unit type casing mismatches in the AST for bulk-fix code actions.
-///
-/// Walks the AST looking for `regiments = { ... }` and `support = { ... }` blocks,
-/// then checks each child entry's key against the known `unit_types` DashMap.
-/// When a key exists case-insensitively but with different casing, the fix
-/// (key range + canonical text) is collected.
-///
-/// When `specific_type` is `Some(key)`, only fixes for that specific canonical
-/// unit type are collected (for per-unit-type bulk fixes). When `None`, all
-/// mismatches are collected.
-impl Backend {
-    pub(crate) fn collect_unit_type_casing_fixes(
-        &self,
-        entries: &[ast::Entry],
-        fixes: &mut Vec<(ast::Range, String)>,
-        source: &str,
-        specific_type: Option<&str>,
-    ) {
-        for entry in entries {
-            match entry {
-                ast::Entry::Assignment(ass) => {
-                    let key_lower = ass.key_text(source).to_ascii_lowercase();
-
-                    // Track when we're inside regiments/support blocks
-                    let in_slot = matches!(key_lower.as_str(), "regiments" | "support")
-                        && matches!(
-                            &ass.value.value,
-                            ast::Value::Block(_) | ast::Value::TaggedBlock(..)
-                        );
-
-                    // When inside a slot block, check each child with a Block
-                    // value as a unit type reference
-                    if in_slot {
-                        if let ast::Value::Block(inner) = &ass.value.value {
-                            for child in inner {
-                                if let ast::Entry::Assignment(child_ass) = child {
-                                    if matches!(
-                                        &child_ass.value.value,
-                                        ast::Value::Block(_) | ast::Value::TaggedBlock(..)
-                                    ) {
-                                        let child_key = child_ass.key_text(source);
-
-                                        // Tier 1: exact match → skip
-                                        if self.scanner_data.unit_types.contains_key(child_key) {
-                                            continue;
-                                        }
-
-                                        // Tier 2: case-insensitive match → fix
-                                        if let Some(canonical) =
-                                            crate::scanner::unit_scanner::find_canonical_unit_type(
-                                                &self.scanner_data.unit_types,
-                                                child_key,
-                                            )
-                                        {
-                                            let matches_specific = specific_type
-                                                .map(|s| s == canonical.as_str())
-                                                .unwrap_or(true);
-                                            if matches_specific {
-                                                fixes
-                                                    .push((child_ass.key_range.clone(), canonical));
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // Recurse into child blocks
-                    match &ass.value.value {
-                        ast::Value::Block(inner) => {
-                            self.collect_unit_type_casing_fixes(
-                                inner,
-                                fixes,
-                                source,
-                                specific_type,
-                            );
-                        }
-                        ast::Value::TaggedBlock(_, inner, _) => {
-                            self.collect_unit_type_casing_fixes(
-                                inner,
-                                fixes,
-                                source,
-                                specific_type,
-                            );
-                        }
-                        _ => {}
-                    }
-                }
-                ast::Entry::Value(val) => match &val.value {
-                    ast::Value::Block(inner) => {
-                        self.collect_unit_type_casing_fixes(inner, fixes, source, specific_type);
-                    }
-                    ast::Value::TaggedBlock(_, inner, _) => {
-                        self.collect_unit_type_casing_fixes(inner, fixes, source, specific_type);
-                    }
-                    _ => {}
-                },
-                _ => {}
             }
         }
     }

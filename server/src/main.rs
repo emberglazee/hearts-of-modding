@@ -105,22 +105,22 @@ async fn main() {
         let num_threads = std::thread::available_parallelism()
             .map(|n| (n.get() * 2 / 3).max(4))
             .unwrap_or(8);
-        let scan_pool = rayon::ThreadPoolBuilder::new()
+        let compute_pool = rayon::ThreadPoolBuilder::new()
             .num_threads(num_threads)
             .thread_name(|i| format!("hom-scan-{i}"))
             .build()
             .expect("rayon scan pool");
         Backend {
             client,
-            documents: DashMap::new(),
-            document_asts: DashMap::new(),
+            documents: Arc::new(DashMap::new()),
+            document_asts: Arc::new(DashMap::new()),
             document_cancellation_tokens: DashMap::new(),
-            document_locs: DashMap::new(),
-            scanner_data: ScannerData::new(),
-            config: Config::new(),
+            document_locs: Arc::new(DashMap::new()),
+            scanner_data: Arc::new(ScannerData::new()),
+            config: Arc::new(Config::new()),
             system_info: Mutex::new(sysinfo::System::new()),
             workspace_roots: ArcSwap::from_pointee(Vec::new()),
-            scan_pool,
+            compute_pool,
             pending_tasks: AtomicU64::new(0),
             static_token_keywords: static_keywords,
             entity_token_context: ArcSwap::from_pointee(HashMap::new()),
