@@ -190,6 +190,7 @@
 					"**/map/**/*.map",
 					"**/history/**/*.txt",
 					"**/script/**/*.txt",
+					"**/gfx/army_icons/**/*.txt",
 					"**/descriptor.mod"
 				],
 				"configuration": "./language-configuration.json"
