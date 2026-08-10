@@ -19,6 +19,11 @@
 	],
 	"main": "./out/extension.js",
 	"contributes": {
+		"configurationDefaults": {
+			"files.associations": {
+				"**/gfx/fonts/**/*.txt": "plaintext"
+			}
+		},
 		"configuration": {
 			"type": "object",
 			"title": "Hearts of Modding",
@@ -190,7 +195,7 @@
 					"**/map/**/*.map",
 					"**/history/**/*.txt",
 					"**/script/**/*.txt",
-					"**/gfx/army_icons/**/*.txt",
+					"**/gfx/**/*.txt",
 					"**/descriptor.mod"
 				],
 				"configuration": "./language-configuration.json"

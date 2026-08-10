@@ -14,7 +14,7 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Structured-block sub-key awareness:** For a lot of relevant modifiers/triggers/effects, documented scope data for their sub-keys/parameters, e.g. `add_timed_idea = { idea = ... days = ... }`. Sub-keys are semantically highlighted, hover shows their type and description, and completion offers them first.
 
-- **Associated `gfx/army_icons/**/*.txt` with HoM's `hoi4` language mode.**
+- **Text files anywhere under `gfx/` now use HoM's `hoi4` language mode.** The vanilla tree keeps script data across many subfolders (`army_icons`, `3dviewenv`, `interface/equipmentdesigner/graphic_db`, `maparrows`, `particles`, `train_gfx_database`, plus `naval_combat.txt`/`posteffect_volumes.txt`), and mods may add custom folders of their own, so a single `**/gfx/**/*.txt` association replaces per-folder entries. Font license files under `gfx/fonts/` stay plain text (they're not script).
 
 ### 🔧 Changed
 
