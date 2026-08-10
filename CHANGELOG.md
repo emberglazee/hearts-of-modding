@@ -2,7 +2,7 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
-## [v0.26.0] - 2026-08-08
+## [v0.26.0] - 2026-08-10
 
 ### ✨ Added
 
@@ -13,6 +13,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 - **The log now says which extension and server builds are actually running.** Startup records the extension version, the `hom-lsp` version and where the server binary came from — bundled, downloaded from a specific release, reused from cache, or a local build — and warns when the two don't match. Previously a stale or mismatched server looked identical to a working one, and telling them apart meant digging through the extensions directory by hand.
 
 - **Structured-block sub-key awareness:** For a lot of relevant modifiers/triggers/effects, documented scope data for their sub-keys/parameters, e.g. `add_timed_idea = { idea = ... days = ... }`. Sub-keys are semantically highlighted, hover shows their type and description, and completion offers them first.
+
+- **Associated `gfx/army_icons/**/*.txt` with HoM's `hoi4` language mode.**
 
 ### 🔧 Changed
 
