@@ -24,6 +24,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### 🩹 Fixed
 
+- **The bundled Windows amd64 server no longer exits immediately on systems without the Visual C++ Redistributable.** Windows MSVC release binaries now link the C runtime statically, and CI starts the packaged executable and verifies an LSP initialize response before publishing it.
+
 - **Quick fixes for spacing no longer crash the LSP on lines with non-English characters.** Requesting a code action on a line containing something like `café` could abort the request, as could a brace-spacing fix on a line whose closing brace fell outside the highlighted range.
 
 - **The `hoi4.logLevel` setting now does something.** It was declared in the settings UI and handled by the server, but the extension never actually sent it — so the server always ran at `info` no matter what you picked, and `debug`/`trace` could never be used to diagnose anything.

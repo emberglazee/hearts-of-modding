@@ -119,6 +119,58 @@ jobs:
           cd server
           cargo build --release --target ${{ matrix.target }}
 
+      - name: Smoke Test Server Startup
+        if: matrix.target == 'x86_64-pc-windows-msvc'
+        shell: pwsh
+        run: |
+          $server = Resolve-Path "server/target/${{ matrix.target }}/release/hom-lsp.exe"
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $dumpbinCandidates = & $vswhere -latest -products * `
+            -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
+            -find 'VC\Tools\MSVC\**\bin\Hostx64\x64\dumpbin.exe'
+          if ($LASTEXITCODE -ne 0) {
+            throw "vswhere.exe failed to locate the MSVC tools"
+          }
+          $dumpbin = $dumpbinCandidates | Select-Object -First 1
+          if (-not $dumpbin) {
+            throw "dumpbin.exe not found"
+          }
+          $dependencies = & $dumpbin /dependents $server | Out-String
+          if ($LASTEXITCODE -ne 0 -or $dependencies -notmatch 'KERNEL32\.dll') {
+            throw "dumpbin.exe could not inspect hom-lsp dependencies: $dependencies"
+          }
+          if ($dependencies -match 'VCRUNTIME[0-9_]*\.dll') {
+            throw "hom-lsp still depends on the Visual C++ Redistributable: $dependencies"
+          }
+          $request = '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"processId":null,"capabilities":{}}}'
+          $framed = "Content-Length: $([Text.Encoding]::UTF8.GetByteCount($request))`r`n`r`n$request"
+          $process = [Diagnostics.Process]::new()
+          $process.StartInfo.FileName = $server
+          $process.StartInfo.Arguments = "--stdio"
+          $process.StartInfo.UseShellExecute = $false
+          $process.StartInfo.RedirectStandardInput = $true
+          $process.StartInfo.RedirectStandardOutput = $true
+          $process.StartInfo.RedirectStandardError = $true
+          $process.StartInfo.CreateNoWindow = $true
+          [void] $process.Start()
+          $responseTask = $process.StandardOutput.ReadToEndAsync()
+          $errorTask = $process.StandardError.ReadToEndAsync()
+          $bytes = [Text.Encoding]::UTF8.GetBytes($framed)
+          $process.StandardInput.BaseStream.Write($bytes, 0, $bytes.Length)
+          $process.StandardInput.Close()
+          if (-not $process.WaitForExit(15000)) {
+            $process.Kill($true)
+            throw "hom-lsp did not exit after stdin closed"
+          }
+          $response = $responseTask.GetAwaiter().GetResult()
+          $errorOutput = $errorTask.GetAwaiter().GetResult()
+          if ($process.ExitCode -ne 0) {
+            throw "hom-lsp exited with code $($process.ExitCode): $errorOutput"
+          }
+          if ($response -notmatch '"id":1' -or $response -notmatch '"capabilities"') {
+            throw "hom-lsp did not return an initialize response: $response"
+          }
+
       - name: Upload Binary
         uses: actions/upload-artifact@v7
         with:
