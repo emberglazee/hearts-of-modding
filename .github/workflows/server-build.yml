@@ -145,12 +145,17 @@ jobs:
           $process.StartInfo.RedirectStandardError = $true
           $process.StartInfo.CreateNoWindow = $true
           [void] $process.Start()
+          $responseTask = $process.StandardOutput.ReadToEndAsync()
+          $errorTask = $process.StandardError.ReadToEndAsync()
           $bytes = [Text.Encoding]::UTF8.GetBytes($framed)
           $process.StandardInput.BaseStream.Write($bytes, 0, $bytes.Length)
           $process.StandardInput.Close()
-          $response = $process.StandardOutput.ReadToEnd()
-          $errorOutput = $process.StandardError.ReadToEnd()
-          $process.WaitForExit()
+          if (-not $process.WaitForExit(15000)) {
+            $process.Kill($true)
+            throw "hom-lsp did not exit after stdin closed"
+          }
+          $response = $responseTask.GetAwaiter().GetResult()
+          $errorOutput = $errorTask.GetAwaiter().GetResult()
           if ($process.ExitCode -ne 0) {
             throw "hom-lsp exited with code $($process.ExitCode): $errorOutput"
           }
