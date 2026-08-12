@@ -124,11 +124,35 @@ jobs:
         shell: pwsh
         run: |
           $server = Resolve-Path "server/target/${{ matrix.target }}/release/hom-lsp.exe"
+          $dumpbin = Get-ChildItem "${env:ProgramFiles}\Microsoft Visual Studio\2022\*\VC\Tools\MSVC\*\bin\Hostx64\x64\dumpbin.exe" |
+            Sort-Object FullName -Descending |
+            Select-Object -First 1
+          if (-not $dumpbin) {
+            throw "dumpbin.exe not found"
+          }
+          $dependencies = & $dumpbin.FullName /dependents $server | Out-String
+          if ($dependencies -match 'VCRUNTIME[0-9_]*\.dll') {
+            throw "hom-lsp still depends on the Visual C++ Redistributable: $dependencies"
+          }
           $request = '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"processId":null,"capabilities":{}}}'
           $framed = "Content-Length: $([Text.Encoding]::UTF8.GetByteCount($request))`r`n`r`n$request"
-          $response = $framed | & $server --stdio
-          if ($LASTEXITCODE -ne 0) {
-            throw "hom-lsp exited with code $LASTEXITCODE"
+          $process = [Diagnostics.Process]::new()
+          $process.StartInfo.FileName = $server
+          $process.StartInfo.Arguments = "--stdio"
+          $process.StartInfo.UseShellExecute = $false
+          $process.StartInfo.RedirectStandardInput = $true
+          $process.StartInfo.RedirectStandardOutput = $true
+          $process.StartInfo.RedirectStandardError = $true
+          $process.StartInfo.CreateNoWindow = $true
+          [void] $process.Start()
+          $bytes = [Text.Encoding]::UTF8.GetBytes($framed)
+          $process.StandardInput.BaseStream.Write($bytes, 0, $bytes.Length)
+          $process.StandardInput.Close()
+          $response = $process.StandardOutput.ReadToEnd()
+          $errorOutput = $process.StandardError.ReadToEnd()
+          $process.WaitForExit()
+          if ($process.ExitCode -ne 0) {
+            throw "hom-lsp exited with code $($process.ExitCode): $errorOutput"
           }
           if ($response -notmatch '"id":1' -or $response -notmatch '"capabilities"') {
             throw "hom-lsp did not return an initialize response: $response"
