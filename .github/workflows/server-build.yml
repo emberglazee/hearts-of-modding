@@ -119,6 +119,21 @@ jobs:
           cd server
           cargo build --release --target ${{ matrix.target }}
 
+      - name: Smoke Test Server Startup
+        if: matrix.target == 'x86_64-pc-windows-msvc'
+        shell: pwsh
+        run: |
+          $server = Resolve-Path "server/target/${{ matrix.target }}/release/hom-lsp.exe"
+          $request = '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"processId":null,"capabilities":{}}}'
+          $framed = "Content-Length: $([Text.Encoding]::UTF8.GetByteCount($request))`r`n`r`n$request"
+          $response = $framed | & $server --stdio
+          if ($LASTEXITCODE -ne 0) {
+            throw "hom-lsp exited with code $LASTEXITCODE"
+          }
+          if ($response -notmatch '"id":1' -or $response -notmatch '"capabilities"') {
+            throw "hom-lsp did not return an initialize response: $response"
+          }
+
       - name: Upload Binary
         uses: actions/upload-artifact@v7
         with:
