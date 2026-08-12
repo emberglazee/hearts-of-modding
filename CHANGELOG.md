@@ -2,7 +2,7 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
-## [v0.26.0] - 2026-08-10
+## [v0.26.0] - 2026-08-13
 
 ### ✨ Added
 
@@ -24,7 +24,9 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### 🩹 Fixed
 
-- **The bundled Windows amd64 server no longer exits immediately on systems without the Visual C++ Redistributable.** Windows MSVC release binaries now link the C runtime statically, and CI starts the packaged executable and verifies an LSP initialize response before publishing it.
+- **[PR #26](https://github.com/emberglazee/hearts-of-modding/pull/13): The bundled Windows amd64 server no longer exits immediately on systems without the Visual C++ Redistributable.** Windows MSVC release binaries now link the C runtime statically, and CI starts the packaged executable and verifies an LSP initialize response before publishing it.
+
+  - Thanks to @jiangji0721!
 
 - **Quick fixes for spacing no longer crash the LSP on lines with non-English characters.** Requesting a code action on a line containing something like `café` could abort the request, as could a brace-spacing fix on a line whose closing brace fell outside the highlighted range.
 
