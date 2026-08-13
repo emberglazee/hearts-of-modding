@@ -748,9 +748,11 @@ impl Backend {
                     let is_yaml = fresh_uri.ends_with(".yml");
                     let lines: Vec<&str> = content.lines().collect();
 
-                    // Add EOF newline fix if needed
-                    if has_eof_newline_diagnostic
-                        && !content.is_empty()
+                    // Add EOF newline fix if needed — check the file content
+                    // directly, NOT the `has_eof_newline_diagnostic` flag (which
+                    // only reflects diagnostics near the cursor). Consistent with
+                    // every other fix type collected in this bulk action.
+                    if !content.is_empty()
                         && !content.ends_with('\n')
                         && !content.ends_with("\r\n")
                         && !fresh_uri.ends_with("map/buildings.txt")
