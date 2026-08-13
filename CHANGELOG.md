@@ -2,6 +2,14 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
+## [v0.26.1] - 2026-08-13
+
+### 🩹 Fixed
+
+- **[PR #14](https://github.com/emberglazee/hearts-of-modding/pull/14): The LSP now stays responsive during a workspace scan.**
+
+  - Thanks to @jiangji0721!
+
 ## [v0.26.0] - 2026-08-13
 
 ### ✨ Added
@@ -24,7 +32,7 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### 🩹 Fixed
 
-- **[PR #26](https://github.com/emberglazee/hearts-of-modding/pull/13): The bundled Windows amd64 server no longer exits immediately on systems without the Visual C++ Redistributable.** Windows MSVC release binaries now link the C runtime statically, and CI starts the packaged executable and verifies an LSP initialize response before publishing it.
+- **[PR #13](https://github.com/emberglazee/hearts-of-modding/pull/13): The bundled Windows amd64 server no longer exits immediately on systems without the Visual C++ Redistributable.** Windows MSVC release binaries now link the C runtime statically, and CI starts the packaged executable and verifies an LSP initialize response before publishing it.
 
   - Thanks to @jiangji0721!
 
