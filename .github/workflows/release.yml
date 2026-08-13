@@ -1,5 +1,7 @@
 name: Release
 
+run-name: Release (${{ inputs.bump }})
+
 on:
   workflow_dispatch:
     inputs:
@@ -174,3 +176,15 @@ jobs:
       - name: Publish to Open VSX Registry
         run: |
           npx ovsx publish hearts-of-modding-${{ steps.bump.outputs.VERSION }}.vsix --pat ${{ secrets.OPEN_VSX_TOKEN }}
+
+      # Run names are fixed at trigger time ("Release (minor)") before the
+      # version bump runs, so the actual version is invisible from the Actions
+      # list.  This step writes the released version — plus the bump type and
+      # the previous version — to the job summary so it shows up on the run's
+      # Summary tab.
+      - name: Release Summary
+        if: always() && steps.bump.outputs.VERSION
+        run: |
+          python .github/scripts/generate_release_summary.py \
+            --version ${{ steps.bump.outputs.VERSION }} \
+            --bump ${{ inputs.bump }}
