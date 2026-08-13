@@ -33,6 +33,16 @@ Inspired by [CWTools](https://github.com/cwtools/cwtools) and [VModer](https://g
 
 ---
 
+## 📑 Table of Contents
+
+- [🚀 Features](#-features)
+- [✨ Get started](#-get-started)
+- [🧑‍🧒 For submods](#%E2%80%8D-for-submods)
+- [⚙️ Might wanna tweak these](#%EF%B8%8F-might-wanna-tweak-these)
+- [⌨️ Commands](#%EF%B8%8F-commands)
+- [✌️ Requirements](#%EF%B8%8F-requirements)
+- [⭐ Star History](#-star-history)
+
 ## 🚀 Features
 
 ### ✍️ Smarter editing
@@ -85,6 +95,7 @@ The extension automatically discovers installed mods and loads them to provide a
 | `hoi4.styling.enabled` | ✨ Styling suggestions ✨ (tabs vs spaces, trailing whitespace, etc). On by default. |
 | `hoi4.validator.workspaceScan.enabled` | Scan all mod files for errors on startup. Off by default, slow for huge mods. |
 | `hoi4.showMemoryUsage.enabled` | Shows the HoM LSP RAM usage in the status bar. |
+| `hoi4.validator.scopeValidationEnabled` | Opt into experimental scope validation. |
 
 ## ⌨️ Commands
 
@@ -107,6 +118,16 @@ Type "Hearts of Modding" in the command palette (`Ctrl+Shift+P`) to see all comm
   - *LSP also compiled for Windows/Linux `arm64` and macOS `amd64` but stability is not guaranteed. Not bundled with the extension, automatically downloaded separately from the latest release, and verified against the release's `SHA256SUMS` before use.*
 
 A HOI4 install is optional but strongly recommended for the complete experience.
+
+## ⭐ Star History
+
+<a href="https://www.star-history.com/?repos=emberglazee%2Fhearts-of-modding&type=date&legend=bottom-right">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=emberglazee/hearts-of-modding&type=date&theme=dark&legend=bottom-right&sealed_token=hNyD5UH8VQum3HvvjAM4Nk5VSczwQut9De53TNRU-1CDpjJZMcI8LxqLk0lSfnKNaWRxknUHAXDW2Emzf67KFDXLzEqN1bDXhEGTXo_BvloSG93LE1L7NJSplWG6KckDj8zfgkEm4hwX-4QLL0M6kdJebJXhwaHyhTM10vUXRmZNmTrf_aKlq8m-ttTH" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=emberglazee/hearts-of-modding&type=date&legend=bottom-right&sealed_token=hNyD5UH8VQum3HvvjAM4Nk5VSczwQut9De53TNRU-1CDpjJZMcI8LxqLk0lSfnKNaWRxknUHAXDW2Emzf67KFDXLzEqN1bDXhEGTXo_BvloSG93LE1L7NJSplWG6KckDj8zfgkEm4hwX-4QLL0M6kdJebJXhwaHyhTM10vUXRmZNmTrf_aKlq8m-ttTH" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=emberglazee/hearts-of-modding&type=date&legend=bottom-right&sealed_token=hNyD5UH8VQum3HvvjAM4Nk5VSczwQut9De53TNRU-1CDpjJZMcI8LxqLk0lSfnKNaWRxknUHAXDW2Emzf67KFDXLzEqN1bDXhEGTXo_BvloSG93LE1L7NJSplWG6KckDj8zfgkEm4hwX-4QLL0M6kdJebJXhwaHyhTM10vUXRmZNmTrf_aKlq8m-ttTH" />
+ </picture>
+</a>
 
 ---
 
