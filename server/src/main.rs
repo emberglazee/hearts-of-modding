@@ -97,7 +97,7 @@ async fn main() {
     let stdout = tokio::io::stdout();
 
     let (service, socket) = LspService::new(|client| {
-        let static_keywords = Arc::new(backend::build_static_semantic_keywords());
+        let base_keywords = Arc::new(backend::build_static_semantic_keywords());
         // Bound the scan pool to 2/3 of logical cores (min 4). Rayon's
         // default = all logical cores, which pegs the CPU during large-file
         // validation and starves VS Code's extension host, causing UI
@@ -122,7 +122,8 @@ async fn main() {
             workspace_roots: ArcSwap::from_pointee(Vec::new()),
             compute_pool,
             pending_tasks: AtomicU64::new(0),
-            static_token_keywords: static_keywords,
+            base_token_keywords: base_keywords.clone(),
+            token_keywords: ArcSwap::from_pointee((*base_keywords).clone()),
             entity_token_context: ArcSwap::from_pointee(HashMap::new()),
             completion_entity_cache: ArcSwap::from_pointee(Vec::new()),
         }

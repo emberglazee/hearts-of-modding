@@ -4,6 +4,10 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ## [v0.26.1] - 2026-08-13
 
+### ✨ Added
+
+- **Dynamic semantic highlighting for ideology-derived modifier names like `communism_drift` or `democratic_acceptance`.**
+
 ### 🩹 Fixed
 
 - **[PR #14](https://github.com/emberglazee/hearts-of-modding/pull/14): The LSP now stays responsive during a workspace scan.**

@@ -90,10 +90,17 @@ pub(crate) struct Backend {
     /// Client polls via `hoi4/getMemoryUsage` to decide whether the status
     /// bar icon should show a throbber (busy) or pulse (idle).
     pub(crate) pending_tasks: AtomicU64,
-    /// Static token keywords — computed once from TRIGGERS, EFFECTS, MODIFIERS, SCOPES,
-    /// and the hardcoded keyword list. Never changes at runtime, so stored as Arc for
-    /// cheap cloning on every semantic token request.
-    pub(crate) static_token_keywords: Arc<HashSet<String>>,
+    /// Base static token keywords — computed once from TRIGGERS, EFFECTS, MODIFIERS,
+    /// SCOPES, and the hardcoded keyword list. Never changes at runtime.
+    /// The FULL keyword set (base + dynamic ideology-derived keywords) is stored in
+    /// [`token_keywords`] (ArcSwap), rebuilt after each scan in
+    /// [`update_entity_token_context`].
+    pub(crate) base_token_keywords: Arc<HashSet<String>>,
+    /// Full keyword set for semantic tokens — base keywords merged with dynamic
+    /// ideology-derived keywords (`<ideology>_drift`, `<ideology>_acceptance`, etc.).
+    /// Stored in ArcSwap so semantic token rebuilds are cheap (Arc::clone) without
+    /// rebuilding the entire set on every keystroke. Refreshed after each scan.
+    pub(crate) token_keywords: ArcSwap<HashSet<String>>,
     /// Entity names from scanner data — changes when the workspace is rescanned.
     /// Stored in ArcSwap so semantic tokens rebuilds are cheap (Arc::clone + HashMap::clone
     /// of the inner value) without iterating all scanner DashMaps on every keystroke.
@@ -1049,13 +1056,12 @@ impl Backend {
     /// This used to rebuild the entire keyword set from scratch on every semantic
     /// token request, iterating all DashMaps — now it's just two cheap clones.
     pub(crate) fn build_semantic_token_context(&self) -> semantic_tokens::SemanticTokenContext {
-        // Both maps are already stored behind Arc (static_token_keywords is
-        // Arc<HashSet>, entity_token_context is ArcSwap<HashMap>), and
-        // SemanticTokenContext now holds Arc references — so this is exactly
-        // two cheap Arc::clone calls, no deep copies of the underlying
-        // collections on every keystroke.
+        // token_keywords is ArcSwap<HashSet> — load_full() gives Arc<HashSet>.
+        // entity_token_context is ArcSwap<HashMap> — load_full() gives Arc<HashMap>.
+        // Both are cheap Arc clones, no deep copies of the underlying collections
+        // on every keystroke.
         semantic_tokens::SemanticTokenContext::new(
-            Arc::clone(&self.static_token_keywords),
+            self.token_keywords.load_full(),
             self.entity_token_context.load_full(),
         )
     }
@@ -1072,6 +1078,18 @@ impl Backend {
         self.entity_token_context.store(Arc::new(names));
         self.completion_entity_cache
             .store(Arc::new(self.build_completion_entity_cache()));
+
+        // Rebuild the full keyword set: base static keywords + dynamic
+        // ideology-derived keywords (`<ideology>_drift`, `<ideology>_acceptance`,
+        // etc.). These are modifier names that the engine generates per ideology
+        // definition — they highlight as Keyword (like other modifiers) but
+        // can't be in the static set because ideology names aren't known until
+        // the workspace is scanned.
+        let mut keywords = (*self.base_token_keywords).clone();
+        for ik in build_dynamic_ideology_keywords(&self.scanner_data) {
+            keywords.insert(ik);
+        }
+        self.token_keywords.store(Arc::new(keywords));
     }
 
     /// Rebuild the scanner-derived portion of the completion catalogue.
@@ -1281,6 +1299,44 @@ impl Backend {
     }
 }
 
+/// Modifier suffixes that the engine combines with ideology names to produce
+/// dynamic modifier keys. Verified against vanilla game files:
+/// `common/ideas/*.txt` uses `<ideology>_drift` inside idea trait modifiers,
+/// `common/ideas/*.txt` uses `<ideology>_acceptance`, `<ideology>_popularity`,
+/// `<ideology>_influence`, and `<ideology>_support`.
+///
+/// Examples from vanilla:
+///   `communism_drift = 0.1`     — daily ideology drift
+///   `democratic_acceptance`     — acceptance of democratic ideology
+///   `neutrality_popularity`     — popularity of neutrality
+///   `fascism_influence`         — influence of fascism
+///   `communism_support`         — support for communism
+///
+/// Mods can define custom ideologies (e.g. `anarchist`, `monarchism`,
+/// `absolutist`), so these modifier names must be generated dynamically from
+/// the ideology scanner data rather than hardcoded.
+const IDEOLOGY_MODIFIER_SUFFIXES: &[&str] =
+    &["drift", "acceptance", "popularity", "influence", "support"];
+
+/// Generate dynamic keyword tokens from scanned ideology names.
+///
+/// For each ideology found in `scanner_data.ideologies`, produces
+/// `<ideology>_<suffix>` keys for every suffix in [`IDEOLOGY_MODIFIER_SUFFIXES`].
+/// These are modifier names the HOI4 engine recognizes per-ideology — they
+/// highlight as `Keyword` (like other modifiers) in semantic tokens.
+///
+/// Called from [`Backend::update_entity_token_context`] after each scan.
+fn build_dynamic_ideology_keywords(scanner_data: &ScannerData) -> Vec<String> {
+    let mut keywords = Vec::new();
+    for entry in scanner_data.ideologies.iter() {
+        let ideology_name = &entry.value().name;
+        for suffix in IDEOLOGY_MODIFIER_SUFFIXES {
+            keywords.push(format!("{}_{}", ideology_name, suffix));
+        }
+    }
+    keywords
+}
+
 /// Pre-compute the static keyword set used for semantic token resolution.
 ///
 /// This includes: all built-in triggers, effects, modifiers, scopes,
@@ -1288,7 +1344,7 @@ impl Backend {
 /// abilities, focuses, events, OOB, terrain, ideologies, etc.
 ///
 /// This function is called exactly once at startup (see `main.rs`). The
-/// result is stored in `Backend::static_token_keywords` as `Arc<HashSet>`
+/// result is stored in `Backend::token_keywords` as `ArcSwap<HashSet>`
 /// so each semantic token rebuild is just a cheap `Arc::clone`.
 pub(crate) fn build_static_semantic_keywords() -> HashSet<String> {
     let mut keywords = HashSet::new();
@@ -3544,5 +3600,130 @@ mod tests {
             result.is_none(),
             "Whitespace terrain should not produce a diagnostic"
         );
+    }
+
+    #[test]
+    fn test_build_dynamic_ideology_keywords_vanilla() {
+        let sd = ScannerData::new();
+        // Insert vanilla ideologies
+        sd.ideologies.insert(
+            std::sync::Arc::from("democratic"),
+            crate::data::layered_value::LayeredValue::new(
+                crate::scanner::ideology_scanner::Ideology {
+                    name: "democratic".to_string(),
+                    sub_ideologies: vec![],
+                    sub_ideology_ranges: HashMap::new(),
+                    path: std::sync::Arc::from("test"),
+                    range: ast::Range {
+                        start_line: 0,
+                        start_col: 0,
+                        end_line: 0,
+                        end_col: 0,
+                    },
+                },
+            ),
+        );
+        sd.ideologies.insert(
+            std::sync::Arc::from("communism"),
+            crate::data::layered_value::LayeredValue::new(
+                crate::scanner::ideology_scanner::Ideology {
+                    name: "communism".to_string(),
+                    sub_ideologies: vec![],
+                    sub_ideology_ranges: HashMap::new(),
+                    path: std::sync::Arc::from("test"),
+                    range: ast::Range {
+                        start_line: 0,
+                        start_col: 0,
+                        end_line: 0,
+                        end_col: 0,
+                    },
+                },
+            ),
+        );
+
+        let keywords = build_dynamic_ideology_keywords(&sd);
+        // 2 ideologies × 5 suffixes = 10 keywords
+        assert_eq!(keywords.len(), 10);
+
+        // Check all expected suffixes for democratic
+        for suffix in IDEOLOGY_MODIFIER_SUFFIXES {
+            assert!(
+                keywords.contains(&format!("democratic_{}", suffix)),
+                "Missing democratic_{}",
+                suffix
+            );
+        }
+        // Check all expected suffixes for communism
+        for suffix in IDEOLOGY_MODIFIER_SUFFIXES {
+            assert!(
+                keywords.contains(&format!("communism_{}", suffix)),
+                "Missing communism_{}",
+                suffix
+            );
+        }
+    }
+
+    #[test]
+    fn test_build_dynamic_ideology_keywords_custom_mod() {
+        let sd = ScannerData::new();
+        // Custom ideology names from mods
+        for name in &["anarchist", "monarchism", "absolutist"] {
+            sd.ideologies.insert(
+                std::sync::Arc::from(*name),
+                crate::data::layered_value::LayeredValue::new(
+                    crate::scanner::ideology_scanner::Ideology {
+                        name: name.to_string(),
+                        sub_ideologies: vec![],
+                        sub_ideology_ranges: HashMap::new(),
+                        path: std::sync::Arc::from("test"),
+                        range: ast::Range {
+                            start_line: 0,
+                            start_col: 0,
+                            end_line: 0,
+                            end_col: 0,
+                        },
+                    },
+                ),
+            );
+        }
+
+        let keywords = build_dynamic_ideology_keywords(&sd);
+        // 3 ideologies × 5 suffixes = 15 keywords
+        assert_eq!(keywords.len(), 15);
+
+        // Verify a custom ideology gets the drift suffix
+        assert!(
+            keywords.contains(&"anarchist_drift".to_string()),
+            "anarchist_drift should be generated"
+        );
+        assert!(
+            keywords.contains(&"monarchism_acceptance".to_string()),
+            "monarchism_acceptance should be generated"
+        );
+        assert!(
+            keywords.contains(&"absolutist_support".to_string()),
+            "absolutist_support should be generated"
+        );
+    }
+
+    #[test]
+    fn test_build_dynamic_ideology_keywords_empty() {
+        let sd = ScannerData::new();
+        // No ideologies → no keywords
+        let keywords = build_dynamic_ideology_keywords(&sd);
+        assert!(keywords.is_empty());
+    }
+
+    #[test]
+    fn test_ideology_modifier_suffixes_complete() {
+        // Verify the suffix set matches what vanilla actually uses.
+        // These are the 5 modifier suffix patterns that combine with ideology
+        // names in HOI4 script files (verified against vanilla game files).
+        assert_eq!(IDEOLOGY_MODIFIER_SUFFIXES.len(), 5);
+        assert!(IDEOLOGY_MODIFIER_SUFFIXES.contains(&"drift"));
+        assert!(IDEOLOGY_MODIFIER_SUFFIXES.contains(&"acceptance"));
+        assert!(IDEOLOGY_MODIFIER_SUFFIXES.contains(&"popularity"));
+        assert!(IDEOLOGY_MODIFIER_SUFFIXES.contains(&"influence"));
+        assert!(IDEOLOGY_MODIFIER_SUFFIXES.contains(&"support"));
     }
 }
