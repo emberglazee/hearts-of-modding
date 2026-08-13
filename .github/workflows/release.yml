@@ -53,6 +53,11 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v6
+        with:
+          # Full history + tags: the release description script counts
+          # contributions since the previous release tag (git describe/
+          # rev-list) and resolves heads to SHAs for the compare API.
+          fetch-depth: 0
 
       - name: Use Node.js
         uses: actions/setup-node@v6
@@ -101,8 +106,13 @@ jobs:
           pattern: hom-lsp-*
 
       - name: Extract Release Notes
+        # Changelog sections + contributor medals since the previous release
+        # tag (git describe); PR authors are resolved via the GitHub compare
+        # and pulls APIs, so the step needs a token and full history.
         run: |
-          python .github/scripts/extract_release_notes.py > release_notes.md
+          python .github/scripts/generate_release_description.py > release_notes.md
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Prepare Binaries
         run: |
