@@ -4,6 +4,10 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ## [v0.26.2] - 2026-08-13
 
+### 🔧 Changed
+
+- Dependency updates.
+
 ### 🩹 Fixed
 
 - **The "Fix all styling issues in this file" bulk action now also adds the trailing newline.**
