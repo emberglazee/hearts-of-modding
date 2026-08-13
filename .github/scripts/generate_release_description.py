@@ -13,7 +13,9 @@ contributor medal list covering everything since the previous release tag:
 
 Changelog rules:
 - Minor bump (patch == 0): returns just that version's section.
-- Patch bump (patch > 0): returns the patch section + its parent minor section.
+- Patch bump (patch > 0): returns up to 3 consecutive patch sections from the
+  same minor series (current + the 2 preceding patches), so an upgrade from an
+  older patch shows the intermediate fixes — not just the latest one.
 
 Contributor rules (one credit per commit in <previous tag>..HEAD, each commit
 counted exactly once):
@@ -88,9 +90,42 @@ def is_patch(version):
     return patch > 0
 
 
-def minor_version_of(version):
+def minor_versions_in_series(sections, version):
+    """All versions sharing *version*'s major.minor, sorted by patch
+    number **descending**.  Each entry is ``(patch_num, version_key)``
+    e.g. ``[(3, "v0.26.3"), (2, "v0.26.2"), (1, "v0.26.1"), (0, "v0.26.0")]``.
+    """
     major, minor, _ = map(int, version.split("."))
-    return f"{major}.{minor}.0"
+    prefix = f"v{major}.{minor}."
+    result = []
+    for key in sections:
+        if key.startswith(prefix):
+            patch_num = int(key.rsplit(".", 1)[1])
+            result.append((patch_num, key))
+    result.sort(reverse=True)
+    return result
+
+
+def changelog_part(version, sections):
+    current_key = f"v{version}"
+    current_header, current_body = sections[current_key]
+    parts = [f"## {current_header}\n\n{current_body}"]
+
+    if is_patch(version):
+        # Include up to 2 preceding patch sections from the same minor
+        # series (3 total with the current one), so an upgrade from an
+        # older patch shows the intermediate changes.
+        current_patch = int(version.split(".")[2])
+        same_minor = minor_versions_in_series(sections, version)
+        for patch_num, key in same_minor:
+            if key == current_key or patch_num > current_patch:
+                continue
+            header, body = sections[key]
+            parts.append(f"## {header}\n\n{body}")
+            if len(parts) >= 3:
+                break
+
+    return "\n\n".join(parts)
 
 
 def run(cmd):
@@ -254,20 +289,6 @@ def render_contributors(entries):
         noun = "commit" if count == 1 else "commits"
         lines.append(f"- {medal} @{handle}: {count} {noun}")
     return "\n".join(lines)
-
-
-def changelog_part(version, sections):
-    current_key = f"v{version}"
-    current_header, current_body = sections[current_key]
-    out = f"## {current_header}\n\n{current_body}"
-
-    if is_patch(version):
-        minor_key = f"v{minor_version_of(version)}"
-        if minor_key in sections and minor_key != current_key:
-            minor_header, minor_body = sections[minor_key]
-            out += f"\n\n## {minor_header}\n\n{minor_body}"
-
-    return out
 
 
 def main():

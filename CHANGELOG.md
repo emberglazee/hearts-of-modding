@@ -2,13 +2,15 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
-## [v0.26.3] - 2026-08-13
+## [v0.26.3] - 2026-08-14
 
 ### 🧹 Internal
 
 > new segment, yippee
 
 - **Release workflow runs now carry descriptive names** like "Release (minor)" in the Actions list, and post a job summary with the actual released version, bump type, and previous version.
+
+- **Release descriptions now include the last 3 patch versions** instead of just the current patch + its parent minor, so upgrading from an older patch shows the intermediate fixes.
 
 ## [v0.26.2] - 2026-08-13
 
