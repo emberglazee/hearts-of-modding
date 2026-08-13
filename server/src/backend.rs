@@ -40,6 +40,30 @@ impl Drop for ProcessingGuard<'_> {
     }
 }
 
+async fn run_in_compute_pool<T, F>(pool: &rayon::ThreadPool, work: F) -> Result<T, String>
+where
+    T: Send + 'static,
+    F: FnOnce() -> T + Send + 'static,
+{
+    let (tx, rx) = tokio::sync::oneshot::channel();
+    pool.spawn(move || {
+        let result =
+            std::panic::catch_unwind(std::panic::AssertUnwindSafe(work)).map_err(|panic| {
+                if let Some(message) = panic.downcast_ref::<&str>() {
+                    (*message).to_string()
+                } else if let Some(message) = panic.downcast_ref::<String>() {
+                    message.clone()
+                } else {
+                    "unknown panic".to_string()
+                }
+            });
+        let _ = tx.send(result);
+    });
+
+    rx.await
+        .map_err(|_| "compute-pool task was cancelled".to_string())?
+}
+
 pub(crate) struct Backend {
     pub(crate) client: Client,
     pub(crate) documents: Arc<DashMap<String, String>>,
@@ -369,9 +393,24 @@ impl Backend {
             )
             .await;
 
-        let extensions = ["txt", "yml", "csv"];
+        let root = root.to_path_buf();
         let filter = self.get_sync_filter();
-        let files = crate::utils::fs_util::collect_files(root, &extensions, filter, true);
+        let files = match tokio::task::spawn_blocking(move || {
+            crate::utils::fs_util::collect_files(&root, &["txt", "yml", "csv"], filter, true)
+        })
+        .await
+        {
+            Ok(files) => files,
+            Err(error) => {
+                self.client
+                    .log_message(
+                        MessageType::ERROR,
+                        format!("Workspace scan failed while collecting files: {error}"),
+                    )
+                    .await;
+                return;
+            }
+        };
         let total = files.len();
 
         self.client
@@ -449,17 +488,14 @@ impl Backend {
             Uri,
             Vec<Diagnostic>,
             Option<(String, usize, std::time::Duration)>,
-        )> = tokio::task::block_in_place(|| {
-            // Install our bounded pool for this scan. The global pool
-            // pegs every logical core and starves VS Code's extension host,
-            // causing UI stuttering on large mods.
+        )> = {
             let ctx = ValidationCtx::from_backend(self);
-            self.compute_pool.install(|| {
+            match run_in_compute_pool(&self.compute_pool, move || {
                 read_results
-                    .par_iter()
+                    .into_par_iter()
                     .map(|(content, uri)| {
                         let t0 = std::time::Instant::now();
-                        let diags = ctx.validate_content(uri, content, false);
+                        let diags = ctx.validate_content(&uri, &content, false);
                         let elapsed = t0.elapsed();
                         let timing = if elapsed > std::time::Duration::from_millis(50) {
                             Some((
@@ -474,11 +510,24 @@ impl Backend {
                         } else {
                             None
                         };
-                        (uri.clone(), diags, timing)
+                        (uri, diags, timing)
                     })
                     .collect()
             })
-        });
+            .await
+            {
+                Ok(results) => results,
+                Err(error) => {
+                    self.client
+                        .log_message(
+                            MessageType::ERROR,
+                            format!("Workspace scan failed during validation: {error}"),
+                        )
+                        .await;
+                    return;
+                }
+            }
+        };
 
         // Split diagnostics from timings. Log slow files (sorted slowest-first)
         // so huge-file hot spots surface in the output channel.
@@ -3420,6 +3469,30 @@ impl ValidationCtx {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn compute_pool_work_does_not_block_async_runtime() {
+        let pool = rayon::ThreadPoolBuilder::new()
+            .num_threads(1)
+            .build()
+            .expect("test compute pool");
+        let (release_tx, release_rx) = std::sync::mpsc::channel();
+        let work = run_in_compute_pool(&pool, move || {
+            release_rx.recv().expect("release compute task");
+        });
+        tokio::pin!(work);
+
+        tokio::select! {
+            _ = tokio::time::sleep(std::time::Duration::from_millis(20)) => {}
+            result = work.as_mut() => panic!("compute task unexpectedly completed: {result:?}"),
+        }
+
+        release_tx.send(()).expect("release compute task");
+        tokio::time::timeout(std::time::Duration::from_secs(1), work.as_mut())
+            .await
+            .expect("compute task timed out")
+            .expect("compute task failed");
+    }
 
     #[test]
     fn test_check_province_terrain_csv_invalid() {
