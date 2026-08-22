@@ -105,51 +105,57 @@ pub fn find_context_at(script: &ast::Script, pos: Position) -> Option<String> {
 /// (a cursor inside `limit = { ... }` returns `limit`); plain values return
 /// `None`. Client position is UTF-16, AST ranges are byte columns — convert
 /// at entry like the sibling walkers.
-pub fn find_enclosing_block_key(script: &ast::Script, pos: Position) -> Option<String> {
+/// Full chain of enclosing block keys, innermost first. Used by completion to
+/// inherit a param-container ancestor's parameter table (`technology_folders`
+/// documents `ledger`/`doctrine` for its per-folder sub-blocks). Callers that
+/// only want the innermost block take element 0.
+pub fn find_enclosing_block_key_chain(script: &ast::Script, pos: Position) -> Vec<String> {
     let pos = crate::utils::lsp_convert::to_byte_position(&script.source, pos);
-    find_enclosing_in_entries(&script.entries, pos, &script.source)
+    let mut chain = Vec::new();
+    collect_enclosing_chain(&script.entries, pos, &script.source, &mut chain);
+    // collect pushes outermost first; callers want innermost first.
+    chain.reverse();
+    chain
 }
 
-fn find_enclosing_in_entries(
+/// Pushes enclosing block keys onto `chain` (outermost pushed first). Returns
+/// true when `pos` was enclosed somewhere in these entries.
+fn collect_enclosing_chain(
     entries: &[ast::Entry],
     pos: Position,
     source: &str,
-) -> Option<String> {
+    chain: &mut Vec<String>,
+) -> bool {
     for entry in entries {
-        if let Some(key) = find_enclosing_in_entry(entry, pos, source) {
-            return Some(key);
-        }
-    }
-    None
-}
-
-fn find_enclosing_in_entry(entry: &ast::Entry, pos: Position, source: &str) -> Option<String> {
-    match entry {
-        ast::Entry::Assignment(ass) => {
-            if is_pos_in_range(pos, &ass.value.range) {
-                match &ass.value.value {
-                    ast::Value::Block(entries) | ast::Value::TaggedBlock(_, entries, _) => {
-                        // Innermost wins: a nested block containing the cursor
-                        // takes precedence over this one.
-                        if let Some(inner) = find_enclosing_in_entries(entries, pos, source) {
-                            return Some(inner);
+        match entry {
+            ast::Entry::Assignment(ass) => {
+                if is_pos_in_range(pos, &ass.value.range) {
+                    match &ass.value.value {
+                        ast::Value::Block(inner) | ast::Value::TaggedBlock(_, inner, _) => {
+                            chain.push(ass.key_text(source).to_string());
+                            if collect_enclosing_chain(inner, pos, source, chain) {
+                                return true;
+                            }
+                            // Cursor sits in this block but no deeper block
+                            // encloses it — this key ends the chain.
+                            return true;
                         }
-                        Some(ass.key_text(source).to_string())
+                        _ => continue,
                     }
-                    _ => None,
                 }
-            } else {
-                None
             }
+            ast::Entry::Value(val) => {
+                if let ast::Value::Block(inner) | ast::Value::TaggedBlock(_, inner, _) = &val.value
+                {
+                    if collect_enclosing_chain(inner, pos, source, chain) {
+                        return true;
+                    }
+                }
+            }
+            ast::Entry::Comment(_, _) => {}
         }
-        ast::Entry::Value(val) => match &val.value {
-            ast::Value::Block(entries) | ast::Value::TaggedBlock(_, entries, _) => {
-                find_enclosing_in_entries(entries, pos, source)
-            }
-            _ => None,
-        },
-        ast::Entry::Comment(_, _) => None,
     }
+    false
 }
 
 fn find_context_in_entry(entry: &ast::Entry, pos: Position, source: &str) -> Option<String> {
@@ -209,16 +215,20 @@ mod tests {
         // Inside the add_timed_idea block (empty line / after a child) -> the
         // block key itself. UTF-16 columns -> byte conversion handled at entry.
         assert_eq!(
-            find_enclosing_block_key(&script, pos(1, 4)).as_deref(),
+            find_enclosing_block_key_chain(&script, pos(1, 4))
+                .first()
+                .map(String::as_str),
             Some("add_timed_idea")
         );
         // Cursor on a child key line (days = 180) -> still the parent block.
         assert_eq!(
-            find_enclosing_block_key(&script, pos(2, 4)).as_deref(),
+            find_enclosing_block_key_chain(&script, pos(2, 4))
+                .first()
+                .map(String::as_str),
             Some("add_timed_idea")
         );
-        // Top-level non-block value -> None.
-        assert_eq!(find_enclosing_block_key(&script, pos(4, 0)), None);
+        // Top-level non-block value -> empty chain.
+        assert!(find_enclosing_block_key_chain(&script, pos(4, 0)).is_empty());
     }
 
     #[test]
@@ -226,15 +236,19 @@ mod tests {
         let (script, _) = parse_script(
             "random_other_country = {\n    limit = {\n        has_stability = 0.5\n    }\n}\n",
         );
-        // Cursor inside the limit block -> limit (innermost wins), so
-        // completion falls back to the full trigger list there.
+        // Cursor inside the limit block -> limit innermost, outer key behind
+        // it (innermost wins for callers taking element 0).
         assert_eq!(
-            find_enclosing_block_key(&script, pos(2, 8)).as_deref(),
+            find_enclosing_block_key_chain(&script, pos(2, 8))
+                .first()
+                .map(String::as_str),
             Some("limit")
         );
         // Cursor in the outer block body -> the outer block key.
         assert_eq!(
-            find_enclosing_block_key(&script, pos(1, 4)).as_deref(),
+            find_enclosing_block_key_chain(&script, pos(1, 4))
+                .first()
+                .map(String::as_str),
             Some("random_other_country")
         );
     }
@@ -243,8 +257,28 @@ mod tests {
     fn test_find_enclosing_block_key_tagged() {
         let (script, _) = parse_script("set_variable = {\n    temp:foo = 1\n}\n");
         assert_eq!(
-            find_enclosing_block_key(&script, pos(1, 4)).as_deref(),
+            find_enclosing_block_key_chain(&script, pos(1, 4))
+                .first()
+                .map(String::as_str),
             Some("set_variable")
+        );
+    }
+
+    #[test]
+    fn test_find_enclosing_block_key_chain_full_order() {
+        let (script, _) = parse_script(
+            "technology_folders = {\n    land_doctrine_folder = {\n        doctrine = yes\n    }\n}\n",
+        );
+        // Cursor on `doctrine` -> full chain innermost-first: the folder
+        // instance, then the param-container above it. This is what lets
+        // completion inherit technology_folders' parameter table.
+        let chain = find_enclosing_block_key_chain(&script, pos(2, 8));
+        assert_eq!(
+            chain,
+            vec![
+                "land_doctrine_folder".to_string(),
+                "technology_folders".to_string()
+            ]
         );
     }
 }

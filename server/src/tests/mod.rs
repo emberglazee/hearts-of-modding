@@ -11,4 +11,5 @@ pub mod oob_regiments;
 pub mod parser_skip;
 pub mod registry;
 pub mod scripted_loc;
+pub mod technology;
 pub mod utf16_conversion;

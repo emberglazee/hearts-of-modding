@@ -2,7 +2,11 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
-## [v0.26.3] - 2026-08-14
+## [v0.27.0] - 2026-08-22
+
+### ✨ Added
+
+- **Technology and technology tag scanner.** Scans, validates, and integrates technologies, technology folders, and technology categories from `common/technology_tags/*.txt` and `common/technologies/*.txt`.
 
 ### 🧹 Internal
 

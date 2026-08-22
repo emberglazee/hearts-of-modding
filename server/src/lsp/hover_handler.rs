@@ -687,6 +687,105 @@ impl Backend {
                         push_section(&mut hover_text, &ach_text);
                     }
 
+                    // Technology hover — name loc, year/cost, category + folder,
+                    // and tree relationships from the dep graph.
+                    if let Some(tech) = self.scanner_data.technologies.get(identifier.as_str()) {
+                        let tech = tech.resolve();
+                        let mut t_text = format!("### 🔬 Technology: `{}`\n", identifier);
+
+                        let loc = &self.scanner_data.localization;
+                        let name_key = identifier.as_str();
+                        if let Some(name_loc) = loc.get(name_key) {
+                            t_text.push_str(&format!(
+                                "\n**Name:** {}",
+                                paradox_to_markdown(&name_loc.value, Some(loc), Some(&color_map))
+                            ));
+                        }
+
+                        if let Some(year) = tech.start_year {
+                            t_text.push_str(&format!("\n**Start year:** {}", year));
+                        }
+                        if let Some(cost) = tech.research_cost {
+                            t_text.push_str(&format!("\n**Research cost:** {}", cost));
+                        }
+                        if !tech.categories.is_empty() {
+                            t_text.push_str(&format!(
+                                "\n**Categories:** {}",
+                                tech.categories.join(", ")
+                            ));
+                        }
+                        if let Some(folder) = &tech.folder {
+                            t_text.push_str(&format!("\n**Folder:** `{}`", folder));
+                        }
+                        if !tech.leads_to_tech.is_empty() {
+                            t_text.push_str(&format!(
+                                "\n**Leads to:** {}",
+                                tech.leads_to_tech.join(", ")
+                            ));
+                        }
+                        if !tech.dependencies.is_empty() {
+                            t_text.push_str(&format!(
+                                "\n**Dependencies:** {}",
+                                tech.dependencies.join(", ")
+                            ));
+                        }
+                        if !tech.xor.is_empty() {
+                            t_text.push_str(&format!(
+                                "\n**Mutually exclusive with:** {}",
+                                tech.xor.join(", ")
+                            ));
+                        }
+                        if !tech.enable_subunits.is_empty() {
+                            t_text.push_str(&format!(
+                                "\n**Enables subunits:** {}",
+                                tech.enable_subunits.join(", ")
+                            ));
+                        }
+                        if !tech.enable_equipments.is_empty() {
+                            t_text.push_str(&format!(
+                                "\n**Enables equipment:** {}",
+                                tech.enable_equipments.join(", ")
+                            ));
+                        }
+
+                        // Tree context: which techs lead here
+                        let callers = self.scanner_data.tech_dep_graph.callers_of(&identifier);
+                        if !callers.is_empty() {
+                            t_text.push_str(&format!(
+                                "\n\n**Prerequisites of:** {}",
+                                callers.join(", ")
+                            ));
+                        }
+
+                        t_text.push_str(&format!(
+                            "\n\n---\nDefined in: {}",
+                            self.make_file_link(&tech.path)
+                        ));
+                        push_section(&mut hover_text, &t_text);
+                    }
+
+                    // Technology tag (category/folder) hover
+                    if let Some(tag) = self.scanner_data.technology_tags.get(identifier.as_str()) {
+                        use crate::scanner::technology_tags_scanner::TechnologyTagKind;
+                        let tag = tag.resolve();
+                        let kind_label = match tag.tag_kind {
+                            TechnologyTagKind::Category => "Technology Category",
+                            TechnologyTagKind::Folder => "Technology Folder",
+                        };
+                        let mut tg_text = format!("### 🗂️ {}: `{}`\n", kind_label, identifier);
+                        if let Some(ledger) = &tag.ledger {
+                            tg_text.push_str(&format!("\n**Ledger:** {}", ledger));
+                        }
+                        if tag.doctrine {
+                            tg_text.push_str("\n**Doctrine folder:** yes");
+                        }
+                        tg_text.push_str(&format!(
+                            "\n\n---\nDefined in: {}",
+                            self.make_file_link(&tag.path)
+                        ));
+                        push_section(&mut hover_text, &tg_text);
+                    }
+
                     // Check for states
                     let mut id_opt = None;
                     if let Some(ast::Value::Number(n)) = &assigned_value {

@@ -75,7 +75,8 @@ fn entity_kind_to_token_type(kind: EntityKind) -> u32 {
         EntityKind::Ideology
         | EntityKind::SoundCategory
         | EntityKind::StateCategory
-        | EntityKind::DecisionCategory => TokenType::Enum as u32,
+        | EntityKind::DecisionCategory
+        | EntityKind::TechnologyTag => TokenType::Enum as u32,
 
         // Members of named categories → EnumMember
         EntityKind::SubIdeology | EntityKind::ColorCode | EntityKind::Resource => {
@@ -88,9 +89,10 @@ fn entity_kind_to_token_type(kind: EntityKind) -> u32 {
         }
 
         // Named concept definitions → Class
-        EntityKind::Idea | EntityKind::AiArea | EntityKind::AiStrategyPlan => {
-            TokenType::Class as u32
-        }
+        EntityKind::Idea
+        | EntityKind::AiArea
+        | EntityKind::AiStrategyPlan
+        | EntityKind::Technology => TokenType::Class as u32,
 
         // Narrative / event-like → Event
         EntityKind::Event | EntityKind::Focus | EntityKind::Achievement => TokenType::Event as u32,
@@ -175,7 +177,7 @@ pub fn get_semantic_tokens(script: &Script, ctx: &SemanticTokenContext) -> Seman
     let utf16 = Utf16Index::new(&script.source);
     let mut tokens = Vec::new();
     for entry in &script.entries {
-        push_entry_tokens(entry, &mut tokens, ctx, &script.source, None, &utf16);
+        push_entry_tokens(entry, &mut tokens, ctx, &script.source, None, &utf16, None);
     }
 
     tokens_to_lsp(tokens)
@@ -215,7 +217,7 @@ pub fn get_semantic_tokens_range(
             continue;
         }
 
-        push_entry_tokens(entry, &mut tokens, ctx, &script.source, None, &utf16);
+        push_entry_tokens(entry, &mut tokens, ctx, &script.source, None, &utf16, None);
     }
 
     tokens_to_lsp(tokens)
@@ -626,6 +628,7 @@ fn push_entry_tokens(
     source: &str,
     parent_key: Option<&str>,
     utf16: &Utf16Index,
+    param_anchor: Option<&str>,
 ) {
     match entry {
         Entry::Assignment(ass) => {
@@ -655,13 +658,19 @@ fn push_entry_tokens(
             // be highlighted distinctly.
             let is_meta = is_meta_scope(key_text);
 
-            // Documented parameter of the parent block (e.g. `days` inside
-            // `add_timed_idea = { ... }`). Context-aware: the same key is a
-            // plain keyword (or nothing) outside its documented parent.
-            // Checked before the global keyword set so block params win
-            // inside their own block.
-            let is_block_param = parent_key
-                .is_some_and(|p| crate::data::hoi4_data::lookup_parameter(p, key_text).is_some());
+            // Documented parameter of the enclosing block (e.g. `days` inside
+            // `add_timed_idea = { ... }`) or of a threaded param-container
+            // ancestor (`ledger`/`doctrine` inside a `technology_folders`
+            // sub-block). Context-aware: the same key is a plain keyword (or
+            // nothing) outside its documented parent. Checked before the
+            // global keyword set so block params win inside their own block.
+            let param_owner = crate::data::hoi4_data::lookup_parameter_with_anchor(
+                parent_key,
+                param_anchor,
+                key_text,
+            )
+            .map(|(owner, _)| owner);
+            let is_block_param = param_owner.is_some();
 
             if is_event_type {
                 tokens.push(RawToken {
@@ -758,10 +767,32 @@ fn push_entry_tokens(
                 token_type: TokenType::Operator as u32,
             });
 
-            push_value_tokens(&ass.value, tokens, ctx, source, Some(key_text), utf16);
+            // Compute the anchor for entries INSIDE this block before
+            // descending. Rules: a documented param-container anchors itself;
+            // the direct children of the current anchor keep it (folder
+            // instances hold the container's params one level down); anything
+            // deeper consumes it (a folder's `available` body must not inherit
+            // folder params).
+            let child_anchor = if crate::data::hoi4_data::is_param_container(key_text) {
+                Some(key_text)
+            } else if param_anchor.is_some() && parent_key == param_anchor {
+                param_anchor
+            } else {
+                None
+            };
+
+            push_value_tokens(
+                &ass.value,
+                tokens,
+                ctx,
+                source,
+                Some(key_text),
+                utf16,
+                child_anchor,
+            );
         }
         Entry::Value(val) => {
-            push_value_tokens(val, tokens, ctx, source, parent_key, utf16);
+            push_value_tokens(val, tokens, ctx, source, parent_key, utf16, param_anchor);
         }
         Entry::Comment(_, range) => {
             let com_line = range.start_line;
@@ -784,6 +815,7 @@ fn push_value_tokens(
     source: &str,
     parent_key: Option<&str>,
     utf16: &Utf16Index,
+    param_anchor: Option<&str>,
 ) {
     // Precompute UTF-16 columns for the value range
     let val_line = val.range.start_line;
@@ -802,6 +834,20 @@ fn push_value_tokens(
                     start: val_start,
                     length: val_len,
                     token_type: TokenType::MetaScope as u32,
+                });
+            } else if parent_key.is_some_and(|p| p == "technology_categories")
+                && ctx.entity_names.get(s) == Some(&EntityKind::TechnologyTag)
+            {
+                // Bare category identifiers inside `technology_categories` —
+                // the scanner knows them, so they render as their entity kind
+                // even when the name collides with a trigger/effect keyword
+                // (e.g. vanilla `armor`). The declared container wins over
+                // the global keyword set.
+                tokens.push(RawToken {
+                    line: val_line,
+                    start: val_start,
+                    length: val_len,
+                    token_type: entity_kind_to_token_type(EntityKind::TechnologyTag),
                 });
             } else if ctx.keywords.contains(s) {
                 tokens.push(RawToken {
@@ -886,7 +932,7 @@ fn push_value_tokens(
         }
         Value::Block(entries) => {
             for entry in entries {
-                push_entry_tokens(entry, tokens, ctx, source, parent_key, utf16);
+                push_entry_tokens(entry, tokens, ctx, source, parent_key, utf16, param_anchor);
             }
         }
         Value::TaggedBlock(tag, entries, _) => {
@@ -904,7 +950,7 @@ fn push_value_tokens(
                 token_type: TokenType::Keyword as u32,
             });
             for entry in entries {
-                push_entry_tokens(entry, tokens, ctx, source, parent_key, utf16);
+                push_entry_tokens(entry, tokens, ctx, source, parent_key, utf16, param_anchor);
             }
         }
         Value::QuotedString(_) => {
@@ -1669,5 +1715,250 @@ add_political_power = 100
         for tok in &tokens {
             assert_eq!(tok.3, "keyword", "header should be keyword");
         }
+    }
+
+    /// `armor` is BOTH a vanilla trigger (global keyword) and a technology
+    /// category. Inside `technology_categories = { armor }` the declared
+    /// container wins: the value must render as the TechnologyTag entity
+    /// kind (enum), not as a keyword.
+    #[test]
+    fn test_technology_category_value_beats_keyword_collision() {
+        use crate::parser::parser;
+        use std::sync::Arc as StdArc;
+
+        let source = "technology_categories = {\n\tlight_air\n\tarmor\n}\n";
+        let (script, _) = parser::parse_script(source);
+
+        // `armor` collides: it's a global keyword AND a scanned TechnologyTag.
+        let mut keywords = HashSet::new();
+        keywords.insert("armor".to_string());
+        keywords.insert("technology_categories".to_string());
+        let mut entity_names = HashMap::new();
+        entity_names.insert(
+            "light_air".to_string(),
+            crate::data::entity_lookup::EntityKind::TechnologyTag,
+        );
+        entity_names.insert(
+            "armor".to_string(),
+            crate::data::entity_lookup::EntityKind::TechnologyTag,
+        );
+        let ctx = SemanticTokenContext {
+            keywords: StdArc::new(keywords),
+            entity_names: StdArc::new(entity_names),
+        };
+
+        let result = get_semantic_tokens(&script, &ctx);
+        let SemanticTokensResult::Tokens(t) = result else {
+            panic!("expected Tokens result")
+        };
+
+        // Decode deltas to absolute (line, start, len, type).
+        let legend = [
+            "keyword",
+            "variable",
+            "string",
+            "number",
+            "operator",
+            "comment",
+            "type",
+            "event",
+            "function",
+            "enum",
+            "enum_member",
+            "struct",
+            "class",
+            "property",
+        ];
+        let mut abs: Vec<(u32, u32, u32, &str)> = Vec::new();
+        let (mut last_line, mut last_start) = (0u32, 0u32);
+        for st in &t.data {
+            let line = last_line + st.delta_line;
+            let start = if st.delta_line == 0 {
+                last_start + st.delta_start
+            } else {
+                st.delta_start
+            };
+            abs.push((
+                line,
+                start,
+                st.length,
+                legend.get(st.token_type as usize).copied().unwrap_or("?"),
+            ));
+            last_line = line;
+            last_start = start;
+        }
+
+        // Line 1 `light_air` → enum (TechnologyTag), length 9.
+        assert!(
+            abs.iter()
+                .any(|&(l, s, len, tt)| l == 1 && s == 1 && len == 9 && tt == "enum"),
+            "light_air should be enum: {:#?}",
+            abs
+        );
+        // Line 2 `armor` → enum, NOT keyword — the container beats the
+        // global trigger-name collision.
+        assert!(
+            abs.iter()
+                .any(|&(l, s, len, tt)| l == 2 && s == 1 && len == 5 && tt == "enum"),
+            "armor should be enum inside technology_categories: {:#?}",
+            abs
+        );
+        assert!(
+            !abs.iter().any(|&(l, _, _, tt)| l == 2 && tt == "keyword"),
+            "armor must not render as keyword inside its container: {:#?}",
+            abs
+        );
+    }
+
+    #[test]
+    fn test_folder_params_highlight_as_property_via_container() {
+        use crate::parser::parser;
+        use std::sync::Arc as StdArc;
+
+        // `ledger`/`doctrine` are documented parameters of the
+        // `technology_folders` param-container, one level above the folder
+        // instance blocks — the anchor threading must lift them to Property.
+        let source = "technology_folders = {\n\tindustry_folder = {\n\t\tledger = civilian\n\t\tdoctrine = yes\n\t}\n}\n";
+        let (script, _) = parser::parse_script(source);
+
+        let ctx = SemanticTokenContext {
+            keywords: StdArc::new(HashSet::new()),
+            entity_names: StdArc::new(HashMap::new()),
+        };
+
+        let result = get_semantic_tokens(&script, &ctx);
+        let SemanticTokensResult::Tokens(t) = result else {
+            panic!("expected Tokens result")
+        };
+
+        let legend = [
+            "keyword",
+            "variable",
+            "string",
+            "number",
+            "operator",
+            "comment",
+            "type",
+            "event",
+            "function",
+            "enum",
+            "enum_member",
+            "struct",
+            "class",
+            "property",
+        ];
+        let mut abs: Vec<(u32, u32, u32, &str)> = Vec::new();
+        let (mut last_line, mut last_start) = (0u32, 0u32);
+        for st in &t.data {
+            let line = last_line + st.delta_line;
+            let start = if st.delta_line == 0 {
+                last_start + st.delta_start
+            } else {
+                st.delta_start
+            };
+            abs.push((
+                line,
+                start,
+                st.length,
+                legend.get(st.token_type as usize).copied().unwrap_or("?"),
+            ));
+            last_line = line;
+            last_start = start;
+        }
+
+        // Lines 2 and 3: `ledger` and `doctrine` keys → property.
+        assert!(
+            abs.iter()
+                .any(|&(l, s, len, tt)| l == 2 && s == 2 && len == 6 && tt == "property"),
+            "ledger should be property inside a folder block: {:#?}",
+            abs
+        );
+        assert!(
+            abs.iter()
+                .any(|&(l, s, len, tt)| l == 3 && s == 2 && len == 8 && tt == "property"),
+            "doctrine should be property inside a folder block: {:#?}",
+            abs
+        );
+    }
+
+    #[test]
+    fn test_folder_param_anchor_does_not_leak_into_available() {
+        use crate::parser::parser;
+        use std::sync::Arc as StdArc;
+
+        // A folder's `available` trigger body must NOT inherit the container's
+        // parameter table: a vanilla trigger named like a param would
+        // mis-highlight. (`available` itself is a documented param of
+        // technology_folders, so IT still renders as property; whatever sits
+        // inside its block must not.)
+        let source = "technology_folders = {\n\tindustry_folder = {\n\t\tavailable = {\n\t\t\thas_war = no\n\t\t}\n\t}\n}\n";
+        let (script, _) = parser::parse_script(source);
+
+        // `has_war` is a real trigger → global keyword. If the anchor leaked,
+        // it would render as property instead.
+        let mut keywords = HashSet::new();
+        keywords.insert("has_war".to_string());
+        let ctx = SemanticTokenContext {
+            keywords: StdArc::new(keywords),
+            entity_names: StdArc::new(HashMap::new()),
+        };
+
+        let result = get_semantic_tokens(&script, &ctx);
+        let SemanticTokensResult::Tokens(t) = result else {
+            panic!("expected Tokens result")
+        };
+
+        let legend = [
+            "keyword",
+            "variable",
+            "string",
+            "number",
+            "operator",
+            "comment",
+            "type",
+            "event",
+            "function",
+            "enum",
+            "enum_member",
+            "struct",
+            "class",
+            "property",
+        ];
+        let mut abs: Vec<(u32, u32, u32, &str)> = Vec::new();
+        let (mut last_line, mut last_start) = (0u32, 0u32);
+        for st in &t.data {
+            let line = last_line + st.delta_line;
+            let start = if st.delta_line == 0 {
+                last_start + st.delta_start
+            } else {
+                st.delta_start
+            };
+            abs.push((
+                line,
+                start,
+                st.length,
+                legend.get(st.token_type as usize).copied().unwrap_or("?"),
+            ));
+            last_line = line;
+            last_start = start;
+        }
+
+        // Line 2: `available` IS a technology_folders param → property.
+        assert!(
+            abs.iter().any(|&(l, _, _, tt)| l == 2 && tt == "property"),
+            "available should be property (documented folder param): {:#?}",
+            abs
+        );
+        // Line 3: `has_war` stays keyword — anchor consumed by `available`.
+        assert!(
+            abs.iter().any(|&(l, _, _, tt)| l == 3 && tt == "keyword"),
+            "has_war must stay keyword inside available: {:#?}",
+            abs
+        );
+        assert!(
+            !abs.iter().any(|&(l, _, _, tt)| l == 3 && tt == "property"),
+            "anchor must not leak into the available block: {:#?}",
+            abs
+        );
     }
 }

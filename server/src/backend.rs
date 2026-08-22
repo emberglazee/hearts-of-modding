@@ -1295,6 +1295,34 @@ impl Backend {
                 ..Default::default()
             });
         }
+        for entry in sd.technologies.iter() {
+            let t = entry.value();
+            items.push(CompletionItem {
+                label: t.name.clone(),
+                kind: Some(CompletionItemKind::METHOD),
+                detail: Some("Technology".to_string()),
+                documentation: Some(Documentation::String(format!("Defined in: {}", t.path))),
+                ..Default::default()
+            });
+        }
+        for entry in sd.technology_tags.iter() {
+            let tag = entry.value();
+            let (kind, detail) = match tag.tag_kind {
+                crate::scanner::technology_tags_scanner::TechnologyTagKind::Category => {
+                    (CompletionItemKind::ENUM, "Technology Category")
+                }
+                crate::scanner::technology_tags_scanner::TechnologyTagKind::Folder => {
+                    (CompletionItemKind::FOLDER, "Technology Folder")
+                }
+            };
+            items.push(CompletionItem {
+                label: tag.name.clone(),
+                kind: Some(kind),
+                detail: Some(detail.to_string()),
+                documentation: Some(Documentation::String(format!("Defined in: {}", tag.path))),
+                ..Default::default()
+            });
+        }
         items
     }
 }

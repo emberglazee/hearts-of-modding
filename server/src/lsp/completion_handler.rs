@@ -406,46 +406,69 @@ impl Backend {
             // appear inside these blocks in vanilla (86% for top-level event
             // definitions). A `sort_text` prefix floats them above the generic
             // trigger/effect list without suppressing anything.
-            if let Some(enclosing) =
-                crate::scope::scope_context::find_enclosing_block_key(&script, position)
-            {
-                if let Some(params) = crate::data::hoi4_data::entity_parameters(&enclosing) {
-                    let mut names: Vec<&String> = params.keys().collect();
-                    names.sort();
-                    param_items.reserve(names.len());
-                    for name in names {
-                        let pdef = &params[name];
-                        let mut detail = String::new();
-                        if !pdef.param_type.is_empty() {
-                            detail.push_str(&format!("Type: {}", pdef.param_type));
-                        }
-                        if !pdef.value_type.is_empty() && pdef.value_type != pdef.param_type {
-                            if !detail.is_empty() {
-                                detail.push_str(" · ");
-                            }
-                            detail.push_str(&format!("{} reference", pdef.value_type));
-                        }
-                        if pdef.optional {
-                            detail.push_str(" · optional");
-                        }
-                        param_items.push(CompletionItem {
-                            label: name.clone(),
-                            kind: Some(CompletionItemKind::PROPERTY),
-                            detail: Some(detail),
-                            // "0_" sorts ahead of the default (label-based)
-                            // sort text used by the generic entries below.
-                            sort_text: Some(format!("0_{name}")),
-                            documentation: if pdef.description.is_empty() {
-                                None
-                            } else {
-                                Some(Documentation::MarkupContent(MarkupContent {
-                                    kind: MarkupKind::Markdown,
-                                    value: pdef.description.clone(),
-                                }))
-                            },
-                            ..Default::default()
-                        });
+            //
+            // Chain walk (innermost first): take params from the first key
+            // that documents any; a transparent block WITHOUT params
+            // (`option`, `limit`) stops the walk — its body holds generic
+            // trigger/effect content and must not inherit an outer entity's
+            // params; plain instance keys (`land_doctrine_folder` under the
+            // `technology_folders` param-container) let the walk continue so
+            // the container's table applies to its sub-blocks.
+            let chain =
+                crate::scope::scope_context::find_enclosing_block_key_chain(&script, position);
+            let mut inherited_params: Option<
+                &'static std::collections::HashMap<String, crate::data::hoi4_data::ParameterDef>,
+            > = None;
+            // Chain is innermost first: take params from the first key that
+            // documents any; a transparent block WITHOUT params stops the
+            // walk before an outer entity's table leaks into this body.
+            for key in chain.iter() {
+                if let Some(params) = crate::data::hoi4_data::entity_parameters(key) {
+                    if !params.is_empty() {
+                        inherited_params = Some(params);
+                        break;
                     }
+                }
+                if crate::data::hoi4_data::is_transparent_block(key) {
+                    break;
+                }
+            }
+            if let Some(params) = inherited_params {
+                let mut names: Vec<&String> = params.keys().collect();
+                names.sort();
+                param_items.reserve(names.len());
+                for name in names {
+                    let pdef = &params[name];
+                    let mut detail = String::new();
+                    if !pdef.param_type.is_empty() {
+                        detail.push_str(&format!("Type: {}", pdef.param_type));
+                    }
+                    if !pdef.value_type.is_empty() && pdef.value_type != pdef.param_type {
+                        if !detail.is_empty() {
+                            detail.push_str(" · ");
+                        }
+                        detail.push_str(&format!("{} reference", pdef.value_type));
+                    }
+                    if pdef.optional {
+                        detail.push_str(" · optional");
+                    }
+                    param_items.push(CompletionItem {
+                        label: name.clone(),
+                        kind: Some(CompletionItemKind::PROPERTY),
+                        detail: Some(detail),
+                        // "0_" sorts ahead of the default (label-based)
+                        // sort text used by the generic entries below.
+                        sort_text: Some(format!("0_{name}")),
+                        documentation: if pdef.description.is_empty() {
+                            None
+                        } else {
+                            Some(Documentation::MarkupContent(MarkupContent {
+                                kind: MarkupKind::Markdown,
+                                value: pdef.description.clone(),
+                            }))
+                        },
+                        ..Default::default()
+                    });
                 }
             }
         }

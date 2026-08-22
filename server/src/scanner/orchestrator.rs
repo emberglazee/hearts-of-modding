@@ -34,6 +34,8 @@ use crate::scanner::sprite_scanner;
 use crate::scanner::state_category_scanner;
 use crate::scanner::state_scanner;
 use crate::scanner::strategic_region_scanner;
+use crate::scanner::technology_scanner;
+use crate::scanner::technology_tags_scanner;
 use crate::scanner::terrain_scanner;
 use crate::scanner::trait_scanner;
 use crate::scanner::unit_scanner;
@@ -1195,6 +1197,41 @@ impl Backend {
                 .tag_aliases
                 .insert(k.into(), crate::data::layered_value::LayeredValue::new(v));
         }
+    }
+
+    pub(crate) async fn scan_technologies(
+        &self,
+        overlay: &crate::scanner::file_overlay::FileOverlay,
+    ) {
+        scan_dashmap_overlay!(
+            self,
+            overlay,
+            "common/technologies",
+            technology_scanner::scan_technology_files,
+            technologies,
+            &["txt"],
+            "Total: Loaded {} technologies"
+        );
+
+        // ── Rebuild tech dependency graph ───────────────────────────
+        self.scanner_data
+            .tech_dep_graph
+            .rebuild_from_technologies_db(&self.scanner_data.technologies);
+    }
+
+    pub(crate) async fn scan_technology_tags(
+        &self,
+        overlay: &crate::scanner::file_overlay::FileOverlay,
+    ) {
+        scan_dashmap_overlay!(
+            self,
+            overlay,
+            "common/technology_tags",
+            technology_tags_scanner::scan_technology_tag_files,
+            technology_tags,
+            &["txt"],
+            "Total: Loaded {} technology tags"
+        );
     }
 
     pub(crate) async fn load_assets(&self) {

@@ -31,6 +31,25 @@ pub enum Scope {
     /// Ace pilot modifier definitions (common/aces/*.txt)
     /// Represents the file-level scope for ace modifier definitions.
     Ace,
+    /// File-level scope for `common/technology_tags/*.txt`. Top level holds
+    /// only the `technology_categories` / `technology_folders` declaration
+    /// blocks — country triggers/effects don't belong here, so this scope
+    /// (unlike Global) filters them out of completion.
+    TechnologyTags,
+    /// File-level scope for `common/technologies/*.txt` (technologies AND
+    /// doctrines). Children of `technologies = { ... }` are tech definitions;
+    /// regular trigger/effect bodies only appear inside nested evaluation
+    /// blocks like `ai_will_do`.
+    Technologies,
+    /// `technology_categories = { ... }` container (common/technology_tags/*.txt).
+    /// Contents are bare category identifiers — no trigger/effect evaluation
+    /// happens inside.
+    TechnologyCategories,
+    /// `technology_folders = { ... }` container (common/technology_tags/*.txt).
+    /// Children are dynamically-named folder blocks (`available`/`ledger`/
+    /// `doctrine`); the folder's `available` block is evaluated per-country,
+    /// so the container is effectively country-scoped.
+    TechnologyFolders,
     /// A modifier-application target block (e.g. `unit_modifiers = { }`).
     /// The engine reads these as a flat bag of modifiers and routes them
     /// per-key — not a trigger/effect evaluation scope. V2ScopeRule skips
@@ -57,6 +76,10 @@ impl Scope {
             Scope::NationalFocus => "National Focus",
             Scope::StrategicRegion => "Strategic Region",
             Scope::Ace => "Ace",
+            Scope::TechnologyTags => "Technology Tags",
+            Scope::Technologies => "Technologies",
+            Scope::TechnologyCategories => "Technology Categories",
+            Scope::TechnologyFolders => "Technology Folders",
             Scope::ModifierBag => "Modifier Bag",
             Scope::Unknown => "Unknown",
         }
@@ -67,7 +90,7 @@ impl Scope {
     /// so they map to `Country` for filtering purposes.
     pub fn effective_scope(&self) -> Scope {
         match self {
-            Scope::FocusTree | Scope::NationalFocus => Scope::Country,
+            Scope::FocusTree | Scope::NationalFocus | Scope::Technologies => Scope::Country,
             Scope::Unknown => Scope::Global,
             other => *other,
         }
@@ -87,6 +110,10 @@ impl Scope {
             // Country wildcard match.
             "focus_tree" | "continuous_focus_palette" => Scope::FocusTree,
             "focus" | "shared_focus" | "joint_focus" => Scope::NationalFocus,
+            // Technology tag containers — same reasoning as focus scopes:
+            // structural, matched before the Country wildcard list.
+            "technology_categories" => Scope::TechnologyCategories,
+            "technology_folders" => Scope::TechnologyFolders,
             "country"
             | "ger"
             | "eng"
@@ -243,6 +270,17 @@ pub fn initial_scope_for_uri(uri: &str) -> Scope {
         Scope::Country
     } else if uri.contains("/common/aces/") {
         Scope::Ace
+    } else if uri.contains("/common/technology_tags/") {
+        // Top level of technology-tags files holds only the
+        // technology_categories / technology_folders declaration blocks.
+        // A dedicated scope (not Global) keeps country triggers/effects out
+        // of top-level completion and flags stray ones via HOM004.
+        Scope::TechnologyTags
+    } else if uri.contains("/common/technologies/") {
+        // Technology/doctrine definition files. Children of `technologies`
+        // are tech definitions; trigger/effect bodies only appear inside
+        // nested evaluation blocks (ai_will_do, available, on_research_complete).
+        Scope::Technologies
     } else if uri.contains("/common/ai_faction_theaters/")
         || uri.contains("/common/ai_focuses/")
         || uri.contains("/common/ai_navy/taskforce/")

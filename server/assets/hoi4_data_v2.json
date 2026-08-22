@@ -27292,6 +27292,92 @@
 			"version_added": "1.6",
 			"notes": "Use [[#swap_country_leader_traits|swap_country_leader_traits]] in character scope."
 		},
+		"technology_categories": {
+			"block_type": "value_effect",
+			"deprecated": false,
+			"description": "Declares technology category identifiers used by technologies' `categories = { ... }` blocks, research bonuses (`category_research` modifiers), and AI focus weighting. Each entry is a bare identifier separated by whitespace; the identifier doubles as the localisation key (with a `_research` suffixed variant for research-speed display). Defined in common/technology_tags/*.txt.",
+			"examples": [
+				"technology_categories = {\n\tlight_air\n\tmedium_air\n\tarmor\n}"
+			],
+			"name": "technology_categories",
+			"notes": "Structural declaration block, not an effect: contents are category names, never triggers or effects.",
+			"parameters": {},
+			"pushes_scope": null,
+			"scopes": {
+				"usage": [
+					"TechnologyTags"
+				],
+				"usage_restriction": ""
+			},
+			"stack_behaviour": "passthrough",
+			"vanilla_usage_count": 1,
+			"version_added": "1.0"
+		},
+		"technology_folders": {
+			"param_container": true,
+			"block_type": "value_effect",
+			"deprecated": false,
+			"description": "Declares the technology tree's folders (tabs). Each child block's key is the folder ID and its localisation key. `available` gates folder visibility with a trigger block evaluated per-country, `ledger` assigns the intelligence ledger (army, air, navy, military, civilian, all, hidden), and `doctrine = yes` marks a doctrine folder. Requires matching entries in interface/countrytechtreeview.gui (or countrydoctrinetreeview.gui for doctrines) for technologies inside to show up. Defined in common/technology_tags/*.txt.",
+			"examples": [
+				"technology_folders = {\n\tinfantry_folder = {\n\t\tledger = army\n\t}\n\tland_doctrine_folder = {\n\t\tledger = army\n\t\tdoctrine = yes\n\t}\n}"
+			],
+			"name": "technology_folders",
+			"notes": "Structural declaration block, not an effect: children are folder definitions keyed by folder ID.",
+			"parameters": {
+				"available": {
+					"description": "Trigger block that must be met for the folder to be visible to a country.",
+					"optional": true,
+					"repeated": false,
+					"type": "trigger clause",
+					"value_type": ""
+				},
+				"doctrine": {
+					"description": "Marks the folder as holding doctrines instead of technologies.",
+					"optional": true,
+					"repeated": false,
+					"type": "bool",
+					"value_type": ""
+				},
+				"ledger": {
+					"description": "The intelligence ledger the folder is assigned to.",
+					"optional": true,
+					"repeated": false,
+					"type": "army / air / navy / military / civilian / all / hidden",
+					"value_type": ""
+				}
+			},
+			"pushes_scope": null,
+			"scopes": {
+				"usage": [
+					"TechnologyTags"
+				],
+				"usage_restriction": ""
+			},
+			"stack_behaviour": "passthrough",
+			"vanilla_usage_count": 1,
+			"version_added": "1.0"
+		},
+		"on_research_complete": {
+			"block_type": "effect_scope",
+			"deprecated": false,
+			"description": "Effect block executed for the researching country when the technology's research completes. Used to grant rewards that can't be expressed as research bonuses, e.g. unlocking decisions or firing events. Defined inside a technology in common/technologies/*.txt.",
+			"examples": [
+				"on_research_complete = {\n\tset_country_flag = my_tech_done\n}"
+			],
+			"name": "on_research_complete",
+			"notes": "Technology-only effect container: runs in country scope, so its body takes regular country effects.",
+			"parameters": {},
+			"pushes_scope": "Country",
+			"scopes": {
+				"usage": [
+					"Technologies"
+				],
+				"usage_restriction": ""
+			},
+			"stack_behaviour": "push",
+			"vanilla_usage_count": 0,
+			"version_added": "1.0"
+		},
 		"teleport_armies": {
 			"name": "teleport_armies",
 			"description": "Teleports all armies in the specified state if the owner of the armies meets the condition.",

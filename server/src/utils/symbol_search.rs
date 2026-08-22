@@ -18,11 +18,33 @@ pub fn find_identifier_at(
     // here so `is_pos_in_range`/slicing match on multi-byte lines too.
     let pos = crate::utils::lsp_convert::to_byte_position(&script.source, pos);
     for entry in &script.entries {
-        if let Some(res) = find_in_entry(entry, pos, scope_stack, sctx, None, &script.source) {
+        if let Some(res) = find_in_entry(entry, pos, scope_stack, sctx, None, None, &script.source)
+        {
             return Some(res);
         }
     }
     None
+}
+
+/// Rewrite `context_key` to the param-container anchor when the anchor's
+/// parameter table documents the identifier but the immediate parent does
+/// not (e.g. `doctrine` inside `technology_folders > land_doctrine_folder`).
+/// Direct-parent parameters keep their own context — the rewrite only fills
+/// the gap the parent can't explain.
+fn rewrite_to_anchor(id: &mut str, context_key: &mut Option<String>, anchor: Option<&str>) {
+    let Some(anchor) = anchor else { return };
+    if context_key.as_deref() == Some(anchor) {
+        return;
+    }
+    let claimed = crate::data::hoi4_data::lookup_parameter_with_anchor(
+        context_key.as_deref(),
+        Some(anchor),
+        id,
+    )
+    .is_some_and(|(owner, _)| owner == anchor);
+    if claimed {
+        *context_key = Some(anchor.to_string());
+    }
 }
 
 pub fn find_in_entry(
@@ -31,6 +53,7 @@ pub fn find_in_entry(
     scope_stack: &mut scope::ScopeStack,
     sctx: &scope::ScopeCtx,
     context_key: Option<String>,
+    param_anchor: Option<&str>,
     source: &str,
 ) -> Option<(
     String,
@@ -41,20 +64,23 @@ pub fn find_in_entry(
     match entry {
         ast::Entry::Assignment(ass) => {
             if is_pos_in_range(pos, &ass.key_range) {
+                let mut id = ass.key_text(source).to_string();
+                let mut ck = context_key;
+                rewrite_to_anchor(&mut id, &mut ck, param_anchor);
                 return Some((
-                    ass.key_text(source).to_string(),
+                    id,
                     scope_stack.iter().cloned().collect(),
                     Some(ass.value.value.clone()),
-                    context_key,
+                    ck,
                 ));
             }
 
             let mut pushed_scope = None;
             if let ast::Value::Block(_) | ast::Value::TaggedBlock(_, _, _) = &ass.value.value {
                 let key_text = ass.key_text(source);
-                // Unified resolution — the SAME path the validation walker uses
-                // (file-type initial scope + full ScopeCtx maps), so hover never
-                // diverges from HOM004 scope inference.
+                // Unified resolution — the SAME path the validation walker
+                // uses (file-type initial scope + full ScopeCtx maps), so
+                // hover never diverges from HOM004 scope inference.
                 let (s, _) = scope_stack.resolve_entry_scope(key_text, sctx);
 
                 if s != scope::Scope::Unknown || key_text.contains(':') || key_text.contains('.') {
@@ -63,19 +89,35 @@ pub fn find_in_entry(
                 }
             }
 
+            // Anchor threading mirrors the semantic-token walker: a
+            // documented param-container anchors itself; direct children of
+            // the current anchor keep it; deeper blocks consume it.
+            let child_anchor = if crate::data::hoi4_data::is_param_container(ass.key_text(source)) {
+                Some(ass.key_text(source) as &str)
+            } else if param_anchor.is_some() && context_key.as_deref() == param_anchor {
+                param_anchor
+            } else {
+                None
+            };
+
             let mut res = find_in_value(
                 &ass.value,
                 pos,
                 scope_stack,
                 sctx,
                 Some(ass.key_text(source).to_string()),
+                child_anchor,
                 source,
             );
 
-            if let Some((ref mut id, _, ref mut val_opt, _)) = res {
+            if let Some((ref mut id, _, ref mut val_opt, ref mut ck)) = res {
                 if let ast::Value::Number(_) | ast::Value::Boolean(_) = &ass.value.value {
                     *id = ass.key_text(source).to_string();
                     *val_opt = Some(ass.value.value.clone());
+                    // Re-run the anchor rewrite AFTER the key-text swap so
+                    // hovering `doctrine = yes` on the `yes` also reports the
+                    // container parameter context.
+                    rewrite_to_anchor(id, ck, child_anchor);
                 }
             }
 
@@ -84,7 +126,15 @@ pub fn find_in_entry(
             }
             res
         }
-        ast::Entry::Value(val) => find_in_value(val, pos, scope_stack, sctx, context_key, source),
+        ast::Entry::Value(val) => find_in_value(
+            val,
+            pos,
+            scope_stack,
+            sctx,
+            context_key,
+            param_anchor,
+            source,
+        ),
         _ => None,
     }
 }
@@ -95,6 +145,7 @@ pub fn find_in_value(
     scope_stack: &mut scope::ScopeStack,
     sctx: &scope::ScopeCtx,
     context_key: Option<String>,
+    param_anchor: Option<&str>,
     source: &str,
 ) -> Option<(
     String,
@@ -182,9 +233,15 @@ pub fn find_in_value(
         }
         ast::Value::Block(entries) => {
             for entry in entries {
-                if let Some(res) =
-                    find_in_entry(entry, pos, scope_stack, sctx, context_key.clone(), source)
-                {
+                if let Some(res) = find_in_entry(
+                    entry,
+                    pos,
+                    scope_stack,
+                    sctx,
+                    context_key.clone(),
+                    param_anchor,
+                    source,
+                ) {
                     return Some(res);
                 }
             }
@@ -192,9 +249,15 @@ pub fn find_in_value(
         }
         ast::Value::TaggedBlock(_, entries, _) => {
             for entry in entries {
-                if let Some(res) =
-                    find_in_entry(entry, pos, scope_stack, sctx, context_key.clone(), source)
-                {
+                if let Some(res) = find_in_entry(
+                    entry,
+                    pos,
+                    scope_stack,
+                    sctx,
+                    context_key.clone(),
+                    param_anchor,
+                    source,
+                ) {
                     return Some(res);
                 }
             }

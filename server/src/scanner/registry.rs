@@ -125,6 +125,14 @@ macro_rules! for_each_standard_scanner {
             &["txt"]
         );
         $mac!(
+            technology_scanner,
+            Technology,
+            Technology,
+            technologies,
+            "common/technologies",
+            &["txt"]
+        );
+        $mac!(
             bop_scanner,
             BalanceOfPower,
             BalanceOfPower,

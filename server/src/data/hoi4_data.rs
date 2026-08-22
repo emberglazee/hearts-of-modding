@@ -166,6 +166,15 @@ pub struct HOI4Entity {
     #[allow(dead_code)]
     #[serde(default)]
     pub deprecated: bool,
+    /// True when this block's documented `parameters` describe the DIRECT
+    /// sub-blocks nested inside it rather than scalar sub-keys of itself
+    /// (e.g. `technology_folders` documents `ledger`/`doctrine` for the
+    /// per-folder blocks it contains). Walkers thread this block key down as
+    /// a parameter anchor so `ledger` inside `industry_folder = { ... }`
+    /// resolves against `technology_folders`' parameter table; any deeper
+    /// block (e.g. a folder's `available`) consumes the anchor.
+    #[serde(default)]
+    pub param_container: bool,
 }
 
 /// Scope chain target (for dot-notation resolution like ROOT.owner.capital)
@@ -327,6 +336,31 @@ pub fn lookup_parameter(entity_key: &str, param: &str) -> Option<&'static Parame
 /// Iterate the documented parameters of an entity block, if any.
 pub fn entity_parameters(entity_key: &str) -> Option<&'static HashMap<String, ParameterDef>> {
     lookup_entity(entity_key).map(|e| &e.parameters)
+}
+
+/// True when `entity_key` documents its DIRECT sub-blocks in `parameters`
+/// (see [`HOI4Entity::param_container`]). Only such blocks anchor parameter
+/// resolution for the blocks nested inside them.
+pub fn is_param_container(entity_key: &str) -> bool {
+    lookup_entity(entity_key).is_some_and(|e| e.param_container)
+}
+
+/// Resolve a key against the immediate parent first, then a threaded
+/// param-container anchor. Shared by semantic tokens, hover, and completion
+/// so a folder's `ledger`/`doctrine` classify identically everywhere.
+pub fn lookup_parameter_with_anchor<'a>(
+    parent: Option<&'a str>,
+    anchor: Option<&'a str>,
+    key: &str,
+) -> Option<(&'a str, &'static ParameterDef)> {
+    if let Some(p) = parent {
+        if let Some(def) = lookup_parameter(p, key) {
+            return Some((p, def));
+        }
+    }
+    let a = anchor?;
+    let def = lookup_parameter(a, key)?;
+    Some((a, def))
 }
 
 /// Check if a keyword is a transparent block type

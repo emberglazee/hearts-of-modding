@@ -32,6 +32,8 @@ use crate::scanner::sprite_scanner;
 use crate::scanner::state_category_scanner;
 use crate::scanner::strategic_region_scanner;
 use crate::scanner::tag_alias_scanner;
+use crate::scanner::technology_scanner;
+use crate::scanner::technology_tags_scanner;
 use crate::scanner::terrain_scanner;
 use crate::scanner::trait_scanner;
 use crate::scanner::unit_scanner;
@@ -309,6 +311,7 @@ impl_has_path!(sound_scanner::SoundCategory);
 impl_has_path!(continent_scanner::Continent);
 impl_has_path!(tag_alias_scanner::TagAlias);
 impl_has_path!(adjacency_scanner::AdjacencyRule);
+impl_has_path!(technology_tags_scanner::TechnologyTag);
 
 // Standard scanners (generated via registry)
 macro_rules! gen_has_path {
@@ -453,6 +456,16 @@ fn classify_file(path: &str) -> Vec<FileCategory> {
         // Unit type definitions (common/units/*.txt)
         if lower.contains("/common/units/") {
             cats.push(FileCategory::Units);
+        }
+
+        // Technology definitions (common/technologies/*.txt)
+        if lower.contains("/common/technologies/") {
+            cats.push(FileCategory::Technologies);
+        }
+
+        // Technology tags — categories + folders (common/technology_tags/*.txt)
+        if lower.contains("/common/technology_tags/") {
+            cats.push(FileCategory::TechnologyTags);
         }
 
         // OOB (order of battle)
@@ -655,6 +668,8 @@ enum FileCategory {
     Focuses,
     Decisions,
     DecisionCategories,
+    Technologies,
+    TechnologyTags,
 }
 
 /// Update `ScannerData` with fresh entities extracted from a single saved file.
@@ -743,6 +758,8 @@ fn update_from_ast(
         FileCategory::DecisionCategories => {
             update_decision_categories(scanner_data, path_str, script)
         }
+        FileCategory::Technologies => update_technologies(scanner_data, path_str, script),
+        FileCategory::TechnologyTags => update_technology_tags(scanner_data, path_str, script),
         FileCategory::Localization | FileCategory::Defines | FileCategory::Countries => {
             // Handled directly in update_scanner_data_for_file, unreachable here
         }
@@ -1143,6 +1160,66 @@ fn update_tag_aliases(scanner_data: &ScannerData, path_str: &str, script: &ast::
     retain_path!(
         scanner_data.tag_aliases,
         scanner_data.tag_aliases_file_index,
+        path_str,
+        new_entries
+    );
+}
+
+fn update_technologies(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
+    // Step 1: Collect old tech IDs for this file BEFORE retain_path! clears
+    // the index — needed to scrub stale outgoing edges from the dep graph.
+    let old_tech_ids: Vec<String> = scanner_data
+        .technologies_file_index
+        .get(&index_key(path_str))
+        .map(|keys| keys.value().iter().map(|k| k.to_string()).collect())
+        .unwrap_or_default();
+
+    // Step 2: Parse new technology definitions from the fresh AST.
+    let mut new_entries = HashMap::new();
+    technology_scanner::find_technologies_in_entries(
+        &script.entries,
+        &script.source,
+        path_str,
+        &mut new_entries,
+    );
+
+    // Step 3: Collect edges BEFORE retain_path! consumes new_entries.
+    let mut new_edges: Vec<(String, String)> = Vec::new();
+    for (caller, tech) in &new_entries {
+        for callee in &tech.leads_to_tech {
+            if callee != caller {
+                new_edges.push((caller.clone(), callee.clone()));
+            }
+        }
+    }
+
+    // Step 4: Update the technologies DashMap.
+    retain_path!(
+        scanner_data.technologies,
+        scanner_data.technologies_file_index,
+        path_str,
+        new_entries
+    );
+
+    // Step 5: Update the tech dependency graph incrementally.
+    scanner_data.tech_dep_graph.remove_callers(&old_tech_ids);
+    for (caller, callee) in &new_edges {
+        scanner_data.tech_dep_graph.add_edge(caller, callee);
+    }
+}
+
+fn update_technology_tags(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
+    let mut new_entries = HashMap::new();
+    technology_tags_scanner::find_tags_in_entries(
+        &script.entries,
+        &script.source,
+        path_str,
+        &mut new_entries,
+    );
+
+    retain_path!(
+        scanner_data.technology_tags,
+        scanner_data.technology_tags_file_index,
         path_str,
         new_entries
     );
@@ -1995,6 +2072,28 @@ pub fn remove_path_from_scanner_data(scanner_data: &ScannerData, path_str: &str)
             }
             FileCategory::DecisionCategories => {
                 remove_decision_categories(scanner_data, path_str);
+            }
+            FileCategory::Technologies => {
+                // Scrub the deleted file's techs from the dep graph (both as
+                // callers and callees) before dropping the index.
+                let old_tech_ids: Vec<String> = scanner_data
+                    .technologies_file_index
+                    .get(path_str)
+                    .map(|keys| keys.value().iter().map(|k| k.to_string()).collect())
+                    .unwrap_or_default();
+                remove_path!(
+                    scanner_data.technologies,
+                    scanner_data.technologies_file_index,
+                    path_str
+                );
+                scanner_data.tech_dep_graph.remove_techs(&old_tech_ids);
+            }
+            FileCategory::TechnologyTags => {
+                remove_path!(
+                    scanner_data.technology_tags,
+                    scanner_data.technology_tags_file_index,
+                    path_str
+                );
             }
             FileCategory::Defines => {
                 // Defines are cumulative (multiple files contribute to a single

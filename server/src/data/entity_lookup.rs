@@ -63,6 +63,8 @@ pub enum EntityKind {
     OobDivisionTemplate,
     OobFleet,
     UnitType,
+    Technology,
+    TechnologyTag,
 }
 
 impl EntityKind {
@@ -119,6 +121,8 @@ impl EntityKind {
             EntityKind::OobDivisionTemplate => SymbolKind::STRUCT,
             EntityKind::OobFleet => SymbolKind::OBJECT,
             EntityKind::UnitType => SymbolKind::CLASS,
+            EntityKind::Technology => SymbolKind::OBJECT,
+            EntityKind::TechnologyTag => SymbolKind::NAMESPACE,
         }
     }
 }
@@ -247,6 +251,7 @@ impl<'a> EntityLookup<'a> {
         try_lookup!(OobDivisionTemplate, oob_division_templates);
         try_lookup!(OobFleet, oob_fleets);
         try_lookup!(EventNamespace, event_namespaces);
+        try_lookup!(TechnologyTag, technology_tags);
 
         {
             let map = &self.data.modifier_mappings;
@@ -417,6 +422,7 @@ impl<'a> EntityLookup<'a> {
 
         // Special scanners (manual)
         check_entity!(Event, events);
+        check_entity!(TechnologyTag, technology_tags);
 
         {
             // Reverse per-path index (path → variable names) — the last
@@ -507,6 +513,7 @@ impl<'a> EntityLookup<'a> {
         collect_names!(OobDivisionTemplate, oob_division_templates);
         collect_names!(OobFleet, oob_fleets);
         collect_names!(EventNamespace, event_namespaces);
+        collect_names!(TechnologyTag, technology_tags);
 
         names
     }
@@ -542,6 +549,8 @@ impl<'a> EntityLookup<'a> {
         push_symbols!(CustomModifier, custom_modifiers, "Modifier");
         push_symbols!(Achievement, achievements, "Achievement");
         push_symbols!(Focus, focuses, "National Focus");
+        push_symbols!(Technology, technologies, "Technology");
+        push_symbols!(TechnologyTag, technology_tags, "Technology Tag");
 
         {
             let map = &self.data.events;

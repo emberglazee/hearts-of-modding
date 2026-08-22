@@ -39,6 +39,9 @@ use crate::scanner::state_category_scanner;
 use crate::scanner::state_scanner;
 use crate::scanner::strategic_region_scanner;
 use crate::scanner::tag_alias_scanner;
+use crate::scanner::tech_dep_graph;
+use crate::scanner::technology_scanner;
+use crate::scanner::technology_tags_scanner;
 use crate::scanner::terrain_scanner;
 use crate::scanner::trait_scanner;
 use crate::scanner::unit_scanner;
@@ -108,6 +111,7 @@ pub(crate) struct ScannerData {
     pub modifier_formats: DashMap<InternedStr, String>,
     pub events: DashMap<InternedStr, LayeredValue<event_scanner::Event>>,
     pub event_dep_graph: crate::scanner::event_dep_graph::EventDependencyGraph,
+    pub tech_dep_graph: crate::scanner::tech_dep_graph::TechDependencyGraph,
     pub focuses: DashMap<InternedStr, LayeredValue<focus_scanner::Focus>>,
     pub music_assets: DashMap<InternedStr, LayeredValue<music_scanner::MusicAsset>>,
     pub music_stations: DashMap<InternedStr, LayeredValue<music_scanner::MusicStation>>,
@@ -135,6 +139,8 @@ pub(crate) struct ScannerData {
     pub color_codes: DashMap<InternedStr, LayeredValue<gfx_scanner::ColorCode>>,
     pub country_tags: DashMap<InternedStr, LayeredValue<country_scanner::CountryTag>>,
     pub tag_aliases: DashMap<InternedStr, LayeredValue<tag_alias_scanner::TagAlias>>,
+    pub technologies: DashMap<InternedStr, LayeredValue<technology_scanner::Technology>>,
+    pub technology_tags: DashMap<InternedStr, LayeredValue<technology_tags_scanner::TechnologyTag>>,
     pub states: DashMap<u32, state_scanner::State>,
     pub oob_division_templates:
         DashMap<InternedStr, LayeredValue<oob_scanner::OobDivisionTemplate>>,
@@ -186,6 +192,8 @@ pub(crate) struct ScannerData {
     pub oob_fleets_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub color_codes_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub tag_aliases_file_index: DashMap<InternedStr, Vec<InternedStr>>,
+    pub technologies_file_index: DashMap<InternedStr, Vec<InternedStr>>,
+    pub technology_tags_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub continents_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub adjacency_rules_file_index: DashMap<InternedStr, Vec<InternedStr>>,
 
@@ -230,6 +238,7 @@ impl ScannerData {
             modifier_formats: DashMap::new(),
             events: DashMap::new(),
             event_dep_graph: crate::scanner::event_dep_graph::EventDependencyGraph::new(),
+            tech_dep_graph: tech_dep_graph::TechDependencyGraph::new(),
             focuses: DashMap::new(),
             music_assets: DashMap::new(),
             music_stations: DashMap::new(),
@@ -256,6 +265,8 @@ impl ScannerData {
             color_codes: DashMap::new(),
             country_tags: DashMap::new(),
             tag_aliases: DashMap::new(),
+            technologies: DashMap::new(),
+            technology_tags: DashMap::new(),
             states: DashMap::new(),
             oob_division_templates: DashMap::new(),
             oob_fleets: DashMap::new(),
@@ -300,6 +311,8 @@ impl ScannerData {
             oob_fleets_file_index: DashMap::new(),
             color_codes_file_index: DashMap::new(),
             tag_aliases_file_index: DashMap::new(),
+            technologies_file_index: DashMap::new(),
+            technology_tags_file_index: DashMap::new(),
             continents_file_index: DashMap::new(),
             adjacency_rules_file_index: DashMap::new(),
             duplicated_loc_keys: DashSet::new(),
@@ -403,6 +416,7 @@ impl ScannerData {
         rebuild_index!(self.event_namespaces, self.event_namespaces_file_index);
         rebuild_index!(self.color_codes, self.color_codes_file_index);
         rebuild_index!(self.tag_aliases, self.tag_aliases_file_index);
+        rebuild_index!(self.technology_tags, self.technology_tags_file_index);
         rebuild_index!(self.resources, self.resources_file_index);
         rebuild_index!(self.state_categories, self.state_categories_file_index);
         rebuild_index!(self.continents, self.continents_file_index);

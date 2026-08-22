@@ -741,6 +741,53 @@ pub async fn generate_workspace_symbols(
         }
     }
 
+    // Search technologies
+    let technologies = &data.technologies;
+    for entry in technologies.iter() {
+        let name = entry.key();
+        let tech = entry.value();
+        if fuzzy_match(&query_lower, name) {
+            #[allow(deprecated)]
+            symbols.push(SymbolInformation {
+                name: name.to_string(),
+                kind: SymbolKind::OBJECT,
+                tags: None,
+                deprecated: None,
+                location: Location {
+                    uri: path_to_url(&tech.path),
+                    range: mapper_for_path(&mut mapper_cache, &tech.path).range(&tech.range),
+                },
+                container_name: Some("Technology".to_string()),
+            });
+        }
+    }
+
+    // Search technology tags (categories + folders)
+    let technology_tags = &data.technology_tags;
+    for entry in technology_tags.iter() {
+        let name = entry.key();
+        let tag = entry.value();
+        if fuzzy_match(&query_lower, name) {
+            use crate::scanner::technology_tags_scanner::TechnologyTagKind;
+            let container = match tag.tag_kind {
+                TechnologyTagKind::Category => "Technology Category",
+                TechnologyTagKind::Folder => "Technology Folder",
+            };
+            #[allow(deprecated)]
+            symbols.push(SymbolInformation {
+                name: name.to_string(),
+                kind: SymbolKind::NAMESPACE,
+                tags: None,
+                deprecated: None,
+                location: Location {
+                    uri: path_to_url(&tag.path),
+                    range: mapper_for_path(&mut mapper_cache, &tag.path).range(&tag.range),
+                },
+                container_name: Some(container.to_string()),
+            });
+        }
+    }
+
     symbols
 }
 
