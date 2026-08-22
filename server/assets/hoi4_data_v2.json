@@ -27378,6 +27378,714 @@
 			"vanilla_usage_count": 0,
 			"version_added": "1.0"
 		},
+		"XOR": {
+			"block_type": "value_effect",
+			"deprecated": false,
+			"description": "Makes this technology mutually exclusive with every listed technology. The XOR block must appear on ALL mutually-exclusive sides, not just one. Case-sensitive uppercase in vanilla files.",
+			"examples": [
+				"XOR = {\n\tmy_tech_1\n\tmy_tech_2\n}"
+			],
+			"name": "XOR",
+			"notes": "resolve_entry_scope treats uppercase AND/OR/NOT transparently; XOR here is documented as a tech property so its contents highlight as Technology references.",
+			"parameters": {},
+			"scopes": {
+				"usage": [
+					"Technologies",
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"stack_behaviour": "passthrough",
+			"vanilla_usage_count": 0,
+			"version_added": "1.0"
+		},
+		"ai_research_weights": {
+			"block_type": "effect_scope",
+			"deprecated": false,
+			"description": "Bias keys steering AI research preference toward focus areas: offensive, defensive, resources, sub-units and sub-unit categories. Positive raises priority, negative lowers it.",
+			"examples": [
+				"ai_research_weights = {\n\toffensive = -1.0\n}"
+			],
+			"name": "ai_research_weights",
+			"notes": "Keys are engine-defined weight categories (offensive/defensive/resources/...), not triggers — validated loosely.",
+			"parameters": {},
+			"scopes": {
+				"usage": [
+					"Technologies",
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"stack_behaviour": "passthrough",
+			"vanilla_usage_count": 0,
+			"version_added": "1.0"
+		},
+		"categories": {
+			"block_type": "value_effect",
+			"deprecated": false,
+			"description": "Assigns technology categories (declared via technology_categories in common/technology_tags) to this technology. Whitespace-separated identifiers. Categories drive research_bonus modifiers, add_tech_bonus, AI weighting, and technology sharing groups.",
+			"examples": [
+				"categories = {\n\tinfantry_weapons\n}"
+			],
+			"name": "categories",
+			"notes": "Multi-home key: units/*.txt (unit categories), doctrines tracks (mastery categories), terrain, raids, technology_sharing all use their own `categories` blocks — Global keeps those files clean.",
+			"parameters": {},
+			"scopes": {
+				"usage": [
+					"Technologies",
+					"Country",
+					"Global"
+				],
+				"usage_restriction": ""
+			},
+			"stack_behaviour": "passthrough",
+			"vanilla_usage_count": 0,
+			"version_added": "1.0"
+		},
+		"dependencies": {
+			"block_type": "effect_scope",
+			"deprecated": false,
+			"description": "Hard AND-prerequisites that draw no tree arrows and assign no gridbox: every listed technology must be researched before this one can start. Format is `<tech_id> = <weight>` lines (weight 1 typical).",
+			"examples": [
+				"dependencies = {\n\tmy_tech_1 = 1\n}"
+			],
+			"name": "dependencies",
+			"notes": "Values are `technology_id = int` pairs, not bare identifiers.",
+			"parameters": {},
+			"scopes": {
+				"usage": [
+					"Technologies",
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"stack_behaviour": "passthrough",
+			"vanilla_usage_count": 0,
+			"version_added": "1.0"
+		},
+		"desc": {
+			"block_type": "value_effect",
+			"deprecated": false,
+			"description": "Localisation key providing ADDITIONAL hover text beyond the technology's normal description (does not replace it).",
+			"examples": [
+				"desc = MY_TECHNOLOGY_SPECIAL"
+			],
+			"name": "desc",
+			"notes": "Multi-home: `desc` appears in many systems; Global avoids cross-file noise.",
+			"parameters": {},
+			"scopes": {
+				"usage": [
+					"Technologies",
+					"Country",
+					"Global"
+				],
+				"usage_restriction": ""
+			},
+			"stack_behaviour": "passthrough",
+			"vanilla_usage_count": 0,
+			"version_added": "1.0"
+		},
+		"doctrine_name": {
+			"block_type": "value_effect",
+			"deprecated": false,
+			"description": "Names the doctrine branch shown when hovering the folder icon; defined on the first doctrine of the branch. Value is a localisation key.",
+			"examples": [
+				"doctrine_name = MY_DOCTRINE_NAME"
+			],
+			"name": "doctrine_name",
+			"notes": "",
+			"parameters": {},
+			"scopes": {
+				"usage": [
+					"Technologies",
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"stack_behaviour": "passthrough",
+			"vanilla_usage_count": 0,
+			"version_added": "1.0"
+		},
+		"enable_building": {
+			"block_type": "effect_scope",
+			"deprecated": false,
+			"description": "Raises the maximum buildable level of a building to `level` when this technology is researched. The level is an absolute cap (not additive): if a previous tech unlocked level 2 and this one says `level = 5`, the cap becomes 5, not 7. May repeat to unlock multiple buildings.",
+			"examples": [
+				"enable_building = {\n\tbuilding = radar_station\n\tlevel = 1\n}"
+			],
+			"name": "enable_building",
+			"notes": "Wiki: 'the level will not unlock this many levels of the building, but unlock the building to be built up to that level.'",
+			"parameters": {
+				"building": {
+					"description": "Identifier of the building to unlock (e.g. radar_station).",
+					"optional": false,
+					"repeated": false,
+					"type": "string"
+				},
+				"level": {
+					"description": "Absolute maximum buildable level granted by this technology.",
+					"optional": false,
+					"repeated": false,
+					"type": "int"
+				}
+			},
+			"scopes": {
+				"usage": [
+					"Technologies",
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"stack_behaviour": "passthrough",
+			"vanilla_usage_count": 0,
+			"version_added": "1.0"
+		},
+		"enable_equipment_modules": {
+			"block_type": "value_effect",
+			"deprecated": false,
+			"description": "Unlocks the listed equipment modules for use in the equipment designer when this technology is researched. Whitespace-separated module identifiers. Defined inside a technology in common/technologies/*.txt.",
+			"examples": [
+				"enable_equipment_modules = {\n\tlight_ship_engine_1\n}"
+			],
+			"name": "enable_equipment_modules",
+			"notes": "Contents are EquipmentModule references.",
+			"parameters": {},
+			"scopes": {
+				"usage": [
+					"Technologies",
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"stack_behaviour": "passthrough",
+			"vanilla_usage_count": 0,
+			"version_added": "1.0"
+		},
+		"enable_equipments": {
+			"block_type": "value_effect",
+			"deprecated": false,
+			"description": "Unlocks the listed equipment archetypes when this technology is researched. Entries are whitespace-separated archetype identifiers; each also inherits the technology's icon unless a `GFX_<equipment>_medium` sprite exists. Defined inside a technology in common/technologies/*.txt.",
+			"examples": [
+				"enable_equipments = {\n\tinfantry_equipment_0\n}"
+			],
+			"name": "enable_equipments",
+			"notes": "Contents are Equipment references — an equipment scanner will make these resolve/hover once built.",
+			"parameters": {},
+			"scopes": {
+				"usage": [
+					"Technologies",
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"stack_behaviour": "passthrough",
+			"vanilla_usage_count": 0,
+			"version_added": "1.0"
+		},
+		"enable_subunits": {
+			"block_type": "value_effect",
+			"deprecated": false,
+			"description": "Unlocks the listed sub-unit types (e.g. light_armor, marine) when this technology is researched. Whitespace-separated identifiers inside the block. Defined inside a technology in common/technologies/*.txt.",
+			"examples": [
+				"enable_subunits = {\n\tlight_armor\n\tmedium_armor\n}"
+			],
+			"name": "enable_subunits",
+			"notes": "Contents are SubUnit references.",
+			"parameters": {},
+			"scopes": {
+				"usage": [
+					"Technologies",
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"stack_behaviour": "passthrough",
+			"vanilla_usage_count": 0,
+			"version_added": "1.0"
+		},
+		"folder": {
+			"block_type": "effect_scope",
+			"deprecated": false,
+			"description": "Assigns the technology to a research folder/tree tab and positions it there. `name` selects the folder declared via common/technology_tags technology_folders; `position = { x = N y = N }` places it in gridbox units. May repeat to place one technology in several folders.",
+			"examples": [
+				"folder = {\n\tname = infantry_folder\n\tposition = { x = 2 y = 0 }\n}"
+			],
+			"name": "folder",
+			"notes": "Multi-home key: operations/*.txt uses `folder` for its own grouping; Global covers that usage.",
+			"parameters": {
+				"name": {
+					"description": "Folder identifier from technology_folders.",
+					"optional": false,
+					"repeated": false,
+					"type": "string",
+					"value_type": "TechnologyFolder"
+				},
+				"position": {
+					"description": "`{ x = N y = N }` coordinates in gridbox slot units.",
+					"optional": false,
+					"repeated": false,
+					"type": "block"
+				}
+			},
+			"scopes": {
+				"usage": [
+					"Technologies",
+					"Country",
+					"Global"
+				],
+				"usage_restriction": ""
+			},
+			"stack_behaviour": "passthrough",
+			"vanilla_usage_count": 0,
+			"version_added": "1.0"
+		},
+		"force_use_small_tech_layout": {
+			"block_type": "value_effect",
+			"deprecated": false,
+			"description": "Forces the small item layout for this technology even though it unlocks equipment. Only meaningful when folder items are split between small and regular layouts.",
+			"examples": [
+				"force_use_small_tech_layout = yes"
+			],
+			"name": "force_use_small_tech_layout",
+			"notes": "",
+			"parameters": {},
+			"scopes": {
+				"usage": [
+					"Technologies",
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"stack_behaviour": "passthrough",
+			"vanilla_usage_count": 0,
+			"version_added": "1.0"
+		},
+		"is_special_project_tech": {
+			"block_type": "value_effect",
+			"deprecated": false,
+			"description": "Marks the technology as belonging to the special projects system rather than the regular research UI.",
+			"examples": [
+				"is_special_project_tech = yes"
+			],
+			"name": "is_special_project_tech",
+			"notes": "",
+			"parameters": {},
+			"scopes": {
+				"usage": [
+					"Technologies",
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"stack_behaviour": "passthrough",
+			"vanilla_usage_count": 0,
+			"version_added": "1.0"
+		},
+		"path": {
+			"block_type": "effect_scope",
+			"deprecated": false,
+			"description": "Declares a research path from this technology to another: the target becomes a prerequisite (OR across multiple paths) and a branch arrow is drawn in every folder containing both. `research_cost_coeff` multiplies the target's research cost when this tech is already researched. Paths also assign the gridbox used by the folder position of the target.",
+			"examples": [
+				"path = {\n\tleads_to_tech = radio\n\tresearch_cost_coeff = 1\n}"
+			],
+			"name": "path",
+			"notes": "Multi-home key: `path` also appears with unrelated meanings in decisions (focus-style paths) and national_focus files — documented here for technologies; usage includes Global so those files don't flag it.",
+			"parameters": {
+				"ignore_for_layout": {
+					"description": "Exclude this path from tree layout/gridbox resolution to avoid 'Found multiple potential grid boxes for tech'.",
+					"optional": true,
+					"repeated": false,
+					"type": "bool"
+				},
+				"leads_to_tech": {
+					"description": "Technology this path leads to.",
+					"optional": false,
+					"repeated": false,
+					"type": "string",
+					"value_type": "Technology"
+				},
+				"research_cost_coeff": {
+					"description": "Cost multiplier applied to leads_to_tech when this technology is researched (e.g. 0.5 halves it).",
+					"optional": true,
+					"repeated": false,
+					"type": "float"
+				}
+			},
+			"scopes": {
+				"usage": [
+					"Technologies",
+					"Country",
+					"Global"
+				],
+				"usage_restriction": ""
+			},
+			"stack_behaviour": "passthrough",
+			"vanilla_usage_count": 0,
+			"version_added": "1.0"
+		},
+		"research_cost": {
+			"block_type": "value_effect",
+			"deprecated": false,
+			"description": "Base research days for the technology: 1 = 100 days at default speed (BASE_TECH_COST = 100), modified by ahead-of-time penalties and path coefficients.",
+			"examples": [
+				"research_cost = 2"
+			],
+			"name": "research_cost",
+			"notes": "",
+			"parameters": {},
+			"scopes": {
+				"usage": [
+					"Technologies",
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"stack_behaviour": "passthrough",
+			"vanilla_usage_count": 0,
+			"version_added": "1.0"
+		},
+		"show_effect_as_desc": {
+			"block_type": "value_effect",
+			"deprecated": false,
+			"description": "Renders the technology's modifiers (and effects) in its description panel instead of the hover tooltip.",
+			"examples": [
+				"show_effect_as_desc = yes"
+			],
+			"name": "show_effect_as_desc",
+			"notes": "",
+			"parameters": {},
+			"scopes": {
+				"usage": [
+					"Technologies",
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"stack_behaviour": "passthrough",
+			"vanilla_usage_count": 0,
+			"version_added": "1.0"
+		},
+		"show_equipment_icon": {
+			"block_type": "value_effect",
+			"deprecated": false,
+			"description": "Shows the unlocked equipment's icon when hovering this technology in the tree. Useful when the technology icon differs from what it unlocks.",
+			"examples": [
+				"show_equipment_icon = yes"
+			],
+			"name": "show_equipment_icon",
+			"notes": "",
+			"parameters": {},
+			"scopes": {
+				"usage": [
+					"Technologies",
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"stack_behaviour": "passthrough",
+			"vanilla_usage_count": 0,
+			"version_added": "1.0"
+		},
+		"special_project_specialization": {
+			"block_type": "value_effect",
+			"deprecated": false,
+			"description": "Lists special-project specializations this technology grants or requires access to (whitespace-separated specialization identifiers).",
+			"examples": [
+				"special_project_specialization = { specialization_naval }"
+			],
+			"name": "special_project_specialization",
+			"notes": "",
+			"parameters": {},
+			"scopes": {
+				"usage": [
+					"Technologies",
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"stack_behaviour": "passthrough",
+			"vanilla_usage_count": 0,
+			"version_added": "1.0"
+		},
+		"start_year": {
+			"block_type": "value_effect",
+			"deprecated": false,
+			"description": "Year the technology is intended to be researched. Each year ahead-of-time adds up to +200% cost (BASE_YEAR_AHEAD_PENALTY_FACTOR = 2), applied smoothly over remaining days.",
+			"examples": [
+				"start_year = 1936"
+			],
+			"name": "start_year",
+			"notes": "",
+			"parameters": {},
+			"scopes": {
+				"usage": [
+					"Technologies",
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"stack_behaviour": "passthrough",
+			"vanilla_usage_count": 0,
+			"version_added": "1.0"
+		},
+		"sub_tech_index": {
+			"block_type": "value_effect",
+			"deprecated": false,
+			"description": "Overrides which parent sub-technology container/index this (sub-)technology renders as, within a technology definition.",
+			"examples": [
+				"sub_tech_index = ..."
+			],
+			"name": "sub_tech_index",
+			"notes": "",
+			"parameters": {},
+			"scopes": {
+				"usage": [
+					"Technologies",
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"stack_behaviour": "passthrough",
+			"vanilla_usage_count": 0,
+			"version_added": "1.0"
+		},
+		"sub_technologies": {
+			"block_type": "value_effect",
+			"deprecated": false,
+			"description": "Marks the listed technologies as sub-technologies rendered inside this technology's item (indexed 0..n for container/icon selection). Sub-technologies need no folder or gridbox of their own.",
+			"examples": [
+				"sub_technologies = {\n\tcv_early_fighter\n}"
+			],
+			"name": "sub_technologies",
+			"notes": "",
+			"parameters": {},
+			"scopes": {
+				"usage": [
+					"Technologies",
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"stack_behaviour": "passthrough",
+			"vanilla_usage_count": 0,
+			"version_added": "1.0"
+		},
+		"xp_boost_cost": {
+			"block_type": "value_effect",
+			"deprecated": false,
+			"description": "Experience cost to boost this technology's research; requires xp_research_type and pairs with xp_research_bonus.",
+			"examples": [
+				"xp_boost_cost = 50"
+			],
+			"name": "xp_boost_cost",
+			"notes": "",
+			"parameters": {},
+			"scopes": {
+				"usage": [
+					"Technologies",
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"stack_behaviour": "passthrough",
+			"vanilla_usage_count": 0,
+			"version_added": "1.0"
+		},
+		"xp_research_bonus": {
+			"block_type": "value_effect",
+			"deprecated": false,
+			"description": "Research-speed bonus granted while the technology is being boosted with experience (multiplier-style float, e.g. 1.5).",
+			"examples": [
+				"xp_research_bonus = 1.50"
+			],
+			"name": "xp_research_bonus",
+			"notes": "",
+			"parameters": {},
+			"scopes": {
+				"usage": [
+					"Technologies",
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"stack_behaviour": "passthrough",
+			"vanilla_usage_count": 0,
+			"version_added": "1.0"
+		},
+		"xp_research_type": {
+			"block_type": "value_effect",
+			"deprecated": false,
+			"description": "Assigns the experience type usable with this technology's xp_* costs: army, navy, or air.",
+			"examples": [
+				"xp_research_type = navy"
+			],
+			"name": "xp_research_type",
+			"notes": "",
+			"parameters": {},
+			"scopes": {
+				"usage": [
+					"Technologies",
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"stack_behaviour": "passthrough",
+			"vanilla_usage_count": 0,
+			"version_added": "1.0"
+		},
+		"xp_unlock_cost": {
+			"block_type": "value_effect",
+			"deprecated": false,
+			"description": "Experience cost that fully grants the technology outright — commonly used for doctrines.",
+			"examples": [
+				"xp_unlock_cost = 100"
+			],
+			"name": "xp_unlock_cost",
+			"notes": "",
+			"parameters": {},
+			"scopes": {
+				"usage": [
+					"Technologies",
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"stack_behaviour": "passthrough",
+			"vanilla_usage_count": 0,
+			"version_added": "1.0"
+		},
+		"allow": {
+			"block_type": "effect_scope",
+			"deprecated": false,
+			"description": "Trigger block checked continuously: while false, the technology cannot be researched through the research menu (though effects can still grant it, and it stays visible). Often set to never-true for hidden technologies so the AI won't pick them.",
+			"examples": [
+				"allow = { ... }"
+			],
+			"name": "allow",
+			"notes": "",
+			"parameters": {},
+			"pushes_scope": "Country",
+			"scopes": {
+				"usage": [
+					"Technologies",
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"stack_behaviour": "push",
+			"vanilla_usage_count": 0,
+			"version_added": "1.0"
+		},
+		"allow_branch": {
+			"block_type": "effect_scope",
+			"deprecated": false,
+			"description": "Trigger block controlling visibility of this technology and everything connected to it via path: when false the whole branch hides from the research tree.",
+			"examples": [
+				"allow_branch = { ... }"
+			],
+			"name": "allow_branch",
+			"notes": "",
+			"parameters": {},
+			"pushes_scope": "Country",
+			"scopes": {
+				"usage": [
+					"Technologies",
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"stack_behaviour": "push",
+			"vanilla_usage_count": 0,
+			"version_added": "1.0"
+		},
+		"available": {
+			"block_type": "effect_scope",
+			"deprecated": false,
+			"description": "Trigger block gating whether the technology can be researched (checked at selection/start time). Inside a technology this behaves like other tech gate blocks; inside a technology_folders folder entry it controls folder visibility.",
+			"examples": [
+				"available = { ... }"
+			],
+			"name": "available",
+			"notes": "",
+			"parameters": {},
+			"pushes_scope": "Country",
+			"scopes": {
+				"usage": [
+					"Technologies",
+					"TechnologyTags",
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"stack_behaviour": "push",
+			"vanilla_usage_count": 0,
+			"version_added": "1.0"
+		},
+		"doctrine": {
+			"block_type": "value_effect",
+			"deprecated": false,
+			"description": "Marks the technology as a doctrine (rendered with doctrine styling; must sit in a folder flagged `doctrine = yes`). The folder flag is documented under technology_folders parameters.",
+			"examples": [
+				"doctrine = yes"
+			],
+			"name": "doctrine",
+			"notes": "",
+			"parameters": {},
+			"scopes": {
+				"usage": [
+					"Technologies",
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"stack_behaviour": "passthrough",
+			"vanilla_usage_count": 0,
+			"version_added": "1.0"
+		},
+		"on_research_complete_limit": {
+			"block_type": "effect_scope",
+			"deprecated": false,
+			"description": "Trigger block that must pass for the on_research_complete effects to execute. Needed only when the whole effect block can appear or disappear depending on circumstances — the game generates tooltips poorly in that case. Unnecessary if nothing in on_research_complete grants a tooltip or something always does.",
+			"examples": [
+				"on_research_complete_limit = { ... }"
+			],
+			"name": "on_research_complete_limit",
+			"notes": "",
+			"parameters": {},
+			"pushes_scope": "Country",
+			"scopes": {
+				"usage": [
+					"Technologies",
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"stack_behaviour": "push",
+			"vanilla_usage_count": 0,
+			"version_added": "1.0"
+		},
+		"visible": {
+			"block_type": "effect_scope",
+			"deprecated": false,
+			"description": "Trigger block hiding the technology from the research tree while false (research remains possible via effects).",
+			"examples": [
+				"visible = { ... }"
+			],
+			"name": "visible",
+			"notes": "",
+			"parameters": {},
+			"pushes_scope": "Country",
+			"scopes": {
+				"usage": [
+					"Technologies",
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"stack_behaviour": "push",
+			"vanilla_usage_count": 0,
+			"version_added": "1.0"
+		},
 		"teleport_armies": {
 			"name": "teleport_armies",
 			"description": "Teleports all armies in the specified state if the owner of the armies meets the condition.",

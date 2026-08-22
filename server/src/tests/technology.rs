@@ -526,6 +526,135 @@ fn test_initial_scope_for_technology_files() {
 }
 
 #[test]
+fn test_data_json_documents_technology_properties() {
+    use crate::data::hoi4_data::{lookup_entity, lookup_parameter, lookup_pushes_scope};
+    use crate::scope::scope::Scope;
+
+    // The unlock blocks Embi flagged as undocumented.
+    for key in [
+        "enable_equipments",
+        "enable_subunits",
+        "enable_equipment_modules",
+        "enable_building",
+    ] {
+        let e = lookup_entity(key).unwrap_or_else(|| panic!("{key} missing from data JSON"));
+        assert_eq!(e.name, key);
+    }
+
+    // enable_building documents its structured sub-keys (building/level).
+    assert!(lookup_parameter("enable_building", "building").is_some());
+    assert!(lookup_parameter("enable_building", "level").is_some());
+
+    // Tree structure + cost/display properties.
+    for key in [
+        "path",
+        "folder",
+        "categories",
+        "dependencies",
+        "XOR",
+        "sub_technologies",
+        "sub_tech_index",
+        "start_year",
+        "research_cost",
+        "show_equipment_icon",
+        "force_use_small_tech_layout",
+        "show_effect_as_desc",
+        "desc",
+        "doctrine_name",
+        "xp_research_type",
+        "xp_boost_cost",
+        "xp_research_bonus",
+        "xp_unlock_cost",
+        "doctrine",
+        "is_special_project_tech",
+        "special_project_specialization",
+        "ai_research_weights",
+        "on_research_complete_limit",
+    ] {
+        assert!(lookup_entity(key).is_some(), "{key} missing from data JSON");
+    }
+
+    // path's structured params resolve (leads_to_tech drives hover).
+    let leads = lookup_parameter("path", "leads_to_tech").expect("path.leads_to_tech documented");
+    assert_eq!(leads.value_type, "Technology");
+
+    // Gate blocks push Country so their bodies validate as country triggers.
+    for key in [
+        "allow",
+        "allow_branch",
+        "available",
+        "visible",
+        "on_research_complete_limit",
+    ] {
+        assert_eq!(
+            lookup_pushes_scope(key),
+            Some(Scope::Country),
+            "{key} must push Country"
+        );
+    }
+
+    // Multi-home keys carry Global so units/focuses/operations files don't
+    // flag them under HOM004.
+    for key in ["path", "folder", "categories", "desc"] {
+        let e = lookup_entity(key).expect(key);
+        assert!(
+            e.scopes.usage.contains(&Scope::Global),
+            "{key} must include Global usage"
+        );
+    }
+}
+
+#[test]
+fn test_technology_keywords_seeded_from_data() {
+    // build_static_semantic_keywords seeds from EFFECTS keys — every newly
+    // documented tech property highlights without a hand-added keyword line.
+    use crate::backend::build_static_semantic_keywords;
+    let kw = build_static_semantic_keywords();
+    for key in [
+        "enable_equipments",
+        "enable_subunits",
+        "enable_equipment_modules",
+        "enable_building",
+        "path",
+        "start_year",
+        "research_cost",
+        "show_equipment_icon",
+        "force_use_small_tech_layout",
+        "show_effect_as_desc",
+        "xp_research_type",
+        "special_project_specialization",
+        "ai_research_weights",
+        "allow_branch",
+        "allow",
+        "visible",
+    ] {
+        assert!(kw.contains(key), "keyword set missing {key}");
+    }
+    // Structured sub-keys (leads_to_tech etc.) are NOT global keywords —
+    // they're context-aware properties resolved against their parent block,
+    // so they only highlight inside `path = { ... }`.
+    use crate::data::hoi4_data::{lookup_parameter, lookup_parameter_with_anchor};
+    assert!(
+        !kw.contains("leads_to_tech"),
+        "sub-keys must stay context-aware, not global keywords"
+    );
+    assert!(lookup_parameter("path", "leads_to_tech").is_some());
+    assert!(!kw.contains("research_cost_coeff"));
+    assert!(lookup_parameter("path", "research_cost_coeff").is_some());
+    // Folder instance params still come from the container table (not
+    // entities) — ledger/doctrine stay Property inside folder blocks because
+    // lookup_parameter_with_anchor checks parent params BEFORE entity status.
+    assert!(lookup_parameter("technology_folders", "ledger").is_some());
+    let (owner, _) = lookup_parameter_with_anchor(
+        Some("land_doctrine_folder"),
+        Some("technology_folders"),
+        "doctrine",
+    )
+    .expect("doctrine resolves via anchor");
+    assert_eq!(owner, "technology_folders");
+}
+
+#[test]
 fn test_data_json_documents_technology_tag_blocks() {
     use crate::data::hoi4_data::{lookup_entity, lookup_parameter};
 
