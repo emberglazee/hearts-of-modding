@@ -8,6 +8,10 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Technology and technology tag scanner.** Scans, validates, and integrates technologies, technology folders, and technology categories from `common/technology_tags/*.txt` and `common/technologies/*.txt`.
 
+### 🩹 Fixed
+
+- **Deleting an event or technology file now always scrubs its relationship edges from hover.** The dependency-graph cleanup on file deletion read its reverse index with a raw path key while every other site stores keys normalized, so a path-spelling mismatch silently skipped the scrub and left stale "prerequisites of" / "called-by" entries pointing at deleted entities.
+
 ### 🧹 Internal
 
 > new segment, yippee

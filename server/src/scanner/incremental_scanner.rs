@@ -1772,9 +1772,11 @@ pub fn remove_path_from_scanner_data(scanner_data: &ScannerData, path_str: &str)
                 // scrub them from the dependency graph (both as callers and as
                 // callees) — otherwise hover "called-by / calls-ed by" data keeps
                 // stale edges referencing deleted events.
+                // index_key() is mandatory for ALL index reads: keys are stored
+                // forward-slash normalized (windows-path-normalization-2026-08-05).
                 let old_event_ids: Vec<String> = scanner_data
                     .events_file_index
-                    .get(path_str)
+                    .get(&index_key(path_str))
                     .map(|keys| keys.value().iter().map(|k| k.to_string()).collect())
                     .unwrap_or_default();
                 remove_path!(
@@ -2076,9 +2078,11 @@ pub fn remove_path_from_scanner_data(scanner_data: &ScannerData, path_str: &str)
             FileCategory::Technologies => {
                 // Scrub the deleted file's techs from the dep graph (both as
                 // callers and callees) before dropping the index.
+                // index_key() is mandatory for ALL index reads: keys are stored
+                // forward-slash normalized (windows-path-normalization-2026-08-05).
                 let old_tech_ids: Vec<String> = scanner_data
                     .technologies_file_index
-                    .get(path_str)
+                    .get(&index_key(path_str))
                     .map(|keys| keys.value().iter().map(|k| k.to_string()).collect())
                     .unwrap_or_default();
                 remove_path!(

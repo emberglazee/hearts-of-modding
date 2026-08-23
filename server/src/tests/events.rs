@@ -1163,3 +1163,59 @@ country_event = {
     );
     assert!(dup[0].message.contains("test_dup.1"));
 }
+
+// ---------------------------------------------------------------------------
+// Dep-graph scrub on file DELETION — index-key spelling invariant
+// ---------------------------------------------------------------------------
+
+/// Deleting an event file must scrub its edges from `event_dep_graph`. The
+/// delete arm reads the ID list from `events_file_index` — that read MUST go
+/// through `index_key()` (the only sanctioned index-key builder, see
+/// windows-path-normalization-2026-08-05) so any path spelling matches the
+/// normalized keys the macros write. Feeding a backslash-spelled path proves
+/// the invariant: `update_scanner_data_for_file` handles it (its own read is
+/// keyed), so the deletion that follows must too.
+///
+/// Regression guard for the raw `.get(path_str)` miss in the
+/// FileCategory::Events arm of `remove_path_from_scanner_data`.
+#[test]
+fn test_delete_scrubs_dep_graph_with_backslash_path_spelling() {
+    use crate::ScannerData;
+    use crate::scanner::incremental_scanner::{
+        remove_path_from_scanner_data, update_scanner_data_for_file,
+    };
+
+    let data = ScannerData::new();
+
+    // Insert with the forward-slash spelling (what the LSP handlers feed).
+    let insert_path = "/mod/common/events/test_events.txt";
+    update_scanner_data_for_file(
+        &data,
+        insert_path,
+        r#"
+namespace test_ns
+country_event = {
+	id = source_event.1
+	immediate = { country_event = { id = target_event.1 } }
+}
+country_event = { id = target_event.1 }
+"#,
+    );
+    assert_eq!(data.event_dep_graph.caller_count("target_event.1"), 1);
+
+    // Delete via the same file under the OTHER separator convention. The
+    // macros normalize both sides, so removal itself works either way — but
+    // the stale-edge scrub silently no-ops when the pre-read misses.
+    let delete_path = "\\mod\\common\\events\\test_events.txt";
+    remove_path_from_scanner_data(&data, delete_path);
+
+    assert!(
+        data.events.is_empty(),
+        "events map must be empty after deletion"
+    );
+    assert_eq!(
+        data.event_dep_graph.callers_of("target_event.1"),
+        Vec::<String>::new(),
+        "dep graph must be scrubbed on deletion regardless of path spelling"
+    );
+}

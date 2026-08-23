@@ -675,3 +675,51 @@ fn test_data_json_documents_technology_tag_blocks() {
     // Case-insensitive like every other entity lookup.
     assert!(lookup_parameter("TECHNOLOGY_FOLDERS", "Ledger").is_some());
 }
+
+// ---------------------------------------------------------------------------
+// Dep-graph scrub on file DELETION — index-key spelling invariant
+// ---------------------------------------------------------------------------
+
+/// Deleting a technology file must scrub its edges from `tech_dep_graph`.
+/// The delete arm reads the ID list from `technologies_file_index` — that
+/// read MUST go through `index_key()` (the only sanctioned index-key builder,
+/// see windows-path-normalization-2026-08-05) so any path spelling matches
+/// the normalized keys the macros write. The update path already keys its own
+/// read correctly; this pins the delete side to the same invariant.
+///
+/// Regression guard for the raw `.get(path_str)` miss in the
+/// FileCategory::Technologies arm of `remove_path_from_scanner_data`.
+#[test]
+fn test_delete_scrubs_tech_dep_graph_with_backslash_path_spelling() {
+    use crate::ScannerData;
+    use crate::scanner::incremental_scanner::{
+        remove_path_from_scanner_data, update_scanner_data_for_file,
+    };
+
+    let data = ScannerData::new();
+
+    // Insert with the forward-slash spelling (what the LSP handlers feed).
+    let insert_path = "/mod/common/technologies/tree.txt";
+    update_scanner_data_for_file(&data, insert_path, VANILLA_TECH);
+    assert_eq!(
+        data.tech_dep_graph.caller_count("infantry_weapons1"),
+        1,
+        "edge infantry_weapons -> infantry_weapons1 exists before deletion"
+    );
+
+    // Delete via the same file under the OTHER separator convention. The
+    // macros normalize both sides, so removal itself works either way — but
+    // the stale-edge scrub silently no-ops when the pre-read misses.
+    let delete_path = "\\mod\\common\\technologies\\tree.txt";
+    remove_path_from_scanner_data(&data, delete_path);
+
+    assert!(
+        data.technologies.is_empty(),
+        "technologies map must be empty after deletion"
+    );
+    assert_eq!(
+        data.tech_dep_graph.callers_of("infantry_weapons1"),
+        Vec::<String>::new(),
+        "dep graph must be scrubbed on deletion regardless of path spelling"
+    );
+}
