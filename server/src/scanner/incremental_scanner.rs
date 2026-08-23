@@ -2210,6 +2210,41 @@ mod tests {
         assert!(!ideas.contains(&"/common/technology_tags/"));
     }
 
+    /// `categories` and friends are BARE-IDENTIFIER lists. A `key = value`
+    /// assignment inside such a block is malformed content — bare `yes` parses
+    /// as Boolean (never reaching any String arm), and the old "tolerant"
+    /// branch pushed the VALUE side of a String assignment (`foo = bar`
+    /// recorded "bar"), which is never an identifier of anything. The branch
+    /// was removed; this pins that assignments inside these lists contribute
+    /// nothing rather than garbage.
+    #[test]
+    fn test_bare_list_blocks_ignore_assignments() {
+        let (script, _) = parser::parse_script(
+            r#"technologies = {
+	tech_a = {
+		categories = {
+			good_category
+			bad_form = other_identifier
+			flag_form = yes
+		}
+	}
+}"#,
+        );
+        let mut map = HashMap::new();
+        technology_scanner::find_technologies_in_entries(
+            &script.entries,
+            &script.source,
+            "t.txt",
+            &mut map,
+        );
+        let cats = &map["tech_a"].categories;
+        assert_eq!(
+            cats,
+            &["good_category".to_string()],
+            "only bare identifiers collected; got {cats:?}"
+        );
+    }
+
     /// Decision-category declarations must classify as DecisionCategories (not
     /// fall through to Variables-only), so edits refresh the category map.
     #[test]
