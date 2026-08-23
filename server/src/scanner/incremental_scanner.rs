@@ -598,6 +598,18 @@ pub(crate) fn dependency_affected_prefixes(path: &str) -> Vec<&'static str> {
         // state_definitions.rs validates `resources` and `state_category`
         affected.push("/history/states/");
     }
+    if lower.contains("/common/technology_tags/") {
+        // Tech definitions consume the declared categories/folders — an edit
+        // to a tags file must re-validate consuming tech docs. Mirrors
+        // scan_technology_tags -> "common/technology_tags".
+        affected.push("/common/technologies/");
+    }
+    if lower.contains("/common/technologies/") {
+        // Techs reference sibling techs cross-file (leads_to_tech, xor,
+        // dependencies) via tech_dep_graph. Mirrors
+        // scan_technologies -> "common/technologies".
+        affected.push("/common/technologies/");
+    }
     if lower.ends_with("/map/continent.txt") {
         // ai_areas.rs validates continent names
         affected.push("/common/ai_areas/");
@@ -2142,6 +2154,60 @@ mod tests {
             !cats.contains(&FileCategory::StrategicRegions),
             "common/strategic_regions is not the engine path"
         );
+    }
+
+    /// Site #6 of the scanner wiring checklist: an edit under
+    /// `common/technologies` or `common/technology_tags` must mark consuming
+    /// documents for re-validation via `dependency_affected_prefixes`, or
+    /// their diagnostics go stale until each file is touched. Mirrors the
+    /// orchestrator calls `scan_technologies` / `scan_technology_tags`
+    /// ("common/technologies" / "common/technology_tags").
+    ///
+    /// Consumption direction: tech definitions reference sibling techs
+    /// cross-file (`leads_to_tech`, `xor`, `dependencies`) AND reference
+    /// declared categories/folders from technology_tags — so a tags edit
+    /// re-validates tech docs, but a tech edit doesn't touch tag docs.
+    #[test]
+    fn test_dependency_affected_prefixes_technologies() {
+        // Tech edit -> sibling tech docs re-validate.
+        let p = "/home/embi/mod/common/technologies/infantry.txt";
+        let affected = dependency_affected_prefixes(p);
+        assert!(
+            affected.contains(&"/common/technologies/"),
+            "tech file edits must re-validate /common/technologies/, got {affected:?}"
+        );
+        assert!(
+            !affected.contains(&"/common/technology_tags/"),
+            "a tech edit gives tag docs no reason to re-validate"
+        );
+
+        // The function normalizes separators internally — raw PathBuf
+        // spellings must classify identically.
+        let win = dependency_affected_prefixes("C:\\mod\\common\\technologies\\tree.txt");
+        assert!(
+            win.contains(&"/common/technologies/"),
+            "backslash-spelled tech paths must classify identically, got {win:?}"
+        );
+
+        // Tags edit -> tech docs re-validate (they consume the declared
+        // categories/folders). The tags dir itself is NOT pushed: nothing in
+        // a tags file renders from other registries' data (compare the
+        // scripted_triggers arm, which also pushes only its consumers).
+        let tags = "/home/embi/mod/common/technology_tags/00_technology.txt";
+        let affected_tags = dependency_affected_prefixes(tags);
+        assert!(
+            affected_tags.contains(&"/common/technologies/"),
+            "tag edits must re-validate consuming /common/technologies/, got {affected_tags:?}"
+        );
+        assert!(
+            !affected_tags.contains(&"/common/technology_tags/"),
+            "tag docs have no consumer relationship to each other"
+        );
+
+        // No cross-contamination from unrelated directories.
+        let ideas = dependency_affected_prefixes("/mod/common/ideas/usa.txt");
+        assert!(!ideas.contains(&"/common/technologies/"));
+        assert!(!ideas.contains(&"/common/technology_tags/"));
     }
 
     /// Decision-category declarations must classify as DecisionCategories (not
