@@ -1189,12 +1189,12 @@ fn test_delete_scrubs_dep_graph_with_backslash_path_spelling() {
 
     // Insert with the forward-slash spelling (what the LSP handlers feed).
     let insert_path = "/mod/common/events/test_events.txt";
+    // Dotted event IDs (`prefix.number`) carry everything the scanner needs;
+    // no add_namespace declaration is required for edge collection.
     update_scanner_data_for_file(
         &data,
         insert_path,
-        r#"
-namespace test_ns
-country_event = {
+        r#"country_event = {
 	id = source_event.1
 	immediate = { country_event = { id = target_event.1 } }
 }
