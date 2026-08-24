@@ -1813,6 +1813,7 @@ pub(crate) fn check_duplicate_keys<'a>(
     diagnostics: &mut Vec<Diagnostic>,
     mod_maps: &DashMap<InternedStr, String>,
     source: &'a str,
+    mapper: &RangeMapper,
     in_air_wings: bool,
     parent_key: Option<&'a str>,
 ) {
@@ -1823,7 +1824,6 @@ pub(crate) fn check_duplicate_keys<'a>(
     // set of key patterns.
     const COMMON_KEYS: [&str; 3] = ["name", "id", "icon"];
 
-    let mapper = RangeMapper::new(source);
     let mut seen_keys: FxHashMap<&'a str, ast::Range> = FxHashMap::default();
 
     for entry in entries {

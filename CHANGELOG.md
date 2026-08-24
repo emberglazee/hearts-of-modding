@@ -22,6 +22,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 > new segment, yippee
 
+- **Fixed a massive workspace validation bottleneck.** The duplicate-key check rebuilt a whole-document line index for every block it inspected; it now reuses the one built per file. Workspace validation is now several times faster.
+
 - **Release workflow runs now carry descriptive names** like "Release (minor)" in the Actions list, and post a job summary with the actual released version, bump type, and previous version.
 
 - **Release descriptions now include the last 3 patch versions** instead of just the current patch + its parent minor, so upgrading from an older patch shows the intermediate fixes.

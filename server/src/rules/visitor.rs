@@ -235,6 +235,7 @@ fn walk_entries(
                             diags,
                             ctx.modifier_mappings,
                             ctx.source,
+                            ctx.range_mapper,
                             new_in_air_wings,
                             Some(key),
                         );
@@ -269,6 +270,7 @@ fn walk_entries(
                         diags,
                         ctx.modifier_mappings,
                         ctx.source,
+                        ctx.range_mapper,
                         in_air_wings,
                         None,
                     );
