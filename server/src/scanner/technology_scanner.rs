@@ -36,21 +36,18 @@ pub struct Technology {
 fn collect_bare_identifiers(entries: &[ast::Entry], source: &str) -> Vec<String> {
     let mut result = Vec::new();
     for entry in entries {
-        match entry {
-            // Bare identifier: `infantry_equipment_0`
-            ast::Entry::Value(nv) => {
-                if let ast::Value::String(span) = &nv.value {
-                    result.push(span.resolve(source).to_string());
-                }
-            }
-            // Assignments inside these blocks are malformed content and are
-            // skipped. There is no `key = yes` form here to tolerate: bare
-            // yes/no parse as Value::Boolean (never a String), and vanilla's
-            // only key=value shapes are DLC-gate sub-blocks (`limit = {
-            // has_dlc = ... }`), which are nested blocks, not scalars.
-            // Pushing either side of a scalar assignment would record an
-            // identifier that doesn't exist in the file as written.
-            _ => {}
+        // Only bare identifiers are collected (`infantry_equipment_0`).
+        // Assignments inside these blocks are malformed content and are
+        // skipped: there is no `key = yes` form here to tolerate (bare
+        // yes/no parse as Value::Boolean, never a String), and vanilla's
+        // only key=value shapes are DLC-gate sub-blocks (`limit = {
+        // has_dlc = ... }`), which are nested blocks, not scalars.
+        // Pushing either side of a scalar assignment would record an
+        // identifier that doesn't exist in the file as written.
+        if let ast::Entry::Value(nv) = entry
+            && let ast::Value::String(span) = &nv.value
+        {
+            result.push(span.resolve(source).to_string());
         }
     }
     result
