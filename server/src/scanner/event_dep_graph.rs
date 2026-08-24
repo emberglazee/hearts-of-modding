@@ -186,7 +186,13 @@ impl EventDependencyGraph {
             let event = entry.value().resolve();
             let caller = &event.id;
             for callee in &event.triggered_events {
-                self.add_edge(caller, callee);
+                // Skip self-edges, matching update_events: an event firing
+                // itself is not a relationship, and keeping the two paths
+                // identical means hover content doesn't depend on how the
+                // graph got built (startup scan vs file edit).
+                if callee != caller {
+                    self.add_edge(caller, callee);
+                }
             }
         }
     }
@@ -307,6 +313,34 @@ mod tests {
         assert_eq!(graph.callees_of("B.1").len(), 1);
         assert!(graph.is_orphaned("A.1")); // no incoming edges
         assert!(!graph.is_orphaned("B.1")); // called by A.1
+    }
+
+    /// Self-referential edges (an event triggering itself) are skipped by the
+    /// incremental update path (`if callee != caller` in update_events) and
+    /// must be skipped by the full rebuild too — otherwise hover's
+    /// "called-by / calls" content differs depending on whether the last
+    /// write was a startup scan or an edit.
+    #[test]
+    fn test_rebuild_skips_self_edges() {
+        let events: DashMap<InternedStr, LayeredValue<Event>> = DashMap::new();
+        events.insert(
+            Arc::from("loop.1"),
+            make_layered(make_event("loop.1", &["loop.1", "other.1"])),
+        );
+        events.insert(
+            Arc::from("other.1"),
+            make_layered(make_event("other.1", &[])),
+        );
+
+        let graph = EventDependencyGraph::new();
+        graph.rebuild_from_events_db(&events);
+
+        assert_eq!(
+            graph.callees_of("loop.1"),
+            vec!["other.1".to_string()],
+            "self-edge must be dropped at rebuild, matching incremental updates"
+        );
+        assert_eq!(graph.caller_count("loop.1"), 0);
     }
 
     #[test]

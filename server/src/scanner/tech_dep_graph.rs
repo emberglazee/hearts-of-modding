@@ -136,7 +136,13 @@ impl TechDependencyGraph {
         for entry in technologies.iter() {
             let tech = entry.value().resolve();
             for callee in &tech.leads_to_tech {
-                self.add_edge(&tech.name, callee);
+                // Skip self-edges, matching update_technologies: a tech cannot
+                // be its own prerequisite, and keeping the two paths identical
+                // means hover content doesn't depend on how the graph got
+                // built (startup scan vs file edit).
+                if callee != &tech.name {
+                    self.add_edge(&tech.name, callee);
+                }
             }
         }
     }
@@ -274,5 +280,33 @@ mod tests {
         assert!(graph.callees_of("tech_a").contains(&"tech_b".to_string()));
         assert!(graph.callees_of("tech_a").contains(&"tech_c".to_string()));
         assert_eq!(graph.caller_count("tech_c"), 2);
+    }
+
+    /// Self-referential edges (`leads_to_tech` pointing at the tech itself)
+    /// are skipped by the incremental update path (update_technologies) and
+    /// must be skipped by the full rebuild too — otherwise hover content
+    /// differs depending on whether the last write was a startup scan or an
+    /// edit. A tech cannot meaningfully be its own prerequisite.
+    #[test]
+    fn test_rebuild_skips_self_edges() {
+        let db: DashMap<InternedStr, LayeredValue<Technology>> = DashMap::new();
+        db.insert(
+            Arc::from("loop_tech"),
+            make_layered(make_tech("loop_tech", &["loop_tech", "other_tech"])),
+        );
+        db.insert(
+            Arc::from("other_tech"),
+            make_layered(make_tech("other_tech", &[])),
+        );
+
+        let graph = TechDependencyGraph::new();
+        graph.rebuild_from_technologies_db(&db);
+
+        assert_eq!(
+            graph.callees_of("loop_tech"),
+            vec!["other_tech".to_string()],
+            "self-edge must be dropped at rebuild, matching incremental updates"
+        );
+        assert_eq!(graph.caller_count("loop_tech"), 0);
     }
 }
