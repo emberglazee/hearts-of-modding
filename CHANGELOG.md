@@ -10,6 +10,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### 🩹 Fixed
 
+- **Missing-localization diagnostics (HOM005) now fire for standard `TAG_snake_case` keys.** A "looks like a literal" heuristic suppressed any value starting with an uppercase letter and containing lowercase ones — which is what most real localization keys look like, since they begin with the uppercase country tag. Literal names without underscores or dots are still exempt.
+
 - **Province hover tooltips show terrain and type the right way around.** The definition.csv parser stored the province type (land/sea/lake) as "terrain" and the terrain category (plains/forest/ocean) as "type", so every province tooltip read inverted; terrain cross-validation also relied on a comment documenting the swap.
 
 - **Outgoing call hierarchy now works on real events and scripted triggers/effects.** It only ever scanned the line an entity was declared on, so "Show Outgoing Calls" came back empty (or showed the entity calling itself) for every multi-line definition; fired child events and `name = yes` scripted-entity calls are now all discovered.

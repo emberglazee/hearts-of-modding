@@ -49,8 +49,19 @@ impl ValidationRule for LocalizationRule {
             should_flag = false;
         }
 
-        // 2. Casing heuristic: starts with uppercase but isn't all-caps → likely literal
-        if should_flag && val.chars().next().is_some_and(|c| c.is_uppercase()) {
+        // 2. Casing heuristic: starts with uppercase but isn't all-caps →
+        //    likely a literal word ("John", "Margaret"). NEVER applied to
+        //    key-shaped values: TAG_snake_case and TAG.1.title identifiers
+        //    routinely start with the uppercase country tag while containing
+        //    lowercase, so suppressing them silenced HOM005 for the majority
+        //    of standard mod localization references (measured: 21.4k of
+        //    22.5k suppressed bare values across vanilla are underscore- or
+        //    dot-shaped keys, vs 1.1k literal person/place names).
+        if should_flag
+            && !val.contains('_')
+            && !val.contains('.')
+            && val.chars().next().is_some_and(|c| c.is_uppercase())
+        {
             let all_caps = val.chars().all(|c| !c.is_lowercase());
             if !all_caps {
                 should_flag = false;
@@ -249,6 +260,69 @@ mod tests {
             h005.len(),
             1,
             "Expected HOM005 for a real (missing) loc key"
+        );
+    }
+
+    /// Regression (external review): the casing heuristic suppressed
+    /// TAG_snake_case keys because the country tag is uppercase while the
+    /// rest is lowercase. A missing `TAG_four_year_plan` must fire HOM005.
+    #[test]
+    fn test_tag_snake_case_key_not_suppressed_by_casing_heuristic() {
+        let source = r#"focus = {
+	id = TAG_four_year_plan
+	name = TAG_four_year_plan
+}"#;
+        let diags = run_with_loc(source, "/common/national_focus/a.txt", &["SOME_OTHER_KEY"]);
+        let h005: Vec<&Diagnostic> = diags
+            .iter()
+            .filter(|d| d.code == Some(NumberOrString::String("HOM005".to_string())))
+            .collect();
+        assert_eq!(
+            h005.len(),
+            1,
+            "underscore-keyed values start with an uppercase tag but are loc keys, not literals: {:?}",
+            h005
+        );
+    }
+
+    /// Same for dotted event-title conventions: `title = TAG.8.title` starts
+    /// uppercase (the tag) and contains lowercase — it is a key, not prose.
+    #[test]
+    fn test_dotted_event_title_key_not_suppressed_by_casing_heuristic() {
+        let source = r#"country_event = {
+	id = tag.8
+	title = TAG.8.title
+	desc = TAG.8.desc
+}"#;
+        let diags = run_with_loc(source, "/events/a.txt", &["SOME_OTHER_KEY"]);
+        let h005: Vec<&Diagnostic> = diags
+            .iter()
+            .filter(|d| d.code == Some(NumberOrString::String("HOM005".to_string())))
+            .collect();
+        assert_eq!(h005.len(), 2, "both dotted keys are missing: {:?}", h005);
+    }
+
+    /// The literal-word suppression must SURVIVE for underscore-free words:
+    /// vanilla carries ~1.1k of them (`add_ace = { name = Margaret }`,
+    /// common/names data). No underscore/dot → still treated as literal.
+    #[test]
+    fn test_literal_words_still_suppressed() {
+        let source = r#"add_ace = {
+	name = Margaret
+	surname = Gee
+}
+character = {
+	name = John
+}"#;
+        let diags = run_with_loc(source, "/common/characters/a.txt", &["SOME_OTHER_KEY"]);
+        let h005: Vec<&Diagnostic> = diags
+            .iter()
+            .filter(|d| d.code == Some(NumberOrString::String("HOM005".to_string())))
+            .collect();
+        assert!(
+            h005.is_empty(),
+            "literal person names without underscores stay suppressed, got: {:?}",
+            h005
         );
     }
 }
