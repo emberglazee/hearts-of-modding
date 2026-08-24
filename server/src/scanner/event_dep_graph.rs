@@ -343,6 +343,136 @@ mod tests {
         assert_eq!(graph.caller_count("loop.1"), 0);
     }
 
+    /// Outgoing call hierarchy needs the event's FULL block span: the walker
+    /// early-returns on non-overlapping top-level entries, so a key-line-only
+    /// range (the old storage) meant NOTHING past the declaration line was
+    /// ever scanned — outgoing calls came back empty (or self-referential)
+    /// for every real multi-line event.
+    #[tokio::test]
+    async fn event_range_spans_block_for_outgoing_calls() {
+        use crate::ScannerData;
+        use crate::lsp::call_hierarchy::get_outgoing_calls;
+        use crate::parser::parser;
+        use crate::scanner::event_scanner::find_event_definitions;
+        use dashmap::DashMap as DM;
+        use std::collections::HashMap;
+        use tower_lsp_server::ls_types::CallHierarchyItem;
+
+        let data = ScannerData::new();
+        let tmp = std::env::temp_dir().join(format!("hom_callh_span_{}", std::process::id()));
+        let file = tmp.join("test_events.txt");
+        std::fs::create_dir_all(&tmp).unwrap();
+        let src = r#"country_event = {
+	id = alpha.1
+	immediate = {
+		country_event = { id = beta.1 }
+		alpha_helper_effect = yes
+	}
+}
+country_event = {
+	id = beta.1
+}
+"#;
+        std::fs::write(&file, src).unwrap();
+
+        // Real extraction path.
+        let (script, _) = parser::parse_script(src);
+        let mut map: HashMap<String, Event> = HashMap::new();
+        find_event_definitions(&script.entries, &script.source, "", &mut map);
+        for (id, ev) in map {
+            data.events.insert(
+                InternedStr::from(id.as_str()),
+                crate::data::layered_value::LayeredValue::new(ev),
+            );
+        }
+        // Register the scripted effect the fixture calls.
+        data.scripted_effects.insert(
+            InternedStr::from("alpha_helper_effect"),
+            crate::data::layered_value::LayeredValue::new(
+                crate::scanner::scripted_scanner::ScriptedEntity {
+                    name: "alpha_helper_effect".to_string(),
+                    path: InternedStr::from(file.to_string_lossy().as_ref()),
+                    range: crate::parser::ast::Range {
+                        start_line: 3,
+                        start_col: 2,
+                        end_line: 3,
+                        end_col: 24,
+                    },
+                },
+            ),
+        );
+
+        let uri = tower_lsp_server::ls_types::Uri::from_file_path(&file).unwrap();
+
+        // Scanner-layer assertion: the stored range must span the block,
+        // not stop at the declaration line.
+        let alpha = data.events.get("alpha.1").unwrap();
+        let alpha = alpha.value();
+        assert!(
+            alpha.range.end_line > alpha.range.start_line,
+            "Event.range must cover the whole block, got {:?}",
+            alpha.range
+        );
+
+        let item = CallHierarchyItem {
+            name: "alpha.1".to_string(),
+            kind: tower_lsp_server::ls_types::SymbolKind::EVENT,
+            tags: None,
+            detail: None,
+            uri: uri.clone(),
+            range: tower_lsp_server::ls_types::Range {
+                start: tower_lsp_server::ls_types::Position {
+                    line: 0,
+                    character: 0,
+                },
+                end: tower_lsp_server::ls_types::Position {
+                    line: 6,
+                    character: 0,
+                },
+            },
+            selection_range: tower_lsp_server::ls_types::Range {
+                start: tower_lsp_server::ls_types::Position {
+                    line: 0,
+                    character: 0,
+                },
+                end: tower_lsp_server::ls_types::Position {
+                    line: 0,
+                    character: 13,
+                },
+            },
+            data: None,
+        };
+        let docs: DM<
+            String,
+            (
+                std::sync::Arc<crate::parser::ast::Script>,
+                Vec<(String, crate::parser::ast::Range)>,
+            ),
+        > = DM::new();
+        docs.insert(
+            uri.as_str().to_string(),
+            (std::sync::Arc::new(script), Vec::new()),
+        );
+
+        let out = get_outgoing_calls(&item, &data, &docs).await;
+        let names: Vec<&str> = out.iter().map(|c| c.to.name.as_str()).collect();
+
+        assert!(
+            names.contains(&"beta.1"),
+            "fired child event must appear in outgoing calls, got {names:?}"
+        );
+        assert!(
+            names.contains(&"alpha_helper_effect"),
+            "scripted-effect call must appear in outgoing calls, got {names:?}"
+        );
+        assert!(
+            !names.contains(&"alpha.1"),
+            "an event calling itself is noise, not a call, got {names:?}"
+        );
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
     #[test]
     fn test_clear() {
         let graph = EventDependencyGraph::new();

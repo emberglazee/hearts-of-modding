@@ -27,7 +27,14 @@ where
                     ScriptedEntity {
                         name,
                         path: std::sync::Arc::from(path.to_string_lossy().as_ref()),
-                        range: ass.key_range,
+                        // Full block span — see event_scanner.rs: call
+                        // hierarchy's range-overlap walk needs the whole body.
+                        range: ast::Range {
+                            start_line: ass.key_range.start_line,
+                            start_col: ass.key_range.start_col,
+                            end_line: ass.value.range.end_line,
+                            end_col: ass.value.range.end_col,
+                        },
                     },
                 );
             }
@@ -51,7 +58,14 @@ where
                     ScriptedEntity {
                         name,
                         path: std::sync::Arc::from(path.to_string_lossy().as_ref()),
-                        range: ass.key_range,
+                        // Full block span — see event_scanner.rs: call
+                        // hierarchy's range-overlap walk needs the whole body.
+                        range: ast::Range {
+                            start_line: ass.key_range.start_line,
+                            start_col: ass.key_range.start_col,
+                            end_line: ass.value.range.end_line,
+                            end_col: ass.value.range.end_col,
+                        },
                     },
                 );
             }

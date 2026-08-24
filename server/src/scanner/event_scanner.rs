@@ -61,7 +61,17 @@ pub(crate) fn find_event_definitions(
                             id: event_id,
                             event_type: key.to_string(),
                             path: std::sync::Arc::from(path),
-                            range: ass.key_range.clone(),
+                            // Full block span (key start → value end), NOT just
+                            // the key line: call hierarchy's outgoing-call walk
+                            // early-returns on non-overlapping top-level
+                            // entries, so a key-only range scanned nothing past
+                            // the declaration line.
+                            range: ast::Range {
+                                start_line: ass.key_range.start_line,
+                                start_col: ass.key_range.start_col,
+                                end_line: ass.value.range.end_line,
+                                end_col: ass.value.range.end_col,
+                            },
                             triggered_events: Vec::new(),
                         },
                     );

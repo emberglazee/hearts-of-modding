@@ -206,7 +206,11 @@ pub async fn get_outgoing_calls(
 
         // Find all calls within this symbol's range
         if let Some(symbol_range) = symbol_range {
-            let calls = find_calls_in_range(&script.entries, &symbol_range, &script.source);
+            let mut calls = find_calls_in_range(&script.entries, &symbol_range, &script.source);
+            // The symbol's own declaration lives inside its range and its
+            // `id = <name>` child matches the event-firing shape — drop
+            // self-references so an event isn't reported as calling itself.
+            calls.remove(item.name.as_str());
 
             for (call_name, call_ranges) in calls {
                 // Try to find the target symbol
@@ -322,27 +326,48 @@ fn find_calls_recursive(
             return;
         }
 
-        // Check for event triggers
-        if ass.key_text(source) == "country_event"
-            || ass.key_text(source) == "state_event"
-            || ass.key_text(source) == "news_event"
-        {
-            if let Value::Block(children) = &ass.value.value {
-                for child in children {
-                    if let Entry::Assignment(child_ass) = child {
-                        if child_ass.key_text(source) == "id" {
-                            if let Some(id) = child_ass.value.value.as_str(source) {
-                                calls.entry(id.to_string()).or_default().push(range.clone());
+        let key = ass.key_text(source);
+
+        // Event FIRINGS: `country_event = { id = x.1 }` (block form) or the
+        // `country_event = x.1` shorthand.
+        if matches!(
+            key,
+            "country_event"
+                | "state_event"
+                | "news_event"
+                | "unit_leader_event"
+                | "operative_leader_event"
+        ) {
+            match &ass.value.value {
+                Value::Block(children) => {
+                    for child in children {
+                        if let Entry::Assignment(child_ass) = child {
+                            if child_ass.key_text(source) == "id" {
+                                if let Some(id) = child_ass.value.value.as_str(source) {
+                                    calls.entry(id.to_string()).or_default().push(range.clone());
+                                }
                             }
                         }
                     }
                 }
+                Value::String(span) => {
+                    calls
+                        .entry(span.resolve(source).to_string())
+                        .or_default()
+                        .push(range.clone());
+                }
+                _ => {}
             }
-        }
-
-        // Check for scripted trigger/effect calls
-        if let Some(s) = ass.value.value.as_str(source) {
-            calls.entry(s.to_string()).or_default().push(range.clone());
+        } else if matches!(&ass.value.value, Value::Boolean(true)) {
+            // Scripted trigger/effect CALL convention: `name = yes`.
+            // Deliberately NOT "any String value": that collected ids, loc
+            // keys and variable names as phantom calls (e.g. an event's own
+            // `id = alpha.1` registered as a call to itself once the walked
+            // range covered the body).
+            calls
+                .entry(key.to_string())
+                .or_default()
+                .push(range.clone());
         }
 
         // Recurse into blocks
