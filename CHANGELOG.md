@@ -10,6 +10,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### 🩹 Fixed
 
+- **Province hover tooltips show terrain and type the right way around.** The definition.csv parser stored the province type (land/sea/lake) as "terrain" and the terrain category (plains/forest/ocean) as "type", so every province tooltip read inverted; terrain cross-validation also relied on a comment documenting the swap.
+
 - **Outgoing call hierarchy now works on real events and scripted triggers/effects.** It only ever scanned the line an entity was declared on, so "Show Outgoing Calls" came back empty (or showed the entity calling itself) for every multi-line definition; fired child events and `name = yes` scripted-entity calls are now all discovered.
 
 - **Deleting an event or technology file now always scrubs its relationship edges from hover.** The dependency-graph cleanup on file deletion read its reverse index with a raw path key while every other site stores keys normalized, so a path-spelling mismatch silently skipped the scrub and left stale "prerequisites of" / "called-by" entries pointing at deleted entities.

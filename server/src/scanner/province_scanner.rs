@@ -32,9 +32,13 @@ fn insert_province(
         let r = parts[1].parse::<u8>().unwrap_or(0);
         let g = parts[2].parse::<u8>().unwrap_or(0);
         let b = parts[3].parse::<u8>().unwrap_or(0);
-        let terrain = parts[4].to_string();
+        // definition.csv schema: ID;R;G;B;Type;Coastal;Terrain;Continent —
+        // column 5 is the province TYPE (land/sea/lake), column 7 the TERRAIN
+        // category (plains/forest/ocean/...). Verified against vanilla
+        // map/definition.csv (`0;0;0;0;land;false;unknown;0`).
+        let prov_type = parts[4].to_string();
         let is_coastal = parts[5].eq_ignore_ascii_case("true");
-        let prov_type = parts[6].to_string();
+        let terrain = parts[6].to_string();
         let continent = parts[7].parse::<u32>().unwrap_or(0);
         provinces.insert(
             id,

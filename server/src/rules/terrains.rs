@@ -85,9 +85,7 @@ impl ValidationRule for TerrainRule {
 
         for entry in ctx.provinces.iter() {
             let province = entry.value();
-            // Note: the province scanner stores terrain from definition.csv's
-            // column 6 in `.prov_type` (see scanner/province_scanner.rs).
-            let prov_terrain = province.prov_type.trim().to_lowercase();
+            let prov_terrain = province.terrain.trim().to_lowercase();
             if !prov_terrain.is_empty() && !terrain_names.contains(&prov_terrain) {
                 diags.push(Diagnostic {
                     range: ctx.range(
