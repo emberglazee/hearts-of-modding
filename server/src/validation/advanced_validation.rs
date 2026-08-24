@@ -56,6 +56,13 @@ pub const CATEGORY_KEY_IN_DECISION: &str = "HOM5007";
 pub const DECISION_MISSING_COMPLETE_EFFECT: &str = "HOM5008";
 pub const DECISION_DUAL_COST: &str = "HOM5009";
 
+// ── Focus validation (HOM5010–…) ──
+/// Unknown focus search filter (`search_filters = { FOCUS_FILTER_TYPO }`).
+/// The engine never errors on these — the filter silently fails to render in
+/// the focus-tree search menu — so severity is WARNING. A non-base filter is
+/// valid when a `GFX_<name>` sprite exists (that is how mods define filters).
+pub const UNKNOWN_FOCUS_SEARCH_FILTER: &str = "HOM5010";
+
 // ── Syntax validation (HOM6000–HOM6004) ──
 /// Block implicitly closed at end-of-file (Clausewitz engine accepts this)
 pub const IMPLICIT_EOF_CLOSE: &str = "HOM6000";

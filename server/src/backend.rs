@@ -3500,6 +3500,7 @@ impl ValidationCtx {
             Box::new(rules::abilities::AbilityRule),
             Box::new(rules::country_tags::CountryTagRule),
             Box::new(rules::country_metadata::CountryMetadataRule),
+            Box::new(rules::focus_search_filters::FocusSearchFilterRule),
             Box::new(rules::ideologies::IdeologyRule),
             Box::new(rules::ideas::IdeaRule),
             Box::new(rules::localization::LocalizationRule),

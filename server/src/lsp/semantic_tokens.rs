@@ -849,6 +849,18 @@ fn push_value_tokens(
                     length: val_len,
                     token_type: entity_kind_to_token_type(EntityKind::TechnologyTag),
                 });
+            } else if parent_key.is_some_and(|p| p.eq_ignore_ascii_case("search_filters")) {
+                // Focus search filters (`search_filters = { FOCUS_FILTER_X }`
+                // inside focus/shared_focus): bare identifiers are filter
+                // references, not triggers/effects — highlight as EnumMember
+                // regardless of keyword collisions. Validity is the rule's
+                // job; highlighting is structural (the container decides).
+                tokens.push(RawToken {
+                    line: val_line,
+                    start: val_start,
+                    length: val_len,
+                    token_type: TokenType::EnumMember as u32,
+                });
             } else if ctx.keywords.contains(s) {
                 tokens.push(RawToken {
                     line: val_line,
@@ -1958,6 +1970,83 @@ add_political_power = 100
         assert!(
             !abs.iter().any(|&(l, _, _, tt)| l == 3 && tt == "property"),
             "anchor must not leak into the available block: {:#?}",
+            abs
+        );
+    }
+
+    /// Focus search filters highlight as enum_member regardless of keyword
+    /// collisions (`FOCUS_FILTER_INDUSTRY` contains no keyword, but a mod
+    /// filter could collide; the container decides, validity is the rule's).
+    #[test]
+    fn test_search_filter_values_highlight_as_enum_member() {
+        use crate::parser::parser;
+        use std::sync::Arc as StdArc;
+
+        let source =
+            "focus = {\n\tid = TAG_f\n\tsearch_filters = {\n\t\tFOCUS_FILTER_POLITICAL\n\t}\n}\n";
+        let (script, _) = parser::parse_script(source);
+
+        // `FOCUS_FILTER_POLITICAL` is NOT in the keyword set — but even if a
+        // mod filter collided with one, the container arm must win. Simulate
+        // the collision by putting the whole name into keywords.
+        let mut keywords = HashSet::new();
+        keywords.insert("FOCUS_FILTER_POLITICAL".to_string());
+        let ctx = SemanticTokenContext {
+            keywords: StdArc::new(keywords),
+            entity_names: StdArc::new(HashMap::new()),
+        };
+
+        let result = get_semantic_tokens(&script, &ctx);
+        let SemanticTokensResult::Tokens(t) = result else {
+            panic!("expected Tokens result")
+        };
+
+        let legend = [
+            "keyword",
+            "variable",
+            "string",
+            "number",
+            "operator",
+            "comment",
+            "type",
+            "event",
+            "function",
+            "enum",
+            "enum_member",
+            "struct",
+            "class",
+            "property",
+        ];
+        let mut abs: Vec<(u32, u32, u32, &str)> = Vec::new();
+        let (mut last_line, mut last_start) = (0u32, 0u32);
+        for st in &t.data {
+            let line = last_line + st.delta_line;
+            let start = if st.delta_line == 0 {
+                last_start + st.delta_start
+            } else {
+                st.delta_start
+            };
+            abs.push((
+                line,
+                start,
+                st.length,
+                legend.get(st.token_type as usize).copied().unwrap_or("?"),
+            ));
+            last_line = line;
+            last_start = start;
+        }
+
+        // Line 3 `FOCUS_FILTER_POLITICAL` → enum_member, NOT keyword.
+        assert!(
+            abs.iter().any(|&(l, _, len, tt)| l == 3
+                && tt == "enum_member"
+                && len == "FOCUS_FILTER_POLITICAL".len() as u32),
+            "search filter value must be enum_member: {:#?}",
+            abs
+        );
+        assert!(
+            !abs.iter().any(|&(l, _, _, tt)| l == 3 && tt == "keyword"),
+            "filter value must not render as keyword inside search_filters: {:#?}",
             abs
         );
     }

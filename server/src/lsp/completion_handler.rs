@@ -373,6 +373,50 @@ impl Backend {
             };
             let (ctx, scopes) = find_scope_context_at(&script, position, initial_scope, &sctx);
             current_scopes = scopes;
+
+            // Focus search filters: inside `search_filters = { ... }` offer
+            // the base-game filter set first (EnumMember, wiki notes as
+            // documentation), then any mod-defined filters discovered from
+            // GFX_FOCUS_FILTER_* sprites in scanner data. Additive — the
+            // generic trigger/effect list still follows.
+            if ctx
+                .as_deref()
+                .is_some_and(|k| k.eq_ignore_ascii_case("search_filters"))
+            {
+                let mut filter_items: Vec<CompletionItem> = Vec::new();
+                for f in crate::data::focus_filters::BASE_FOCUS_FILTERS {
+                    filter_items.push(CompletionItem {
+                        label: (*f).to_string(),
+                        kind: Some(CompletionItemKind::ENUM_MEMBER),
+                        detail: Some("Focus search filter".to_string()),
+                        sort_text: Some(format!("0_{f}")),
+                        ..Default::default()
+                    });
+                }
+                // Mod-defined filters: sprites named GFX_FOCUS_FILTER_*
+                for entry in self.scanner_data.sprites.iter() {
+                    let sprite = entry.key().as_ref();
+                    if let Some(filter_name) = sprite.strip_prefix("GFX_FOCUS_FILTER_") {
+                        let label = format!("FOCUS_FILTER_{filter_name}");
+                        if crate::data::focus_filters::is_base_filter(&label) {
+                            continue;
+                        }
+                        filter_items.push(CompletionItem {
+                            label,
+                            kind: Some(CompletionItemKind::ENUM_MEMBER),
+                            detail: Some("Mod-defined focus search filter".to_string()),
+                            documentation: Some(Documentation::String(format!(
+                                "Defined by sprite: {}",
+                                sprite
+                            ))),
+                            sort_text: Some(format!("0_FOCUS_FILTER_{filter_name}")),
+                            ..Default::default()
+                        });
+                    }
+                }
+                return Ok(Some(CompletionResponse::Array(filter_items)));
+            }
+
             if let Some(context_key) = ctx {
                 if context_key.to_ascii_lowercase().contains("color") {
                     let color_items = vec![

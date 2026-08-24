@@ -19,6 +19,7 @@ pub(crate) mod country_metadata;
 pub(crate) mod country_tags;
 pub(crate) mod decisions;
 pub(crate) mod events;
+pub(crate) mod focus_search_filters;
 pub(crate) mod gfx_textures;
 pub(crate) mod ideas;
 pub(crate) mod ideologies;
