@@ -147,28 +147,11 @@ async fn cli_validate(path: &str) {
     let (script, parse_errors) = crate::parser::parser::parse_script(&content);
     let source = &script.source;
 
-    // Determine initial scope from file path
-    let initial_scope = if path.contains("/common/abilities/") {
-        crate::scope::scope::Scope::Character
-    } else if path.contains("/common/decisions/") {
-        crate::scope::scope::Scope::Country
-    } else if path.contains("/common/aces/") {
-        crate::scope::scope::Scope::Ace
-    } else if path.contains("/common/ai_faction_theaters/")
-        || path.contains("/common/ai_focuses/")
-        || path.contains("/common/ai_navy/taskforce/")
-        || path.contains("/common/ai_equipment/")
-        || path.contains("/common/ai_strategy/")
-        || path.contains("/common/ai_strategy_plans/")
-        || path.contains("/common/ai_templates/")
-    {
-        // NOTE: No scanner or validation for these yet — just mapped to
-        // Country scope to avoid false positives.
-        // TODO: implement proper scanners for each ai_* directory
-        crate::scope::scope::Scope::Country
-    } else {
-        crate::scope::scope::Scope::Global
-    };
+    // Single source of truth for file-type scope inference — the same fn the
+    // validation walker, hover, and completion use, so CLI diagnostics can't
+    // diverge from editor behaviour (the hand-rolled copy this replaces had
+    // already drifted: no technology/technology_tags arms).
+    let initial_scope = crate::scope::scope::initial_scope_for_uri(path);
 
     // Build typed empty DashMaps for ValidationContext
     use crate::data::interner::InternedStr;
