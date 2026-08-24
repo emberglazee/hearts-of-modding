@@ -29349,6 +29349,291 @@
 			"stack_behaviour": "passthrough",
 			"block_type": "value_effect",
 			"version_added": ""
+		},
+		"focus": {
+			"name": "focus",
+			"description": "A national focus inside common/national_focus/*.txt focus_tree blocks. Grants its completion_reward after being picked and worked on for cost days-worth of political power.",
+			"param_container": true,
+			"parameters": {
+				"id": {
+					"type": "string",
+					"value_type": "string",
+					"description": "Unique identifier of the focus. Prefixed with the country tag by convention to avoid clashes between trees.",
+					"optional": false,
+					"repeated": false
+				},
+				"icon": {
+					"type": "string",
+					"value_type": "sprite",
+					"description": "The sprite used as the focus icon (GFX_ name from interface/*.gfx).",
+					"optional": true,
+					"repeated": false
+				},
+				"x": {
+					"type": "number",
+					"value_type": "int",
+					"description": "Horizontal grid position. One unit is 96 pixels by default; larger values move the focus right. Relative to relative_position_id when that is set, otherwise to the top-left of the tree.",
+					"optional": false,
+					"repeated": false
+				},
+				"y": {
+					"type": "number",
+					"value_type": "int",
+					"description": "Vertical grid position. One unit is 130 pixels by default; larger values move the focus down. Relative to relative_position_id when that is set, otherwise to the top-left of the tree.",
+					"optional": false,
+					"repeated": false
+				},
+				"relative_position_id": {
+					"type": "string",
+					"value_type": "focus",
+					"description": "Positions this focus relative to another focus in the same tree: x and y are added to that focus' resolved position (which may itself be relative). Preferred over absolute positions for branches — moving one focus moves its whole subtree. Must not recurse (self/cycle) or point outside this focus tree: the engine behaves unstably, potentially crashing.",
+					"optional": true,
+					"repeated": false
+				},
+				"cost": {
+					"type": "number",
+					"value_type": "int",
+					"description": "Focus completion cost in political power. 1 unit equals 7 days; the vanilla-standard value is 10 (= 70 days). Defaults to 10 if unset.",
+					"optional": true,
+					"repeated": false
+				},
+				"available_if_capitulated": {
+					"type": "boolean",
+					"value_type": "bool",
+					"description": "Allows the focus to be selected and completed while the country has capitulated. Defaults to no — a capitulated country can see the focus but cannot pick it. Vanilla typically sets this on branch-continuation focuses so a war loss cannot lock off the rest of the tree.",
+					"optional": true,
+					"repeated": false
+				},
+				"prerequisite": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Focus(es) that must be completed first. Multiple focus = X lines inside one prerequisite block are ORs; multiple prerequisite blocks are ANDs.",
+					"optional": true,
+					"repeated": true
+				},
+				"mutually_exclusive": {
+					"type": "block",
+					"value_type": "block",
+					"description": "A focus that can never be taken if this one is completed (and vice versa). Renders the red mutual-exclusion arrow in the tree view.",
+					"optional": true,
+					"repeated": true
+				},
+				"completion_reward": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Effects executed when the focus completes.",
+					"optional": true,
+					"repeated": false
+				},
+				"search_filters": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Bare FOCUS_FILTER_* identifiers shown in the focus-tree search menu. A custom filter needs a GFX_<filter-name> sprite and loc key with the exact filter name, or it will not render.",
+					"optional": true,
+					"repeated": false
+				}
+			},
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"pushes_scope": null,
+			"stack_behaviour": "passthrough",
+			"version_added": "1.0",
+			"examples": [
+				"focus = {\n\tid = TAG_my_focus\n\ticon = GFX_focus_TAG_my_focus\n\tx = 1\n\ty = 0\n\tcost = 10\n\tavailable_if_capitulated = no\n\tprerequisite = { focus = TAG_other_focus }\n\tcompletion_reward = { add_political_power = 100 }\n}"
+			],
+			"notes": "Positioning: x/y are grid units (96px / 130px by default), relative to relative_position_id when set. The engine behaves unstably on relative_position_id recursion (self-reference or cycles can crash the game); the referenced focus must be in the same tree. available_if_capitulated defaults to no."
+		},
+		"shared_focus": {
+			"name": "shared_focus",
+			"description": "Defines a focus outside any focus_tree block, imported into every tree listed via shared_focus = <id>. Same sub-structure as focus; positioning is per-tree via offset = { ... } blocks with trigger = { has_focus_tree = ... }.",
+			"param_container": true,
+			"parameters": {
+				"id": {
+					"type": "string",
+					"value_type": "string",
+					"description": "Unique identifier of the focus. Prefixed with the country tag by convention to avoid clashes between trees.",
+					"optional": false,
+					"repeated": false
+				},
+				"icon": {
+					"type": "string",
+					"value_type": "sprite",
+					"description": "The sprite used as the focus icon (GFX_ name from interface/*.gfx).",
+					"optional": true,
+					"repeated": false
+				},
+				"x": {
+					"type": "number",
+					"value_type": "int",
+					"description": "Horizontal grid position. One unit is 96 pixels by default; larger values move the focus right. Relative to relative_position_id when that is set, otherwise to the top-left of the tree.",
+					"optional": false,
+					"repeated": false
+				},
+				"y": {
+					"type": "number",
+					"value_type": "int",
+					"description": "Vertical grid position. One unit is 130 pixels by default; larger values move the focus down. Relative to relative_position_id when that is set, otherwise to the top-left of the tree.",
+					"optional": false,
+					"repeated": false
+				},
+				"relative_position_id": {
+					"type": "string",
+					"value_type": "focus",
+					"description": "Positions this focus relative to another focus in the same tree: x and y are added to that focus' resolved position (which may itself be relative). Preferred over absolute positions for branches — moving one focus moves its whole subtree. Must not recurse (self/cycle) or point outside this focus tree: the engine behaves unstably, potentially crashing.",
+					"optional": true,
+					"repeated": false
+				},
+				"cost": {
+					"type": "number",
+					"value_type": "int",
+					"description": "Focus completion cost in political power. 1 unit equals 7 days; the vanilla-standard value is 10 (= 70 days). Defaults to 10 if unset.",
+					"optional": true,
+					"repeated": false
+				},
+				"available_if_capitulated": {
+					"type": "boolean",
+					"value_type": "bool",
+					"description": "Allows the focus to be selected and completed while the country has capitulated. Defaults to no — a capitulated country can see the focus but cannot pick it. Vanilla typically sets this on branch-continuation focuses so a war loss cannot lock off the rest of the tree.",
+					"optional": true,
+					"repeated": false
+				},
+				"prerequisite": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Focus(es) that must be completed first. Multiple focus = X lines inside one prerequisite block are ORs; multiple prerequisite blocks are ANDs.",
+					"optional": true,
+					"repeated": true
+				},
+				"mutually_exclusive": {
+					"type": "block",
+					"value_type": "block",
+					"description": "A focus that can never be taken if this one is completed (and vice versa). Renders the red mutual-exclusion arrow in the tree view.",
+					"optional": true,
+					"repeated": true
+				},
+				"completion_reward": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Effects executed when the focus completes.",
+					"optional": true,
+					"repeated": false
+				},
+				"search_filters": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Bare FOCUS_FILTER_* identifiers shown in the focus-tree search menu. A custom filter needs a GFX_<filter-name> sprite and loc key with the exact filter name, or it will not render.",
+					"optional": true,
+					"repeated": false
+				}
+			},
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"pushes_scope": null,
+			"stack_behaviour": "passthrough",
+			"version_added": "1.0",
+			"notes": "Prerequisites on a shared focus must resolve inside EVERY importing tree or the focus silently vanishes there. Use local entry focuses or keep entry shared focuses prerequisite-free."
+		},
+		"joint_focus": {
+			"name": "joint_focus",
+			"description": "Defines a focus shared by all members of a faction (used for joint trees such as the Nordic Defense Cooperation). Same sub-structure as shared_focus.",
+			"param_container": true,
+			"parameters": {
+				"id": {
+					"type": "string",
+					"value_type": "string",
+					"description": "Unique identifier of the focus. Prefixed with the country tag by convention to avoid clashes between trees.",
+					"optional": false,
+					"repeated": false
+				},
+				"icon": {
+					"type": "string",
+					"value_type": "sprite",
+					"description": "The sprite used as the focus icon (GFX_ name from interface/*.gfx).",
+					"optional": true,
+					"repeated": false
+				},
+				"x": {
+					"type": "number",
+					"value_type": "int",
+					"description": "Horizontal grid position. One unit is 96 pixels by default; larger values move the focus right. Relative to relative_position_id when that is set, otherwise to the top-left of the tree.",
+					"optional": false,
+					"repeated": false
+				},
+				"y": {
+					"type": "number",
+					"value_type": "int",
+					"description": "Vertical grid position. One unit is 130 pixels by default; larger values move the focus down. Relative to relative_position_id when that is set, otherwise to the top-left of the tree.",
+					"optional": false,
+					"repeated": false
+				},
+				"relative_position_id": {
+					"type": "string",
+					"value_type": "focus",
+					"description": "Positions this focus relative to another focus in the same tree: x and y are added to that focus' resolved position (which may itself be relative). Preferred over absolute positions for branches — moving one focus moves its whole subtree. Must not recurse (self/cycle) or point outside this focus tree: the engine behaves unstably, potentially crashing.",
+					"optional": true,
+					"repeated": false
+				},
+				"cost": {
+					"type": "number",
+					"value_type": "int",
+					"description": "Focus completion cost in political power. 1 unit equals 7 days; the vanilla-standard value is 10 (= 70 days). Defaults to 10 if unset.",
+					"optional": true,
+					"repeated": false
+				},
+				"available_if_capitulated": {
+					"type": "boolean",
+					"value_type": "bool",
+					"description": "Allows the focus to be selected and completed while the country has capitulated. Defaults to no — a capitulated country can see the focus but cannot pick it. Vanilla typically sets this on branch-continuation focuses so a war loss cannot lock off the rest of the tree.",
+					"optional": true,
+					"repeated": false
+				},
+				"prerequisite": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Focus(es) that must be completed first. Multiple focus = X lines inside one prerequisite block are ORs; multiple prerequisite blocks are ANDs.",
+					"optional": true,
+					"repeated": true
+				},
+				"mutually_exclusive": {
+					"type": "block",
+					"value_type": "block",
+					"description": "A focus that can never be taken if this one is completed (and vice versa). Renders the red mutual-exclusion arrow in the tree view.",
+					"optional": true,
+					"repeated": true
+				},
+				"completion_reward": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Effects executed when the focus completes.",
+					"optional": true,
+					"repeated": false
+				},
+				"search_filters": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Bare FOCUS_FILTER_* identifiers shown in the focus-tree search menu. A custom filter needs a GFX_<filter-name> sprite and loc key with the exact filter name, or it will not render.",
+					"optional": true,
+					"repeated": false
+				}
+			},
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"pushes_scope": null,
+			"stack_behaviour": "passthrough",
+			"version_added": "1.0",
+			"notes": "Prerequisites on a shared focus must resolve inside EVERY importing tree or the focus silently vanishes there. Use local entry focuses or keep entry shared focuses prerequisite-free."
 		}
 	},
 	"modifiers": {

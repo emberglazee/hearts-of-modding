@@ -723,3 +723,44 @@ fn test_delete_scrubs_tech_dep_graph_with_backslash_path_spelling() {
         "dep graph must be scrubbed on deletion regardless of path spelling"
     );
 }
+
+/// The two focus positioning/availability keys most often misused are now
+/// documented in the data JSON: `available_if_capitulated` (defaults to no;
+/// a capitulated country can see but not pick the focus) and
+/// `relative_position_id` (relative grid positioning; recursion crashes the
+/// game). Documented on focus / shared_focus / joint_focus alike.
+#[test]
+fn test_data_json_documents_focus_positioning_and_capitulation_keys() {
+    use crate::data::hoi4_data::{lookup_entity, lookup_parameter};
+
+    for entity_key in ["focus", "shared_focus", "joint_focus"] {
+        let entity = lookup_entity(entity_key)
+            .unwrap_or_else(|| panic!("{entity_key} must be a documented entity"));
+        assert!(
+            entity.param_container,
+            "{entity_key} must anchor parameter resolution for its sub-blocks"
+        );
+
+        let cap = lookup_parameter(entity_key, "available_if_capitulated")
+            .unwrap_or_else(|| panic!("{entity_key}.available_if_capitulated must be documented"));
+        assert_eq!(cap.param_type, "boolean");
+        assert!(cap.optional);
+        assert!(cap.description.contains("capitulated"));
+
+        let rel = lookup_parameter(entity_key, "relative_position_id")
+            .unwrap_or_else(|| panic!("{entity_key}.relative_position_id must be documented"));
+        assert_eq!(rel.value_type, "focus");
+        assert!(
+            rel.description.contains("recurs"),
+            "description must warn about the recursion crash hazard"
+        );
+    }
+}
+
+/// Parameter resolution is case-insensitive end to end.
+#[test]
+fn test_focus_param_lookup_case_insensitive() {
+    use crate::data::hoi4_data::lookup_parameter;
+    assert!(lookup_parameter("FOCUS", "AVAILABLE_IF_CAPITULATED").is_some());
+    assert!(lookup_parameter("Shared_Focus", "Relative_Position_ID").is_some());
+}
