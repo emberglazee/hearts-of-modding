@@ -2,7 +2,7 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
-## [v0.27.0] - 2026-08-22
+## [v0.27.0] - 2026-08-24
 
 ### ✨ Added
 
@@ -20,7 +20,7 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### 🧹 Internal
 
-> new segment, yippee
+> new changelog segment, yippee
 
 - **Fixed a massive workspace validation bottleneck.** The duplicate-key check rebuilt a whole-document line index for every block it inspected; it now reuses the one built per file. Workspace validation is now several times faster.
 
@@ -28,7 +28,7 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Release descriptions now include the last 3 patch versions** instead of just the current patch + its parent minor, so upgrading from an older patch shows the intermediate fixes.
 
-- Extension: Bump dev dependency ESLint, v10.8.1 -> v10.9.0.
+- **Extension: Bump dev dependency ESLint (v10.8.1 -> v10.9.0).**
 
 ## [v0.26.2] - 2026-08-13
 
