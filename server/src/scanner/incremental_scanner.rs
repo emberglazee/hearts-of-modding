@@ -793,6 +793,21 @@ fn update_localization(scanner_data: &ScannerData, path_str: &str, content: &str
         parsed
     );
 
+    // Keep the BOM-issue set in sync with the on-disk file. The workspace
+    // scan seeds it from raw bytes; a save is the moment the disk state can
+    // change, so re-probe here. Exactly ONE BOM must be present (zero or
+    // 2+ are both flagged). The editor buffer cannot answer this (VS Code
+    // strips a leading BOM out of the text it syncs), hence the disk read.
+    let ik = index_key(path_str);
+    if std::fs::read(path_str)
+        .map(|bytes| !crate::data::hoi4_data::has_exactly_one_bom(&bytes))
+        .unwrap_or(false)
+    {
+        scanner_data.bom_issue_loc_files.insert(ik);
+    } else {
+        scanner_data.bom_issue_loc_files.remove(&ik);
+    }
+
     // Rebuild duplicated_loc_keys from scratch — check ALL layers
     let mut seen: HashSet<(InternedStr, InternedStr)> = HashSet::new();
     let mut dups: HashSet<(InternedStr, InternedStr)> = HashSet::new();

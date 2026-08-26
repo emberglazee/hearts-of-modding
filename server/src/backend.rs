@@ -3055,6 +3055,31 @@ impl ValidationCtx {
         let dups = &self.scanner_data.duplicated_loc_keys;
         let game_loc_keys = &self.scanner_data.game_loc_keys;
 
+        // BOM problems (zero or multiple UTF-8 BOMs) are only detectable on
+        // raw disk bytes — the scan/did_save paths maintain the set. Emit one
+        // file-level warning; the editor cannot show where a second BOM ends
+        // because VS Code hides it, so line 0 col 0 is the anchor.
+        let path_norm = crate::scanner::incremental_scanner::index_key(&path_str);
+        if self.scanner_data.bom_issue_loc_files.contains(&path_norm) {
+            diagnostics.push(Diagnostic {
+                range: tower_lsp_server::ls_types::Range {
+                    start: tower_lsp_server::ls_types::Position { line: 0, character: 0 },
+                    end: tower_lsp_server::ls_types::Position { line: 0, character: 1 },
+                },
+                severity: Some(DiagnosticSeverity::ERROR),
+                message: "Localization file must start with EXACTLY ONE UTF-8 BOM. \
+                          The on-disk file has none (game may not load these strings) \
+                          or has several (stray invisible characters corrupt the language header). \
+                          Re-save with encoding 'UTF-8 with BOM' after removing any extra BOM bytes."
+                    .to_string(),
+                code: Some(NumberOrString::String(
+                    crate::validation::advanced_validation::LOC_BOM_ISSUE.to_string(),
+                )),
+                source: Some("Hearts of Modding".to_string()),
+                ..Default::default()
+            });
+        }
+
         // Add structural diagnostics
         // (d is a &LocDiagnostic from the shared cache — clone the owned fields)
         for d in loc_diagnostics_structural {

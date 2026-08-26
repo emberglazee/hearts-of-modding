@@ -88,6 +88,15 @@ pub const DOUBLE_ASSIGNMENT: &str = "HOM6003";
 /// surfaces a specific ERROR telling the modder to write `0.5`.
 pub const MALFORMED_LEADING_DOT_NUMBER: &str = "HOM6004";
 
+/// Localization file whose on-disk bytes do not start with EXACTLY ONE UTF-8
+/// BOM — either none (the game may fail to load the file's strings) or two or
+/// more (LLM-generated files routinely double/triple it; stray U+FEFFs corrupt
+/// the language header). ERROR (not a warning): the failure is silent, the
+/// cause invisible in editors (VS Code strips/hides BOM bytes), new modders
+/// hit it constantly, and the fix is simply re-saving with encoding
+/// "UTF-8 with BOM".
+pub const LOC_BOM_ISSUE: &str = "HOM6005";
+
 #[derive(Debug, Clone)]
 /// Kept for public API compatibility; no longer directly constructed by validation rules.
 #[allow(dead_code)]

@@ -1,4 +1,5 @@
 use crate::Backend;
+use crate::data::hoi4_data::has_exactly_one_bom;
 use crate::data::interner::InternedStr;
 use crate::data::layered_value::LayeredValue;
 use crate::parser::ast;
@@ -827,103 +828,133 @@ impl Backend {
         let filter = self.get_sync_filter();
         let roots_owned = roots.to_vec();
 
-        let (per_root_locs, dups, game_keys, logs) = tokio::task::spawn_blocking(move || {
-            let mut per_root_locs: Vec<HashMap<InternedStr, loc_parser::LocEntry>> = Vec::new();
-            let mut dups = HashSet::new();
-            let mut game_keys = HashSet::new();
-            let mut seen_locs_by_lang: HashSet<(String, InternedStr)> = HashSet::new();
-            let mut logs = Vec::new();
-            let has_game_root = roots_owned.len() > 1;
+        let (per_root_locs, dups, game_keys, bom_issue_files, logs) =
+            tokio::task::spawn_blocking(move || {
+                let mut per_root_locs: Vec<HashMap<InternedStr, loc_parser::LocEntry>> = Vec::new();
+                let mut dups = HashSet::new();
+                let mut game_keys = HashSet::new();
+                let mut seen_locs_by_lang: HashSet<(String, InternedStr)> = HashSet::new();
+                let mut logs = Vec::new();
+                let mut bom_issue_files: HashSet<String> = HashSet::new();
+                let has_game_root = roots_owned.len() > 1;
 
-            for (root_idx, root) in roots_owned.iter().enumerate() {
-                let is_game_root = has_game_root && root_idx == 0;
-                let loc_dir = root.join("localisation");
-                if !loc_dir.exists() {
-                    per_root_locs.push(HashMap::new());
-                    continue;
-                }
-
-                let mut files_to_scan: Vec<_> =
-                    crate::utils::fs_util::collect_files(&loc_dir, &["yml"], &filter, false)
-                        .into_iter()
-                        .filter(|p| p.to_string_lossy().to_ascii_lowercase().contains("english"))
-                        .collect();
-
-                files_to_scan.sort_by(|a, b| {
-                    let a_is_replace = a.to_string_lossy().contains("replace");
-                    let b_is_replace = b.to_string_lossy().contains("replace");
-                    match (a_is_replace, b_is_replace) {
-                        (true, false) => std::cmp::Ordering::Greater,
-                        (false, true) => std::cmp::Ordering::Less,
-                        _ => a.cmp(b),
+                for (root_idx, root) in roots_owned.iter().enumerate() {
+                    let is_game_root = has_game_root && root_idx == 0;
+                    let loc_dir = root.join("localisation");
+                    if !loc_dir.exists() {
+                        per_root_locs.push(HashMap::new());
+                        continue;
                     }
-                });
 
-                let mut root_locs = HashMap::new();
-                let mut root_file_count = 0u32;
-                let mut root_key_count: usize = 0;
-                for path in files_to_scan {
-                    match std::fs::read_to_string(&path) {
-                        Ok(content) => {
-                            let path_str = path.to_string_lossy().to_string();
-                            let (parsed, _, doc_lang) =
-                                loc_parser::parse_loc_file(&content, &path_str);
-                            let lang_str = doc_lang.unwrap_or_else(|| "unknown".to_string());
+                    let mut files_to_scan: Vec<_> =
+                        crate::utils::fs_util::collect_files(&loc_dir, &["yml"], &filter, false)
+                            .into_iter()
+                            .filter(|p| {
+                                p.to_string_lossy().to_ascii_lowercase().contains("english")
+                            })
+                            .collect();
 
-                            root_file_count += 1;
-                            root_key_count += parsed.len();
+                    files_to_scan.sort_by(|a, b| {
+                        let a_is_replace = a.to_string_lossy().contains("replace");
+                        let b_is_replace = b.to_string_lossy().contains("replace");
+                        match (a_is_replace, b_is_replace) {
+                            (true, false) => std::cmp::Ordering::Greater,
+                            (false, true) => std::cmp::Ordering::Less,
+                            _ => a.cmp(b),
+                        }
+                    });
 
-                            if parsed.is_empty() {
+                    let mut root_locs = HashMap::new();
+                    let mut root_file_count = 0u32;
+                    let mut root_key_count: usize = 0;
+                    for path in files_to_scan {
+                        // Raw-byte BOM probe BEFORE read_to_string: BOM problems are
+                        // invisible once decoded to a String (a leading U+FEFF is
+                        // stripped by the parser, extra ones look like ordinary
+                        // text), so they must be detected on bytes. Exactly ONE
+                        // UTF-8 BOM is correct; zero means vanilla-unloadable
+                        // headers, two or more (LLM-generated files routinely
+                        // double or triple it) put stray U+FEFF characters on
+                        // line 1 that corrupt the language header.
+                        //
+                        // Missing file / permission error → treat as no finding;
+                        // read_to_string below reports the real problem.
+                        match std::fs::read(&path) {
+                            Ok(bytes) if !has_exactly_one_bom(&bytes) => {
+                                bom_issue_files.insert(path.to_string_lossy().to_string());
+                            }
+                            _ => {}
+                        }
+                        match std::fs::read_to_string(&path) {
+                            Ok(content) => {
+                                let path_str = path.to_string_lossy().to_string();
+                                let (parsed, _, doc_lang) =
+                                    loc_parser::parse_loc_file(&content, &path_str);
+                                let lang_str = doc_lang.unwrap_or_else(|| "unknown".to_string());
+
+                                root_file_count += 1;
+                                root_key_count += parsed.len();
+
+                                if parsed.is_empty() {
+                                    logs.push((
+                                        MessageType::WARNING,
+                                        format!("No keys found in localization file: {:?}", path),
+                                    ));
+                                }
+
+                                for (key, entry) in parsed {
+                                    let lang_key_pair = (lang_str.clone(), key.clone());
+                                    if is_game_root {
+                                        game_keys.insert(lang_key_pair.clone());
+                                    }
+                                    if seen_locs_by_lang.contains(&lang_key_pair) {
+                                        dups.insert(lang_key_pair.clone());
+                                    } else {
+                                        seen_locs_by_lang.insert(lang_key_pair);
+                                    }
+                                    root_locs.insert(key, entry);
+                                }
+                            }
+                            Err(e) => {
                                 logs.push((
-                                    MessageType::WARNING,
-                                    format!("No keys found in localization file: {:?}", path),
+                                    MessageType::ERROR,
+                                    format!("Failed to read localization file {:?}: {}", path, e),
                                 ));
                             }
-
-                            for (key, entry) in parsed {
-                                let lang_key_pair = (lang_str.clone(), key.clone());
-                                if is_game_root {
-                                    game_keys.insert(lang_key_pair.clone());
-                                }
-                                if seen_locs_by_lang.contains(&lang_key_pair) {
-                                    dups.insert(lang_key_pair.clone());
-                                } else {
-                                    seen_locs_by_lang.insert(lang_key_pair);
-                                }
-                                root_locs.insert(key, entry);
-                            }
-                        }
-                        Err(e) => {
-                            logs.push((
-                                MessageType::ERROR,
-                                format!("Failed to read localization file {:?}: {}", path, e),
-                            ));
                         }
                     }
+                    if root_file_count > 0 {
+                        let root_label = if is_game_root {
+                            "game path"
+                        } else {
+                            "workspace root"
+                        };
+                        logs.push((
+                            MessageType::INFO,
+                            format!(
+                                "Loaded {} keys from {} files ({})",
+                                root_key_count, root_file_count, root_label,
+                            ),
+                        ));
+                    }
+                    per_root_locs.push(root_locs);
                 }
-                if root_file_count > 0 {
-                    let root_label = if is_game_root {
-                        "game path"
-                    } else {
-                        "workspace root"
-                    };
-                    logs.push((
-                        MessageType::INFO,
-                        format!(
-                            "Loaded {} keys from {} files ({})",
-                            root_key_count, root_file_count, root_label,
-                        ),
-                    ));
-                }
-                per_root_locs.push(root_locs);
-            }
-            (per_root_locs, dups, game_keys, logs)
-        })
-        .await
-        .unwrap();
+                (per_root_locs, dups, game_keys, bom_issue_files, logs)
+            })
+            .await
+            .unwrap();
 
         for (level, msg) in logs {
             self.client.log_message(level, msg).await;
+        }
+
+        // Publish the BOM-issue set wholesale: the scan is the single writer
+        // and replaces the previous generation. Files fixed on disk drop out
+        // here; the incremental did_save path re-checks them if a fix
+        // regresses.
+        self.scanner_data.bom_issue_loc_files.clear();
+        for p in bom_issue_files {
+            self.scanner_data.bom_issue_loc_files.insert(p.into());
         }
 
         self.scanner_data.duplicated_loc_keys.clear();

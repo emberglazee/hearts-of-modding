@@ -370,6 +370,20 @@ pub fn is_transparent_block(key: &str) -> bool {
         .any(|t| t.eq_ignore_ascii_case(key))
 }
 
+/// UTF-8 BOM as raw bytes.
+pub const UTF8_BOM: [u8; 3] = [0xEF, 0xBB, 0xBF];
+
+/// True when `bytes` starts with EXACTLY ONE UTF-8 BOM — the only correct
+/// form for HOI4 localization files (all 2073 vanilla files carry precisely
+/// one). Zero BOMs means the game may not load the file's strings; two or
+/// more put stray U+FEFF characters after the header position that corrupt
+/// line 1. Must be checked on RAW bytes: once decoded to a String, a leading
+/// BOM is stripped by parsers/editors and extra ones are zero-width, so the
+/// problem is invisible in any text form.
+pub fn has_exactly_one_bom(bytes: &[u8]) -> bool {
+    bytes.starts_with(&UTF8_BOM) && !bytes[3..].starts_with(&UTF8_BOM)
+}
+
 /// Get the V2 data version
 #[allow(dead_code)]
 pub fn get_version() -> u32 {

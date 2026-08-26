@@ -690,6 +690,25 @@ impl LanguageServer for Backend {
                 .to_string_lossy()
                 .to_string();
             let text_for_parse = text.clone();
+            // BOM probe on did_open (raw disk bytes): without this, a file
+            // opened before the workspace scan finishes would get its first
+            // server publication from an unseeded bom_issue_loc_files set —
+            // the client-side checker defers to us after ANY publication, so
+            // this probe must run BEFORE that first publish to keep the
+            // "server speaks → server owns" agreement sound.
+            let path_clone = path.clone();
+            let has_bom_issue = tokio::task::spawn_blocking(move || {
+                std::fs::read(&path_clone)
+                    .map(|bytes| !crate::data::hoi4_data::has_exactly_one_bom(&bytes))
+                    .unwrap_or(false)
+            })
+            .await
+            .unwrap_or(false);
+            if has_bom_issue {
+                self.scanner_data
+                    .bom_issue_loc_files
+                    .insert(crate::scanner::incremental_scanner::index_key(&path));
+            }
             let result = tokio::task::spawn_blocking(move || {
                 crate::parser::loc_parser::parse_loc_file(&text_for_parse, &path)
             })

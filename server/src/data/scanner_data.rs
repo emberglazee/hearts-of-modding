@@ -201,6 +201,15 @@ pub(crate) struct ScannerData {
     pub duplicated_loc_keys: DashSet<(InternedStr, InternedStr)>,
     pub game_loc_keys: DashSet<(InternedStr, InternedStr)>,
     pub workspace_files: DashSet<InternedStr>,
+    /// Localization files whose ON-DISK bytes do not start with EXACTLY ONE
+    /// UTF-8 BOM (`EF BB BF`): no BOM at all, or two-plus BOMs (LLM-generated
+    /// files routinely double or triple it). Both are invisible in editors —
+    /// VS Code strips a leading BOM from the buffer, and extra BOMs decode to
+    /// zero-width characters — but vanilla requires exactly one (2073/2073
+    /// vanilla loc files carry precisely one), and stray U+FEFFs corrupt the
+    /// language header on line 1. Populated by the workspace scan reading raw
+    /// bytes; consulted when publishing diagnostics for a `.yml` document.
+    pub bom_issue_loc_files: DashSet<InternedStr>,
 
     // ── ArcSwap registries (written once at startup, rarely mutated) ──
     defines_field: Arc<ArcSwap<defines_parser::GameDefines>>,
@@ -316,6 +325,7 @@ impl ScannerData {
             continents_file_index: DashMap::new(),
             adjacency_rules_file_index: DashMap::new(),
             duplicated_loc_keys: DashSet::new(),
+            bom_issue_loc_files: DashSet::new(),
             game_loc_keys: DashSet::new(),
             workspace_files: DashSet::new(),
             defines_field: Arc::new(ArcSwap::from_pointee(defines_parser::GameDefines::default())),

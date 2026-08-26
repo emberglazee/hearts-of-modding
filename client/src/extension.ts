@@ -21,12 +21,14 @@ import {
 
 import { LocColorDecorator } from './locColorDecorator'
 import { LogPanelProvider } from './logPanel'
+import { BomChecker } from './bomChecker'
 
 let client: LanguageClient
 let outputChannel: OutputChannel
 let logPanelProvider: LogPanelProvider
 let memoryInterval: NodeJS.Timeout | undefined
 let locColorDecorator: LocColorDecorator
+let bomChecker: BomChecker | undefined
 
 // Owned by the extension, NOT by the language client. `synchronize.fileEvents`
 // routes through FileSystemWatcherFeature.registerRaw(), which stores only the
@@ -395,6 +397,14 @@ export async function activate(context: ExtensionContext) {
     locColorDecorator = new LocColorDecorator()
     locColorDecorator.activate()
     context.subscriptions.push(locColorDecorator)
+
+    // ── BOM checker for localization files (live, client-side) ──
+    // Reads raw disk bytes — the editor buffer cannot answer BOM questions
+    // (VS Code strips a leading BOM from synced text). Complements the
+    // server-side HOM6005 workspace-scan check with live per-save coverage.
+    bomChecker = new BomChecker()
+    bomChecker.activate()
+    context.subscriptions.push(bomChecker)
 
     // ── File watchers fed to the LSP via `synchronize.fileEvents` ──
     // Created here rather than in startServer() so a toggle cycle reuses them
@@ -779,6 +789,19 @@ async function startServerInner(context: ExtensionContext, statusBarItem: Status
             // every start() and disposes only those listeners on stop().
             fileEvents: fileEventWatchers ?? []
         },
+        // ── BOM diagnostic agreement (see bomChecker.ts) ──
+        // handleDiagnostics is the SANCTIONED observation point for
+        // textDocument/publishDiagnostics. Do NOT use client.onNotification(
+        // 'textDocument/publishDiagnostics', ...) for this: vscode-languageclient
+        // allows ONE handler per method, so that call REPLACES the library's
+        // internal handler (client.js:863) and diagnostics silently stop
+        // rendering — the server publishes, VS Code shows nothing.
+        middleware: {
+            handleDiagnostics(uri, diagnostics, next) {
+                bomChecker?.noteServerPublished(uri)
+                next(uri, diagnostics)
+            }
+        },
         outputChannel: outputChannel,
         initializationOptions: {
             gamePath: workspace.getConfiguration('hoi4').get('gamePath'),
@@ -878,6 +901,13 @@ async function startServerInner(context: ExtensionContext, statusBarItem: Status
             outputChannel.appendLine(`HoM color decorator: loaded ${Object.keys(colorMap).length} color codes from LSP`)
         }
     }))
+
+    // ── BOM diagnostic agreement ──
+    // Wired via clientOptions.middleware.handleDiagnostics in startServerInner
+    // (the sanctioned publishDiagnostics observation point). Do NOT register a
+    // client.onNotification('textDocument/publishDiagnostics', ...) here — it
+    // replaces the language client's internal handler and ALL diagnostics
+    // stop rendering.
 
     const updateMemoryUsage = async () => {
         const enabled = workspace.getConfiguration('hoi4.showMemoryUsage').get('enabled')
