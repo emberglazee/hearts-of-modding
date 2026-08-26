@@ -12,6 +12,10 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Focus search filters are now understood, validated, auto-completed, and semantically highlighted.**
 
+- **Toggle Scope Validation command.** (again)
+
+  > accidentally obliterated it sometime in the past, oops
+
 ### 🧹 Internal
 
 - **Refactored the LSP test suite** for less code bloat and easier implementation for new future functionality.

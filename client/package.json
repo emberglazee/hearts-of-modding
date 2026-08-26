@@ -140,6 +140,11 @@
 				"category": "Hearts of Modding"
 			},
 			{
+				"command": "hearts-of-modding.toggleScopeValidation",
+				"title": "Toggle Scope Validation",
+				"category": "Hearts of Modding"
+			},
+			{
 				"command": "hearts-of-modding.showMemoryUsage",
 				"title": "Show Memory Usage",
 				"category": "Hearts of Modding"

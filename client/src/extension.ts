@@ -528,6 +528,13 @@ export async function activate(context: ExtensionContext) {
         window.showInformationMessage(`HOI4 Styling Checks: ${!currentState ? 'Enabled' : 'Disabled'}`)
     }))
 
+    context.subscriptions.push(commands.registerCommand('hearts-of-modding.toggleScopeValidation', async () => {
+        const config = workspace.getConfiguration('hoi4.validator')
+        const currentState = config.get('scopeValidationEnabled')
+        await config.update('scopeValidationEnabled', !currentState, ConfigurationTarget.Workspace)
+        window.showInformationMessage(`Scope Validation: ${!currentState ? 'Enabled' : 'Disabled'}`)
+    }))
+
     // ── LSP auto-start (or prompt if disabled) ──
     const lspConfig = workspace.getConfiguration('hoi4.lsp')
     const lspEnabled = lspConfig.get<boolean>('enabled', true)
