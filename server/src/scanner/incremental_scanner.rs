@@ -895,12 +895,21 @@ fn update_scripted(scanner_data: &ScannerData, kind: &str, path_str: &str, scrip
     for entry_ast in script.entries.iter() {
         if let ast::Entry::Assignment(ass) = entry_ast {
             let name = ass.key_text(&script.source).to_string();
+            // Precompute the AI-invisibility proof (HOM3017 support): only
+            // meaningful for triggers, but harmless to compute for effects.
+            let guarantees_ai_invisible = match (&ass.value.value, kind) {
+                (ast::Value::Block(body), "triggers") => {
+                    scripted_scanner::body_guarantees_ai_invisible(body, &script.source)
+                }
+                _ => false,
+            };
             new_entries.insert(
                 name.clone(),
                 scripted_scanner::ScriptedEntity {
                     name,
                     path: path_str.into(),
                     range: ass.key_range.clone(),
+                    guarantees_ai_invisible,
                 },
             );
         }

@@ -948,3 +948,411 @@ country_event = { id = target_event.1 }
         "dep graph must be scrubbed on deletion regardless of path spelling"
     );
 }
+
+// ---------------------------------------------------------------------------
+// HOM3017: AI-invisible option triggers (is_ai = no / scripted triggers)
+// ---------------------------------------------------------------------------
+
+/// Wiki ground truth (event-modding.md): an option whose `trigger` is false
+/// when the event fires "will not appear" — the AI cannot pick it — and a
+/// missing `ai_chance` defaults to weight 1 of the proportional distribution.
+/// So when every ai_chance-less option provably excludes the AI, the single
+/// remaining visible option gets 100% and no diagnostic is warranted.
+///
+/// Direct `is_ai = no` in the option trigger → suppressed.
+#[test]
+fn hom3017_suppressed_for_direct_is_ai_no_trigger() {
+    let input = r#"
+country_event = {
+    id = test.1
+    title = TEST_1_T
+    desc = TEST_1_D
+    is_triggered_only = yes
+    option = {
+        name = TEST_1_A
+        ai_chance = { factor = 100 }
+    }
+    option = {
+        name = HoM.debug
+        trigger = { is_ai = no }
+    }
+}
+"#;
+    let diags = run_event_visitor(input, "file:///events/aaa_test.txt", &[]);
+    assert!(
+        ai_chance_diags(&diags).is_empty(),
+        "AI-invisible debug option must not require ai_chance: {:?}",
+        diags
+    );
+}
+
+/// `NOT = { is_ai = yes }` is the same statement → suppressed.
+#[test]
+fn hom3017_suppressed_for_not_is_ai_yes() {
+    let input = r#"
+country_event = {
+    id = test.2
+    title = TEST_2_T
+    desc = TEST_2_D
+    is_triggered_only = yes
+    option = {
+        name = TEST_2_A
+        ai_chance = { factor = 100 }
+    }
+    option = {
+        name = HoM.debug
+        trigger = { NOT = { is_ai = yes } }
+    }
+}
+"#;
+    let diags = run_event_visitor(input, "file:///events/aaa_test.txt", &[]);
+    assert!(ai_chance_diags(&diags).is_empty(), "{:?}", diags);
+}
+
+/// A scripted trigger whose body proves AI-invisibility (HoM's `dbug_mode`
+/// pattern: AND of is_debug + is_ai = no) resolves through the scanner map
+/// and suppresses the diagnostic.
+#[test]
+fn hom3017_suppressed_via_scripted_trigger_proof() {
+    // Seed a real scripted trigger through the incremental-scanner path.
+    let scripted = r#"
+dbug_mode = {
+	AND = {
+		is_debug = yes
+		is_ai = no
+	}
+}
+harmless_check = {
+	has_war = yes
+}
+"#;
+    let ctx_builder = TestCtx::new()
+        .with_file("/mod/common/scripted_triggers/hom.txt", scripted)
+        .with_event_namespaces(&[("test", "/events/aaa_test.txt")]);
+
+    let input = r#"
+country_event = {
+    id = test.3
+    title = TEST_3_T
+    desc = TEST_3_D
+    is_triggered_only = yes
+    option = {
+        name = TEST_3_A
+        ai_chance = { factor = 100 }
+    }
+    option = {
+        name = HoM.debug
+        trigger = { dbug_mode = yes }
+    }
+}
+"#;
+    let rules: Vec<Box<dyn ValidationRule>> = vec![Box::new(EventValidationRule)];
+    let visitors: Vec<Box<dyn AstVisitor>> = vec![EventValidationRule::visitor()];
+    let diags = ctx_builder.walk(
+        input,
+        "file:///events/aaa_test.txt",
+        Scope::Country,
+        rules,
+        visitors,
+    );
+    assert!(
+        ai_chance_diags(&diags).is_empty(),
+        "scripted-trigger proof (dbug_mode) must suppress HOM3017: {:?}",
+        diags
+    );
+
+    // Control: a scripted trigger WITHOUT an AI-invisibility proof must NOT
+    // suppress — the diagnostic still fires.
+    let input_control = r#"
+country_event = {
+    id = test.4
+    title = TEST_4_T
+    desc = TEST_4_D
+    is_triggered_only = yes
+    option = {
+        name = TEST_4_A
+        ai_chance = { factor = 100 }
+    }
+    option = {
+        name = HoM.debug
+        trigger = { harmless_check = yes }
+    }
+}
+"#;
+    let rules: Vec<Box<dyn ValidationRule>> = vec![Box::new(EventValidationRule)];
+    let visitors: Vec<Box<dyn AstVisitor>> = vec![EventValidationRule::visitor()];
+    let diags = ctx_builder.walk(
+        input_control,
+        "file:///events/aaa_test.txt",
+        Scope::Country,
+        rules,
+        visitors,
+    );
+    assert_eq!(
+        ai_chance_diags(&diags).len(),
+        1,
+        "non-proving scripted trigger must still flag HOM3017: {:?}",
+        diags
+    );
+}
+
+/// OR blocks never prove invisibility (one true arm keeps the option visible
+/// to the AI) — the diagnostic stays.
+#[test]
+fn hom3017_not_suppressed_by_or_containing_is_ai_no() {
+    let input = r#"
+country_event = {
+    id = test.5
+    title = TEST_5_T
+    desc = TEST_5_D
+    is_triggered_only = yes
+    option = {
+        name = TEST_5_A
+        ai_chance = { factor = 100 }
+    }
+    option = {
+        name = TEST_5_B
+        trigger = { OR = { is_ai = no has_country_flag = maybe } }
+    }
+}
+"#;
+    let diags = run_event_visitor(input, "file:///events/aaa_test.txt", &[]);
+    assert_eq!(
+        ai_chance_diags(&diags).len(),
+        1,
+        "OR arm proving AI-invisibility is NOT a proof for the whole OR: {:?}",
+        diags
+    );
+}
+
+/// Two AI-VISIBLE options both missing ai_chance: the weighted-choice
+/// condition HOM3017 exists for — flagged.
+#[test]
+fn hom3017_still_flags_when_two_visible_options_lack_ai_chance() {
+    let input = r#"
+country_event = {
+    id = test.6
+    title = TEST_6_T
+    desc = TEST_6_D
+    is_triggered_only = yes
+    option = {
+        name = TEST_6_A
+    }
+    option = {
+        name = TEST_6_B
+        trigger = { always = yes }
+    }
+}
+"#;
+    let diags = run_event_visitor(input, "file:///events/aaa_test.txt", &[]);
+    assert_eq!(
+        ai_chance_diags(&diags).len(),
+        1,
+        "two visible options with no weights is exactly what HOM3017 exists for: {:?}",
+        diags
+    );
+}
+
+/// One debug option + one visible option WITH ai_chance + one visible option
+/// WITHOUT: two visible options, one missing → still flagged (the missing one
+/// dilutes the weighted choice).
+#[test]
+fn hom3017_flags_visible_missing_among_two_visible() {
+    let input = r#"
+country_event = {
+    id = test.7
+    title = TEST_7_T
+    desc = TEST_7_D
+    is_triggered_only = yes
+    option = {
+        name = TEST_7_A
+        ai_chance = { factor = 100 }
+    }
+    option = {
+        name = TEST_7_B
+        trigger = { always = yes }
+    }
+    option = {
+        name = HoM.debug
+        trigger = { is_ai = no }
+    }
+}
+"#;
+    let diags = run_event_visitor(input, "file:///events/aaa_test.txt", &[]);
+    assert_eq!(ai_chance_diags(&diags).len(), 1, "{:?}", diags);
+}
+
+/// EXACT reproduction of Hearts-Of-Minecraft IMP_Events.txt imp.1 + HoM's real
+/// dbug_mode scripted trigger, seeded through the same scan path production
+/// uses (with_file -> update_scripted).
+#[test]
+fn hom3017_real_world_imp1_dbug_mode() {
+    let scripted = "dbug_mode = {\n\tAND = {\n\t\tis_debug = yes\n\t\tis_ai = no\n\t}\n}\n";
+    let event_file = "country_event = {\t#The Imperian Situation\n\tid = imp.1\n\ttitle = imp.1.t\n\tdesc = imp.1.d\n\tpicture = GFX_long_live_the_empire\n\tis_triggered_only = yes\n\timmediate = { log = \"[GetDateText]: [Root.GetName]: event imp.1\" }\n\toption = {\n\t\tname = imp.1.a\n\t\tcustom_effect_tooltip = IMP_warn_tt\n\t\tadd_political_power = 120\n\t}\n\toption = {\n\t\tname = HoM.debug\n\t\ttrigger = { dbug_mode = yes }\n\t}\n}\n";
+
+    let ctx_builder = TestCtx::new()
+        .with_file(
+            "/mod/common/scripted_triggers/HoM_scripted_triggers.txt",
+            scripted,
+        )
+        .with_event_namespaces(&[("imp", "/events/IMP_Events.txt")]);
+
+    // Sanity: the scanner must have computed the proof for dbug_mode.
+    let entity = ctx_builder
+        .scanner_data()
+        .scripted_triggers
+        .get("dbug_mode");
+    assert!(
+        entity
+            .map(|e| e.resolve().guarantees_ai_invisible)
+            .unwrap_or(false),
+        "dbug_mode must be precomputed as AI-invisible"
+    );
+
+    let rules: Vec<Box<dyn ValidationRule>> = vec![Box::new(EventValidationRule)];
+    let visitors: Vec<Box<dyn AstVisitor>> = vec![EventValidationRule::visitor()];
+    let diags = ctx_builder.walk(
+        event_file,
+        "file:///events/IMP_Events.txt",
+        Scope::Country,
+        rules,
+        visitors,
+    );
+    assert!(
+        ai_chance_diags(&diags).is_empty(),
+        "live repro: HOM3017 must be suppressed for dbug_mode debug option: {:?}",
+        ai_chance_diags(&diags)
+    );
+}
+
+/// Bisect: same repro but WITHOUT the trailing comment on the event line.
+#[test]
+fn hom3017_bisect_no_comment() {
+    let scripted = "dbug_mode = {\n\tAND = {\n\t\tis_debug = yes\n\t\tis_ai = no\n\t}\n}\n";
+    let event_file = "country_event = {\n\tid = imp.1\n\ttitle = imp.1.t\n\tdesc = imp.1.d\n\tpicture = GFX_long_live_the_empire\n\tis_triggered_only = yes\n\toption = {\n\t\tname = imp.1.a\n\t}\n\toption = {\n\t\tname = HoM.debug\n\t\ttrigger = { dbug_mode = yes }\n\t}\n}\n";
+    let ctx_builder = TestCtx::new().with_file("/mod/common/scripted_triggers/hom.txt", scripted);
+    let rules: Vec<Box<dyn ValidationRule>> = vec![Box::new(EventValidationRule)];
+    let visitors: Vec<Box<dyn AstVisitor>> = vec![EventValidationRule::visitor()];
+    let diags = ctx_builder.walk(
+        event_file,
+        "file:///events/x.txt",
+        Scope::Country,
+        rules,
+        visitors,
+    );
+    assert!(
+        ai_chance_diags(&diags).is_empty(),
+        "{:?}",
+        ai_chance_diags(&diags)
+    );
+}
+
+/// Bisect 2: strip further — direct is_ai = no with the same surrounding
+/// structure as the repro (immediate, picture, two options).
+#[test]
+fn hom3017_bisect_direct_is_ai_no_full_structure() {
+    let event_file = "country_event = {\n\tid = imp.1\n\ttitle = imp.1.t\n\tdesc = imp.1.d\n\tpicture = GFX_long_live_the_empire\n\tis_triggered_only = yes\n\timmediate = { log = \"[GetDateText]: [Root.GetName]: event imp.1\" }\n\toption = {\n\t\tname = imp.1.a\n\t}\n\toption = {\n\t\tname = HoM.debug\n\t\ttrigger = { is_ai = no }\n\t}\n}\n";
+    let ctx_builder = TestCtx::new();
+    let rules: Vec<Box<dyn ValidationRule>> = vec![Box::new(EventValidationRule)];
+    let visitors: Vec<Box<dyn AstVisitor>> = vec![EventValidationRule::visitor()];
+    let diags = ctx_builder.walk(
+        event_file,
+        "file:///events/x.txt",
+        Scope::Country,
+        rules,
+        visitors,
+    );
+    assert!(
+        ai_chance_diags(&diags).is_empty(),
+        "{:?}",
+        ai_chance_diags(&diags)
+    );
+}
+
+/// Bisect 3: minimal repro of the earlier passing test but with the FULL
+/// option set (name first, then trigger) and tab indentation.
+#[test]
+fn hom3017_bisect_tabs_name_then_trigger() {
+    let event_file = "country_event = {\n\tid = t.1\n\ttitle = T\n\tdesc = D\n\tis_triggered_only = yes\n\toption = {\n\t\tname = A\n\t\tai_chance = { factor = 100 }\n\t}\n\toption = {\n\t\tname = HoM.debug\n\t\ttrigger = { dbug_mode = yes }\n\t}\n}\n";
+    let scripted = "dbug_mode = {\n\tAND = {\n\t\tis_debug = yes\n\t\tis_ai = no\n\t}\n}\n";
+    let ctx_builder = TestCtx::new().with_file("/mod/common/scripted_triggers/hom.txt", scripted);
+    let rules: Vec<Box<dyn ValidationRule>> = vec![Box::new(EventValidationRule)];
+    let visitors: Vec<Box<dyn AstVisitor>> = vec![EventValidationRule::visitor()];
+    let diags = ctx_builder.walk(
+        event_file,
+        "file:///events/x.txt",
+        Scope::Country,
+        rules,
+        visitors,
+    );
+    assert!(
+        ai_chance_diags(&diags).is_empty(),
+        "{:?}",
+        ai_chance_diags(&diags)
+    );
+}
+
+#[test]
+fn bis4_with_picture_only() {
+    let event_file = "country_event = {\n\tid = imp.1\n\ttitle = imp.1.t\n\tdesc = imp.1.d\n\tpicture = GFX_long_live_the_empire\n\tis_triggered_only = yes\n\toption = {\n\t\tname = A\n\t\tai_chance = { factor = 100 }\n\t}\n\toption = {\n\t\tname = B\n\t\ttrigger = { is_ai = no }\n\t}\n}\n";
+    let ctx_builder = TestCtx::new();
+    let rules: Vec<Box<dyn ValidationRule>> = vec![Box::new(EventValidationRule)];
+    let visitors: Vec<Box<dyn AstVisitor>> = vec![EventValidationRule::visitor()];
+    let diags = ctx_builder.walk(
+        event_file,
+        "file:///events/x.txt",
+        Scope::Country,
+        rules,
+        visitors,
+    );
+    assert!(
+        ai_chance_diags(&diags).is_empty(),
+        "picture-only: {:?}",
+        ai_chance_diags(&diags)
+    );
+}
+
+#[test]
+fn bis5_with_immediate_only() {
+    let event_file = "country_event = {\n\tid = imp.1\n\ttitle = imp.1.t\n\tdesc = imp.1.d\n\tis_triggered_only = yes\n\timmediate = { log = \"[GetDateText]: [Root.GetName]: event imp.1\" }\n\toption = {\n\t\tname = A\n\t\tai_chance = { factor = 100 }\n\t}\n\toption = {\n\t\tname = B\n\t\ttrigger = { is_ai = no }\n\t}\n}\n";
+    let ctx_builder = TestCtx::new();
+    let rules: Vec<Box<dyn ValidationRule>> = vec![Box::new(EventValidationRule)];
+    let visitors: Vec<Box<dyn AstVisitor>> = vec![EventValidationRule::visitor()];
+    let diags = ctx_builder.walk(
+        event_file,
+        "file:///events/x.txt",
+        Scope::Country,
+        rules,
+        visitors,
+    );
+    assert!(
+        ai_chance_diags(&diags).is_empty(),
+        "immediate-only: {:?}",
+        ai_chance_diags(&diags)
+    );
+}
+
+#[test]
+fn bis6_direct_no_ai_chance_on_a() {
+    // The failing bisect had option A WITHOUT ai_chance too — but that should
+    // still suppress for option B... unless BOTH missing means the count is 1
+    // because A (visible, missing) counts. THAT'S EXPECTED BEHAVIOR!
+    let event_file = "country_event = {\n\tid = imp.1\n\ttitle = imp.1.t\n\tdesc = imp.1.d\n\tpicture = GFX_long_live_the_empire\n\tis_triggered_only = yes\n\timmediate = { log = \"x\" }\n\toption = {\n\t\tname = imp.1.a\n\t}\n\toption = {\n\t\tname = HoM.debug\n\t\ttrigger = { is_ai = no }\n\t}\n}\n";
+    let ctx_builder = TestCtx::new();
+    let rules: Vec<Box<dyn ValidationRule>> = vec![Box::new(EventValidationRule)];
+    let visitors: Vec<Box<dyn AstVisitor>> = vec![EventValidationRule::visitor()];
+    let diags = ctx_builder.walk(
+        event_file,
+        "file:///events/x.txt",
+        Scope::Country,
+        rules,
+        visitors,
+    );
+    // Option A is the ONLY AI-visible option: its pick is forced (weight 1 of
+    // total 1), so ai_chance blocks are irrelevant — suppressed.
+    assert!(
+        ai_chance_diags(&diags).is_empty(),
+        "forced choice (single visible option) must suppress: {:?}",
+        ai_chance_diags(&diags)
+    );
+}

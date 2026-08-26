@@ -398,6 +398,7 @@ country_event = {
                         end_line: 3,
                         end_col: 24,
                     },
+                    guarantees_ai_invisible: false,
                 },
             ),
         );

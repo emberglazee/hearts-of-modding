@@ -8,7 +8,9 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **BOM validation for localization files (HOM6005).**
 
-- **Focus search filters are now understood, validated, auto-completed, and semantically highlighted.** Values inside `search_filters = { ... }` on focuses highlight as enum members regardless of name collisions, the base-game filter set (plus any filters your mod defines via `GFX_FOCUS_FILTER_*` sprites) is offered on completion, and unknown filters — which silently fail to appear in the focus-tree search in-game — now produce a `HOM5010` warning with instructions for defining a custom filter correctly.
+- **HOM3017 now understands AI-invisible event options.**
+
+- **Focus search filters are now understood, validated, auto-completed, and semantically highlighted.**
 
 ### 🧹 Internal
 

@@ -655,6 +655,7 @@ mod tests {
                 name: "my_trigger".to_string(),
                 path: InternedStr::from(path_str.clone()),
                 range: rng(0, 3, 2, 1),
+                guarantees_ai_invisible: false,
             }),
         );
         data.scripted_triggers_file_index.insert(

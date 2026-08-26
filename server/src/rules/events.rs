@@ -15,6 +15,16 @@ struct EventOptionDef {
     has_name: bool,
     /// Whether this option has an `ai_chance` block.
     has_ai_chance: bool,
+    /// Whether the option's `trigger` PROVABLY hides it from the AI:
+    /// - direct `is_ai = no`
+    /// - `NOT = { is_ai = yes }`
+    /// - a scripted trigger that statically guarantees AI-invisibility
+    ///   (e.g. Hearts of Minecraft's `dbug_mode`)
+    ///
+    /// Wiki (event-modding.md): an option whose trigger is false when the
+    /// event fires "will not appear" — the AI cannot pick it, so it holds no
+    /// share of the ai_chance weight distribution.
+    provably_ai_invisible: bool,
 }
 
 /// State tracked for the event itself.
@@ -38,6 +48,11 @@ struct EventDef {
     option_count: u32,
     /// Number of options missing an `ai_chance` block.
     options_missing_ai_chance: u32,
+    /// Number of options that are VISIBLE to the AI (not provably hidden by
+    /// their `trigger`). The AI's choice is made proportionally over only
+    /// these; if exactly one is visible, its pick is forced and no
+    /// `ai_chance` weights matter.
+    ai_visible_option_count: u32,
     /// Key range of the last option missing `ai_chance` (for diagnostic positioning).
     last_missing_ai_chance_range: Option<ast::Range>,
     /// Range of the `title` assignment key (for HOM3018 positioning).
@@ -224,8 +239,26 @@ impl EventVisitor {
             }
         }
 
-        // HOM3017: ai_chance check — only meaningful when there are multiple options
-        if state.option_count > 1 && state.options_missing_ai_chance > 0 {
+        // HOM3017: ai_chance check — only fires when the AI's choice is
+        // actually a weighted decision among MULTIPLE visible options.
+        //
+        // Wiki ground truth (event-modding.md):
+        // - an option whose `trigger` is false when the event fires "will not
+        //   appear" — provably AI-invisible options hold no share of the
+        //   weight distribution;
+        // - a missing `ai_chance` defaults to weight 1, and weights are
+        //   proportional ("The probability of each option is its weight
+        //   divided by the sum of all option weights").
+        //
+        // Consequence: when only ONE option is visible to the AI, its pick is
+        // FORCED (weight 1 of total 1) regardless of any ai_chance blocks —
+        // identical to ai_chance = { factor = 100 }. The common debug-option
+        // pattern (`trigger = { dbug_mode = yes }`, dbug_mode requiring
+        // is_ai = no) leaves exactly one AI-visible option, so HOM3017 is
+        // suppressed for the whole event even though that visible option has
+        // no explicit weights.
+        let forced_choice = state.ai_visible_option_count <= 1;
+        if state.option_count > 1 && !forced_choice && state.options_missing_ai_chance > 0 {
             let diag_range = state
                 .last_missing_ai_chance_range
                 .as_ref()
@@ -612,6 +645,7 @@ impl AstVisitor for EventVisitor {
                 has_option: false,
                 option_count: 0,
                 options_missing_ai_chance: 0,
+                ai_visible_option_count: 0,
                 last_missing_ai_chance_range: None,
                 title_range: None,
                 desc_range: None,
@@ -704,6 +738,7 @@ impl AstVisitor for EventVisitor {
                 key_range: ass.key_range.clone(),
                 has_name: false,
                 has_ai_chance: false,
+                provably_ai_invisible: Self::evaluate_option_trigger_ai_visibility(&ass.value, ctx),
             });
             return;
         }
@@ -739,9 +774,17 @@ impl AstVisitor for EventVisitor {
             && matches!(&ass.value.value, ast::Value::Block(_))
         {
             if let Some(state) = self.option_stack.pop() {
-                // Track missing ai_chance on the event for summary reporting
-                if !state.has_ai_chance {
-                    if let Some(event) = self.event_stack.last_mut() {
+                // Track missing ai_chance on the event for summary reporting.
+                // Options whose trigger provably hides them from the AI hold
+                // no share of the weight distribution (wiki: invisible options
+                // "will not appear"; default ai_chance weight is 1, so the
+                // remaining visible option gets 100%) — they never need an
+                // ai_chance block and don't count toward HOM3017.
+                if let Some(event) = self.event_stack.last_mut() {
+                    if !state.provably_ai_invisible {
+                        event.ai_visible_option_count += 1;
+                    }
+                    if !state.has_ai_chance && !state.provably_ai_invisible {
                         event.options_missing_ai_chance += 1;
                         event.last_missing_ai_chance_range = Some(state.key_range.clone());
                     }
@@ -896,6 +939,128 @@ impl ValidationRule for EventValidationRule {
                 }
             }
         }
+    }
+}
+
+impl EventVisitor {
+    /// Evaluate an option block's `trigger` (if any) for provable AI
+    /// invisibility. No trigger at all → visible to the AI (returns false).
+    fn evaluate_option_trigger_ai_visibility(
+        value: &ast::NodeedValue,
+        ctx: &ValidationContext,
+    ) -> bool {
+        let ast::Value::Block(entries) = &value.value else {
+            return false;
+        };
+        // Find the option's trigger block, if present.
+        for entry in entries {
+            if let ast::Entry::Assignment(ass) = entry {
+                if ass.key_text(ctx.source).eq_ignore_ascii_case("trigger") {
+                    if let ast::Value::Block(trigger_body) = &ass.value.value {
+                        return Self::option_provably_ai_invisible(trigger_body, ctx.source, ctx);
+                    }
+                    return false;
+                }
+            }
+        }
+        false
+    }
+
+    /// Statically decide whether an option `trigger` block PROVES the option
+    /// is invisible to the AI. Conservative: only returns true on certainty.
+    ///
+    /// Recognized proofs:
+    /// - `is_ai = no` anywhere in a conjunctive position (top level, inside
+    ///   `AND`, inside `limit`)
+    /// - `NOT = { is_ai = yes }`
+    /// - a scripted trigger reference whose body statically proves the same
+    ///   (resolved against scanned scripted_triggers)
+    ///
+    /// NOT proven (returns false → diagnostic may still fire):
+    /// - `is_ai = yes` or negations of other triggers
+    /// - `OR` blocks — one arm proving AI-invisibility does not make the OR
+    ///   false for the AI
+    /// - scripted triggers that don't statically prove invisibility
+    fn option_provably_ai_invisible(
+        entries: &[ast::Entry],
+        source: &str,
+        ctx: &ValidationContext,
+    ) -> bool {
+        fn has_proof(entries: &[ast::Entry], source: &str, ctx: &ValidationContext) -> bool {
+            for entry in entries {
+                if let ast::Entry::Assignment(ass) = entry {
+                    let key = ass.key_text(source).to_ascii_lowercase();
+                    match key.as_str() {
+                        "is_ai" => {
+                            // `yes`/`no` parse as Boolean; accept both forms.
+                            let val: Option<String> = match &ass.value.value {
+                                ast::Value::Boolean(b) => {
+                                    Some(if *b { "yes" } else { "no" }.to_string())
+                                }
+                                _ => ass
+                                    .value
+                                    .value
+                                    .as_str(source)
+                                    .map(|s| s.to_ascii_lowercase()),
+                            };
+                            if val.as_deref() == Some("no") {
+                                return true;
+                            }
+                        }
+                        // Conjunction: if ANY arm proves it, the AND does.
+                        "and" | "limit" if matches!(&ass.value.value, ast::Value::Block(_)) => {
+                            if let ast::Value::Block(arms) = &ass.value.value {
+                                if has_proof(arms, source, ctx) {
+                                    return true;
+                                }
+                            }
+                        }
+                        // Negation: NOT = { is_ai = yes } proves it.
+                        // (A NOT arm inside an AND is still conjunctive.)
+                        "not" if matches!(&ass.value.value, ast::Value::Block(_)) => {
+                            if let ast::Value::Block(arms) = &ass.value.value {
+                                for arm in arms {
+                                    if let ast::Entry::Assignment(a) = arm {
+                                        let arm_yes = match &a.value.value {
+                                            ast::Value::Boolean(b) => *b,
+                                            _ => a
+                                                .value
+                                                .value
+                                                .as_str(source)
+                                                .map(|s| s.eq_ignore_ascii_case("yes"))
+                                                .unwrap_or(false),
+                                        };
+                                        if a.key_text(source).eq_ignore_ascii_case("is_ai")
+                                            && arm_yes
+                                        {
+                                            return true;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        // Scripted trigger reference: use the flag the
+                        // scanner precomputed from the body at scan time.
+                        _ => {
+                            let name = ass.key_text(ctx.source);
+                            let lower = name.to_ascii_lowercase();
+                            let proves = ctx
+                                .scripted_triggers
+                                .get(lower.as_str())
+                                .or_else(|| ctx.scripted_triggers.get(name))
+                                .map(|e| e.resolve().guarantees_ai_invisible)
+                                .unwrap_or(false);
+                            if proves {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+            false
+        }
+
+        has_proof(entries, source, ctx)
     }
 }
 
