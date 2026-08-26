@@ -1,10 +1,10 @@
 use crate::parser::parser;
+use crate::rules::ValidationRule;
 use crate::rules::abilities::AbilityRule;
 use crate::rules::visitor::{AstVisitor, walk_script};
-use crate::rules::{ValidationContext, ValidationRule};
 use crate::scope::scope::Scope;
+use crate::test_support::TestCtx;
 use crate::utils::lsp_convert::RangeMapper;
-use dashmap::DashMap;
 use tower_lsp_server::ls_types::{Diagnostic, NumberOrString};
 
 // ---------------------------------------------------------------------------
@@ -12,76 +12,15 @@ use tower_lsp_server::ls_types::{Diagnostic, NumberOrString};
 // ---------------------------------------------------------------------------
 
 /// Run the ability rule visitor over a script and return all diagnostics.
-/// All DashMaps are created as local variables so they live on the stack
-/// for the duration of this call.
 fn run_ability_visitor(input: &str, uri: &str) -> Vec<Diagnostic> {
-    let (script, _) = parser::parse_script(input);
-
-    let loc = DashMap::new();
-    let st = DashMap::new();
-    let se = DashMap::new();
-    let ideologies = DashMap::new();
-    let sub_ideologies = DashMap::new();
-    let traits = DashMap::new();
-    let sprites = DashMap::new();
-    let ideas = DashMap::new();
-    let provinces = DashMap::new();
-    let modifier_mappings = DashMap::new();
-    let sound_effects = DashMap::new();
-    let country_tags = DashMap::new();
-    let buildings = DashMap::new();
-    let resources = DashMap::new();
-    let state_categories = DashMap::new();
-    let continents = DashMap::new();
-    let strategic_regions = DashMap::new();
-    let terrain_categories = DashMap::new();
-    let abilities = DashMap::new();
-
-    let range_mapper = RangeMapper::new(&script.source);
-    let ctx = ValidationContext {
-        uri,
-        source: &script.source,
-        range_mapper: &range_mapper,
-        loc: &loc,
-        scripted_triggers: &st,
-        scripted_effects: &se,
-        ideologies: &ideologies,
-        sub_ideologies: &sub_ideologies,
-        traits: &traits,
-        sprites: &sprites,
-        ideas: &ideas,
-        characters: &DashMap::new(),
-        provinces: &provinces,
-        modifier_mappings: &modifier_mappings,
-        ignored_loc_regex: &[],
-        comments: &[],
-        sound_effects: &sound_effects,
-        country_tags: &country_tags,
-        tag_aliases: &DashMap::new(),
-        buildings: &buildings,
-        resources: &resources,
-        state_categories: &state_categories,
-        continents: &continents,
-        strategic_regions: &strategic_regions,
-        terrain_categories: &terrain_categories,
-        abilities: &abilities,
-        ace_modifiers: &DashMap::new(),
-        game_path: None,
-        styling_enabled: false,
-        scope_validation_enabled: false,
-        workspace_roots: &[],
-        unit_types: &DashMap::new(),
-        event_targets: &DashMap::new(),
-        event_namespaces: &DashMap::new(),
-        events: &DashMap::new(),
-        decisions: &DashMap::new(),
-        decision_categories: &DashMap::new(),
-    };
-
+    let ctx_builder = TestCtx::new();
     let mut visitors: Vec<Box<dyn AstVisitor>> = vec![AbilityRule::visitor()];
     let rules: Vec<Box<dyn ValidationRule>> = vec![Box::new(AbilityRule)];
     let mut diags = Vec::new();
 
+    let (script, _) = parser::parse_script(input);
+    let range_mapper = RangeMapper::new(&script.source);
+    let ctx = ctx_builder.build_context(uri, &script.source, &range_mapper);
     walk_script(
         &script.entries,
         &mut visitors,
@@ -478,69 +417,7 @@ mod tests {
     /// Run the full validation suite (AbilityRule + V2ScopeRule) over ability
     /// input and return only HOM004 diagnostics.
     fn run_v2scope_test(input: &str, uri: &str) -> Vec<Diagnostic> {
-        let (script, _) = parser::parse_script(input);
-
-        let loc = DashMap::new();
-        let st = DashMap::new();
-        let se = DashMap::new();
-        let ideologies = DashMap::new();
-        let sub_ideologies = DashMap::new();
-        let traits = DashMap::new();
-        let sprites = DashMap::new();
-        let ideas = DashMap::new();
-        let provinces = DashMap::new();
-        let modifier_mappings = DashMap::new();
-        let sound_effects = DashMap::new();
-        let country_tags = DashMap::new();
-        let buildings = DashMap::new();
-        let resources = DashMap::new();
-        let state_categories = DashMap::new();
-        let continents = DashMap::new();
-        let strategic_regions = DashMap::new();
-        let terrain_categories = DashMap::new();
-        let abilities = DashMap::new();
-
-        let range_mapper = RangeMapper::new(&script.source);
-        let ctx = ValidationContext {
-            uri,
-            source: &script.source,
-            range_mapper: &range_mapper,
-            loc: &loc,
-            scripted_triggers: &st,
-            scripted_effects: &se,
-            ideologies: &ideologies,
-            sub_ideologies: &sub_ideologies,
-            traits: &traits,
-            sprites: &sprites,
-            ideas: &ideas,
-            characters: &DashMap::new(),
-            provinces: &provinces,
-            modifier_mappings: &modifier_mappings,
-            ignored_loc_regex: &[],
-            comments: &[],
-            sound_effects: &sound_effects,
-            country_tags: &country_tags,
-            tag_aliases: &DashMap::new(),
-            buildings: &buildings,
-            resources: &resources,
-            state_categories: &state_categories,
-            continents: &continents,
-            strategic_regions: &strategic_regions,
-            terrain_categories: &terrain_categories,
-            abilities: &abilities,
-            ace_modifiers: &DashMap::new(),
-            game_path: None,
-            styling_enabled: false,
-            scope_validation_enabled: false,
-            workspace_roots: &[],
-            unit_types: &DashMap::new(),
-            event_targets: &DashMap::new(),
-            event_namespaces: &DashMap::new(),
-            events: &DashMap::new(),
-            decisions: &DashMap::new(),
-            decision_categories: &DashMap::new(),
-        };
-
+        let ctx_builder = TestCtx::new();
         let mut visitors: Vec<Box<dyn AstVisitor>> = vec![AbilityRule::visitor()];
         let rules: Vec<Box<dyn ValidationRule>> = vec![
             Box::new(AbilityRule),
@@ -548,6 +425,9 @@ mod tests {
         ];
         let mut diags = Vec::new();
 
+        let (script, _) = parser::parse_script(input);
+        let range_mapper = RangeMapper::new(&script.source);
+        let ctx = ctx_builder.build_context(uri, &script.source, &range_mapper);
         walk_script(
             &script.entries,
             &mut visitors,

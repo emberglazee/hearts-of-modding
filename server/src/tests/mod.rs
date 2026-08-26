@@ -1,4 +1,5 @@
 pub mod abilities;
+pub mod backend;
 pub mod dependency_resolution;
 pub mod events;
 pub mod formatting;

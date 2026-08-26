@@ -134,6 +134,12 @@ async fn main() {
 #[cfg(test)]
 mod tests;
 
+/// Test-only shared builder for `ValidationContext`. Declared at crate root
+/// (not inside `tests`) so rule modules' own `#[cfg(test)]` blocks can use
+/// the same builder as integration-style test files.
+#[cfg(test)]
+pub(crate) mod test_support;
+
 /// CLI validation mode: parse and validate a file, print diagnostics.
 async fn cli_validate(path: &str) {
     let content = match std::fs::read_to_string(path) {

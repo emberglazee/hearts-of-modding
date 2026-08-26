@@ -126,7 +126,7 @@ impl<'a> GfxTextureRule<'a> {
 mod tests {
     use super::*;
     use crate::parser::parser;
-    use dashmap::DashMap;
+
     use std::fs;
     use std::path::{Path, PathBuf};
 
@@ -143,47 +143,14 @@ mod tests {
     ) -> Vec<Diagnostic> {
         let (script, _) = parser::parse_script(gfx_content);
         let game_path_owned = game_path.map(|s| s.to_string());
+        let workspace_roots_owned: Vec<PathBuf> = workspace_roots.to_vec();
 
         let range_mapper = RangeMapper::new(&script.source);
-        let ctx = ValidationContext {
-            uri: "test.gfx",
-            source: &script.source,
-            range_mapper: &range_mapper,
-            loc: &DashMap::new(),
-            scripted_triggers: &DashMap::new(),
-            scripted_effects: &DashMap::new(),
-            ideologies: &DashMap::new(),
-            sub_ideologies: &DashMap::new(),
-            traits: &DashMap::new(),
-            sprites: &DashMap::new(),
-            ideas: &DashMap::new(),
-            characters: &DashMap::new(),
-            provinces: &DashMap::new(),
-            modifier_mappings: &DashMap::new(),
-            ignored_loc_regex: &[],
-            comments: &[],
-            sound_effects: &DashMap::new(),
-            country_tags: &DashMap::new(),
-            tag_aliases: &DashMap::new(),
-            buildings: &DashMap::new(),
-            resources: &DashMap::new(),
-            state_categories: &DashMap::new(),
-            continents: &DashMap::new(),
-            strategic_regions: &DashMap::new(),
-            terrain_categories: &DashMap::new(),
-            abilities: &DashMap::new(),
-            ace_modifiers: &DashMap::new(),
-            game_path: game_path_owned,
-            styling_enabled,
-            scope_validation_enabled: false,
-            workspace_roots,
-            unit_types: &DashMap::new(),
-            event_targets: &DashMap::new(),
-            event_namespaces: &DashMap::new(),
-            events: &DashMap::new(),
-            decisions: &DashMap::new(),
-            decision_categories: &DashMap::new(),
-        };
+        let test_ctx = crate::test_support::TestCtx::new()
+            .with_game_path(game_path_owned.as_deref())
+            .with_styling(styling_enabled)
+            .with_workspace_roots(workspace_roots_owned);
+        let ctx = test_ctx.build_context("test.gfx", &script.source, &range_mapper);
 
         let rule = GfxTextureRule::new(gfx_file_path);
         let mut diags = Vec::new();

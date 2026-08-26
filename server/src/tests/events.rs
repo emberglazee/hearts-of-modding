@@ -1,13 +1,12 @@
 use crate::data::interner::InternedStr;
 use crate::data::layered_value::LayeredValue;
 use crate::parser::ast;
-use crate::parser::parser;
+use crate::rules::ValidationRule;
 use crate::rules::events::EventValidationRule;
-use crate::rules::visitor::{AstVisitor, walk_script};
-use crate::rules::{ValidationContext, ValidationRule};
+use crate::rules::visitor::AstVisitor;
 use crate::scanner::event_scanner::Event;
 use crate::scope::scope::Scope;
-use crate::utils::lsp_convert::RangeMapper;
+use crate::test_support::TestCtx;
 use dashmap::DashMap;
 use std::sync::Arc;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
@@ -16,117 +15,46 @@ use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString}
 // Test runner
 // ---------------------------------------------------------------------------
 
-/// Run the EventValidationRule (with visitor) over a script and return all diagnostics.
+/// Run the EventValidationRule (with visitor) over a script and return all
+/// diagnostics.
+///
+/// One runner covers the three historical variants (plain, pre-populated
+/// events map, game_path): seed via `TestCtx` builders instead of three
+/// hand-built `ValidationContext` literals.
+fn run_event_visitor_ctx(
+    input: &str,
+    uri: &str,
+    declared_namespaces: &[(&str, &str)],
+    events: Option<&DashMap<InternedStr, LayeredValue<Event>>>,
+    game_path: Option<&str>,
+) -> Vec<Diagnostic> {
+    let mut ctx_builder = TestCtx::new().with_event_namespaces(declared_namespaces);
+    if let Some(gp) = game_path {
+        ctx_builder = ctx_builder.with_game_path(Some(gp));
+    }
+    if let Some(events) = events {
+        for entry in events.iter() {
+            ctx_builder
+                .data()
+                .events
+                .insert(entry.key().clone(), entry.value().clone());
+        }
+    }
+
+    let rules: Vec<Box<dyn ValidationRule>> = vec![Box::new(EventValidationRule)];
+    let visitors: Vec<Box<dyn AstVisitor>> = vec![EventValidationRule::visitor()];
+    ctx_builder.walk(input, uri, Scope::Country, rules, visitors)
+}
+
 fn run_event_visitor(
     input: &str,
     uri: &str,
-    declared_namespaces: &[(/*name*/ &str, /*filepath*/ &str)],
+    declared_namespaces: &[(&str, &str)],
 ) -> Vec<Diagnostic> {
-    let (script, _) = parser::parse_script(input);
-
-    let loc = DashMap::new();
-    let st = DashMap::new();
-    let se = DashMap::new();
-    let ideologies = DashMap::new();
-    let sub_ideologies = DashMap::new();
-    let traits = DashMap::new();
-    let sprites = DashMap::new();
-    let ideas = DashMap::new();
-    let provinces = DashMap::new();
-    let modifier_mappings = DashMap::new();
-    let sound_effects = DashMap::new();
-    let country_tags = DashMap::new();
-    let buildings = DashMap::new();
-    let resources = DashMap::new();
-    let state_categories = DashMap::new();
-    let continents = DashMap::new();
-    let strategic_regions = DashMap::new();
-    let terrain_categories = DashMap::new();
-    let abilities = DashMap::new();
-    let event_namespaces: DashMap<
-        crate::data::interner::InternedStr,
-        crate::data::layered_value::LayeredValue<
-            crate::scanner::event_namespace_scanner::EventNamespace,
-        >,
-    > = DashMap::new();
-
-    for (name, filepath) in declared_namespaces {
-        event_namespaces.insert(
-            std::sync::Arc::<str>::from(*name),
-            crate::data::layered_value::LayeredValue::new(
-                crate::scanner::event_namespace_scanner::EventNamespace {
-                    name: name.to_string(),
-                    path: std::sync::Arc::<str>::from(*filepath),
-                    range: crate::parser::ast::Range {
-                        start_line: 0,
-                        start_col: 0,
-                        end_line: 0,
-                        end_col: 0,
-                    },
-                },
-            ),
-        );
-    }
-
-    let range_mapper = RangeMapper::new(&script.source);
-    let ctx = ValidationContext {
-        uri,
-        source: &script.source,
-        range_mapper: &range_mapper,
-        loc: &loc,
-        scripted_triggers: &st,
-        scripted_effects: &se,
-        ideologies: &ideologies,
-        sub_ideologies: &sub_ideologies,
-        traits: &traits,
-        sprites: &sprites,
-        ideas: &ideas,
-        characters: &DashMap::new(),
-        provinces: &provinces,
-        modifier_mappings: &modifier_mappings,
-        ignored_loc_regex: &[],
-        comments: &[],
-        sound_effects: &sound_effects,
-        country_tags: &country_tags,
-        tag_aliases: &DashMap::new(),
-        buildings: &buildings,
-        resources: &resources,
-        state_categories: &state_categories,
-        continents: &continents,
-        strategic_regions: &strategic_regions,
-        terrain_categories: &terrain_categories,
-        abilities: &abilities,
-        ace_modifiers: &DashMap::new(),
-        game_path: None,
-        styling_enabled: false,
-        scope_validation_enabled: false,
-        workspace_roots: &[],
-        unit_types: &DashMap::new(),
-        event_targets: &DashMap::new(),
-        event_namespaces: &event_namespaces,
-        events: &DashMap::new(),
-        decisions: &DashMap::new(),
-        decision_categories: &DashMap::new(),
-    };
-
-    let rules: Vec<Box<dyn ValidationRule>> = vec![Box::new(EventValidationRule)];
-    let mut visitors: Vec<Box<dyn AstVisitor>> = vec![EventValidationRule::visitor()];
-    let mut diags = Vec::new();
-
-    walk_script(
-        &script.entries,
-        &mut visitors,
-        &rules,
-        &ctx,
-        &mut diags,
-        Scope::Country,
-        false,
-    );
-
-    diags
+    run_event_visitor_ctx(input, uri, declared_namespaces, None, None)
 }
 
-/// Like run_event_visitor but with a pre-populated events DashMap (for
+/// Like [`run_event_visitor`] but with a pre-populated events DashMap (for
 /// testing broken-reference and cross-file trigger validation).
 fn run_event_visitor_with_events(
     input: &str,
@@ -134,215 +62,16 @@ fn run_event_visitor_with_events(
     declared_namespaces: &[(&str, &str)],
     events: &DashMap<InternedStr, LayeredValue<Event>>,
 ) -> Vec<Diagnostic> {
-    let (script, _) = parser::parse_script(input);
-
-    let loc = DashMap::new();
-    let st = DashMap::new();
-    let se = DashMap::new();
-    let ideologies = DashMap::new();
-    let sub_ideologies = DashMap::new();
-    let traits = DashMap::new();
-    let sprites = DashMap::new();
-    let ideas = DashMap::new();
-    let provinces = DashMap::new();
-    let modifier_mappings = DashMap::new();
-    let sound_effects = DashMap::new();
-    let country_tags = DashMap::new();
-    let buildings = DashMap::new();
-    let resources = DashMap::new();
-    let state_categories = DashMap::new();
-    let continents = DashMap::new();
-    let strategic_regions = DashMap::new();
-    let terrain_categories = DashMap::new();
-    let abilities = DashMap::new();
-    let event_namespaces: DashMap<
-        InternedStr,
-        LayeredValue<crate::scanner::event_namespace_scanner::EventNamespace>,
-    > = DashMap::new();
-
-    for (name, filepath) in declared_namespaces {
-        event_namespaces.insert(
-            Arc::from(*name),
-            LayeredValue::new(crate::scanner::event_namespace_scanner::EventNamespace {
-                name: name.to_string(),
-                path: Arc::from(*filepath),
-                range: ast::Range {
-                    start_line: 0,
-                    start_col: 0,
-                    end_line: 0,
-                    end_col: 0,
-                },
-            }),
-        );
-    }
-
-    let range_mapper = RangeMapper::new(&script.source);
-    let ctx = ValidationContext {
-        uri,
-        source: &script.source,
-        range_mapper: &range_mapper,
-        loc: &loc,
-        scripted_triggers: &st,
-        scripted_effects: &se,
-        ideologies: &ideologies,
-        sub_ideologies: &sub_ideologies,
-        traits: &traits,
-        sprites: &sprites,
-        ideas: &ideas,
-        characters: &DashMap::new(),
-        provinces: &provinces,
-        modifier_mappings: &modifier_mappings,
-        ignored_loc_regex: &[],
-        comments: &[],
-        sound_effects: &sound_effects,
-        country_tags: &country_tags,
-        tag_aliases: &DashMap::new(),
-        buildings: &buildings,
-        resources: &resources,
-        state_categories: &state_categories,
-        continents: &continents,
-        strategic_regions: &strategic_regions,
-        terrain_categories: &terrain_categories,
-        abilities: &abilities,
-        ace_modifiers: &DashMap::new(),
-        game_path: None,
-        styling_enabled: false,
-        scope_validation_enabled: false,
-        workspace_roots: &[],
-        unit_types: &DashMap::new(),
-        event_targets: &DashMap::new(),
-        event_namespaces: &event_namespaces,
-        events,
-        decisions: &DashMap::new(),
-        decision_categories: &DashMap::new(),
-    };
-
-    let rules: Vec<Box<dyn ValidationRule>> = vec![Box::new(EventValidationRule)];
-    let mut visitors: Vec<Box<dyn AstVisitor>> = vec![EventValidationRule::visitor()];
-    let mut diags = Vec::new();
-
-    walk_script(
-        &script.entries,
-        &mut visitors,
-        &rules,
-        &ctx,
-        &mut diags,
-        Scope::Country,
-        false,
-    );
-
-    diags
+    run_event_visitor_ctx(input, uri, declared_namespaces, Some(events), None)
 }
 
-/// Helper to add default namespaces for a list of files.
 fn run_event_visitor_with_game_path(
     input: &str,
     uri: &str,
     declared_namespaces: &[(&str, &str)],
     game_path: Option<&str>,
 ) -> Vec<Diagnostic> {
-    let (script, _) = parser::parse_script(input);
-
-    let loc = DashMap::new();
-    let st = DashMap::new();
-    let se = DashMap::new();
-    let ideologies = DashMap::new();
-    let sub_ideologies = DashMap::new();
-    let traits = DashMap::new();
-    let sprites = DashMap::new();
-    let ideas = DashMap::new();
-    let provinces = DashMap::new();
-    let modifier_mappings = DashMap::new();
-    let sound_effects = DashMap::new();
-    let country_tags = DashMap::new();
-    let buildings = DashMap::new();
-    let resources = DashMap::new();
-    let state_categories = DashMap::new();
-    let continents = DashMap::new();
-    let strategic_regions = DashMap::new();
-    let terrain_categories = DashMap::new();
-    let abilities = DashMap::new();
-    let event_namespaces: DashMap<
-        crate::data::interner::InternedStr,
-        crate::data::layered_value::LayeredValue<
-            crate::scanner::event_namespace_scanner::EventNamespace,
-        >,
-    > = DashMap::new();
-
-    for (name, filepath) in declared_namespaces {
-        event_namespaces.insert(
-            std::sync::Arc::<str>::from(*name),
-            crate::data::layered_value::LayeredValue::new(
-                crate::scanner::event_namespace_scanner::EventNamespace {
-                    name: name.to_string(),
-                    path: std::sync::Arc::<str>::from(*filepath),
-                    range: crate::parser::ast::Range {
-                        start_line: 0,
-                        start_col: 0,
-                        end_line: 0,
-                        end_col: 0,
-                    },
-                },
-            ),
-        );
-    }
-
-    let range_mapper = RangeMapper::new(&script.source);
-    let ctx = ValidationContext {
-        uri,
-        source: &script.source,
-        range_mapper: &range_mapper,
-        loc: &loc,
-        scripted_triggers: &st,
-        scripted_effects: &se,
-        ideologies: &ideologies,
-        sub_ideologies: &sub_ideologies,
-        traits: &traits,
-        sprites: &sprites,
-        ideas: &ideas,
-        characters: &DashMap::new(),
-        provinces: &provinces,
-        modifier_mappings: &modifier_mappings,
-        ignored_loc_regex: &[],
-        comments: &[],
-        sound_effects: &sound_effects,
-        country_tags: &country_tags,
-        tag_aliases: &DashMap::new(),
-        buildings: &buildings,
-        resources: &resources,
-        state_categories: &state_categories,
-        continents: &continents,
-        strategic_regions: &strategic_regions,
-        terrain_categories: &terrain_categories,
-        abilities: &abilities,
-        ace_modifiers: &DashMap::new(),
-        game_path: game_path.map(|s| s.to_string()),
-        styling_enabled: false,
-        scope_validation_enabled: false,
-        workspace_roots: &[],
-        unit_types: &DashMap::new(),
-        event_targets: &DashMap::new(),
-        event_namespaces: &event_namespaces,
-        events: &DashMap::new(),
-        decisions: &DashMap::new(),
-        decision_categories: &DashMap::new(),
-    };
-
-    let rules: Vec<Box<dyn ValidationRule>> = vec![Box::new(EventValidationRule)];
-    let mut visitors: Vec<Box<dyn AstVisitor>> = vec![EventValidationRule::visitor()];
-    let mut diags = Vec::new();
-
-    walk_script(
-        &script.entries,
-        &mut visitors,
-        &rules,
-        &ctx,
-        &mut diags,
-        Scope::Country,
-        false,
-    );
-
-    diags
+    run_event_visitor_ctx(input, uri, declared_namespaces, None, game_path)
 }
 
 /// Helper to add default namespaces for a list of files.

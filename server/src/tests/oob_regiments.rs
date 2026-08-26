@@ -1,12 +1,10 @@
-use crate::data::interner::InternedStr;
-use crate::data::layered_value::LayeredValue;
 use crate::parser::parser;
+use crate::rules::ValidationRule;
 use crate::rules::oob_regiments::OobRegimentVisitor;
 use crate::rules::visitor::{AstVisitor, walk_script};
-use crate::rules::{ValidationContext, ValidationRule};
 use crate::scope::scope::Scope;
+use crate::test_support::TestCtx;
 use crate::utils::lsp_convert::RangeMapper;
-use dashmap::DashMap;
 use tower_lsp_server::ls_types::{Diagnostic, NumberOrString};
 
 // ---------------------------------------------------------------------------
@@ -15,93 +13,15 @@ use tower_lsp_server::ls_types::{Diagnostic, NumberOrString};
 
 /// Run the OobRegimentVisitor over a script and return all diagnostics.
 fn run_oob_visitor(input: &str, unit_types: &[&str]) -> Vec<Diagnostic> {
+    let ctx_builder = TestCtx::new().with_unit_types(unit_types);
+
     let (script, _) = parser::parse_script(input);
-
-    let loc = DashMap::new();
-    let st = DashMap::new();
-    let se = DashMap::new();
-    let ideologies = DashMap::new();
-    let sub_ideologies = DashMap::new();
-    let traits = DashMap::new();
-    let sprites = DashMap::new();
-    let ideas = DashMap::new();
-    let provinces = DashMap::new();
-    let modifier_mappings = DashMap::new();
-    let sound_effects = DashMap::new();
-    let country_tags = DashMap::new();
-    let buildings = DashMap::new();
-    let resources = DashMap::new();
-    let state_categories = DashMap::new();
-    let continents = DashMap::new();
-    let strategic_regions = DashMap::new();
-    let terrain_categories = DashMap::new();
-    let abilities = DashMap::new();
-
-    // Populate unit_types from the test fixture
-    let unit_type_map: DashMap<InternedStr, LayeredValue<crate::scanner::unit_scanner::UnitType>> =
-        DashMap::new();
-    for ut in unit_types {
-        unit_type_map.insert(
-            InternedStr::from(*ut),
-            LayeredValue::new(crate::scanner::unit_scanner::UnitType {
-                name: ut.to_string(),
-                abbreviation: Some(String::new()),
-                group: Some(String::new()),
-                combat_width: 0.0,
-                is_support: false,
-                type_categories: Vec::new(),
-                categories: Vec::new(),
-                path: InternedStr::from("test"),
-                range: crate::parser::ast::Range {
-                    start_line: 0,
-                    start_col: 0,
-                    end_line: 0,
-                    end_col: 0,
-                },
-            }),
-        );
-    }
-
     let range_mapper = RangeMapper::new(&script.source);
-    let ctx = ValidationContext {
-        uri: "test:///history/units/test_oob.txt",
-        source: &script.source,
-        range_mapper: &range_mapper,
-        loc: &loc,
-        scripted_triggers: &st,
-        scripted_effects: &se,
-        ideologies: &ideologies,
-        sub_ideologies: &sub_ideologies,
-        traits: &traits,
-        sprites: &sprites,
-        ideas: &ideas,
-        characters: &DashMap::new(),
-        provinces: &provinces,
-        modifier_mappings: &modifier_mappings,
-        ignored_loc_regex: &[],
-        comments: &[],
-        sound_effects: &sound_effects,
-        country_tags: &country_tags,
-        tag_aliases: &DashMap::new(),
-        buildings: &buildings,
-        resources: &resources,
-        state_categories: &state_categories,
-        continents: &continents,
-        strategic_regions: &strategic_regions,
-        terrain_categories: &terrain_categories,
-        abilities: &abilities,
-        ace_modifiers: &DashMap::new(),
-        game_path: None,
-        styling_enabled: false,
-        scope_validation_enabled: false,
-        workspace_roots: &[],
-        unit_types: &unit_type_map,
-        event_targets: &DashMap::new(),
-        event_namespaces: &DashMap::new(),
-        events: &DashMap::new(),
-        decisions: &DashMap::new(),
-        decision_categories: &DashMap::new(),
-    };
+    let ctx = ctx_builder.build_context(
+        "test:///history/units/test_oob.txt",
+        &script.source,
+        &range_mapper,
+    );
 
     let mut visitors: Vec<Box<dyn AstVisitor>> = vec![OobRegimentVisitor::visitor()];
     let rules: Vec<Box<dyn ValidationRule>> = Vec::new();

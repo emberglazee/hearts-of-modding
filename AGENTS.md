@@ -35,6 +35,8 @@ Client helpers in `package.json`: `npm run cargo:test`, `cargo:check`, `cargo:fm
 
 **VS Code debugging:** Use "Launch Extension" config (`.vscode/launch.json`). Falls back to `../server/target/release/server` if `client/server-bin/` not found.
 
+**Validation-rule test convention:** never hand-build a `ValidationContext` literal — the struct has ~35 fields and every new field breaks each literal. Use the shared builder instead: tests in `src/tests/` use `crate::test_support::TestCtx` (e.g. `TestCtx::new().with_file(path, content).walk(input, uri, scope, rules, visitors)`); rule modules' own `#[cfg(test)]` blocks use the same builder via `crate::test_support` (`TestCtx`, or `TestCtxRef` via `wrap_ref` when seeding an external `&ScannerData`). Prefer `.with_file(...)` (runs the real incremental scanner) over hand-stuffing DashMaps; promote a repeated raw seed to a named `with_*` method.
+
 ## Architecture
 
 **Server module layout** (`server/src/`):

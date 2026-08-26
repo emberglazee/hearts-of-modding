@@ -84,93 +84,24 @@ impl ValidationRule for FocusSearchFilterRule {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::data::interner::InternedStr;
-    use crate::data::layered_value::LayeredValue;
-    use crate::parser::loc_parser::LocEntry;
+
     use crate::parser::parser;
     use crate::rules::visitor::{AstVisitor, walk_script};
-    use crate::scanner::sprite_scanner::Sprite;
+
     use crate::utils::lsp_convert::RangeMapper;
-    use dashmap::DashMap;
 
     fn run(source: &str, sprites: &[&str]) -> Vec<Diagnostic> {
         let (script, _) = parser::parse_script(source);
         let range_mapper = RangeMapper::new(&script.source);
-        let loc: DashMap<InternedStr, LayeredValue<LocEntry>> = DashMap::new();
-        loc.insert(
-            InternedStr::from("SOME_KEY"),
-            LayeredValue::new(LocEntry {
-                key: InternedStr::from("SOME_KEY"),
-                value: String::new(),
-                range: ast::Range {
-                    start_line: 0,
-                    start_col: 0,
-                    end_line: 0,
-                    end_col: 0,
-                },
-                path: InternedStr::from("t.yml"),
-                value_start_col: 0,
-                version: None,
-                version_range: None,
-            }),
+        let test_ctx = crate::test_support::TestCtx::new()
+            .with_loc_key("SOME_KEY")
+            .with_sprites(sprites);
+        let ctx = test_ctx.build_context(
+            "/common/national_focus/a.txt",
+            &script.source,
+            &range_mapper,
         );
-        let sprites_map: DashMap<InternedStr, LayeredValue<Sprite>> = DashMap::new();
-        for s in sprites {
-            sprites_map.insert(
-                InternedStr::from(*s),
-                LayeredValue::new(Sprite {
-                    name: (*s).to_string(),
-                    texture_file: String::new(),
-                    path: InternedStr::from("interface/t.gfx"),
-                    range: ast::Range {
-                        start_line: 0,
-                        start_col: 0,
-                        end_line: 0,
-                        end_col: 0,
-                    },
-                }),
-            );
-        }
 
-        let ctx = ValidationContext {
-            uri: "/common/national_focus/a.txt",
-            source: &script.source,
-            range_mapper: &range_mapper,
-            loc: &loc,
-            scripted_triggers: &DashMap::new(),
-            scripted_effects: &DashMap::new(),
-            ideologies: &DashMap::new(),
-            sub_ideologies: &DashMap::new(),
-            traits: &DashMap::new(),
-            sprites: &sprites_map,
-            ideas: &DashMap::new(),
-            characters: &DashMap::new(),
-            provinces: &DashMap::new(),
-            modifier_mappings: &DashMap::new(),
-            ignored_loc_regex: &[],
-            comments: &[],
-            sound_effects: &DashMap::new(),
-            country_tags: &DashMap::new(),
-            tag_aliases: &DashMap::new(),
-            buildings: &DashMap::new(),
-            resources: &DashMap::new(),
-            state_categories: &DashMap::new(),
-            continents: &DashMap::new(),
-            strategic_regions: &DashMap::new(),
-            terrain_categories: &DashMap::new(),
-            abilities: &DashMap::new(),
-            ace_modifiers: &DashMap::new(),
-            game_path: None,
-            styling_enabled: false,
-            scope_validation_enabled: false,
-            workspace_roots: &[],
-            unit_types: &DashMap::new(),
-            event_targets: &DashMap::new(),
-            event_namespaces: &DashMap::new(),
-            events: &DashMap::new(),
-            decisions: &DashMap::new(),
-            decision_categories: &DashMap::new(),
-        };
         let rules: Vec<Box<dyn ValidationRule>> = vec![Box::new(FocusSearchFilterRule)];
         let mut visitors: Vec<Box<dyn AstVisitor>> = Vec::new();
         let mut diags = Vec::new();

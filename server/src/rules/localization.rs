@@ -123,14 +123,10 @@ impl ValidationRule for LocalizationRule {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::data::interner::InternedStr;
-    use crate::data::layered_value::LayeredValue;
-    use crate::parser::ast;
-    use crate::parser::loc_parser::LocEntry;
+
     use crate::parser::parser;
     use crate::rules::visitor::{AstVisitor, walk_script};
     use crate::utils::lsp_convert::RangeMapper;
-    use dashmap::DashMap;
 
     /// Run `LocalizationRule` over a single source + URI with a loc map that
     /// contains the given known keys (so the `!loc.is_empty()` guard passes
@@ -138,65 +134,11 @@ mod tests {
     fn run_with_loc(source: &str, uri: &str, known_keys: &[&str]) -> Vec<Diagnostic> {
         let (script, _) = parser::parse_script(source);
         let range_mapper = RangeMapper::new(&script.source);
-        let loc: DashMap<InternedStr, LayeredValue<LocEntry>> = DashMap::new();
+        let mut builder = crate::test_support::TestCtx::new();
         for k in known_keys {
-            loc.insert(
-                InternedStr::from(*k),
-                LayeredValue::new(LocEntry {
-                    key: InternedStr::from(*k),
-                    value: String::new(),
-                    range: ast::Range {
-                        start_line: 0,
-                        start_col: 0,
-                        end_line: 0,
-                        end_col: 0,
-                    },
-                    path: InternedStr::from("test.yml"),
-                    value_start_col: 0,
-                    version: None,
-                    version_range: None,
-                }),
-            );
+            builder = builder.with_loc_key(k);
         }
-        let ctx = ValidationContext {
-            uri,
-            source: &script.source,
-            range_mapper: &range_mapper,
-            loc: &loc,
-            scripted_triggers: &DashMap::new(),
-            scripted_effects: &DashMap::new(),
-            ideologies: &DashMap::new(),
-            sub_ideologies: &DashMap::new(),
-            traits: &DashMap::new(),
-            sprites: &DashMap::new(),
-            ideas: &DashMap::new(),
-            characters: &DashMap::new(),
-            provinces: &DashMap::new(),
-            modifier_mappings: &DashMap::new(),
-            ignored_loc_regex: &[],
-            comments: &[],
-            sound_effects: &DashMap::new(),
-            country_tags: &DashMap::new(),
-            tag_aliases: &DashMap::new(),
-            buildings: &DashMap::new(),
-            resources: &DashMap::new(),
-            state_categories: &DashMap::new(),
-            continents: &DashMap::new(),
-            strategic_regions: &DashMap::new(),
-            terrain_categories: &DashMap::new(),
-            abilities: &DashMap::new(),
-            ace_modifiers: &DashMap::new(),
-            game_path: None,
-            styling_enabled: false,
-            scope_validation_enabled: false,
-            workspace_roots: &[],
-            unit_types: &DashMap::new(),
-            event_targets: &DashMap::new(),
-            event_namespaces: &DashMap::new(),
-            events: &DashMap::new(),
-            decisions: &DashMap::new(),
-            decision_categories: &DashMap::new(),
-        };
+        let ctx = builder.build_context(uri, &script.source, &range_mapper);
         let rule = LocalizationRule;
         let rules: Vec<Box<dyn ValidationRule>> = vec![Box::new(rule)];
         let mut diags = Vec::new();

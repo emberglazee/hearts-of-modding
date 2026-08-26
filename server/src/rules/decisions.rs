@@ -410,46 +410,9 @@ mod tests {
     fn check_block_diags(source: &str, uri: &str, scanner_data: &ScannerData) -> Vec<Diagnostic> {
         let (script, _) = parser::parse_script(source);
         let rule = DecisionsRule;
+        let test_ctx = crate::test_support::TestCtx::wrap_ref(scanner_data);
         let range_mapper = RangeMapper::new(&script.source);
-        let ctx = ValidationContext {
-            uri,
-            source: &script.source,
-            range_mapper: &range_mapper,
-            loc: &scanner_data.localization,
-            scripted_triggers: &scanner_data.scripted_triggers,
-            scripted_effects: &scanner_data.scripted_effects,
-            ideologies: &scanner_data.ideologies,
-            sub_ideologies: &scanner_data.sub_ideologies,
-            traits: &scanner_data.traits,
-            sprites: &scanner_data.sprites,
-            ideas: &scanner_data.ideas,
-            characters: &scanner_data.characters,
-            provinces: &scanner_data.provinces,
-            modifier_mappings: &scanner_data.modifier_mappings,
-            ignored_loc_regex: &[],
-            comments: &[],
-            sound_effects: &scanner_data.sound_effects,
-            country_tags: &scanner_data.country_tags,
-            tag_aliases: &scanner_data.tag_aliases,
-            buildings: &scanner_data.buildings,
-            resources: &scanner_data.resources,
-            state_categories: &scanner_data.state_categories,
-            continents: &scanner_data.continents,
-            strategic_regions: &scanner_data.strategic_regions,
-            terrain_categories: &scanner_data.terrain_categories,
-            abilities: &scanner_data.abilities,
-            ace_modifiers: &scanner_data.ace_modifiers,
-            game_path: None,
-            styling_enabled: false,
-            scope_validation_enabled: false,
-            workspace_roots: &[],
-            unit_types: &scanner_data.unit_types,
-            event_targets: &scanner_data.event_targets,
-            event_namespaces: &scanner_data.event_namespaces,
-            events: &scanner_data.events,
-            decisions: &scanner_data.decisions,
-            decision_categories: &scanner_data.decision_categories,
-        };
+        let ctx = test_ctx.build_context(uri, &script.source, &range_mapper);
         let mut diags = Vec::new();
         rule.check_block(&script.entries, &ctx, &mut diags);
         diags
@@ -457,46 +420,9 @@ mod tests {
 
     fn visitor_diags(source: &str, uri: &str, scanner_data: &ScannerData) -> Vec<Diagnostic> {
         let (script, _) = parser::parse_script(source);
+        let test_ctx = crate::test_support::TestCtx::wrap_ref(scanner_data);
         let range_mapper = RangeMapper::new(&script.source);
-        let ctx = ValidationContext {
-            uri,
-            source: &script.source,
-            range_mapper: &range_mapper,
-            loc: &scanner_data.localization,
-            scripted_triggers: &scanner_data.scripted_triggers,
-            scripted_effects: &scanner_data.scripted_effects,
-            ideologies: &scanner_data.ideologies,
-            sub_ideologies: &scanner_data.sub_ideologies,
-            traits: &scanner_data.traits,
-            sprites: &scanner_data.sprites,
-            ideas: &scanner_data.ideas,
-            characters: &scanner_data.characters,
-            provinces: &scanner_data.provinces,
-            modifier_mappings: &scanner_data.modifier_mappings,
-            ignored_loc_regex: &[],
-            comments: &[],
-            sound_effects: &scanner_data.sound_effects,
-            country_tags: &scanner_data.country_tags,
-            tag_aliases: &scanner_data.tag_aliases,
-            buildings: &scanner_data.buildings,
-            resources: &scanner_data.resources,
-            state_categories: &scanner_data.state_categories,
-            continents: &scanner_data.continents,
-            strategic_regions: &scanner_data.strategic_regions,
-            terrain_categories: &scanner_data.terrain_categories,
-            abilities: &scanner_data.abilities,
-            ace_modifiers: &scanner_data.ace_modifiers,
-            game_path: None,
-            styling_enabled: false,
-            scope_validation_enabled: false,
-            workspace_roots: &[],
-            unit_types: &scanner_data.unit_types,
-            event_targets: &scanner_data.event_targets,
-            event_namespaces: &scanner_data.event_namespaces,
-            events: &scanner_data.events,
-            decisions: &scanner_data.decisions,
-            decision_categories: &scanner_data.decision_categories,
-        };
+        let ctx = test_ctx.build_context(uri, &script.source, &range_mapper);
         let mut diags = Vec::new();
         let mut visitors: Vec<Box<dyn AstVisitor>> = vec![DecisionsRule::visitor()];
         let rules: Vec<Box<dyn ValidationRule>> = vec![];

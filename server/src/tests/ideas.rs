@@ -1,89 +1,15 @@
 #[cfg(test)]
 mod tests {
-    use crate::data::interner::InternedStr;
-    use crate::data::layered_value::LayeredValue;
-    use crate::parser::ast;
+
     use crate::parser::parser::parse_script;
+    use crate::rules::ValidationRule;
     use crate::rules::ideas::IdeaRule;
     use crate::rules::visitor::walk_script;
-    use crate::rules::{ValidationContext, ValidationRule};
-    use crate::scanner::idea_scanner::Idea;
-    use crate::scanner::province_scanner::Province;
-    use crate::scanner::strategic_region_scanner::StrategicRegion;
+
     use crate::scope::scope::Scope;
+    use crate::test_support::TestCtx;
     use crate::utils::lsp_convert::RangeMapper;
-    use dashmap::DashMap;
-    use regex::Regex;
     use tower_lsp_server::ls_types::{Diagnostic, NumberOrString};
-
-    /// Build a minimal ValidationContext with empty scanner data.
-    fn empty_ctx_with_ideas<'a>(source: &'a str, idea_names: &[&str]) -> ValidationContext<'a> {
-        // Leak the mapper so the returned context (which borrows it) is valid;
-        // matches the existing leak_map() pattern used for the other fields.
-        let range_mapper: &'static RangeMapper = Box::leak(Box::new(RangeMapper::new(source)));
-        let ideas: &'static DashMap<InternedStr, LayeredValue<Idea>> =
-            Box::leak(Box::new(DashMap::new()));
-        for name in idea_names {
-            ideas.insert(
-                InternedStr::from(*name),
-                LayeredValue::new(Idea {
-                    name: (*name).to_string(),
-                    category: "country".to_string(),
-                    picture: None,
-                    path: InternedStr::from("test.txt"),
-                    range: ast::Range {
-                        start_line: 0,
-                        start_col: 0,
-                        end_line: 0,
-                        end_col: 0,
-                    },
-                }),
-            );
-        }
-        ValidationContext {
-            uri: "test://ideas.txt",
-            source,
-            range_mapper,
-            loc: leak_map(),
-            scripted_triggers: leak_map(),
-            scripted_effects: leak_map(),
-            ideologies: leak_map(),
-            sub_ideologies: leak_map(),
-            traits: leak_map(),
-            sprites: leak_map(),
-            ideas,
-            characters: leak_map(),
-            provinces: Box::leak(Box::new(DashMap::<u32, Province>::new())),
-            modifier_mappings: leak_map(),
-            ignored_loc_regex: &[] as &[Regex],
-            comments: &[] as &[(ast::ByteSpan, ast::Range)],
-            sound_effects: leak_map(),
-            country_tags: leak_map(),
-            tag_aliases: leak_map(),
-            buildings: leak_map(),
-            resources: leak_map(),
-            state_categories: leak_map(),
-            continents: leak_map(),
-            strategic_regions: Box::leak(Box::new(DashMap::<u32, StrategicRegion>::new())),
-            terrain_categories: leak_map(),
-            abilities: leak_map(),
-            ace_modifiers: leak_map(),
-            game_path: None,
-            styling_enabled: false,
-            scope_validation_enabled: false,
-            workspace_roots: &[] as &[std::path::PathBuf],
-            unit_types: leak_map(),
-            event_targets: leak_map(),
-            event_namespaces: leak_map(),
-            events: leak_map(),
-            decisions: leak_map(),
-            decision_categories: leak_map(),
-        }
-    }
-
-    fn leak_map<K: Eq + std::hash::Hash, V>() -> &'static DashMap<K, V> {
-        Box::leak(Box::new(DashMap::new()))
-    }
 
     /// Run only IdeaRule against the parsed script, returning diagnostics.
     fn run_idea_rules(source: &str) -> Vec<Diagnostic> {
@@ -92,8 +18,10 @@ mod tests {
 
     /// Like [`run_idea_rules`] but pre-populates the ideas map with `idea_names`.
     fn run_idea_rules_with_ideas(source: &str, idea_names: &[&str]) -> Vec<Diagnostic> {
+        let ctx_builder = TestCtx::new().with_ideas(idea_names);
         let (script, _) = parse_script(source);
-        let ctx = empty_ctx_with_ideas(&script.source, idea_names);
+        let range_mapper = Box::leak(Box::new(RangeMapper::new(&script.source)));
+        let ctx = ctx_builder.build_context("test://ideas.txt", &script.source, range_mapper);
 
         let rule: Box<dyn ValidationRule> = Box::new(IdeaRule);
         let rules: [Box<dyn ValidationRule>; 1] = [rule];
