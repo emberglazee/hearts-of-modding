@@ -229,7 +229,11 @@ fn walk_entries(
                     ast::Value::Block(inner) | ast::Value::TaggedBlock(_, inner, _) => {
                         let key = ass.key_text(ctx.source);
                         let new_in_air_wings = in_air_wings || key == "air_wings";
-                        let new_in_random_list = key == "random_list";
+                        // `random_list` and `random_events` both use numeric
+                        // weights as keys (e.g. `10 = { ... }` vs `100 = event.id`).
+                        // Those keys are NOT State IDs and must not push State
+                        // scope. Treat both as weight blocks.
+                        let new_in_random_list = key == "random_list" || key == "random_events";
                         crate::backend::check_duplicate_keys(
                             inner,
                             diags,

@@ -658,6 +658,13 @@ fn push_entry_tokens(
             // be highlighted distinctly.
             let is_meta = is_meta_scope(key_text);
 
+            // On-action keys (`on_*` inside `on_actions = { }`) — these are
+            // engine hooks, not ordinary triggers/effects. Highlight them as
+            // keywords even though they are not in the V2 data JSON.
+            let is_on_actions_wrapper = key_text.eq_ignore_ascii_case("on_actions");
+            let is_on_action_key = parent_key.is_some_and(|p| p.eq_ignore_ascii_case("on_actions"))
+                && key_text.to_ascii_lowercase().starts_with("on_");
+
             // Documented parameter of the enclosing block (e.g. `days` inside
             // `add_timed_idea = { ... }`) or of a threaded param-container
             // ancestor (`ledger`/`doctrine` inside a `technology_folders`
@@ -699,6 +706,18 @@ fn push_entry_tokens(
                     start: key_start,
                     length: key_len,
                     token_type: TokenType::Property as u32,
+                });
+            } else if is_on_actions_wrapper || is_on_action_key {
+                // `on_actions = { }` and its direct children `on_* = { }`
+                // are structural containers. Highlight as Keyword so they stand
+                // out even without an entry in the trigger/effect keyword set.
+                // Using Keyword keeps them theme-consistent with other top-level
+                // containers (`focus_tree`, `ideas`, etc.).
+                tokens.push(RawToken {
+                    line: key_line,
+                    start: key_start,
+                    length: key_len,
+                    token_type: TokenType::Keyword as u32,
                 });
             } else if is_keyword {
                 tokens.push(RawToken {

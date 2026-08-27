@@ -2,7 +2,7 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
-## [v0.28.0] - 2026-08-26
+## [v0.28.0] - 2026-08-27
 
 ### ✨ Added
 
@@ -15,6 +15,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 - **Toggle Scope Validation command.** (again)
 
   > accidentally obliterated it sometime in the past, oops
+
+**Scope stack integration for `common/on_actions/*.txt`.**
 
 ### 🧹 Internal
 

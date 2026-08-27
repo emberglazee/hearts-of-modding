@@ -55,6 +55,10 @@ pub enum Scope {
     /// per-key — not a trigger/effect evaluation scope. V2ScopeRule skips
     /// scope checks inside these blocks.
     ModifierBag,
+    /// Structural container for `common/on_actions/*.txt` (`on_actions = { }`).
+    /// Its children are individual `on_*` blocks, each with its own runtime
+    /// scope (Country / State / Character / Unit / Global).
+    OnActions,
     Unknown,
 }
 
@@ -81,6 +85,7 @@ impl Scope {
             Scope::TechnologyCategories => "Technology Categories",
             Scope::TechnologyFolders => "Technology Folders",
             Scope::ModifierBag => "Modifier Bag",
+            Scope::OnActions => "On Actions",
             Scope::Unknown => "Unknown",
         }
     }
@@ -91,8 +96,63 @@ impl Scope {
     pub fn effective_scope(&self) -> Scope {
         match self {
             Scope::FocusTree | Scope::NationalFocus | Scope::Technologies => Scope::Country,
+            Scope::OnActions => Scope::Global,
             Scope::Unknown => Scope::Global,
             other => *other,
+        }
+    }
+
+    /// Map an `on_*` action name to its runtime scope.
+    ///
+    /// Data collected from wiki + vanilla `common/on_actions/*.txt` + `_documentation.md`:
+    /// - `on_startup` is explicitly `none` (Global) — no country context.
+    /// - State-default: border wars and naval invasions (THIS = invaded state).
+    /// - Unit: `on_add_history` (ROOT = unit).
+    /// - Character: unit-leader and operative actions (ROOT/THIS = character/operative).
+    /// - Everything else is Country-scoped (ROOT = country, FROM = other country).
+    ///
+    ///   Unknown `on_*` fall back to Country; prefix `on_daily_`, `on_weekly_`,
+    ///   `on_monthly_` are dynamic country-specific variants (Country).
+    pub fn on_action_scope(key: &str) -> Option<Scope> {
+        let lower = key.to_ascii_lowercase();
+        // Dynamic per-country pulses
+        if lower.starts_with("on_daily_")
+            || lower.starts_with("on_weekly_")
+            || lower.starts_with("on_monthly_")
+        {
+            return Some(Scope::Country);
+        }
+        match lower.as_str() {
+            // Global — explicitly “none”
+            "on_startup" => Some(Scope::Global),
+            // State-default
+            "on_border_war_lost" => Some(Scope::State),
+            "on_naval_invasion" => Some(Scope::State),
+            "on_paradrop" => Some(Scope::State),
+            "on_units_paradropped_in_state" => Some(Scope::State),
+            // Unit
+            "on_add_history" => Some(Scope::Unit),
+            // Character — unit leaders / operatives
+            "on_unit_leader_created"
+            | "on_army_leader_daily"
+            | "on_army_leader_won_combat"
+            | "on_army_leader_lost_combat"
+            | "on_unit_leader_level_up"
+            | "on_army_leader_promoted"
+            | "on_unit_leader_promote_from_ranks_veteran"
+            | "on_unit_leader_promote_from_ranks_green"
+            | "on_deployed_leader_defeated"
+            // Operative — THIS is the operative (Character)
+            | "on_operative_created"
+            | "on_operative_death"
+            | "on_operative_recruited"
+            | "on_operative_captured"
+            | "on_operative_on_mission_spotted"
+            | "on_operative_detected_during_operation"
+            | "on_operation_completed" => Some(Scope::Character),
+            // Country fallback for every other known on_action
+            s if s.starts_with("on_") => Some(Scope::Country),
+            _ => None,
         }
     }
 
@@ -110,6 +170,7 @@ impl Scope {
             // Country wildcard match.
             "focus_tree" | "continuous_focus_palette" => Scope::FocusTree,
             "focus" | "shared_focus" | "joint_focus" => Scope::NationalFocus,
+            "on_actions" => Scope::OnActions,
             // Technology tag containers — same reasoning as focus scopes:
             // structural, matched before the Country wildcard list.
             "technology_categories" => Scope::TechnologyCategories,
@@ -291,6 +352,11 @@ pub fn initial_scope_for_uri(uri: &str) -> Scope {
     {
         // Mapped to Country to avoid false positives (no scanners yet).
         Scope::Country
+    } else if uri.contains("/common/on_actions/") {
+        // `common/on_actions/` only ever holds `on_actions = { on_* = { ... } }`.
+        // Starting from `OnActions` instead of `Global` removes the misleading
+        // `Global > On Actions` prefix the editor was showing.
+        Scope::OnActions
     } else {
         Scope::Global
     }
@@ -528,6 +594,34 @@ impl ScopeStack {
             || matches!(key.to_ascii_uppercase().as_str(), "AND" | "OR" | "NOT")
         {
             return (self.current(), true);
+        }
+
+        // 1b. On-actions: `on_actions` wrapper and per-action `on_*` blocks
+        // (only in common/on_actions/*.txt). This runs before V2/chain lookups
+        // so each on_action gets its documented runtime scope (Country / State /
+        // Character / Unit / Global) instead of falling back to Global/Unknown.
+        //
+        // Guard: only direct children of the `on_actions` container push an
+        // on_action scope. Without this, any nested `on_` key (e.g. inside an
+        // effect block) would be mis-scoped.
+        if ctx.uri.contains("/common/on_actions/") {
+            if key.eq_ignore_ascii_case("on_actions") {
+                // File's initial scope already IS `OnActions` (see
+                // `initial_scope_for_uri`). The literal `on_actions = { }`
+                // wrapper would otherwise push a duplicate `OnActions` on top
+                // of it (`On Actions > On Actions`). Make it a no-op so the
+                // stack stays `On Actions > <on_*>` instead of
+                // `Global > On Actions > <on_*>` / `On Actions > On Actions`.
+                if self.current() == Scope::OnActions {
+                    return (Scope::Unknown, false);
+                }
+                return (Scope::OnActions, false);
+            }
+            if self.current() == Scope::OnActions {
+                if let Some(s) = Scope::on_action_scope(key) {
+                    return (s, false);
+                }
+            }
         }
 
         // 2. V2: Known trigger/effect with explicit scope push
