@@ -33,6 +33,7 @@ pub(crate) mod state_definitions;
 pub(crate) mod terrains;
 pub(crate) mod traits;
 pub(crate) mod v2_scope;
+pub(crate) mod variables;
 pub(crate) mod visitor;
 
 /// Context passed to validation rules during semantic checking.
