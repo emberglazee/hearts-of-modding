@@ -788,6 +788,30 @@ pub async fn generate_workspace_symbols(
         }
     }
 
+    // Search unit types (common/units/*.txt)
+    let unit_types = &data.unit_types;
+    for entry in unit_types.iter() {
+        let name = entry.key();
+        let unit = entry.value();
+        if fuzzy_match(&query_lower, name) {
+            #[allow(deprecated)]
+            symbols.push(SymbolInformation {
+                name: name.to_string(),
+                kind: SymbolKind::CLASS,
+                tags: None,
+                deprecated: None,
+                location: Location {
+                    uri: path_to_url(&unit.path),
+                    range: mapper_for_path(&mut mapper_cache, &unit.path).range(&unit.range),
+                },
+                container_name: Some(format!(
+                    "Unit Type ({})",
+                    unit.group.as_deref().unwrap_or("unknown")
+                )),
+            });
+        }
+    }
+
     symbols
 }
 

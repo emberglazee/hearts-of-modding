@@ -112,6 +112,26 @@ fn test_standard_scanner_maps_insertable() {
         );
         assert!(data.abilities.contains_key(&key));
     }
+
+    // UnitType — common/units/*.txt (sub_units)
+    {
+        let key: InternedStr = InternedStr::from("infantry");
+        data.unit_types.insert(
+            key.clone(),
+            LayeredValue::new(crate::scanner::unit_scanner::UnitType {
+                name: "infantry".to_string(),
+                abbreviation: Some("INF".to_string()),
+                group: Some("infantry".to_string()),
+                combat_width: 2.0,
+                is_support: false,
+                type_categories: vec!["infantry".to_string()],
+                categories: vec!["category_front_line".to_string()],
+                path: InternedStr::from(""),
+                range: dummy_range(),
+            }),
+        );
+        assert!(data.unit_types.contains_key(&key));
+    }
 }
 
 /// Verify for_each_standard_scanner! has the expected number of entries.

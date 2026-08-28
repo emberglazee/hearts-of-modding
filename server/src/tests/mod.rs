@@ -15,4 +15,6 @@ pub mod provinces;
 pub mod registry;
 pub mod scripted_loc;
 pub mod technology;
+pub mod units;
 pub mod utf16_conversion;
+pub mod variables;

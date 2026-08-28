@@ -882,6 +882,7 @@ impl<'a> EntityLookup<'a> {
         push_symbols!(AiStrategyPlan, ai_strategy_plans, "AI Strategy Plan");
         push_symbols!(AiArea, ai_areas, "AI Area");
         push_symbols!(BalanceOfPower, balance_of_powers, "Balance of Power");
+        push_symbols!(UnitType, unit_types, "Unit Type");
 
         results
     }

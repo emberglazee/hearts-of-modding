@@ -1326,6 +1326,20 @@ impl Backend {
                 ..Default::default()
             });
         }
+        // Unit types (common/units/*.txt)
+        for entry in sd.unit_types.iter() {
+            let u = entry.value();
+            items.push(CompletionItem {
+                label: u.name.clone(),
+                kind: Some(CompletionItemKind::CLASS),
+                detail: Some(format!(
+                    "Unit Type ({})",
+                    u.group.as_deref().unwrap_or("unknown")
+                )),
+                documentation: Some(Documentation::String(format!("Defined in: {}", u.path))),
+                ..Default::default()
+            });
+        }
         items
     }
 }
@@ -3541,6 +3555,11 @@ impl ValidationCtx {
             Box::new(rules::events::EventValidationRule),
             Box::new(rules::decisions::DecisionsRule),
             Box::new(rules::v2_scope::V2ScopeRule),
+            // Variable/flag/array validation (Layer 1)
+            Box::new(rules::variables::VariableRuleState::new(
+                &self.scanner_data.variables,
+                &self.scanner_data.event_targets,
+            )),
         ];
 
         // Block-level rules: top-level entries only, NO recursion.

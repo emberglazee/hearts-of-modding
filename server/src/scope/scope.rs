@@ -331,6 +331,12 @@ pub fn initial_scope_for_uri(uri: &str) -> Scope {
         Scope::Country
     } else if uri.contains("/common/aces/") {
         Scope::Ace
+    } else if uri.contains("/common/units/") {
+        // Unit type definitions (common/units/*.txt) — top level is
+        // `sub_units = { ... }` with unit type blocks. No trigger/effect
+        // evaluation at the top level, so Global is appropriate.
+        // This ensures files are classified consistently with other definition files.
+        Scope::Global
     } else if uri.contains("/common/technology_tags/") {
         // Top level of technology-tags files holds only the
         // technology_categories / technology_folders declaration blocks.

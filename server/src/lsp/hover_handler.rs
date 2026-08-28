@@ -1725,6 +1725,23 @@ impl Backend {
                         );
                     }
 
+                    // Check unit types (common/units/*.txt)
+                    let unit_types = &self.scanner_data.unit_types;
+                    if let Some(unit) = unit_types.get(identifier.as_str()) {
+                        push_section(
+                            &mut hover_text,
+                            &format!(
+                                "### ⚔️ Unit Type: {}\n\nGroup: {}\nCombat Width: {}\nSupport: {}\nCategories: {}\n\nDefined in: {}",
+                                unit.name,
+                                unit.group.as_deref().unwrap_or("unknown"),
+                                unit.combat_width,
+                                unit.is_support,
+                                unit.categories.join(", "),
+                                self.make_file_link(&unit.path)
+                            ),
+                        );
+                    }
+
                     if !hover_text.is_empty() {
                         return Ok(Some(Hover {
                             contents: HoverContents::Markup(MarkupContent {
