@@ -18,8 +18,6 @@ Inspired by [CWTools](https://github.com/cwtools/cwtools) and [VModer](https://g
 
 </div>
 
----
-
 ## 📑 Table of Contents
 
 - [🚀 Features](#-features)
