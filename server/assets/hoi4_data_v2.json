@@ -29634,6 +29634,44 @@
 			"stack_behaviour": "passthrough",
 			"version_added": "1.0",
 			"notes": "Prerequisites on a shared focus must resolve inside EVERY importing tree or the focus silently vanishes there. Use local entry focuses or keep entry shared focuses prerequisite-free."
+		},
+		"capital": {
+			"name": "capital",
+			"description": "Defines the capital state for the country in history/countries. The province with the most victory points within that state will be used as the capital. In case of overlap, the lowest province ID among the possible choices is chosen. This must be a state ID, not a province ID.",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"pushes_scope": null,
+			"parameters": {},
+			"examples": [
+				"capital = 121"
+			],
+			"stack_behaviour": "passthrough",
+			"block_type": "value_effect",
+			"version_added": "1.0",
+			"notes": "Only valid in history/countries files (and date blocks within them). History files are executed as an effect block for the country. If not specified, the engine picks a fallback capital."
+		},
+		"oob": {
+			"name": "oob",
+			"description": "Loads a land order of battle (OOB) for the country in history, linking to a file in history/units/*.txt (without the .txt extension). The filename is arbitrary as long as it matches the file. This is the traditional history argument for land divisions and cannot be used inside if statements; use set_oob instead for conditional loading.",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"pushes_scope": null,
+			"parameters": {},
+			"examples": [
+				"oob = \"SCO_1936\""
+			],
+			"stack_behaviour": "passthrough",
+			"block_type": "value_effect",
+			"version_added": "1.0",
+			"notes": "History argument, not a generic effect. For conditional loading (e.g. DLC-gated OOBs) use set_oob / set_naval_oob / set_air_oob inside if blocks. Naval and air OOBs use set_naval_oob / set_air_oob. Countries with no OOB will have broken buildings. OOB files are defined in history/units/. Replaces any previously defined OOB of the same type."
 		}
 	},
 	"modifiers": {

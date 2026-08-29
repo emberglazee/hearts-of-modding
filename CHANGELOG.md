@@ -24,6 +24,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 **Scope stack integration for `common/on_actions/*.txt`.**
 
+**History country keys `capital` and `oob` are now documented in `hoi4_data_v2.json`.**
+
 ### 🩹 Fixed
 
 - **Fixed tag aliases not being semantically highlighted.**
