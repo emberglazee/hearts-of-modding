@@ -32,18 +32,17 @@ impl ValidationRule for CountryTagRule {
         if crate::scanner::country_scanner::is_reserved_tag(&key_upper)
             && crate::scanner::country_scanner::is_valid_tag(&key_upper)
         {
+            // Only `common/country_tags/*.txt` defines tags via assignment
+            // keys (`TAG = "countries/..."`). Keys inside `history/countries/`
+            // and `common/countries/` (e.g. `oob = "RDM_648"`,
+            // `graphical_culture = ...`) are NOT tag definitions — flagging
+            // them produced false positives (RDM file `oob` -> HOM4005 OOB).
+            // Filename-based definitions (history) are handled in check_block.
             let uri_lower = ctx.uri.to_ascii_lowercase();
             let is_tag_def_file = uri_lower.contains("/common/country_tags/")
-                || uri_lower.contains("\\common\\country_tags\\")
-                || uri_lower.contains("/common/countries/")
-                || uri_lower.contains("\\common\\countries\\")
-                || uri_lower.contains("/history/countries/")
-                || uri_lower.contains("\\history\\countries\\");
+                || uri_lower.contains("\\common\\country_tags\\");
             if is_tag_def_file {
-                // For common/country_tags every key *is* a tag definition.
-                // For common/countries / history/countries only some keys are
-                // tag definitions (cosmetic files), but a 3-char reserved key
-                // appearing there is unambiguously a tag definition attempt.
+                // Every key in country_tags *is* a tag definition.
                 let msg = match key_upper.as_str() {
                     "RED" => {
                         "Country tag 'RED' is reserved for custom map modes (used as `red` variable). The tag will still load but every custom map mode will render with red=0. Prefer a non-reserved tag (e.g. RMT, REM)."

@@ -221,4 +221,42 @@ mod red_tests {
             hom4005
         );
     }
+
+    #[test]
+    fn oob_key_in_history_does_not_emit_hom4005_regression() {
+        // Regression: `oob = "RDM_648"` in history/countries/RDM - ...txt
+        // was flagged as HOM4005 OOB because the check incorrectly treated
+        // any `oob` assignment inside history as a tag definition.
+        let input = "oob = \"RDM_648\"\ncapital = 95\n";
+        let uri = "file:///mod/history/countries/RDM - Redstone Mountain.txt";
+        let diags = run_country_tag_rule(input, uri);
+        let hom4005: Vec<_> = diags
+            .iter()
+            .filter(|d| matches!(&d.code, Some(tower_lsp_server::ls_types::NumberOrString::String(c)) if c == "HOM4005"))
+            .collect();
+        assert!(
+            hom4005.is_empty(),
+            "history `oob =` must NOT emit HOM4005 (RDM regression), got {:?}",
+            hom4005
+        );
+    }
+
+    #[test]
+    fn history_keys_like_oob_not_flagged_even_with_lowercase() {
+        for key in ["oob", "OOB", "log", "LOG", "tag", "num", "red"] {
+            let input = format!("{} = \"something\"", key);
+            let uri = "file:///mod/history/countries/RDM - Redstone Mountain.txt";
+            let diags = run_country_tag_rule(&input, uri);
+            let hom4005: Vec<_> = diags
+                .iter()
+                .filter(|d| matches!(&d.code, Some(tower_lsp_server::ls_types::NumberOrString::String(c)) if c == "HOM4005"))
+                .collect();
+            assert!(
+                hom4005.is_empty(),
+                "history key `{}` must not emit HOM4005, got {:?}",
+                key,
+                hom4005
+            );
+        }
+    }
 }
