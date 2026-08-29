@@ -1356,3 +1356,188 @@ fn bis6_direct_no_ai_chance_on_a() {
         ai_chance_diags(&diags)
     );
 }
+
+// ---------------------------------------------------------------------------
+// HOM3017: solid-zero ai_chance (base/factor = 0) suppression
+// ---------------------------------------------------------------------------
+
+/// One option has solid-zero `ai_chance = { factor = 0 }`, the other has no
+/// ai_chance (implicit 1). The missing option is forced to 100% — HOM3017
+/// must be suppressed.
+#[test]
+fn hom3017_suppressed_for_solid_zero_factor_and_missing() {
+    let input = r#"
+country_event = {
+    id = test.20
+    title = t
+    desc = d
+    is_triggered_only = yes
+    option = { name = test.20.a ai_chance = { factor = 0 } }
+    option = { name = test.20.b }
+}
+"#;
+    let diags = run_event_visitor(input, "file:///events/test.txt", &[]);
+    assert!(
+        ai_chance_diags(&diags).is_empty(),
+        "factor 0 + missing must suppress HOM3017: {:?}",
+        diags
+    );
+}
+
+#[test]
+fn hom3017_suppressed_for_solid_zero_base_and_missing() {
+    let input = r#"
+country_event = {
+    id = test.21
+    title = t
+    desc = d
+    is_triggered_only = yes
+    option = { name = test.21.a ai_chance = { base = 0 } }
+    option = { name = test.21.b }
+}
+"#;
+    let diags = run_event_visitor(input, "file:///events/test.txt", &[]);
+    assert!(
+        ai_chance_diags(&diags).is_empty(),
+        "base 0 + missing must suppress HOM3017: {:?}",
+        diags
+    );
+}
+
+/// A non-zero ai_chance plus a missing one is still a weighted decision —
+/// HOM3017 must still fire.
+#[test]
+fn hom3017_still_flags_nonzero_plus_missing() {
+    let input = r#"
+country_event = {
+    id = test.22
+    title = t
+    desc = d
+    is_triggered_only = yes
+    option = { name = test.22.a ai_chance = { base = 10 } }
+    option = { name = test.22.b }
+}
+"#;
+    let diags = run_event_visitor(input, "file:///events/test.txt", &[]);
+    assert_eq!(
+        ai_chance_diags(&diags).len(),
+        1,
+        "non-zero + missing should still flag HOM3017: {:?}",
+        diags
+    );
+}
+
+/// `modifier = { ... }` disqualifies solid-zero: the weight is conditional,
+/// so the missing option is not guaranteed.
+#[test]
+fn hom3017_not_suppressed_when_zero_has_modifier() {
+    let input = r#"
+country_event = {
+    id = test.23
+    title = t
+    desc = d
+    is_triggered_only = yes
+    option = { name = test.23.a ai_chance = { factor = 0 modifier = { factor = 10 tag = ENG } } }
+    option = { name = test.23.b }
+}
+"#;
+    let diags = run_event_visitor(input, "file:///events/test.txt", &[]);
+    assert_eq!(
+        ai_chance_diags(&diags).len(),
+        1,
+        "modifier disqualifies solid zero: {:?}",
+        diags
+    );
+}
+
+/// Non-zero `add` rescues a zero base — not solid zero.
+#[test]
+fn hom3017_not_suppressed_when_zero_base_has_nonzero_add() {
+    let input = r#"
+country_event = {
+    id = test.24
+    title = t
+    desc = d
+    is_triggered_only = yes
+    option = { name = test.24.a ai_chance = { base = 0 add = 5 } }
+    option = { name = test.24.b }
+}
+"#;
+    let diags = run_event_visitor(input, "file:///events/test.txt", &[]);
+    assert_eq!(
+        ai_chance_diags(&diags).len(),
+        1,
+        "add 5 rescues base 0: {:?}",
+        diags
+    );
+}
+
+/// Two solid-zero options + one missing: the missing one is the sole
+/// effective choice (100%) — suppressed.
+#[test]
+fn hom3017_suppressed_for_two_zeros_and_one_missing() {
+    let input = r#"
+country_event = {
+    id = test.25
+    title = t
+    desc = d
+    is_triggered_only = yes
+    option = { name = test.25.a ai_chance = { factor = 0 } }
+    option = { name = test.25.b ai_chance = { base = 0 } }
+    option = { name = test.25.c }
+}
+"#;
+    let diags = run_event_visitor(input, "file:///events/test.txt", &[]);
+    assert!(
+        ai_chance_diags(&diags).is_empty(),
+        "two zeros + one missing => effective 1 => suppress: {:?}",
+        diags
+    );
+}
+
+/// One solid-zero + two missing: two effective choices remain — HOM3017
+/// must still flag (the two missings each default to 1 and compete).
+#[test]
+fn hom3017_still_flags_one_zero_two_missing() {
+    let input = r#"
+country_event = {
+    id = test.26
+    title = t
+    desc = d
+    is_triggered_only = yes
+    option = { name = test.26.a ai_chance = { factor = 0 } }
+    option = { name = test.26.b }
+    option = { name = test.26.c }
+}
+"#;
+    let diags = run_event_visitor(input, "file:///events/test.txt", &[]);
+    assert_eq!(
+        ai_chance_diags(&diags).len(),
+        1,
+        "one zero + two missing => effective 2 => flag: {:?}",
+        diags
+    );
+}
+
+/// Solid-zero combines with AI-invisibility: invisible option already
+/// excluded, zero-weight option also excluded, leaving one effective choice.
+#[test]
+fn hom3017_suppressed_for_invisible_plus_zero_plus_missing() {
+    let input = r#"
+country_event = {
+    id = test.27
+    title = t
+    desc = d
+    is_triggered_only = yes
+    option = { name = test.27.a trigger = { is_ai = no } }
+    option = { name = test.27.b ai_chance = { factor = 0 } }
+    option = { name = test.27.c }
+}
+"#;
+    let diags = run_event_visitor(input, "file:///events/test.txt", &[]);
+    assert!(
+        ai_chance_diags(&diags).is_empty(),
+        "invisible + zero + missing => effective 1 => suppress: {:?}",
+        diags
+    );
+}

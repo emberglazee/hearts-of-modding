@@ -15,6 +15,14 @@ struct EventOptionDef {
     has_name: bool,
     /// Whether this option has an `ai_chance` block.
     has_ai_chance: bool,
+    /// Whether this option's `ai_chance` block is a *solid* zero weight
+    /// (`base = 0` or `factor = 0` with no `modifier` and no non-zero `add`).
+    /// A solid-zero option is never picked by the AI unless every option
+    /// is zero (wiki: "If all options have a weight of zero, the first one
+    /// is chosen"). For the AI's proportional pick it is effectively
+    /// invisible, so a remaining single non-zero option (even with implicit
+    /// weight 1 from missing ai_chance) is forced to 100%.
+    is_zero_weight_ai_chance: bool,
     /// Whether the option's `trigger` PROVABLY hides it from the AI:
     /// - direct `is_ai = no`
     /// - `NOT = { is_ai = yes }`
@@ -53,6 +61,11 @@ struct EventDef {
     /// these; if exactly one is visible, its pick is forced and no
     /// `ai_chance` weights matter.
     ai_visible_option_count: u32,
+    /// Number of VISIBLE options whose AI weight is provably > 0
+    /// (visible minus solid-zero `ai_chance = { base/factor = 0 }`).
+    /// When this is <= 1 the AI's pick is forced (100%) even if
+    /// `ai_visible_option_count` is 2, so HOM3017 is suppressed.
+    ai_visible_effective_option_count: u32,
     /// Key range of the last option missing `ai_chance` (for diagnostic positioning).
     last_missing_ai_chance_range: Option<ast::Range>,
     /// Range of the `title` assignment key (for HOM3018 positioning).
@@ -257,7 +270,16 @@ impl EventVisitor {
         // is_ai = no) leaves exactly one AI-visible option, so HOM3017 is
         // suppressed for the whole event even though that visible option has
         // no explicit weights.
-        let forced_choice = state.ai_visible_option_count <= 1;
+        //
+        // Extension: a solid-zero weight (`ai_chance = { base = 0 }` or
+        // `factor = 0` with no `modifier` and no non-zero `add`) is also
+        // effectively invisible for the weighted pick — the AI never rolls
+        // it unless every option is zero. If a single remaining VISIBLE
+        // option has effective weight > 0 (even the implicit 1 from a missing
+        // ai_chance block), its pick is likewise forced to 100% and HOM3017
+        // is suppressed (e.g. one option `factor = 0`, the other missing
+        // ai_chance → missing defaults to 1, total 1, missing is guaranteed).
+        let forced_choice = state.ai_visible_effective_option_count <= 1;
         if state.option_count > 1 && !forced_choice && state.options_missing_ai_chance > 0 {
             let diag_range = state
                 .last_missing_ai_chance_range
@@ -646,6 +668,7 @@ impl AstVisitor for EventVisitor {
                 option_count: 0,
                 options_missing_ai_chance: 0,
                 ai_visible_option_count: 0,
+                ai_visible_effective_option_count: 0,
                 last_missing_ai_chance_range: None,
                 title_range: None,
                 desc_range: None,
@@ -738,6 +761,7 @@ impl AstVisitor for EventVisitor {
                 key_range: ass.key_range.clone(),
                 has_name: false,
                 has_ai_chance: false,
+                is_zero_weight_ai_chance: false,
                 provably_ai_invisible: Self::evaluate_option_trigger_ai_visibility(&ass.value, ctx),
             });
             return;
@@ -752,6 +776,8 @@ impl AstVisitor for EventVisitor {
                     }
                     "ai_chance" if matches!(&ass.value.value, ast::Value::Block(_)) => {
                         state.has_ai_chance = true;
+                        state.is_zero_weight_ai_chance =
+                            Self::is_solid_zero_ai_chance(&ass.value, ctx.source);
                     }
                     _ => {}
                 }
@@ -783,6 +809,15 @@ impl AstVisitor for EventVisitor {
                 if let Some(event) = self.event_stack.last_mut() {
                     if !state.provably_ai_invisible {
                         event.ai_visible_option_count += 1;
+                        // Solid-zero ai_chance is effectively invisible for the
+                        // weighted pick: its share is 0 unless every option is
+                        // zero (wiki fallback to first option). Single
+                        // remaining non-zero option is forced to 100%.
+                        let contributes_weight =
+                            !(state.has_ai_chance && state.is_zero_weight_ai_chance);
+                        if contributes_weight {
+                            event.ai_visible_effective_option_count += 1;
+                        }
                     }
                     if !state.has_ai_chance && !state.provably_ai_invisible {
                         event.options_missing_ai_chance += 1;
@@ -1061,6 +1096,94 @@ impl EventVisitor {
         }
 
         has_proof(entries, source, ctx)
+    }
+
+    /// Determine whether an `ai_chance` block is a *solid* zero weight.
+    ///
+    /// Wiki (event-modding.md): weights are proportional; a missing
+    /// `ai_chance` defaults to 1. `base` and `factor` are the only
+    /// unconditional scalars that can force a weight to 0 — but any
+    /// `modifier = { ... }` or a non-zero `add` can rescue the weight
+    /// conditionally, so those disqualify the solid-zero guarantee.
+    ///
+    /// Conservative: any `modifier`, any non-zero `add`, any unknown key,
+    /// or any unparseable numeric makes this return false (not proven zero).
+    fn is_solid_zero_ai_chance(value: &ast::NodeedValue, source: &str) -> bool {
+        let ast::Value::Block(entries) = &value.value else {
+            return false;
+        };
+        let mut has_modifier = false;
+        let mut base: Option<f64> = None;
+        let mut factor: Option<f64> = None;
+        let mut add: Option<f64> = None;
+
+        for entry in entries {
+            let ast::Entry::Assignment(ass) = entry else {
+                // Stray values without keys inside ai_chance are unknown — not solid.
+                if matches!(entry, ast::Entry::Value(_)) {
+                    return false;
+                }
+                continue; // comments
+            };
+            let key_lc = ass.key_text(source).to_ascii_lowercase();
+            match key_lc.as_str() {
+                "modifier" => {
+                    has_modifier = true;
+                }
+                "base" => {
+                    let Some(v) = Self::parse_ai_chance_numeric(&ass.value.value, source) else {
+                        return false;
+                    };
+                    base = Some(v);
+                }
+                "factor" => {
+                    let Some(v) = Self::parse_ai_chance_numeric(&ass.value.value, source) else {
+                        return false;
+                    };
+                    factor = Some(v);
+                }
+                "add" => {
+                    let Some(v) = Self::parse_ai_chance_numeric(&ass.value.value, source) else {
+                        return false;
+                    };
+                    add = Some(v);
+                }
+                _ => {
+                    // Unknown key inside ai_chance — conservatively not solid zero.
+                    return false;
+                }
+            }
+        }
+
+        if has_modifier {
+            return false;
+        }
+        if let Some(a) = add {
+            if a != 0.0 {
+                return false;
+            }
+        }
+        if let Some(f) = factor {
+            if f == 0.0 {
+                return true;
+            }
+        }
+        if let Some(b) = base {
+            if b == 0.0 {
+                return true;
+            }
+        }
+        false
+    }
+
+    fn parse_ai_chance_numeric(val: &ast::Value, source: &str) -> Option<f64> {
+        match val {
+            ast::Value::Number(n) => Some(*n),
+            ast::Value::String(span) => span.resolve(source).parse::<f64>().ok(),
+            ast::Value::QuotedString(s) => s.parse::<f64>().ok(),
+            ast::Value::Boolean(b) => Some(if *b { 1.0 } else { 0.0 }),
+            _ => None,
+        }
     }
 }
 

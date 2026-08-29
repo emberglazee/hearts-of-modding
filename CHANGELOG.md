@@ -10,7 +10,7 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Unit type scanner is now fully integrated into the LSP.** `common/units/*.txt` sub-unit definitions resolve everywhere entity names do: go-to-definition, hover (group, combat width, support flag, categories), completion, workspace symbols, and semantic highlighting. OOB template validation (HOM3005/HOM3007) already consumed the scanner; the editor surfaces now match it.
 
-- **HOM3017 now understands AI-invisible event options.**
+- **HOM3017 now understands solid zero and solid 100 AI factors for event options.** Specifically where one option might have an AI chance factor or base of 100 or 0 without the other options having an AI chance set at all.
 
 - **Focus search filters are now understood, validated, auto-completed, and semantically highlighted.**
 
