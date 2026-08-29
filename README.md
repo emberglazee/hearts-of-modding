@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="./client/icons/icon.svg" width="128" alt="icon">
+<img src="./client/icons/icon.png" width="128" alt="icon">
 
 # Hearts of Modding
 
