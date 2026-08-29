@@ -7,9 +7,7 @@ contributor medal list covering everything since the previous release tag:
     # 🎖️ Contributors since last release
 
     - 🥇 @emberglazee: 29 commits
-    - 🥈 @Copilot: 4 commits
-    - 🥉 @jiangji0721: 2 commits
-    - 🏅 @github-actions: 1 commit
+    - 🥉 @jiangji0721: 4 commits
 
 Changelog rules:
 - Minor bump (patch == 0): returns just that version's section.
@@ -35,6 +33,10 @@ counted exactly once):
   addresses carry the login (`12345+login@users.noreply.github.com`);
   anything else falls back to the author's git name. PR authors cannot be
   resolved offline, so merge commits are skipped with a warning.
+- Commits authored by automation accounts in IGNORED_HANDLES
+  (e.g. `github-actions[bot]`'s `chore: bump version to X` that the
+  release workflow pushes right before tagging) are excluded so the bot
+  never appears in the medal list.
 - The top three contributors get 🥇/🥈/🥉; everyone else gets 🏅 — any
   number of contributions earns an honorable mention.
 
@@ -66,6 +68,13 @@ CONTRIBUTOR_HEADER = "# 🎖️ Contributors since last release"
 
 # `12345+login@users.noreply.github.com` or `login@users.noreply.github.com`
 NOREPLY_RE = re.compile(r"^(?:\d+\+)?([^@+]+)@users\.noreply\.github\.com$")
+
+# Bot / automation accounts that should never appear in the contributor
+# medal list — the release workflow itself commits the version bump as
+# `github-actions[bot]` immediately before tagging, and that commit lives
+# inside <prev_tag>..HEAD. Counting it would award a medal to the bot and
+# shift everyone else down.
+IGNORED_HANDLES = {"github-actions"}
 
 
 def parse_changelog(path):
@@ -245,7 +254,10 @@ def contributors_from_api(owner_repo, prev_tag, repo):
                 login = _login_of(commit.get("author"), commit_author)  # orphan merge: the merger
         else:
             login = _login_of(commit.get("author"), commit_author)
-        counts[display_handle(login)] = counts.get(display_handle(login), 0) + 1
+        handle = display_handle(login)
+        if handle.lower() in IGNORED_HANDLES:
+            continue
+        counts[handle] = counts.get(handle, 0) + 1
     return _sort_entries(counts)
 
 
@@ -278,7 +290,10 @@ def contributors_from_git(repo, prev_tag):
         login = handle_from_email(email)
         if not login:
             login, _ = max(by_name.items(), key=lambda kv: kv[1])  # most-used name
-        counts[display_handle(login)] = counts.get(display_handle(login), 0) + sum(by_name.values())
+        handle = display_handle(login)
+        if handle.lower() in IGNORED_HANDLES:
+            continue
+        counts[handle] = counts.get(handle, 0) + sum(by_name.values())
     return _sort_entries(counts)
 
 

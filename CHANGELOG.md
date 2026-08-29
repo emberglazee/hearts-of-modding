@@ -36,6 +36,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Refactored the LSP test suite** for less code bloat and easier implementation for new future functionality.
 
+- **The python script for generating GitHub release descriptions now ignores `@github-actions` commits.**
+
 ## [v0.27.0] - 2026-08-24
 
 ### ✨ Added

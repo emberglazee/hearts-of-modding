@@ -7,6 +7,9 @@ node_modules/
 # Rust build artifacts
 server/target/
 
+# Python cache
+.github/scripts/**/*.pyc
+
 # VS Code extension build artifacts
 client/out/
 client/dist/
