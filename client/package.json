@@ -4,6 +4,7 @@
 	"description": "VS Code extension for Hearts of Iron IV modding",
 	"version": "0.27.0",
 	"publisher": "emberglaze",
+	"icon": "icons/icon.png",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/emberglazee/Hearts-of-Modding"
@@ -165,7 +166,7 @@
 				{
 					"id": "hoi4-log",
 					"title": "HoM Log",
-					"icon": "icons/hoi4-log.svg"
+					"icon": "icons/medal-mono.svg"
 				}
 			]
 		},

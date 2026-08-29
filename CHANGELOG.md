@@ -6,6 +6,10 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### ✨ Added
 
+- **The extension now has an icon.** Orange represents the LSP being written in Rust. Medal because, well, HOI4.
+
+  > might change in the future, looks meh to me but i think thats the bare minimum for recognition
+
 - **BOM validation for localization files (HOM6005).**
 
 - **Unit type scanner is now fully integrated into the LSP.** `common/units/*.txt` sub-unit definitions resolve everywhere entity names do: go-to-definition, hover (group, combat width, support flag, categories), completion, workspace symbols, and semantic highlighting. OOB template validation (HOM3005/HOM3007) already consumed the scanner; the editor surfaces now match it.

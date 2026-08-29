@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 2000 2000" fill="none" stroke="currentColor" stroke-width="64" stroke-linejoin="round" stroke-linecap="round">
+<!-- minimal monotone — highly legible at 16px -->
+<circle cx="1000" cy="1320" r="380" fill="none" />
+<path d="M 760 360 L 1240 360 L 1240 820 L 760 820 Z" stroke-width="48" />
+<path fill="currentColor" stroke="none" d="M1000 1120 L1032 1210 L1128 1210 L1050 1268 L1078 1360 L1000 1304 L922 1360 L950 1268 L872 1210 L968 1210 Z" />
+</svg>
