@@ -22,9 +22,9 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
   > accidentally obliterated it sometime in the past, oops
 
-**Scope stack integration for `common/on_actions/*.txt`.**
+- **Scope stack integration for `common/on_actions/*.txt`.**
 
-**History country keys `capital` and `oob` are now documented in `hoi4_data_v2.json`.**
+- **History country keys `capital` and `oob` are now documented in `hoi4_data_v2.json`.**
 
 ### 🩹 Fixed
 
