@@ -38,6 +38,11 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **The python script for generating GitHub release descriptions now ignores `@github-actions` commits.**
 
+- **Bumped extension dev dependencies:**
+
+  - `eslint` v10.9.0 -> v10.9.1;
+  - `typescript-eslint` v8.67.0 -> v8.68.0.
+
 ## [v0.27.0] - 2026-08-24
 
 ### ✨ Added
