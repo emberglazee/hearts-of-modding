@@ -2,7 +2,7 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
-## [v0.28.0] - 2026-08-27
+## [v0.28.0] - 2026-08-29
 
 ### ✨ Added
 
@@ -19,6 +19,10 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
   > accidentally obliterated it sometime in the past, oops
 
 **Scope stack integration for `common/on_actions/*.txt`.**
+
+### 🩹 Fixed
+
+- **Fixed tag aliases not being semantically highlighted.**
 
 ### 🧹 Internal
 

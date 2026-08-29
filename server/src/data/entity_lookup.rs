@@ -510,6 +510,11 @@ impl<'a> EntityLookup<'a> {
         collect_names!(SoundCategory, sound_categories);
         collect_names!(AdjacencyRule, adjacency_rules);
         collect_names!(CountryTag, country_tags);
+        // Tag aliases come from common/country_tag_aliases/*.txt and are
+        // functionally country tags (they resolve to a country at runtime).
+        // Without them, semantic tokens classify ASP/IMR/etc. as plain
+        // strings/localization tokens and skip the country-tag token type.
+        collect_names!(CountryTag, tag_aliases);
         collect_names!(OobDivisionTemplate, oob_division_templates);
         collect_names!(OobFleet, oob_fleets);
         collect_names!(EventNamespace, event_namespaces);
