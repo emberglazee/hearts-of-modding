@@ -27,15 +27,15 @@ Categories roughly map to extension concerns: `documentation/triggers.md`, `docu
 | Server | `cd server && cargo build --release` |
 | Both + VSIX | `cd client && npm run package` |
 | Rust tests | `cd server && cargo test` |
-| Rust lint | `cd server && cargo clippy` |
-| Rust check | `cd server && cargo check` |
+| Rust lint | `cd server && cargo clippy --all-targets -- -D warnings` |
+| Rust check | `cd server && cargo check --all-targets` |
 | Rust format | `cd server && cargo fmt` |
 
-Client helpers in `package.json`: `npm run cargo:test`, `cargo:check`, `cargo:fmt` (run from `client/`).
+Client helpers in `package.json`: `npm run cargo:test`, `cargo:check`, `cargo:fmt`, `cargo:clippy` (run from `client/`; `cargo:clippy` is `--all-targets -- -D warnings` — bare `cargo clippy` passes code that CI rejects).
 
 **VS Code debugging:** Use "Launch Extension" config (`.vscode/launch.json`). Falls back to `../server/target/release/server` if `client/server-bin/` not found.
 
-**Validation-rule test convention:** never hand-build a `ValidationContext` literal — the struct has ~35 fields and every new field breaks each literal. Use the shared builder instead: tests in `src/tests/` use `crate::test_support::TestCtx` (e.g. `TestCtx::new().with_file(path, content).walk(input, uri, scope, rules, visitors)`); rule modules' own `#[cfg(test)]` blocks use the same builder via `crate::test_support` (`TestCtx`, or `TestCtxRef` via `wrap_ref` when seeding an external `&ScannerData`). Prefer `.with_file(...)` (runs the real incremental scanner) over hand-stuffing DashMaps; promote a repeated raw seed to a named `with_*` method.
+**Validation-rule test convention:** never hand-build a `ValidationContext` literal — the struct has ~35 fields and every new field breaks each literal. Use the shared builder instead: tests in `src/tests/` use `crate::test_support::TestCtx` (e.g. `TestCtx::new().with_file(path, content).walk(input, uri, scope, rules, visitors)`); rule modules' own `#[cfg(test)]` blocks use the same builder via `crate::test_support` (`TestCtx`, or `TestCtxRef` via `wrap_ref` when seeding an external `&ScannerData`). Prefer `.with_file(...)` (runs the real incremental scanner) over hand-stuffing DashMaps; promote a repeated raw seed to a named `with_*` method (e.g. `with_unit_types`, `with_ideas`, `with_event_namespaces`).
 
 ## Architecture
 
@@ -44,148 +44,176 @@ Client helpers in `package.json`: `npm run cargo:test`, `cargo:check`, `cargo:fm
 ```
 server/src/
 ├── main.rs               # LSP entrypoint, module decls, jemalloc, UTF-16 utils, CancellationToken
-├── backend.rs             # Backend struct + AST cache + validation + formatting + FxHashMap
-├── config.rs              # Config struct (ArcSwap + AtomicBool + Regex fields)
-├── data/                  # Static databases & shared data
+├── lib.rs                # (empty — binary crate; tests live in --bin hom-lsp)
+├── backend.rs            # Backend struct + ValidationCtx + AST cache + compute_pool (Rayon) + FxHashMap
+├── config.rs             # Config struct (ArcSwap + AtomicBool + AtomicU8 log_level + Regex fields)
+├── log_level.rs          # LogLevel enum (error/warn/info/debug/trace, AtomicU8)
+├── test_support.rs       # TestCtx / TestCtxRef builders for ValidationContext
+├── data/                 # Static databases & shared data
 │   ├── mod.rs
-│   ├── hoi4_data.rs       # Static DB of triggers/effects/scopes/modifiers/loc_commands
-│   ├── scanner_data.rs    # ScannerData struct (35+ DashMap fields, incl. decision_categories_file_index, event_dep_graph)
-│   ├── entity_lookup.rs   # Adapter over &ScannerData — find_definition, entity_at, etc.
-│   ├── interner.rs        # String interning (InternedStr = Arc<str>) for DashMap keys
-│   └── layered_value.rs   # VFS layering: LayeredValue<T> preserves vanilla→mod→submod layers
-├── lsp/                   # LSP protocol handlers
+│   ├── hoi4_data.rs      # Static DB — triggers/effects/scopes/modifiers/loc_commands (hoi4_data_v2.json, minified at build.rs)
+│   ├── focus_filters.rs  # Focus search-filter definitions
+│   ├── scanner_data.rs   # ScannerData struct (40+ DashMap/DashSet/ArcSwap fields + event/tech dep graphs)
+│   ├── entity_lookup.rs  # Adapter over &ScannerData — find_definition, entity_at, etc.
+│   ├── interner.rs       # String interning (InternedStr = Arc<str>) for DashMap keys
+│   └── layered_value.rs  # VFS layering: LayeredValue<T> preserves vanilla→mod→submod layers
+├── lsp/                  # LSP protocol handlers
 │   ├── mod.rs
-│   ├── handler.rs         # impl LanguageServer for Backend — all LSP protocol handlers
+│   ├── handler.rs        # impl LanguageServer for Backend — all LSP protocol handlers
 │   ├── semantic_tokens.rs # Context-aware highlighting (script, .yml loc, .csv map files)
-│   ├── hover_handler.rs   # Hover docs (achievement/event/variable/scope context)
+│   ├── hover_handler.rs  # Hover docs (achievement/event/variable/scope context)
 │   ├── completion_handler.rs  # Completion logic for script and localization
 │   ├── code_action_handler.rs # Code actions (formatting, validation fixes)
-│   ├── rename.rs          # Cross-file rename
-│   ├── call_hierarchy.rs  # Event relationship graphs
+│   ├── rename.rs         # Cross-file rename
+│   ├── call_hierarchy.rs # Event relationship graphs
 │   ├── document_symbols.rs # Document symbol provider
 │   └── workspace_symbols.rs # Workspace symbol search
-├── parser/                # HOI4 script parsers
+├── parser/               # HOI4 script parsers
 │   ├── mod.rs
-│   ├── parser.rs          # nom-based HOI4 script parser (complex identifiers)
-│   ├── ast.rs             # AST definitions (ByteSpan-based, no owned strings)
-│   ├── loc_parser.rs      # Localization .yml parser
-│   ├── defines_parser.rs  # Game defines parser (common/defines/*)
-│   └── csv_parser.rs      # CSV file parser
-├── scanner/               # Parallelized file scanners (34 modules)
-│   ├── mod.rs
-│   ├── orchestrator.rs    # Orchestrates all scans + load_assets
-│   ├── incremental_scanner.rs # Partial rescans for changed files + remove_path (incl. DecisionCategories, event-dep-graph cleanup)
-│   ├── ability_scanner, achievement_scanner, adjacency_scanner
+│   ├── parser.rs         # nom-based HOI4 script parser (complex identifiers)
+│   ├── ast.rs            # AST definitions (ByteSpan-based, no owned strings)
+│   ├── loc_parser.rs     # Localization .yml parser
+│   ├── defines_parser.rs # Game defines parser (common/defines/*)
+│   └── csv_parser.rs     # CSV file parser
+├── scanner/              # File scanners + orchestration (~42 modules)
+│   ├── mod.rs            # Registry — re-exports all scanner modules
+│   ├── orchestrator.rs   # Orchestrates all scans + load_assets
+│   ├── incremental_scanner.rs # Partial rescans for changed files + remove_path (incl. DecisionCategories, event/tech dep-graph cleanup)
+│   ├── file_overlay.rs   # FileOverlay VFS — file-level override for script scanning
+│   ├── registry.rs       # Scanner registry helpers
+│   ├── event_dep_graph.rs # Event call-graph (forward + reverse edges)
+│   ├── tech_dep_graph.rs # Technology prerequisite graph
+│   ├── ability_scanner, ace_scanner, achievement_scanner, adjacency_scanner
 │   ├── ai_area_scanner, ai_strategy_plan_scanner, bop_scanner
 │   ├── building_scanner, character_scanner, continent_scanner
-│   ├── country_scanner, event_scanner, focus_scanner, gfx_scanner
+│   ├── country_scanner, decision_scanner
+│   ├── event_scanner, event_namespace_scanner
+│   ├── focus_scanner, gfx_scanner
 │   ├── idea_scanner, ideology_scanner, logistics_scanner
 │   ├── map_object_scanner, modifier_scanner, music_scanner
 │   ├── portrait_scanner, province_scanner, resource_scanner
 │   ├── scripted_loc_scanner, scripted_scanner, sound_scanner
 │   ├── sprite_scanner, state_category_scanner, state_scanner
-│   ├── strategic_region_scanner, terrain_scanner, trait_scanner
+│   ├── strategic_region_scanner, tag_alias_scanner
+│   ├── technology_scanner, technology_tags_scanner
+│   ├── terrain_scanner, trait_scanner
 │   ├── unit_scanner, variable_scanner
 │   └── oob_scanner
-├── scope/                 # Scope inference
+├── scope/                # Scope inference
 │   ├── mod.rs
-│   ├── scope.rs           # Scope stack engine / resolve_key_scope (ScopeCtx maps are Option)
-│   └── scope_context.rs   # Scope-aware hover context
-├── rules/                 # Validation rules (trait-based + AstVisitor-based) — 19 modules
-│   ├── mod.rs             # ValidationContext struct + ValidationRule trait
-│   ├── visitor.rs         # AstVisitor trait + centralized walk_script() (single AST traversal)
-│   ├── abilities.rs, achievements.rs, ai_areas.rs, buildings.rs
+│   ├── scope.rs          # Scope enum + ScopeStack / resolve_entry_scope (ScopeCtx maps are Option)
+│   └── scope_context.rs  # Scope-aware hover context
+├── rules/                # Validation rules (trait-based + AstVisitor-based) — 25+ modules
+│   ├── mod.rs            # ValidationContext struct + ValidationRule trait
+│   ├── visitor.rs        # AstVisitor trait + centralized walk_script() (single AST traversal)
+│   ├── abilities.rs, aces.rs, achievements.rs, ai_areas.rs, buildings.rs
 │   ├── characters.rs, country_metadata.rs, country_tags.rs
-│   ├── gfx_textures.rs, ideas.rs, ideologies.rs
+│   ├── decisions.rs, events.rs
+│   ├── focus_search_filters.rs, gfx_textures.rs
+│   ├── ideas.rs, ideologies.rs
 │   ├── localization.rs, oob_regiments.rs, portraits.rs, provinces.rs
 │   ├── sounds.rs, sprites.rs, state_definitions.rs, terrains.rs, traits.rs
-├── validation/            # Formatting & semantic validation
+│   ├── v2_scope.rs, variables.rs
+├── validation/           # Formatting & semantic validation
 │   ├── mod.rs
-│   ├── advanced_validation.rs  # Diagnostic code constants (HOM001–HOM5005)
-│   ├── formatting.rs      # Styling fixes (collect fixes, brace checks)
+│   ├── advanced_validation.rs  # Diagnostic code constants (HOM001–HOM9001)
+│   ├── formatting.rs     # Styling fixes (collect fixes, brace checks)
 │   └── modifier_format.rs # Modifier display formatting
-├── utils/                 # Utility modules (11 total)
+├── utils/                # Utility modules (10 files + mod.rs)
 │   ├── mod.rs
-│   ├── lsp_convert.rs     # RangeMapper (byte→UTF-16 col), location/position helpers
-│   ├── line_index.rs      # Precomputed index: O(1) UTF-16↔byte offset lookups for a line
-│   ├── color_utils.rs     # Color-related utilities
-│   ├── enhanced_color.rs  # Enhanced color parsing
-│   ├── fs_util.rs         # File system helpers
-│   ├── loc_preview.rs     # Localization preview rendering
-│   ├── map_config.rs      # Map configuration helpers
+│   ├── lsp_convert.rs    # RangeMapper (byte→UTF-16 col), location/position helpers
+│   ├── line_index.rs     # Precomputed index: O(1) UTF-16↔byte offset lookups for a line
+│   ├── color_utils.rs    # Color-related utilities
+│   ├── enhanced_color.rs # Enhanced color parsing
+│   ├── fs_util.rs        # File system helpers
+│   ├── loc_preview.rs    # Localization preview rendering
+│   ├── map_config.rs     # Map configuration helpers
 │   ├── modifier_display.rs # Modifier display formatting
-│   ├── mod_registry.rs    # Paradox mod registry path detection + submod resolution
-│   └── symbol_search.rs   # Symbol search utilities
-└── tests/                 # 219 tests across 11 modules
+│   ├── mod_registry.rs   # Paradox mod registry path detection + submod resolution
+│   └── symbol_search.rs  # Symbol search utilities
+└── tests/                # 479 tests across 22 modules
     ├── mod.rs
-    ├── abilities.rs, formatting.rs, ideas.rs
+    ├── abilities.rs, backend.rs, dependency_resolution.rs
+    ├── events.rs, formatting.rs, ideas.rs
     ├── loc_columns.rs, loc_dups.rs, loc_empty.rs, loc_version.rs
-    ├── oob_regiments.rs
-    ├── parser_skip.rs, scripted_loc.rs, utf16_conversion.rs
+    ├── on_actions.rs, oob_regiments.rs, parser_skip.rs
+    ├── provinces.rs, red_reserved.rs, registry.rs
+    ├── scripted_loc.rs, technology.rs, units.rs
+    └── utf16_conversion.rs, variables.rs
 ```
 
 **Key data flow:**
 
-1. `main.rs` → `Backend::new()` → `config.rs` + `scanner_data.rs`
-2. `scanner::orchestrator` runs 34 parallel scanners, populates `ScannerData` DashMaps (vanilla → mod → submod layers via `LayeredValue`)
+1. `main.rs` → `Backend::new()` → `config.rs` + `scanner_data.rs` + `compute_pool` (bounded Rayon pool) + `token_keywords`/`entity_token_context` (ArcSwap)
+2. `scanner::orchestrator` runs ~40 parallel scanners, populates `ScannerData` DashMaps (vanilla → mod → submod layers via `LayeredValue`); `data/hoi4_data_v2.json` is embedded at compile time via `include_str!` (minified in `build.rs` into `OUT_DIR`)
 3. `lsp::handler` receives LSP requests, uses debounced AST cache (`document_asts`) with per-document `CancellationToken` to cancel stale parses
-4. Semantic processing uses centralized `walk_script()` from `rules/visitor.rs` — single AST traversal calls both `AstVisitor` hooks + `ValidationRule::check_assignment`, replacing per-rule recursive walks
+4. Semantic processing uses centralized `walk_script()` from `rules/visitor.rs` — single AST traversal calls both `AstVisitor` hooks + `ValidationRule::check_assignment`, replacing per-rule recursive walks. Heavy validation is dispatched to `compute_pool` via `ValidationCtx` (`Arc`-wrapped shared fields, `ArcSwap` roots) so the tokio event loop stays free
 5. `ValidationRule::check_block` now handles only top-level cross-entry analysis (no recursion)
 6. `validation::formatting` collects + applies style fixes
-7. `scope::scope` tracks scope stacks for context-aware validation & completions
+7. `scope::scope` tracks scope stacks for context-aware validation & completions (unified path — see below)
 8. `did_change_watched_files` handles external file ops via incremental scanner + `LayeredValue` removal
 
 ## Extension
 
-- **Version:** `0.23.1` — `client/package.json` is the single source of truth; `server/Cargo.toml` is kept in sync.
+- **Version:** `0.28.0` — `client/package.json` is the single source of truth; `server/Cargo.toml` is kept in sync.
 - **Edition:** Rust 2024 (server/Cargo.toml).
 - **Allocator:** `tikv-jemallocator` via fork at `emberglazee/jemallocator` (rev pinned in `[patch.crates-io]`; Windows MSVC path + `aarch64-pc-windows-msvc` support via the `fix-aarch64-msvc` branch — `gnu_target()` maps it to the `aarch64-w64-mingw32` alias so jemalloc's `config.sub` accepts the host). Keep the fork rev bump in sync with `client/package.json`'s version workflow. Do NOT gate jemalloc off any target without re-checking the fork's `gnu_target()` mapping first.
 - **Activation:** `workspaceContains:./descriptor.mod` — root-only glob. Extension activates on detection; LSP then auto-starts unless `hoi4.lsp.enabled` is false (user gets a prompt on first open if disabled). Toggle with `Hearts of Modding: Toggle LSP` command.
-- **Key settings:** `hoi4.lsp.enabled`, `hoi4.lsp.suppressDisabledPrompt`, `hoi4.gamePath`, `hoi4.modPaths`, `hoi4.modRegistryPath`, `hoi4.validator.workspaceScan.enabled`, `hoi4.styling.enabled`, `hoi4.styling.cosmeticLocalizationIndentation`, `hoi4.validator.ignoreFiles`, `hoi4.validator.ignoreLocalization`, `hoi4.showMemoryUsage.enabled`, `hoi4.themePromptDismissed`.
+- **Key settings:** `hoi4.lsp.enabled`, `hoi4.lsp.suppressDisabledPrompt`, `hoi4.gamePath`, `hoi4.modPaths`, `hoi4.modRegistryPath`, `hoi4.validator.ignoreFiles`, `hoi4.validator.ignoreLocalization`, `hoi4.validator.workspaceScan.enabled`, `hoi4.validator.scopeValidationEnabled` (off by default, HOM004), `hoi4.styling.enabled`, `hoi4.styling.cosmeticLocalizationIndentation`, `hoi4.logLevel` (error/warn/info/debug/trace, default info), `hoi4.showMemoryUsage.enabled`, `hoi4.themePromptDismissed`.
+- **Commands:** `Toggle LSP`, `Set Game Path`, `Toggle Styling Checks`, `Toggle Workspace Scan`, `Toggle Scope Validation`, `Show Memory Usage`, `Toggle Workspace Theme`, `Show Log Panel`.
+- **Languages:** `hoi4` (`**/common/**/*.txt`, `**/events/**/*.txt`, `**/history/**/*.txt`, `**/map/**/*.txt`, `**/gfx/**/*.txt`, etc.), `hoi4-localisation` (`**/localisation/**/*.yml`), `hoi4-csv` (`**/map/**/*.csv`), `cwt`.
 
 ## Gotchas
 
 - **String interning:** All DashMap keys use `InternedStr` (`Arc<str>`) from `data/interner.rs`. All scanner entity `path` fields use `InternedStr`. `HasPath::path()` derefs to `&str` automatically. A reverse file-path index (`retain_path!` macro) provides O(K) incremental updates instead of DashMap::retain O(N). The interner has a garbage collector for strings no longer referenced (can be triggered via `Interner::collect`).
 - **UTF-16/UTF-8:** LSP uses UTF-16 code units, Rust uses UTF-8. The O(n) conversion functions (`byte_offset_to_utf16`, `utf16_to_byte_offset`) are in `main.rs`. For repeated conversions within the same line, use `utils/line_index.rs` (`LineIndex`) which precomputes the mapping for O(1) lookups — referenced in the doc comments on the main.rs functions. **For LSP emission** (diagnostics, hover, rename, symbols), use `utils/lsp_convert.rs::RangeMapper` (see below) — never pass `ast::Range` byte columns straight into `Position.character`. The legacy byte-based `ast_range_to_lsp` survives only as dead plumbing for the always-empty `related_information` path; new code must use `RangeMapper`. **For LSP inception** (comparing the client cursor to byte-based AST/loc ranges, e.g. `is_pos_in_range`), convert the UTF-16 `Position.character` to byte with `utils/lsp_convert.rs::to_byte_position(content, pos)` first — `is_pos_in_range` now requires a byte column and documents it. Sites fixed to convert at entry: `entity_at` (takes `content`), `find_identifier_at`/`scope_context` `find_*_at`, and the `.yml` loc hover. Do not shadow the global hover `position`; scripts use `find_identifier_at` which self-converts — double-converting corrupts multibyte lines.
-- **Semantic tokens** override TextMate grammars. Provide highlighting for `.yml` localization files too (`lsp/semantic_tokens.rs`). `.csv` map files (definition.csv, adjacencies.csv) also get semantic tokens. Semantic tokens use triggers/effects/modifiers from `data/hoi4_data.rs` + scanner data as the single source of truth for keyword highlighting. Loc semantic token extraction uses byte-scanning (0xC2 0xA7 for §, no regex) — handles §X color codes, [...], $...$, \n, and escaped quotes.
+- **Semantic tokens** override TextMate grammars. Provide highlighting for `.yml` localization files too (`lsp/semantic_tokens.rs`). `.csv` map files (definition.csv, adjacencies.csv) also get semantic tokens. Semantic tokens use triggers/effects/modifiers from `data/hoi4_data.rs` + scanner data as the single source of truth for keyword highlighting. Loc semantic token extraction uses byte-scanning (0xC2 0xA7 for §, no regex) — handles §X color codes, [...], $...$, \\n, and escaped quotes. Dynamic keywords (ideology-derived `_drift` etc.) are built into `token_keywords` (ArcSwap) after each scan.
 - **TextMate grammar** (`client/syntaxes/hoi4.tmLanguage.json`) is deliberately **minimal** — only structural patterns (comments, strings, numbers, operators, punctuation, GUI keywords). All effect/trigger/modifier/block name highlighting comes from semantic tokens. Do not add keyword lists to TextMate.
 - **YAML files** can be parsed by the HOI4 script parser (similar syntax). Handle indentation separately — force `script_opt = None` for YAML in bulk fixes.
 - **Distribution** ships binaries as `hom-lsp-<os>-<arch>[.exe]` (e.g. `hom-lsp-linux-amd64`, `hom-lsp-win-arm64.exe`). CI builds 6 combos natively — linux (x64 `ubuntu-latest`, arm64 `ubuntu-24.04-arm`), windows (x64 `windows-latest`, arm64 `windows-11-arm`), macos (arm64 `macos-latest`) — with macOS amd64 cross-built from the arm64 macos runner (GitHub's Intel mac runners are scarce). The VSIX bundles the 3 primary combos (`hom-lsp-linux-amd64`, `hom-lsp-win-amd64.exe`, `hom-lsp-macos-arm64`) in `client/server-bin/`, and ALL 6 are published as standalone release assets alongside the VSIX. The client resolves the binary by `(platform, arch)` → bundled if present, else downloads the matching asset from the GitHub release (pinned to `v<installed version>`, falling back to `latest`) into `globalStorageUri/hom-lsp/<version>/`. `client/scripts/stage-binary.mjs` stages the native build for local `npm run package`.
 - **Packaging** does NOT copy `server/assets/` into `client/server-bin/` — `hoi4_data_v2.json` is embedded into the binary at compile time (`include_str!` via `server/build.rs`, which minifies it into `OUT_DIR` first). A `server-bin/assets` copy would be dead weight in the VSIX; `client/scripts/stage-binary.mjs` removes any stale copy from older packaging runs.
-- **Localization:** Escaped quotes (`\"`) must be handled to avoid truncation. Version numbers (`:0`) are cosmetic only. Newline (`\n`) and escaped double-quote highlighting is now supported.
+- **Localization:** Escaped quotes (`\"`) must be handled to avoid truncation. Version numbers (`:0`) are cosmetic only. Newline (`\n`) and escaped double-quote highlighting is now supported. BOM validation (HOM6005) checks that `.yml` files carry exactly one UTF-8 BOM — verified against vanilla (2073/2073 carry exactly one).
 - **Workspace-wide rename** searches both open docs AND unopened workspace files. Unopened files are read from disk and parsed second. Only mod dir (`.`), not game path.
-- **Validation system:** Uses a `ValidationRule` trait with `check_assignment` / `check_block` hooks, plus a newer `AstVisitor` trait with `enter_assignment` / `exit_assignment` / `after_walk` hooks. Both share one centralized AST traversal via `rules::visitor::walk_script()`. Rules are registered in `Backend::check_semantic` and receive a `ValidationContext` with all scanner data refs. Diagnostic codes prefixed HOM (HOM001–HOM5005) defined in `validation/advanced_validation.rs`. **Rules must emit diagnostic ranges via `ctx.range(&ast::Range)`** — the `ValidationContext` carries a `RangeMapper` (`range_mapper`) so squiggle columns are UTF-16-correct; do not call `ast_range_to_lsp` from rules.
-- **AST caching:** `Backend` keeps a `document_asts: DashMap<String, (Arc<ast::Script>, Vec<(String, ast::Range)>)>` — parsed ASTs are cached per URI. Each document also gets a `CancellationToken` in `document_cancellation_tokens` so that stale AST parses (from rapid editing) are cancelled. For unopened workspace files, ASTs are parsed on demand and not cached (commit `e1a7e65`). `did_change` is debounced to avoid parse storms.
+- **Validation system:** Uses a `ValidationRule` trait with `check_assignment` / `check_block` hooks, plus a newer `AstVisitor` trait with `enter_assignment` / `exit_assignment` / `after_walk` hooks. Both share one centralized AST traversal via `rules::visitor::walk_script()`. Rules are registered in `Backend::check_semantic` and receive a `ValidationContext` with all scanner data refs. Diagnostic codes prefixed HOM (HOM001–HOM9001) defined in `validation/advanced_validation.rs`. **Rules must emit diagnostic ranges via `ctx.range(&ast::Range)`** — the `ValidationContext` carries a `RangeMapper` (`range_mapper`) so squiggle columns are UTF-16-correct; do not call `ast_range_to_lsp` from rules.
+- **AST caching:** `Backend` keeps a `document_asts: DashMap<String, (Arc<ast::Script>, Vec<(String, ast::Range)>)>` — parsed ASTs are cached per URI. Each document also gets a `CancellationToken` in `document_cancellation_tokens` so that stale AST parses (from rapid editing) are cancelled. For unopened workspace files, ASTs are parsed on demand and not cached. `did_change` is debounced to avoid parse storms.
 - **ByteSpan AST nodes:** AST nodes (`ast.rs`) store `start..end` byte offsets instead of owned strings, reducing memory and parsing time. Actual text is resolved against the source on demand.
-- **Test suite:** 323 `#[test]` functions across 11 modules (abilities, formatting, ideas, loc_columns, loc_dups, loc_empty, loc_version, oob_regiments, parser_skip, scripted_loc, utf16_conversion, plus scanner/decision/event-axis tests). Run `cargo test` from `server/`.
+- **Test suite:** 479 `#[test]` functions across 22 modules. Run `cargo test` from `server/` (binary crate — `--bin hom-lsp`, not `--lib`). The shared `test_support::TestCtx` builder is the only supported way to construct a `ValidationContext` in tests.
 - **did_change_watched_files:** Dynamic file watcher registration (`**/*.{txt,yml,asset,gfx,gui,csv,lua,mod}`). External file ops (Git branch switch, file explorer rename, etc.) trigger incremental rescans or `remove_path_from_scanner_data()` — no full re-scan needed.
-- **Locale decorators (VS Code):** `vscode_highlighting.rs` (client-side) provides editor decorations for localization `§X` color codes and escaped `\n`/`\"`, showing rendered colour and escaped characters directly in the editor.
+- **Locale decorators (VS Code):** `locColorDecorator.ts` (client-side) provides editor decorations for localization `§X` color codes and escaped `\n`/`\"`, showing rendered colour and escaped characters directly in the editor.
 - **Bracket-matching error recovery:** The parser recovers from missing brackets rather than cascading parse failures through the rest of the file.
-- **Unified scope inference (one path):** Validation, hover, completion, and goto-definition all share `scope::scope::initial_scope_for_uri(uri)` (per-file-type initial scope: abilities→Character, decisions→Country, aces→Ace, ai_*→Country) plus the `ScopeStack::resolve_entry_scope(key, &ScopeCtx)` implementation. `resolve_scope_key` (the old simplified second path) was removed — do NOT reintroduce a parallel scope-resolution path; build a `ScopeCtx` (real `event_targets`/`characters`/`achievements` maps) and call `resolve_entry_scope` so the four features never diverge.
+- **Unified scope inference (one path):** Validation, hover, completion, and goto-definition all share `scope::scope::initial_scope_for_uri(uri)` (per-file-type initial scope: abilities→Character, decisions→Country, aces→Ace, ai_*→Country, `common/on_actions`→OnActions, `common/technology_tags`→TechnologyTags, `common/technologies`→Technologies) plus the `ScopeStack::resolve_entry_scope(key, &ScopeCtx)` implementation. `resolve_scope_key` (the old simplified second path) was removed — do NOT reintroduce a parallel scope-resolution path; build a `ScopeCtx` (real `event_targets`/`characters`/`achievements` maps) and call `resolve_entry_scope` so the four features never diverge. Known scopes include `OnActions`, `TechnologyTags`/`Technologies`/`TechnologyCategories`/`TechnologyFolders`, `ModifierBag`, `FocusTree`/`NationalFocus`, `HiddenIdeaCategory`, etc.
 - **Double-assignment recovery (`HOM6003`):** `key = value = value` on one line (no braces) is a common slip (`custom_effect_tooltip = tooltip = LOC`), and the engine does NOT recover (Clausewitz throws `Unexpected token: =` / `Non assign trigger is not enclosed in {}`). The parser recovers the AST (last value wins) so the file doesn't cascade into generic `HOM001` parse errors, but it still emits a specific `HOM6003` ERROR via a byte-scan post-pass (`collect_double_assignment_ranges`, nesting-aware, skips strings/comments, never fires on a real block `key = { ... }`). Do not "silently" fix these — surface the ERROR (empirically verified).
 - **Leading-dot numbers (`HOM6004`):** the engine REJECTS `.5` (`Malformed token: .5`, empirically verified via probe mod) — `.5` must be written `0.5`. The parser keeps `.5` as a String (so the file doesn't cascade) and emits a specific `HOM6004` ERROR via a byte-scan post-pass (`collect_leading_dot_number_ranges`; token-start dot + digit, never flags `0.5` or dotted identifiers `foo.bar`). Do NOT make `.5` a Number — Rust accepts it, the engine does not.
+- **BOM validation (`HOM6005`):** `.yml` localization files must carry exactly one UTF-8 BOM (`EF BB BF`). Zero BOM or 2+ BOMs (LLM-generated) is flagged. The check is byte-level, not string-level.
+- **Variable validation (`HOM9001`):** `variables.rs` validates variable/flag usage — unresolved variable references (no definition found in scanned `common/scripted_triggers`/`scripted_effects` or `variables` registries) emit HOM9001.
 - **Check duplicate keys** uses `FxHashMap` (`rustc-hash`) for speed over the default SipHash-based `HashMap`.
 - **Decision categories incremental path:** `common/decisions/categories/*.txt` classify as `FileCategory::DecisionCategories` (new variant). Because `decision_categories` stores `LayeredValue<()>` (no per-layer path), `retain_path!` can't attribute a category to its file — the scanner keeps a separate `decision_categories_file_index` (path → declared names) and only drops a category when no other indexed file still declares it. Categories are assumed globally unique.
-- **Event dependency graph:** `EventDependencyGraph` (`scanner/event_dep_graph.rs`) keeps forward + reverse edges. `remove_events(&ids)` (used on event-file deletion) scrubs deleted events both as callers (outgoing) and callees (removed from every live callers' forward set and its reverse/dropped) — prevents stale hover "called-by" edges.
+- **Event dependency graph:** `EventDependencyGraph` (`scanner/event_dep_graph.rs`) keeps forward + reverse edges. `remove_events(&ids)` (used on event-file deletion) scrubs deleted events both as callers (outgoing) and callees (removed from every live callers' forward set and its reverse/dropped) — prevents stale hover "called-by" edges. `TechDepGraph` (`scanner/tech_dep_graph.rs`) does the same for technology prerequisites.
 - **Decision rule scope tracking:** `DecisionsVisitor` (`rules/decisions.rs`) uses an explicit scope **stack** (Root→Category→Decision→SubBlock) with symmetric push/pop, not a single mutable `level` — the old single-state machine leaked sibling nesting and wrongly re-scoped later categories (`HOM5007` false positive on category-level `visible_when_empty`). Category-only keys (`visible_when_empty`, `picture`, `scripted_gui`, `on_map_area`, `day_of_week`) are valid directly inside a category; they're flagged only as a direct child of an individual decision. `allowed`/`visible` are category-field blocks and must not be treated as nested decisions (these are keyword-highlighted too).
+- **Focus search filters:** `FocusSearchFilter` (`data/focus_filters.rs` + `rules/focus_search_filters.rs`) — `common/decisions/search_filters` / focus `search_filter` blocks are validated, completed, and semantically highlighted as keywords.
+- **On-actions scope stack:** `Scope::OnActions` + `Scope::on_action_scope(key)` — `common/on_actions/*.txt` is `on_actions = { on_*.txt { ... } }`; each `on_*` block scopes to its documented runtime scope (Country/State/Character/Unit/Global). The scope stack only pushes an `on_*` scope when the URI is under `common/on_actions/` and the key is a direct child of the `on_actions` wrapper.
+- **Technology scanner:** `common/technology_tags/*.txt` (categories + folders) and `common/technologies/*.txt` (technologies + doctrines) are scanned into `technologies`/`technology_tags` + `tech_dep_graph`. Initial scopes are `TechnologyTags` / `Technologies` (not Global), so trigger/effect completions are correctly filtered at the file top-level.
+- **Reserved country tags (`HOM4005`):** `RED`/`NOT`/`AND`/`TAG` etc. are valid country tags when defined in `common/country_tags/*.txt` — the scanner now indexes them (previously dropped at scan time), `invalid_loc_scope` and `Scope::from_str` recognise them when defined, and `HOM4005` warns at the definition site in `common/country_tags` / `history/countries` instead of silently hiding the tag. Fixes false-positive `[RED.GetFlag]` in `mcc2e.d` style loc.
+- **Unit type LSP integration:** `common/units/*.txt` sub-unit definitions resolve everywhere — go-to-definition, hover (group, combat width, support flag, categories), completion, workspace symbols, semantic highlighting. OOB template validation (HOM3005/HOM3007) already consumed the scanner; the editor surfaces now match.
+- **V2 scope validation (`rules/v2_scope.rs`):** structured `hoi4_data_v2.json` per-entity `parameters` (additive, not filtering — 34% of vanilla child keys are undocumented) drives `HOM004` scope-mismatch checks. `ModifierBag` scopes skip checks. Must remain additive or the suppression hides real errors.
 
 ## Architecture Decisions
 
 ### Module organization
 
-Top-level modules (`data/`, `lsp/`, `parser/`, `scanner/`, `scope/`, `rules/`, `validation/`, `utils/`) with `mod.rs` re-exports. Each module has a single concern — `rules/` houses the validation rule trait + visitor + implementations, `scanner/` houses all 34 scanner modules, etc.
+Top-level modules (`data/`, `lsp/`, `parser/`, `scanner/`, `scope/`, `rules/`, `validation/`, `utils/`) with `mod.rs` re-exports. Each module has a single concern — `rules/` houses the validation rule trait + visitor + implementations, `scanner/` houses all ~40 scanner modules, etc.
 
 ### ScannerData + Config context objects
 
-**Scope:** Scanner data (35+ DashMap/ArcSwap fields from 34 scanners) lives in `ScannerData` struct (`data/scanner_data.rs`). Config fields live in `Config` struct (`config.rs`). `Backend` holds both as `scanner_data: ScannerData` and `config: Config`.
+**Scope:** Scanner data (40+ DashMap/DashSet/ArcSwap fields from ~40 scanners, plus event/tech dep graphs) lives in `ScannerData` struct (`data/scanner_data.rs`). Config fields live in `Config` struct (`config.rs`) + `LogLevel` (`log_level.rs`). `Backend` holds both plus `compute_pool` (Rayon), `workspace_roots` (ArcSwap), `token_keywords`/`entity_token_context` (ArcSwap).
 
-**Mutation:** `ScannerData` exposes `set_*` methods per field. `Config` uses a `config_field!` macro for consistent `ArcSwap` accessors + `set_` methods. Underlying fields are not `pub` — callers go through the methods. Config also has `AtomicBool` fields (`workspace_scan_enabled`, `styling_enabled`, `cosmetic_loc_indent`) and regex-vec fields (`ignored_loc_regex`, `ignored_files_regex`).
+**Mutation:** `ScannerData` exposes `set_*` methods per field. `Config` uses a `config_field!` macro for consistent `ArcSwap` accessors + `set_` methods. Underlying fields are not `pub` — callers go through the methods. Config also has `AtomicBool` fields (`workspace_scan_enabled`, `styling_enabled`, `cosmetic_loc_indent`, `scope_validation_enabled`), `AtomicU8` (`log_level`), and regex-vec fields (`ignored_loc_regex`, `ignored_files_regex`).
 
 **Depth of grouping:** Flat struct, no sub-grouping. Both are single flat structs. If a handler emerges that only ever touches a subset, sub-grouping can be revisited.
 
 ### EntityLookup adapter
 
-**Scope:** `EntityLookup` (`data/entity_lookup.rs`) wraps `&ScannerData` with 5 query methods: `new`, `find_definition`, `entity_at`, `entity_names`, `find_symbols`. Handlers (`goto_definition`, `prepare_rename`, `find_symbol_at_position`, `semantic_tokens_full`) no longer iterate scanner data directly. `EntityKind` is a closed enum mapping all scanner entity types — adding a new scanner means one file change.
+**Scope:** `EntityLookup` (`data/entity_lookup.rs`) wraps `&ScannerData` with query methods: `new`, `find_definition`, `entity_at`, `entity_names`, `find_symbols`. Handlers (`goto_definition`, `prepare_rename`, `find_symbol_at_position`, `semantic_tokens_full`) no longer iterate scanner data directly. `EntityKind` is a closed enum mapping all scanner entity types — adding a new scanner means one file change.
 
 **Not on the interface:** `hover_handler` composes with `find_definition` but keeps display logic local. `workspace_symbols` has its own display logic.
 
@@ -193,11 +221,11 @@ Top-level modules (`data/`, `lsp/`, `parser/`, `scanner/`, `scope/`, `rules/`, `
 
 ### VFS Layering with LayeredValue
 
-`LayeredValue<T>` (`data/layered_value.rs`) replaces plain `DashMap<K, V>` for overlay-able registries. It preserves ALL layers — vanilla first, then mod, then submods — in a priority-ordered `SmallVec<[T; 1]>`. Derefs to the highest-priority layer automatically, so existing code like `building.max_level` works transparently. When a mod file is deleted, `remove_path!` only removes that file's layer, keeping lower-priority vanilla entries intact. Maps with zero layers are dead and removed by callers checking `is_empty()`. Using `SmallVec` instead of `Vec` avoids heap allocation for the common single-layer case.
+`LayeredValue<T>` (`data/layered_value.rs`) replaces plain `DashMap<K, V>` for overlay-able registries. It preserves ALL layers — vanilla first, then mod, then submods — in a priority-ordered `SmallVec<[T; 1]>`. Derefs to the highest-priority layer automatically, so existing code like `building.max_level` works transparently. When a mod file is deleted, `remove_path!` only removes that file's layer, keeping lower-priority vanilla entries intact. Maps with zero layers are dead and removed by callers checking `is_empty()`. Using `SmallVec` instead of `Vec` avoids heap allocation for the common single-layer case. `FileOverlay` (`scanner/file_overlay.rs`) implements file-level override semantics on top of this.
 
 ### Centralized AST Visitor
 
-`rules/visitor.rs` introduces an `AstVisitor` trait with `enter_assignment`, `exit_assignment`, and `after_walk` hooks. `walk_script()` performs a single AST traversal, calling visitor hooks + `ValidationRule::check_assignment` for every assignment. This replaces the old per-rule recursive `check_block` pattern — with 15+ rules that meant 15+ AST walks, now it's exactly 1. The walker is allocation-light: it resolves scope per assignment via `ScopeCtx` (Option maps — no empty `DashMap` per node) and inspects idea-promotion via the scope-stack slice rather than a per-key `Vec`.
+`rules/visitor.rs` introduces an `AstVisitor` trait with `enter_assignment`, `exit_assignment`, and `after_walk` hooks. `walk_script()` performs a single AST traversal, calling visitor hooks + `ValidationRule::check_assignment` for every assignment. This replaces the old per-rule recursive `check_block` pattern — with 25+ rules that meant 25+ AST walks, now it's exactly 1. The walker is allocation-light: it resolves scope per assignment via `ScopeCtx` (Option maps — no empty `DashMap` per node) and inspects idea-promotion via the scope-stack slice rather than a per-key `Vec`. A bounded `compute_pool` (Rayon) runs validation off the tokio thread so the editor stays responsive during workspace scans.
 
 ### String interning pattern
 
@@ -205,7 +233,7 @@ Top-level modules (`data/`, `lsp/`, `parser/`, `scanner/`, `scope/`, `rules/`, `
 
 ### ValidationRule trait + AstVisitor
 
-Validation is split into individual `ValidationRule` implementations in `rules/` (receive `ValidationContext` with all scanner data refs, registered in `Backend::check_semantic`). Newer rules implement `AstVisitor` instead, getting centralized traversal. Rules that migrated to `AstVisitor` have empty `check_block` stubs. Both coexist during the single `walk_script()` call: visitors get `enter_assignment`/`exit_assignment`, and rules get `check_assignment`.
+Validation is split into individual `ValidationRule` implementations in `rules/` (receive `ValidationContext` with all scanner data refs, registered in `Backend::check_semantic`). Newer rules implement `AstVisitor` instead, getting centralized traversal. Rules that migrated to `AstVisitor` have empty `check_block` stubs. Both coexist during the single `walk_script()` call: visitors get `enter_assignment`/`exit_assignment`, and rules get `check_assignment`. Diagnostic range goes through `ctx.range()` (RangeMapper).
 
 ### LineIndex for O(1) UTF-16 ↔ byte offset
 
@@ -217,7 +245,7 @@ Validation is split into individual `ValidationRule` implementations in `rules/`
 
 `utils/lsp_convert.rs::RangeMapper` is the single correct converter. It is built **once per document** (`RangeMapper::new(text)`, O(n)) and answers conversions in O(1) by pairing a `LineIndex` (global byte→UTF-16) with the byte offset of each line start: a line's byte column maps to a UTF-16 column as the difference of two global positions.
 
-- `ValidationContext` carries a `range_mapper` and exposes `ctx.range(&ast::Range) -> lsp_types::Range`. **All rule diagnostics must go through `ctx.range()`.** (Lifted the walker out of per-assignment empty-map allocations.)
+- `ValidationContext` carries a `range_mapper` and exposes `ctx.range(&ast::Range) -> lsp_types::Range`. **All rule diagnostics must go through `ctx.range()`.**
 - LSP handlers (rename, call_hierarchy, hover, code_action, document/workspace symbols, backend) build a `RangeMapper` per document/method from the source they already have.
 - The legacy byte-based `ast_range_to_lsp` / `ast_related_info_to_lsp` remain only as plumbing for the always-empty `related_information` path — do not use them for new code.
 
