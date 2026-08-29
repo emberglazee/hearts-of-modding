@@ -20,6 +20,62 @@ impl ValidationRule for CountryTagRule {
         _pushed_scope: bool,
         diags: &mut Vec<Diagnostic>,
     ) {
+        // ── Reserved tag definition (HOM4005) ──
+        // `RED = "countries/Red.txt"` etc. still loads in engine but breaks
+        // map modes (wiki). Warn at the *definition* site, not at every use.
+        // Covers all three definition locations:
+        //   common/country_tags/*.txt  (key = tag)
+        //   common/countries/*.txt     (key = tag for cosmetic/underlay files)
+        //   history/countries/*.txt    (filename = tag, handled in check_block)
+        let key = ass.key_text(ctx.source);
+        let key_upper = key.to_ascii_uppercase();
+        if crate::scanner::country_scanner::is_reserved_tag(&key_upper)
+            && crate::scanner::country_scanner::is_valid_tag(&key_upper)
+        {
+            let uri_lower = ctx.uri.to_ascii_lowercase();
+            let is_tag_def_file = uri_lower.contains("/common/country_tags/")
+                || uri_lower.contains("\\common\\country_tags\\")
+                || uri_lower.contains("/common/countries/")
+                || uri_lower.contains("\\common\\countries\\")
+                || uri_lower.contains("/history/countries/")
+                || uri_lower.contains("\\history\\countries\\");
+            if is_tag_def_file {
+                // For common/country_tags every key *is* a tag definition.
+                // For common/countries / history/countries only some keys are
+                // tag definitions (cosmetic files), but a 3-char reserved key
+                // appearing there is unambiguously a tag definition attempt.
+                let msg = match key_upper.as_str() {
+                    "RED" => {
+                        "Country tag 'RED' is reserved for custom map modes (used as `red` variable). The tag will still load but every custom map mode will render with red=0. Prefer a non-reserved tag (e.g. RMT, REM)."
+                    }
+                    "NOT" | "AND" => {
+                        "Country tag is a reserved flow-control keyword (NOT/AND) and will break trigger parsing."
+                    }
+                    "TAG" => {
+                        "Country tag 'TAG' collides with the `tag` trigger and will break country checks."
+                    }
+                    "OOB" => {
+                        "Country tag 'OOB' collides with `oob` in history files and will break OOB loading."
+                    }
+                    "LOG" => "Country tag 'LOG' collides with the `log` effect/trigger.",
+                    "NUM" => {
+                        "Country tag 'NUM' collides with array `NUM` and will break the resistance system."
+                    }
+                    _ => "Country tag uses a reserved keyword and may break engine features.",
+                };
+                diags.push(Diagnostic {
+                    range: ctx.range(&ass.key_range),
+                    severity: Some(DiagnosticSeverity::WARNING),
+                    message: msg.to_string(),
+                    code: Some(NumberOrString::String(
+                        crate::validation::advanced_validation::RESERVED_COUNTRY_TAG.to_string(),
+                    )),
+                    source: Some("Hearts of Modding".to_string()),
+                    ..Default::default()
+                });
+            }
+        }
+
         let key_lower = ass.key_text(ctx.source).to_ascii_lowercase();
 
         // Skip 'tag' inside Idea scope — ideas use 'tag = { ... }' differently
@@ -50,16 +106,13 @@ impl ValidationRule for CountryTagRule {
                 | "CONTROLLER"
                 | "CAPITAL"
         );
-        // Allow variable references (var:SCOPE@name or var:name)
         let is_var_ref = val.starts_with("var:");
 
-        let b = val.as_bytes();
-        let looks_like_tag = val.len() == 3
-            && b[0].is_ascii_alphabetic()
-            && b[0].is_ascii_uppercase()
-            && b[1].is_ascii_alphanumeric()
-            && b[2].is_ascii_alphanumeric()
-            && !matches!(val, "NOT" | "AND" | "TAG" | "OOB" | "LOG" | "NUM" | "RED");
+        // Any syntactically valid 3-char tag looks like a country tag.
+        // Reserved tags (RED etc.) are also valid — engine loads them, so
+        // `tag = RED` should warn as unknown only when RED isn't defined,
+        // and get a separate HOM4005 about the reservation.
+        let looks_like_tag = crate::scanner::country_scanner::is_valid_tag(val);
 
         if !is_scope_ref
             && !is_var_ref
@@ -87,7 +140,62 @@ impl ValidationRule for CountryTagRule {
         diags: &mut Vec<Diagnostic>,
     ) {
         let uri = ctx.uri;
-        // Only run for country_tags files
+        let uri_lower = uri.to_ascii_lowercase();
+
+        // ── Filename-based reserved tag (history/countries/RED - Name.txt) ──
+        // The tag is in the filename, not as an assignment key, so
+        // check_assignment cannot see it.
+        if uri_lower.contains("/history/countries/") || uri_lower.contains("\\history\\countries\\")
+        {
+            // Extract filename stem from uri (handles both / and \)
+            let filename = uri.rsplit('/').next().unwrap_or(uri);
+            let filename = filename.rsplit('\\').next().unwrap_or(filename);
+            let stem = filename.trim_end_matches(".txt").trim_end_matches(".TXT");
+            if stem.len() >= 3 {
+                let tag = stem[..3].to_ascii_uppercase();
+                if crate::scanner::country_scanner::is_reserved_tag(&tag)
+                    && crate::scanner::country_scanner::is_valid_tag(&tag)
+                {
+                    let msg = match tag.as_str() {
+                        "RED" => {
+                            "Country tag 'RED' is reserved for custom map modes (used as `red` variable). The tag will still load but every custom map mode will render with red=0. Prefer a non-reserved tag (e.g. RMT, REM)."
+                        }
+                        "NOT" | "AND" => {
+                            "Country tag is a reserved flow-control keyword (NOT/AND) and will break trigger parsing."
+                        }
+                        "TAG" => {
+                            "Country tag 'TAG' collides with the `tag` trigger and will break country checks."
+                        }
+                        "OOB" => {
+                            "Country tag 'OOB' collides with `oob` in history files and will break OOB loading."
+                        }
+                        "LOG" => "Country tag 'LOG' collides with the `log` effect/trigger.",
+                        "NUM" => {
+                            "Country tag 'NUM' collides with array `NUM` and will break the resistance system."
+                        }
+                        _ => "Country tag uses a reserved keyword and may break engine features.",
+                    };
+                    diags.push(Diagnostic {
+                        range: ctx.range(&ast::Range {
+                            start_line: 0,
+                            start_col: 0,
+                            end_line: 0,
+                            end_col: 3,
+                        }),
+                        severity: Some(DiagnosticSeverity::WARNING),
+                        message: msg.to_string(),
+                        code: Some(NumberOrString::String(
+                            crate::validation::advanced_validation::RESERVED_COUNTRY_TAG
+                                .to_string(),
+                        )),
+                        source: Some("Hearts of Modding".to_string()),
+                        ..Default::default()
+                    });
+                }
+            }
+        }
+
+        // Only run dynamic-count checks for country_tags files
         if !uri.contains("/common/country_tags/") && !uri.contains("\\common\\country_tags\\") {
             return;
         }

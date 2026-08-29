@@ -44,6 +44,11 @@ pub const PORTRAIT_UNKNOWN_GFX: &str = "HOM4001";
 pub const UNKNOWN_COUNTRY_METADATA_GFX: &str = "HOM4002";
 pub const IDEA_PICTURE_NOT_FOUND: &str = "HOM4003";
 pub const IDEA_CASE_MISMATCH: &str = "HOM4004";
+/// Country tag uses a reserved engine keyword (NOT/AND/TAG/OOB/LOG/NUM/RED).
+/// Per wiki the engine still loads the tag but custom map modes break
+/// (RED always 0), so severity is WARNING not ERROR. Appears at the
+/// definition site in `common/country_tags`/`common/countries`/`history/countries`.
+pub const RESERVED_COUNTRY_TAG: &str = "HOM4005";
 pub const UNKNOWN_STATE_CATEGORY: &str = "HOM5001";
 pub const UNKNOWN_RESOURCE: &str = "HOM5002";
 pub const UNKNOWN_BUILDING: &str = "HOM5003";

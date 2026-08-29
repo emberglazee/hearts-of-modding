@@ -6,12 +6,19 @@ use std::path::PathBuf;
 
 use crate::parser::ast;
 
-/// HOI4 country tags: 3 chars, first char uppercase alphabetic, rest uppercase
-/// alphanumeric. Reserved words (NOT, AND, TAG, OOB, LOG, NUM, RED) and
-/// entirely-numeric tags are not valid.
+/// HOI4 tags that collide with engine keywords. Per wiki `country-creation.md`
+/// these *should* be avoided (NOT/AND/TAG/OOB/LOG/NUM/RED) but the engine
+/// still loads them — `RED` only breaks custom map modes. They are therefore
+/// NOT filtered at scan time; the scanner indexes them and a dedicated
+/// diagnostic (`HOM4005`) warns at the definition site. Loc/scope validation
+/// treats them as valid tags when they are defined (see `is_valid_tag` vs
+/// `is_reserved_tag`).
 /// Examples: GER, D01, SOV, B42, USA
-const RESERVED_TAGS: [&str; 7] = ["NOT", "AND", "TAG", "OOB", "LOG", "NUM", "RED"];
+pub const RESERVED_TAGS: [&str; 7] = ["NOT", "AND", "TAG", "OOB", "LOG", "NUM", "RED"];
 
+/// Syntactically valid 3-char tag: `[A-Z][A-Z0-9]{2}`, not all-numeric.
+/// Reserved tags ARE considered syntactically valid — use `is_reserved_tag`
+/// to warn about them separately.
 pub(crate) fn is_valid_tag(s: &str) -> bool {
     if s.len() != 3 {
         return false;
@@ -21,7 +28,10 @@ pub(crate) fn is_valid_tag(s: &str) -> bool {
         && bytes[0].is_ascii_uppercase()
         && bytes[1].is_ascii_alphanumeric()
         && bytes[2].is_ascii_alphanumeric()
-        && !RESERVED_TAGS.contains(&s)
+}
+
+pub(crate) fn is_reserved_tag(s: &str) -> bool {
+    RESERVED_TAGS.contains(&s)
 }
 
 #[derive(Debug, Clone)]

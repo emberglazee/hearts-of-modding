@@ -24,6 +24,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Fixed tag aliases not being semantically highlighted.**
 
+- **Reserved country tags (`RED` etc.) no longer cause false-positive `invalid_loc_scope` and are now properly indexed (HOM4005).** The scanner previously dropped `RED`/`NOT`/`AND`/`TAG`/`OOB`/`LOG`/`NUM` at scan time, so `[RED.GetFlag]` in `mcc2e.d` was always flagged as unknown even though `RED = "countries/Redstone Mountain.txt"` was defined and the engine loads it (only custom map modes break). The scanner now indexes reserved tags, `invalid_loc_scope` and `Scope::from_str` recognise them when defined, and a new `HOM4005` warns at the definition site in `common/country_tags` / `history/countries` instead of silently hiding the tag.
+
 ### 🧹 Internal
 
 - **Refactored the LSP test suite** for less code bloat and easier implementation for new future functionality.

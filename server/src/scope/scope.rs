@@ -251,16 +251,11 @@ impl Scope {
             | "every_operative_leader"
             | "random_operative_leader" => Scope::Character,
             _ => {
-                // HOI4 tags: 3 chars, first uppercase alphabetic, rest uppercase alphanumeric.
-                // Reserved words (NOT, AND, TAG, OOB, LOG, NUM, RED) excluded.
-                const RESERVED: [&str; 7] = ["NOT", "AND", "TAG", "OOB", "LOG", "NUM", "RED"];
-                if s.len() == 3
-                    && s.as_bytes()[0].is_ascii_alphabetic()
-                    && s.as_bytes()[0].is_ascii_uppercase()
-                    && s.as_bytes()[1].is_ascii_alphanumeric()
-                    && s.as_bytes()[2].is_ascii_alphanumeric()
-                    && !RESERVED.contains(&s)
-                {
+                // Any syntactically valid 3-char tag is a Country scope.
+                // Reserved tags (NOT/AND/TAG/…) are *also* valid tags — the
+                // engine loads them, they just break map modes etc., so we
+                // treat them as Country and warn separately (HOM4005).
+                if crate::scanner::country_scanner::is_valid_tag(s) {
                     Scope::Country
                 } else {
                     Scope::Unknown

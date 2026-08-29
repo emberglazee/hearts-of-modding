@@ -12,6 +12,7 @@ pub mod on_actions;
 pub mod oob_regiments;
 pub mod parser_skip;
 pub mod provinces;
+pub mod red_reserved;
 pub mod registry;
 pub mod scripted_loc;
 pub mod technology;
