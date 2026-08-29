@@ -69,47 +69,23 @@ impl VariableRule {
         }
     }
 
-    /// Check if a key is a variable-related effect/trigger
+    /// Check if a key is a variable-related effect/trigger.
+    ///
+    /// Flags are intentionally NOT classified: HOI4 flags have no "definition"
+    /// concept — every flag name implicitly exists, an unset flag reads as
+    /// false, and set-after-read (one-shot guards, e.g. `NOT = { has_global_flag = x }`
+    /// followed later by `set_global_flag = x`) is a core engine idiom.
+    /// Validating flag reads as unresolved would be a guaranteed false positive.
     fn classify_var_key(key: &str) -> Option<VarRefKind> {
         let lower = key.to_ascii_lowercase();
         match lower.as_str() {
             // Definitions (setters/creators)
             "set_variable" | "change_variable" => Some(VarRefKind::Definition),
             "set_temp_variable" | "set_local_variable" => Some(VarRefKind::Temp),
-            "set_global_flag"
-            | "set_country_flag"
-            | "set_state_flag"
-            | "set_character_flag"
-            | "set_unit_leader_flag"
-            | "set_mio_flag"
-            | "set_project_flag"
-            | "modify_global_flag"
-            | "modify_country_flag"
-            | "modify_state_flag"
-            | "modify_character_flag"
-            | "modify_unit_leader_flag"
-            | "modify_mio_flag"
-            | "modify_project_flag"
-            | "clr_global_flag"
-            | "clr_country_flag"
-            | "clr_state_flag"
-            | "clr_character_flag"
-            | "clr_unit_leader_flag"
-            | "clr_mio_flag"
-            | "clr_project_flag"
-            | "career_profile_set_temp_playthrough_variable"
-            | "career_profile_set_temp_variable" => Some(VarRefKind::Definition),
             // Reads (checkers/queries)
-            "check_variable"
-            | "has_variable"
-            | "has_global_flag"
-            | "has_country_flag"
-            | "has_state_flag"
-            | "has_character_flag"
-            | "has_unit_leader_flag"
-            | "has_mio_flag"
-            | "has_project_flag"
-            | "career_profile_has_player_flag" => Some(VarRefKind::Read),
+            // NOTE: unset variables read as 0 — the engine recovers gracefully,
+            // so unresolved reads validate at WARNING (typo-catching), never ERROR.
+            "check_variable" | "has_variable" => Some(VarRefKind::Read),
             // Mutations (non-temp)
             "add_to_variable"
             | "subtract_from_variable"
@@ -268,7 +244,14 @@ impl VariableRule {
             })
     }
 
-    /// Validate a variable reference
+    /// Validate a variable reference.
+    ///
+    /// Severity is WARNING, not ERROR: reading an unset variable is legal —
+    /// the engine silently returns 0. The diagnostic exists to catch typos
+    /// (`my_vra` vs `my_var`), the most common silent-failure mode for
+    /// variables. Flags are excluded from validation entirely (see
+    /// [`Self::classify_var_key`]): an unset flag reads as false, which is
+    /// the standard one-shot-guard idiom.
     fn validate_var_ref(
         &self,
         ref_: &VarRef,
@@ -302,16 +285,15 @@ impl VariableRule {
                     "temp {} '{}' not defined in current effect chain",
                     kind_str, ref_.name
                 );
-            }
-
-            // Add hint for common patterns
-            if ref_.kind == VarRefKind::Mutation || ref_.kind == VarRefKind::Read {
-                msg.push_str(". Define with `set_variable` or `set_temp_variable` first.");
+            } else {
+                // Engine reality: unset variables read as 0, so this is a
+                // typo warning, not a breakage.
+                msg.push_str(" — unset variables read as 0; possible typo.");
             }
 
             diags.push(Diagnostic {
                 range: ctx.range(&ref_.range),
-                severity: Some(DiagnosticSeverity::ERROR),
+                severity: Some(DiagnosticSeverity::WARNING),
                 message: msg,
                 code: Some(NumberOrString::String("HOM9001".to_string())), // Unresolved variable
                 source: Some("Hearts of Modding".to_string()),

@@ -152,12 +152,14 @@ fn test_global_variable_prefix_always_valid() {
 
 #[test]
 fn test_flag_operations() {
-    // Flag operations should work similarly - need Country scope
+    // Flags implicitly exist — no definition-tracking for them at all.
+    // set/has/clr in any order, defined or not, produces no diagnostics.
     let diags = walk_variables(
         r#"
         set_country_flag = my_flag
         has_country_flag = my_flag
         clr_country_flag = my_flag
+        set_global_flag = g_flag
         "#,
         "/mod/common/decisions/test.txt",
     );
@@ -173,27 +175,33 @@ fn test_flag_operations() {
         .collect();
     assert!(
         hom9001.is_empty(),
-        "flag operations with matching set/has/clr should not flag, got: {:?}",
+        "flag operations must never flag HOM9001, got: {:?}",
         diags
     );
 }
 
 #[test]
-fn test_flag_read_without_set_flags() {
+fn test_flag_read_without_set_no_diagnostic() {
+    // Engine semantics: unset flags read as false. The one-shot-guard idiom
+    // (`NOT = { has_global_flag = x }` in a trigger, `set_global_flag = x` in
+    // the same event's immediate) is valid and core. Reading a flag that is
+    // never set anywhere is legal — it just stays false.
     let diags = walk_variables(
         r#"
         has_country_flag = undefined_flag
+        has_global_flag = never_set_flag
+        clr_state_flag = some_flag
         "#,
-        "/mod/common/scripted_effects/test.txt",
+        "/mod/common/decisions/test.txt",
     );
     assert!(
-        diags.iter().any(|d| d
+        !diags.iter().any(|d| d
             .code
             .as_ref()
             .map(|c| format!("{:?}", c))
             .unwrap_or_default()
             .contains("HOM9001")),
-        "has_country_flag without set_country_flag should flag HOM9001, got: {:?}",
+        "flag reads must never flag HOM9001 (flags implicitly exist), got: {:?}",
         diags
     );
 }
