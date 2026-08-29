@@ -1,35 +1,22 @@
+<div align="center">
+
+<img src="./client/icons/icon.svg" width="128" alt="icon">
+
 # Hearts of Modding
 
 [![made-for-VSCode](https://img.shields.io/badge/Made%20for-VSCode-1f425f.svg)](https://code.visualstudio.com/)
 [![GitHub license](https://badgen.net/github/license/emberglazee/Hearts-of-Modding)](https://github.com/emberglazee/Hearts-of-Modding/blob/main/LICENSE)
-![GitHub top language](https://img.shields.io/github/languages/top/emberglazee/hearts-of-modding?logo=rust&logoColor=ff8c00&label=Rust)
-![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/emberglazee/hearts-of-modding/.github%2Fworkflows%2Fbuild.yml?logo=githubactions&logoColor=white&link=https%3A%2F%2Fgithub.com%2Femberglazee%2Fhearts-of-modding%2Factions)
-![GitHub Release](https://img.shields.io/github/v/release/emberglazee/hearts-of-modding?label=release&logo=github&link=https%3A%2F%2Fgithub.com%2Femberglazee%2Fhearts-of-modding%2Freleases)
+[![GitHub top language](https://img.shields.io/github/languages/top/emberglazee/hearts-of-modding?logo=rust&logoColor=ff8c00&label=Rust)](https://github.com/emberglazee/hearts-of-modding/search?l=rust)
+[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/emberglazee/hearts-of-modding/.github%2Fworkflows%2Fbuild.yml?logo=githubactions&logoColor=white&link=https%3A%2F%2Fgithub.com%2Femberglazee%2Fhearts-of-modding%2Factions)](https://github.com/emberglazee/hearts-of-modding/actions)
+[![GitHub Release](https://img.shields.io/github/v/release/emberglazee/hearts-of-modding?label=release&logo=github)](https://github.com/emberglazee/hearts-of-modding/releases)
 
-<div align="center">
-<table>
-<tbody>
-<tr>
-<td align="center">
-<a href="https://github.com/emberglazee/hearts-of-modding" target="_blank"><strong>GitHub</strong></a>
-</td>
-<td align="center">
-<a href="https://github.com/emberglazee/hearts-of-modding/discussions/3" target="_blank"><strong>Discussion</strong></a>
-</td>
-<td align="center">
-<a href="https://marketplace.visualstudio.com/items?itemName=emberglaze.hearts-of-modding" target="_blank"><strong>VSC Marketplace</strong></a>
-</td>
-<td align="center">
-<a href="https://open-vsx.org/extension/emberglaze/hearts-of-modding" target="_blank"><strong>OVSX Registry</strong></a>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+[**GitHub**](https://github.com/emberglazee/hearts-of-modding) • [**Discussion**](https://github.com/emberglazee/hearts-of-modding/discussions/3) • [**VSC Marketplace**](https://marketplace.visualstudio.com/items?itemName=emberglaze.hearts-of-modding) • [**OVSX Registry**](https://open-vsx.org/extension/emberglaze/hearts-of-modding)
 
 An experimental work-in-progress high-performance **Visual Studio Code** extension for **Hearts of Iron IV (HOI4)** modding, powered by a dedicated Language Server Protocol (LSP) server written in **Rust**.
 
 Inspired by [CWTools](https://github.com/cwtools/cwtools) and [VModer](https://github.com/textGamex/VModer). Written with performance in mind.
+
+</div>
 
 ---
 
@@ -51,7 +38,7 @@ Inspired by [CWTools](https://github.com/cwtools/cwtools) and [VModer](https://g
 
 - **Hover over anything** to see what it does: hover a trigger to read its documentation, an idea to see its modifiers, a state ID to see its name, a localization to preview it.
 
-- **Click to jump** to definitions: F12 on any event, idea, character, or focus takes you straight to where its defined.
+- **Click to jump** to definitions: F12 on any event, idea, character, or focus takes you straight to where it's defined.
 
 ### 🔎 Catch mistakes early
 
