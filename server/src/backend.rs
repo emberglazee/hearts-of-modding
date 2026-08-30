@@ -3558,6 +3558,7 @@ impl ValidationCtx {
             // Variable/flag/array validation (Layer 1)
             Box::new(rules::variables::VariableRuleState::new(
                 &self.scanner_data.variables,
+                &self.scanner_data.arrays,
                 &self.scanner_data.event_targets,
             )),
         ];

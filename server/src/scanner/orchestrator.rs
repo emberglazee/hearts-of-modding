@@ -799,6 +799,11 @@ impl Backend {
             self.scanner_data.variables.insert(k.into(), v);
         }
 
+        self.scanner_data.arrays.clear();
+        for (k, v) in result.arrays {
+            self.scanner_data.arrays.insert(k.into(), v);
+        }
+
         self.scanner_data.event_targets.clear();
         for (k, v) in result.event_targets {
             self.scanner_data.event_targets.insert(k.into(), v);
@@ -808,8 +813,9 @@ impl Backend {
             .log_message(
                 MessageType::INFO,
                 format!(
-                    "Total: Loaded {} variables and {} event targets",
+                    "Total: Loaded {} variables, {} arrays and {} event targets",
                     self.scanner_data.variables.len(),
+                    self.scanner_data.arrays.len(),
                     self.scanner_data.event_targets.len()
                 ),
             )

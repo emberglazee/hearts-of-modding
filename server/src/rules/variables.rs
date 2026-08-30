@@ -1,34 +1,36 @@
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use crate::rules::{ValidationContext, ValidationRule};
-use crate::scanner::variable_scanner::{EventTarget, Variable};
+use crate::scanner::variable_scanner::{Array, EventTarget, Variable};
 use crate::scope::scope::{Scope, ScopeStack};
 use dashmap::DashMap;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
-/// Variable reference kinds for diagnostics
+/// Variable / array reference kinds for diagnostics
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum VarRefKind {
-    /// `set_variable`, `set_temp_variable`, `change_variable`, etc. (definition)
+    /// `set_variable`, `change_variable` (definition)
     Definition,
     /// `check_variable`, `has_variable` (read/comparison)
     Read,
-    /// `add_to_variable`, `subtract_from_variable`, `multiply_variable`, etc. (mutation)
+    /// `add_to_variable`, `subtract_from_variable`, etc. (mutation)
     Mutation,
-    /// `set_global_flag`, `has_country_flag`, etc. (flag operations)
-    // Scaffolding: flag ops currently classify as Definition/Read; this
-    // dedicated kind is reserved for finer-grained flag diagnostics.
+    /// flag ops — reserved, never classified (see classify)
     #[allow(dead_code)]
     Flag,
-    /// `add_to_array`, `is_in_array`, `for_each_scope_loop`, etc. (array operations)
+    /// `add_to_array` — array creation (definition, regular scope)
+    ArrayDef,
+    /// `add_to_temp_array` — array creation (temp, chain-local)
+    ArrayTempDef,
+    /// `is_in_array`, `for_each_scope_loop`, `remove_from_array`, `clear_array`, etc. (array read/mutation)
     Array,
     /// `set_temp_variable`, `add_to_temp_variable` (temp - chain local)
     Temp,
 }
 
-/// Variable reference info for validation
+/// Variable / array reference info for validation
 #[derive(Debug, Clone)]
 struct VarRef {
     name: String,
@@ -39,19 +41,28 @@ struct VarRef {
     scope: Scope,
 }
 
-/// Variable validation rule (HOM9xxx range)
+/// Variable + array validation rule (HOM9xxx range)
 ///
 /// Validates:
 /// - Variable definitions track their scope
 /// - Variable reads/mutations resolve to a definition in the same or accessible scope
 /// - Temp variables only valid within current effect chain
 /// - Global variables (`global.name`) work everywhere
-/// - Array operations validate array definitions
+/// - Array definitions (`add_to_array` / `add_to_temp_array`) create the array;
+///   all other array ops (`is_in_array`, `for_each_*`, `remove_from_*`, `clear_*`,
+///   `resize_*`, `find_*`, `any_of_scopes` …) validate against a prior
+///   `add_to_array` in the same or accessible scope. Temp arrays are chain-local.
+///   An unset array reads as empty (like an unset variable reads as 0 / flag
+///   as false) — diagnostic is WARNING for typo-catching, never ERROR.
 pub(crate) struct VariableRule {
     /// Variable definitions found in this file, keyed by name -> (scope, is_temp, is_global, range)
     file_vars: HashMap<String, (Scope, bool, bool, ast::Range)>,
+    /// Array definitions found in this file, keyed by name -> (scope, is_temp, is_global, range)
+    file_arrays: HashMap<String, (Scope, bool, bool, ast::Range)>,
     /// Cross-file variable definitions from scanner data (DashMap from backend)
     workspace_vars: DashMap<InternedStr, Vec<Variable>>,
+    /// Cross-file array definitions from scanner data
+    workspace_arrays: DashMap<InternedStr, Vec<Array>>,
     /// Event targets for scope resolution
     #[allow(dead_code)] // scaffolding for upcoming event-target variable validation
     event_targets: DashMap<InternedStr, Vec<EventTarget>>,
@@ -60,16 +71,19 @@ pub(crate) struct VariableRule {
 impl VariableRule {
     pub(crate) fn new(
         workspace_vars: &DashMap<InternedStr, Vec<Variable>>,
+        workspace_arrays: &DashMap<InternedStr, Vec<Array>>,
         event_targets: &DashMap<InternedStr, Vec<EventTarget>>,
     ) -> Self {
         Self {
             file_vars: HashMap::new(),
+            file_arrays: HashMap::new(),
             workspace_vars: workspace_vars.clone(),
+            workspace_arrays: workspace_arrays.clone(),
             event_targets: event_targets.clone(),
         }
     }
 
-    /// Check if a key is a variable-related effect/trigger.
+    /// Check if a key is a variable- or array-related effect/trigger.
     ///
     /// Flags are intentionally NOT classified: HOI4 flags have no "definition"
     /// concept — every flag name implicitly exists, an unset flag reads as
@@ -108,9 +122,11 @@ impl VariableRule {
             | "randomize_temp_variable"
             | "set_temp_variable_to_random"
             | "clear_temp_variable" => Some(VarRefKind::Temp),
-            // Arrays
-            "add_to_array"
-            | "remove_from_array"
+            // Array creations (definitions)
+            "add_to_array" => Some(VarRefKind::ArrayDef),
+            "add_to_temp_array" => Some(VarRefKind::ArrayTempDef),
+            // Array reads / mutations — all need a prior add_to_array
+            "remove_from_array"
             | "clear_array"
             | "resize_array"
             | "is_in_array"
@@ -118,17 +134,20 @@ impl VariableRule {
             | "find_lowest_in_array"
             | "for_each_scope_loop"
             | "for_each_loop"
-            | "random_scope_in_array" => Some(VarRefKind::Array),
-            // Temp arrays
-            "add_to_temp_array"
-            | "remove_from_temp_array"
-            | "clear_temp_array"
-            | "resize_temp_array" => Some(VarRefKind::Array),
+            | "random_scope_in_array"
+            | "any_of"
+            | "any_of_scopes"
+            | "all_of"
+            | "all_of_scopes" => Some(VarRefKind::Array),
+            // Temp array mutations (still validated — need a prior add_to_temp_array)
+            "remove_from_temp_array" | "clear_temp_array" | "resize_temp_array" => {
+                Some(VarRefKind::Array)
+            }
             _ => None,
         }
     }
 
-    /// Extract variable name from an assignment value
+    /// Extract variable / array name from an assignment value
     fn extract_var_name(ass: &ast::Assignment, source: &str) -> Option<String> {
         match &ass.value.value {
             ast::Value::String(name_span) => Some(name_span.resolve(source).to_string()),
@@ -142,6 +161,7 @@ impl VariableRule {
                             || key == "name"
                             || key == "temp_var"
                             || key == "array"
+                            || key == "temp_array"
                         {
                             if let Some(name) = inner_ass.value.value.as_str(source) {
                                 return Some(name.to_string());
@@ -149,7 +169,8 @@ impl VariableRule {
                         }
                     }
                 }
-                // Shorthand form: single entry key is the variable name
+                // Shorthand form: single entry key is the variable/array name
+                // e.g. set_variable = { my_var = 5 } or is_in_array = { my_array = value }
                 if inner.len() == 1 {
                     if let ast::Entry::Assignment(inner_ass) = &inner[0] {
                         return Some(inner_ass.key_text(source).to_string());
@@ -206,6 +227,46 @@ impl VariableRule {
         false
     }
 
+    /// Check if an array is defined in the current or an accessible scope.
+    ///
+    /// `add_to_array` / `add_to_temp_array` are the creators — an array is
+    /// assumed empty by default (wiki: "if not already created"), so a read
+    /// like `is_in_array` on a non-existent array just returns false.
+    /// Validation is WARNING typo-catching, same as variables.
+    fn is_array_defined(&self, name: &str, current_scope: Scope, is_global: bool) -> bool {
+        if is_global {
+            return true;
+        }
+
+        // File-local arrays (both regular and temp defs) — scope-aware.
+        // Temp array defs are stored with is_temp flag but for reads we accept
+        // either: a temp array read may be satisfied by a temp def in the same
+        // file chain, and a regular read by a regular def. Checking both is
+        // permissive (false-negative over false-positive) while the precise
+        // temp-vs-regular read distinction is not encoded in the trigger key
+        // (is_in_array reads both).
+        if let Some((def_scope, _temp, _, _)) = self.file_arrays.get(name) {
+            if *def_scope == current_scope || self.is_accessible_scope(*def_scope, current_scope) {
+                return true;
+            }
+        }
+
+        // Workspace arrays — only regular arrays (add_to_array) are in ScannerData;
+        // add_to_temp_array writes are chain-local but we still store them for
+        // cross-file typo-catching permissiveness. If any entry exists, consider defined.
+        if let Some(entry) = self.workspace_arrays.get(name) {
+            if !entry.value().is_empty() {
+                return true;
+            }
+        }
+
+        // Also check global-prefixed name in workspace (scanner stores stripped? No, stores raw.
+        // We already stripped global. for is_global check, but workspace keys are raw names
+        // like "TIR_global_campaign_holders" not "global.X", so this is not needed.)
+
+        false
+    }
+
     /// Check if def_scope is accessible from current_scope
     /// HOI4 scope hierarchy: Global < Country < State/Character/Unit
     /// Character/Unit can access Country via ROOT
@@ -226,16 +287,13 @@ impl VariableRule {
         }
     }
 
-    /// Get array definition scope
-    #[allow(dead_code)] // scaffolding for upcoming array validation
+    /// Get array definition scope (used for scaffolding; now backed by file_arrays)
+    #[allow(dead_code)]
     fn get_array_scope(&self, name: &str) -> Option<Scope> {
-        // Arrays don't have a dedicated scanner yet; check file_vars
-        self.file_vars
+        self.file_arrays
             .get(name)
             .map(|(s, _, _, _)| *s)
-            // TODO: enhance scanner to index arrays with scope
             .or_else(|| {
-                // Fallback: check if it looks like a global array
                 if name.starts_with("global.") {
                     Some(Scope::Global)
                 } else {
@@ -244,30 +302,40 @@ impl VariableRule {
             })
     }
 
-    /// Validate a variable reference.
+    /// Validate a variable / array reference.
     ///
-    /// Severity is WARNING, not ERROR: reading an unset variable is legal —
-    /// the engine silently returns 0. The diagnostic exists to catch typos
-    /// (`my_vra` vs `my_var`), the most common silent-failure mode for
-    /// variables. Flags are excluded from validation entirely (see
-    /// [`Self::classify_var_key`]): an unset flag reads as false, which is
-    /// the standard one-shot-guard idiom.
+    /// Severity is WARNING, not ERROR: reading an unset variable/array is legal —
+    /// the engine silently returns 0 / empty. The diagnostic exists to catch typos
+    /// (`my_vra` vs `my_var`), the most common silent-failure mode.
+    /// Flags are excluded from validation entirely (see [`Self::classify_var_key`]).
     fn validate_var_ref(
         &self,
         ref_: &VarRef,
         diags: &mut Vec<Diagnostic>,
         ctx: &ValidationContext,
     ) {
-        let is_defined = self.is_var_defined(&ref_.name, ref_.scope, ref_.is_temp, ref_.is_global);
+        let is_defined = match ref_.kind {
+            VarRefKind::Array => self.is_array_defined(&ref_.name, ref_.scope, ref_.is_global),
+            _ => self.is_var_defined(&ref_.name, ref_.scope, ref_.is_temp, ref_.is_global),
+        };
 
         if !is_defined {
-            let kind_str = match ref_.kind {
-                VarRefKind::Definition => "definition",
-                VarRefKind::Read => "read",
-                VarRefKind::Mutation => "mutation",
-                VarRefKind::Flag => "flag",
-                VarRefKind::Array => "array",
-                VarRefKind::Temp => "temp",
+            let (kind_str, empty_msg) = match ref_.kind {
+                VarRefKind::Definition => {
+                    ("definition", " — unset variables read as 0; possible typo.")
+                }
+                VarRefKind::Read => ("read", " — unset variables read as 0; possible typo."),
+                VarRefKind::Mutation => {
+                    ("mutation", " — unset variables read as 0; possible typo.")
+                }
+                VarRefKind::Flag => ("flag", ""),
+                VarRefKind::Array => ("array", " — arrays are empty by default; possible typo."),
+                VarRefKind::ArrayDef => ("array", " — arrays are empty by default; possible typo."),
+                VarRefKind::ArrayTempDef => (
+                    "temp array",
+                    " — arrays are empty by default; possible typo.",
+                ),
+                VarRefKind::Temp => ("temp", " — temp variables are chain-local; possible typo."),
             };
 
             let scope_str = ref_.scope.as_str();
@@ -286,23 +354,21 @@ impl VariableRule {
                     kind_str, ref_.name
                 );
             } else {
-                // Engine reality: unset variables read as 0, so this is a
-                // typo warning, not a breakage.
-                msg.push_str(" — unset variables read as 0; possible typo.");
+                msg.push_str(empty_msg);
             }
 
             diags.push(Diagnostic {
                 range: ctx.range(&ref_.range),
                 severity: Some(DiagnosticSeverity::WARNING),
                 message: msg,
-                code: Some(NumberOrString::String("HOM9001".to_string())), // Unresolved variable
+                code: Some(NumberOrString::String("HOM9001".to_string())), // Unresolved variable/array
                 source: Some("Hearts of Modding".to_string()),
                 ..Default::default()
             });
         }
     }
 
-    /// Process a variable assignment (definition or reference)
+    /// Process a variable / array assignment (definition or reference)
     fn process_assignment(
         &mut self,
         ass: &ast::Assignment,
@@ -322,14 +388,15 @@ impl VariableRule {
             None => return,
         };
 
-        // Handle global prefix
+        // Handle global prefix — `global.name` is accessible everywhere.
+        // Works for both variables (global.var) and arrays (global.array).
         let (is_global, clean_name) = if var_name.starts_with("global.") {
             (true, var_name.strip_prefix("global.").unwrap().to_string())
         } else {
             (false, var_name)
         };
 
-        let is_temp = matches!(kind, VarRefKind::Temp);
+        let is_temp = matches!(kind, VarRefKind::Temp | VarRefKind::ArrayTempDef);
 
         let var_ref = VarRef {
             name: clean_name.clone(),
@@ -342,18 +409,24 @@ impl VariableRule {
 
         match kind {
             VarRefKind::Definition | VarRefKind::Temp => {
-                // Track definition
+                // Track variable definition
                 if !is_temp || is_global {
                     self.file_vars.insert(
                         clean_name,
                         (current_scope, is_temp, is_global, ass.value.range.clone()),
                     );
                 }
-                // For temp variables, we still validate they're not redefined weirdly
-                // but don't error on definition
+            }
+            VarRefKind::ArrayDef | VarRefKind::ArrayTempDef => {
+                // Track array definition (`add_to_array` / `add_to_temp_array` creates the array)
+                // Temp arrays are still tracked file-locally; they do not cross chains.
+                self.file_arrays.insert(
+                    clean_name,
+                    (current_scope, is_temp, is_global, ass.value.range.clone()),
+                );
             }
             VarRefKind::Read | VarRefKind::Mutation | VarRefKind::Flag | VarRefKind::Array => {
-                // Validate reference
+                // Validate reference (variable or array read/mutation)
                 self.validate_var_ref(&var_ref, diags, ctx);
             }
         }
@@ -369,7 +442,7 @@ impl ValidationRule for VariableRule {
         _pushed_scope: bool,
         _diags: &mut Vec<Diagnostic>,
     ) {
-        // We need mutable access to file_vars for definitions, so this is a limitation
+        // We need mutable access to file_vars/file_arrays for definitions, so this is a limitation
         // of the ValidationRule trait. We'll handle this by making the check_mutable.
         // Actually, we can't mutate self in check_assignment.
         // Solution: use interior mutability or split into two phases.
@@ -385,10 +458,15 @@ pub(crate) struct VariableRuleState {
 impl VariableRuleState {
     pub(crate) fn new(
         workspace_vars: &DashMap<InternedStr, Vec<Variable>>,
+        workspace_arrays: &DashMap<InternedStr, Vec<Array>>,
         event_targets: &DashMap<InternedStr, Vec<EventTarget>>,
     ) -> Self {
         Self {
-            rule: RefCell::new(VariableRule::new(workspace_vars, event_targets)),
+            rule: RefCell::new(VariableRule::new(
+                workspace_vars,
+                workspace_arrays,
+                event_targets,
+            )),
         }
     }
 }

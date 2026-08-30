@@ -15,6 +15,15 @@ pub struct Variable {
 }
 
 #[derive(Debug, Clone)]
+pub struct Array {
+    #[allow(dead_code)]
+    pub name: String,
+    pub path: InternedStr,
+    pub range: ast::Range,
+    pub is_temp: bool,
+}
+
+#[derive(Debug, Clone)]
 pub struct EventTarget {
     #[allow(dead_code)]
     pub name: String,
@@ -26,6 +35,7 @@ pub struct EventTarget {
 
 pub struct ScanResult {
     pub variables: HashMap<String, Vec<Variable>>,
+    pub arrays: HashMap<String, Vec<Array>>,
     pub event_targets: HashMap<String, Vec<EventTarget>>,
 }
 
@@ -34,6 +44,7 @@ where
     F: Fn(&std::path::Path) -> bool,
 {
     let mut variables: HashMap<String, Vec<Variable>> = HashMap::new();
+    let mut arrays: HashMap<String, Vec<Array>> = HashMap::new();
     let mut event_targets: HashMap<String, Vec<EventTarget>> = HashMap::new();
 
     for root in roots {
@@ -72,6 +83,7 @@ where
                                     &script.source,
                                     &path.to_string_lossy(),
                                     &mut variables,
+                                    &mut arrays,
                                     &mut event_targets,
                                 );
                             }
@@ -84,6 +96,7 @@ where
 
     ScanResult {
         variables,
+        arrays,
         event_targets,
     }
 }
@@ -93,6 +106,7 @@ where
     F: Fn(&std::path::Path) -> bool,
 {
     let mut variables: HashMap<String, Vec<Variable>> = HashMap::new();
+    let mut arrays: HashMap<String, Vec<Array>> = HashMap::new();
     let mut event_targets: HashMap<String, Vec<EventTarget>> = HashMap::new();
 
     crate::utils::fs_util::parse_winning_files(files, filter, |path, content| {
@@ -102,12 +116,14 @@ where
             &script.source,
             &path.to_string_lossy(),
             &mut variables,
+            &mut arrays,
             &mut event_targets,
         );
     });
 
     ScanResult {
         variables,
+        arrays,
         event_targets,
     }
 }
@@ -117,6 +133,7 @@ pub(crate) fn scan_entries(
     source: &str,
     path: &str,
     variables: &mut HashMap<String, Vec<Variable>>,
+    arrays: &mut HashMap<String, Vec<Array>>,
     event_targets: &mut HashMap<String, Vec<EventTarget>>,
 ) {
     for entry in entries {
@@ -151,14 +168,20 @@ pub(crate) fn scan_entries(
                     "save_event_target_as" | "save_global_event_target_as" => {
                         handle_event_target_assignment(ass, source, path, event_targets);
                     }
+                    "add_to_array" | "add_to_temp_array" => {
+                        let is_temp = ass
+                            .key_text(source)
+                            .eq_ignore_ascii_case("add_to_temp_array");
+                        handle_array_assignment(ass, source, path, arrays, is_temp);
+                    }
                     _ => {
                         // Recurse into blocks
                         match &ass.value.value {
                             ast::Value::Block(inner) => {
-                                scan_entries(inner, source, path, variables, event_targets)
+                                scan_entries(inner, source, path, variables, arrays, event_targets)
                             }
                             ast::Value::TaggedBlock(_, inner, _) => {
-                                scan_entries(inner, source, path, variables, event_targets)
+                                scan_entries(inner, source, path, variables, arrays, event_targets)
                             }
                             _ => {}
                         }
@@ -167,10 +190,10 @@ pub(crate) fn scan_entries(
             }
             ast::Entry::Value(val) => match &val.value {
                 ast::Value::Block(inner) => {
-                    scan_entries(inner, source, path, variables, event_targets)
+                    scan_entries(inner, source, path, variables, arrays, event_targets)
                 }
                 ast::Value::TaggedBlock(_, inner, _) => {
-                    scan_entries(inner, source, path, variables, event_targets)
+                    scan_entries(inner, source, path, variables, arrays, event_targets)
                 }
                 _ => {}
             },
@@ -216,6 +239,55 @@ fn handle_variable_assignment(
     }
 }
 
+fn handle_array_assignment(
+    ass: &ast::Assignment,
+    source: &str,
+    path: &str,
+    arrays: &mut HashMap<String, Vec<Array>>,
+    is_temp: bool,
+) {
+    match &ass.value.value {
+        ast::Value::String(name_span) => {
+            let name = name_span.resolve(source).to_string();
+            add_array(arrays, name, path, &ass.value.range, is_temp);
+        }
+        ast::Value::Block(inner) => {
+            let mut found = false;
+            for entry in inner {
+                if let ast::Entry::Assignment(inner_ass) = entry {
+                    let key = inner_ass.key_text(source);
+                    if key == "array" {
+                        if let Some(name) = inner_ass.value.value.as_str(source) {
+                            add_array(
+                                arrays,
+                                name.to_string(),
+                                path,
+                                &inner_ass.value.range,
+                                is_temp,
+                            );
+                            found = true;
+                        }
+                    }
+                }
+            }
+            // Shorthand form: add_to_array = { my_array = value } or { array_name = 5 }
+            if !found && inner.len() == 1 {
+                if let ast::Entry::Assignment(inner_ass) = &inner[0] {
+                    let arr_name = inner_ass.key_text(source).to_string();
+                    // Guard: ignore when the sole key is "array" but value wasn't a string (e.g. array = { complex })
+                    // In that case we already tried and failed; don't treat "array" as name.
+                    if !arr_name.eq_ignore_ascii_case("array") {
+                        add_array(arrays, arr_name, path, &inner_ass.key_range, is_temp);
+                    }
+                }
+            }
+            // Also handle short-hand with two entries? e.g. add_to_array = { array = X value = Y } already handled above.
+            // If block has `array = X` found, we already added. Nothing else.
+        }
+        _ => {}
+    }
+}
+
 fn handle_event_target_assignment(
     ass: &ast::Assignment,
     source: &str,
@@ -246,6 +318,22 @@ fn add_variable(
         range: range.clone(),
     };
     variables.entry(name).or_default().push(entry);
+}
+
+fn add_array(
+    arrays: &mut HashMap<String, Vec<Array>>,
+    name: String,
+    path: &str,
+    range: &ast::Range,
+    is_temp: bool,
+) {
+    let entry = Array {
+        name: name.clone(),
+        path: std::sync::Arc::from(path),
+        range: range.clone(),
+        is_temp,
+    };
+    arrays.entry(name).or_default().push(entry);
 }
 
 fn add_event_target(

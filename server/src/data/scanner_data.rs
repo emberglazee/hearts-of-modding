@@ -100,6 +100,9 @@ pub(crate) struct ScannerData {
     /// `resolve().path()` shape, so this is maintained manually — it makes
     /// `entity_at` O(variables-in-file) instead of O(all workspace variables).
     pub variables_file_index: DashMap<InternedStr, Vec<InternedStr>>,
+    pub arrays: DashMap<InternedStr, Vec<variable_scanner::Array>>,
+    /// Reverse per-path index for `arrays` (path → array names declared there).
+    pub arrays_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub event_targets: DashMap<InternedStr, Vec<variable_scanner::EventTarget>>,
     pub provinces: DashMap<u32, province_scanner::Province>,
     pub custom_modifiers: DashMap<InternedStr, LayeredValue<modifier_scanner::Modifier>>,
@@ -237,6 +240,8 @@ impl ScannerData {
             characters: DashMap::new(),
             variables: DashMap::new(),
             variables_file_index: DashMap::new(),
+            arrays: DashMap::new(),
+            arrays_file_index: DashMap::new(),
             event_targets: DashMap::new(),
             provinces: DashMap::new(),
             custom_modifiers: DashMap::new(),
@@ -440,6 +445,18 @@ impl ScannerData {
             for var in entry.value().iter() {
                 let path = self.interner.intern(&normalize_path_str(var.path()));
                 let mut idx = self.variables_file_index.entry(path).or_default();
+                if !idx.contains(&name) {
+                    idx.push(name.clone());
+                }
+            }
+        }
+        // arrays is Vec-valued (name → definitions across files) — same pattern.
+        self.arrays_file_index.clear();
+        for entry in self.arrays.iter() {
+            let name = entry.key().clone();
+            for arr in entry.value().iter() {
+                let path = self.interner.intern(&normalize_path_str(arr.path()));
+                let mut idx = self.arrays_file_index.entry(path).or_default();
                 if !idx.contains(&name) {
                     idx.push(name.clone());
                 }

@@ -295,6 +295,7 @@ impl_has_path!(modifier_scanner::Modifier);
 impl_has_path!(ideology_scanner::Ideology);
 impl_has_path!(trait_scanner::Trait);
 impl_has_path!(variable_scanner::Variable);
+impl_has_path!(variable_scanner::Array);
 impl_has_path!(variable_scanner::EventTarget);
 impl_has_path!(strategic_region_scanner::StrategicRegion);
 impl_has_path!(country_scanner::CountryTag);
@@ -1412,12 +1413,14 @@ fn update_country_tags(scanner_data: &ScannerData, path_str: &str, content: &str
 
 fn update_variables(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_vars: HashMap<String, Vec<variable_scanner::Variable>> = HashMap::new();
+    let mut new_arrays: HashMap<String, Vec<variable_scanner::Array>> = HashMap::new();
     let mut new_targets: HashMap<String, Vec<variable_scanner::EventTarget>> = HashMap::new();
     variable_scanner::scan_entries(
         &script.entries,
         &script.source,
         path_str,
         &mut new_vars,
+        &mut new_arrays,
         &mut new_targets,
     );
 
@@ -1450,6 +1453,31 @@ fn update_variables(scanner_data: &ScannerData, path_str: &str, script: &ast::Sc
     for (k, mut v) in new_vars {
         scanner_data
             .variables
+            .entry(k.into())
+            .or_default()
+            .append(&mut v);
+    }
+
+    // --- Arrays (same pattern as variables) ---
+    scanner_data.arrays.retain(|_, vec| {
+        vec.retain(|a| !path_matches(a.path(), path_str));
+        !vec.is_empty()
+    });
+    scanner_data.arrays_file_index.remove(&index_key(path_str));
+    let mut file_array_keys = Vec::new();
+    for (k, v) in &new_arrays {
+        if v.iter().any(|arr| path_matches(arr.path(), path_str)) {
+            file_array_keys.push(InternedStr::from(k.as_str()));
+        }
+    }
+    if !file_array_keys.is_empty() {
+        scanner_data
+            .arrays_file_index
+            .insert(index_key(path_str), file_array_keys);
+    }
+    for (k, mut v) in new_arrays {
+        scanner_data
+            .arrays
             .entry(k.into())
             .or_default()
             .append(&mut v);
@@ -1983,6 +2011,10 @@ pub fn remove_path_from_scanner_data(scanner_data: &ScannerData, path_str: &str)
                     vec.retain(|v| !path_matches(v.path(), &p_owned));
                     !vec.is_empty()
                 });
+                scanner_data.arrays.retain(|_, vec| {
+                    vec.retain(|a| !path_matches(a.path(), &p_owned));
+                    !vec.is_empty()
+                });
                 scanner_data.event_targets.retain(|_, vec| {
                     vec.retain(|t| !path_matches(t.path(), &p_owned));
                     !vec.is_empty()
@@ -1990,6 +2022,7 @@ pub fn remove_path_from_scanner_data(scanner_data: &ScannerData, path_str: &str)
                 scanner_data
                     .variables_file_index
                     .remove(&index_key(path_str));
+                scanner_data.arrays_file_index.remove(&index_key(path_str));
             }
             FileCategory::MusicAssets => {
                 let path = std::path::Path::new(path_str);

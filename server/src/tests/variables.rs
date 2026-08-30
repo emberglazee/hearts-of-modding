@@ -15,6 +15,7 @@ fn walk_variables(input: &str, uri: &str) -> Vec<tower_lsp_server::ls_types::Dia
             Box::new(VariableRuleState::new(
                 &Default::default(),
                 &Default::default(),
+                &Default::default(),
             )),
         ],
         vec![],
@@ -208,15 +209,122 @@ fn test_flag_read_without_set_no_diagnostic() {
 
 #[test]
 fn test_array_operations() {
+    // add_to_array defines the array; is_in_array after should not flag
     let diags = walk_variables(
         r#"
-        add_to_array = my_array
-        is_in_array = my_array
+        add_to_array = { array = my_array value = 1 }
+        is_in_array = { array = my_array value = 1 }
         "#,
         "/mod/common/scripted_effects/test.txt",
     );
-    // Array defs don't have dedicated scanner yet - may flag for now
-    let _ = diags;
+    assert!(
+        !diags.iter().any(|d| d
+            .code
+            .as_ref()
+            .map(|c| format!("{:?}", c))
+            .unwrap_or_default()
+            .contains("HOM9001")),
+        "is_in_array after add_to_array should not flag, got: {:?}",
+        diags
+    );
+}
+
+#[test]
+fn test_array_shorthand_def_then_read() {
+    // add_to_array shorthand creates array, subsequent clear/remove/for_each should be valid
+    let diags = walk_variables(
+        r#"
+        add_to_array = { array = my_arr value = 1 }
+        clear_array = my_arr
+        remove_from_array = { array = my_arr index = 0 }
+        for_each_scope_loop = { array = my_arr }
+        "#,
+        "/mod/common/scripted_effects/test.txt",
+    );
+    assert!(
+        !diags.iter().any(|d| d
+            .code
+            .as_ref()
+            .map(|c| format!("{:?}", c))
+            .unwrap_or_default()
+            .contains("HOM9001")),
+        "array mutations after def should not flag, got: {:?}",
+        diags
+    );
+}
+
+#[test]
+fn test_array_read_without_def_flags() {
+    let diags = walk_variables(
+        r#"
+        is_in_array = { array = undefined_arr value = 1 }
+        for_each_loop = { array = undefined_arr }
+        any_of_scopes = { array = undefined_arr }
+        "#,
+        "/mod/common/scripted_effects/test.txt",
+    );
+    let count = diags
+        .iter()
+        .filter(|d| {
+            d.code
+                .as_ref()
+                .map(|c| format!("{:?}", c))
+                .unwrap_or_default()
+                .contains("HOM9001")
+        })
+        .count();
+    assert_eq!(
+        count, 3,
+        "all three array reads without prior add should flag, got: {:?}",
+        diags
+    );
+}
+
+#[test]
+fn test_array_temp_chain_local() {
+    // add_to_temp_array defines temp array chain-local; clear_temp_array and is_in_array in same chain should be valid
+    let diags = walk_variables(
+        r#"
+        add_to_temp_array = { array = temp_arr value = 1 }
+        clear_temp_array = temp_arr
+        is_in_array = { array = temp_arr value = 1 }
+        "#,
+        "/mod/common/scripted_effects/test.txt",
+    );
+    assert!(
+        !diags.iter().any(|d| d
+            .code
+            .as_ref()
+            .map(|c| format!("{:?}", c))
+            .unwrap_or_default()
+            .contains("HOM9001")),
+        "temp array ops after add_to_temp should not flag, got: {:?}",
+        diags
+    );
+}
+
+#[test]
+fn test_array_block_form_and_shorthand() {
+    // Block form with array = X and shorthand with single key
+    let diags = walk_variables(
+        r#"
+        add_to_array = { array = block_arr value = 1 }
+        is_in_array = { block_arr = 1 }
+        add_to_array = { shorthand_arr = 42 }
+        is_in_array = { array = shorthand_arr value = 1 }
+        "#,
+        "/mod/common/scripted_effects/test.txt",
+    );
+    assert!(
+        !diags.iter().any(|d| d
+            .code
+            .as_ref()
+            .map(|c| format!("{:?}", c))
+            .unwrap_or_default()
+            .contains("HOM9001")),
+        "array block/shorthand forms should be tracked, got: {:?}",
+        diags
+    );
 }
 
 #[test]
@@ -314,4 +422,205 @@ fn test_variable_scope_country_vs_state() {
     );
     // Just verify it doesn't crash; scope accessibility needs full scope stack context
     let _ = diags;
+}
+
+#[test]
+fn test_array_cross_file_via_workspace() {
+    // Seed a file with add_to_array, then is_in_array in another file should resolve via workspace
+    let ctx = crate::test_support::TestCtx::new()
+        .with_file(
+            "/mod/common/decisions/seed.txt",
+            "add_to_array = { array = TIR_global_campaign_holders value = PREV }",
+        )
+        .with_scope_validation(true);
+    let initial = crate::scope::scope::initial_scope_for_uri("/mod/common/decisions/other.txt");
+    let diags = ctx.walk(
+        r#"
+        if = {
+            limit = { NOT = { is_in_array = { array = TIR_global_campaign_holders value = PREV } } }
+            add_to_array = { array = TIR_global_campaign_holders value = PREV }
+        }
+        clear_array = TIR_global_campaign_holders
+        for_each_scope_loop = { array = TIR_global_campaign_holders }
+        "#,
+        "/mod/common/decisions/other.txt",
+        initial,
+        vec![
+            Box::new(crate::rules::v2_scope::V2ScopeRule),
+            Box::new(crate::rules::variables::VariableRuleState::new(
+                &ctx.scanner_data().variables,
+                &ctx.scanner_data().arrays,
+                &ctx.scanner_data().event_targets,
+            )),
+        ],
+        vec![],
+    );
+    let hom9001: Vec<_> = diags
+        .iter()
+        .filter(|d| {
+            d.code
+                .as_ref()
+                .map(|c| format!("{:?}", c))
+                .unwrap_or_default()
+                .contains("HOM9001")
+        })
+        .collect();
+    assert!(
+        hom9001.is_empty(),
+        "TIR guard pattern with workspace-populated array should not flag, got: {:?}",
+        diags
+    );
+}
+
+#[test]
+fn test_array_typo_still_flags_even_with_workspace() {
+    // Same workspace but typo name should still flag
+    let ctx = crate::test_support::TestCtx::new()
+        .with_file(
+            "/mod/common/decisions/seed.txt",
+            "add_to_array = { array = TIR_global_campaign_holders value = PREV }",
+        )
+        .with_scope_validation(true);
+    let initial = crate::scope::scope::initial_scope_for_uri("/mod/common/decisions/other.txt");
+    let diags = ctx.walk(
+        r#"
+        is_in_array = { array = TIR_global_campiagn_holders value = PREV }
+        "#,
+        "/mod/common/decisions/other.txt",
+        initial,
+        vec![
+            Box::new(crate::rules::v2_scope::V2ScopeRule),
+            Box::new(crate::rules::variables::VariableRuleState::new(
+                &ctx.scanner_data().variables,
+                &ctx.scanner_data().arrays,
+                &ctx.scanner_data().event_targets,
+            )),
+        ],
+        vec![],
+    );
+    assert!(
+        diags.iter().any(|d| d
+            .code
+            .as_ref()
+            .map(|c| format!("{:?}", c))
+            .unwrap_or_default()
+            .contains("HOM9001")),
+        "typo array name should flag HOM9001, got: {:?}",
+        diags
+    );
+    // Message should mention arrays are empty by default, not variables read as 0
+    let msg = diags
+        .iter()
+        .find(|d| {
+            d.code
+                .as_ref()
+                .map(|c| format!("{:?}", c))
+                .unwrap_or_default()
+                .contains("HOM9001")
+        })
+        .unwrap()
+        .message
+        .clone();
+    assert!(
+        msg.contains("empty by default"),
+        "array diagnostic should mention empty by default, got: {}",
+        msg
+    );
+}
+
+#[test]
+fn test_array_any_of_scopes_and_find() {
+    let ctx = crate::test_support::TestCtx::new()
+        .with_file(
+            "/mod/common/decisions/seed.txt",
+            "add_to_array = { array = my_arr value = 1 }",
+        )
+        .with_scope_validation(true);
+    let initial = crate::scope::scope::initial_scope_for_uri("/mod/common/decisions/other.txt");
+    let diags = ctx.walk(
+        r#"
+        any_of_scopes = { array = my_arr }
+        find_highest_in_array = { array = my_arr value = temp_val }
+        is_in_array = { my_arr = 1 }
+        "#,
+        "/mod/common/decisions/other.txt",
+        initial,
+        vec![
+            Box::new(crate::rules::v2_scope::V2ScopeRule),
+            Box::new(crate::rules::variables::VariableRuleState::new(
+                &ctx.scanner_data().variables,
+                &ctx.scanner_data().arrays,
+                &ctx.scanner_data().event_targets,
+            )),
+        ],
+        vec![],
+    );
+    assert!(
+        diags
+            .iter()
+            .filter(|d| {
+                d.code
+                    .as_ref()
+                    .map(|c| format!("{:?}", c))
+                    .unwrap_or_default()
+                    .contains("HOM9001")
+            })
+            .count()
+            == 0,
+        "array reads via any_of_scopes/find_highest/shorthand should resolve, got: {:?}",
+        diags
+    );
+}
+
+#[test]
+fn test_tir_real_file_array_guard_no_false_positive() {
+    let path = "/home/embi/git/github/AceAdamGaming/Hearts-Of-Minecraft/common/decisions/TIR_decisions.txt";
+    let content = std::fs::read_to_string(path).expect("read TIR file");
+    let ctx = crate::test_support::TestCtx::new()
+        .with_file("/mod/common/decisions/TIR_decisions.txt", &content)
+        .with_scope_validation(true);
+    // Verify scanner found the array
+    assert!(
+        ctx.scanner_data()
+            .arrays
+            .contains_key("TIR_global_campaign_holders"),
+        "scanner should find TIR_global_campaign_holders via add_to_array, got keys: {:?}",
+        ctx.scanner_data()
+            .arrays
+            .iter()
+            .map(|e| e.key().to_string())
+            .collect::<Vec<_>>()
+    );
+    let initial =
+        crate::scope::scope::initial_scope_for_uri("/mod/common/decisions/TIR_decisions.txt");
+    let diags = ctx.walk(
+        &content,
+        "/mod/common/decisions/TIR_decisions.txt",
+        initial,
+        vec![
+            Box::new(crate::rules::v2_scope::V2ScopeRule),
+            Box::new(crate::rules::variables::VariableRuleState::new(
+                &ctx.scanner_data().variables,
+                &ctx.scanner_data().arrays,
+                &ctx.scanner_data().event_targets,
+            )),
+        ],
+        vec![],
+    );
+    let array_diags: Vec<_> = diags
+        .iter()
+        .filter(|d| {
+            d.code
+                .as_ref()
+                .map(|c| format!("{:?}", c))
+                .unwrap_or_default()
+                .contains("HOM9001")
+                && d.message.contains("TIR_global_campaign_holders")
+        })
+        .collect();
+    assert!(
+        array_diags.is_empty(),
+        "TIR_global_campaign_holders is_in_array guard should not flag when array is defined via add_to_array elsewhere in same file/workspace, got: {:?}",
+        array_diags
+    );
 }
