@@ -376,6 +376,45 @@ impl Backend {
                             is_preferred: Some(true),
                             ..Default::default()
                         }));
+                    } else if code == "language_case_mismatch" {
+                        if let Some(content) =
+                            self.documents.get(&params.text_document.uri.to_string())
+                        {
+                            let line_idx = diagnostic.range.start.line as usize;
+                            if let Some(line) = content.lines().nth(line_idx) {
+                                let index = crate::utils::line_index::LineIndex::new(line);
+                                let start =
+                                    index.utf16_to_byte(diagnostic.range.start.character as usize);
+                                let end =
+                                    index.utf16_to_byte(diagnostic.range.end.character as usize);
+                                if start <= end && end <= line.len() {
+                                    let original = &line[start..end];
+                                    let fixed = original.to_ascii_lowercase();
+                                    let mut changes = HashMap::new();
+                                    changes.insert(
+                                        params.text_document.uri.clone(),
+                                        vec![TextEdit {
+                                            range: diagnostic.range,
+                                            new_text: fixed.clone(),
+                                        }],
+                                    );
+                                    actions.push(CodeActionOrCommand::CodeAction(CodeAction {
+                                        title: format!(
+                                            "Fix language header case: '{}' → '{}'",
+                                            original, fixed
+                                        ),
+                                        kind: Some(CodeActionKind::QUICKFIX),
+                                        edit: Some(WorkspaceEdit {
+                                            changes: Some(changes),
+                                            ..Default::default()
+                                        }),
+                                        diagnostics: Some(vec![diagnostic.clone()]),
+                                        is_preferred: Some(true),
+                                        ..Default::default()
+                                    }));
+                                }
+                            }
+                        }
                     } else if code == "styling_indent" {
                         has_mixed_indentation_diagnostic = true;
                         if let Some(content) =

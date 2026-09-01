@@ -19,6 +19,52 @@ mod tests {
         assert_eq!(diags[0].code.as_deref(), Some("missing_language_header"));
     }
 
+    #[test]
+    fn test_language_header_case_sensitivity() {
+        use crate::parser::ast::DiagnosticSeverity;
+        // Exact lowercase → clean
+        assert!(loc_parser::validate_loc_file_structure("l_english:\n K:0 \"hi\"\n").is_empty());
+        assert!(loc_parser::validate_loc_file_structure("l_polish:\n K:0 \"hi\"\n").is_empty());
+        assert!(
+            loc_parser::validate_loc_file_structure("l_simp_chinese:\n K:0 \"hi\"\n").is_empty()
+        );
+
+        // Wrong case → language_case_mismatch Error (probe_loc_case 2026-09-01: silently discarded in-game)
+        for bad in [
+            "l_English:\n K:0 \"hi\"\n",
+            "l_Polish:\n K:0 \"hi\"\n",
+            "L_english:\n K:0 \"hi\"\n",
+            "L_ENGLISH:\n K:0 \"hi\"\n",
+            "l_SIMP_CHINESE:\n K:0 \"hi\"\n",
+        ] {
+            let diags = loc_parser::validate_loc_file_structure(bad);
+            assert_eq!(
+                diags.len(),
+                1,
+                "bad header {bad:?} should produce exactly one diagnostic"
+            );
+            assert_eq!(
+                diags[0].code.as_deref(),
+                Some("language_case_mismatch"),
+                "bad header {bad:?}"
+            );
+            assert_eq!(
+                diags[0].severity,
+                DiagnosticSeverity::Error,
+                "case mismatch must be Error"
+            );
+            assert!(
+                diags[0].message.contains("should be"),
+                "message should suggest correct lowercase"
+            );
+        }
+
+        // Truly unknown → unknown_language Warning (not case mismatch)
+        let diags = loc_parser::validate_loc_file_structure("l_elvish:\n K:0 \"hi\"\n");
+        assert_eq!(diags[0].code.as_deref(), Some("unknown_language"));
+        assert_eq!(diags[0].severity, DiagnosticSeverity::Warning);
+    }
+
     /// HOM6005 classifier: a localization file must start with EXACTLY ONE
     /// UTF-8 BOM. Vanilla corpus ground truth: 2073/2073 files carry exactly
     /// one; zero and 2+ are both broken (the latter is what LLM-generated

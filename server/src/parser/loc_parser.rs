@@ -594,9 +594,28 @@ pub fn validate_loc_file_structure(input: &str) -> Vec<LocDiagnostic> {
         if trimmed.contains(':') {
             let parts: Vec<&str> = trimmed.split(':').collect();
             let lang = parts[0].trim();
+            let lower = lang.to_ascii_lowercase();
             if valid_languages.contains(&lang) {
                 header_found = true;
-            } else if lang.starts_with("l_") {
+            } else if valid_languages.contains(&lower.as_str()) {
+                diagnostics.push(LocDiagnostic {
+                    range: Range {
+                        start_line: line_idx as u32,
+                        start_col: line.find(lang).unwrap_or(0) as u32,
+                        end_line: line_idx as u32,
+                        end_col: (line.find(lang).unwrap_or(0) + lang.len()) as u32,
+                    },
+                    message: format!(
+                        "Language header has incorrect case: '{}' should be '{}'.",
+                        lang, lower
+                    ),
+                    severity: DiagnosticSeverity::Error,
+                    code: Some("language_case_mismatch".to_string()),
+                    related_information: Vec::new(),
+                    tags: Vec::new(),
+                });
+                header_found = true;
+            } else if lower.starts_with("l_") {
                 diagnostics.push(LocDiagnostic {
                     range: Range {
                         start_line: line_idx as u32,
