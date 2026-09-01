@@ -37,7 +37,9 @@ where
     map
 }
 
-/// Find focus IDs inside `focus = { ... }` and `shared_focus = TAG_name` blocks.
+/// Find focus IDs inside `focus = { ... }`, `shared_focus = { ... }`,
+/// `joint_focus = { ... }` definition blocks, and `shared_focus = TAG_name`
+/// / `joint_focus = TAG_name` reference lines inside `focus_tree`.
 pub(crate) fn find_focuses_in_entries(
     entries: &[ast::Entry],
     source: &str,
@@ -49,8 +51,11 @@ pub(crate) fn find_focuses_in_entries(
             ast::Entry::Assignment(ass) => {
                 let key = ass.key_text(source);
 
-                // Case 1: focus = { id = TAG_focus_name ... }
-                if key == "focus" {
+                // Case 1: definition blocks — focus / shared_focus / joint_focus = { id = ... }
+                // These can appear at top level (shared/joint outside any
+                // focus_tree) or nested inside focus_tree /
+                // continuous_focus_palette. All are scan-worthy focuses.
+                if key == "focus" || key == "shared_focus" || key == "joint_focus" {
                     if let ast::Value::Block(inner_entries) = &ass.value.value {
                         if let Some(id) = find_id_in_block(inner_entries, source) {
                             map.insert(
@@ -61,11 +66,14 @@ pub(crate) fn find_focuses_in_entries(
                                 },
                             );
                         }
-                    }
-                }
-                // Case 2: shared_focus = TAG_focus_name (value is a string)
-                else if key == "shared_focus" {
-                    if let Some(focus_id) = ass.value.value.as_str(source) {
+                    } else if let Some(focus_id) = ass.value.value.as_str(source) {
+                        // Case 2: reference lines inside focus_tree:
+                        //   shared_focus = TAG_focus   (and rarely joint_focus = TAG_focus)
+                        // Value is a bare string, not a block. Keep for
+                        // backward compatibility / mods that define a shared
+                        // focus only by referencing it; the entity lookup will
+                        // still highlight the reference even when the
+                        // definition is missing.
                         map.insert(
                             focus_id.to_string(),
                             Focus {

@@ -2,11 +2,15 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
-## [v0.28.1] - 2026-08-30
+## [v0.29.0] - 2026-09-01
 
 ### ✨ Added
 
 - **Array validation (HOM9001).** `add_to_array` / `add_to_temp_array` create the array (tracked workspace-wide like variables, with per-file scope); all other array ops — `is_in_array`, `for_each_loop` / `for_each_scope_loop` / `random_scope_in_array`, `any_of` / `any_of_scopes` / `all_of` / `all_of_scopes`, `find_highest/lowest_in_array`, `remove_from_array`, `clear_array`, `resize_array` (and their `*_temp_array` variants) — validate the array is defined in the same or an accessible scope (same scope hierarchy as variables, `global.` prefix always accessible). Unset arrays read as empty, so diagnostics are `WARNING` typo-guards with the message `arrays are empty by default; possible typo.` — fixes false-positive on `TIR_global_campaign_holders`'s `NOT is_in_array` dedup guard.
+
+### 🩹 Fixed
+
+- **Made focus detection consistent across `focus`, `shared_focus`, and `joint_focus`.** `shared_focus` and `joint_focus` are now properly tokenized.
 
 ## [v0.28.0] - 2026-08-29
 

@@ -142,7 +142,7 @@ fn classify_assignment(key: &str) -> SymbolKind {
         | "industrial_concern" => SymbolKind::CLASS,
 
         // Focus trees
-        "focus_tree" | "focus" | "shared_focus" => SymbolKind::NAMESPACE,
+        "focus_tree" | "focus" | "shared_focus" | "joint_focus" => SymbolKind::NAMESPACE,
 
         // Technologies
         "technologies" | "technology" => SymbolKind::INTERFACE,
@@ -218,7 +218,7 @@ fn extract_symbol_name(key: &str, value: &NodeedValue, source: &str) -> String {
     }
 
     // For focuses, try to extract the ID
-    if key == "focus" || key == "shared_focus" {
+    if key == "focus" || key == "shared_focus" || key == "joint_focus" {
         if let Value::Block(entries) = &value.value {
             for entry in entries {
                 if let Entry::Assignment(ass) = entry {
@@ -274,7 +274,7 @@ fn extract_symbol_detail(key: &str, value: &NodeedValue, source: &str) -> Option
     }
 
     // For focuses, extract cost
-    if key == "focus" || key == "shared_focus" {
+    if key == "focus" || key == "shared_focus" || key == "joint_focus" {
         if let Value::Block(entries) = &value.value {
             for entry in entries {
                 if let Entry::Assignment(ass) = entry {
