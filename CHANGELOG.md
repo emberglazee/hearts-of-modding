@@ -1074,7 +1074,7 @@ Because this version also scans the map files expect a major jump in extension m
 
 ### Changed
 
-- Bumped [vfast-uri](https://github.com/fastify/fast-uri) from v3.1.0 to v3.1.2 ([vsecurity update](https://github.com/fastify/fast-uri/releases/tag/v3.1.2)) | [vPR #1](https://github.com/emberglazee/hearts-of-modding/pull/1)
+- Bumped [vfast-uri](https://github.com/fastify/fast-uri) from v3.1.0 to v3.1.2 ([vsecurity update](https://github.com/fastify/fast-uri/releases/tag/v3.1.2)) | [PR #1](https://github.com/emberglazee/hearts-of-modding/pull/1)
 
 ## [v0.2.0] - 2026-05-10
 
