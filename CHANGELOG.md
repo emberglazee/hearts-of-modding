@@ -8,6 +8,13 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Extension update notice.** Notifies when the extension gets updated, prompts to see the changelog.
 
+### 🧹 Internal
+
+- **Bumped extension dev dependencies:**
+
+  - `globals` v17.11.0 -> v17.12.0
+  - `typescript-eslint` v8.68.0 -> v8.69.0
+
 ## [v0.29.0] - 2026-09-02
 
 ### ✨ Added
