@@ -1,3 +1,4 @@
+use crate::data::hoi4_data;
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use crate::rules::{ValidationContext, ValidationRule};
@@ -204,6 +205,15 @@ impl VariableRule {
                 .unwrap_or(false);
         }
 
+        // Built-in dynamic variables from the engine never need a definition.
+        // They cover both scalars (e.g. `stability`) and arrays; a read of
+        // `check_variable = { var = stability }` should not warn. The lookup
+        // strips scope prefixes (`ROOT.stability` → `stability`) and is case-
+        // insensitive via `hoi4_data::lookup_dynamic_variable`.
+        if hoi4_data::is_builtin_variable(name) {
+            return true;
+        }
+
         // Check file-local definitions first
         if let Some((def_scope, temp, _, _)) = self.file_vars.get(name) {
             if *temp {
@@ -235,6 +245,17 @@ impl VariableRule {
     /// Validation is WARNING typo-catching, same as variables.
     fn is_array_defined(&self, name: &str, current_scope: Scope, is_global: bool) -> bool {
         if is_global {
+            return true;
+        }
+
+        // Built-in engine-provided arrays (dynamic variables) never need an
+        // explicit `add_to_array`. They are available implicitly per scope
+        // (e.g. `faction_members`, `allies`, `owned_states`) and would otherwise
+        // trigger a spurious HOM9001. Lookup is via `hoi4_data` (data-driven
+        // from `dynamic_variables_documentation.md` → `dynamic_variables` in
+        // `hoi4_data_v2.json`), stripping scope prefixes (`ROOT.faction_members`
+        // → `faction_members`) and case-insensitive.
+        if hoi4_data::is_builtin_array(name) {
             return true;
         }
 

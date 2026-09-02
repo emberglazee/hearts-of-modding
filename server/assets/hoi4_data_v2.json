@@ -1,5 +1,5 @@
 {
-	"version": 3,
+	"version": 4,
 	"triggers": {
 		"(building_count_trigger)": {
 			"block_type": "value_trigger",
@@ -38012,5 +38012,4130 @@
 		"random_list",
 		"trigger",
 		"while_loop_effect"
-	]
+	],
+	"dynamic_variables": {
+		"agency_upgrade_number": {
+			"name": "agency_upgrade_number",
+			"description": "Checks the number of upgrade done in the intelligence agency.",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"ai_attitude_allied_weight": {
+			"name": "ai_attitude_allied_weight",
+			"description": "weight for an ai attitude attitude_alliedagainst country. Example: GER.ai_attitude_allied_weight@ENG",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"ai_attitude_friendly_weight": {
+			"name": "ai_attitude_friendly_weight",
+			"description": "weight for an ai attitude attitude_friendlyagainst country. Example: GER.ai_attitude_friendly_weight@ENG",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"ai_attitude_hostile_weight": {
+			"name": "ai_attitude_hostile_weight",
+			"description": "weight for an ai attitude attitude_hostileagainst country. Example: GER.ai_attitude_hostile_weight@ENG",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"ai_attitude_is_threatened": {
+			"name": "ai_attitude_is_threatened",
+			"description": "returns 1 if ai is threatened",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"ai_attitude_neutral_weight": {
+			"name": "ai_attitude_neutral_weight",
+			"description": "weight for an ai attitude attitude_neutralagainst country. Example: GER.ai_attitude_neutral_weight@ENG",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"ai_attitude_outraged_weight": {
+			"name": "ai_attitude_outraged_weight",
+			"description": "weight for an ai attitude attitude_outragedagainst country. Example: GER.ai_attitude_outraged_weight@ENG",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"ai_attitude_protective_weight": {
+			"name": "ai_attitude_protective_weight",
+			"description": "weight for an ai attitude attitude_protectiveagainst country. Example: GER.ai_attitude_protective_weight@ENG",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"ai_attitude_threatened_weight": {
+			"name": "ai_attitude_threatened_weight",
+			"description": "weight for an ai attitude attitude_threatenedagainst country. Example: GER.ai_attitude_threatened_weight@ENG",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"ai_attitude_wants_ally": {
+			"name": "ai_attitude_wants_ally",
+			"description": "returns 1 if ai wants ally",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"ai_attitude_wants_antagonize": {
+			"name": "ai_attitude_wants_antagonize",
+			"description": "returns 1 if ai wants antagonize",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"ai_attitude_wants_ignore": {
+			"name": "ai_attitude_wants_ignore",
+			"description": "returns 1 if ai wants ignore",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"ai_attitude_wants_protect": {
+			"name": "ai_attitude_wants_protect",
+			"description": "returns 1 if ai wants protect",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"ai_attitude_wants_weaken": {
+			"name": "ai_attitude_wants_weaken",
+			"description": "returns 1 if ai wants weaken",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"ai_irrationality": {
+			"name": "ai_irrationality",
+			"description": "check the ai irrationality value",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"ai_strategy_activate_crypto": {
+			"name": "ai_strategy_activate_crypto",
+			"description": "ai strategy value activate_crypto against country. Example: GER.ai_strategy_activate_crypto@ENG",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"ai_strategy_alliance": {
+			"name": "ai_strategy_alliance",
+			"description": "ai strategy value alliance against country. Example: GER.ai_strategy_alliance@ENG",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"ai_strategy_antagonize": {
+			"name": "ai_strategy_antagonize",
+			"description": "ai strategy value antagonize against country. Example: GER.ai_strategy_antagonize@ENG",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"ai_strategy_befriend": {
+			"name": "ai_strategy_befriend",
+			"description": "ai strategy value befriend against country. Example: GER.ai_strategy_befriend@ENG",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"ai_strategy_conquer": {
+			"name": "ai_strategy_conquer",
+			"description": "ai strategy value conquer against country. Example: GER.ai_strategy_conquer@ENG",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"ai_strategy_consider_weak": {
+			"name": "ai_strategy_consider_weak",
+			"description": "ai strategy value consider_weak against country. Example: GER.ai_strategy_consider_weak@ENG",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"ai_strategy_contain": {
+			"name": "ai_strategy_contain",
+			"description": "ai strategy value contain against country. Example: GER.ai_strategy_contain@ENG",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"ai_strategy_declare_war": {
+			"name": "ai_strategy_declare_war",
+			"description": "ai strategy value declare_war against country. Example: GER.ai_strategy_declare_war@ENG",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"ai_strategy_decrypt_target": {
+			"name": "ai_strategy_decrypt_target",
+			"description": "ai strategy value decrypt_target against country. Example: GER.ai_strategy_decrypt_target@ENG",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"ai_strategy_dont_defend_ally_borders": {
+			"name": "ai_strategy_dont_defend_ally_borders",
+			"description": "ai strategy value dont_defend_ally_borders against country. Example: GER.ai_strategy_dont_defend_ally_borders@ENG",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"ai_strategy_force_defend_ally_borders": {
+			"name": "ai_strategy_force_defend_ally_borders",
+			"description": "ai strategy value force_defend_ally_borders against country. Example: GER.ai_strategy_force_defend_ally_borders@ENG",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"ai_strategy_ignore": {
+			"name": "ai_strategy_ignore",
+			"description": "ai strategy value ignore against country. Example: GER.ai_strategy_ignore@ENG",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"ai_strategy_ignore_claim": {
+			"name": "ai_strategy_ignore_claim",
+			"description": "ai strategy value ignore_claim against country. Example: GER.ai_strategy_ignore_claim@ENG",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"ai_strategy_influence": {
+			"name": "ai_strategy_influence",
+			"description": "ai strategy value influence against country. Example: GER.ai_strategy_influence@ENG",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"ai_strategy_invade": {
+			"name": "ai_strategy_invade",
+			"description": "ai strategy value invade against country. Example: GER.ai_strategy_invade@ENG",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"ai_strategy_occupation_policy": {
+			"name": "ai_strategy_occupation_policy",
+			"description": "ai strategy value occupation_policy against country. Example: GER.ai_strategy_occupation_policy@ENG",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"ai_strategy_prepare_for_war": {
+			"name": "ai_strategy_prepare_for_war",
+			"description": "ai strategy value prepare_for_war against country. Example: GER.ai_strategy_prepare_for_war@ENG",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"ai_strategy_protect": {
+			"name": "ai_strategy_protect",
+			"description": "ai strategy value protect against country. Example: GER.ai_strategy_protect@ENG",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"ai_strategy_send_volunteers_desire": {
+			"name": "ai_strategy_send_volunteers_desire",
+			"description": "ai strategy value send_volunteers_desire against country. Example: GER.ai_strategy_send_volunteers_desire@ENG",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"ai_strategy_support": {
+			"name": "ai_strategy_support",
+			"description": "ai strategy value support against country. Example: GER.ai_strategy_support@ENG",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"ai_wants_divisions": {
+			"name": "ai_wants_divisions",
+			"description": "Will compare towards the amount of divisions an ai wants to have.",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"air_chief": {
+			"name": "air_chief",
+			"description": "returns the currently hired air chief of the country",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"air_experience": {
+			"name": "air_experience",
+			"description": "air experience of a country",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"air_intel": {
+			"name": "air_intel",
+			"description": "air intel against a target country. example GER.air_intel@ENG",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"alliance_naval_strength_ratio": {
+			"name": "alliance_naval_strength_ratio",
+			"description": "Compares the estimated naval strength between the scope country, his allies and his enemies.",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"alliance_strength_ratio": {
+			"name": "alliance_strength_ratio",
+			"description": "Compares the estimated army strength between the scope country, his allies and his enemies.",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"allies": {
+			"name": "allies",
+			"description": "array of allies (faction members). prefer using faction_members instead",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": true
+		},
+		"amount_manpower_in_deployment_queue": {
+			"name": "amount_manpower_in_deployment_queue",
+			"description": "Checks for amount manpower currently in deploymentview. amount_manpower_in_training > 10",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"amount_research_slots": {
+			"name": "amount_research_slots",
+			"description": "check number of research current research slots",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"any_war_score": {
+			"name": "any_war_score",
+			"description": "compares the warscore of all wars in a country to see if any fullfills the comparison condition 0-100 - Example: any_war_score > 40",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"arms_factory_level": {
+			"name": "arms_factory_level",
+			"description": "military factory level in the state",
+			"scopes": {
+				"usage": [
+					"State"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"army_attack_level": {
+			"name": "army_attack_level",
+			"description": "attack level of the leader",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"army_chief": {
+			"name": "army_chief",
+			"description": "returns the currently hired army chief of the country",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"army_defense_level": {
+			"name": "army_defense_level",
+			"description": "defense level of the leader",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"army_experience": {
+			"name": "army_experience",
+			"description": "army experience of a country",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"army_intel": {
+			"name": "army_intel",
+			"description": "army intel against a target country. example GER.army_intel@ENG",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"army_leaders": {
+			"name": "army_leaders",
+			"description": "all army leaders of a country",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": true
+		},
+		"attack_level": {
+			"name": "attack_level",
+			"description": "attack level of the leader",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"attack_skill_level": {
+			"name": "attack_skill_level",
+			"description": "Compares attack skill level of a unit leader.",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"autonomy_ratio": {
+			"name": "autonomy_ratio",
+			"description": "autonomy of scope country. -1 if not a subject",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"average_stats": {
+			"name": "average_stats",
+			"description": "average stats of unit leader",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"avg_combat_status": {
+			"name": "avg_combat_status",
+			"description": "average progress of all combats",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"avg_defensive_combat_status": {
+			"name": "avg_defensive_combat_status",
+			"description": "average progress of defensive combats",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"avg_offensive_combat_status": {
+			"name": "avg_offensive_combat_status",
+			"description": "average progress of offensive combats",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"avg_unit_entrenchment_ratio": {
+			"name": "avg_unit_entrenchment_ratio",
+			"description": "average entrenchment ratio of all units",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"avg_unit_planning_ratio": {
+			"name": "avg_unit_planning_ratio",
+			"description": "average planning ratio of all units",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"avg_units_acclimation": {
+			"name": "avg_units_acclimation",
+			"description": "average unit acclimatization for a specific climate, acclimatization type is defined in target. example avg_units_acclimation@cold_climate",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"building_level": {
+			"name": "building_level",
+			"description": "building level of a building with type, uses target as building type. example building_level@arms_factory",
+			"scopes": {
+				"usage": [
+					"State"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"capital": {
+			"name": "capital",
+			"description": "capital state of the country",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"casualties": {
+			"name": "casualties",
+			"description": "Check the amount of casualties a country has suffered in all of it's wars",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"casualties_k": {
+			"name": "casualties_k",
+			"description": "Check the amount of casualties in thousands a country has suffered in all of it's wars",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"civilian_intel": {
+			"name": "civilian_intel",
+			"description": "civilian intel against a target country. example GER.civilian_intel@ENG",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"command_power": {
+			"name": "command_power",
+			"description": "total command power of country",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"command_power_daily": {
+			"name": "command_power_daily",
+			"description": "Checks if daily command power increase is more or less that specified value",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"compare_autonomy_progress_ratio": {
+			"name": "compare_autonomy_progress_ratio",
+			"description": "check if autonomy progress ratio is higher than value, example:",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"compliance": {
+			"name": "compliance",
+			"description": "Compares the current compliance level of a state to a value. Example: compliance > 50",
+			"scopes": {
+				"usage": [
+					"State"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"compliance_speed": {
+			"name": "compliance_speed",
+			"description": "Compares the current compliance speed of a state to a value. Example: compliance_speed > 50",
+			"scopes": {
+				"usage": [
+					"State"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"controlled_states": {
+			"name": "controlled_states",
+			"description": "array of controlled states",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": true
+		},
+		"controller": {
+			"name": "controller",
+			"description": "controller of the state",
+			"scopes": {
+				"usage": [
+					"State"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"convoy_threat": {
+			"name": "convoy_threat",
+			"description": "A trigger to check convoy threat for a country. Controlled by NAVAL_CONVOY_DANGER defines. Returns a value between 0 and 1. Example convoy_threat > 0.5",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"convoys_destroyed": {
+			"name": "convoys_destroyed",
+			"description": "total number of convoys destroyed by this country",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"coordination_level": {
+			"name": "coordination_level",
+			"description": "coordination level of the leader",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"core_compliance": {
+			"name": "core_compliance",
+			"description": "returns core compliance of target country",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"core_countries": {
+			"name": "core_countries",
+			"description": "countries that cores the state",
+			"scopes": {
+				"usage": [
+					"State"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"core_resistance": {
+			"name": "core_resistance",
+			"description": "returns core resistance of target country",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"core_states": {
+			"name": "core_states",
+			"description": "array of core states",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": true
+		},
+		"countries": {
+			"name": "countries",
+			"description": "get array of all countries (including non existing",
+			"scopes": {
+				"usage": [
+					"Global"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": true
+		},
+		"country_leader": {
+			"name": "country_leader",
+			"description": "returns the current country leader of the country",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"cryptology_defense_level": {
+			"name": "cryptology_defense_level",
+			"description": "cryptology defense level of a country",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"current_party_ideology_group": {
+			"name": "current_party_ideology_group",
+			"description": "returns the token for current party ideology group",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"damaged_building_level": {
+			"name": "damaged_building_level",
+			"description": "damaged building level of a building with type, uses target as building type. example damaged_building_level@arms_factory",
+			"scopes": {
+				"usage": [
+					"State"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"date": {
+			"name": "date",
+			"description": "get date value that can be comparable to other date values and localized using GetDateString/GetDateStringShortMonth/GetDateStringNoHour/GetDateStringNoHourLong scripted locs",
+			"scopes": {
+				"usage": [
+					"Global"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"days_decision_timeout": {
+			"name": "days_decision_timeout",
+			"description": "timeout in days for a specific timed decision, decision type token is defined in target. example: days_decision_timeout@SOV_propaganda_knowledge",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"days_mission_timeout": {
+			"name": "days_mission_timeout",
+			"description": "timeout in days for a specific timed mission, mission type token is defined in target. example: days_mission_timeout@GER_mefo_bills_mission",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"days_since_capitulated": {
+			"name": "days_since_capitulated",
+			"description": "Checks the number of days since the country last capitulated, even if it is no longer capitulated.",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"days_since_last_strategic_bombing": {
+			"name": "days_since_last_strategic_bombing",
+			"description": "Checks the days since last strategic bombing.",
+			"scopes": {
+				"usage": [
+					"State"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"days_until_next_election": {
+			"name": "days_until_next_election",
+			"description": "days until the next election. -1 if never",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"decryption_progress": {
+			"name": "decryption_progress",
+			"description": "checks decryption ratio against a country. Example:",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"decryption_speed": {
+			"name": "decryption_speed",
+			"description": "total encryption strength of a country that is needed",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"defense_level": {
+			"name": "defense_level",
+			"description": "defense level of the leader",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"defense_skill_level": {
+			"name": "defense_skill_level",
+			"description": "Compares defense skill level of a unit leader.",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"deployed_airforce_manpower_k": {
+			"name": "deployed_airforce_manpower_k",
+			"description": "total deployed air manpower of country in thousands. Does not include exile manpower",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"deployed_army_manpower_k": {
+			"name": "deployed_army_manpower_k",
+			"description": "total deployed army manpower of country in thousands.",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"deployed_navy_manpower_k": {
+			"name": "deployed_navy_manpower_k",
+			"description": "total deployed navy manpower of country in thousands.",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"deployed_total_manpower_k": {
+			"name": "deployed_total_manpower_k",
+			"description": "total deployed manpower of country in thousands.",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"difficulty": {
+			"name": "difficulty",
+			"description": "check if the difficulty is above or below specified value 0-2 (difficulty enum). Example: difficulty > 0 (above easy)",
+			"scopes": {
+				"usage": [
+					"Global"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"distance_to": {
+			"name": "distance_to",
+			"description": "distance to another state, uses target as another state. example: 123.distance_to@124",
+			"scopes": {
+				"usage": [
+					"State"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"encryption_strength": {
+			"name": "encryption_strength",
+			"description": "total encryption strength of a country that is needed",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"enemies": {
+			"name": "enemies",
+			"description": "array of enemies at war with",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": true
+		},
+		"enemies_naval_strength_ratio": {
+			"name": "enemies_naval_strength_ratio",
+			"description": "Compares the estimated navy strength between the scope country and all its enemies",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"enemies_of_allies": {
+			"name": "enemies_of_allies",
+			"description": "array of enemies of allies",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": true
+		},
+		"enemies_strength_ratio": {
+			"name": "enemies_strength_ratio",
+			"description": "Compares the estimated army strength between the scope country and all its enemies",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"energy_ratio": {
+			"name": "energy_ratio",
+			"description": "energy_ratio > 0.8 - Compare current energy fulfilment to the factories, with 1 being 100% and 0 being 0%",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"exiles": {
+			"name": "exiles",
+			"description": "exile host of this country",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"facility_province_id": {
+			"name": "facility_province_id",
+			"description": "The province that the project is researched in",
+			"scopes": {
+				"usage": [
+					"Global"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"facility_state": {
+			"name": "facility_state",
+			"description": "State that the project is researched in",
+			"scopes": {
+				"usage": [
+					"Global"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"faction_influence_rank": {
+			"name": "faction_influence_rank",
+			"description": "![MD]",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"faction_influence_ratio": {
+			"name": "faction_influence_ratio",
+			"description": "![MD]",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"faction_influence_score": {
+			"name": "faction_influence_score",
+			"description": "![MD]",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"faction_leader": {
+			"name": "faction_leader",
+			"description": "faction leader of this country's faction",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"faction_manifest_fulfillment": {
+			"name": "faction_manifest_fulfillment",
+			"description": "![MD]",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"faction_members": {
+			"name": "faction_members",
+			"description": "array of faction members",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": true
+		},
+		"faction_power_projection": {
+			"name": "faction_power_projection",
+			"description": "![MD]",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"faction_resource_extracted": {
+			"name": "faction_resource_extracted",
+			"description": "total amount of specific resource extracted by the country's faction, resource type is defined in target faction_resource_extracted@steel",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"faction_resource_extracted_total": {
+			"name": "faction_resource_extracted_total",
+			"description": "total amount of resources extracted by the country's faction",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"foreign_manpower": {
+			"name": "foreign_manpower",
+			"description": "check the amount of foreign garrison manpower we have",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"fuel_k": {
+			"name": "fuel_k",
+			"description": "total fuel of country in thousands",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"fuel_ratio": {
+			"name": "fuel_ratio",
+			"description": "Compares the fuel ratio to a variable.",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"funds": {
+			"name": "funds",
+			"description": "Funds of the military industrial organization",
+			"scopes": {
+				"usage": [
+					"Global"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"garrison_manpower_need": {
+			"name": "garrison_manpower_need",
+			"description": "check the amount of manpower needed by garrisons",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"global_resource_extracted": {
+			"name": "global_resource_extracted",
+			"description": "total amount of specific resource extracted by the world, resource type is defined in target global_resource_extracted@steel",
+			"scopes": {
+				"usage": [
+					"Global"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"global_resource_extracted_total": {
+			"name": "global_resource_extracted_total",
+			"description": "total amount of resources extracted by the world",
+			"scopes": {
+				"usage": [
+					"Global"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"has_added_tension_amount": {
+			"name": "has_added_tension_amount",
+			"description": "Compare if the country has added above or below the specified ammount of tension",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"has_bombing_war_support": {
+			"name": "has_bombing_war_support",
+			"description": "check value of bombing malus to war support 0-1: Example has_bombing_war_support < 0.1",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"has_casualties_war_support": {
+			"name": "has_casualties_war_support",
+			"description": "check value of casualties malus to war support 0-1: Example has_casualties_war_support < 0.1",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"has_collaboration": {
+			"name": "has_collaboration",
+			"description": "checks the collaboration in a target country with our currently scoped country. Example:",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"has_convoys_war_support": {
+			"name": "has_convoys_war_support",
+			"description": "check value of convoys sunk malus to war support 0-1: Example has_convoys_war_support < 0.1",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"has_legitimacy": {
+			"name": "has_legitimacy",
+			"description": "Check scope country legitimacy 0-100: Example has_legitimacy < 60",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"has_manpower": {
+			"name": "has_manpower",
+			"description": "check amount of manpower",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"has_orders_group": {
+			"name": "has_orders_group",
+			"description": "1 if leader has orders group, zero otherwise",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"has_political_power": {
+			"name": "has_political_power",
+			"description": "check amount of political power",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"has_stability": {
+			"name": "has_stability",
+			"description": "check value of stability 0-1: Example has_stability < 0.6",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"has_war_support": {
+			"name": "has_war_support",
+			"description": "check value of war_support 0-1: Example has_war_support < 0.6",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"high_command": {
+			"name": "high_command",
+			"description": "returns an array with the currently hired high command of the country",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": true
+		},
+		"highest_party_ideology": {
+			"name": "highest_party_ideology",
+			"description": "ideology of the most popular party. Can exclude the ruling party by using @exclude_ruling_party. Example: highest_party_ideology OR highest_party_ideology@exclude_ruling_party",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"highest_party_popularity": {
+			"name": "highest_party_popularity",
+			"description": "popularity size of the most popular party [0.00, 1.00]. Can exclude the ruling party by using @exclude_ruling_party. Example: highest_party_popularity OR highest_party_popularity@exclude_ruling_party",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"host": {
+			"name": "host",
+			"description": "exile host of this country",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"ideology_groups": {
+			"name": "ideology_groups",
+			"description": "array of objects in ideology_groups database",
+			"scopes": {
+				"usage": [
+					"Global"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": true
+		},
+		"industrial_complex_level": {
+			"name": "industrial_complex_level",
+			"description": "civilian factor level in the state",
+			"scopes": {
+				"usage": [
+					"State"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"infrastructure_level": {
+			"name": "infrastructure_level",
+			"description": "infrastructure level in the state",
+			"scopes": {
+				"usage": [
+					"State"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"intel_yield_factor_on_capture": {
+			"name": "intel_yield_factor_on_capture",
+			"description": "Rate at which intel is extracted from this operative by an enemy country.",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"land_doctrine_level": {
+			"name": "land_doctrine_level",
+			"description": "checks researched land doctrine level",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"leader_modifier": {
+			"name": "leader_modifier",
+			"description": "value of a modifier stored in leader modifier, modifier token is defined in target. example leader_modifier@navy_max_range",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"legitimacy": {
+			"name": "legitimacy",
+			"description": "legitimacy of scope country. -1 if not an exile",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"logistics_level": {
+			"name": "logistics_level",
+			"description": "logistics level of the leader",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"logistics_skill_level": {
+			"name": "logistics_skill_level",
+			"description": "Compares logistics skill level of a unit leader.",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"longest_war_length": {
+			"name": "longest_war_length",
+			"description": "Check number of months the country has been at war",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"majors": {
+			"name": "majors",
+			"description": "get array of all majors (including non existing",
+			"scopes": {
+				"usage": [
+					"Global"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": true
+		},
+		"maneuvering_level": {
+			"name": "maneuvering_level",
+			"description": "maneuvering level of the leader",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"manpower": {
+			"name": "manpower",
+			"description": "DEPRECATED, MAY OVERFLOW. total manpower of country",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"manpower_k": {
+			"name": "manpower_k",
+			"description": "total manpower of country in thousands",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"manpower_per_military_factory": {
+			"name": "manpower_per_military_factory",
+			"description": "Number of available manpower per factory the country has. Excluding dockyards.",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"max_available_manpower": {
+			"name": "max_available_manpower",
+			"description": "DEPRECATED, MAY OVERFLOW. total available manpower of country",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"max_available_manpower_k": {
+			"name": "max_available_manpower_k",
+			"description": "total available manpower of country in thousands",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"max_fuel_k": {
+			"name": "max_fuel_k",
+			"description": "max fuel of country in thousands",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"max_manpower": {
+			"name": "max_manpower",
+			"description": "DEPRECATED, MAY OVERFLOW. maximum manpower of country",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"max_manpower_k": {
+			"name": "max_manpower_k",
+			"description": "maximum manpower of country in thousands",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"max_task_capacity": {
+			"name": "max_task_capacity",
+			"description": "Maximum task capacity of the military industrial organization.",
+			"scopes": {
+				"usage": [
+					"Global"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"mine_threat": {
+			"name": "mine_threat",
+			"description": "A trigger to check how dangerous enemy mines are for a country. Controlled by NAVAL_MINE_DANGER defines. Returns a value between 0 and 1. Example mine_threat > 0.5",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"modifier": {
+			"name": "modifier",
+			"description": "a modifier stored in country scope",
+			"scopes": {
+				"usage": [
+					"Country",
+					"Global",
+					"State"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"navy_chief": {
+			"name": "navy_chief",
+			"description": "returns the currently hired navy chief of the country",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"navy_experience": {
+			"name": "navy_experience",
+			"description": "navy experience of a country",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"navy_intel": {
+			"name": "navy_intel",
+			"description": "navy intel against a target country. example GER.navy_intel@ENG",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"navy_leaders": {
+			"name": "navy_leaders",
+			"description": "all navy leaders of a country",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": true
+		},
+		"neighbors": {
+			"name": "neighbors",
+			"description": "array of neighbors",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": true
+		},
+		"neighbors_owned": {
+			"name": "neighbors_owned",
+			"description": "array of neighbors to owned states",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": true
+		},
+		"network_national_coverage": {
+			"name": "network_national_coverage",
+			"description": "checks network national coverage you have over a country. Example:",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"non_damaged_building_level": {
+			"name": "non_damaged_building_level",
+			"description": "non damaged building level of a building with type, uses target as building type. example non_damaged_building_level@arms_factory",
+			"scopes": {
+				"usage": [
+					"State"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_armies": {
+			"name": "num_armies",
+			"description": "number of armies",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_armies_in_state": {
+			"name": "num_armies_in_state",
+			"description": "number of armies in state, state is in target. example num_armies_in_state@123",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_armies_with_type": {
+			"name": "num_armies_with_type",
+			"description": "number of armies with dominant type, dominant type is defined in target. example: num_armies_with_type@light_armor",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_armored": {
+			"name": "num_armored",
+			"description": "number of units with armored dominant type",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_artillery": {
+			"name": "num_artillery",
+			"description": "number of units with artillery dominant type",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_assigned_traits": {
+			"name": "num_assigned_traits",
+			"description": "number of assigned traits the leader has",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_basic_traits": {
+			"name": "num_basic_traits",
+			"description": "number of basic traits a leader has",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_battalions": {
+			"name": "num_battalions",
+			"description": "number of battalions",
+			"scopes": {
+				"usage": [
+					"Character",
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_battalions_with_type": {
+			"name": "num_battalions_with_type",
+			"description": "number of battalions with sub unit type, sub unit type is defined in target. example: num_battalions_with_type@light_armor",
+			"scopes": {
+				"usage": [
+					"Character",
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_battle_plans": {
+			"name": "num_battle_plans",
+			"description": "number of battle plans of unit leader",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_cavalry": {
+			"name": "num_cavalry",
+			"description": "number of units with cavalry dominant type",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_controlled_states": {
+			"name": "num_controlled_states",
+			"description": "number of controlled states",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_core_states": {
+			"name": "num_core_states",
+			"description": "number of core states",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_days": {
+			"name": "num_days",
+			"description": "current total days",
+			"scopes": {
+				"usage": [
+					"Global"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_deployed_planes": {
+			"name": "num_deployed_planes",
+			"description": "number of deployed planes",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_deployed_planes_with_type": {
+			"name": "num_deployed_planes_with_type",
+			"description": "number of deployed planes with equipment type. example num_deployed_planes_with_type@fighter",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_divisions": {
+			"name": "num_divisions",
+			"description": "Will compare towards the amount of divisions a country has control over, if strength matters use has_army_size.",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_equipment": {
+			"name": "num_equipment",
+			"description": "number of equipment in country. example num_equipment@infantry_equipment",
+			"scopes": {
+				"usage": [
+					"Character",
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_equipment_in_armies": {
+			"name": "num_equipment_in_armies",
+			"description": "number of equipment in armies of the country, equipment type token is defined in target. example num_equipment_in_armies@infantry_equipment",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_equipment_in_armies_k": {
+			"name": "num_equipment_in_armies_k",
+			"description": "number of equipment in armies of the country in thousands, equipment type token is defined in target. example num_equipment_in_armies_k@infantry_equipment",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_faction_members": {
+			"name": "num_faction_members",
+			"description": "Compares the number of members in the faction for the current country.",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_fake_intel_divisions": {
+			"name": "num_fake_intel_divisions",
+			"description": "Will compare towards the amount of fake intel divisions a country has control over. .",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_free_operative_slots": {
+			"name": "num_free_operative_slots",
+			"description": "Checks the number of operative a country can recruit right now.",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_infantry": {
+			"name": "num_infantry",
+			"description": "number of units with infantry dominant type",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_max_traits": {
+			"name": "num_max_traits",
+			"description": "number of maximum assignable traits a leader can have",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_mechanized": {
+			"name": "num_mechanized",
+			"description": "number of units with mechanized dominant type",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_motorized": {
+			"name": "num_motorized",
+			"description": "number of units with motorized dominant type",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_nukes_being_dropped": {
+			"name": "num_nukes_being_dropped",
+			"description": "total number of nukes that are currently ready to be dropped",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_nukes_left_to_drop": {
+			"name": "num_nukes_left_to_drop",
+			"description": "number of nukes left to drop during this game tick (only useful in-between nuke drops, like in on_nuke_drop on-action, for example)",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_occupied_states": {
+			"name": "num_occupied_states",
+			"description": "check the number of states occupied by nation",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_of_available_civilian_factories": {
+			"name": "num_of_available_civilian_factories",
+			"description": "check amount of available civilian factories",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_of_available_military_factories": {
+			"name": "num_of_available_military_factories",
+			"description": "check amount of available military factories",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_of_available_naval_factories": {
+			"name": "num_of_available_naval_factories",
+			"description": "check amount of available naval factories",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_of_career_profile_points": {
+			"name": "num_of_career_profile_points",
+			"description": "check amount of gained career points",
+			"scopes": {
+				"usage": [
+					"Global"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_of_civilian_factories": {
+			"name": "num_of_civilian_factories",
+			"description": "check amount of civilian factories",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_of_civilian_factories_available_for_projects": {
+			"name": "num_of_civilian_factories_available_for_projects",
+			"description": "check amount of civilian factories available for a new project to use",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_of_civilian_factories_in_cores": {
+			"name": "num_of_civilian_factories_in_cores",
+			"description": "calculates the number of civilian factories on core states of current country scope, on those states that are under control of @Tag <Tag | ROOT | my_var> example num_of_civilian_factories_in_cores@GER",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_of_controlled_factories": {
+			"name": "num_of_controlled_factories",
+			"description": "check the number of factories in controlled states excluding any gained or lost through trade, relations, modifiers etc.",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_of_controlled_states": {
+			"name": "num_of_controlled_states",
+			"description": "check amount of controlled stats",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_of_factories": {
+			"name": "num_of_factories",
+			"description": "Check amount of available factories (excluding temporary sources like trade and lend-lease)",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_of_military_factories": {
+			"name": "num_of_military_factories",
+			"description": "check amount of military factories",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_of_military_factories_in_cores": {
+			"name": "num_of_military_factories_in_cores",
+			"description": "calculates the number of civilian factories on core states of current country scope, on those states that are under control of @Tag  <Tag | ROOT | my_var> example num_of_military_factories_in_cores@GER",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_of_naval_factories": {
+			"name": "num_of_naval_factories",
+			"description": "check amount of naval factories",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_of_naval_factories_in_cores": {
+			"name": "num_of_naval_factories_in_cores",
+			"description": "calculates the number of civilian factories on core states of current country scope, on those states that are under control of @Tag  <Tag | ROOT | my_var> example num_of_naval_factories_in_cores@my_var",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_of_nukes": {
+			"name": "num_of_nukes",
+			"description": "check amount of nukes",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_of_operatives": {
+			"name": "num_of_operatives",
+			"description": "Checks the number of operatives the country controls",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_of_owned_factories": {
+			"name": "num_of_owned_factories",
+			"description": "check the number of factories in owned states excluding any gained or lost through trade, relations, modifiers etc.",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_of_supply_nodes": {
+			"name": "num_of_supply_nodes",
+			"description": "check amount of supply nodes",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_operative_slots": {
+			"name": "num_operative_slots",
+			"description": "Checks the number of available operative slots a country has.",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_orders_groups": {
+			"name": "num_orders_groups",
+			"description": "number of orders groups",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_owned_controlled_states": {
+			"name": "num_owned_controlled_states",
+			"description": "number of owned and core states",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_owned_states": {
+			"name": "num_owned_states",
+			"description": "number of owned states",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_personality_traits": {
+			"name": "num_personality_traits",
+			"description": "number of personality traits a leader has",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_researched_technologies": {
+			"name": "num_researched_technologies",
+			"description": "Number of researched technologies",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_rocket": {
+			"name": "num_rocket",
+			"description": "number of units with rocket dominant type",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_ships": {
+			"name": "num_ships",
+			"description": "number of ships",
+			"scopes": {
+				"usage": [
+					"Character",
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_ships_with_type": {
+			"name": "num_ships_with_type",
+			"description": "number of ships controlled in country, ship type is defined in target. example num_ships_with_type@carrier. can be a sub unit def type or one of carrier,capital,screen, submarine",
+			"scopes": {
+				"usage": [
+					"Character",
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_special": {
+			"name": "num_special",
+			"description": "number of units with special dominant type",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_status_traits": {
+			"name": "num_status_traits",
+			"description": "number of status traits a leader has",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_subjects": {
+			"name": "num_subjects",
+			"description": "check the number of subjects of nation",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_target_equipment": {
+			"name": "num_target_equipment",
+			"description": "number of equipment required in army of a leader, equipment type token is defined in target. example num_target_equipment@infantry_equipment",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_target_equipment_in_armies": {
+			"name": "num_target_equipment_in_armies",
+			"description": "number of equipment required in armies of the country, equipment type token is defined in target. example num_target_equipment_in_armies@infantry_equipment",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_target_equipment_in_armies_k": {
+			"name": "num_target_equipment_in_armies_k",
+			"description": "number of equipment required in armies of the country in thousands, equipment type token is defined in target. example num_target_equipment_in_armies_k@infantry_equipment",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_tech_sharing_groups": {
+			"name": "num_tech_sharing_groups",
+			"description": "checks how many groups a nation is a member of",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_terrain_traits": {
+			"name": "num_terrain_traits",
+			"description": "number of terrain traits a leader has",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_traits": {
+			"name": "num_traits",
+			"description": "number of traits a leader has",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_units": {
+			"name": "num_units",
+			"description": "number of units controlled by leader",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_units_crossing_river": {
+			"name": "num_units_crossing_river",
+			"description": "number of units currently passing through a river",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_units_defensive_combats": {
+			"name": "num_units_defensive_combats",
+			"description": "number of units in defensive combats",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_units_defensive_combats_on": {
+			"name": "num_units_defensive_combats_on",
+			"description": "number of units that are defensively fighting on a terrain, terrain type is defined as target. example: num_units_defensive_combats_on@plains",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_units_in_combat": {
+			"name": "num_units_in_combat",
+			"description": "number of units current fighting",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_units_in_state": {
+			"name": "num_units_in_state",
+			"description": "number of units controlled by leader in state, state is in target. example num_units_in_state@123",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_units_offensive_combats": {
+			"name": "num_units_offensive_combats",
+			"description": "number of units in offensive combats",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_units_offensive_combats_against": {
+			"name": "num_units_offensive_combats_against",
+			"description": "number of units that are offensively fighting against a terrain, terrain type is defined as target. example: num_units_offensive_combats_against@plains",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_units_on_climate": {
+			"name": "num_units_on_climate",
+			"description": "number of units that are on an acclimatization required location, acclimatization type is defined in target. example num_units_on_climate@hot_climate",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"num_units_with_type": {
+			"name": "num_units_with_type",
+			"description": "number of units with dominant type controlled by leader, dominant type is defined in target. example: num_units_with_type@light_armor",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"number_of_currently_assigned_tasks": {
+			"name": "number_of_currently_assigned_tasks",
+			"description": "Number of tasks the military industrial organization is currently assigned to",
+			"scopes": {
+				"usage": [
+					"Global"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"number_of_unlocked_traits": {
+			"name": "number_of_unlocked_traits",
+			"description": "Number of unlocked traits of the military industrial organization.",
+			"scopes": {
+				"usage": [
+					"Global"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"number_of_unused_trait_points": {
+			"name": "number_of_unused_trait_points",
+			"description": "Number of unused trait points of the military industrial organization",
+			"scopes": {
+				"usage": [
+					"Global"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"occupied_countries": {
+			"name": "occupied_countries",
+			"description": "array of occupied countries",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": true
+		},
+		"operation_country": {
+			"name": "operation_country",
+			"description": "the country location the operative is assigned. 0 if it is not assigned to a country",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"operation_state": {
+			"name": "operation_state",
+			"description": "the state location the operative is assigned. 0 if it is not assigned to a state",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"operation_type": {
+			"name": "operation_type",
+			"description": "returns the operation token the operative is assigned",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"operations": {
+			"name": "operations",
+			"description": "array of objects in operations database",
+			"scopes": {
+				"usage": [
+					"Global"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": true
+		},
+		"operative_captor": {
+			"name": "operative_captor",
+			"description": "returns the country tag that captured the operative",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"operatives": {
+			"name": "operatives",
+			"description": "all operatives of a country",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": true
+		},
+		"opinion": {
+			"name": "opinion",
+			"description": "opinion of a country targeted on another one. example GER.opinion@ENG",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"original_research_slots": {
+			"name": "original_research_slots",
+			"description": "check number of research slots at start of game",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"original_tag": {
+			"name": "original_tag",
+			"description": "returns the original tag of a country",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"overlord": {
+			"name": "overlord",
+			"description": "master of this subject",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"own_capture_chance_factor": {
+			"name": "own_capture_chance_factor",
+			"description": "The chance this operative has to be captured, taking into account the country it is operating for and the country it is operating against.",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"own_forced_into_hiding_time_factor": {
+			"name": "own_forced_into_hiding_time_factor",
+			"description": "The time factor applied to the status \"forced into hiding\". Takes into account the country it is operating for and the country it is operating against.",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"own_harmed_time_factor": {
+			"name": "own_harmed_time_factor",
+			"description": "The time factor applied to the status \"harmed\". Takes int accountthe country it is operating for and the country it is operating against.",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"owned_controlled_states": {
+			"name": "owned_controlled_states",
+			"description": "array owned and core states",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": true
+		},
+		"owned_states": {
+			"name": "owned_states",
+			"description": "array of owned states",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": true
+		},
+		"owner": {
+			"name": "owner",
+			"description": "owner of the state",
+			"scopes": {
+				"usage": [
+					"State"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"party_popularity": {
+			"name": "party_popularity",
+			"description": "popularity of targeted party [0.00, 1.00]. example party_popularity@democratic. May also target ruling_party. This also supports country variables, so you can party_popularity@my_var_name for variables that store ideologies",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"party_popularity_100": {
+			"name": "party_popularity_100",
+			"description": "popularity of targeted party [0.00, 100.00]. example party_popularity_100@democratic. May also target ruling_party. This also supports country variables, so you can party_popularity_100@my_var_name for variables that store ideologies",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"pc_current_score": {
+			"name": "pc_current_score",
+			"description": "Checks country's total peace conference score. Only usable if the country is on the winning side.",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"pc_total_score": {
+			"name": "pc_total_score",
+			"description": "Checks country's total peace conference score. Only usable if the country is on the winning side.",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"pc_turn": {
+			"name": "pc_turn",
+			"description": "Checks turn number in PC.",
+			"scopes": {
+				"usage": [
+					"Global"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"planning_level": {
+			"name": "planning_level",
+			"description": "planning level of the leader",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"planning_skill_level": {
+			"name": "planning_skill_level",
+			"description": "Compares planning skill level of a unit leader.",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"political_advisor": {
+			"name": "political_advisor",
+			"description": "returns an array with the currently hired political advisors of the country",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": true
+		},
+		"political_power": {
+			"name": "political_power",
+			"description": "total political power of country",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"political_power_daily": {
+			"name": "political_power_daily",
+			"description": "Checks if daily political power increase is more or less that specified value",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"political_power_growth": {
+			"name": "political_power_growth",
+			"description": "Check the value of political power daily growth.Exacmple: political_power_growth > 0",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"potential_and_current_enemies": {
+			"name": "potential_and_current_enemies",
+			"description": "array of potential and actual enemies",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": true
+		},
+		"power_balance_daily": {
+			"name": "power_balance_daily",
+			"description": "current total power balance daily change",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"power_balance_daily_change": {
+			"name": "power_balance_daily_change",
+			"description": "compares current total daily change of a power balance",
+			"scopes": {
+				"usage": [
+					"Global"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"power_balance_value": {
+			"name": "power_balance_value",
+			"description": "current power balance value",
+			"scopes": {
+				"usage": [
+					"Country",
+					"Global"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"power_balance_weekly": {
+			"name": "power_balance_weekly",
+			"description": "current total power balance weekly change",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"power_balance_weekly_change": {
+			"name": "power_balance_weekly_change",
+			"description": "compares current total weekly change of a power balance",
+			"scopes": {
+				"usage": [
+					"Global"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"province_controllers": {
+			"name": "province_controllers",
+			"description": "get array of all province controllers. Example: province_controllers^4135",
+			"scopes": {
+				"usage": [
+					"Global"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": true
+		},
+		"research_bonus": {
+			"name": "research_bonus",
+			"description": "Research bonus of the military industrial organization when assigned to a research slot",
+			"scopes": {
+				"usage": [
+					"Global"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"researched_techs": {
+			"name": "researched_techs",
+			"description": "returns the array of researched technologies",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": true
+		},
+		"resistance": {
+			"name": "resistance",
+			"description": "Compares the current resistance level of a state to a value. Example: resistance > 50",
+			"scopes": {
+				"usage": [
+					"State"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"resistance_speed": {
+			"name": "resistance_speed",
+			"description": "Compares the current resistance speed of a state to a value. Example: resistance_speed > 50",
+			"scopes": {
+				"usage": [
+					"State"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"resistance_target": {
+			"name": "resistance_target",
+			"description": "Compares the target resistance level of a state to a value. Example: resistance_target > 50",
+			"scopes": {
+				"usage": [
+					"State"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"resource": {
+			"name": "resource",
+			"description": "number of surplus resources in country, resource type is defined in target resource@steel",
+			"scopes": {
+				"usage": [
+					"Country",
+					"State"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"resource_consumed": {
+			"name": "resource_consumed",
+			"description": "number of resources consumed by country, resource type is defined in target resource_consumed@steel",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"resource_exported": {
+			"name": "resource_exported",
+			"description": "number of resources exported by country, resource type is defined in target resource_exported@steel",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"resource_imported": {
+			"name": "resource_imported",
+			"description": "number of resources imported by country, resource type is defined in target resource_imported@steel",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"resource_produced": {
+			"name": "resource_produced",
+			"description": "number of resources produced by country, resource type is defined in target. example resource_produced@steel",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"scientist": {
+			"name": "scientist",
+			"description": "The scientist that researches the project",
+			"scopes": {
+				"usage": [
+					"Global"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"size": {
+			"name": "size",
+			"description": "Size of the military industrial organization",
+			"scopes": {
+				"usage": [
+					"Global"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"skill": {
+			"name": "skill",
+			"description": "compare leader skill levels",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"skill_level": {
+			"name": "skill_level",
+			"description": "skill level of the leader",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"stability": {
+			"name": "stability",
+			"description": "stability of a country",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"state_and_terrain_strategic_value": {
+			"name": "state_and_terrain_strategic_value",
+			"description": "Checks for state strategic value",
+			"scopes": {
+				"usage": [
+					"State"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"state_population": {
+			"name": "state_population",
+			"description": "check the population in the state",
+			"scopes": {
+				"usage": [
+					"State"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"state_population_k": {
+			"name": "state_population_k",
+			"description": "check the population in the state in thousands (use to avoid variable overflows)",
+			"scopes": {
+				"usage": [
+					"State"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"state_strategic_value": {
+			"name": "state_strategic_value",
+			"description": "Checks for state strategic value",
+			"scopes": {
+				"usage": [
+					"State"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"states": {
+			"name": "states",
+			"description": "get array of all states",
+			"scopes": {
+				"usage": [
+					"Global"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": true
+		},
+		"subjects": {
+			"name": "subjects",
+			"description": "array of subjects",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": true
+		},
+		"sum_unit_terrain_modifier": {
+			"name": "sum_unit_terrain_modifier",
+			"description": "sum of terrain modifiers of each army's location, terrain type is defined in target. example: sum_unit_terrain_modifier@sickness_chance",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"surrender_progress": {
+			"name": "surrender_progress",
+			"description": "check if a country is close to surrendering",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"technology": {
+			"name": "technology",
+			"description": "array of objects in technology database",
+			"scopes": {
+				"usage": [
+					"Global"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": true
+		},
+		"theorist": {
+			"name": "theorist",
+			"description": "returns the currently hired theorist of the country",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"threat": {
+			"name": "threat",
+			"description": "check the global threat value (world tension). 0-1 value",
+			"scopes": {
+				"usage": [
+					"Global"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_constructed_air_base": {
+			"name": "total_constructed_air_base",
+			"description": "Total constructions of air_base",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_constructed_anti_air": {
+			"name": "total_constructed_anti_air",
+			"description": "Total constructions of anti_air",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_constructed_civilian_factory": {
+			"name": "total_constructed_civilian_factory",
+			"description": "Total constructions of civilian_factory",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_constructed_dockyard": {
+			"name": "total_constructed_dockyard",
+			"description": "Total constructions of dockyard",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_constructed_fuel_silo": {
+			"name": "total_constructed_fuel_silo",
+			"description": "Total constructions of fuel_silo",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_constructed_gun_emplacement": {
+			"name": "total_constructed_gun_emplacement",
+			"description": "Total constructions of gun_emplacement",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_constructed_infrastructure": {
+			"name": "total_constructed_infrastructure",
+			"description": "Total constructions of infrastructure",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_constructed_land_fort": {
+			"name": "total_constructed_land_fort",
+			"description": "Total constructions of land_fort",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_constructed_military_factory": {
+			"name": "total_constructed_military_factory",
+			"description": "Total constructions of military_factory",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_constructed_naval_fort": {
+			"name": "total_constructed_naval_fort",
+			"description": "Total constructions of naval_fort",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_constructed_naval_headquarter": {
+			"name": "total_constructed_naval_headquarter",
+			"description": "Total constructions of naval_headquarter",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_constructed_naval_supply_hub": {
+			"name": "total_constructed_naval_supply_hub",
+			"description": "Total constructions of naval_supply_hub",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_constructed_nuclear_reactor": {
+			"name": "total_constructed_nuclear_reactor",
+			"description": "Total constructions of nuclear_reactor",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_constructed_other": {
+			"name": "total_constructed_other",
+			"description": "Total constructions of other",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_constructed_port": {
+			"name": "total_constructed_port",
+			"description": "Total constructions of port",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_constructed_radar": {
+			"name": "total_constructed_radar",
+			"description": "Total constructions of radar",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_constructed_refinery": {
+			"name": "total_constructed_refinery",
+			"description": "Total constructions of refinery",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_constructed_rocket_site": {
+			"name": "total_constructed_rocket_site",
+			"description": "Total constructions of rocket_site",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_constructed_supply_node": {
+			"name": "total_constructed_supply_node",
+			"description": "Total constructions of supply_node",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_equipment_produced_": {
+			"name": "total_equipment_produced_",
+			"description": "Total produced equipment of type",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_equipment_produced_air_transport": {
+			"name": "total_equipment_produced_air_transport",
+			"description": "Total produced equipment of typeair_transport",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_equipment_produced_amphibious": {
+			"name": "total_equipment_produced_amphibious",
+			"description": "Total produced equipment of typeamphibious",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_equipment_produced_anti_air": {
+			"name": "total_equipment_produced_anti_air",
+			"description": "Total produced equipment of typeanti_air",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_equipment_produced_anti_tank": {
+			"name": "total_equipment_produced_anti_tank",
+			"description": "Total produced equipment of typeanti_tank",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_equipment_produced_armor": {
+			"name": "total_equipment_produced_armor",
+			"description": "Total produced equipment of typearmor",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_equipment_produced_artillery": {
+			"name": "total_equipment_produced_artillery",
+			"description": "Total produced equipment of typeartillery",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_equipment_produced_ballistic_missile": {
+			"name": "total_equipment_produced_ballistic_missile",
+			"description": "Total produced equipment of typeballistic_missile",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_equipment_produced_capital_ship": {
+			"name": "total_equipment_produced_capital_ship",
+			"description": "Total produced equipment of typecapital_ship",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_equipment_produced_carrier": {
+			"name": "total_equipment_produced_carrier",
+			"description": "Total produced equipment of typecarrier",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_equipment_produced_cas": {
+			"name": "total_equipment_produced_cas",
+			"description": "Total produced equipment of typecas",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_equipment_produced_convoy": {
+			"name": "total_equipment_produced_convoy",
+			"description": "Total produced equipment of typeconvoy",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_equipment_produced_emplacement_gun_ammo": {
+			"name": "total_equipment_produced_emplacement_gun_ammo",
+			"description": "Total produced equipment of typeemplacement_gun_ammo",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_equipment_produced_fighter": {
+			"name": "total_equipment_produced_fighter",
+			"description": "Total produced equipment of typefighter",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_equipment_produced_flame": {
+			"name": "total_equipment_produced_flame",
+			"description": "Total produced equipment of typeflame",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_equipment_produced_floating_harbor": {
+			"name": "total_equipment_produced_floating_harbor",
+			"description": "Total produced equipment of typefloating_harbor",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_equipment_produced_heavy_fighter": {
+			"name": "total_equipment_produced_heavy_fighter",
+			"description": "Total produced equipment of typeheavy_fighter",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_equipment_produced_infantry": {
+			"name": "total_equipment_produced_infantry",
+			"description": "Total produced equipment of typeinfantry",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_equipment_produced_interceptor": {
+			"name": "total_equipment_produced_interceptor",
+			"description": "Total produced equipment of typeinterceptor",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_equipment_produced_land_cruiser": {
+			"name": "total_equipment_produced_land_cruiser",
+			"description": "Total produced equipment of typeland_cruiser",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_equipment_produced_maritime_patrol_plane": {
+			"name": "total_equipment_produced_maritime_patrol_plane",
+			"description": "Total produced equipment of typemaritime_patrol_plane",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_equipment_produced_mechanized": {
+			"name": "total_equipment_produced_mechanized",
+			"description": "Total produced equipment of typemechanized",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_equipment_produced_missile": {
+			"name": "total_equipment_produced_missile",
+			"description": "Total produced equipment of typemissile",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_equipment_produced_missile_launcher": {
+			"name": "total_equipment_produced_missile_launcher",
+			"description": "Total produced equipment of typemissile_launcher",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_equipment_produced_motorized": {
+			"name": "total_equipment_produced_motorized",
+			"description": "Total produced equipment of typemotorized",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_equipment_produced_naval_bomber": {
+			"name": "total_equipment_produced_naval_bomber",
+			"description": "Total produced equipment of typenaval_bomber",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_equipment_produced_nuclear_missile": {
+			"name": "total_equipment_produced_nuclear_missile",
+			"description": "Total produced equipment of typenuclear_missile",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_equipment_produced_railway_gun": {
+			"name": "total_equipment_produced_railway_gun",
+			"description": "Total produced equipment of typerailway_gun",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_equipment_produced_rocket": {
+			"name": "total_equipment_produced_rocket",
+			"description": "Total produced equipment of typerocket",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_equipment_produced_sam_missile": {
+			"name": "total_equipment_produced_sam_missile",
+			"description": "Total produced equipment of typesam_missile",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_equipment_produced_scout_plane": {
+			"name": "total_equipment_produced_scout_plane",
+			"description": "Total produced equipment of typescout_plane",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_equipment_produced_screen_ship": {
+			"name": "total_equipment_produced_screen_ship",
+			"description": "Total produced equipment of typescreen_ship",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_equipment_produced_strategic_bomber": {
+			"name": "total_equipment_produced_strategic_bomber",
+			"description": "Total produced equipment of typestrategic_bomber",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_equipment_produced_submarine": {
+			"name": "total_equipment_produced_submarine",
+			"description": "Total produced equipment of typesubmarine",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_equipment_produced_suicide": {
+			"name": "total_equipment_produced_suicide",
+			"description": "Total produced equipment of typesuicide",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_equipment_produced_support": {
+			"name": "total_equipment_produced_support",
+			"description": "Total produced equipment of typesupport",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_equipment_produced_support_ship": {
+			"name": "total_equipment_produced_support_ship",
+			"description": "Total produced equipment of typesupport_ship",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_equipment_produced_tactical_bomber": {
+			"name": "total_equipment_produced_tactical_bomber",
+			"description": "Total produced equipment of typetactical_bomber",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"total_equipment_produced_train": {
+			"name": "total_equipment_produced_train",
+			"description": "Total produced equipment of typetrain",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"unit_modifier": {
+			"name": "unit_modifier",
+			"description": "value of a modifier stored in unit modifier, modifier token is defined in target. example unit_modifier@army_attack_factor",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"unit_ratio_ready_for_plan": {
+			"name": "unit_ratio_ready_for_plan",
+			"description": "ratio of units that are ready for plan",
+			"scopes": {
+				"usage": [
+					"Character"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		},
+		"year": {
+			"name": "year",
+			"description": "current year",
+			"scopes": {
+				"usage": [
+					"Global"
+				],
+				"usage_restriction": ""
+			},
+			"is_array": false
+		}
+	}
 }

@@ -374,6 +374,172 @@ impl Backend {
             let (ctx, scopes) = find_scope_context_at(&script, position, initial_scope, &sctx);
             current_scopes = scopes;
 
+            // Value completion for `array = <builtin_array>` — e.g. inside
+            // `any_of_scopes = { array = faction_members }` the RHS should
+            // complete to engine-provided arrays (`faction_members`,
+            // `owned_states`, `countries` …). This is additive: we return
+            // early with the array list when the cursor is clearly on an
+            // `array =` value, otherwise we fall through to the generic
+            // trigger/effect + param list.
+            //
+            // Detection is line-prefix based: look for the last `=` on the
+            // line up to the cursor and check whether `array` (case-insensitive)
+            // appears immediately before it. That covers
+            // `array = faction`, `array=faction`, `ARRAY = `, and
+            // `my_block = { array = ` is handled via the enclosing chain
+            // already (the value side of the `array` assignment).
+            if let Some(content) = self.documents.get(&uri) {
+                let lines: Vec<&str> = content.lines().collect();
+                if let Some(line) = lines.get(position.line as usize) {
+                    let byte_offset =
+                        crate::utf16_to_byte_offset(line, position.character as usize);
+                    let prefix = &line[..byte_offset.min(line.len())];
+                    // Find last `=` before cursor
+                    if let Some(eq_pos) = prefix.rfind('=') {
+                        let before_eq = prefix[..eq_pos].trim_end();
+                        // `array` is the key we care about (case-insensitive).
+                        // Extract the last word before `=` to check.
+                        let last_word = before_eq
+                            .rsplit(|c: char| c.is_whitespace() || c == '{' || c == '}')
+                            .next()
+                            .unwrap_or("")
+                            .trim();
+                        if last_word.eq_ignore_ascii_case("array")
+                            || last_word.eq_ignore_ascii_case("temp_array")
+                        {
+                            let current_scope_for_filter = current_scopes
+                                .last()
+                                .copied()
+                                .unwrap_or(scope::Scope::Global)
+                                .effective_scope();
+                            let mut array_items = Vec::new();
+                            for var in crate::data::hoi4_data::get_dynamic_variables().values() {
+                                if !var.is_array {
+                                    continue;
+                                }
+                                // Scope-filter: only offer arrays that are
+                                // actually accessible from the current scope.
+                                // `ScopeUsage::allows` treats Global as
+                                // wildcard (any scope), which matches the
+                                // engine's "array of" collections being
+                                // readable from most contexts. A Country-only
+                                // array like `faction_members` correctly
+                                // won't appear when the stack is Global.
+                                if !var.scopes.allows(&current_scope_for_filter) {
+                                    continue;
+                                }
+                                let detail = if var.description.is_empty() {
+                                    format!(
+                                        "Built-in array · scope: {}",
+                                        var.scopes
+                                            .usage
+                                            .iter()
+                                            .map(|s| s.as_str())
+                                            .collect::<Vec<_>>()
+                                            .join(", ")
+                                    )
+                                } else {
+                                    format!(
+                                        "{} · scope: {}",
+                                        var.description,
+                                        var.scopes
+                                            .usage
+                                            .iter()
+                                            .map(|s| s.as_str())
+                                            .collect::<Vec<_>>()
+                                            .join(", ")
+                                    )
+                                };
+                                array_items.push(CompletionItem {
+                                    label: var.name.clone(),
+                                    kind: Some(CompletionItemKind::VARIABLE),
+                                    detail: Some(detail),
+                                    sort_text: Some(format!("0_{}", var.name)),
+                                    documentation: Some(Documentation::MarkupContent(
+                                        MarkupContent {
+                                            kind: MarkupKind::Markdown,
+                                            value: var.description.clone(),
+                                        },
+                                    )),
+                                    ..Default::default()
+                                });
+                            }
+                            if !array_items.is_empty() {
+                                array_items.sort_by(|a, b| a.label.cmp(&b.label));
+                                return Ok(Some(CompletionResponse::Array(array_items)));
+                            }
+                        }
+                        // `var =` / `variable =` value completion for scalar
+                        // builtins (e.g. `check_variable = { var = stability }`).
+                        if last_word.eq_ignore_ascii_case("var")
+                            || last_word.eq_ignore_ascii_case("variable")
+                            || last_word.eq_ignore_ascii_case("temp_var")
+                        {
+                            let current_scope_for_filter = current_scopes
+                                .last()
+                                .copied()
+                                .unwrap_or(scope::Scope::Global)
+                                .effective_scope();
+                            let mut var_items = Vec::new();
+                            for var in crate::data::hoi4_data::get_dynamic_variables().values() {
+                                // Offer scalars and arrays both for `var =`,
+                                // but scalars are more common here.
+                                if !var.scopes.allows(&current_scope_for_filter) {
+                                    continue;
+                                }
+                                let kind_label = if var.is_array { "array" } else { "variable" };
+                                let detail = if var.description.is_empty() {
+                                    format!(
+                                        "Built-in {} · scope: {}",
+                                        kind_label,
+                                        var.scopes
+                                            .usage
+                                            .iter()
+                                            .map(|s| s.as_str())
+                                            .collect::<Vec<_>>()
+                                            .join(", ")
+                                    )
+                                } else {
+                                    format!(
+                                        "{} · scope: {}",
+                                        var.description,
+                                        var.scopes
+                                            .usage
+                                            .iter()
+                                            .map(|s| s.as_str())
+                                            .collect::<Vec<_>>()
+                                            .join(", ")
+                                    )
+                                };
+                                var_items.push(CompletionItem {
+                                    label: var.name.clone(),
+                                    kind: Some(CompletionItemKind::VARIABLE),
+                                    detail: Some(detail),
+                                    sort_text: Some(format!("0_{}", var.name)),
+                                    documentation: Some(Documentation::MarkupContent(
+                                        MarkupContent {
+                                            kind: MarkupKind::Markdown,
+                                            value: var.description.clone(),
+                                        },
+                                    )),
+                                    ..Default::default()
+                                });
+                            }
+                            if !var_items.is_empty() {
+                                var_items.sort_by(|a, b| a.label.cmp(&b.label));
+                                // Cap to avoid flooding: show first 100, but
+                                // still a single response. The user can type
+                                // to filter.
+                                if var_items.len() > 100 {
+                                    var_items.truncate(100);
+                                }
+                                return Ok(Some(CompletionResponse::Array(var_items)));
+                            }
+                        }
+                    }
+                }
+            }
+
             // Focus search filters: inside `search_filters = { ... }` offer
             // the base-game filter set first (EnumMember, wiki notes as
             // documentation), then any mod-defined filters discovered from

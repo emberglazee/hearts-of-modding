@@ -196,6 +196,28 @@ pub struct ScopeInfo {
     pub chain_targets: HashMap<String, ChainTarget>,
 }
 
+/// A built-in dynamic variable (engine-provided, never needs `set_variable`).
+///
+/// Sourced from `documentation/dynamic_variables_documentation.md` via
+/// `server/scripts/parse_dynamic_variables.py` → `dynamic_variables` in
+/// `hoi4_data_v2.json`. `is_array` is true when the doc description
+/// contains "array" (e.g. `faction_members`, `allies`, `owned_states`);
+/// scalars like `stability` are `is_array: false`.
+#[derive(Debug, Clone, Deserialize)]
+pub struct DynamicVariable {
+    #[allow(dead_code)]
+    pub name: String,
+    #[allow(dead_code)]
+    #[serde(default)]
+    pub description: String,
+    #[allow(dead_code)]
+    #[serde(deserialize_with = "deserialize_scopes_v1_v2")]
+    pub scopes: ScopeUsage,
+    #[allow(dead_code)]
+    #[serde(default)]
+    pub is_array: bool,
+}
+
 /// All data loaded from the V2 JSON file
 #[allow(dead_code)]
 #[derive(Debug, Deserialize)]
@@ -208,6 +230,8 @@ pub struct AllDataV2 {
     pub scopes: HashMap<String, ScopeInfo>,
     #[serde(default)]
     pub transparent_block_types: Vec<String>,
+    #[serde(default)]
+    pub dynamic_variables: HashMap<String, DynamicVariable>,
 }
 
 static DATA: Lazy<AllDataV2> = Lazy::new(|| {
@@ -368,6 +392,40 @@ pub fn is_transparent_block(key: &str) -> bool {
     DATA.transparent_block_types
         .iter()
         .any(|t| t.eq_ignore_ascii_case(key))
+}
+
+/// Get all built-in dynamic variables (383 entries from the official docs).
+///
+/// Keys are lowercase base names (e.g. `faction_members`). Use the
+/// helpers below rather than hashing directly — they strip scope prefixes
+/// (`ROOT.faction_members` → `faction_members`) and are case-insensitive.
+#[allow(dead_code)]
+pub fn get_dynamic_variables() -> &'static HashMap<String, DynamicVariable> {
+    &DATA.dynamic_variables
+}
+
+/// Lookup a dynamic variable by name, stripping a scope prefix if present
+/// (`ROOT.faction_members` → `faction_members`) and case-insensitively.
+pub fn lookup_dynamic_variable(name: &str) -> Option<&'static DynamicVariable> {
+    let base = name.rsplit('.').next().unwrap_or(name);
+    // DB keys are lowercase; fast path exact then fallback lowercase
+    if let Some(v) = DATA.dynamic_variables.get(base) {
+        return Some(v);
+    }
+    DATA.dynamic_variables.get(&base.to_ascii_lowercase())
+}
+
+/// True when `name` names a built-in *array* dynamic variable
+/// (e.g. `faction_members`, `allies`, `owned_states`, `countries`).
+pub fn is_builtin_array(name: &str) -> bool {
+    lookup_dynamic_variable(name).is_some_and(|v| v.is_array)
+}
+
+/// True when `name` names any built-in dynamic variable (scalar or array).
+/// Built-in scalars (e.g. `stability`) are always defined by the engine and
+/// should not be flagged as undefined by `HOM9001` variable checks.
+pub fn is_builtin_variable(name: &str) -> bool {
+    lookup_dynamic_variable(name).is_some()
 }
 
 /// UTF-8 BOM as raw bytes.

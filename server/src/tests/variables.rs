@@ -571,3 +571,64 @@ fn test_array_any_of_scopes_and_find() {
         diags
     );
 }
+
+#[test]
+fn test_faction_members_builtin_not_flagged() {
+    let diags = walk_variables(
+        r#"
+        has_large_ally_not_pick_closed_economy = {
+            any_of_scopes = {
+                array = faction_members
+                NOT = { tag = PREV }
+                num_of_military_factories > 30
+            }
+        }
+        "#,
+        "/mod/common/scripted_triggers/00_scripted_triggers.txt",
+    );
+    let hom9001: Vec<_> = diags
+        .iter()
+        .filter(|d| format!("{:?}", d.code).contains("HOM9001"))
+        .collect();
+    assert!(
+        hom9001.is_empty(),
+        "faction_members builtin should not flag HOM9001, got: {:?}",
+        diags
+    );
+}
+#[test]
+fn test_faction_members_scoped_form() {
+    let diags = walk_variables(
+        r#"
+        any_of_scopes = { array = ROOT.faction_members value = 1 }
+        is_in_array = { array = THIS.allies value = 1 }
+        for_each_scope_loop = { array = neighbors }
+        for_each_loop = { array = owned_states }
+        "#,
+        "/mod/common/scripted_effects/test.txt",
+    );
+    let hom9001: Vec<_> = diags
+        .iter()
+        .filter(|d| format!("{:?}", d.code).contains("HOM9001"))
+        .collect();
+    assert!(
+        hom9001.is_empty(),
+        "builtin arrays with scope prefix should not flag, got: {:?}",
+        diags
+    );
+}
+#[test]
+fn test_typo_still_flags() {
+    let diags = walk_variables(
+        r#"
+        is_in_array = { array = faction_memebers value = 1 }
+        "#,
+        "/mod/common/scripted_effects/test.txt",
+    );
+    assert!(
+        diags
+            .iter()
+            .any(|d| format!("{:?}", d.code).contains("HOM9001")),
+        "typo should still flag"
+    );
+}
