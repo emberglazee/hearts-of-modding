@@ -14,6 +14,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Scope validation option in LSP's CLI.**
 
+- **Implemented and documented built-in pre-existing dynamic HOI4 variables in `hoi4_data`.**
+
 ### 🔧 Changed
 
 - **No longer accepting code suggestions on Enter.** Caused annoyances when expanding braces like this: `key = {<enter>}`. From here on out press Tab to accept code suggestions.
