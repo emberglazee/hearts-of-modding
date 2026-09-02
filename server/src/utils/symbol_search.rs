@@ -69,22 +69,36 @@ pub fn find_in_entry(
                 rewrite_to_anchor(&mut id, &mut ck, param_anchor);
                 return Some((
                     id,
-                    scope_stack.iter().cloned().collect(),
+                    scope_stack
+                        .nodes()
+                        .iter()
+                        .filter(|n| !n.is_transparent)
+                        .map(|n| n.scope_type)
+                        .collect(),
                     Some(ass.value.value.clone()),
                     ck,
                 ));
             }
 
-            let mut pushed_scope = None;
+            let mut pushed_scope: Option<scope::Scope> = None;
             if let ast::Value::Block(_) | ast::Value::TaggedBlock(_, _, _) = &ass.value.value {
                 let key_text = ass.key_text(source);
                 // Unified resolution — the SAME path the validation walker
                 // uses (file-type initial scope + full ScopeCtx maps), so
                 // hover never diverges from HOM004 scope inference.
-                let (s, _) = scope_stack.resolve_entry_scope(key_text, sctx);
-
+                let (mut s, is_transparent) = scope_stack.resolve_entry_scope(key_text, sctx);
+                // Idea promotion (mirrors rules::visitor::walk_entries)
+                if s == scope::Scope::Unknown {
+                    let nodes = scope_stack.nodes();
+                    if nodes.iter().any(|n| n.scope_type == scope::Scope::Idea)
+                        && (nodes.len() == 2 || nodes.len() == 3)
+                        && !crate::rules::visitor::is_idea_structure_key(key_text)
+                    {
+                        s = scope::Scope::Idea;
+                    }
+                }
                 if s != scope::Scope::Unknown || key_text.contains(':') || key_text.contains('.') {
-                    scope_stack.push(s);
+                    scope_stack.push_with(s, is_transparent);
                     pushed_scope = Some(s);
                 }
             }
@@ -180,7 +194,12 @@ pub fn find_in_value(
                                     if adj_offset >= part_abs_start && adj_offset < part_abs_end {
                                         return Some((
                                             part.to_string(),
-                                            scope_stack.iter().cloned().collect(),
+                                            scope_stack
+                                                .nodes()
+                                                .iter()
+                                                .filter(|n| !n.is_transparent)
+                                                .map(|n| n.scope_type)
+                                                .collect(),
                                             None,
                                             context_key,
                                         ));
@@ -189,7 +208,12 @@ pub fn find_in_value(
                                 }
                                 return Some((
                                     inner.to_string(),
-                                    scope_stack.iter().cloned().collect(),
+                                    scope_stack
+                                        .nodes()
+                                        .iter()
+                                        .filter(|n| !n.is_transparent)
+                                        .map(|n| n.scope_type)
+                                        .collect(),
                                     None,
                                     context_key,
                                 ));
@@ -202,7 +226,12 @@ pub fn find_in_value(
                 }
                 return Some((
                     s.to_string(),
-                    scope_stack.iter().cloned().collect(),
+                    scope_stack
+                        .nodes()
+                        .iter()
+                        .filter(|n| !n.is_transparent)
+                        .map(|n| n.scope_type)
+                        .collect(),
                     None,
                     context_key,
                 ));
@@ -213,7 +242,12 @@ pub fn find_in_value(
             if is_pos_in_range(pos, &val.range) {
                 return Some((
                     n.to_string(),
-                    scope_stack.iter().cloned().collect(),
+                    scope_stack
+                        .nodes()
+                        .iter()
+                        .filter(|n| !n.is_transparent)
+                        .map(|n| n.scope_type)
+                        .collect(),
                     Some(ast::Value::Number(*n)),
                     context_key,
                 ));
@@ -224,7 +258,12 @@ pub fn find_in_value(
             if is_pos_in_range(pos, &val.range) {
                 return Some((
                     (if *b { "yes" } else { "no" }).to_string(),
-                    scope_stack.iter().cloned().collect(),
+                    scope_stack
+                        .nodes()
+                        .iter()
+                        .filter(|n| !n.is_transparent)
+                        .map(|n| n.scope_type)
+                        .collect(),
                     Some(ast::Value::Boolean(*b)),
                     context_key,
                 ));
@@ -267,7 +306,12 @@ pub fn find_in_value(
             if is_pos_in_range(pos, &val.range) {
                 return Some((
                     s.clone(),
-                    scope_stack.iter().cloned().collect(),
+                    scope_stack
+                        .nodes()
+                        .iter()
+                        .filter(|n| !n.is_transparent)
+                        .map(|n| n.scope_type)
+                        .collect(),
                     None,
                     context_key,
                 ));

@@ -55,10 +55,21 @@ pub enum Scope {
     /// per-key — not a trigger/effect evaluation scope. V2ScopeRule skips
     /// scope checks inside these blocks.
     ModifierBag,
-    /// Structural container for `common/on_actions/*.txt` (`on_actions = { }`).
-    /// Its children are individual `on_*` blocks, each with its own runtime
+    /// Structural container for `common/on_actions/*.txt` (`on_actions = { }`). Its children are individual `on_*` blocks, each with its own runtime
     /// scope (Country / State / Character / Unit / Global).
     OnActions,
+    /// File-level scope for `common/scripted_effects/*.txt`. Top level holds
+    /// `my_effect = { ... }` definitions whose bodies are evaluated in the
+    /// caller's scope. This scope skips HOM004 validation at the top level
+    /// (like `ModifierBag`) because scripted effects are polymorphic — the
+    /// engine runs them in whatever scope they're called from (Country/State/
+    /// Character). Explicit iterators (`every_state`, `every_country`, etc.)
+    /// still push their respective scopes correctly from here.
+    ScriptedEffect,
+    /// File-level scope for `common/scripted_triggers/*.txt`. Same semantics
+    /// as `ScriptedEffect` — top-level trigger definitions inherit the caller's
+    /// scope at use-site.
+    ScriptedTrigger,
     Unknown,
 }
 
@@ -86,6 +97,8 @@ impl Scope {
             Scope::TechnologyFolders => "Technology Folders",
             Scope::ModifierBag => "Modifier Bag",
             Scope::OnActions => "On Actions",
+            Scope::ScriptedEffect => "Scripted Effect",
+            Scope::ScriptedTrigger => "Scripted Trigger",
             Scope::Unknown => "Unknown",
         }
     }
@@ -97,6 +110,7 @@ impl Scope {
         match self {
             Scope::FocusTree | Scope::NationalFocus | Scope::Technologies => Scope::Country,
             Scope::OnActions => Scope::Global,
+            Scope::ScriptedEffect | Scope::ScriptedTrigger => Scope::Country,
             Scope::Unknown => Scope::Global,
             other => *other,
         }
@@ -123,7 +137,7 @@ impl Scope {
             return Some(Scope::Country);
         }
         match lower.as_str() {
-            // Global — explicitly “none”
+            // Global — explicitly "none"
             "on_startup" => Some(Scope::Global),
             // State-default
             "on_border_war_lost" => Some(Scope::State),
@@ -175,6 +189,10 @@ impl Scope {
             // structural, matched before the Country wildcard list.
             "technology_categories" => Scope::TechnologyCategories,
             "technology_folders" => Scope::TechnologyFolders,
+            // Scripted effect/trigger containers — matched before Country
+            // wildcard so they're recognized as structural scopes.
+            "scripted_effect" | "scripted_effects" => Scope::ScriptedEffect,
+            "scripted_trigger" | "scripted_triggers" => Scope::ScriptedTrigger,
             "country"
             | "ger"
             | "eng"
@@ -358,6 +376,15 @@ pub fn initial_scope_for_uri(uri: &str) -> Scope {
         // Starting from `OnActions` instead of `Global` removes the misleading
         // `Global > On Actions` prefix the editor was showing.
         Scope::OnActions
+    } else if uri.contains("/common/scripted_effects/") {
+        // Scripted effects are polymorphic — the top-level `my_effect = { }`
+        // body runs in the caller's scope. This structural scope skips HOM004
+        // at the top level (like ModifierBag) but still lets explicit
+        // iterators (every_state, every_country, etc.) push correct scopes.
+        Scope::ScriptedEffect
+    } else if uri.contains("/common/scripted_triggers/") {
+        // Same semantics as scripted_effects — polymorphic triggers.
+        Scope::ScriptedTrigger
     } else {
         Scope::Global
     }
@@ -374,6 +401,7 @@ impl ScopeStack {
         }
     }
 
+    #[allow(dead_code)]
     pub fn push(&mut self, scope: Scope) {
         self.nodes.push(ScopeNode::new(scope));
     }
@@ -406,6 +434,7 @@ impl ScopeStack {
     }
 
     /// Iterate over Scope values (not ScopeNode).
+    #[allow(dead_code)]
     pub fn iter(&self) -> impl Iterator<Item = &Scope> {
         self.nodes.iter().map(|n| &n.scope_type)
     }
@@ -576,13 +605,13 @@ impl ScopeStack {
     /// 2. V2 pushes_scope → explicit scope from trigger/effect data
     /// 3. Event target → scope saved by `save_event_target`
     /// 4. Chain target from current scope (e.g. State → owner → Country)
-    /// 5. Ace file `effect` → Country scope (ace modifiers are Country-scoped)
-    /// 6. Modifier application blocks (`modifiers`, `unit_modifiers`, etc.) → ModifierBag
+    /// 5. Ace file `effect` block → Country scope (ace modifiers are Country-scoped)
+    /// 6. Modifier application blocks (`modifiers`, `*_modifiers`) → ModifierBag
     /// 7. Legacy fallback:
     ///    a. Meta-scope (THIS/ROOT/PREV/FROM)
     ///    b. Achievement-aware resolution via `resolve_key_scope`
     ///    c. Character token lookup
-    ///    d. Numeric state IDs (outside random_list)
+    ///    d. Numeric state IDs (outside `random_list`)
     ///    e. State-targeted FROM override
     ///
     /// NOTE: Idea promotion (Unknown keys at depth 2-3 inside Idea scope)

@@ -3,6 +3,7 @@ pub mod backend;
 pub mod dependency_resolution;
 pub mod events;
 pub mod formatting;
+pub mod hover_scripted;
 pub mod ideas;
 pub mod loc_columns;
 pub mod loc_dups;

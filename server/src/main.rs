@@ -88,8 +88,17 @@ pub(crate) fn utf16_to_byte_offset(s: &str, utf16_offset: usize) -> usize {
 async fn main() {
     // CLI validation mode: cargo run --release -- <file_path>
     let args: Vec<String> = std::env::args().collect();
-    if args.len() > 1 && !args[1].starts_with("--") {
-        cli_validate(&args[1]).await;
+    let mut cli_path: Option<String> = None;
+    let mut cli_scope_validation = false;
+    for arg in &args[1..] {
+        if arg == "--scope-validation" {
+            cli_scope_validation = true;
+        } else if !arg.starts_with("--") {
+            cli_path = Some(arg.clone());
+        }
+    }
+    if let Some(path) = cli_path {
+        cli_validate(&path, cli_scope_validation).await;
         return;
     }
 
@@ -141,7 +150,7 @@ mod tests;
 pub(crate) mod test_support;
 
 /// CLI validation mode: parse and validate a file, print diagnostics.
-async fn cli_validate(path: &str) {
+async fn cli_validate(path: &str, scope_validation: bool) {
     let content = match std::fs::read_to_string(path) {
         Ok(c) => c,
         Err(e) => {
@@ -270,7 +279,7 @@ async fn cli_validate(path: &str) {
         ace_modifiers: &ace_modifiers,
         game_path: None,
         styling_enabled: false,
-        scope_validation_enabled: false,
+        scope_validation_enabled: scope_validation,
         workspace_roots: &[],
         unit_types: &unit_types,
         event_targets: &event_targets,

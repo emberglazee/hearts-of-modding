@@ -18,7 +18,15 @@ pub fn find_scope_context_at(
             break;
         }
     }
-    (context, scope_stack.iter().cloned().collect())
+    (
+        context,
+        scope_stack
+            .nodes()
+            .iter()
+            .filter(|n| !n.is_transparent)
+            .map(|n| n.scope_type)
+            .collect(),
+    )
 }
 
 fn find_scope_context_in_entry(
@@ -36,8 +44,19 @@ fn find_scope_context_in_entry(
                     // Unified resolution — the SAME path the validation walker
                     // uses (file-type initial scope + full ScopeCtx maps), so
                     // hover/completion never diverge from HOM004.
-                    let (s, _) = scope_stack.resolve_entry_scope(key, sctx);
-                    scope_stack.push(s);
+                    let (mut s, is_transparent) = scope_stack.resolve_entry_scope(key, sctx);
+                    if s == scope::Scope::Unknown {
+                        let nodes = scope_stack.nodes();
+                        if nodes.iter().any(|n| n.scope_type == scope::Scope::Idea)
+                            && (nodes.len() == 2 || nodes.len() == 3)
+                            && !crate::rules::visitor::is_idea_structure_key(key)
+                        {
+                            s = scope::Scope::Idea;
+                        }
+                    }
+                    if s != scope::Scope::Unknown || key.contains(':') || key.contains('.') {
+                        scope_stack.push_with(s, is_transparent);
+                    }
                 }
 
                 if let Some(inner) =

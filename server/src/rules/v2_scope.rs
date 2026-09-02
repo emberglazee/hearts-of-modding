@@ -121,7 +121,15 @@ impl ValidationRule for V2ScopeRule {
             // ModifierBag scope (unit_modifiers etc.) skips strict scope checks.
             // The engine reads these blocks as a flat modifier bag and routes
             // entries per-key — asking "what scope is it" is a category error.
-            if current_scope == Scope::ModifierBag {
+            if raw_scope == Scope::ModifierBag {
+                return;
+            }
+
+            // ScriptedEffect / ScriptedTrigger scopes are polymorphic —
+            // the top-level definition body runs in the caller's scope.
+            // Skip HOM004 at the structural level; explicit iterators
+            // (every_state, every_country, etc.) still push correct scopes.
+            if raw_scope == Scope::ScriptedEffect || raw_scope == Scope::ScriptedTrigger {
                 return;
             }
 
