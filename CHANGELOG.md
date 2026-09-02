@@ -14,6 +14,9 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
   - `globals` v17.11.0 -> v17.12.0
   - `typescript-eslint` v8.68.0 -> v8.69.0
+  - Individual `package-lock.json` bumps:
+    - `fast-uri` v3.1.5 -> v3.1.7 (addresses: [CVE-2026-75899](https://github.com/advisories/GHSA-fph4-wmhf-6fwf), [CVE-2026-75931](https://github.com/advisories/GHSA-5jgf-p345-68v8), [CVE-2026-75975](https://github.com/advisories/GHSA-f65p-4m7j-42xc), [CVE-2026-76172](https://github.com/advisories/GHSA-jqff-g426-hqxp); [PR #15](https://github.com/emberglazee/hearts-of-modding/pull/15))
+    - `qs` v6.15.3 -> 6.16.0 (addresses: [CVE-2026-82417](https://github.com/advisories/GHSA-4mjr-xmp4-gh2g), [CVE-2026-82562](https://github.com/advisories/GHSA-x5fp-wj9c-mxmx))
 
 ## [v0.29.0] - 2026-09-02
 
@@ -1074,7 +1077,7 @@ Because this version also scans the map files expect a major jump in extension m
 
 ### Changed
 
-- Bumped [vfast-uri](https://github.com/fastify/fast-uri) from v3.1.0 to v3.1.2 ([vsecurity update](https://github.com/fastify/fast-uri/releases/tag/v3.1.2)) | [PR #1](https://github.com/emberglazee/hearts-of-modding/pull/1)
+- Bumped [fast-uri](https://github.com/fastify/fast-uri) from v3.1.0 to v3.1.2 ([security update](https://github.com/fastify/fast-uri/releases/tag/v3.1.2)) | [PR #1](https://github.com/emberglazee/hearts-of-modding/pull/1)
 
 ## [v0.2.0] - 2026-05-10
 
