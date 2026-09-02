@@ -1,7 +1,7 @@
 import * as path from 'path'
 import * as fs from 'fs'
 import { createHash } from 'crypto'
-import { workspace, ExtensionContext, window, OutputChannel, commands, StatusBarAlignment, ConfigurationTarget, StatusBarItem, FileSystemWatcher } from 'vscode'
+import { workspace, ExtensionContext, window, OutputChannel, commands, StatusBarAlignment, ConfigurationTarget, StatusBarItem, FileSystemWatcher, env, Uri } from 'vscode'
 
 // The extension host runs on Node >=18 where `fetch` is a global, but the
 // project's @types/node (18.15) predates the global fetch typings — declare the
@@ -102,6 +102,28 @@ function logWarn(msg: string): void {
 /// download path and the startup banner must never disagree about it.
 function extensionVersion(context: ExtensionContext): string {
     return (context.extension?.packageJSON?.version as string) ?? '0.0.0'
+}
+
+const LAST_VERSION_KEY = 'lastVersion'
+const CHANGELOG_URL = 'https://github.com/emberglazee/hearts-of-modding/blob/main/CHANGELOG.md'
+
+async function checkForExtensionUpdate(context: ExtensionContext): Promise<void> {
+    const current = extensionVersion(context)
+    const previous = context.globalState.get<string>(LAST_VERSION_KEY)
+    if (previous && previous !== current) {
+        // Mention both versions as requested — the user lands on the latest
+        // minor's notes when they click through (GitHub anchors like #v0.29.0
+        // exist but the file header always shows the newest entry).
+        const action = await window.showInformationMessage(
+            `Hearts of Modding updated from v${previous} to v${current}! See what's new.`,
+            'View Changelog'
+        )
+        if (action === 'View Changelog') {
+            void env.openExternal(Uri.parse(CHANGELOG_URL))
+        }
+    }
+    // Persist for next launch; first-install stores without prompting.
+    await context.globalState.update(LAST_VERSION_KEY, current)
 }
 
 /// Where the running server binary came from.
@@ -383,6 +405,11 @@ async function downloadHomLspBinary(
 export async function activate(context: ExtensionContext) {
     outputChannel = window.createOutputChannel('Hearts of Modding')
     console.log('Hearts of Modding extension: activate called')
+
+    // Show a one-shot “updated from vX to vY” notice with a changelog link.
+    // Runs before anything else so it fires even if the LSP never starts, and
+    // persists lastVersion even on first install (no popup then).
+    await checkForExtensionUpdate(context).catch(() => undefined)
 
     const statusBarItem = window.createStatusBarItem(StatusBarAlignment.Right, 100)
     context.subscriptions.push(statusBarItem)

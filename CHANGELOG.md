@@ -2,6 +2,12 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
+## [v0.30.0] - 2026-09-03
+
+### ✨ Added
+
+- **Extension update notice.** Notifies when the extension gets updated, prompts to see the changelog.
+
 ## [v0.29.0] - 2026-09-02
 
 ### ✨ Added
