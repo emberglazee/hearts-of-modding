@@ -11841,7 +11841,7 @@
 		},
 		"all_of": {
 			"name": "all_of",
-			"description": "",
+			"description": "Loops over an array of values and checks the enclosed triggers for each value. Returns true only if the triggers return true for EVERY value (logical AND across the array).\n\nEach iteration stores the current value in a temp variable (default `v`) and the current index in another temp variable (default `i`), which can be referenced inside the triggers via `var:v` / `var:i` or the custom names given by `value`/`index`. Unlike `all_of_scopes`, this does NOT push a new scope — the scope is unchanged and only the variables differ per iteration.\n\nSupported scopes: any — Supported targets: any.",
 			"scopes": {
 				"usage": [
 					"Global"
@@ -11851,11 +11851,39 @@
 			"pushes_scope": null,
 			"stack_behaviour": "passthrough",
 			"block_type": "value_trigger",
-			"version_added": ""
+			"version_added": "",
+			"parameters": {
+				"array": {
+					"type": "array",
+					"value_type": "array",
+					"description": "The array of values to iterate over.",
+					"optional": false,
+					"repeated": false
+				},
+				"value": {
+					"type": "string",
+					"value_type": "variable",
+					"description": "Temp variable name for the current value. Optional — default `v`.",
+					"optional": true,
+					"repeated": false
+				},
+				"index": {
+					"type": "string",
+					"value_type": "variable",
+					"description": "Temp variable name for the current index. Optional — default `i`.",
+					"optional": true,
+					"repeated": false
+				}
+			},
+			"examples": [
+				"all_of = {\n\tarray = array_name\n\tvalue = v\n\tindex = i\n\tcheck_variable = { var = v value > 10 }\n}",
+				"all_of = {\n\tarray = my_values\n\tcheck_variable = { var = v value > 0 }\n}"
+			],
+			"notes": ""
 		},
 		"all_of_scopes": {
 			"name": "all_of_scopes",
-			"description": "",
+			"description": "Loops over an array of scopes and checks the enclosed triggers for each element. Returns true only if the triggers return true for EVERY element (logical AND across the array); false as soon as any element fails.\n\nEach array element is pushed as the current scope (THIS) for its iteration, so inner triggers are evaluated in that element's scope. The element type is dynamic — it depends on the array's contents (e.g. `global.majors` → Country scopes, `BRA.cores_at_game_start` → State scopes) — so for static validation the body is treated as `any`/`Global` (no HOM004 inside). Use `all_of` when iterating over plain values rather than scopes.\n\nSupported scopes: any — Supported targets: any.",
 			"scopes": {
 				"usage": [
 					"Global"
@@ -11865,7 +11893,29 @@
 			"pushes_scope": null,
 			"stack_behaviour": "passthrough",
 			"block_type": "value_trigger",
-			"version_added": ""
+			"version_added": "",
+			"parameters": {
+				"array": {
+					"type": "array",
+					"value_type": "array",
+					"description": "The array to iterate over. For *_of_scopes this is an array of scopes (e.g. `global.majors`, `BRA.cores_at_game_start`, `ROOT.owned_states_at_game_start`); for *_of it is an array of plain values.",
+					"optional": false,
+					"repeated": false
+				},
+				"tooltip": {
+					"type": "string",
+					"value_type": "string",
+					"description": "Optional custom tooltip title loc key. When defined, the trigger's tooltip uses this loc; `loc_NOT` is used when the block is inside a `NOT`. If omitted, the engine generates a default tooltip from the enclosed triggers.",
+					"optional": true,
+					"repeated": false
+				}
+			},
+			"examples": [
+				"all_of_scopes = {\n\tarray = BRA.cores_at_game_start\n\tis_controlled_by = ROOT\n}",
+				"all_of_scopes = {\n\tarray = global.majors\n\ttooltip = my_all_majors_tt\n\thas_opinion = { target = ROOT value > 75 }\n}",
+				"all_of_scopes = {\n\tarray = array_name\n\ttooltip = loc_key\n\t# trigger 1\n\t# trigger 2 ...\n}"
+			],
+			"notes": ""
 		},
 		"all_operative_leader": {
 			"name": "all_operative_leader",
@@ -11939,7 +11989,7 @@
 		},
 		"any_of": {
 			"name": "any_of",
-			"description": "",
+			"description": "Loops over an array of values and checks the enclosed triggers for each value. Returns true if the triggers return true for AT LEAST ONE value (logical OR across the array).\n\nEach iteration stores the current value in a temp variable (default `value`) and the current index in another temp variable (default `index`). Use custom names via `value`/`index` to avoid collisions. Like `all_of`, the scope is NOT pushed — only variables are set per iteration.\n\nSupported scopes: any — Supported targets: any.",
 			"scopes": {
 				"usage": [
 					"Global"
@@ -11949,11 +11999,39 @@
 			"pushes_scope": null,
 			"stack_behaviour": "passthrough",
 			"block_type": "value_trigger",
-			"version_added": ""
+			"version_added": "",
+			"parameters": {
+				"array": {
+					"type": "array",
+					"value_type": "array",
+					"description": "The array of values to iterate over.",
+					"optional": false,
+					"repeated": false
+				},
+				"value": {
+					"type": "string",
+					"value_type": "variable",
+					"description": "Temp variable name for the current value. Optional — default `value`.",
+					"optional": true,
+					"repeated": false
+				},
+				"index": {
+					"type": "string",
+					"value_type": "variable",
+					"description": "Temp variable name for the current index. Optional — default `index`.",
+					"optional": true,
+					"repeated": false
+				}
+			},
+			"examples": [
+				"any_of = {\n\tarray = array_name\n\tvalue = value\n\tindex = index\n\tcheck_variable = { var = value value > 10 }\n}",
+				"any_of = {\n\tarray = my_values\n\tcheck_variable = { var = value value = 1 }\n}"
+			],
+			"notes": ""
 		},
 		"any_of_scopes": {
 			"name": "any_of_scopes",
-			"description": "",
+			"description": "Loops over an array of scopes and checks the enclosed triggers for each element. Returns true if the triggers return true for AT LEAST ONE element (logical OR across the array); false if none match.\n\nEach array element is pushed as the current scope (THIS) for its iteration (dynamic — e.g. `global.majors` → Country, `BRA.cores_at_game_start` → State). Treated as `any`/`Global` for static validation since the element scope cannot be known statically. Use `any_of` when iterating over plain values.\n\nSupported scopes: any — Supported targets: any.",
 			"scopes": {
 				"usage": [
 					"Global"
@@ -11963,7 +12041,29 @@
 			"pushes_scope": null,
 			"stack_behaviour": "passthrough",
 			"block_type": "value_trigger",
-			"version_added": ""
+			"version_added": "",
+			"parameters": {
+				"array": {
+					"type": "array",
+					"value_type": "array",
+					"description": "The array to iterate over. For *_of_scopes this is an array of scopes (e.g. `global.majors`, `BRA.cores_at_game_start`, `ROOT.owned_states_at_game_start`); for *_of it is an array of plain values.",
+					"optional": false,
+					"repeated": false
+				},
+				"tooltip": {
+					"type": "string",
+					"value_type": "string",
+					"description": "Optional custom tooltip title loc key. When defined, the trigger's tooltip uses this loc; `loc_NOT` is used when the block is inside a `NOT`. If omitted, the engine generates a default tooltip from the enclosed triggers.",
+					"optional": true,
+					"repeated": false
+				}
+			},
+			"examples": [
+				"any_of_scopes = {\n\tarray = global.majors\n\thas_opinion = { target = ROOT value > 75 }\n}",
+				"any_of_scopes = {\n\tarray = ROOT.indochina_states\n\tNOT = { is_controlled_by = ROOT }\n}",
+				"any_of_scopes = {\n\tarray = array_name\n\ttooltip = loc_key\n\t# trigger 1\n\t# trigger 2 ...\n}"
+			],
+			"notes": ""
 		},
 		"any_operative_leader": {
 			"name": "any_operative_leader",
@@ -12546,7 +12646,7 @@
 		},
 		"is_in_array": {
 			"name": "is_in_array",
-			"description": "",
+			"description": "Checks whether a value is present in an array.\n\nSupports two syntaxes: the structured form `is_in_array = { array = <array> value = <value> }` and the shorthand `is_in_array = { <array> = <value> }` (e.g. `is_in_array = { my_array = 42 }`). Returns true if `value` (which may be a literal, variable, or scope like `THIS`) is contained in `array`.\n\nSupports `any` scope (usable anywhere) and no scope-target chaining. See also `any_of`/`all_of` (iterate triggers over every value) vs this trigger (single containment check).",
 			"scopes": {
 				"usage": [
 					"Global"
@@ -12556,11 +12656,33 @@
 			"pushes_scope": null,
 			"stack_behaviour": "passthrough",
 			"block_type": "value_trigger",
-			"version_added": ""
+			"version_added": "",
+			"parameters": {
+				"array": {
+					"type": "array",
+					"value_type": "array",
+					"description": "The array to search. Can be a global array (`RAJ.raj_releasables`), a temp array, or a variable pointing to an array.",
+					"optional": false,
+					"repeated": false
+				},
+				"value": {
+					"type": "variable / scope",
+					"value_type": "variable",
+					"description": "The value to look for. May be a literal (`42`), a temp variable (`var:v`), or a scope reference (`THIS`, `ROOT`, `PREV`). In shorthand form the array name itself is the key: `{ my_array = 42 }`.",
+					"optional": false,
+					"repeated": false
+				}
+			},
+			"examples": [
+				"is_in_array = {\n\tarray = array_name\n\tvalue = 42\n}",
+				"is_in_array = { my_array = 42 }",
+				"is_in_array = {\n\tarray = RAJ.raj_releasables\n\tvalue = THIS\n}"
+			],
+			"notes": ""
 		},
 		"is_in_state": {
 			"name": "is_in_state",
-			"description": "",
+			"description": "Checks whether a character is currently located in a specific state.\n\nValid for any character — generals (HQ location), admirals, scientists (facility / faction-program location), and operatives (mission location). Accepts a state ID (e.g. `64` for Brandenburg) or a dynamic state reference such as `ROOT.capital`, `PREV`, or a variable holding a state.\n\nSupported scopes: CHARACTER — Supported targets: THIS, ROOT, PREV, FROM, CAPITAL.",
 			"scopes": {
 				"usage": [
 					"Character"
@@ -12570,7 +12692,23 @@
 			"pushes_scope": null,
 			"stack_behaviour": "passthrough",
 			"block_type": "value_trigger",
-			"version_added": ""
+			"version_added": "",
+			"parameters": {
+				"state": {
+					"type": "state / scope",
+					"value_type": "state",
+					"description": "Target state — a state ID (`64`), or a dynamic scope (`ROOT.capital`, `PREV`, `THIS`) that resolves to a state.",
+					"optional": false,
+					"repeated": false
+				}
+			},
+			"examples": [
+				"any_unit_leader = {\n\tis_in_state = 64\n}",
+				"is_in_state = ROOT.capital",
+				"every_character = {\n\tlimit = { is_active_scientist = yes }\n\tis_in_state = ROOT.capital\n}",
+				"is_in_state = 224"
+			],
+			"notes": ""
 		},
 		"is_leader_visible": {
 			"name": "is_leader_visible",
