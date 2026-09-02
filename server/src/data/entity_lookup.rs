@@ -27,6 +27,7 @@ pub enum EntityKind {
     Achievement,
     AiArea,
     Variable,
+    Array,
     EventTarget,
     CustomModifier,
     MusicAsset,
@@ -85,6 +86,7 @@ impl EntityKind {
             EntityKind::AceModifier => SymbolKind::CLASS,
             EntityKind::Achievement => SymbolKind::EVENT,
             EntityKind::Variable => SymbolKind::VARIABLE,
+            EntityKind::Array => SymbolKind::VARIABLE,
             EntityKind::EventTarget => SymbolKind::VARIABLE,
             EntityKind::CustomModifier => SymbolKind::PROPERTY,
             EntityKind::MusicAsset | EntityKind::MusicStation | EntityKind::Song => {
@@ -208,6 +210,19 @@ impl<'a> EntityLookup<'a> {
                         kind: EntityKind::Variable,
                         range: var.range.clone(),
                         path: var.path.clone(),
+                    });
+                }
+            }
+        }
+
+        {
+            let map = &self.data.arrays;
+            if let Some(arrs) = map.get(key) {
+                for arr in arrs.iter() {
+                    results.push(EntityLocation {
+                        kind: EntityKind::Array,
+                        range: arr.range.clone(),
+                        path: arr.path.clone(),
                     });
                 }
             }
@@ -452,6 +467,27 @@ impl<'a> EntityLookup<'a> {
             }
         }
 
+        {
+            let index = &self.data.arrays_file_index;
+            if let Some(names) = index.get(&index_key(path)) {
+                for name in names.value() {
+                    if let Some(arrs) = self.data.arrays.get(&**name) {
+                        for arr in arrs.iter() {
+                            if path_matches(arr.path.as_ref(), path)
+                                && is_pos_in_range(pos, &arr.range)
+                            {
+                                return Some((
+                                    EntityKind::Array,
+                                    arr.range.clone(),
+                                    name.to_string(),
+                                ));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         None
     }
 
@@ -519,6 +555,18 @@ impl<'a> EntityLookup<'a> {
         collect_names!(OobFleet, oob_fleets);
         collect_names!(EventNamespace, event_namespaces);
         collect_names!(TechnologyTag, technology_tags);
+
+        // Variables and arrays — user-defined names from `set_variable` /
+        // `add_to_array`. They resolve as `Variable`/`Array` token types so
+        // `var = my_var` and `array = my_array` highlight distinct from
+        // plain strings. Builtins are added in `Backend::update_entity_token_context`
+        // so they also appear here without needing a scan.
+        for entry in self.data.variables.iter() {
+            names.insert(entry.key().to_string(), EntityKind::Variable);
+        }
+        for entry in self.data.arrays.iter() {
+            names.insert(entry.key().to_string(), EntityKind::Array);
+        }
 
         names
     }

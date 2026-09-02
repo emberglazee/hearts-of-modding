@@ -1077,7 +1077,28 @@ impl Backend {
     /// (entities added or removed by rescans wouldn't be highlighted).
     pub(crate) fn update_entity_token_context(&self) {
         let lookup = entity_lookup::EntityLookup::new(&self.scanner_data);
-        let names = lookup.entity_names();
+        let mut names = lookup.entity_names();
+        // Built-in dynamic variables/arrays — data-driven from
+        // `dynamic_variables_documentation.md` → `dynamic_variables` in
+        // `hoi4_data_v2.json`. Scanned `variables`/`arrays` only cover
+        // mod-defined names; without this `array = faction_members` and
+        // `var = stability` would stay String-coloured. User-defined names
+        // win (or_insert) so a mod can shadow a builtin if it really wants.
+        for (k, v) in crate::data::hoi4_data::get_dynamic_variables() {
+            let kind = if v.is_array {
+                entity_lookup::EntityKind::Array
+            } else {
+                entity_lookup::EntityKind::Variable
+            };
+            names.entry(k.clone()).or_insert(kind);
+            // Also the lowercase key is already `k`; the docs parser
+            // lowercases names, but HOI4 lookups are case-insensitive via
+            // `lookup_dynamic_variable` — the semantic pass is case-sensitive
+            // (`ctx.entity_names.get(s)` does an exact HashMap lookup), so we
+            // keep the stored case as-is and the builtin names are lowercase
+            // in docs. Most mods use lowercase anyway; a case-mismatch would
+            // just stay String which is an acceptable false-negative.
+        }
         self.entity_token_context.store(Arc::new(names));
         self.completion_entity_cache
             .store(Arc::new(self.build_completion_entity_cache()));

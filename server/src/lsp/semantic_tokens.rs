@@ -117,6 +117,10 @@ fn entity_kind_to_token_type(kind: EntityKind) -> u32 {
 
         // Variables
         EntityKind::Variable | EntityKind::EventTarget => TokenType::Variable as u32,
+        // Arrays — distinct from scalars: Type (teal) for `array = my_array`
+        // vs Variable (blue) for `var = my_var`. Builtins and user arrays
+        // both map here so `faction_members` etc. highlight correctly.
+        EntityKind::Array => TokenType::Type as u32,
 
         // Localization entries → String
         EntityKind::Localization => TokenType::String as u32,
@@ -129,6 +133,57 @@ fn entity_kind_to_token_type(kind: EntityKind) -> u32 {
         // Fallback for any unexpected kind
         _ => TokenType::Type as u32,
     }
+}
+
+/// Resolve an entity name to its `EntityKind`, handling scoped forms
+/// like `ROOT.faction_members` / `global.stability` and case-insensitive
+/// builtin matches. `entity_names` is keyed by base names (lowercase for
+/// builtins, original case for user-defined). HOI4 is case-insensitive
+/// and allows `scope.variable` prefixing, so we try:
+/// 1. exact match
+/// 2. base after last `.` (strips `ROOT.` / `THIS.` / `global.`)
+/// 3. lowercased base (for `Faction_Members` etc.)
+/// 4. lowercased full name (fallback)
+fn resolve_entity_kind<'a>(ctx: &'a SemanticTokenContext, name: &str) -> Option<&'a EntityKind> {
+    if let Some(k) = ctx.entity_names.get(name) {
+        return Some(k);
+    }
+    if let Some(dot) = name.rfind('.') {
+        let base = &name[dot + 1..];
+        if let Some(k) = ctx.entity_names.get(base) {
+            return Some(k);
+        }
+        let lower_base = base.to_ascii_lowercase();
+        if lower_base != base {
+            if let Some(k) = ctx.entity_names.get(&lower_base) {
+                return Some(k);
+            }
+        }
+        // Also try the base lowercased as `global.faction_members` etc.
+        // already handled, but full lowercased might match a builtin that
+        // was inserted lowercased while `name` had caps (`ROOT.FACTION_MEMBERS`).
+        let lower_full = name.to_ascii_lowercase();
+        if lower_full != name {
+            if let Some(k) = ctx.entity_names.get(&lower_full) {
+                return Some(k);
+            }
+            // And its base again
+            if let Some(dot2) = lower_full.rfind('.') {
+                let lb = &lower_full[dot2 + 1..];
+                if let Some(k) = ctx.entity_names.get(lb) {
+                    return Some(k);
+                }
+            }
+        }
+        return None;
+    }
+    let lower = name.to_ascii_lowercase();
+    if lower != name {
+        if let Some(k) = ctx.entity_names.get(&lower) {
+            return Some(k);
+        }
+    }
+    None
 }
 
 /// Precomputed line-start byte offsets + LineIndex for O(1) byte→UTF-16
@@ -726,7 +781,7 @@ fn push_entry_tokens(
                     length: key_len,
                     token_type: TokenType::Keyword as u32,
                 });
-            } else if let Some(kind) = ctx.entity_names.get(key_text) {
+            } else if let Some(kind) = resolve_entity_kind(ctx, key_text) {
                 tokens.push(RawToken {
                     line: key_line,
                     start: key_start,
@@ -902,7 +957,7 @@ fn push_value_tokens(
                 // localization-key fields like name/desc/text).
                 let is_loc = is_localization_value;
                 if !is_loc {
-                    if let Some(kind) = ctx.entity_names.get(s) {
+                    if let Some(kind) = resolve_entity_kind(ctx, s) {
                         tokens.push(RawToken {
                             line: val_line,
                             start: val_start,
@@ -2066,6 +2121,306 @@ add_political_power = 100
         assert!(
             !abs.iter().any(|&(l, _, _, tt)| l == 3 && tt == "keyword"),
             "filter value must not render as keyword inside search_filters: {:#?}",
+            abs
+        );
+    }
+
+    #[test]
+    fn test_builtin_variable_and_array_distinct_tokens() {
+        use crate::data::entity_lookup::EntityKind;
+        use crate::lsp::semantic_tokens::{SemanticTokenContext, get_semantic_tokens};
+        use crate::parser::parser::parse_script;
+        use std::collections::{HashMap, HashSet};
+        use std::sync::Arc;
+
+        // Script with builtin scalar `stability` (Variable → variable, 1)
+        // and builtin array `faction_members` (Array → type, 6) plus a typo
+        // that must stay String (2).
+        let content = r#"any_of_scopes = { array = faction_members value = { is_target = THIS } }
+check_variable = { var = stability value = 0.5 }
+any_of_scopes = { array = faction_memebers value = { is_target = THIS } }
+"#;
+        let (script, _) = parse_script(content);
+
+        // Entity names as Backend::update_entity_token_context builds them:
+        // user-defined empty + builtins from hoi4_data.
+        let mut entity_names: HashMap<String, EntityKind> = HashMap::new();
+        for (k, v) in crate::data::hoi4_data::get_dynamic_variables() {
+            let kind = if v.is_array {
+                EntityKind::Array
+            } else {
+                EntityKind::Variable
+            };
+            entity_names.entry(k.clone()).or_insert(kind);
+        }
+        let ctx = SemanticTokenContext::new(Arc::new(HashSet::new()), Arc::new(entity_names));
+        let result = get_semantic_tokens(&script, &ctx);
+        let SemanticTokensResult::Tokens(t) = result else {
+            panic!("expected tokens");
+        };
+        let legend = [
+            "keyword",
+            "variable",
+            "string",
+            "number",
+            "operator",
+            "comment",
+            "type",
+            "event",
+            "function",
+            "enum",
+            "enum_member",
+            "struct",
+            "class",
+            "property",
+            "escape",
+            "parameter",
+            "boolean",
+            "meta_scope",
+        ];
+        let mut abs: Vec<(u32, u32, u32, String, &str)> = Vec::new();
+        let (mut last_line, mut last_start) = (0u32, 0u32);
+        for st in &t.data {
+            let line = last_line + st.delta_line;
+            let start = if st.delta_line == 0 {
+                last_start + st.delta_start
+            } else {
+                st.delta_start
+            };
+            let line_str = content.lines().nth(line as usize).unwrap_or("");
+            let byte_start = crate::utf16_to_byte_offset(line_str, start as usize);
+            let text = line_str[byte_start..][..st.length as usize].to_string();
+            // But lines are byte-based? Simpler: just collect token type.
+            abs.push((
+                line,
+                start,
+                st.length,
+                text,
+                legend.get(st.token_type as usize).copied().unwrap_or("?"),
+            ));
+            last_line = line;
+            last_start = start;
+        }
+        // `faction_members` on line 0 should be type (Array), not string/variable
+        assert!(
+            abs.iter()
+                .any(|(l, _, _, txt, tt)| *l == 0 && txt == "faction_members" && *tt == "type"),
+            "builtin array `faction_members` must highlight as type (Array), got {:#?}",
+            abs
+        );
+        // `stability` on line 1 should be variable
+        assert!(
+            abs.iter()
+                .any(|(l, _, _, txt, tt)| *l == 1 && txt == "stability" && *tt == "variable"),
+            "builtin scalar `stability` must highlight as variable, got {:#?}",
+            abs
+        );
+        // Typo on line 2 must NOT be variable/type — stays string
+        assert!(
+            abs.iter()
+                .any(|(l, _, _, txt, tt)| *l == 2 && txt == "faction_memebers" && *tt == "string"),
+            "typo `faction_memebers` must stay string, got {:#?}",
+            abs
+        );
+        assert!(
+            !abs.iter().any(|(l, _, _, txt, tt)| *l == 2
+                && txt == "faction_memebers"
+                && (*tt == "variable" || *tt == "type")),
+            "typo must not highlight as variable/type {:#?}",
+            abs
+        );
+    }
+
+    #[test]
+    fn test_user_variable_vs_array_distinct_tokens() {
+        use crate::data::entity_lookup::EntityKind;
+        use crate::lsp::semantic_tokens::{SemanticTokenContext, get_semantic_tokens};
+        use crate::parser::parser::parse_script;
+        use std::collections::{HashMap, HashSet};
+        use std::sync::Arc;
+
+        let content = r#"set_variable = { var = my_var value = 1 }
+add_to_array = { array = my_array value = 2 }
+check_variable = { var = my_var value = 1 }
+any_of_scopes = { array = my_array value = { is_target = THIS } }
+"#;
+        let (script, _) = parse_script(content);
+        let mut entity_names: HashMap<String, EntityKind> = HashMap::new();
+        entity_names.insert("my_var".to_string(), EntityKind::Variable);
+        entity_names.insert("my_array".to_string(), EntityKind::Array);
+        // Also need builtins so they don't interfere
+        let ctx = SemanticTokenContext::new(Arc::new(HashSet::new()), Arc::new(entity_names));
+        let result = get_semantic_tokens(&script, &ctx);
+        let SemanticTokensResult::Tokens(t) = result else {
+            panic!("expected tokens");
+        };
+        let legend = [
+            "keyword",
+            "variable",
+            "string",
+            "number",
+            "operator",
+            "comment",
+            "type",
+            "event",
+            "function",
+            "enum",
+            "enum_member",
+            "struct",
+            "class",
+            "property",
+            "escape",
+            "parameter",
+            "boolean",
+            "meta_scope",
+        ];
+        let mut abs: Vec<(u32, String, &str)> = Vec::new();
+        let (mut last_line, mut last_start) = (0u32, 0u32);
+        for st in &t.data {
+            let line = last_line + st.delta_line;
+            let start = if st.delta_line == 0 {
+                last_start + st.delta_start
+            } else {
+                st.delta_start
+            };
+            let line_str = content.lines().nth(line as usize).unwrap_or("");
+            // Extract token text via byte offset (lines are ASCII here)
+            let byte_start = crate::utf16_to_byte_offset(line_str, start as usize);
+            let txt = line_str[byte_start..][..st.length as usize].to_string();
+            abs.push((
+                line,
+                txt,
+                legend.get(st.token_type as usize).copied().unwrap_or("?"),
+            ));
+            last_line = line;
+            last_start = start;
+        }
+        // `my_var` as value on line 2 (`check_variable`) should be variable
+        assert!(
+            abs.iter()
+                .any(|(l, txt, tt)| *l == 2 && txt == "my_var" && *tt == "variable"),
+            "user variable `my_var` must be variable, got {:#?}",
+            abs
+        );
+        // `my_array` on line 3 should be type (Array)
+        assert!(
+            abs.iter()
+                .any(|(l, txt, tt)| *l == 3 && txt == "my_array" && *tt == "type"),
+            "user array `my_array` must be type (Array), got {:#?}",
+            abs
+        );
+    }
+
+    #[test]
+    fn test_scoped_and_case_insensitive_builtin_highlighting() {
+        use crate::data::entity_lookup::EntityKind;
+        use crate::lsp::semantic_tokens::{SemanticTokenContext, get_semantic_tokens};
+        use crate::parser::parser::parse_script;
+        use std::collections::{HashMap, HashSet};
+        use std::sync::Arc;
+
+        let content = r#"any_of_scopes = { array = ROOT.faction_members value = { is_target = THIS } }
+any_of_scopes = { array = Faction_Members value = { is_target = THIS } }
+check_variable = { var = ROOT.stability value = 0.5 }
+check_variable = { var = STABILITY value = 0.5 }
+is_in_array = { array = global.countries value = 42 }
+is_in_array = { faction_members = THIS }
+"#;
+        let (script, _) = parse_script(content);
+        let mut entity_names: HashMap<String, EntityKind> = HashMap::new();
+        for (k, v) in crate::data::hoi4_data::get_dynamic_variables() {
+            let kind = if v.is_array {
+                EntityKind::Array
+            } else {
+                EntityKind::Variable
+            };
+            entity_names.entry(k.clone()).or_insert(kind);
+        }
+        let ctx = SemanticTokenContext::new(Arc::new(HashSet::new()), Arc::new(entity_names));
+        let result = get_semantic_tokens(&script, &ctx);
+        let SemanticTokensResult::Tokens(t) = result else {
+            panic!("expected tokens");
+        };
+        let legend = [
+            "keyword",
+            "variable",
+            "string",
+            "number",
+            "operator",
+            "comment",
+            "type",
+            "event",
+            "function",
+            "enum",
+            "enum_member",
+            "struct",
+            "class",
+            "property",
+            "escape",
+            "parameter",
+            "boolean",
+            "meta_scope",
+        ];
+        let mut abs: Vec<(u32, String, &str)> = Vec::new();
+        let (mut last_line, mut last_start) = (0u32, 0u32);
+        for st in &t.data {
+            let line = last_line + st.delta_line;
+            let start = if st.delta_line == 0 {
+                last_start + st.delta_start
+            } else {
+                st.delta_start
+            };
+            let line_str = content.lines().nth(line as usize).unwrap_or("");
+            let byte_start = crate::utf16_to_byte_offset(line_str, start as usize);
+            let txt = line_str[byte_start..][..st.length as usize].to_string();
+            abs.push((
+                line,
+                txt,
+                legend.get(st.token_type as usize).copied().unwrap_or("?"),
+            ));
+            last_line = line;
+            last_start = start;
+        }
+        // Line 0: ROOT.faction_members → type (Array) via base stripping
+        assert!(
+            abs.iter()
+                .any(|(l, txt, tt)| *l == 0 && txt == "ROOT.faction_members" && *tt == "type"),
+            "ROOT.faction_members must be type, got {:#?}",
+            abs
+        );
+        // Line 1: Faction_Members (caps) → type via case-insensitive
+        assert!(
+            abs.iter()
+                .any(|(l, txt, tt)| *l == 1 && txt == "Faction_Members" && *tt == "type"),
+            "Faction_Members caps must be type, got {:#?}",
+            abs
+        );
+        // Line 2: ROOT.stability → variable
+        assert!(
+            abs.iter()
+                .any(|(l, txt, tt)| *l == 2 && txt == "ROOT.stability" && *tt == "variable"),
+            "ROOT.stability must be variable, got {:#?}",
+            abs
+        );
+        // Line 3: STABILITY caps → variable
+        assert!(
+            abs.iter()
+                .any(|(l, txt, tt)| *l == 3 && txt == "STABILITY" && *tt == "variable"),
+            "STABILITY caps must be variable, got {:#?}",
+            abs
+        );
+        // Line 4: global.countries → type (Array, Global scope)
+        assert!(
+            abs.iter()
+                .any(|(l, txt, tt)| *l == 4 && txt == "global.countries" && *tt == "type"),
+            "global.countries must be type, got {:#?}",
+            abs
+        );
+        // Line 5: shorthand `faction_members = THIS` key should be type
+        assert!(
+            abs.iter()
+                .any(|(l, txt, tt)| *l == 5 && txt == "faction_members" && *tt == "type"),
+            "shorthand faction_members key must be type, got {:#?}",
             abs
         );
     }
