@@ -23,6 +23,22 @@
 		"configurationDefaults": {
 			"files.associations": {
 				"**/gfx/fonts/**/*.txt": "plaintext"
+			},
+			"[hoi4]": {
+				"editor.acceptSuggestionOnEnter": "off",
+				"editor.wordBasedSuggestions": "off"
+			},
+			"[hoi4-localisation]": {
+				"editor.acceptSuggestionOnEnter": "off",
+				"editor.wordBasedSuggestions": "off"
+			},
+			"[hoi4-csv]": {
+				"editor.acceptSuggestionOnEnter": "off",
+				"editor.wordBasedSuggestions": "off"
+			},
+			"[cwt]": {
+				"editor.acceptSuggestionOnEnter": "off",
+				"editor.wordBasedSuggestions": "off"
 			}
 		},
 		"configuration": {

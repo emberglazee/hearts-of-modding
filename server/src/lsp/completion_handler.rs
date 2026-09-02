@@ -561,6 +561,18 @@ fn scope_trigger_effect_items(current_scope: scope::Scope) -> std::sync::Arc<Vec
     }
 
     let mut items: Vec<CompletionItem> = Vec::new();
+    // Demote meta triggers whose label sorts before letters (e.g. `(building_count_trigger)`
+    // U+0028 '(' and `-0.01`-style word suggestions U+002D) so bare `key = {}` with
+    // empty prefix doesn't surface them as the top `Enter`-commit candidate.
+    // Normal scope items keep `1_` prefix (after `0_` param-items), demoted ones get `9_`.
+    let sort_text_for = |name: &str| -> String {
+        let first = name.chars().next().unwrap_or('a');
+        if first == '(' || first == '-' || first.is_ascii_digit() {
+            format!("9_{name}")
+        } else {
+            format!("1_{name}")
+        }
+    };
     for trigger in crate::TRIGGERS.values() {
         if !trigger.scopes.contains(&scope::Scope::Unknown)
             && !trigger.scopes.contains(&current_scope)
@@ -572,6 +584,7 @@ fn scope_trigger_effect_items(current_scope: scope::Scope) -> std::sync::Arc<Vec
             label: trigger.name.to_string(),
             kind: Some(CompletionItemKind::KEYWORD),
             detail: Some("Trigger".to_string()),
+            sort_text: Some(sort_text_for(&trigger.name)),
             documentation: Some(Documentation::MarkupContent(MarkupContent {
                 kind: MarkupKind::Markdown,
                 value: trigger.description.to_string(),
@@ -590,6 +603,7 @@ fn scope_trigger_effect_items(current_scope: scope::Scope) -> std::sync::Arc<Vec
             label: effect.name.to_string(),
             kind: Some(CompletionItemKind::FUNCTION),
             detail: Some("Effect".to_string()),
+            sort_text: Some(sort_text_for(&effect.name)),
             documentation: Some(Documentation::MarkupContent(MarkupContent {
                 kind: MarkupKind::Markdown,
                 value: effect.description.to_string(),

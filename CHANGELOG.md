@@ -14,6 +14,10 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Scope validation option in LSP's CLI.**
 
+### 🔧 Changed
+
+- **No longer accepting code suggestions on Enter.** Caused annoyances when expanding braces like this: `key = {<enter>}`. From here on out press Tab to accept code suggestions.
+
 ### 🩹 Fixed
 
 - **Made focus detection consistent across `focus`, `shared_focus`, and `joint_focus`.** `shared_focus` and `joint_focus` are now properly tokenized.

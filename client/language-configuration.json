@@ -14,5 +14,20 @@
 	"surroundingPairs": [
 		{ "open": "{", "close": "}" },
 		{ "open": "\"", "close": "\"" }
+	],
+	"indentationRules": {
+		"increaseIndentPattern": "^.*\\{[^}\"']*$",
+		"decreaseIndentPattern": "^\\s*\\}"
+	},
+	"onEnterRules": [
+		{
+			"beforeText": "^\\s*(?:.*=\\s*)?\\{\\s*$",
+			"afterText": "^\\s*\\}",
+			"action": { "indent": "indentOutdent" }
+		},
+		{
+			"beforeText": "^\\s*(?:.*=\\s*)?\\{\\s*$",
+			"action": { "indent": "indent" }
+		}
 	]
 }
