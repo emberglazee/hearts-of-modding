@@ -10,6 +10,14 @@ use std::path::{Path, PathBuf};
 pub struct Continent {
     #[allow(dead_code)]
     pub name: String,
+    /// 1-based position in the `continents = { ... }` list of the file that
+    /// defined this layer. The engine assigns continent IDs in definition
+    /// order (`map/continent.txt`: europe = 1, north_america = 2, …), so the
+    /// winning layer's index is the ID `map/definition.csv` must reference.
+    /// Verified against vanilla (Ontario province 373 → 2 = north_america)
+    /// plus the wiki ("IDs are assigned in the order defined").
+    #[allow(dead_code)]
+    pub index: u32,
     #[allow(dead_code)]
     pub path: InternedStr,
     #[allow(dead_code)]
@@ -30,13 +38,16 @@ pub(crate) fn extract_continents(
         if let ast::Entry::Assignment(ass) = entry {
             if ass.key_text(source) == "continents" {
                 if let ast::Value::Block(inner) = &ass.value.value {
+                    let mut index = 0u32;
                     for inner_entry in inner.iter() {
                         if let ast::Entry::Value(val) = inner_entry {
                             if let Some(name) = val.value.as_str(source) {
+                                index += 1;
                                 map.insert(
                                     name.to_string(),
                                     Continent {
                                         name: name.to_string(),
+                                        index,
                                         path: std::sync::Arc::from(path.to_string_lossy().as_ref()),
                                         range: ast::Range {
                                             start_line: val.range.start_line,
@@ -80,4 +91,27 @@ pub fn scan_continent_files(files: &[PathBuf]) -> HashMap<String, Continent> {
         }
     }
     map
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const MOCK_CONTINENT: &str = "continents = {\n\teurope\n\tnorth_america\n\tasia\n}\n";
+
+    #[test]
+    fn test_continent_index_is_one_based_file_order() {
+        let (script, _) = parser::parse_script(MOCK_CONTINENT);
+        let mut map = HashMap::new();
+        extract_continents(
+            &script.entries,
+            &script.source,
+            Path::new("map/continent.txt"),
+            &mut map,
+        );
+        assert_eq!(map.len(), 3);
+        assert_eq!(map["europe"].index, 1);
+        assert_eq!(map["north_america"].index, 2);
+        assert_eq!(map["asia"].index, 3);
+    }
 }

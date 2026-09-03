@@ -10,13 +10,15 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Documented focus `available` / `bypass` / `bypass_effect` / `ai_will_do` / `offset` / `allow_branch` parameters.**
 
-- **Map/state cross-file validation (HOM2002–HOM2009).** `history/states` files are now indexed (`State.provinces`), and state files plus `map/strategicregions` get WARNING-level checks: sea province in a state (lakes exempt), province claimed by two states or two strategic regions, member province with no `map/definition.csv` row, duplicate victory points, province buildings placed outside their state, coastal-only buildings (including the engine's own `only_costal` misspelling) on inland provinces, and empty states.
+- **Map/state cross-file validation (HOM2002–HOM2009).**
+
+- **Column-aware `map/definition.csv` completions.**
+
+- **Incremental `map/definition.csv` tracking.**
 
 ### 🩹 Fixed
 
-- **Removed range-less duplicate terrain check (HOM5005).** Editing `common/terrain/*.txt` re-emitted one `Province N uses unknown terrain` WARNING per map province, all stacked at line 1 column 1 with a hardcoded zero range — and the province data it read is never refreshed after `map/definition.csv` edits, so it could report values long gone from disk. The same condition is still covered exactly once, on the csv row itself with precise cell ranges, by the `definition.csv` validator.
-
-- **Incremental `map/definition.csv` tracking.** Province rows (`terrain`, coastal, type, RGB, continent) are now refreshed on every csv save, keystroke, and external change, and scrubbed on delete — `ctx.provinces` no longer freezes at server start, so hovers, goto, and terrain/state diagnostics follow live map edits. Parsing reuses the startup row parser (line-split, never `parse_script`), honors the `map/default.map` `definitions` filename, and deliberately excludes sibling csvs like adjacencies whose numeric first columns would index junk provinces. A csv edit also re-validates open `history/states` docs.
+- **Removed range-less duplicate terrain check (HOM5005).**
 
 ### 🧹 Internal
 

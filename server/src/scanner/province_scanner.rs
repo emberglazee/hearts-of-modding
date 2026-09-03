@@ -133,6 +133,31 @@ where
     provinces
 }
 
+/// IDs in `0..=max(defined)` with no `definition.csv` row, lowest first.
+///
+/// A gap shifts every later province's properties onto its successor (the
+/// engine indexes rows positionally), so offering exactly the gaps — and
+/// nothing when there are none — is the only ID completion this file needs.
+/// `limit` caps the list so a pathological file can't flood the client.
+pub(crate) fn missing_province_ids(
+    defined: &std::collections::HashSet<u32>,
+    limit: usize,
+) -> Vec<u32> {
+    let Some(&max) = defined.iter().max() else {
+        return Vec::new();
+    };
+    let mut missing = Vec::new();
+    for id in 0..=max {
+        if missing.len() >= limit {
+            break;
+        }
+        if !defined.contains(&id) {
+            missing.push(id);
+        }
+    }
+    missing
+}
+
 /// Parse definition.csv CONTENT into provinces. Shared by the startup scan
 /// (`scan_province_files`) and the incremental updater so an edit+save lands
 /// in exactly the state a fresh scan would produce. Line-based by design:
@@ -155,4 +180,37 @@ pub(crate) fn parse_definition_csv(
         }
     }
     provinces
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashSet;
+
+    fn set(ids: &[u32]) -> HashSet<u32> {
+        ids.iter().copied().collect()
+    }
+
+    #[test]
+    fn test_missing_ids_reports_gaps_lowest_first() {
+        assert_eq!(
+            missing_province_ids(&set(&[0, 1, 3, 4, 7]), 100),
+            vec![2, 5, 6]
+        );
+    }
+
+    #[test]
+    fn test_missing_ids_empty_when_contiguous_or_no_data() {
+        assert!(missing_province_ids(&set(&[0, 1, 2]), 100).is_empty());
+        assert!(missing_province_ids(&HashSet::new(), 100).is_empty());
+    }
+
+    #[test]
+    fn test_missing_ids_respects_limit() {
+        // Gaps 1..=100 inside {0, 101}: limit 5 yields exactly the first five.
+        assert_eq!(
+            missing_province_ids(&set(&[0, 101]), 5),
+            vec![1, 2, 3, 4, 5]
+        );
+    }
 }

@@ -98,6 +98,20 @@ impl Backend {
                 return Ok(None);
             }
         }
+        // Handle province definition files (map/definition.csv — the exact
+        // filename comes from default.map). Column-aware: every data cell
+        // gets only the values the engine accepts in that column, so the
+        // generic trigger/effect flood below never fires in this file.
+        {
+            let map_config = self.map_config_for_uri(&uri);
+            let is_definitions = uri
+                .replace('\\', "/")
+                .to_ascii_lowercase()
+                .ends_with(&map_config.definitions.to_ascii_lowercase());
+            if is_definitions {
+                return self.definition_csv_completions(&uri, position);
+            }
+        }
         // Handle adjacency rules file
         if uri.ends_with("adjacency_rules.txt") {
             if let Some((script, _)) = self.ensure_ast_cached(&uri) {
@@ -781,4 +795,200 @@ fn scope_trigger_effect_items(current_scope: scope::Scope) -> std::sync::Arc<Vec
     let cached = Arc::new(items);
     CACHE.lock().unwrap().insert(key, cached.clone());
     cached
+}
+
+impl Backend {
+    /// Column-aware completions for one `map/definition.csv` row
+    /// (`ID;R;G;B;Type;Coastal;Terrain;Continent`).
+    ///
+    /// Every data cell returns a (possibly empty) list so the generic script
+    /// completions never leak into this file. Comment lines and the optional
+    /// `Province;…` header yield `None`; colour channels and anything past
+    /// the 8th column yield an empty list — deliberately no suggestions.
+    pub(crate) fn definition_csv_completions(
+        &self,
+        uri: &str,
+        position: Position,
+    ) -> Result<Option<CompletionResponse>> {
+        let Some(content) = self.documents.get(uri) else {
+            return Ok(None);
+        };
+        let Some(line) = content.lines().nth(position.line as usize) else {
+            return Ok(None);
+        };
+        let byte_offset =
+            crate::utf16_to_byte_offset(line, position.character as usize).min(line.len());
+        let Some(col) = definition_csv_column(line, byte_offset) else {
+            return Ok(None);
+        };
+        let items: Vec<CompletionItem> = match col {
+            // Province ID: only the gaps in the defined sequence, if any.
+            0 => {
+                let defined: std::collections::HashSet<u32> = self
+                    .scanner_data
+                    .provinces
+                    .iter()
+                    .map(|e| *e.key())
+                    .collect();
+                crate::scanner::province_scanner::missing_province_ids(&defined, 100)
+                    .into_iter()
+                    .map(|id| CompletionItem {
+                        label: id.to_string(),
+                        kind: Some(CompletionItemKind::VALUE),
+                        detail: Some("Missing province ID".to_string()),
+                        sort_text: Some(format!("{id:08}")),
+                        ..Default::default()
+                    })
+                    .collect()
+            }
+            // R/G/B colour channels: free numeric values, nothing to suggest.
+            1..=3 => Vec::new(),
+            // Province type.
+            4 => ["land", "sea", "lake"]
+                .into_iter()
+                .map(|t| CompletionItem {
+                    label: t.to_string(),
+                    kind: Some(CompletionItemKind::ENUM),
+                    detail: Some("Province type".to_string()),
+                    ..Default::default()
+                })
+                .collect(),
+            // Coastal status.
+            5 => ["true", "false"]
+                .into_iter()
+                .map(|v| CompletionItem {
+                    label: v.to_string(),
+                    kind: Some(CompletionItemKind::ENUM),
+                    detail: Some("Coastal status".to_string()),
+                    ..Default::default()
+                })
+                .collect(),
+            // Terrain: every category scanned from `common/terrain/`.
+            6 => {
+                let mut names: Vec<(String, bool, bool)> = self
+                    .scanner_data
+                    .terrain_categories
+                    .iter()
+                    .map(|e| {
+                        let t = e.value();
+                        (t.name.clone(), t.is_naval, t.is_water)
+                    })
+                    .collect();
+                names.sort_by(|a, b| a.0.cmp(&b.0));
+                names
+                    .into_iter()
+                    .map(|(name, is_naval, is_water)| {
+                        let mut flags = Vec::new();
+                        if is_naval {
+                            flags.push("naval");
+                        }
+                        if is_water {
+                            flags.push("water");
+                        }
+                        let detail = if flags.is_empty() {
+                            "Terrain category".to_string()
+                        } else {
+                            format!("Terrain category ({})", flags.join(", "))
+                        };
+                        CompletionItem {
+                            label: name,
+                            kind: Some(CompletionItemKind::ENUM),
+                            detail: Some(detail),
+                            ..Default::default()
+                        }
+                    })
+                    .collect()
+            }
+            // Continent: 0 (water) plus each scanned continent by its
+            // 1-based definition order in `map/continent.txt`.
+            7 => {
+                let mut items = vec![CompletionItem {
+                    label: "0".to_string(),
+                    kind: Some(CompletionItemKind::ENUM),
+                    detail: Some("No continent — sea provinces (lakes may use 0)".to_string()),
+                    sort_text: Some("0000".to_string()),
+                    ..Default::default()
+                }];
+                let mut conts: Vec<(u32, String)> = self
+                    .scanner_data
+                    .continents
+                    .iter()
+                    .map(|e| {
+                        let c = e.value();
+                        (c.index, c.name.clone())
+                    })
+                    .collect();
+                conts.sort();
+                for (index, name) in conts {
+                    // The scanner numbers from 1; skip a 0 that would
+                    // collide with the water entry above.
+                    if index == 0 {
+                        continue;
+                    }
+                    items.push(CompletionItem {
+                        label: index.to_string(),
+                        kind: Some(CompletionItemKind::ENUM),
+                        detail: Some(format!("Continent: {name}")),
+                        sort_text: Some(format!("{index:04}")),
+                        ..Default::default()
+                    });
+                }
+                items
+            }
+            // Anything past the 8th column is malformed input, not a value.
+            _ => Vec::new(),
+        };
+        Ok(Some(CompletionResponse::Array(items)))
+    }
+}
+
+/// Zero-based `definition.csv` cell index under `byte_offset`, or `None`
+/// for comment lines and the optional header row (no completions there).
+pub(crate) fn definition_csv_column(line: &str, byte_offset: usize) -> Option<usize> {
+    if line.trim_start().starts_with('#') {
+        return None;
+    }
+    if line
+        .split(';')
+        .next()
+        .is_some_and(|first| first.trim().eq_ignore_ascii_case("province"))
+    {
+        return None;
+    }
+    Some(line[..byte_offset.min(line.len())].matches(';').count())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::definition_csv_column;
+
+    #[test]
+    fn test_definition_csv_column_counts_cells() {
+        let line = "12;34;56;78;land;false;forest;1";
+        // Cursor inside the ID cell.
+        assert_eq!(definition_csv_column(line, 0), Some(0));
+        assert_eq!(definition_csv_column(line, 2), Some(0));
+        // Just past the first ';' → R channel.
+        assert_eq!(definition_csv_column(line, 3), Some(1));
+        // Inside the terrain cell.
+        let terrain_at = line.find("forest").unwrap();
+        assert_eq!(definition_csv_column(line, terrain_at + 1), Some(6));
+        // Past the end → continent cell.
+        assert_eq!(definition_csv_column(line, line.len()), Some(7));
+        // Past the 8th column → still a (malformed) cell index.
+        assert_eq!(
+            definition_csv_column("1;2;3;4;land;false;forest;1;extra", line.len() + 6),
+            Some(8)
+        );
+    }
+
+    #[test]
+    fn test_definition_csv_column_skips_comment_and_header() {
+        assert_eq!(definition_csv_column("# a comment", 2), None);
+        assert_eq!(definition_csv_column("   # indented", 5), None);
+        assert_eq!(
+            definition_csv_column("Province;Red;Green;Blue;Type;Coastal;Terrain;Continent", 4),
+            None
+        );
+    }
 }
