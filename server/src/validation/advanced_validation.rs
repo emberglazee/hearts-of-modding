@@ -13,6 +13,31 @@ pub const CHARACTER_SKILL_EXCEEDS_MAX: &str = "HOM1004";
 pub const CHARACTER_SUBSKILL_EXCEEDS_PRACTICAL: &str = "HOM1006";
 pub const CHARACTER_NEGATIVE_SKILL: &str = "HOM1007";
 pub const VICTORY_POINT_PROVINCE_NOT_IN_STATE: &str = "HOM2001";
+// ── Map/state cross-validation (HOM2002–HOM2009) ──
+// Text-side port of the ANKA map editor's integrity checks that need no
+// bitmap access (ideas clean-roomed, no code copied — ANKA ships no LICENSE
+// file). All WARNING: none of these has yet been pinned against error.log,
+// and the LSP's standing rule is false negatives over false positives.
+/// Sea province listed in a state's `provinces`. Lakes are legal members
+/// (118 in vanilla, e.g. IJsselmeer in Friesland) — only `sea` fires.
+pub const SEA_PROVINCE_IN_STATE: &str = "HOM2002";
+/// One province claimed by two `history/states` files (engine assigns it to
+/// one; the other state's content silently breaks).
+pub const PROVINCE_IN_TWO_STATES: &str = "HOM2003";
+/// Same province listed twice in one state's `victory_points`.
+pub const DUPLICATE_VICTORY_POINT: &str = "HOM2004";
+/// Province-keyed building (`1234 = { naval_base = 1 }`) on a province that
+/// is not a member of the state being validated.
+pub const PROVINCE_BUILDING_OUTSIDE_STATE: &str = "HOM2005";
+/// One province claimed by two `map/strategicregions` files.
+pub const PROVINCE_IN_TWO_STRATEGIC_REGIONS: &str = "HOM2006";
+/// `only_costal`-gated building (vanilla spelling, `only_coastal` accepted
+/// too) placed on a non-coastal province.
+pub const COASTAL_BUILDING_ON_INLAND: &str = "HOM2007";
+/// State with an empty `provinces` list (usually a merge leftover).
+pub const EMPTY_STATE: &str = "HOM2008";
+/// State member province with no row in `map/definition.csv`.
+pub const STATE_UNKNOWN_PROVINCE: &str = "HOM2009";
 pub const ACHIEVEMENT_MISSING_LOCALIZATION: &str = "HOM3001";
 pub const ABILITY_MISSING_LOCALIZATION: &str = "HOM3002";
 pub const ABILITY_MISSING_REQUIRED_FIELD: &str = "HOM3003";

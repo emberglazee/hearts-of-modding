@@ -30,6 +30,7 @@ pub(crate) mod provinces;
 pub(crate) mod sounds;
 pub(crate) mod sprites;
 pub(crate) mod state_definitions;
+pub(crate) mod strategic_regions;
 pub(crate) mod terrains;
 pub(crate) mod traits;
 pub(crate) mod v2_scope;
@@ -84,6 +85,7 @@ pub(crate) struct ValidationContext<'a> {
         &'a DashMap<InternedStr, LayeredValue<crate::scanner::continent_scanner::Continent>>,
     pub(crate) strategic_regions:
         &'a DashMap<u32, crate::scanner::strategic_region_scanner::StrategicRegion>,
+    pub(crate) states: &'a DashMap<u32, crate::scanner::state_scanner::State>,
     pub(crate) terrain_categories:
         &'a DashMap<InternedStr, LayeredValue<crate::scanner::terrain_scanner::TerrainCategory>>,
     pub(crate) abilities:

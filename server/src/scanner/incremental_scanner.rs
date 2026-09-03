@@ -30,6 +30,7 @@ use crate::scanner::scripted_scanner;
 use crate::scanner::sound_scanner;
 use crate::scanner::sprite_scanner;
 use crate::scanner::state_category_scanner;
+use crate::scanner::state_scanner;
 use crate::scanner::strategic_region_scanner;
 use crate::scanner::tag_alias_scanner;
 use crate::scanner::technology_scanner;
@@ -298,6 +299,7 @@ impl_has_path!(variable_scanner::Variable);
 impl_has_path!(variable_scanner::Array);
 impl_has_path!(variable_scanner::EventTarget);
 impl_has_path!(strategic_region_scanner::StrategicRegion);
+impl_has_path!(state_scanner::State);
 impl_has_path!(country_scanner::CountryTag);
 impl_has_path!(oob_scanner::OobDivisionTemplate);
 impl_has_path!(oob_scanner::OobFleet);
@@ -433,6 +435,13 @@ fn classify_file(path: &str) -> Vec<FileCategory> {
         // same path or edits/renames/deletes never refresh the region index.
         if lower.contains("/map/strategicregions/") {
             cats.push(FileCategory::StrategicRegions);
+        }
+
+        // States — engine path is history/states (one file per state).
+        // Previously unwired: scanner_data.states was startup-only and rotted
+        // on every edit, which the Tier-0 map cross-checks (HOM2003) need live.
+        if lower.contains("/history/states/") {
+            cats.push(FileCategory::States);
         }
 
         // Balance of power
@@ -599,6 +608,15 @@ pub(crate) fn dependency_affected_prefixes(path: &str) -> Vec<&'static str> {
         // state_definitions.rs validates `resources` and `state_category`
         affected.push("/history/states/");
     }
+    if lower.contains("/history/states/") {
+        // Tier-0 map cross-checks (HOM2003 province-in-two-states) read
+        // sibling state files — a state edit must revalidate the rest.
+        affected.push("/history/states/");
+    }
+    if lower.contains("/map/strategicregions/") {
+        // HOM2006 province-in-two-regions reads sibling region files.
+        affected.push("/map/strategicregions/");
+    }
     if lower.contains("/common/technology_tags/") {
         // Tech definitions consume the declared categories/folders — an edit
         // to a tags file must re-validate consuming tech docs. Mirrors
@@ -674,6 +692,7 @@ enum FileCategory {
     Portraits,
     Sprites,
     StrategicRegions,
+    States,
     Terrains,
     BalanceOfPower,
     Oob,
@@ -762,6 +781,7 @@ fn update_from_ast(
         FileCategory::Portraits => update_portraits(scanner_data, path_str, script),
         FileCategory::Sprites => update_sprites(scanner_data, path_str, script),
         FileCategory::StrategicRegions => update_strategic_regions(scanner_data, path_str, script),
+        FileCategory::States => update_states(scanner_data, path_str, script),
         FileCategory::Terrains => update_terrains(scanner_data, path_str, script),
         FileCategory::BalanceOfPower => update_balance_of_powers(scanner_data, path_str, script),
         FileCategory::Oob => update_oobs(scanner_data, path_str, script),
@@ -1647,6 +1667,36 @@ fn update_strategic_regions(scanner_data: &ScannerData, path_str: &str, script: 
         .insert(index_key(path_str), file_keys);
 }
 
+fn update_states(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
+    let mut new_entries: HashMap<u32, state_scanner::State> = HashMap::new();
+    state_scanner::extract_state(
+        &script.entries,
+        &script.source,
+        Path::new(path_str),
+        &mut new_entries,
+    );
+
+    let p: &str = path_str;
+    if let Some((_, old_keys)) = scanner_data.states_file_index.remove(&index_key(p)) {
+        for key in old_keys {
+            scanner_data.states.remove(&key);
+        }
+    } else {
+        let p_owned = p.to_owned();
+        scanner_data
+            .states
+            .retain(|_, v| !path_matches(v.path(), &p_owned));
+    }
+    let mut file_keys = Vec::with_capacity(new_entries.len());
+    for (key, value) in new_entries {
+        scanner_data.states.insert(key, value);
+        file_keys.push(key);
+    }
+    scanner_data
+        .states_file_index
+        .insert(index_key(path_str), file_keys);
+}
+
 fn update_terrains(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
     terrain_scanner::extract_terrain_categories(
@@ -2094,6 +2144,19 @@ pub fn remove_path_from_scanner_data(scanner_data: &ScannerData, path_str: &str)
                         .retain(|_, v| !path_matches(v.path(), &p_owned));
                 }
             }
+            FileCategory::States => {
+                let p: &str = path_str;
+                if let Some((_, old_keys)) = scanner_data.states_file_index.remove(&index_key(p)) {
+                    for key in old_keys {
+                        scanner_data.states.remove(&key);
+                    }
+                } else {
+                    let p_owned = p.to_owned();
+                    scanner_data
+                        .states
+                        .retain(|_, v| !path_matches(v.path(), &p_owned));
+                }
+            }
             FileCategory::Terrains => {
                 remove_path!(
                     scanner_data.terrain_categories,
@@ -2210,6 +2273,50 @@ mod tests {
         assert!(
             !cats.contains(&FileCategory::StrategicRegions),
             "common/strategic_regions is not the engine path"
+        );
+    }
+
+    /// States were the unwired registry: `history/states/*.txt` never
+    /// classified, so `scanner_data.states` rotted after startup and the
+    /// Tier-0 two-states check (HOM2003) read stale data.
+    #[test]
+    fn test_classify_states_matches_engine_path() {
+        let realistic = "/home/embi/mod/history/states/38-Sweden.txt";
+        let cats = classify_file(realistic);
+        assert!(
+            cats.contains(&FileCategory::States),
+            "history/states/*.txt should classify as States"
+        );
+    }
+
+    /// Full add → edit → delete round-trip through the real incremental path:
+    /// save populates provinces, re-save refreshes them, delete scrubs the entry.
+    #[test]
+    fn test_states_add_edit_delete_round_trip() {
+        let data = ScannerData::new();
+        let path = "/mod/history/states/38-Sweden.txt";
+        update_scanner_data_for_file(&data, path, "state = { id = 38 provinces = { 130 131 } }");
+        // NOTE: read guards must drop before the next write — DashMap
+        // shard locks are not reentrant, holding `st` across an update
+        // deadlocks the same thread.
+        {
+            let st = data.states.get(&38).expect("state indexed after save");
+            assert_eq!(st.provinces, vec![130, 131]);
+        }
+
+        update_scanner_data_for_file(&data, path, "state = { id = 38 provinces = { 130 } }");
+        {
+            let st = data
+                .states
+                .get(&38)
+                .expect("state still indexed after edit");
+            assert_eq!(st.provinces, vec![130]);
+        }
+
+        remove_path_from_scanner_data(&data, path);
+        assert!(
+            data.states.get(&38).is_none(),
+            "state scrubbed after delete"
         );
     }
 

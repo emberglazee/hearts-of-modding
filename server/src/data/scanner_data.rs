@@ -145,6 +145,7 @@ pub(crate) struct ScannerData {
     pub technologies: DashMap<InternedStr, LayeredValue<technology_scanner::Technology>>,
     pub technology_tags: DashMap<InternedStr, LayeredValue<technology_tags_scanner::TechnologyTag>>,
     pub states: DashMap<u32, state_scanner::State>,
+    pub states_file_index: DashMap<InternedStr, Vec<u32>>,
     pub oob_division_templates:
         DashMap<InternedStr, LayeredValue<oob_scanner::OobDivisionTemplate>>,
     pub oob_fleets: DashMap<InternedStr, LayeredValue<oob_scanner::OobFleet>>,
@@ -282,6 +283,7 @@ impl ScannerData {
             technologies: DashMap::new(),
             technology_tags: DashMap::new(),
             states: DashMap::new(),
+            states_file_index: DashMap::new(),
             oob_division_templates: DashMap::new(),
             oob_fleets: DashMap::new(),
             event_namespaces: DashMap::new(),
@@ -423,6 +425,7 @@ impl ScannerData {
         rebuild_index!(self.sound_categories, self.sound_categories_file_index);
         rebuild_index!(self.country_tags, self.country_tags_file_index);
         rebuild_index_flat!(self.strategic_regions, self.strategic_regions_file_index);
+        rebuild_index_flat!(self.states, self.states_file_index);
         rebuild_index!(
             self.oob_division_templates,
             self.oob_division_templates_file_index

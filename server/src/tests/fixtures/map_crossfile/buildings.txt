@@ -1,0 +1,8 @@
+dockyard = {
+	max_level = 6
+	only_costal = yes
+}
+
+arms_factory = {
+	max_level = 3
+}

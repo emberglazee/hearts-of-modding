@@ -79,6 +79,7 @@ fn test_standard_scanner_maps_insertable() {
             LayeredValue::new(crate::scanner::building_scanner::Building {
                 name: "bld_1".to_string(),
                 max_level: Some(5),
+                coastal_only: false,
                 path: InternedStr::from(""),
                 range: dummy_range(),
             }),

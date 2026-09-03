@@ -1,0 +1,5 @@
+1;200;10;10;land;true;plains;1
+2;10;200;10;land;true;plains;1
+3;10;10;200;land;false;urban;1
+4;20;20;220;sea;false;ocean;0
+5;30;200;200;lake;false;ocean;0

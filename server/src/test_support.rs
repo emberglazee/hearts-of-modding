@@ -219,6 +219,55 @@ impl TestCtx {
         self
     }
 
+    /// Pre-populate provinces as `(id, type, coastal)` triples, e.g.
+    /// `(5, "sea", true)`. Terrain/continent default to plains/1 — the
+    /// Tier-0 map checks only read type + coastal.
+    pub(crate) fn with_provinces(self, provinces: &[(u32, &str, bool)]) -> Self {
+        for (id, prov_type, coastal) in provinces {
+            self.data.provinces.insert(
+                *id,
+                crate::scanner::province_scanner::Province {
+                    id: *id,
+                    rgb: (0, 0, 0),
+                    terrain: "plains".to_string(),
+                    is_coastal: *coastal,
+                    prov_type: (*prov_type).to_string(),
+                    continent: 1,
+                    path: InternedStr::from("map/definition.csv"),
+                    range: ast::Range {
+                        start_line: 0,
+                        start_col: 0,
+                        end_line: 0,
+                        end_col: 0,
+                    },
+                },
+            );
+        }
+        self
+    }
+
+    /// Pre-populate buildings as `(name, max_level, coastal_only)` triples.
+    pub(crate) fn with_buildings(self, buildings: &[(&str, Option<i32>, bool)]) -> Self {
+        for (name, max_level, coastal_only) in buildings {
+            self.data.buildings.insert(
+                InternedStr::from(*name),
+                LayeredValue::new(crate::scanner::building_scanner::Building {
+                    name: (*name).to_string(),
+                    max_level: *max_level,
+                    coastal_only: *coastal_only,
+                    path: InternedStr::from("common/buildings/test.txt"),
+                    range: ast::Range {
+                        start_line: 0,
+                        start_col: 0,
+                        end_line: 0,
+                        end_col: 0,
+                    },
+                }),
+            );
+        }
+        self
+    }
+
     pub(crate) fn with_game_path(mut self, game_path: Option<&str>) -> Self {
         self.game_path = game_path.map(|s| s.to_string());
         self
@@ -290,6 +339,7 @@ impl TestCtx {
             state_categories: &d.state_categories,
             continents: &d.continents,
             strategic_regions: &d.strategic_regions,
+            states: &d.states,
             terrain_categories: &d.terrain_categories,
             abilities: &d.abilities,
             ace_modifiers: &d.ace_modifiers,
@@ -372,6 +422,7 @@ impl<'a> TestCtxRef<'a> {
             state_categories: &d.state_categories,
             continents: &d.continents,
             strategic_regions: &d.strategic_regions,
+            states: &d.states,
             terrain_categories: &d.terrain_categories,
             abilities: &d.abilities,
             ace_modifiers: &d.ace_modifiers,

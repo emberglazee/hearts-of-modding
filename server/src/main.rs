@@ -219,6 +219,7 @@ async fn cli_validate(path: &str, scope_validation: bool) {
     > = DashMap::new();
     let strategic_regions: DashMap<u32, crate::scanner::strategic_region_scanner::StrategicRegion> =
         DashMap::new();
+    let states: DashMap<u32, crate::scanner::state_scanner::State> = DashMap::new();
     let terrain_categories: DashMap<
         InternedStr,
         LayeredValue<crate::scanner::terrain_scanner::TerrainCategory>,
@@ -274,6 +275,7 @@ async fn cli_validate(path: &str, scope_validation: bool) {
         state_categories: &state_categories,
         continents: &continents,
         strategic_regions: &strategic_regions,
+        states: &states,
         terrain_categories: &terrain_categories,
         abilities: &abilities,
         ace_modifiers: &ace_modifiers,

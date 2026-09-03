@@ -971,6 +971,7 @@ mod tests {
             State {
                 id: 422,
                 name: "STATE_422".to_string(),
+                provinces: vec![10928, 10435],
                 path: path.clone(),
                 range: range(0),
             },

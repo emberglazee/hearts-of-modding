@@ -9,6 +9,7 @@ pub mod loc_columns;
 pub mod loc_dups;
 pub mod loc_empty;
 pub mod loc_version;
+pub mod map_crossfile;
 pub mod on_actions;
 pub mod oob_regiments;
 pub mod parser_skip;

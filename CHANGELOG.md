@@ -10,6 +10,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Documented focus `available` / `bypass` / `bypass_effect` / `ai_will_do` / `offset` / `allow_branch` parameters.**
 
+- **Map/state cross-file validation (HOM2002–HOM2009).** `history/states` files are now indexed (`State.provinces`), and state files plus `map/strategicregions` get WARNING-level checks: sea province in a state (lakes exempt), province claimed by two states or two strategic regions, member province with no `map/definition.csv` row, duplicate victory points, province buildings placed outside their state, coastal-only buildings (including the engine's own `only_costal` misspelling) on inland provinces, and empty states — zero hits on all 1,081 vanilla states and 304 vanilla strategic regions (measured locally; the committed test replays the same checks on vendored fixtures so CI stays hermetic).
+
 ### 🧹 Internal
 
 - **Renamed `hoi4_data_v2.json` to `hoi4_data.json`.**
