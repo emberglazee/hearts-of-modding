@@ -1080,7 +1080,7 @@ impl Backend {
         let mut names = lookup.entity_names();
         // Built-in dynamic variables/arrays — data-driven from
         // `dynamic_variables_documentation.md` → `dynamic_variables` in
-        // `hoi4_data_v2.json`. Scanned `variables`/`arrays` only cover
+        // `hoi4_data.json`. Scanned `variables`/`arrays` only cover
         // mod-defined names; without this `array = faction_members` and
         // `var = stability` would stay String-coloured. User-defined names
         // win (or_insert) so a mod can shadow a builtin if it really wants.

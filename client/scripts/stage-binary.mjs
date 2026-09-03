@@ -1,7 +1,7 @@
 // Stage the natively-built hom-lsp binary into client/server-bin using the
 // unified `hom-lsp-<os>-<arch>[.exe]` naming. Used by `npm run package` for
 // local VSIX builds; CI does its own per-target staging in the workflow.
-// NOTE: server/assets is NOT copied — hoi4_data_v2.json is embedded into the
+// NOTE: server/assets is NOT copied — hoi4_data.json is embedded into the
 // binary at compile time via include_str! (see server/build.rs), so a
 // server-bin/assets copy would be dead weight in the VSIX.
 import { existsSync, mkdirSync, copyFileSync, chmodSync, rmSync } from 'fs';

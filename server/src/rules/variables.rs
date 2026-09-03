@@ -253,7 +253,7 @@ impl VariableRule {
         // (e.g. `faction_members`, `allies`, `owned_states`) and would otherwise
         // trigger a spurious HOM9001. Lookup is via `hoi4_data` (data-driven
         // from `dynamic_variables_documentation.md` → `dynamic_variables` in
-        // `hoi4_data_v2.json`), stripping scope prefixes (`ROOT.faction_members`
+        // `hoi4_data.json`), stripping scope prefixes (`ROOT.faction_members`
         // → `faction_members`) and case-insensitive.
         if hoi4_data::is_builtin_array(name) {
             return true;

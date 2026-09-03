@@ -200,7 +200,7 @@ pub struct ScopeInfo {
 ///
 /// Sourced from `documentation/dynamic_variables_documentation.md` via
 /// `server/scripts/parse_dynamic_variables.py` → `dynamic_variables` in
-/// `hoi4_data_v2.json`. `is_array` is true when the doc description
+/// `hoi4_data.json`. `is_array` is true when the doc description
 /// contains "array" (e.g. `faction_members`, `allies`, `owned_states`);
 /// scalars like `stability` are `is_array: false`.
 #[derive(Debug, Clone, Deserialize)]
@@ -235,13 +235,13 @@ pub struct AllDataV2 {
 }
 
 static DATA: Lazy<AllDataV2> = Lazy::new(|| {
-    // build.rs minifies assets/hoi4_data_v2.json into OUT_DIR at compile
+    // build.rs minifies assets/hoi4_data.json into OUT_DIR at compile
     // time; embed the minified copy so shipped binaries don't carry the
     // pretty-print whitespace (~144KB). Content is identical after the
     // serde_json round-trip.
-    let bytes = include_str!(concat!(env!("OUT_DIR"), "/hoi4_data_v2.min.json"));
+    let bytes = include_str!(concat!(env!("OUT_DIR"), "/hoi4_data.min.json"));
     serde_json::from_str(bytes)
-        .expect("Failed to parse hoi4_data_v2.json — file is malformed or missing")
+        .expect("Failed to parse hoi4_data.json — file is malformed or missing")
 });
 
 /// Get a reference to the static triggers map
@@ -765,7 +765,7 @@ mod tests {
         }
         assert!(
             problems.is_empty(),
-            "malformed parameters in hoi4_data_v2.json (re-run \
+            "malformed parameters in hoi4_data.json (re-run \
              server/scripts/parse_wiki_parameters.py):\n{}",
             problems.join("\n")
         );

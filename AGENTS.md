@@ -51,7 +51,7 @@ server/src/
 ├── test_support.rs       # TestCtx / TestCtxRef builders for ValidationContext
 ├── data/                 # Static databases & shared data
 │   ├── mod.rs
-│   ├── hoi4_data.rs      # Static DB — triggers/effects/scopes/modifiers/loc_commands (hoi4_data_v2.json, minified at build.rs)
+│   ├── hoi4_data.rs      # Static DB — triggers/effects/scopes/modifiers/loc_commands (hoi4_data.json, minified at build.rs)
 │   ├── focus_filters.rs  # Focus search-filter definitions
 │   ├── scanner_data.rs   # ScannerData struct (40+ DashMap/DashSet/ArcSwap fields + event/tech dep graphs)
 │   ├── entity_lookup.rs  # Adapter over &ScannerData — find_definition, entity_at, etc.
@@ -145,7 +145,7 @@ server/src/
 **Key data flow:**
 
 1. `main.rs` → `Backend::new()` → `config.rs` + `scanner_data.rs` + `compute_pool` (bounded Rayon pool) + `token_keywords`/`entity_token_context` (ArcSwap)
-2. `scanner::orchestrator` runs ~40 parallel scanners, populates `ScannerData` DashMaps (vanilla → mod → submod layers via `LayeredValue`); `data/hoi4_data_v2.json` is embedded at compile time via `include_str!` (minified in `build.rs` into `OUT_DIR`)
+2. `scanner::orchestrator` runs ~40 parallel scanners, populates `ScannerData` DashMaps (vanilla → mod → submod layers via `LayeredValue`); `data/hoi4_data.json` is embedded at compile time via `include_str!` (minified in `build.rs` into `OUT_DIR`)
 3. `lsp::handler` receives LSP requests, uses debounced AST cache (`document_asts`) with per-document `CancellationToken` to cancel stale parses
 4. Semantic processing uses centralized `walk_script()` from `rules/visitor.rs` — single AST traversal calls both `AstVisitor` hooks + `ValidationRule::check_assignment`, replacing per-rule recursive walks. Heavy validation is dispatched to `compute_pool` via `ValidationCtx` (`Arc`-wrapped shared fields, `ArcSwap` roots) so the tokio event loop stays free
 5. `ValidationRule::check_block` now handles only top-level cross-entry analysis (no recursion)
@@ -171,7 +171,7 @@ server/src/
 - **TextMate grammar** (`client/syntaxes/hoi4.tmLanguage.json`) is deliberately **minimal** — only structural patterns (comments, strings, numbers, operators, punctuation, GUI keywords). All effect/trigger/modifier/block name highlighting comes from semantic tokens. Do not add keyword lists to TextMate.
 - **YAML files** can be parsed by the HOI4 script parser (similar syntax). Handle indentation separately — force `script_opt = None` for YAML in bulk fixes.
 - **Distribution** ships binaries as `hom-lsp-<os>-<arch>[.exe]` (e.g. `hom-lsp-linux-amd64`, `hom-lsp-win-arm64.exe`). CI builds 6 combos natively — linux (x64 `ubuntu-latest`, arm64 `ubuntu-24.04-arm`), windows (x64 `windows-latest`, arm64 `windows-11-arm`), macos (arm64 `macos-latest`) — with macOS amd64 cross-built from the arm64 macos runner (GitHub's Intel mac runners are scarce). The VSIX bundles the 3 primary combos (`hom-lsp-linux-amd64`, `hom-lsp-win-amd64.exe`, `hom-lsp-macos-arm64`) in `client/server-bin/`, and ALL 6 are published as standalone release assets alongside the VSIX. The client resolves the binary by `(platform, arch)` → bundled if present, else downloads the matching asset from the GitHub release (pinned to `v<installed version>`, falling back to `latest`) into `globalStorageUri/hom-lsp/<version>/`. `client/scripts/stage-binary.mjs` stages the native build for local `npm run package`.
-- **Packaging** does NOT copy `server/assets/` into `client/server-bin/` — `hoi4_data_v2.json` is embedded into the binary at compile time (`include_str!` via `server/build.rs`, which minifies it into `OUT_DIR` first). A `server-bin/assets` copy would be dead weight in the VSIX; `client/scripts/stage-binary.mjs` removes any stale copy from older packaging runs.
+- **Packaging** does NOT copy `server/assets/` into `client/server-bin/` — `hoi4_data.json` is embedded into the binary at compile time (`include_str!` via `server/build.rs`, which minifies it into `OUT_DIR` first). A `server-bin/assets` copy would be dead weight in the VSIX; `client/scripts/stage-binary.mjs` removes any stale copy from older packaging runs.
 - **Localization:** Escaped quotes (`\"`) must be handled to avoid truncation. Version numbers (`:0`) are cosmetic only. Newline (`\n`) and escaped double-quote highlighting is now supported. BOM validation (HOM6005) checks that `.yml` files carry exactly one UTF-8 BOM — verified against vanilla (2073/2073 carry exactly one).
 - **Workspace-wide rename** searches both open docs AND unopened workspace files. Unopened files are read from disk and parsed second. Only mod dir (`.`), not game path.
 - **Validation system:** Uses a `ValidationRule` trait with `check_assignment` / `check_block` hooks, plus a newer `AstVisitor` trait with `enter_assignment` / `exit_assignment` / `after_walk` hooks. Both share one centralized AST traversal via `rules::visitor::walk_script()`. Rules are registered in `Backend::check_semantic` and receive a `ValidationContext` with all scanner data refs. Diagnostic codes prefixed HOM (HOM001–HOM9001) defined in `validation/advanced_validation.rs`. **Rules must emit diagnostic ranges via `ctx.range(&ast::Range)`** — the `ValidationContext` carries a `RangeMapper` (`range_mapper`) so squiggle columns are UTF-16-correct; do not call `ast_range_to_lsp` from rules.
@@ -195,7 +195,7 @@ server/src/
 - **Technology scanner:** `common/technology_tags/*.txt` (categories + folders) and `common/technologies/*.txt` (technologies + doctrines) are scanned into `technologies`/`technology_tags` + `tech_dep_graph`. Initial scopes are `TechnologyTags` / `Technologies` (not Global), so trigger/effect completions are correctly filtered at the file top-level.
 - **Reserved country tags (`HOM4005`):** `RED`/`NOT`/`AND`/`TAG` etc. are valid country tags when defined in `common/country_tags/*.txt` — the scanner now indexes them (previously dropped at scan time), `invalid_loc_scope` and `Scope::from_str` recognise them when defined, and `HOM4005` warns at the definition site in `common/country_tags` / `history/countries` instead of silently hiding the tag. Fixes false-positive `[RED.GetFlag]` in `mcc2e.d` style loc.
 - **Unit type LSP integration:** `common/units/*.txt` sub-unit definitions resolve everywhere — go-to-definition, hover (group, combat width, support flag, categories), completion, workspace symbols, semantic highlighting. OOB template validation (HOM3005/HOM3007) already consumed the scanner; the editor surfaces now match.
-- **V2 scope validation (`rules/v2_scope.rs`):** structured `hoi4_data_v2.json` per-entity `parameters` (additive, not filtering — 34% of vanilla child keys are undocumented) drives `HOM004` scope-mismatch checks. `ModifierBag` scopes skip checks. Must remain additive or the suppression hides real errors.
+- **V2 scope validation (`rules/v2_scope.rs`):** structured `hoi4_data.json` per-entity `parameters` (additive, not filtering — 34% of vanilla child keys are undocumented) drives `HOM004` scope-mismatch checks. `ModifierBag` scopes skip checks. Must remain additive or the suppression hides real errors.
 
 ## Architecture Decisions
 

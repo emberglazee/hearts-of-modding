@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Mine structured-block parameter documentation (sub-keys) from the ho4i-wiki
-docs and write them into assets/hoi4_data_v2.json.
+docs and write them into assets/hoi4_data.json.
 
 Structured triggers/effects like `add_timed_idea = { idea = X days = 180 }`
 have a fixed set of sub-keys they accept. Those sub-keys are NOT generic
@@ -54,7 +54,7 @@ DRY_RUN = bool(os.environ.get("DRY_RUN"))
 REPO_ROOT = os.path.dirname(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 )
-V2_JSON = os.path.join(REPO_ROOT, "server", "assets", "hoi4_data_v2.json")
+V2_JSON = os.path.join(REPO_ROOT, "server", "assets", "hoi4_data.json")
 EFFECTS_DOC = os.path.join(REPO_ROOT, "hoi4-wiki", "documentation", "effects.md")
 TRIGGERS_DOC = os.path.join(REPO_ROOT, "hoi4-wiki", "documentation", "triggers.md")
 

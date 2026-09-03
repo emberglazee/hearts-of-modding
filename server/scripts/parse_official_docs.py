@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Parse Paradox's official triggers_documentation.md, effects_documentation.md,
-and modifiers_documentation.md to rewrite scope registrations in hoi4_data_v2.json.
+and modifiers_documentation.md to rewrite scope registrations in hoi4_data.json.
 
 WHITELIST APPROACH: if an entity isn't in the official docs, DELETE it.
 """
@@ -36,7 +36,7 @@ EFFECTS_DOC = os.path.join(DOC_DIR, "effects_documentation.md")
 MODIFIERS_DOC = os.path.join(DOC_DIR, "modifiers_documentation.md")
 V2_JSON = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "assets/hoi4_data_v2.json",
+    "assets/hoi4_data.json",
 )
 
 

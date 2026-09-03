@@ -12,6 +12,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### 🧹 Internal
 
+- **Renamed `hoi4_data_v2.json` to `hoi4_data.json`.**
+
 - **Bumped extension dev dependencies:**
 
   - `globals` v17.11.0 -> v17.12.0
@@ -64,7 +66,7 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Scope stack integration for `common/on_actions/*.txt`.**
 
-- **History country keys `capital` and `oob` are now documented in `hoi4_data_v2.json`.**
+- **History country keys `capital` and `oob` are now documented in `hoi4_data.json`.**
 
 ### 🩹 Fixed
 

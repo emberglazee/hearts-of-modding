@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Fix scope registrations for flagged entities in hoi4_data_v2.json.
+Fix scope registrations for flagged entities in hoi4_data.json.
 
 Two categories:
   1) "not found in vanilla analysis" (712) - entities the parser missed 
@@ -16,7 +16,7 @@ import json
 import sys
 from copy import deepcopy
 
-JSON_PATH = "server/assets/hoi4_data_v2.json"
+JSON_PATH = "server/assets/hoi4_data.json"
 FLAGGED_PATH = "server/scripts/flagged_ambiguous_entities.json"
 
 ALL_SCOPES = ['Global', 'Country', 'State', 'Character', 'Unit']

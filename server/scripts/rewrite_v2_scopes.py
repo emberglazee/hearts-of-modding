@@ -2,7 +2,7 @@
 """
 V2 JSON Scope Rewriter
 
-Uses empirical vanilla analysis data to rewrite scopes in hoi4_data_v2.json.
+Uses empirical vanilla analysis data to rewrite scopes in hoi4_data.json.
 Strategy:
   1. For each entity in V2 JSON, check vanilla analysis data
   2. If >90% usage in one scope → assign that scope confidently
@@ -15,8 +15,8 @@ import json
 import os
 
 VANILLA_ANALYSIS_PATH = "server/scripts/vanilla_scope_analysis.json"
-V2_JSON_PATH = "server/assets/hoi4_data_v2.json"
-OUTPUT_PATH = "server/assets/hoi4_data_v2.json"
+V2_JSON_PATH = "server/assets/hoi4_data.json"
+OUTPUT_PATH = "server/assets/hoi4_data.json"
 FLAGGED_PATH = "server/scripts/flagged_ambiguous_entities.json"
 
 # Scopes that are basically the same for effective_scope purposes

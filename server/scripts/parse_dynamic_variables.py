@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Parse dynamic_variables_documentation.md into hoi4_data_v2.json.
+Parse dynamic_variables_documentation.md into hoi4_data.json.
 
 Reads the official Paradox docs at:
   ~/.steam/steam/steamapps/common/Hearts of Iron IV/documentation/dynamic_variables_documentation.md
 
-and merges a new top-level key `dynamic_variables` into server/assets/hoi4_data_v2.json.
+and merges a new top-level key `dynamic_variables` into server/assets/hoi4_data.json.
 
 Each entry:
   "faction_members": {
@@ -20,7 +20,7 @@ Scopes are mapped from the `## Dynamic variables for scope X` headings.
 otherwise the entry is a scalar dynamic variable.
 
 The script is idempotent and preserves tab indentation (\\t) to match the
-hand-maintained hoi4_data_v2.json style. Run with DRY_RUN=1 to preview.
+hand-maintained hoi4_data.json style. Run with DRY_RUN=1 to preview.
 
 Usage:
   python3 server/scripts/parse_dynamic_variables.py
@@ -38,7 +38,7 @@ DOC_PATH = os.path.expanduser(
 )
 V2_JSON = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "assets/hoi4_data_v2.json",
+    "assets/hoi4_data.json",
 )
 
 # Doc scope heading -> LSP Scope enum value

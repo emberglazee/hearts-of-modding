@@ -1,9 +1,9 @@
 //! Generates a whitespace-minified copy of the HOI4 data JSON for embedding.
 //!
-//! `assets/hoi4_data_v2.json` is loaded at compile time via `include_str!` in
+//! `assets/hoi4_data.json` is loaded at compile time via `include_str!` in
 //! `src/data/hoi4_data.rs`, so whatever is on disk during compilation ends up
 //! in every shipped binary. This build script rewrites the parsed JSON into
-//! `OUT_DIR/hoi4_data_v2.min.json` (Cargo creates `OUT_DIR` per build and
+//! `OUT_DIR/hoi4_data.min.json` (Cargo creates `OUT_DIR` per build and
 //! cleans it up — no temp-file lifecycle to manage), shrinking the embedded
 //! data — and therefore every release binary — by the pretty-print whitespace
 //! (~144KB at the time of writing) without touching the human-readable source
@@ -16,7 +16,7 @@
 use std::path::Path;
 
 fn main() {
-    let src = Path::new("assets/hoi4_data_v2.json");
+    let src = Path::new("assets/hoi4_data.json");
     println!("cargo:rerun-if-changed={}", src.display());
 
     let raw = std::fs::read_to_string(src)
@@ -27,6 +27,6 @@ fn main() {
         .unwrap_or_else(|e| panic!("failed to serialize {}: {e}", src.display()));
 
     let out_dir = std::env::var("OUT_DIR").expect("OUT_DIR not set");
-    std::fs::write(Path::new(&out_dir).join("hoi4_data_v2.min.json"), minified)
+    std::fs::write(Path::new(&out_dir).join("hoi4_data.min.json"), minified)
         .unwrap_or_else(|e| panic!("failed to write minified data: {e}"));
 }
