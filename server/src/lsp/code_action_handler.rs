@@ -914,9 +914,34 @@ impl Backend {
                     }
 
                     if !all_changes.is_empty() {
+                        // Sort edits in reverse document order (end → start) so we can merge overlaps
+                        // without index shifting. Then deduplicate overlapping ranges.
+                        all_changes.sort_by_key(|b| std::cmp::Reverse(b.range.start));
+                        let mut merged = Vec::new();
+                        for edit in &all_changes {
+                            if merged.is_empty() {
+                                merged.push(edit.clone());
+                            } else {
+                                let last = merged.last().unwrap();
+                                // If current edit starts after or at the end of the last merged edit,
+                                // they don't overlap — add it. Otherwise merge by extending the last edit's
+                                // range and choosing the later new_text (or the last one, since they should
+                                // be compatible after sorting).
+                                if edit.range.start >= last.range.end {
+                                    merged.push(edit.clone());
+                                } else {
+                                    // Overlapping: extend the range to cover both, keep the last new_text
+                                    let combined_end =
+                                        std::cmp::max(last.range.end, edit.range.end);
+                                    let mut combined = last.clone();
+                                    combined.range.end = combined_end;
+                                    combined.new_text = edit.new_text.clone();
+                                    merged.push(combined);
+                                }
+                            }
+                        }
                         let mut changes = HashMap::new();
-                        changes.insert(params.text_document.uri.clone(), all_changes);
-
+                        changes.insert(params.text_document.uri.clone(), merged);
                         actions.push(CodeActionOrCommand::CodeAction(CodeAction {
                             title: "Fix all styling issues in this file".to_string(),
                             kind: Some(CodeActionKind::QUICKFIX),
