@@ -29528,6 +29528,13 @@
 					"optional": true,
 					"repeated": false
 				},
+				"offset": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Conditional position shift: x and y are added to the focus' position when the trigger = { ... } sub-block is true for the country at tree-load time (refreshed mid-session by mark_focus_tree_layout_dirty). Repeatable — typically one offset per importing tree with trigger = { has_focus_tree = ... }. Prefer relative_position_id for branch layout; use offset only on the top focus of a branch that needs moving.",
+					"optional": true,
+					"repeated": true
+				},
 				"cost": {
 					"type": "number",
 					"value_type": "int",
@@ -29539,6 +29546,20 @@
 					"type": "boolean",
 					"value_type": "bool",
 					"description": "Allows the focus to be selected and completed while the country has capitulated. Defaults to no — a capitulated country can see the focus but cannot pick it. Vanilla typically sets this on branch-continuation focuses so a war loss cannot lock off the rest of the tree.",
+					"optional": true,
+					"repeated": false
+				},
+				"available": {
+					"type": "block",
+					"value_type": "block",
+					"description": "AND trigger block gating whether the focus can be picked, on top of prerequisites. Scoped to the country doing the focus; scope out to states or other countries for ownership, strength, or diplomatic conditions.",
+					"optional": true,
+					"repeated": false
+				},
+				"allow_branch": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Trigger block deciding whether the focus (and its branch) is visible. Checked only when the focus tree is first loaded — refresh mid-session with mark_focus_tree_layout_dirty. A focus with its own allow_branch checks only itself, ignoring disallowed parents; without one, a disallowed parent disallows the child. Usually paired with offset blocks to swap whole branches per tree.",
 					"optional": true,
 					"repeated": false
 				},
@@ -29556,10 +29577,31 @@
 					"optional": true,
 					"repeated": true
 				},
+				"bypass": {
+					"type": "block",
+					"value_type": "block",
+					"description": "AND trigger block for bypassing: while true the focus auto-completes without granting completion_reward. Same scoping as available. Combine with bypass_if_unavailable = yes to auto-bypass whenever available fails, or enable_automatic_bypass = no to forbid auto-bypass.",
+					"optional": true,
+					"repeated": false
+				},
+				"bypass_effect": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Effects executed instead of completion_reward when the focus is bypassed (e.g. add_popularity = { ideology = fascism popularity = 0.05 }).",
+					"optional": true,
+					"repeated": false
+				},
 				"completion_reward": {
 					"type": "block",
 					"value_type": "block",
 					"description": "Effects executed when the focus completes.",
+					"optional": true,
+					"repeated": false
+				},
+				"ai_will_do": {
+					"type": "block",
+					"value_type": "block",
+					"description": "MTTH weight block for AI focus picking when no ai_national_focuses plan entry fires (factor/base plus modifier = { factor/add + triggers }). Each candidate rolls 0..value — times FOCUS_TREE_CONTINUE_FACTOR right after a prerequisite finished, times focus_factors from the active AI plan — highest roll wins; all-zero means the AI idles or takes continuous focuses.",
 					"optional": true,
 					"repeated": false
 				},
@@ -29625,6 +29667,13 @@
 					"optional": true,
 					"repeated": false
 				},
+				"offset": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Conditional position shift: x and y are added to the focus' position when the trigger = { ... } sub-block is true for the country at tree-load time (refreshed mid-session by mark_focus_tree_layout_dirty). Repeatable — typically one offset per importing tree with trigger = { has_focus_tree = ... }. Prefer relative_position_id for branch layout; use offset only on the top focus of a branch that needs moving.",
+					"optional": true,
+					"repeated": true
+				},
 				"cost": {
 					"type": "number",
 					"value_type": "int",
@@ -29636,6 +29685,20 @@
 					"type": "boolean",
 					"value_type": "bool",
 					"description": "Allows the focus to be selected and completed while the country has capitulated. Defaults to no — a capitulated country can see the focus but cannot pick it. Vanilla typically sets this on branch-continuation focuses so a war loss cannot lock off the rest of the tree.",
+					"optional": true,
+					"repeated": false
+				},
+				"available": {
+					"type": "block",
+					"value_type": "block",
+					"description": "AND trigger block gating whether the focus can be picked, on top of prerequisites. Scoped to the country doing the focus; scope out to states or other countries for ownership, strength, or diplomatic conditions.",
+					"optional": true,
+					"repeated": false
+				},
+				"allow_branch": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Trigger block deciding whether the focus (and its branch) is visible. Checked only when the focus tree is first loaded — refresh mid-session with mark_focus_tree_layout_dirty. A focus with its own allow_branch checks only itself, ignoring disallowed parents; without one, a disallowed parent disallows the child. Usually paired with offset blocks to swap whole branches per tree.",
 					"optional": true,
 					"repeated": false
 				},
@@ -29653,10 +29716,31 @@
 					"optional": true,
 					"repeated": true
 				},
+				"bypass": {
+					"type": "block",
+					"value_type": "block",
+					"description": "AND trigger block for bypassing: while true the focus auto-completes without granting completion_reward. Same scoping as available. Combine with bypass_if_unavailable = yes to auto-bypass whenever available fails, or enable_automatic_bypass = no to forbid auto-bypass.",
+					"optional": true,
+					"repeated": false
+				},
+				"bypass_effect": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Effects executed instead of completion_reward when the focus is bypassed (e.g. add_popularity = { ideology = fascism popularity = 0.05 }).",
+					"optional": true,
+					"repeated": false
+				},
 				"completion_reward": {
 					"type": "block",
 					"value_type": "block",
 					"description": "Effects executed when the focus completes.",
+					"optional": true,
+					"repeated": false
+				},
+				"ai_will_do": {
+					"type": "block",
+					"value_type": "block",
+					"description": "MTTH weight block for AI focus picking when no ai_national_focuses plan entry fires (factor/base plus modifier = { factor/add + triggers }). Each candidate rolls 0..value — times FOCUS_TREE_CONTINUE_FACTOR right after a prerequisite finished, times focus_factors from the active AI plan — highest roll wins; all-zero means the AI idles or takes continuous focuses.",
 					"optional": true,
 					"repeated": false
 				},
@@ -29719,6 +29803,13 @@
 					"optional": true,
 					"repeated": false
 				},
+				"offset": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Conditional position shift: x and y are added to the focus' position when the trigger = { ... } sub-block is true for the country at tree-load time (refreshed mid-session by mark_focus_tree_layout_dirty). Repeatable — typically one offset per importing tree with trigger = { has_focus_tree = ... }. Prefer relative_position_id for branch layout; use offset only on the top focus of a branch that needs moving.",
+					"optional": true,
+					"repeated": true
+				},
 				"cost": {
 					"type": "number",
 					"value_type": "int",
@@ -29730,6 +29821,20 @@
 					"type": "boolean",
 					"value_type": "bool",
 					"description": "Allows the focus to be selected and completed while the country has capitulated. Defaults to no — a capitulated country can see the focus but cannot pick it. Vanilla typically sets this on branch-continuation focuses so a war loss cannot lock off the rest of the tree.",
+					"optional": true,
+					"repeated": false
+				},
+				"available": {
+					"type": "block",
+					"value_type": "block",
+					"description": "AND trigger block gating whether the focus can be picked, on top of prerequisites. Scoped to the country doing the focus; scope out to states or other countries for ownership, strength, or diplomatic conditions.",
+					"optional": true,
+					"repeated": false
+				},
+				"allow_branch": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Trigger block deciding whether the focus (and its branch) is visible. Checked only when the focus tree is first loaded — refresh mid-session with mark_focus_tree_layout_dirty. A focus with its own allow_branch checks only itself, ignoring disallowed parents; without one, a disallowed parent disallows the child. Usually paired with offset blocks to swap whole branches per tree.",
 					"optional": true,
 					"repeated": false
 				},
@@ -29747,10 +29852,31 @@
 					"optional": true,
 					"repeated": true
 				},
+				"bypass": {
+					"type": "block",
+					"value_type": "block",
+					"description": "AND trigger block for bypassing: while true the focus auto-completes without granting completion_reward. Same scoping as available. Combine with bypass_if_unavailable = yes to auto-bypass whenever available fails, or enable_automatic_bypass = no to forbid auto-bypass.",
+					"optional": true,
+					"repeated": false
+				},
+				"bypass_effect": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Effects executed instead of completion_reward when the focus is bypassed (e.g. add_popularity = { ideology = fascism popularity = 0.05 }).",
+					"optional": true,
+					"repeated": false
+				},
 				"completion_reward": {
 					"type": "block",
 					"value_type": "block",
 					"description": "Effects executed when the focus completes.",
+					"optional": true,
+					"repeated": false
+				},
+				"ai_will_do": {
+					"type": "block",
+					"value_type": "block",
+					"description": "MTTH weight block for AI focus picking when no ai_national_focuses plan entry fires (factor/base plus modifier = { factor/add + triggers }). Each candidate rolls 0..value — times FOCUS_TREE_CONTINUE_FACTOR right after a prerequisite finished, times focus_factors from the active AI plan — highest roll wins; all-zero means the AI idles or takes continuous focuses.",
 					"optional": true,
 					"repeated": false
 				},

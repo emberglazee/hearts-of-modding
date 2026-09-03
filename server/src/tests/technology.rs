@@ -754,6 +754,46 @@ fn test_data_json_documents_focus_positioning_and_capitulation_keys() {
             rel.description.contains("recurs"),
             "description must warn about the recursion crash hazard"
         );
+
+        for key in ["available", "bypass", "bypass_effect", "ai_will_do"] {
+            let param = lookup_parameter(entity_key, key)
+                .unwrap_or_else(|| panic!("{entity_key}.{key} must be documented"));
+            assert_eq!(param.param_type, "block");
+            assert!(param.optional, "{entity_key}.{key} must be optional");
+        }
+
+        let offset = lookup_parameter(entity_key, "offset")
+            .unwrap_or_else(|| panic!("{entity_key}.offset must be documented"));
+        assert_eq!(offset.param_type, "block");
+        assert!(
+            offset.description.contains("has_focus_tree"),
+            "offset must describe the per-tree trigger = {{ has_focus_tree = ... }} pattern"
+        );
+
+        let branch = lookup_parameter(entity_key, "allow_branch")
+            .unwrap_or_else(|| panic!("{entity_key}.allow_branch must be documented"));
+        assert!(
+            branch.description.contains("mark_focus_tree_layout_dirty"),
+            "allow_branch must note the load-time-only check and its refresh effect"
+        );
+
+        let avail = lookup_parameter(entity_key, "available").unwrap();
+        assert!(
+            avail.description.contains("prerequisite"),
+            "available must say it is checked on top of prerequisites"
+        );
+
+        let bypass = lookup_parameter(entity_key, "bypass").unwrap();
+        assert!(
+            bypass.description.contains("completion_reward"),
+            "bypass must say completion_reward is skipped"
+        );
+
+        let ai = lookup_parameter(entity_key, "ai_will_do").unwrap();
+        assert!(
+            ai.description.contains("factor"),
+            "ai_will_do must describe the MTTH factor/base weight block"
+        );
     }
 }
 

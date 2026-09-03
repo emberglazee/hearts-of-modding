@@ -8,6 +8,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Extension update notice.** Notifies when the extension gets updated, prompts to see the changelog.
 
+- **Documented focus `available` / `bypass` / `bypass_effect` / `ai_will_do` / `offset` / `allow_branch` parameters.**
+
 ### 🧹 Internal
 
 - **Bumped extension dev dependencies:**
