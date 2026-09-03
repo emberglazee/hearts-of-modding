@@ -1,7 +1,6 @@
 use crate::parser::ast;
 use crate::rules::{ValidationContext, ValidationRule};
 use crate::scope::scope::ScopeStack;
-use std::collections::HashSet;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
 /// Validates terrain type usage across HOI4 mod files.
@@ -10,10 +9,11 @@ use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString}
 /// - `naval_terrain = X` in strategic region definitions → warns if X is not a
 ///   known terrain category with `naval_terrain = yes`
 ///
-/// Block-level checks:
-/// - When editing `common/terrain/*.txt`, cross-references all province terrains
-///   from `definition.csv` against known terrain categories — flags provinces
-///   using undefined terrain names so the modder sees them in the terrain editor.
+/// NOTE: there is deliberately NO cross-check of definition.csv terrain cells
+/// here. That condition is covered once, with exact cell ranges, by
+/// `Backend::check_province_terrain_csv` on the csv itself. A duplicate here
+/// would have no AST node to point at (provinces live in another file) and
+/// would stack one range-less diag per province on every terrain file.
 pub(crate) struct TerrainRule;
 
 impl ValidationRule for TerrainRule {
@@ -57,58 +57,6 @@ impl ValidationRule for TerrainRule {
                         ..Default::default()
                     });
                 }
-            }
-        }
-    }
-
-    fn check_block(
-        &self,
-        _entries: &[ast::Entry],
-        ctx: &ValidationContext,
-        diags: &mut Vec<Diagnostic>,
-    ) {
-        // When editing a terrain definition file, cross-validate all province
-        // terrain values from definition.csv against known terrain categories.
-        if !ctx.uri.contains("/common/terrain/") {
-            return;
-        }
-
-        let terrain_names: HashSet<String> = ctx
-            .terrain_categories
-            .iter()
-            .map(|entry| entry.key().to_string())
-            .collect();
-
-        if terrain_names.is_empty() || ctx.provinces.is_empty() {
-            return;
-        }
-
-        for entry in ctx.provinces.iter() {
-            let province = entry.value();
-            let prov_terrain = province.terrain.trim().to_lowercase();
-            if !prov_terrain.is_empty() && !terrain_names.contains(&prov_terrain) {
-                diags.push(Diagnostic {
-                    range: ctx.range(
-                        &crate::parser::ast::Range {
-                            start_line: 0,
-                            start_col: 0,
-                            end_line: 0,
-                            end_col: 0,
-                        },
-                    ),
-                    severity: Some(DiagnosticSeverity::WARNING),
-                    message: format!(
-                        "Province {} uses unknown terrain '{}'. Terrains are defined in common/terrain/*.txt",
-                        province.id,
-                        prov_terrain,
-                    ),
-                    code: Some(NumberOrString::String(
-                        crate::validation::advanced_validation::UNKNOWN_PROVINCE_TERRAIN
-                            .to_string(),
-                    )),
-                    source: Some("Hearts of Modding".to_string()),
-                    ..Default::default()
-                });
             }
         }
     }

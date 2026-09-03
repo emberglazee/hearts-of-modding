@@ -12,6 +12,10 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Map/state cross-file validation (HOM2002–HOM2009).** `history/states` files are now indexed (`State.provinces`), and state files plus `map/strategicregions` get WARNING-level checks: sea province in a state (lakes exempt), province claimed by two states or two strategic regions, member province with no `map/definition.csv` row, duplicate victory points, province buildings placed outside their state, coastal-only buildings (including the engine's own `only_costal` misspelling) on inland provinces, and empty states — zero hits on all 1,081 vanilla states and 304 vanilla strategic regions (measured locally; the committed test replays the same checks on vendored fixtures so CI stays hermetic).
 
+### 🩹 Fixed
+
+- **Removed range-less duplicate terrain check (HOM5005).** Editing `common/terrain/*.txt` re-emitted one `Province N uses unknown terrain` WARNING per map province, all stacked at line 1 column 1 with a hardcoded zero range — and the province data it read is never refreshed after `map/definition.csv` edits, so it could report values long gone from disk. The same condition is still covered exactly once, on the csv row itself with precise cell ranges, by the `definition.csv` validator.
+
 ### 🧹 Internal
 
 - **Renamed `hoi4_data_v2.json` to `hoi4_data.json`.**
