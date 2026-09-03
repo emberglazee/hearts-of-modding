@@ -34,6 +34,10 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
     - `fast-uri` v3.1.5 -> v3.1.7 (addresses: [CVE-2026-75899](https://github.com/advisories/GHSA-fph4-wmhf-6fwf), [CVE-2026-75931](https://github.com/advisories/GHSA-5jgf-p345-68v8), [CVE-2026-75975](https://github.com/advisories/GHSA-f65p-4m7j-42xc), [CVE-2026-76172](https://github.com/advisories/GHSA-jqff-g426-hqxp); [PR #15](https://github.com/emberglazee/hearts-of-modding/pull/15))
     - `qs` v6.15.3 -> 6.16.0 (addresses: [CVE-2026-82417](https://github.com/advisories/GHSA-4mjr-xmp4-gh2g), [CVE-2026-82562](https://github.com/advisories/GHSA-x5fp-wj9c-mxmx))
 
+- **Bumped LSP dependency:**
+
+  - `smallvec` v1.15.2 -> v1.16.0
+
 ## [v0.29.0] - 2026-09-02
 
 ### ✨ Added
