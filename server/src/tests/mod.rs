@@ -8,6 +8,7 @@ pub mod ideas;
 pub mod loc_columns;
 pub mod loc_dups;
 pub mod loc_empty;
+pub mod loc_format;
 pub mod loc_version;
 pub mod map_crossfile;
 pub mod on_actions;

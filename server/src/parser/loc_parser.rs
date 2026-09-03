@@ -925,8 +925,10 @@ pub fn format_loc_file(input: &str, cosmetic_indent: bool) -> String {
 
             let value = remainder.trim();
 
+            let version = version.trim_end_matches(':');
+
             output.push_str(&format!(
-                "{}{}:{}: {}\n",
+                "{}{}:{} {}\n",
                 current_indent, key, version, value
             ));
         } else {

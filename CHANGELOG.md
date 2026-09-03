@@ -18,6 +18,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### 🩹 Fixed
 
+- **Fixed accidental double colons by Format Document for localization.**
+
 - **Removed range-less duplicate terrain check (HOM5005).**
 
 ### 🧹 Internal
