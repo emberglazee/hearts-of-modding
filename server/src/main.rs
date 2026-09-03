@@ -28,7 +28,7 @@ use std::sync::atomic::AtomicU64;
 use std::sync::{Arc, Mutex};
 
 use arc_swap::ArcSwap;
-use dashmap::DashMap;
+use dashmap::{DashMap, DashSet};
 use tower_lsp_server::{LspService, Server};
 
 use crate::config::Config;
@@ -135,6 +135,7 @@ async fn main() {
             token_keywords: ArcSwap::from_pointee((*base_keywords).clone()),
             entity_token_context: ArcSwap::from_pointee(HashMap::new()),
             completion_entity_cache: ArcSwap::from_pointee(Vec::new()),
+            workspace_problem_uris: DashSet::new(),
         }
     });
     Server::new(stdin, stdout, socket).serve(service).await;

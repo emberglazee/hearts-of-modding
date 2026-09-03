@@ -641,6 +641,11 @@ impl LanguageServer for Backend {
                         // If the user just enabled the workspace scan, trigger it now
                         if enabled {
                             self.validate_workspace(std::path::Path::new(".")).await;
+                        } else {
+                            // Toggling off orphans every Problems entry the
+                            // last scan published — no re-scan will ever clear
+                            // them, so broadcast `[]` now.
+                            self.clear_workspace_problem_diagnostics().await;
                         }
                     }
                 }

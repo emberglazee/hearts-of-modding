@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex};
 use arc_swap::ArcSwap;
 use rustc_hash::FxHashMap;
 
-use dashmap::DashMap;
+use dashmap::{DashMap, DashSet};
 use tokio_util::sync::CancellationToken;
 use tower_lsp_server::Client;
 use tower_lsp_server::ls_types::*;
@@ -67,6 +67,17 @@ where
         .map_err(|_| "compute-pool task was cancelled".to_string())?
 }
 
+/// URIs whose workspace problems are gone: previously flagged but absent from
+/// the current problem set — fixed on disk, or no longer scanned at all
+/// (deleted/unreadable). Pure fn so the direction of the diff is unit-testable
+/// (swapping the operands would clear still-broken files and keep fixed ones).
+pub(crate) fn cleared_problem_uris(
+    previous: &HashSet<String>,
+    current: &HashSet<String>,
+) -> Vec<String> {
+    previous.difference(current).cloned().collect()
+}
+
 pub(crate) struct Backend {
     pub(crate) client: Client,
     pub(crate) documents: Arc<DashMap<String, String>>,
@@ -114,6 +125,13 @@ pub(crate) struct Backend {
     /// completion handler clones this Arc per request instead of iterating ~20
     /// DashMaps and rebuilding CompletionItems on every keystroke.
     pub(crate) completion_entity_cache: ArcSwap<Vec<tower_lsp_server::ls_types::CompletionItem>>,
+    /// URIs with outstanding non-empty diagnostics published by the last
+    /// workspace scan. The next scan publishes `[]` for members that come back
+    /// clean — or vanish from the scan entirely (deleted/unreadable) — so
+    /// errors fixed outside the editor (git checkout, find-and-replace,
+    /// dependency fixes) actually clear for unopened files. Drained the same
+    /// way when the workspace scan is toggled off.
+    pub(crate) workspace_problem_uris: DashSet<String>,
 }
 
 /// Cheap-clone handle for CPU-bound validation work.
@@ -556,12 +574,31 @@ impl Backend {
         }
 
         let mut pending: Vec<(Uri, Vec<Diagnostic>)> = Vec::with_capacity(validated);
-        pending.extend(
-            results
-                .into_iter()
-                .filter_map(|(u, d, _)| (!d.is_empty()).then_some((u, d))),
-        );
+        let mut current_problems: HashSet<String> = HashSet::new();
+        for (uri, diags, _) in results {
+            if diags.is_empty() {
+                continue;
+            }
+            current_problems.insert(uri.as_str().to_string());
+            pending.push((uri, diags));
+        }
         let validate_elapsed = scan_start.elapsed();
+
+        // ── Phase 2.5: Clear diagnostics fixed since the last scan ───
+        // LSP only clears a file's Problems entries when it receives an empty
+        // array. Files filtered out of `pending` would keep stale errors
+        // forever (fixed via git checkout, find-and-replace, or deleted), so
+        // publish `[]` for every previously-flagged URI that came back clean
+        // — or vanished from the scan entirely.
+        let previous: HashSet<String> = self
+            .workspace_problem_uris
+            .iter()
+            .map(|entry| entry.clone())
+            .collect();
+        for uri_str in cleared_problem_uris(&previous, &current_problems) {
+            self.workspace_problem_uris.remove(&uri_str);
+            self.publish_workspace_clear(&uri_str).await;
+        }
 
         // ── Phase 3: Deferred diagnostics with pacing ─────────────────
         // Publish all diagnostics AFTER validation completes, avoiding
@@ -572,6 +609,7 @@ impl Backend {
             self.client
                 .publish_diagnostics(uri.clone(), diags.clone(), None)
                 .await;
+            self.workspace_problem_uris.insert(uri.as_str().to_string());
             // Throttle: every 100 files, yield so VS Code can drain its
             // socket buffer and the transport doesn't block on write().
             if i > 0 && i % 100 == 0 {
@@ -596,6 +634,37 @@ impl Backend {
                 ),
             )
             .await;
+    }
+
+    /// Publish an empty diagnostic array for a workspace-scan URI, releasing
+    /// it from [`Backend::workspace_problem_uris`]' ownership. Open documents
+    /// are skipped: their visible diagnostics were last written by
+    /// `validate_document` from the live buffer, and a disk-based pass must
+    /// not wipe dirty-buffer state (the next keystroke revalidates anyway).
+    async fn publish_workspace_clear(&self, uri_str: &str) {
+        if self.documents.contains_key(uri_str) {
+            return;
+        }
+        if let Ok(uri) = uri_str.parse::<Uri>() {
+            self.client.publish_diagnostics(uri, Vec::new(), None).await;
+        }
+    }
+
+    /// Publish `[]` for every URI with outstanding workspace-scan problems and
+    /// drain the set. Called when the workspace scan is toggled off, so the
+    /// Problems panel doesn't keep stale entries no re-scan will ever clear.
+    /// Open documents are skipped — the config-change re-validation right
+    /// after repopulates their real diagnostics.
+    pub(crate) async fn clear_workspace_problem_diagnostics(&self) {
+        let uris: Vec<String> = self
+            .workspace_problem_uris
+            .iter()
+            .map(|entry| entry.clone())
+            .collect();
+        self.workspace_problem_uris.clear();
+        for uri_str in uris {
+            self.publish_workspace_clear(&uri_str).await;
+        }
     }
 
     pub(crate) async fn collect_workspace_files(&self, roots: &[std::path::PathBuf]) {

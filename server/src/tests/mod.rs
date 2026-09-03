@@ -22,3 +22,4 @@ pub mod technology;
 pub mod units;
 pub mod utf16_conversion;
 pub mod variables;
+pub mod workspace_diagnostics;
