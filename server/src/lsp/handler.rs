@@ -847,6 +847,7 @@ impl LanguageServer for Backend {
                             &self.scanner_data,
                             &path_str,
                             &script_for_scanner,
+                            &self.map_config_for_uri(&uri).definitions,
                         );
                     }
                 }
@@ -854,7 +855,28 @@ impl LanguageServer for Backend {
                     self.cache_loc_parse(&uri, outcome);
                 }
             }
-        } // else: line-data — no parse, but still validate below
+        } else {
+            // Line-data: no script parse — EXCEPT the definitions csv, whose
+            // province rows refresh incrementally from content (cheap line
+            // split, never parse_script). This keeps province hovers and
+            // state/region diags live while the csv is being edited.
+            let definitions = self.map_config_for_uri(&uri).definitions;
+            let is_definitions = uri
+                .replace('\\', "/")
+                .to_ascii_lowercase()
+                .ends_with(&definitions.to_ascii_lowercase());
+            if is_definitions {
+                if let Some(file_path) = params.text_document.uri.to_file_path() {
+                    let path_str = file_path.to_string_lossy().to_string();
+                    crate::scanner::incremental_scanner::update_scanner_data_for_file(
+                        &self.scanner_data,
+                        &path_str,
+                        &text,
+                        &definitions,
+                    );
+                }
+            }
+        } // line-data fallthrough: still validate below
 
         self.validate_document(params.text_document.uri).await;
     }
@@ -880,6 +902,7 @@ impl LanguageServer for Backend {
                 &self.scanner_data,
                 &path_str,
                 &content,
+                &self.map_config_for_uri(&uri_str).definitions,
             );
         }
 
@@ -964,8 +987,11 @@ impl LanguageServer for Backend {
 
             // Accumulate dependency prefixes (skip if already wildcard)
             if !has_wildcard {
-                let prefixes =
-                    crate::scanner::incremental_scanner::dependency_affected_prefixes(&path_str);
+                let definitions = self.map_config_for_uri(&path_str).definitions;
+                let prefixes = crate::scanner::incremental_scanner::dependency_affected_prefixes(
+                    &path_str,
+                    &definitions,
+                );
                 if prefixes.contains(&"/") {
                     has_wildcard = true;
                     all_affected.clear();
@@ -984,6 +1010,7 @@ impl LanguageServer for Backend {
                                 &self.scanner_data,
                                 &path_str,
                                 &content,
+                                &self.map_config_for_uri(&path_str).definitions,
                             );
                             // Track in workspace_files for rename operations
                             self.scanner_data
@@ -996,6 +1023,7 @@ impl LanguageServer for Backend {
                             crate::scanner::incremental_scanner::remove_path_from_scanner_data(
                                 &self.scanner_data,
                                 &path_str,
+                                &self.map_config_for_uri(&path_str).definitions,
                             );
                             self.scanner_data.workspace_files.remove(path_str.as_str());
                         }
@@ -1005,6 +1033,7 @@ impl LanguageServer for Backend {
                     crate::scanner::incremental_scanner::remove_path_from_scanner_data(
                         &self.scanner_data,
                         &path_str,
+                        &self.map_config_for_uri(&path_str).definitions,
                     );
                     self.scanner_data.workspace_files.remove(path_str.as_str());
                 }

@@ -929,6 +929,7 @@ fn test_delete_scrubs_dep_graph_with_backslash_path_spelling() {
 }
 country_event = { id = target_event.1 }
 "#,
+        "definition.csv",
     );
     assert_eq!(data.event_dep_graph.caller_count("target_event.1"), 1);
 
@@ -936,7 +937,7 @@ country_event = { id = target_event.1 }
     // macros normalize both sides, so removal itself works either way — but
     // the stale-edge scrub silently no-ops when the pre-read misses.
     let delete_path = "\\mod\\common\\events\\test_events.txt";
-    remove_path_from_scanner_data(&data, delete_path);
+    remove_path_from_scanner_data(&data, delete_path, "definition.csv");
 
     assert!(
         data.events.is_empty(),

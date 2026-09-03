@@ -479,7 +479,7 @@ fn test_incremental_updates_for_late_wired_registries() {
 
         // ── add ──
         let (script, _) = parse_script(c.initial);
-        update_scanner_data_from_ast(&data, c.path, &script);
+        update_scanner_data_from_ast(&data, c.path, &script, "definition.csv");
         assert!(
             (c.has)(&data, c.first_key),
             "{}: `{}` should be registered after an incremental add",
@@ -489,7 +489,7 @@ fn test_incremental_updates_for_late_wired_registries() {
 
         // ── edit: the old key must go, the new one must appear ──
         let (script2, _) = parse_script(c.edited);
-        update_scanner_data_from_ast(&data, c.path, &script2);
+        update_scanner_data_from_ast(&data, c.path, &script2, "definition.csv");
         assert!(
             (c.has)(&data, c.second_key),
             "{}: `{}` missing after edit",
@@ -510,7 +510,7 @@ fn test_incremental_updates_for_late_wired_registries() {
         );
 
         // ── delete ──
-        remove_path_from_scanner_data(&data, c.path);
+        remove_path_from_scanner_data(&data, c.path, "definition.csv");
         assert_eq!(
             (c.count)(&data),
             0,

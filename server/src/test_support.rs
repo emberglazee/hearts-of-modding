@@ -100,10 +100,17 @@ impl TestCtx {
     /// virtual file. This is what production does on did_save, so tests using
     /// it also cover index-key normalization and retain_path bookkeeping.
     /// Preferred seeding method for new tests.
+    ///
+    /// Uses the default `definition.csv` name; tests for custom
+    /// `map/default.map` definitions names call
+    /// `update_scanner_data_for_file` directly with their own name.
     #[allow(dead_code)]
     pub(crate) fn with_file(self, path: &str, content: &str) -> Self {
         crate::scanner::incremental_scanner::update_scanner_data_for_file(
-            &self.data, path, content,
+            &self.data,
+            path,
+            content,
+            "definition.csv",
         );
         self
     }

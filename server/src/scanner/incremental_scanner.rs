@@ -24,6 +24,7 @@ use crate::scanner::modifier_scanner;
 use crate::scanner::music_scanner;
 use crate::scanner::oob_scanner;
 use crate::scanner::portrait_scanner;
+use crate::scanner::province_scanner;
 use crate::scanner::resource_scanner;
 use crate::scanner::scripted_loc_scanner;
 use crate::scanner::scripted_scanner;
@@ -300,6 +301,7 @@ impl_has_path!(variable_scanner::Array);
 impl_has_path!(variable_scanner::EventTarget);
 impl_has_path!(strategic_region_scanner::StrategicRegion);
 impl_has_path!(state_scanner::State);
+impl_has_path!(province_scanner::Province);
 impl_has_path!(country_scanner::CountryTag);
 impl_has_path!(oob_scanner::OobDivisionTemplate);
 impl_has_path!(oob_scanner::OobFleet);
@@ -325,7 +327,13 @@ macro_rules! gen_has_path {
 for_each_standard_scanner!(gen_has_path);
 
 /// Determines which scanner categories apply to a given file path.
-fn classify_file(path: &str) -> Vec<FileCategory> {
+///
+/// `definitions_file` is the `map/default.map` `definitions` filename
+/// (default `definition.csv`) for the file's workspace root — the ONLY csv
+/// that parses as provinces. It must be threaded in (not hardcoded) because
+/// other map csvs (adjacencies) have numeric first columns that would parse
+/// as junk provinces. Mirrors `is_line_data_uri`'s `ends_with` check.
+fn classify_file(path: &str, definitions_file: &str) -> Vec<FileCategory> {
     let lower = path.to_ascii_lowercase().replace('\\', "/");
 
     let mut cats = Vec::new();
@@ -505,6 +513,17 @@ fn classify_file(path: &str) -> Vec<FileCategory> {
         cats.push(FileCategory::Variables);
     }
 
+    // Province definitions — the map csv named by `map/default.map`.
+    // Line-data: handled by `update_provinces_csv`, never `parse_script`.
+    // Lives OUTSIDE the `.txt` gate above by design — csvs never enter it.
+    // The configured name gates this (not `*.csv`): other map csvs like
+    // adjacencies have numeric first columns that would parse as junk
+    // provinces. Mirrors `is_line_data_uri`'s ends_with check (same
+    // looseness: any directory, suffix match).
+    if lower.ends_with(&definitions_file.to_ascii_lowercase()) {
+        cats.push(FileCategory::Provinces);
+    }
+
     if lower.ends_with(".asset") {
         if lower.contains("/music/") {
             cats.push(FileCategory::MusicAssets);
@@ -535,7 +554,13 @@ fn classify_file(path: &str) -> Vec<FileCategory> {
 ///
 /// Returns `["/"]` for changes that affect **all** open documents (defines,
 /// localisation). The caller treats `"/"` as a wildcard.
-pub(crate) fn dependency_affected_prefixes(path: &str) -> Vec<&'static str> {
+///
+/// `definitions_file` names the `map/default.map` definitions csv (default
+/// `definition.csv`); only that csv feeds `ctx.provinces`.
+pub(crate) fn dependency_affected_prefixes(
+    path: &str,
+    definitions_file: &str,
+) -> Vec<&'static str> {
     let lower = path.to_ascii_lowercase().replace('\\', "/");
 
     let mut affected: Vec<&str> = Vec::new();
@@ -611,6 +636,13 @@ pub(crate) fn dependency_affected_prefixes(path: &str) -> Vec<&'static str> {
     if lower.contains("/history/states/") {
         // Tier-0 map cross-checks (HOM2003 province-in-two-states) read
         // sibling state files — a state edit must revalidate the rest.
+        affected.push("/history/states/");
+    }
+    if lower.ends_with(&definitions_file.to_ascii_lowercase()) {
+        // state_definitions.rs (HOM2002/HOM2009) and provinces.rs read
+        // ctx.provinces — a definitions-csv edit must revalidate state docs.
+        // /map/ docs (supply/railways/unitstacks/adjacencies validators)
+        // are covered by the generic /map/ arm below.
         affected.push("/history/states/");
     }
     if lower.contains("/map/strategicregions/") {
@@ -693,6 +725,7 @@ enum FileCategory {
     Sprites,
     StrategicRegions,
     States,
+    Provinces,
     Terrains,
     BalanceOfPower,
     Oob,
@@ -706,14 +739,23 @@ enum FileCategory {
 
 /// Update `ScannerData` with fresh entities extracted from a single saved file.
 /// Parses raw content, then delegates to AST-based update helpers.
-pub fn update_scanner_data_for_file(scanner_data: &ScannerData, path_str: &str, content: &str) {
-    let categories = classify_file(path_str);
+///
+/// `definitions_file` names the `map/default.map` definitions csv for the
+/// file's root (default `definition.csv`); only that csv parses as provinces.
+pub fn update_scanner_data_for_file(
+    scanner_data: &ScannerData,
+    path_str: &str,
+    content: &str,
+    definitions_file: &str,
+) {
+    let categories = classify_file(path_str, definitions_file);
 
     for category in categories {
         match category {
             FileCategory::Localization => update_localization(scanner_data, path_str, content),
             FileCategory::Defines => update_defines(scanner_data, content),
             FileCategory::Countries => update_country_tags(scanner_data, path_str, content),
+            FileCategory::Provinces => update_provinces_csv(scanner_data, path_str, content),
             _ => {
                 let (script, _parse_errors) = parser::parse_script(content);
                 update_from_ast(scanner_data, path_str, &script, category);
@@ -723,18 +765,24 @@ pub fn update_scanner_data_for_file(scanner_data: &ScannerData, path_str: &str, 
 }
 
 /// Update `ScannerData` from an already-parsed AST (used by `did_change` live updates).
-/// Skips categories that need raw text (localization, defines, country tags).
+/// Skips categories that need raw text (localization, defines, country tags,
+/// and the line-data provinces csv, which refreshes from content instead).
 pub fn update_scanner_data_from_ast(
     scanner_data: &ScannerData,
     path_str: &str,
     script: &ast::Script,
+    definitions_file: &str,
 ) {
-    let categories = classify_file(path_str);
+    let categories = classify_file(path_str, definitions_file);
 
     for category in categories {
         match category {
-            FileCategory::Localization | FileCategory::Defines | FileCategory::Countries => {
+            FileCategory::Localization
+            | FileCategory::Defines
+            | FileCategory::Countries
+            | FileCategory::Provinces => {
                 // These need raw text parsing — skip in live AST-based update
+                // (provinces refresh from content on did_change/did_save).
             }
             _ => update_from_ast(scanner_data, path_str, script, category),
         }
@@ -782,6 +830,10 @@ fn update_from_ast(
         FileCategory::Sprites => update_sprites(scanner_data, path_str, script),
         FileCategory::StrategicRegions => update_strategic_regions(scanner_data, path_str, script),
         FileCategory::States => update_states(scanner_data, path_str, script),
+        FileCategory::Provinces => {
+            // Line-data csv: no AST exists; refreshed from raw content by
+            // `update_provinces_csv`. Reaching here means a caller bug.
+        }
         FileCategory::Terrains => update_terrains(scanner_data, path_str, script),
         FileCategory::BalanceOfPower => update_balance_of_powers(scanner_data, path_str, script),
         FileCategory::Oob => update_oobs(scanner_data, path_str, script),
@@ -1697,6 +1749,38 @@ fn update_states(scanner_data: &ScannerData, path_str: &str, script: &ast::Scrip
         .insert(index_key(path_str), file_keys);
 }
 
+/// Incremental refresh of `scanner_data.provinces` from definition.csv content.
+///
+/// Parses with the same row parser as the startup scan
+/// (`province_scanner::parse_definition_csv`) so an edit+save lands in exactly
+/// the state a fresh scan would produce — and never `parse_script`: csv rows
+/// are line data, scripting them is O(n²). Mirrors `update_states`: scrub the
+/// ids this file contributed, insert the fresh rows, record the file index.
+fn update_provinces_csv(scanner_data: &ScannerData, path_str: &str, content: &str) {
+    let new_entries =
+        province_scanner::parse_definition_csv(content, std::path::Path::new(path_str));
+
+    let p: &str = path_str;
+    if let Some((_, old_keys)) = scanner_data.provinces_file_index.remove(&index_key(p)) {
+        for key in old_keys {
+            scanner_data.provinces.remove(&key);
+        }
+    } else {
+        let p_owned = p.to_owned();
+        scanner_data
+            .provinces
+            .retain(|_, v| !path_matches(v.path(), &p_owned));
+    }
+    let mut file_keys = Vec::with_capacity(new_entries.len());
+    for (key, value) in new_entries {
+        scanner_data.provinces.insert(key, value);
+        file_keys.push(key);
+    }
+    scanner_data
+        .provinces_file_index
+        .insert(index_key(path_str), file_keys);
+}
+
 fn update_terrains(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
     terrain_scanner::extract_terrain_categories(
@@ -1869,8 +1953,12 @@ fn category_still_declared_elsewhere(
 /// Remove all scanner data entries originating from a given file path.
 /// Used by `did_change_watched_files` when a file is deleted externally
 /// (Git branch switch, file explorer rename, etc.).
-pub fn remove_path_from_scanner_data(scanner_data: &ScannerData, path_str: &str) {
-    let categories = classify_file(path_str);
+pub fn remove_path_from_scanner_data(
+    scanner_data: &ScannerData,
+    path_str: &str,
+    definitions_file: &str,
+) {
+    let categories = classify_file(path_str, definitions_file);
 
     for category in categories {
         match category {
@@ -2157,6 +2245,20 @@ pub fn remove_path_from_scanner_data(scanner_data: &ScannerData, path_str: &str)
                         .retain(|_, v| !path_matches(v.path(), &p_owned));
                 }
             }
+            FileCategory::Provinces => {
+                let p: &str = path_str;
+                if let Some((_, old_keys)) = scanner_data.provinces_file_index.remove(&index_key(p))
+                {
+                    for key in old_keys {
+                        scanner_data.provinces.remove(&key);
+                    }
+                } else {
+                    let p_owned = p.to_owned();
+                    scanner_data
+                        .provinces
+                        .retain(|_, v| !path_matches(v.path(), &p_owned));
+                }
+            }
             FileCategory::Terrains => {
                 remove_path!(
                     scanner_data.terrain_categories,
@@ -2257,7 +2359,7 @@ mod tests {
     #[test]
     fn test_classify_strategic_regions_matches_engine_path() {
         let realistic = "/home/embi/mod/map/strategicregions/00_strategicregions.txt";
-        let cats = classify_file(realistic);
+        let cats = classify_file(realistic, "definition.csv");
         assert!(
             cats.contains(&FileCategory::StrategicRegions),
             "map/strategicregions/*.txt should classify as StrategicRegions"
@@ -2269,7 +2371,7 @@ mod tests {
     #[test]
     fn test_classify_old_strategic_regions_path_does_not_match() {
         let wrong = "/mod/common/strategic_regions/00_strategicregions.txt";
-        let cats = classify_file(wrong);
+        let cats = classify_file(wrong, "definition.csv");
         assert!(
             !cats.contains(&FileCategory::StrategicRegions),
             "common/strategic_regions is not the engine path"
@@ -2282,7 +2384,7 @@ mod tests {
     #[test]
     fn test_classify_states_matches_engine_path() {
         let realistic = "/home/embi/mod/history/states/38-Sweden.txt";
-        let cats = classify_file(realistic);
+        let cats = classify_file(realistic, "definition.csv");
         assert!(
             cats.contains(&FileCategory::States),
             "history/states/*.txt should classify as States"
@@ -2295,7 +2397,12 @@ mod tests {
     fn test_states_add_edit_delete_round_trip() {
         let data = ScannerData::new();
         let path = "/mod/history/states/38-Sweden.txt";
-        update_scanner_data_for_file(&data, path, "state = { id = 38 provinces = { 130 131 } }");
+        update_scanner_data_for_file(
+            &data,
+            path,
+            "state = { id = 38 provinces = { 130 131 } }",
+            "definition.csv",
+        );
         // NOTE: read guards must drop before the next write — DashMap
         // shard locks are not reentrant, holding `st` across an update
         // deadlocks the same thread.
@@ -2304,7 +2411,12 @@ mod tests {
             assert_eq!(st.provinces, vec![130, 131]);
         }
 
-        update_scanner_data_for_file(&data, path, "state = { id = 38 provinces = { 130 } }");
+        update_scanner_data_for_file(
+            &data,
+            path,
+            "state = { id = 38 provinces = { 130 } }",
+            "definition.csv",
+        );
         {
             let st = data
                 .states
@@ -2313,10 +2425,116 @@ mod tests {
             assert_eq!(st.provinces, vec![130]);
         }
 
-        remove_path_from_scanner_data(&data, path);
+        remove_path_from_scanner_data(&data, path, "definition.csv");
         assert!(
             data.states.get(&38).is_none(),
             "state scrubbed after delete"
+        );
+    }
+
+    /// Only the `map/default.map` definitions csv classifies as Provinces.
+    /// Other map csvs (adjacencies) have numeric first columns that would
+    /// parse as junk provinces, so the configured name gates classification —
+    /// a hardcoded `*.csv` match would corrupt the index on every adjacency
+    /// save.
+    #[test]
+    fn test_classify_provinces_needs_configured_name() {
+        let cats = classify_file("/mod/map/definition.csv", "definition.csv");
+        assert!(
+            cats.contains(&FileCategory::Provinces),
+            "default definitions csv must classify as Provinces"
+        );
+        let cats = classify_file("/mod/map/adjacencies.csv", "definition.csv");
+        assert!(
+            !cats.contains(&FileCategory::Provinces),
+            "adjacencies.csv must never classify as Provinces"
+        );
+        // Custom default.map name: only that name matches.
+        let cats = classify_file("/mod/map/vars/definition.csv", "vars/definition.csv");
+        assert!(
+            cats.contains(&FileCategory::Provinces),
+            "configured custom name must classify as Provinces"
+        );
+        let cats = classify_file("/mod/map/definition.csv", "vars/definition.csv");
+        assert!(
+            !cats.contains(&FileCategory::Provinces),
+            "default name must not match when default.map renames it"
+        );
+    }
+
+    /// Full add → edit → delete round-trip for definition.csv through the
+    /// real incremental path. Editing terrain/coastal/type on disk must be
+    /// visible to rules without a restart (the HOM5005 stale-`-1` report);
+    /// deleting the file must scrub its ids.
+    #[test]
+    fn test_provinces_add_edit_delete_round_trip() {
+        let data = ScannerData::new();
+        let path = "/mod/map/definition.csv";
+        update_scanner_data_for_file(
+            &data,
+            path,
+            "1;200;10;10;land;true;plains;1\n2;10;200;10;sea;false;ocean;0\n",
+            "definition.csv",
+        );
+        {
+            let p = data.provinces.get(&1).expect("province indexed after save");
+            assert_eq!(p.terrain, "plains");
+            assert_eq!(p.prov_type, "land");
+            assert!(p.is_coastal);
+            assert_eq!(p.rgb, (200, 10, 10));
+            assert_eq!(p.continent, 1);
+        }
+        assert!(data.provinces.contains_key(&2));
+
+        // Edit: terrain changes, province 2 goes away, province 3 appears.
+        update_scanner_data_for_file(
+            &data,
+            path,
+            "1;200;10;10;land;false;forest;1\n3;30;30;30;land;false;desert;2\n",
+            "definition.csv",
+        );
+        {
+            let p = data
+                .provinces
+                .get(&1)
+                .expect("province still indexed after edit");
+            assert_eq!(p.terrain, "forest");
+            assert!(!p.is_coastal);
+        }
+        assert!(
+            data.provinces.get(&2).is_none(),
+            "removed row must be scrubbed on re-save"
+        );
+        {
+            let p = data.provinces.get(&3).expect("added row indexed");
+            assert_eq!(p.terrain, "desert");
+            assert_eq!(p.continent, 2);
+        }
+
+        remove_path_from_scanner_data(&data, path, "definition.csv");
+        assert!(
+            data.provinces.is_empty(),
+            "provinces scrubbed after csv delete"
+        );
+        assert!(
+            data.provinces_file_index.get(&index_key(path)).is_none(),
+            "file index scrubbed after csv delete"
+        );
+    }
+
+    /// A definitions-csv edit marks state docs for re-validation (their
+    /// HOM2002/HOM2009 checks read `ctx.provinces`); other map csvs don't.
+    #[test]
+    fn test_dependency_affected_prefixes_definitions_csv() {
+        let affected = dependency_affected_prefixes("/mod/map/definition.csv", "definition.csv");
+        assert!(
+            affected.contains(&"/history/states/"),
+            "definitions edit must re-validate state docs, got {affected:?}"
+        );
+        let affected = dependency_affected_prefixes("/mod/map/adjacencies.csv", "definition.csv");
+        assert!(
+            !affected.contains(&"/history/states/"),
+            "adjacencies edit gives state docs no reason to re-validate, got {affected:?}"
         );
     }
 
@@ -2335,7 +2553,7 @@ mod tests {
     fn test_dependency_affected_prefixes_technologies() {
         // Tech edit -> sibling tech docs re-validate.
         let p = "/home/embi/mod/common/technologies/infantry.txt";
-        let affected = dependency_affected_prefixes(p);
+        let affected = dependency_affected_prefixes(p, "definition.csv");
         assert!(
             affected.contains(&"/common/technologies/"),
             "tech file edits must re-validate /common/technologies/, got {affected:?}"
@@ -2347,7 +2565,10 @@ mod tests {
 
         // The function normalizes separators internally — raw PathBuf
         // spellings must classify identically.
-        let win = dependency_affected_prefixes("C:\\mod\\common\\technologies\\tree.txt");
+        let win = dependency_affected_prefixes(
+            "C:\\mod\\common\\technologies\\tree.txt",
+            "definition.csv",
+        );
         assert!(
             win.contains(&"/common/technologies/"),
             "backslash-spelled tech paths must classify identically, got {win:?}"
@@ -2358,7 +2579,7 @@ mod tests {
         // a tags file renders from other registries' data (compare the
         // scripted_triggers arm, which also pushes only its consumers).
         let tags = "/home/embi/mod/common/technology_tags/00_technology.txt";
-        let affected_tags = dependency_affected_prefixes(tags);
+        let affected_tags = dependency_affected_prefixes(tags, "definition.csv");
         assert!(
             affected_tags.contains(&"/common/technologies/"),
             "tag edits must re-validate consuming /common/technologies/, got {affected_tags:?}"
@@ -2369,7 +2590,7 @@ mod tests {
         );
 
         // No cross-contamination from unrelated directories.
-        let ideas = dependency_affected_prefixes("/mod/common/ideas/usa.txt");
+        let ideas = dependency_affected_prefixes("/mod/common/ideas/usa.txt", "definition.csv");
         assert!(!ideas.contains(&"/common/technologies/"));
         assert!(!ideas.contains(&"/common/technology_tags/"));
     }
@@ -2414,11 +2635,11 @@ mod tests {
     #[test]
     fn test_classify_decision_categories_path() {
         let cat = "/mod/common/decisions/categories/eth_categories.txt";
-        let cats = classify_file(cat);
+        let cats = classify_file(cat, "definition.csv");
         assert!(cats.contains(&FileCategory::DecisionCategories));
         // A decision body file in the same dir is a Decisions file, not categories.
         let body = "/mod/common/decisions/some_decisions.txt";
-        let body_cats = classify_file(body);
+        let body_cats = classify_file(body, "definition.csv");
         assert!(body_cats.contains(&FileCategory::Decisions));
         assert!(!body_cats.contains(&FileCategory::DecisionCategories));
     }
@@ -2451,14 +2672,14 @@ mod tests {
     #[test]
     fn test_classify_focus_paths() {
         let nf = "/mod/common/national_focus/finland.txt";
-        let cats = classify_file(nf);
+        let cats = classify_file(nf, "definition.csv");
         assert!(
             cats.contains(&FileCategory::Focuses),
             "common/national_focus/*.txt should classify as Focuses"
         );
 
         let cf = "/mod/common/continuous_focus/generic.txt";
-        let cats_cf = classify_file(cf);
+        let cats_cf = classify_file(cf, "definition.csv");
         assert!(
             cats_cf.contains(&FileCategory::Focuses),
             "common/continuous_focus/*.txt should classify as Focuses"

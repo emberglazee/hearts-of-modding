@@ -259,7 +259,7 @@ fn test_incremental_update_replaces_file_entries() {
     let data = ScannerData::new();
     let path = "/mod/common/technologies/my_techs.txt";
 
-    update_scanner_data_for_file(&data, path, VANILLA_TECH);
+    update_scanner_data_for_file(&data, path, VANILLA_TECH, "definition.csv");
     assert_eq!(data.technologies.len(), 3);
     assert!(data.technologies.contains_key("infantry_weapons"));
 
@@ -276,13 +276,14 @@ fn test_incremental_update_replaces_file_entries() {
         &data,
         path,
         "technologies = { infantry_weapons = { start_year = 1918 } }",
+        "definition.csv",
     );
     assert_eq!(data.technologies.len(), 1);
     assert!(data.technologies.contains_key("infantry_weapons"));
     assert!(!data.technologies.contains_key("xor_tech_a"));
 
     // Delete the file → all its techs removed, dep graph scrubbed
-    remove_path_from_scanner_data(&data, path);
+    remove_path_from_scanner_data(&data, path, "definition.csv");
     assert!(data.technologies.is_empty());
 }
 
@@ -294,7 +295,7 @@ fn test_incremental_update_maintains_dep_graph() {
     let data = ScannerData::new();
     let path = "/mod/common/technologies/tree.txt";
 
-    update_scanner_data_for_file(&data, path, VANILLA_TECH);
+    update_scanner_data_for_file(&data, path, VANILLA_TECH, "definition.csv");
 
     // infantry_weapons -> infantry_weapons1 -> infantry_weapons2 edge exists
     assert!(
@@ -317,6 +318,7 @@ fn test_incremental_update_maintains_dep_graph() {
         &data,
         path,
         "technologies = { infantry_weapons = { start_year = 1918 } }",
+        "definition.csv",
     );
     assert!(
         data.tech_dep_graph
@@ -382,7 +384,12 @@ fn test_entity_lookup_finds_technology() {
 
     let data = ScannerData::new();
     let path = "/mod/common/technologies/test.txt";
-    crate::scanner::incremental_scanner::update_scanner_data_for_file(&data, path, VANILLA_TECH);
+    crate::scanner::incremental_scanner::update_scanner_data_for_file(
+        &data,
+        path,
+        VANILLA_TECH,
+        "definition.csv",
+    );
 
     let lookup = EntityLookup::new(&data);
 
@@ -424,7 +431,12 @@ fn test_entity_lookup_finds_technology_tag() {
 
     let data = ScannerData::new();
     let path = "/mod/common/technology_tags/test.txt";
-    crate::scanner::incremental_scanner::update_scanner_data_for_file(&data, path, VANILLA_TAGS);
+    crate::scanner::incremental_scanner::update_scanner_data_for_file(
+        &data,
+        path,
+        VANILLA_TAGS,
+        "definition.csv",
+    );
 
     let lookup = EntityLookup::new(&data);
 
@@ -700,7 +712,7 @@ fn test_delete_scrubs_tech_dep_graph_with_backslash_path_spelling() {
 
     // Insert with the forward-slash spelling (what the LSP handlers feed).
     let insert_path = "/mod/common/technologies/tree.txt";
-    update_scanner_data_for_file(&data, insert_path, VANILLA_TECH);
+    update_scanner_data_for_file(&data, insert_path, VANILLA_TECH, "definition.csv");
     assert_eq!(
         data.tech_dep_graph.caller_count("infantry_weapons1"),
         1,
@@ -711,7 +723,7 @@ fn test_delete_scrubs_tech_dep_graph_with_backslash_path_spelling() {
     // macros normalize both sides, so removal itself works either way — but
     // the stale-edge scrub silently no-ops when the pre-read misses.
     let delete_path = "\\mod\\common\\technologies\\tree.txt";
-    remove_path_from_scanner_data(&data, delete_path);
+    remove_path_from_scanner_data(&data, delete_path, "definition.csv");
 
     assert!(
         data.technologies.is_empty(),

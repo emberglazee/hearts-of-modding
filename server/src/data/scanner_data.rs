@@ -105,6 +105,8 @@ pub(crate) struct ScannerData {
     pub arrays_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub event_targets: DashMap<InternedStr, Vec<variable_scanner::EventTarget>>,
     pub provinces: DashMap<u32, province_scanner::Province>,
+    /// Reverse index for incremental updates: file path → province ids it declares.
+    pub provinces_file_index: DashMap<InternedStr, Vec<u32>>,
     pub custom_modifiers: DashMap<InternedStr, LayeredValue<modifier_scanner::Modifier>>,
     pub decisions: DashMap<InternedStr, LayeredValue<decision_scanner::Decision>>,
     pub decision_categories: DashMap<InternedStr, LayeredValue<()>>,
@@ -284,6 +286,7 @@ impl ScannerData {
             technology_tags: DashMap::new(),
             states: DashMap::new(),
             states_file_index: DashMap::new(),
+            provinces_file_index: DashMap::new(),
             oob_division_templates: DashMap::new(),
             oob_fleets: DashMap::new(),
             event_namespaces: DashMap::new(),
@@ -426,6 +429,7 @@ impl ScannerData {
         rebuild_index!(self.country_tags, self.country_tags_file_index);
         rebuild_index_flat!(self.strategic_regions, self.strategic_regions_file_index);
         rebuild_index_flat!(self.states, self.states_file_index);
+        rebuild_index_flat!(self.provinces, self.provinces_file_index);
         rebuild_index!(
             self.oob_division_templates,
             self.oob_division_templates_file_index

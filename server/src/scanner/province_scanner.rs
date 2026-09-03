@@ -126,19 +126,33 @@ where
     let mut provinces = HashMap::new();
 
     crate::utils::fs_util::parse_winning_files(files, filter, |path, content| {
-        for (line_idx, line) in content.lines().enumerate() {
-            let parts: Vec<&str> = line.split(';').collect();
-            if parts.len() >= 8
-                && let Ok(id) = parts[0].parse::<u32>()
-            {
-                insert_province(id, line_idx, line, &parts, path, &mut provinces);
-            } else if let Some(id_str) = parts.first() {
-                if let Ok(id) = id_str.parse::<u32>() {
-                    insert_province(id, line_idx, line, &parts, path, &mut provinces);
-                }
-            }
-        }
+        let parsed = parse_definition_csv(&content, path);
+        provinces.extend(parsed);
     });
 
+    provinces
+}
+
+/// Parse definition.csv CONTENT into provinces. Shared by the startup scan
+/// (`scan_province_files`) and the incremental updater so an edit+save lands
+/// in exactly the state a fresh scan would produce. Line-based by design:
+/// csv rows are not HOI4 script and must never go through `parse_script`.
+pub(crate) fn parse_definition_csv(
+    content: &str,
+    path: &std::path::Path,
+) -> HashMap<u32, Province> {
+    let mut provinces = HashMap::new();
+    for (line_idx, line) in content.lines().enumerate() {
+        let parts: Vec<&str> = line.split(';').collect();
+        if parts.len() >= 8
+            && let Ok(id) = parts[0].parse::<u32>()
+        {
+            insert_province(id, line_idx, line, &parts, path, &mut provinces);
+        } else if let Some(id_str) = parts.first() {
+            if let Ok(id) = id_str.parse::<u32>() {
+                insert_province(id, line_idx, line, &parts, path, &mut provinces);
+            }
+        }
+    }
     provinces
 }
