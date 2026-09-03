@@ -931,17 +931,15 @@ impl Backend {
                             let start = ass.key_range.end_col as usize;
                             let end = ass.value.range.start_col as usize;
                             if start <= end && end <= line.len() {
+                                // Build an AST range and convert via mapper to get UTF-16 columns
+                                let op_range = ast::Range {
+                                    start_line: ass.key_range.end_line,
+                                    start_col: ass.key_range.end_col,
+                                    end_line: ass.value.range.start_line,
+                                    end_col: ass.value.range.start_col,
+                                };
                                 diagnostics.push(Diagnostic {
-                                    range: Range {
-                                        start: Position {
-                                            line: ass.key_range.end_line,
-                                            character: start as u32,
-                                        },
-                                        end: Position {
-                                            line: ass.value.range.start_line,
-                                            character: end as u32,
-                                        },
-                                    },
+                                    range: mapper.range(&op_range),
                                     severity: Some(DiagnosticSeverity::INFORMATION),
                                     code: Some(NumberOrString::String(
                                         "styling_assignment_space".to_string(),

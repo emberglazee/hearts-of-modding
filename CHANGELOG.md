@@ -26,6 +26,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Fixed overlapping TextEdits in "Fix all styling issues" code action by sorting and merging edits to prevent VS Code rejection.**
 
+- **Fixed assignment spacing diagnostics to emit UTF-16 columns instead of raw bytes, ensuring correct placement on unicode lines.**
+
 ### 🧹 Internal
 
 - **Renamed `hoi4_data_v2.json` to `hoi4_data.json`.**
