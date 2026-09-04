@@ -28,6 +28,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Fixed assignment spacing diagnostics to emit UTF-16 columns instead of raw bytes, ensuring correct placement on unicode lines.**
 
+- **Fixed decorator loc color highlighting lagging one keystroke behind when completing color code pairs.**
+
 ### 🧹 Internal
 
 - **Renamed `hoi4_data_v2.json` to `hoi4_data.json`.**

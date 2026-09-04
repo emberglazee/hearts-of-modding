@@ -17,6 +17,8 @@ const WIKI_DEFAULT_COLORS: Record<string, string> = {
     'Y': '#FFBD00', // Yellow
     'H': '#FFBD00', // Header / yellow (same as Y)
     'O': '#FF7019', // Orange
+    'W': '#FFFFFF', // White
+    'T': '#FFFFFF', // Title (same as W)
     '0': '#CB00CB', // Purple (Gradient Step 0)
     '1': '#8078D3', // Lilac (Gradient Step 1)
     '2': '#5170F3', // Blue (Gradient Step 2)
@@ -75,11 +77,12 @@ export class LocColorDecorator {
 
         // Decorate when the document content changes (typing, undo, etc.).
         // Fast path: a full re-scan is only needed when something structural
-        // changed — a § marker was inserted, a string boundary (quote or
+        // changed — a § marker was inserted, a marker pair was completed
+        // (typing the second char of §X), a string boundary (quote or
         // newline) moved, or text was deleted. Pure insertions of ordinary
-        // text leave the existing decoration ranges valid (VS Code shifts
-        // ranges automatically with edits), so skipping the O(document) scan
-        // there is both faster and correct.
+        // text on marker-free lines leave the existing decoration ranges
+        // valid (VS Code shifts ranges automatically with edits), so
+        // skipping the O(document) scan there is both faster and correct.
         this.disposables.push(
             vscode.workspace.onDidChangeTextDocument(event => {
                 const editor = vscode.window.activeTextEditor
@@ -91,6 +94,12 @@ export class LocColorDecorator {
                     || c.text.includes('§') // marker added
                     || c.text.includes('"') // string end may have moved
                     || c.text.includes('\n') // line structure changed
+                    // Second char of a §X pair typed (e.g. invalid §m fixed
+                    // into §Y, or lone § completed into §!): plain-text
+                    // insert with no § in it, so the checks above miss it.
+                    // The edited line holds a § in the new document, so a
+                    // marker may have appeared or changed meaning — rescan.
+                    || this.editedLineHasMarker(event.document, c.range.start.line)
                 )
                 if (!needsRescan) return
                 this.scheduleDecorations(editor)
@@ -114,6 +123,15 @@ export class LocColorDecorator {
                 this.updateDecorations(current)
             }
         }, 100)
+    }
+
+    /**
+     * Whether a document line contains a § marker in its current text.
+     * Out-of-range lines (possible mid-edit) report false.
+     */
+    private editedLineHasMarker(document: vscode.TextDocument, line: number): boolean {
+        if (line < 0 || line >= document.lineCount) return false
+        return document.lineAt(line).text.includes('§')
     }
 
     /**
