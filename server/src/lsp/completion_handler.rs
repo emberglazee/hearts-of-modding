@@ -421,11 +421,9 @@ impl Backend {
                         if last_word.eq_ignore_ascii_case("array")
                             || last_word.eq_ignore_ascii_case("temp_array")
                         {
-                            let current_scope_for_filter = current_scopes
-                                .last()
-                                .copied()
-                                .unwrap_or(scope::Scope::Global)
-                                .effective_scope();
+                            let current_scope_for_filter =
+                                scope::Scope::pick_inferred_scope(&current_scopes)
+                                    .effective_scope();
                             let mut array_items = Vec::new();
                             for var in crate::data::hoi4_data::get_dynamic_variables().values() {
                                 if !var.is_array {
@@ -489,11 +487,9 @@ impl Backend {
                             || last_word.eq_ignore_ascii_case("variable")
                             || last_word.eq_ignore_ascii_case("temp_var")
                         {
-                            let current_scope_for_filter = current_scopes
-                                .last()
-                                .copied()
-                                .unwrap_or(scope::Scope::Global)
-                                .effective_scope();
+                            let current_scope_for_filter =
+                                scope::Scope::pick_inferred_scope(&current_scopes)
+                                    .effective_scope();
                             let mut var_items = Vec::new();
                             for var in crate::data::hoi4_data::get_dynamic_variables().values() {
                                 // Offer scalars and arrays both for `var =`,
@@ -699,11 +695,7 @@ impl Backend {
 
         let mut items = Vec::new();
 
-        let current_scope = current_scopes
-            .last()
-            .copied()
-            .unwrap_or(scope::Scope::Global)
-            .effective_scope();
+        let current_scope = scope::Scope::pick_inferred_scope(&current_scopes).effective_scope();
 
         // Static triggers + effects, prebuilt per scope and cached (cheap clone).
         let scope_items = scope_trigger_effect_items(current_scope);

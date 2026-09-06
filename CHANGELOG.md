@@ -16,6 +16,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Incremental `map/definition.csv` tracking.**
 
+- **Scope-aware completion filtering.** Trigger, effect, and dynamic variable completions now pick the narrowest scope from the scope stack (Character/Unit outrank State, State outranks Country) instead of always using the outermost scope, so out-of-scope suggestions are filtered out.
+
 ### 🩹 Fixed
 
 - **Fixed accidental double colons by Format Document for localization.**

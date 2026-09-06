@@ -116,6 +116,58 @@ impl Scope {
         }
     }
 
+    /// Specificity rank for completion filtering. Higher means more specific,
+    /// so when the scope stack holds several non-transparent scopes we pick
+    /// the narrowest one and water down completions to the user context.
+    /// Tiers: 5 narrow runtime scopes, 4 entity-defining scopes,
+    /// 3 State, 2 Country, 1 Global and file-level markers,
+    /// 0 Unknown and ModifierBag (no useful filtering semantics).
+    pub fn scope_tier_rank(&self) -> u8 {
+        match self {
+            Scope::Unit | Scope::Character | Scope::Ace | Scope::StrategicRegion => 5,
+            Scope::Idea
+            | Scope::MusicTrack
+            | Scope::MusicStation
+            | Scope::Achievement
+            | Scope::HiddenIdeaCategory
+            | Scope::Ribbon => 4,
+            Scope::State => 3,
+            Scope::Country => 2,
+            Scope::Global
+            | Scope::Technologies
+            | Scope::TechnologyTags
+            | Scope::TechnologyCategories
+            | Scope::TechnologyFolders
+            | Scope::OnActions
+            | Scope::ScriptedEffect
+            | Scope::ScriptedTrigger
+            | Scope::FocusTree
+            | Scope::NationalFocus => 1,
+            Scope::Unknown | Scope::ModifierBag => 0,
+        }
+    }
+
+    /// Pick the most specific scope from the stack for completion filtering.
+    /// Transparent scopes (ModifierBag, Unknown) are skipped; an empty or
+    /// fully transparent stack falls back to Global.
+    pub fn pick_inferred_scope(scopes: &[Scope]) -> Scope {
+        let mut best_scope = Scope::Global;
+        let mut best_rank = 0u8;
+        let mut found = false;
+        for scope in scopes.iter().copied() {
+            if scope == Scope::ModifierBag || scope == Scope::Unknown {
+                continue;
+            }
+            let rank = scope.scope_tier_rank();
+            if !found || rank > best_rank {
+                found = true;
+                best_rank = rank;
+                best_scope = scope;
+            }
+        }
+        best_scope
+    }
+
     /// Map an `on_*` action name to its runtime scope.
     ///
     /// Data collected from wiki + vanilla `common/on_actions/*.txt` + `_documentation.md`:
@@ -719,5 +771,35 @@ impl ScopeStack {
         }
 
         (s, false)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Scope;
+
+    #[test]
+    fn test_pick_inferred_scope_prefers_narrowest() {
+        // Character outranks Country and State.
+        assert_eq!(
+            Scope::pick_inferred_scope(&[Scope::Country, Scope::State, Scope::Character]),
+            Scope::Character
+        );
+        // State outranks Country.
+        assert_eq!(
+            Scope::pick_inferred_scope(&[Scope::Country, Scope::State]),
+            Scope::State
+        );
+        // Transparent scopes are skipped.
+        assert_eq!(
+            Scope::pick_inferred_scope(&[Scope::Country, Scope::ModifierBag, Scope::Unknown]),
+            Scope::Country
+        );
+        // Empty or fully transparent stacks fall back to Global.
+        assert_eq!(Scope::pick_inferred_scope(&[]), Scope::Global);
+        assert_eq!(
+            Scope::pick_inferred_scope(&[Scope::ModifierBag, Scope::Unknown]),
+            Scope::Global
+        );
     }
 }
