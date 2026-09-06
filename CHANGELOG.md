@@ -26,7 +26,7 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Removed range-less duplicate terrain check (HOM5005).**
 
-- **Fixed overlapping TextEdits in "Fix all styling issues" code action by sorting and merging edits to prevent VS Code rejection.**
+- **Fixed "Fix all styling issues" code action silently applying nothing.** The overlap fold sorted edits in reverse document order but kept an ascending-order overlap check, so every edit was treated as overlapping and stacked onto one range — VS Code rejected the whole edit; the fold now sorts ascending, drops duplicates, and keeps the earlier fix on genuine overlaps, and the bulk brace fix uses the same fold for its nested-block ranges.
 
 - **Fixed assignment spacing diagnostics to emit UTF-16 columns instead of raw bytes, ensuring correct placement on unicode lines.**
 

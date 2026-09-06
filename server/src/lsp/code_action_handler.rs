@@ -673,6 +673,10 @@ impl Backend {
                                 new_text: text,
                             })
                             .collect();
+                        // Nested single-line blocks emit nested (overlapping) ranges
+                        // (the outer block value contains the inner one) — fold them
+                        // so VS Code doesn't reject the whole edit.
+                        let edits = Self::merge_style_edits(edits);
 
                         changes.insert(params.text_document.uri.clone(), edits);
 
@@ -914,32 +918,7 @@ impl Backend {
                     }
 
                     if !all_changes.is_empty() {
-                        // Sort edits in reverse document order (end → start) so we can merge overlaps
-                        // without index shifting. Then deduplicate overlapping ranges.
-                        all_changes.sort_by_key(|b| std::cmp::Reverse(b.range.start));
-                        let mut merged = Vec::new();
-                        for edit in &all_changes {
-                            if merged.is_empty() {
-                                merged.push(edit.clone());
-                            } else {
-                                let last = merged.last().unwrap();
-                                // If current edit starts after or at the end of the last merged edit,
-                                // they don't overlap — add it. Otherwise merge by extending the last edit's
-                                // range and choosing the later new_text (or the last one, since they should
-                                // be compatible after sorting).
-                                if edit.range.start >= last.range.end {
-                                    merged.push(edit.clone());
-                                } else {
-                                    // Overlapping: extend the range to cover both, keep the last new_text
-                                    let combined_end =
-                                        std::cmp::max(last.range.end, edit.range.end);
-                                    let mut combined = last.clone();
-                                    combined.range.end = combined_end;
-                                    combined.new_text = edit.new_text.clone();
-                                    merged.push(combined);
-                                }
-                            }
-                        }
+                        let merged = Self::merge_style_edits(all_changes);
                         let mut changes = HashMap::new();
                         changes.insert(params.text_document.uri.clone(), merged);
                         actions.push(CodeActionOrCommand::CodeAction(CodeAction {
@@ -1053,6 +1032,31 @@ impl Backend {
             Ok(Some(actions))
         }
     }
+
+    /// Fold styling `TextEdit`s into a set VS Code will actually apply.
+    ///
+    /// `WorkspaceEdit.changes` must not contain overlapping ranges — VS Code
+    /// rejects the whole edit otherwise, which made "Fix all styling issues"
+    /// silently do nothing. Sorts into document order, drops exact
+    /// duplicates, and on a genuine partial overlap keeps the earlier fix and
+    /// drops the later one: splicing text from two different fixes would
+    /// corrupt the line, and the dropped issue resurfaces on the next run
+    /// once the winner is applied. Touching ranges (`start == end`) are legal
+    /// LSP and are all kept.
+    pub(crate) fn merge_style_edits(mut edits: Vec<TextEdit>) -> Vec<TextEdit> {
+        edits.sort_by_key(|e| (e.range.start, e.range.end));
+        let mut merged: Vec<TextEdit> = Vec::with_capacity(edits.len());
+        for edit in edits {
+            let dominated = match merged.last() {
+                Some(last) => edit.range.start < last.range.end,
+                None => false,
+            };
+            if !dominated {
+                merged.push(edit);
+            }
+        }
+        merged
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -1061,7 +1065,111 @@ impl Backend {
 
 #[cfg(test)]
 mod tests {
+    use crate::Backend;
     use crate::utils::line_index::LineIndex;
+    use tower_lsp_server::ls_types::{Position, Range, TextEdit};
+
+    fn style_edit(sl: u32, sc: u32, el: u32, ec: u32, text: &str) -> TextEdit {
+        TextEdit {
+            range: Range {
+                start: Position {
+                    line: sl,
+                    character: sc,
+                },
+                end: Position {
+                    line: el,
+                    character: ec,
+                },
+            },
+            new_text: text.to_string(),
+        }
+    }
+
+    /// Adjacent-pair check suffices: output is sorted ascending by (start, end),
+    /// so if no neighbour pair overlaps, no pair does.
+    fn assert_no_overlaps(edits: &[TextEdit]) {
+        for w in edits.windows(2) {
+            assert!(
+                w[0].range.end <= w[1].range.start,
+                "overlapping edits: {:?} and {:?}",
+                w[0].range,
+                w[1].range
+            );
+        }
+    }
+
+    /// REGRESSION: the "Fix all styling issues" merge sorted edits in REVERSE
+    /// document order but kept an ascending-order overlap check
+    /// (`edit.start >= last.end`), so every earlier edit fell into the
+    /// "overlapping" branch and got stacked onto the last edit's range with a
+    /// foreign replacement text. VS Code rejects overlapping TextEdits, so the
+    /// action silently applied nothing. Disjoint edits must all survive with
+    /// their own ranges intact.
+    #[test]
+    fn test_merge_keeps_disjoint_edits_with_own_ranges() {
+        let edits = vec![
+            style_edit(10, 0, 10, 3, "\t"),
+            style_edit(1, 14, 1, 16, " = "),
+            style_edit(5, 0, 5, 5, ""),
+        ];
+        let merged = Backend::merge_style_edits(edits);
+        assert_eq!(
+            merged.len(),
+            3,
+            "disjoint edits must all survive, got {merged:?}"
+        );
+        assert_eq!(merged[0].range.start.line, 1);
+        assert_eq!(merged[1].range.start.line, 5);
+        assert_eq!(merged[2].range.start.line, 10);
+        assert_eq!(merged[0].new_text, " = ");
+        assert_eq!(merged[1].new_text, "");
+        assert_eq!(merged[2].new_text, "\t");
+        assert_no_overlaps(&merged);
+    }
+
+    #[test]
+    fn test_merge_drops_exact_duplicates() {
+        let edits = vec![
+            style_edit(2, 0, 2, 4, "    "),
+            style_edit(2, 0, 2, 4, "    "),
+        ];
+        let merged = Backend::merge_style_edits(edits);
+        assert_eq!(
+            merged.len(),
+            1,
+            "exact duplicates must collapse, got {merged:?}"
+        );
+    }
+
+    /// Nested single-line blocks (`a = { b = { c=1 } }`) make
+    /// `collect_brace_space_fixes` emit an outer fix whose range contains the
+    /// inner fix's range. The earlier (outer) fix wins; splicing the two
+    /// texts together would corrupt the line.
+    #[test]
+    fn test_merge_keeps_earlier_on_nested_overlap() {
+        let edits = vec![
+            style_edit(0, 9, 0, 18, "{ c = 1 }"),
+            style_edit(0, 4, 0, 20, "{ b = { c = 1 } }"),
+        ];
+        let merged = Backend::merge_style_edits(edits);
+        assert_eq!(
+            merged.len(),
+            1,
+            "nested overlap must fold to one edit, got {merged:?}"
+        );
+        assert_eq!(merged[0].new_text, "{ b = { c = 1 } }");
+        assert_no_overlaps(&merged);
+    }
+
+    #[test]
+    fn test_merge_keeps_touching_edits() {
+        // Touching ranges (end == start) are legal LSP — e.g. trailing-ws
+        // removal ending where the EOF-newline insert begins.
+        let edits = vec![style_edit(7, 20, 7, 25, ""), style_edit(7, 25, 7, 25, "\n")];
+        let merged = Backend::merge_style_edits(edits);
+        assert_eq!(merged.len(), 2, "touching edits are legal, got {merged:?}");
+        assert_no_overlaps(&merged);
+    }
 
     /// REGRESSION: the styling code actions sliced the document line with the
     /// UTF-16 columns that arrived in `diagnostic.range` from the client.
