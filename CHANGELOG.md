@@ -2,6 +2,14 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
+## [v0.30.1] - 2026-09-07
+
+### 🧹 Internal
+
+- **Bumped extension dev dependencies:**
+
+  - `eslint` v10.9.1 -> v10.10.0
+
 ## [v0.30.0] - 2026-09-07
 
 ### ✨ Added
