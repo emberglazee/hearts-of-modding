@@ -2,6 +2,9 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
+| ℹ️ | If the last version here is not released yet, it's still in development. |
+|----|:-------------------------------------------------------------------------|
+
 ## [v0.30.1] - 2026-09-07
 
 ### 🧹 Internal
