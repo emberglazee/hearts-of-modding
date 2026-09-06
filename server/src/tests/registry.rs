@@ -308,6 +308,7 @@ fn test_entity_at_variables_via_file_index() {
                 end_line: 1,
                 end_col: 10,
             },
+            scope: crate::scope::scope::Scope::Unknown,
         }],
     );
     data.variables_file_index.insert(
@@ -351,6 +352,7 @@ fn test_rebuild_all_file_indices_includes_variables() {
                 end_line: 0,
                 end_col: 5,
             },
+            scope: crate::scope::scope::Scope::Unknown,
         }],
     );
 

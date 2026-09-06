@@ -12,6 +12,13 @@ pub struct Variable {
     pub name: String,
     pub path: InternedStr,
     pub range: ast::Range,
+    /// Statically inferred scope of the stored value (`Scope::Unknown` when
+    /// the value is numeric, contextual (THIS/PREV/ROOT), or otherwise not a
+    /// statically known scope reference). Used to resolve `var:name = { }`
+    /// scope blocks. Only TAG-anchored values (`HAB`, `HAB.id`) infer
+    /// `Country` — everything else stays `Unknown` (false negatives over
+    /// false positives).
+    pub scope: Scope,
 }
 
 #[derive(Debug, Clone)]
@@ -211,31 +218,79 @@ fn handle_variable_assignment(
     match &ass.value.value {
         ast::Value::String(name_span) => {
             let name = name_span.resolve(source).to_string();
-            add_variable(variables, name, path, &ass.value.range);
+            add_variable(variables, name, path, &ass.value.range, Scope::Unknown);
         }
         ast::Value::Block(inner) => {
             let mut found_var = false;
+            let mut value_text: Option<String> = None;
+            // Collect (name, value) pairs. A block normally holds one
+            // variable op; handle each `var=`-style entry so multi-entry
+            // blocks don't silently drop definitions. `value` may come
+            // before `var`, so insert only after the full scan.
+            let mut pending: Vec<(String, ast::Range)> = Vec::new();
             for entry in inner {
                 if let ast::Entry::Assignment(inner_ass) = entry {
                     let key = inner_ass.key_text(source);
-                    // Long form: var = xxx, variable = xxx, name = xxx, temp_var = xxx
                     if key == "var" || key == "variable" || key == "name" || key == "temp_var" {
                         if let Some(name) = inner_ass.value.value.as_str(source) {
-                            add_variable(variables, name.to_string(), path, &inner_ass.value.range);
+                            pending.push((name.to_string(), inner_ass.value.range.clone()));
                             found_var = true;
+                        }
+                    } else if key.eq_ignore_ascii_case("value") {
+                        if value_text.is_none() {
+                            if let Some(v) = inner_ass.value.value.as_str(source) {
+                                value_text = Some(v.to_string());
+                            }
                         }
                     }
                 }
+            }
+            for (name, range) in pending {
+                let scope = value_text
+                    .as_deref()
+                    .map(infer_var_scope_from_value_text)
+                    .unwrap_or(Scope::Unknown);
+                add_variable(variables, name, path, &range, scope);
             }
             // Shorthand form: no explicit var/temp_var found, treat single-entry key as variable name
             if !found_var && inner.len() == 1 {
                 if let ast::Entry::Assignment(inner_ass) = &inner[0] {
                     let var_name = inner_ass.key_text(source).to_string();
-                    add_variable(variables, var_name, path, &inner_ass.key_range);
+                    let scope = inner_ass
+                        .value
+                        .value
+                        .as_str(source)
+                        .map(infer_var_scope_from_value_text)
+                        .unwrap_or(Scope::Unknown);
+                    add_variable(variables, var_name, path, &inner_ass.key_range, scope);
                 }
             }
         }
         _ => {}
+    }
+}
+
+/// Infer the scope of a variable's stored value from its raw RHS text.
+///
+/// Only TAG-anchored references are certain: `HAB`, `VN6`, `HAB.id`,
+/// `DEN.supporting_nation`-style values whose head segment is a
+/// syntactically valid country tag resolve to `Country` (mirrors
+/// `Scope::from_str`'s tag handling). Everything else — numerics,
+/// contextual pointers (THIS/PREV/ROOT/FROM), game variables,
+/// `token:` literals — is `Unknown`. Callers treat `Unknown` as
+/// "can't resolve" and keep the current safe behaviour (skip HOM004).
+fn infer_var_scope_from_value_text(val: &str) -> Scope {
+    let head = val.split(['.', ':']).next().unwrap_or("").trim();
+    // Strip a `var:`/`temp_var:` value wrapper (`set_variable = { x = var:y }`
+    // stores whatever `y` holds — which we can't see here).
+    let head_upper = head.to_ascii_uppercase();
+    if head_upper.starts_with("VAR:") || head_upper.starts_with("TEMP_VAR:") {
+        return Scope::Unknown;
+    }
+    if crate::scanner::country_scanner::is_valid_tag(head) {
+        Scope::Country
+    } else {
+        Scope::Unknown
     }
 }
 
@@ -311,11 +366,13 @@ fn add_variable(
     name: String,
     path: &str,
     range: &ast::Range,
+    scope: Scope,
 ) {
     let entry = Variable {
         name: name.clone(),
         path: std::sync::Arc::from(path),
         range: range.clone(),
+        scope,
     };
     variables.entry(name).or_default().push(entry);
 }

@@ -486,6 +486,7 @@ fn test_scope_resolution_for_technology_tag_containers() {
         event_targets: None,
         characters: None,
         achievements: None,
+        variables: None,
         in_random_list: false,
         state_targeted: false,
     };

@@ -183,6 +183,7 @@ fn walk_entries(
                         event_targets: Some(ctx.event_targets),
                         characters: Some(ctx.characters),
                         achievements: None,
+                        variables: Some(ctx.variables),
                         in_random_list,
                         state_targeted,
                     },

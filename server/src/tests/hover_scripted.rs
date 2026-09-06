@@ -16,6 +16,7 @@ fn scopes_at(content: &str, uri: &str, line: u32, ch: u32) -> Vec<Scope> {
         event_targets: Some(&event_targets),
         characters: Some(&characters),
         achievements: Some(&achievements),
+        variables: None,
         in_random_list: false,
         state_targeted: false,
     };

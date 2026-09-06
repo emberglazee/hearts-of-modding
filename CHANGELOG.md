@@ -18,6 +18,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Scope-aware completion filtering.**
 
+- **Resolved `var:` / `temp_var:` scope blocks from tracked variable definitions.**
+
 ### 🩹 Fixed
 
 - **Fixed accidental double colons by Format Document for localization.**

@@ -237,6 +237,8 @@ async fn cli_validate(path: &str, scope_validation: bool) {
     > = DashMap::new();
     let event_targets: DashMap<InternedStr, Vec<crate::scanner::variable_scanner::EventTarget>> =
         DashMap::new();
+    let variables: DashMap<InternedStr, Vec<crate::scanner::variable_scanner::Variable>> =
+        DashMap::new();
     let event_namespaces: DashMap<
         InternedStr,
         LayeredValue<crate::scanner::event_namespace_scanner::EventNamespace>,
@@ -286,6 +288,7 @@ async fn cli_validate(path: &str, scope_validation: bool) {
         workspace_roots: &[],
         unit_types: &unit_types,
         event_targets: &event_targets,
+        variables: &variables,
         event_namespaces: &event_namespaces,
         events: &events,
         decisions: &decisions,

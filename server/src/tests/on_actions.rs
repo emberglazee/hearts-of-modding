@@ -239,6 +239,7 @@ fn test_initial_scope_and_on_actions_wrapper() {
         event_targets: Some(&empty),
         characters: Some(&chars),
         achievements: None,
+        variables: None,
         in_random_list: false,
         state_targeted: false,
     };
@@ -272,6 +273,7 @@ fn test_nested_on_key_not_treated_as_on_action() {
         event_targets: Some(&empty),
         characters: Some(&chars),
         achievements: None,
+        variables: None,
         in_random_list: false,
         state_targeted: false,
     };

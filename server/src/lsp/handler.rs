@@ -1268,6 +1268,7 @@ impl LanguageServer for Backend {
                     event_targets: Some(&self.scanner_data.event_targets),
                     characters: Some(&self.scanner_data.characters),
                     achievements: Some(&self.scanner_data.achievements),
+                    variables: Some(&self.scanner_data.variables),
                     in_random_list: false,
                     state_targeted: false,
                 };
@@ -1333,6 +1334,7 @@ impl LanguageServer for Backend {
                 event_targets: Some(&self.scanner_data.event_targets),
                 characters: Some(&self.scanner_data.characters),
                 achievements: Some(&self.scanner_data.achievements),
+                variables: Some(&self.scanner_data.variables),
                 in_random_list: false,
                 state_targeted: false,
             };

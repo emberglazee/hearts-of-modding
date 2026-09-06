@@ -632,3 +632,147 @@ fn test_typo_still_flags() {
         "typo should still flag"
     );
 }
+
+// ── `var:` scope blocks ──
+//
+// `var:UNO_target = { ... }` runs in whatever scope the variable holds.
+// The scanner infers Country for TAG-anchored values (`HAB.id`); anything
+// ambiguous stays Unknown so HOM004 keeps skipping (false negatives over
+// false positives). `compliance` is a State-only trigger with no Country
+// exception, so it flags HOM004 if and only if the block resolved Country.
+
+#[test]
+fn test_var_scope_block_resolves_country_from_tag_valued_definition() {
+    // Real-world shape: Hearts-Of-Minecraft BOH_spf_decisions.txt
+    // (`set_variable = { UNO_target = HAB.id }` + `var:UNO_target` blocks).
+    let ctx = TestCtx::new().with_scope_validation(true).with_file(
+        "/mod/common/decisions/BOH_spf_decisions.txt",
+        "SPF_Diana_UN = {\n\tSPF_focus_on_appon = {\n\t\tcomplete_effect = {\n\t\t\tset_variable = { UNO_target = HAB.id }\n\t\t}\n\t}\n}\n",
+    );
+    let uri = "/mod/common/decisions/BOH_spf_decisions.txt";
+    let diags = ctx.walk(
+        "SPF_Invite_to_faction = {\n\tavailable = {\n\t\tvar:UNO_target = {\n\t\t\tcompliance > 50\n\t\t}\n\t}\n}\n",
+        uri,
+        initial_scope_for_uri(uri),
+        vec![Box::new(V2ScopeRule)],
+        vec![],
+    );
+    assert!(
+        diags
+            .iter()
+            .any(|d| format!("{:?}", d.code).contains("HOM004")),
+        "state-only 'compliance' inside var:UNO_target (Country) should flag HOM004, got: {:?}",
+        diags
+    );
+}
+
+#[test]
+fn test_var_scope_block_unknown_variable_skips_scope_validation() {
+    let ctx = TestCtx::new().with_scope_validation(true);
+    let uri = "/mod/common/decisions/test.txt";
+    let diags = ctx.walk(
+        "SPF_Invite_to_faction = {\n\tavailable = {\n\t\tvar:UNO_missing = {\n\t\t\tcompliance > 50\n\t\t}\n\t}\n}\n",
+        uri,
+        initial_scope_for_uri(uri),
+        vec![Box::new(V2ScopeRule)],
+        vec![],
+    );
+    assert!(
+        !diags
+            .iter()
+            .any(|d| format!("{:?}", d.code).contains("HOM004")),
+        "unknown var must stay Unknown (skip HOM004), got: {:?}",
+        diags
+    );
+}
+
+#[test]
+fn test_var_scope_block_numeric_variable_skips_scope_validation() {
+    // A plain counter is not a scope — `var:my_count` must not resolve.
+    let ctx = TestCtx::new().with_scope_validation(true).with_file(
+        "/mod/common/decisions/test.txt",
+        "SPF_counter = {\n\tcomplete_effect = {\n\t\tset_variable = { my_count = 5 }\n\t}\n}\n",
+    );
+    let uri = "/mod/common/decisions/test.txt";
+    let diags = ctx.walk(
+        "SPF_use = {\n\tavailable = {\n\t\tvar:my_count = {\n\t\t\tcompliance > 50\n\t\t}\n\t}\n}\n",
+        uri,
+        initial_scope_for_uri(uri),
+        vec![Box::new(V2ScopeRule)],
+        vec![],
+    );
+    assert!(
+        !diags
+            .iter()
+            .any(|d| format!("{:?}", d.code).contains("HOM004")),
+        "numeric var must stay Unknown (skip HOM004), got: {:?}",
+        diags
+    );
+}
+
+#[test]
+fn test_variable_scanner_infers_country_only_for_tag_values() {
+    use crate::scanner::variable_scanner;
+    use std::collections::HashMap;
+    let content = "SPF = {\n\tset_variable = { UNO_target = HAB.id }\n\tset_variable = { my_count = 5 }\n\tset_variable = { var = long_form value = GER }\n\tset_variable = { var = ctx_var value = ROOT }\n}\n";
+    let (script, _) = crate::parser::parser::parse_script(content);
+    let mut vars: HashMap<String, Vec<variable_scanner::Variable>> = HashMap::new();
+    variable_scanner::scan_entries(
+        &script.entries,
+        &script.source,
+        "test.txt",
+        &mut vars,
+        &mut HashMap::new(),
+        &mut HashMap::new(),
+    );
+    use crate::scope::scope::Scope;
+    assert_eq!(vars["UNO_target"][0].scope, Scope::Country);
+    assert_eq!(vars["my_count"][0].scope, Scope::Unknown);
+    assert_eq!(vars["long_form"][0].scope, Scope::Country);
+    assert_eq!(vars["ctx_var"][0].scope, Scope::Unknown);
+}
+
+#[test]
+fn test_resolve_var_scope_block_from_tracked_variables() {
+    use crate::data::interner::InternedStr;
+    use crate::parser::ast;
+    use crate::scanner::variable_scanner::Variable;
+    use crate::scope::scope::{Scope, ScopeCtx, ScopeStack};
+    use dashmap::DashMap;
+    let vars: DashMap<InternedStr, Vec<Variable>> = DashMap::new();
+    vars.insert(
+        InternedStr::from("UNO_target"),
+        vec![Variable {
+            name: "UNO_target".to_string(),
+            path: InternedStr::from("test.txt"),
+            range: ast::Range {
+                start_line: 0,
+                start_col: 0,
+                end_line: 0,
+                end_col: 5,
+            },
+            scope: Scope::Country,
+        }],
+    );
+    let sctx = ScopeCtx {
+        uri: "/mod/common/decisions/test.txt",
+        event_targets: None,
+        characters: None,
+        achievements: None,
+        variables: Some(&vars),
+        in_random_list: false,
+        state_targeted: false,
+    };
+    let stack = ScopeStack::new(Scope::Country);
+    let (s, _) = stack.resolve_entry_scope("var:UNO_target", &sctx);
+    assert_eq!(s, Scope::Country);
+    // Case-insensitive prefix, temp_var: alias, and unknown names.
+    let (s_upper, _) = stack.resolve_entry_scope("VAR:UNO_target", &sctx);
+    assert_eq!(s_upper, Scope::Country);
+    let (s_temp, _) = stack.resolve_entry_scope("temp_var:UNO_target", &sctx);
+    assert_eq!(s_temp, Scope::Country);
+    let (s_missing, _) = stack.resolve_entry_scope("var:UNO_missing", &sctx);
+    assert_eq!(s_missing, Scope::Unknown);
+    let (s_empty, _) = stack.resolve_entry_scope("var:", &sctx);
+    assert_eq!(s_empty, Scope::Unknown);
+}

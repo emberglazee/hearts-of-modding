@@ -100,6 +100,8 @@ pub(crate) struct ValidationContext<'a> {
         &'a DashMap<InternedStr, LayeredValue<crate::scanner::unit_scanner::UnitType>>,
     pub(crate) event_targets:
         &'a DashMap<InternedStr, Vec<crate::scanner::variable_scanner::EventTarget>>,
+    /// Tracked variables with inferred value scopes (powers `var:` blocks).
+    pub(crate) variables: &'a DashMap<InternedStr, Vec<crate::scanner::variable_scanner::Variable>>,
     pub(crate) event_namespaces:
         &'a DashMap<InternedStr, LayeredValue<event_namespace_scanner::EventNamespace>>,
     pub(crate) events: &'a DashMap<InternedStr, LayeredValue<crate::scanner::event_scanner::Event>>,

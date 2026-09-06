@@ -2,7 +2,7 @@ use crate::data::interner::InternedStr;
 use crate::data::layered_value::LayeredValue;
 use crate::scanner::achievement_scanner::Achievement;
 use crate::scanner::character_scanner::Character;
-use crate::scanner::variable_scanner::EventTarget;
+use crate::scanner::variable_scanner::{EventTarget, Variable};
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 
@@ -382,6 +382,11 @@ pub struct ScopeCtx<'a> {
     pub event_targets: Option<&'a DashMap<InternedStr, Vec<EventTarget>>>,
     pub characters: Option<&'a DashMap<InternedStr, LayeredValue<Character>>>,
     pub achievements: Option<&'a DashMap<InternedStr, LayeredValue<Achievement>>>,
+    /// Tracked variables (`set_variable` etc. via `variable_scanner`) with
+    /// statically inferred value scopes. Powers `var:name = { }` /
+    /// `temp_var:name = { }` scope blocks. `None` simply means "no data for
+    /// this lookup" (unknown vars keep resolving `Unknown`, as before).
+    pub variables: Option<&'a DashMap<InternedStr, Vec<Variable>>>,
     pub in_random_list: bool,
     pub state_targeted: bool,
 }
@@ -656,6 +661,7 @@ impl ScopeStack {
     /// 1. Transparent block (AND, OR, NOT, limit, if) → inherit current scope
     /// 2. V2 pushes_scope → explicit scope from trigger/effect data
     /// 3. Event target → scope saved by `save_event_target`
+    ///    3b. `var:` / `temp_var:` scope block → inferred variable value scope
     /// 4. Chain target from current scope (e.g. State → owner → Country)
     /// 5. Ace file `effect` block → Country scope (ace modifiers are Country-scoped)
     /// 6. Modifier application blocks (`modifiers`, `*_modifiers`) → ModifierBag
@@ -722,6 +728,52 @@ impl ScopeStack {
                 .filter(|s| *s != Scope::Unknown)
             {
                 return (scope, false);
+            }
+        }
+
+        // 3b. `var:` / `temp_var:` scope block → inferred variable value scope.
+        //
+        // The engine runs `var:my_var = { ... }` in whatever scope object the
+        // variable currently holds. Statically we only know what the scanner
+        // inferred from `set_variable` RHS values (TAG-anchored → Country;
+        // anything else → Unknown). A known non-Unknown scope is pushed;
+        // unknown vars fall through to the legacy path below (→ Unknown),
+        // preserving the old safe behaviour (HOM004 skips Unknown scopes).
+        //
+        // The remainder after the prefix is the variable name as tracked by
+        // the scanner, including scope-qualified forms (`var:ETH.host_nation`
+        // ↔ `set_variable = { ETH.host_nation = ROOT }`). `temp_var:` is
+        // checked first; byte slicing is safe (ASCII prefixes, length-guarded).
+        let var_name = if key.len() > 9 && key[..9].eq_ignore_ascii_case("temp_var:") {
+            Some(&key[9..])
+        } else if key.len() > 4 && key[..4].eq_ignore_ascii_case("var:") {
+            Some(&key[4..])
+        } else {
+            None
+        };
+        if let Some(var_name) = var_name {
+            // Case-insensitive prefix, case-preserving name: `VAR:X` and
+            // `var:X` address the same variable. The scanner stores raw-case
+            // keys, so try the raw name first, then its lowercase form (which
+            // matches when the definition was written lowercase).
+            if !var_name.is_empty() {
+                if let Some(variables) = ctx.variables {
+                    let scope = variables
+                        .get(var_name)
+                        .or_else(|| variables.get(&*var_name.to_ascii_lowercase()))
+                        .and_then(|defs| {
+                            defs.value().iter().find_map(|d| {
+                                if d.scope != Scope::Unknown {
+                                    Some(d.scope)
+                                } else {
+                                    None
+                                }
+                            })
+                        });
+                    if let Some(s) = scope {
+                        return (s, false);
+                    }
+                }
             }
         }
 

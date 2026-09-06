@@ -3605,6 +3605,7 @@ impl ValidationCtx {
             workspace_roots: &workspace_roots,
             unit_types: &self.scanner_data.unit_types,
             event_targets: &self.scanner_data.event_targets,
+            variables: &self.scanner_data.variables,
             event_namespaces: &self.scanner_data.event_namespaces,
             events: &self.scanner_data.events,
             decisions: &self.scanner_data.decisions,

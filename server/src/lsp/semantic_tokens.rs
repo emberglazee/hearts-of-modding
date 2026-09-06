@@ -713,6 +713,14 @@ fn push_entry_tokens(
             // be highlighted distinctly.
             let is_meta = is_meta_scope(key_text);
 
+            // Variable scope keys (`var:name`, `temp_var:name`) — scope
+            // references into the variable store, mirroring the value-side
+            // `var:` highlighting in push_value_tokens. Any prefixed key
+            // qualifies (known or not); validity is validation's job.
+            let is_var_key = (key_text.len() > 9
+                && key_text[..9].eq_ignore_ascii_case("temp_var:"))
+                || (key_text.len() > 4 && key_text[..4].eq_ignore_ascii_case("var:"));
+
             // On-action keys (`on_*` inside `on_actions = { }`) — these are
             // engine hooks, not ordinary triggers/effects. Highlight them as
             // keywords even though they are not in the V2 data JSON.
@@ -754,6 +762,13 @@ fn push_entry_tokens(
                     start: key_start,
                     length: key_len,
                     token_type: TokenType::MetaScope as u32,
+                });
+            } else if is_var_key {
+                tokens.push(RawToken {
+                    line: key_line,
+                    start: key_start,
+                    length: key_len,
+                    token_type: TokenType::Variable as u32,
                 });
             } else if is_block_param {
                 tokens.push(RawToken {
@@ -1791,6 +1806,94 @@ add_political_power = 100
             "no keywords expected with an empty keyword set: {:#?}",
             tokens,
         );
+    }
+
+    #[test]
+    fn test_var_scope_keys_get_variable_token() {
+        // `var:` / `temp_var:` block keys are scope references into the
+        // variable store — they highlight as Variable even with an empty
+        // keyword/entity set (mirrors the value-side `var:` handling).
+        use crate::lsp::semantic_tokens::{SemanticTokenContext, get_semantic_tokens};
+        use crate::parser::parser::parse_script;
+        use std::collections::{HashMap, HashSet};
+
+        let input = "\
+SPF_Invite_to_faction = {
+\tavailable = {
+\t\tvar:UNO_target = {
+\t\t\thas_government = Villagism
+\t\t}
+\t\ttemp_var:scratch = {
+\t\t\tset_variable = { x = 1 }
+\t\t}
+\t}
+}
+";
+        let (script, _) = parse_script(input);
+        let ctx = SemanticTokenContext::new(Arc::new(HashSet::new()), Arc::new(HashMap::new()));
+        let result = get_semantic_tokens(&script, &ctx);
+
+        let legend = [
+            "keyword",
+            "variable",
+            "string",
+            "number",
+            "operator",
+            "comment",
+            "type",
+            "event",
+            "function",
+            "enum",
+            "enum_member",
+            "struct",
+            "class",
+            "property",
+            "escape_character",
+            "parameter",
+            "boolean",
+            "meta_scope",
+        ];
+        let mut tokens = Vec::new();
+        let mut last_line = 0u32;
+        let mut last_start = 0u32;
+        match result {
+            SemanticTokensResult::Tokens(t) => {
+                for st in &t.data {
+                    let line = last_line + st.delta_line;
+                    let start = if st.delta_line == 0 {
+                        last_start + st.delta_start
+                    } else {
+                        st.delta_start
+                    };
+                    let name = legend
+                        .get(st.token_type as usize)
+                        .map(|s| s.to_string())
+                        .unwrap_or_else(|| format!("tt({})", st.token_type));
+                    tokens.push((line, start, st.length, name));
+                    last_line = line;
+                    last_start = start;
+                }
+            }
+            _ => panic!("expected Tokens result"),
+        }
+
+        // `var:UNO_target` (line 2) and `temp_var:scratch` (line 5) keys
+        // highlight as variable tokens covering the whole prefixed key.
+        for (expect_line, expect_len) in [(2, 14), (5, 16)] {
+            let found: Vec<_> = tokens
+                .iter()
+                .filter(|(l, _s, len, name)| {
+                    *l == expect_line && *len == expect_len && name == "variable"
+                })
+                .collect();
+            assert!(
+                !found.is_empty(),
+                "line {} expected a variable token (len {}), got:\n{:#?}",
+                expect_line,
+                expect_len,
+                tokens,
+            );
+        }
     }
 
     #[test]

@@ -1132,6 +1132,7 @@ mod tests {
             event_targets: Some(&data.event_targets),
             characters: Some(&data.characters),
             achievements: Some(&data.achievements),
+            variables: Some(&data.variables),
             in_random_list: false,
             state_targeted: false,
         };
