@@ -2,7 +2,7 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
-## [v0.30.0] - 2026-09-03
+## [v0.30.0] - 2026-09-06
 
 ### ✨ Added
 
@@ -16,7 +16,7 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Incremental `map/definition.csv` tracking.**
 
-- **Scope-aware completion filtering.** Trigger, effect, and dynamic variable completions now pick the narrowest scope from the scope stack (Character/Unit outrank State, State outranks Country) instead of always using the outermost scope, so out-of-scope suggestions are filtered out.
+- **Scope-aware completion filtering.**
 
 ### 🩹 Fixed
 
@@ -26,7 +26,7 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Removed range-less duplicate terrain check (HOM5005).**
 
-- **Fixed "Fix all styling issues" code action silently applying nothing.** The overlap fold sorted edits in reverse document order but kept an ascending-order overlap check, so every edit was treated as overlapping and stacked onto one range — VS Code rejected the whole edit; the fold now sorts ascending, drops duplicates, and keeps the earlier fix on genuine overlaps, and the bulk brace fix uses the same fold for its nested-block ranges.
+- **Fixed overlapping TextEdits in "Fix all styling issues" code action.**
 
 - **Fixed assignment spacing diagnostics to emit UTF-16 columns instead of raw bytes, ensuring correct placement on unicode lines.**
 
