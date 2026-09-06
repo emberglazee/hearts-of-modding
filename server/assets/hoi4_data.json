@@ -12161,7 +12161,23 @@
 			"pushes_scope": null,
 			"stack_behaviour": "passthrough",
 			"block_type": "value_trigger",
-			"version_added": ""
+			"version_added": "",
+			"parameters": {
+				"var": {
+					"type": "variable",
+					"value_type": "variable",
+					"description": "The variable to modify or create.",
+					"optional": false,
+					"repeated": false
+				},
+				"value": {
+					"type": "decimal / variable",
+					"value_type": "decimal",
+					"description": "The value to set the variable to.",
+					"optional": false,
+					"repeated": false
+				}
+			}
 		},
 		"career_profile_set_temp_variable": {
 			"name": "career_profile_set_temp_variable",
@@ -12175,7 +12191,23 @@
 			"pushes_scope": null,
 			"stack_behaviour": "passthrough",
 			"block_type": "value_trigger",
-			"version_added": ""
+			"version_added": "",
+			"parameters": {
+				"var": {
+					"type": "variable",
+					"value_type": "variable",
+					"description": "The variable to modify or create.",
+					"optional": false,
+					"repeated": false
+				},
+				"value": {
+					"type": "decimal / variable",
+					"value_type": "decimal",
+					"description": "The value to set the variable to.",
+					"optional": false,
+					"repeated": false
+				}
+			}
 		},
 		"check_expr": {
 			"name": "check_expr",
@@ -16339,7 +16371,29 @@
 				"usage_restriction": ""
 			},
 			"pushes_scope": null,
-			"parameters": {},
+			"parameters": {
+				"var": {
+					"type": "variable",
+					"value_type": "variable",
+					"description": "The variable to add to.",
+					"optional": false,
+					"repeated": false
+				},
+				"value": {
+					"type": "decimal / variable",
+					"value_type": "decimal",
+					"description": "The value to add to the variable.",
+					"optional": false,
+					"repeated": false
+				},
+				"tooltip": {
+					"type": "localisation_key",
+					"value_type": "",
+					"description": "Localisation used by the operation. Optional.",
+					"optional": true,
+					"repeated": false
+				}
+			},
 			"examples": [],
 			"stack_behaviour": "passthrough",
 			"block_type": "value_effect",
@@ -16929,7 +16983,29 @@
 				"usage_restriction": ""
 			},
 			"pushes_scope": null,
-			"parameters": {},
+			"parameters": {
+				"var": {
+					"type": "variable",
+					"value_type": "variable",
+					"description": "The variable to clamp.",
+					"optional": false,
+					"repeated": false
+				},
+				"min": {
+					"type": "decimal / variable",
+					"value_type": "decimal",
+					"description": "The minimum value of the variable after the clamp.",
+					"optional": false,
+					"repeated": false
+				},
+				"max": {
+					"type": "decimal / variable",
+					"value_type": "decimal",
+					"description": "The maximum value of the variable after the clamp.",
+					"optional": false,
+					"repeated": false
+				}
+			},
 			"examples": [],
 			"stack_behaviour": "passthrough",
 			"block_type": "value_effect",
@@ -19225,7 +19301,29 @@
 				"usage_restriction": ""
 			},
 			"pushes_scope": null,
-			"parameters": {},
+			"parameters": {
+				"var": {
+					"type": "variable",
+					"value_type": "variable",
+					"description": "The variable to divide.",
+					"optional": false,
+					"repeated": false
+				},
+				"value": {
+					"type": "decimal / variable",
+					"value_type": "decimal",
+					"description": "The value to divide the variable by.",
+					"optional": false,
+					"repeated": false
+				},
+				"tooltip": {
+					"type": "localisation_key",
+					"value_type": "",
+					"description": "Localisation used by the operation. Optional.",
+					"optional": true,
+					"repeated": false
+				}
+			},
 			"examples": [],
 			"stack_behaviour": "passthrough",
 			"block_type": "value_effect",
@@ -21393,7 +21491,29 @@
 				"usage_restriction": ""
 			},
 			"pushes_scope": null,
-			"parameters": {},
+			"parameters": {
+				"var": {
+					"type": "variable",
+					"value_type": "variable",
+					"description": "The variable to modulo.",
+					"optional": false,
+					"repeated": false
+				},
+				"value": {
+					"type": "decimal / variable",
+					"value_type": "decimal",
+					"description": "The value to modulo the variable by.",
+					"optional": false,
+					"repeated": false
+				},
+				"tooltip": {
+					"type": "localisation_key",
+					"value_type": "",
+					"description": "Localisation used by the operation. Optional.",
+					"optional": true,
+					"repeated": false
+				}
+			},
 			"examples": [],
 			"stack_behaviour": "passthrough",
 			"block_type": "value_effect",
@@ -21410,7 +21530,29 @@
 				"usage_restriction": ""
 			},
 			"pushes_scope": null,
-			"parameters": {},
+			"parameters": {
+				"var": {
+					"type": "variable",
+					"value_type": "variable",
+					"description": "The variable to multiply.",
+					"optional": false,
+					"repeated": false
+				},
+				"value": {
+					"type": "decimal / variable",
+					"value_type": "decimal",
+					"description": "The value to multiply the variable by.",
+					"optional": false,
+					"repeated": false
+				},
+				"tooltip": {
+					"type": "localisation_key",
+					"value_type": "",
+					"description": "Localisation used by the operation. Optional.",
+					"optional": true,
+					"repeated": false
+				}
+			},
 			"examples": [],
 			"stack_behaviour": "passthrough",
 			"block_type": "value_effect",
@@ -26696,7 +26838,29 @@
 				"usage_restriction": ""
 			},
 			"pushes_scope": null,
-			"parameters": {},
+			"parameters": {
+				"var": {
+					"type": "variable",
+					"value_type": "variable",
+					"description": "The variable to modify or create.",
+					"optional": false,
+					"repeated": false
+				},
+				"value": {
+					"type": "decimal / variable",
+					"value_type": "decimal",
+					"description": "The value to set the variable to.",
+					"optional": false,
+					"repeated": false
+				},
+				"tooltip": {
+					"type": "localisation_key",
+					"value_type": "",
+					"description": "Localisation used by the operation. Optional.",
+					"optional": true,
+					"repeated": false
+				}
+			},
 			"examples": [],
 			"stack_behaviour": "passthrough",
 			"block_type": "value_effect",
@@ -26713,7 +26877,36 @@
 				"usage_restriction": ""
 			},
 			"pushes_scope": null,
-			"parameters": {},
+			"parameters": {
+				"var": {
+					"type": "variable",
+					"value_type": "variable",
+					"description": "The variable to modify or create.",
+					"optional": false,
+					"repeated": false
+				},
+				"min": {
+					"type": "decimal",
+					"value_type": "decimal",
+					"description": "The minimum possible value, defaults to 0.",
+					"optional": false,
+					"repeated": false
+				},
+				"max": {
+					"type": "decimal",
+					"value_type": "decimal",
+					"description": "The maximum possible value, defaults to 1.",
+					"optional": false,
+					"repeated": false
+				},
+				"integer": {
+					"type": "bool",
+					"value_type": "bool",
+					"description": "Sets if the variable ''must'' be an integer or if it can be decimal. Defaults to false.",
+					"optional": false,
+					"repeated": false
+				}
+			},
 			"examples": [],
 			"stack_behaviour": "passthrough",
 			"block_type": "value_effect",
@@ -27310,7 +27503,29 @@
 				"usage_restriction": ""
 			},
 			"pushes_scope": null,
-			"parameters": {},
+			"parameters": {
+				"var": {
+					"type": "variable",
+					"value_type": "variable",
+					"description": "The variable to subtract from.",
+					"optional": false,
+					"repeated": false
+				},
+				"value": {
+					"type": "decimal / variable",
+					"value_type": "decimal",
+					"description": "The value to subtract from the variable.",
+					"optional": false,
+					"repeated": false
+				},
+				"tooltip": {
+					"type": "localisation_key",
+					"value_type": "",
+					"description": "Localisation used by the operation. Optional.",
+					"optional": true,
+					"repeated": false
+				}
+			},
 			"examples": [],
 			"stack_behaviour": "passthrough",
 			"block_type": "value_effect",
@@ -29032,7 +29247,37 @@
 			"pushes_scope": null,
 			"stack_behaviour": "passthrough",
 			"block_type": "value_effect",
-			"version_added": ""
+			"version_added": "",
+			"parameters": {
+				"array": {
+					"type": "array",
+					"value_type": "array",
+					"description": "The array to check.",
+					"optional": false,
+					"repeated": false
+				},
+				"value": {
+					"type": "variable",
+					"value_type": "variable",
+					"description": "The name of the temporary variable where the value of the currently-selected element is stored.",
+					"optional": false,
+					"repeated": false
+				},
+				"index": {
+					"type": "variable",
+					"value_type": "variable",
+					"description": "The name of the temporary variable where the index of the currently-selected element is stored.",
+					"optional": false,
+					"repeated": false
+				},
+				"break": {
+					"type": "variable",
+					"value_type": "variable",
+					"description": "The temporary variable that can be set to be not 0 to instantly break the loop.",
+					"optional": false,
+					"repeated": false
+				}
+			}
 		},
 		"for_each_scope_loop": {
 			"name": "for_each_scope_loop",
@@ -29046,7 +29291,30 @@
 			"pushes_scope": null,
 			"stack_behaviour": "passthrough",
 			"block_type": "value_effect",
-			"version_added": ""
+			"version_added": "",
+			"parameters": {
+				"array": {
+					"type": "array",
+					"value_type": "array",
+					"description": "The array to check.",
+					"optional": false,
+					"repeated": false
+				},
+				"break": {
+					"type": "variable",
+					"value_type": "variable",
+					"description": "The temporary variable that can be set to be not 0 to instantly break the loop.",
+					"optional": false,
+					"repeated": false
+				},
+				"tooltip": {
+					"type": "loc",
+					"value_type": "loc",
+					"description": "If defined, the effect will output a tooltip for sub effects using this localization as title.",
+					"optional": false,
+					"repeated": false
+				}
+			}
 		},
 		"for_loop_effect": {
 			"name": "for_loop_effect",
@@ -29060,7 +29328,51 @@
 			"pushes_scope": null,
 			"stack_behaviour": "passthrough",
 			"block_type": "value_effect",
-			"version_added": ""
+			"version_added": "",
+			"parameters": {
+				"start": {
+					"type": "decimal / variable",
+					"value_type": "decimal",
+					"description": "The value at which the evaluation starts. Default to 0.",
+					"optional": false,
+					"repeated": false
+				},
+				"end": {
+					"type": "decimal / variable",
+					"value_type": "decimal",
+					"description": "The value at which the evaluation ends. Default to 0.",
+					"optional": false,
+					"repeated": false
+				},
+				"compare": {
+					"type": "compare type",
+					"value_type": "",
+					"description": "How the currently-evaluated value must compare with the",
+					"optional": false,
+					"repeated": false
+				},
+				"add": {
+					"type": "variable",
+					"value_type": "variable",
+					"description": "How much is being added to the",
+					"optional": false,
+					"repeated": false
+				},
+				"break": {
+					"type": "variable",
+					"value_type": "variable",
+					"description": "The temporary variable that can be set to be not 0 to instantly break the loop.",
+					"optional": false,
+					"repeated": false
+				},
+				"value": {
+					"type": "variable",
+					"value_type": "variable",
+					"description": "The name of the temporary variable where the current value of evaluation is stored.",
+					"optional": false,
+					"repeated": false
+				}
+			}
 		},
 		"get_highest_scored_country": {
 			"name": "get_highest_scored_country",
@@ -29074,7 +29386,23 @@
 			"pushes_scope": null,
 			"stack_behaviour": "passthrough",
 			"block_type": "value_effect",
-			"version_added": ""
+			"version_added": "",
+			"parameters": {
+				"scorer": {
+					"type": "scorer",
+					"value_type": "scorer",
+					"description": "The scorer to use.",
+					"optional": false,
+					"repeated": false
+				},
+				"var": {
+					"type": "variable",
+					"value_type": "variable",
+					"description": "The variable where the result will be stored.",
+					"optional": false,
+					"repeated": false
+				}
+			}
 		},
 		"get_sorted_scored_countries": {
 			"name": "get_sorted_scored_countries",
@@ -29088,7 +29416,30 @@
 			"pushes_scope": null,
 			"stack_behaviour": "passthrough",
 			"block_type": "value_effect",
-			"version_added": ""
+			"version_added": "",
+			"parameters": {
+				"scorer": {
+					"type": "scorer",
+					"value_type": "scorer",
+					"description": "The scorer to use.",
+					"optional": false,
+					"repeated": false
+				},
+				"array": {
+					"type": "variable",
+					"value_type": "variable",
+					"description": "The array where the countries will be stored.",
+					"optional": false,
+					"repeated": false
+				},
+				"scores": {
+					"type": "variable",
+					"value_type": "variable",
+					"description": "The array where the scores will be stored. Optional.",
+					"optional": true,
+					"repeated": false
+				}
+			}
 		},
 		"hidden_effect": {
 			"name": "hidden_effect",
@@ -29290,7 +29641,30 @@
 			"pushes_scope": null,
 			"stack_behaviour": "passthrough",
 			"block_type": "value_effect",
-			"version_added": ""
+			"version_added": "",
+			"parameters": {
+				"array": {
+					"type": "array",
+					"value_type": "array",
+					"description": "The array to check.",
+					"optional": false,
+					"repeated": false
+				},
+				"break": {
+					"type": "variable",
+					"value_type": "variable",
+					"description": "The temporary variable that can be set to be not 0 to instantly break the loop.",
+					"optional": false,
+					"repeated": false
+				},
+				"limit": {
+					"type": "block",
+					"value_type": "",
+					"description": "An AND trigger block deciding which scopes can be picked.",
+					"optional": false,
+					"repeated": false
+				}
+			}
 		},
 		"randomize_temp_variable": {
 			"name": "randomize_temp_variable",
@@ -29486,7 +29860,23 @@
 			"pushes_scope": null,
 			"stack_behaviour": "passthrough",
 			"block_type": "value_effect",
-			"version_added": ""
+			"version_added": "",
+			"parameters": {
+				"limit": {
+					"type": "block",
+					"value_type": "",
+					"description": "An AND trigger block deciding when the effect would repeat.",
+					"optional": false,
+					"repeated": false
+				},
+				"break": {
+					"type": "variable",
+					"value_type": "variable",
+					"description": "The temporary variable that can be set to be not 0 to instantly break the loop.",
+					"optional": false,
+					"repeated": false
+				}
+			}
 		},
 		"focus": {
 			"name": "focus",
@@ -39007,7 +39397,7 @@
 				],
 				"usage_restriction": ""
 			},
-			"is_array": false
+			"is_array": true
 		},
 		"core_resistance": {
 			"name": "core_resistance",
@@ -39337,7 +39727,7 @@
 				],
 				"usage_restriction": ""
 			},
-			"is_array": false
+			"is_array": true
 		},
 		"facility_province_id": {
 			"name": "facility_province_id",

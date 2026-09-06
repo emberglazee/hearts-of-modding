@@ -1897,6 +1897,114 @@ SPF_Invite_to_faction = {
     }
 
     #[test]
+    fn test_loop_op_and_var_op_subkeys_get_property_token() {
+        // Fixed structural sub-keys of variable/array ops (`array` inside
+        // for_each_scope_loop, `var`/`value` inside set_variable) resolve as
+        // documented block params → Property — even with an empty keyword /
+        // entity set, proving the classification comes from parameters data.
+        use crate::lsp::semantic_tokens::{SemanticTokenContext, get_semantic_tokens};
+        use crate::parser::parser::parse_script;
+        use std::collections::{HashMap, HashSet};
+
+        let input = "SPF_test = {\n\tcomplete_effect = {\n\t\tfor_each_scope_loop = {\n\t\t\tarray = core_countries\n\t\t}\n\t\tset_variable = {\n\t\t\tvar = my_var\n\t\t\tvalue = 5\n\t\t}\n\t}\n}\n";
+        let (script, _) = parse_script(input);
+        let ctx = SemanticTokenContext::new(Arc::new(HashSet::new()), Arc::new(HashMap::new()));
+        let result = get_semantic_tokens(&script, &ctx);
+
+        let legend = [
+            "keyword",
+            "variable",
+            "string",
+            "number",
+            "operator",
+            "comment",
+            "type",
+            "event",
+            "function",
+            "enum",
+            "enum_member",
+            "struct",
+            "class",
+            "property",
+            "escape_character",
+            "parameter",
+            "boolean",
+            "meta_scope",
+        ];
+        let mut tokens = Vec::new();
+        let mut last_line = 0u32;
+        let mut last_start = 0u32;
+        match result {
+            SemanticTokensResult::Tokens(t) => {
+                for st in &t.data {
+                    let line = last_line + st.delta_line;
+                    let start = if st.delta_line == 0 {
+                        last_start + st.delta_start
+                    } else {
+                        st.delta_start
+                    };
+                    let name = legend
+                        .get(st.token_type as usize)
+                        .map(|s| s.to_string())
+                        .unwrap_or_else(|| format!("tt({})", st.token_type));
+                    tokens.push((line, start, st.length, name));
+                    last_line = line;
+                    last_start = start;
+                }
+            }
+            _ => panic!("expected Tokens result"),
+        }
+
+        // `array` (line 3), `var` (line 6), `value` (line 7) → property.
+        for (expect_line, expect_len) in [(3, 5), (6, 3), (7, 5)] {
+            let found: Vec<_> = tokens
+                .iter()
+                .filter(|(l, _s, len, name)| {
+                    *l == expect_line && *len == expect_len && name == "property"
+                })
+                .collect();
+            assert!(
+                !found.is_empty(),
+                "line {} expected a property token (len {}), got:\n{:#?}",
+                expect_line,
+                expect_len,
+                tokens,
+            );
+        }
+
+        // Negative control: `array` under a parent with no documented params
+        // (`clear_array` takes a bare value) must NOT resolve as property —
+        // proving the above comes from per-parent parameters data.
+        let ctrl = "X = {\n\tclear_array = {\n\t\tarray = foo\n\t}\n}\n";
+        let (script, _) = parse_script(ctrl);
+        let result = get_semantic_tokens(&script, &ctx);
+        match result {
+            SemanticTokensResult::Tokens(t) => {
+                let mut last_line = 0u32;
+                let mut last_start = 0u32;
+                for st in &t.data {
+                    let line = last_line + st.delta_line;
+                    let start = if st.delta_line == 0 {
+                        last_start + st.delta_start
+                    } else {
+                        st.delta_start
+                    };
+                    last_line = line;
+                    last_start = start;
+                    assert!(
+                        !(line == 2
+                            && st.length == 5
+                            && legend.get(st.token_type as usize).map(|s| s.as_ref())
+                                == Some("property")),
+                        "`array` under param-less clear_array must not be property",
+                    );
+                }
+            }
+            _ => panic!("expected Tokens result"),
+        }
+    }
+
+    #[test]
     fn test_csv_adj_header_detection() {
         let content = "From;To;Type;Through;start_x;start_y;stop_x;stop_y;adjacency_rule_name\n";
         let tokens = collect_csv_tokens(content);

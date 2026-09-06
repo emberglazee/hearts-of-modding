@@ -57,6 +57,10 @@ REPO_ROOT = os.path.dirname(
 V2_JSON = os.path.join(REPO_ROOT, "server", "assets", "hoi4_data.json")
 EFFECTS_DOC = os.path.join(REPO_ROOT, "hoi4-wiki", "documentation", "effects.md")
 TRIGGERS_DOC = os.path.join(REPO_ROOT, "hoi4-wiki", "documentation", "triggers.md")
+# Variable/array ops (set_variable, for_each_scope_loop, ...) are documented
+# in data-structures.md, not effects/triggers.md. Mined strictly ADD-ONLY
+# (see merge below) so existing coverage can never regress.
+STRUCTURES_DOC = os.path.join(REPO_ROOT, "hoi4-wiki", "documentation", "data-structures.md")
 
 # ── Curation knobs ──────────────────────────────────────────────────────────
 # Entities whose wiki params cell parses into garbage. Remove an entry once
@@ -366,6 +370,34 @@ def main():
         print(f"{label}: {count}/{len(rows)} rows yielded parameters")
 
     print(f"\nTotal entities with documented parameters: {len(doc_params)}")
+    # Mine data-structures.md (variable/array op tables) strictly ADD-ONLY:
+    # an entity that already has parameters (from effects/triggers.md or a
+    # previous run) keeps them untouched, so a row here can only fill gaps
+    # (for_each_scope_loop, set_variable, ...) — never replace or churn
+    # descriptions, or a regen could silently narrow completions.
+    if os.path.exists(STRUCTURES_DOC):
+        covered = {
+            eid.lower()
+            for family in ("triggers", "effects", "modifiers")
+            for eid, ent in v2[family].items()
+            if ent.get("parameters")
+        }
+        struct_rows = parse_rows(STRUCTURES_DOC)
+        struct_new = 0
+        have_lower = {d.lower() for d in doc_params}
+        for eid, name, cells in struct_rows:
+            if not cells:
+                continue
+            if eid.lower() in have_lower or eid.lower() in covered:
+                continue
+            params, _saw_codes = extract_params(cells)
+            if params:
+                doc_params[eid] = params
+                have_lower.add(eid.lower())
+                struct_new += 1
+        print(f"data-structures.md: {struct_new}/{len(struct_rows)} rows filled gaps")
+    else:
+        print(f"WARNING: {STRUCTURES_DOC} not found, skipping", file=sys.stderr)
     drift_unhandled = [e for e in format_drift if e not in EXCLUDE_ENTITIES]
     if drift_unhandled:
         print(
@@ -436,9 +468,13 @@ def main():
         print("\nDRY RUN — no changes written")
         return
 
-    v2["version"] = 3  # schema grew a live `parameters` map
+    # Schema grew a live `parameters` map at v3; never downgrade a newer
+    # version (e.g. v4 from the dynamic-variables section).
+    v2["version"] = max(3, v2.get("version", 0))
+    # Tab indent matches the hand-maintained file style (like
+    # parse_dynamic_variables.py) — 2-space would reformat the whole file.
     with open(V2_JSON, "w", encoding="utf-8") as f:
-        json.dump(v2, f, indent=2, ensure_ascii=False)
+        json.dump(v2, f, indent="\t", ensure_ascii=False)
     print(f"\nWrote {V2_JSON} (version -> {v2['version']})")
 
 

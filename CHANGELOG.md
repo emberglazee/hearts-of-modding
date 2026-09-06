@@ -2,7 +2,7 @@
 
 All changes to the **Hearts of Modding** extension will be documented in this file.
 
-## [v0.30.0] - 2026-09-06
+## [v0.30.0] - 2026-09-07
 
 ### ✨ Added
 
@@ -18,9 +18,13 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Scope-aware completion filtering.**
 
-- **Resolved `var:` / `temp_var:` scope blocks from tracked variable definitions.**
+- **Resolve `var:` / `temp_var:` scope blocks from tracked variable definitions.**
 
 ### 🩹 Fixed
+
+- **Fixed false-positive HOM9001 on builtin arrays `core_countries` and `exiles`**, which the docs describe without the word "array" but vanilla uses as arrays (`for_each_scope_loop`, decision `target_array`).
+
+- **Added structural `parameters` for variable/array ops (`set_variable`, `for_each_scope_loop`, `random_scope_in_array`, etc.).**
 
 - **Fixed accidental double colons by Format Document for localization.**
 

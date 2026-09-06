@@ -776,3 +776,67 @@ fn test_resolve_var_scope_block_from_tracked_variables() {
     let (s_empty, _) = stack.resolve_entry_scope("var:", &sctx);
     assert_eq!(s_empty, Scope::Unknown);
 }
+
+// ── Builtin engine arrays ──
+//
+// `core_countries` (State) and `exiles` (Country) are documented without the
+// word "array", so the generator only marks them via its vanilla-evidence
+// exception list. Both are used as arrays in vanilla (`array =
+// core_countries`, decision `target_array = exiles`); reads must not warn
+// HOM9001.
+
+#[test]
+fn test_builtin_state_array_core_countries_no_warning() {
+    // Real-world shape: hom_on_actions.txt `every_core_state = { ...
+    // for_each_scope_loop = { array = core_countries } }`.
+    let ctx = TestCtx::new().with_scope_validation(true);
+    let uri = "/mod/common/on_actions/test.txt";
+    let diags = ctx.walk(
+        "on_actions = {\n\ton_state_controlled = {\n\t\teffect = {\n\t\t\tevery_core_state = {\n\t\t\t\tif = {\n\t\t\t\t\tlimit = { is_core_of = PREV }\n\t\t\t\t\tfor_each_scope_loop = {\n\t\t\t\t\t\tarray = core_countries\n\t\t\t\t\t\tadd_to_array = { original_cores = PREV }\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t}\n}\n",
+        uri,
+        initial_scope_for_uri(uri),
+        vec![
+            Box::new(V2ScopeRule),
+            Box::new(VariableRuleState::new(
+                &Default::default(),
+                &Default::default(),
+                &Default::default(),
+            )),
+        ],
+        vec![],
+    );
+    assert!(
+        !diags
+            .iter()
+            .any(|d| format!("{:?}", d.code).contains("HOM9001")),
+        "builtin array core_countries must not warn, got: {:?}",
+        diags
+    );
+}
+
+#[test]
+fn test_builtin_country_array_exiles_no_warning() {
+    let ctx = TestCtx::new().with_scope_validation(true);
+    let uri = "/mod/common/decisions/test.txt";
+    let diags = ctx.walk(
+        "my_decision = {\n\tcomplete_effect = {\n\t\tfor_each_scope_loop = {\n\t\t\tarray = exiles\n\t\t}\n\t}\n}\n",
+        uri,
+        initial_scope_for_uri(uri),
+        vec![
+            Box::new(V2ScopeRule),
+            Box::new(VariableRuleState::new(
+                &Default::default(),
+                &Default::default(),
+                &Default::default(),
+            )),
+        ],
+        vec![],
+    );
+    assert!(
+        !diags
+            .iter()
+            .any(|d| format!("{:?}", d.code).contains("HOM9001")),
+        "builtin array exiles must not warn, got: {:?}",
+        diags
+    );
+}

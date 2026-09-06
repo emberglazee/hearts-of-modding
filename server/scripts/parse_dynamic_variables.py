@@ -85,10 +85,21 @@ def parse_docs(path):
             print(f"WARNING: no LSP mapping for doc scope '{scope_raw}' (var {name}), using Global", file=sys.stderr)
             lsp_scope = "Global"
         is_array = "array" in desc.lower()
-        # Some array-like dynamic variables are phrased as "all X" in the
-        # docs without the word "array" (e.g. army_leaders). Keep them as
-        # arrays so `array = army_leaders` doesn't spuriously warn.
-        if name.lower() in ("army_leaders", "navy_leaders", "operatives"):
+        # Some array-like dynamic variables are phrased without the word
+        # "array" in the docs but are used as arrays in vanilla, so `array =`
+        # reads would spuriously warn HOM9001 without this:
+        # - army_leaders / navy_leaders / operatives (pre-existing)
+        # - core_countries ("countries that cores the state", State) —
+        #   `for_each_scope_loop = { array = core_countries }` (6x vanilla)
+        # - exiles ("exile host of this country", Country) —
+        #   decision `target_array = exiles` (16x vanilla)
+        if name.lower() in (
+            "army_leaders",
+            "navy_leaders",
+            "operatives",
+            "core_countries",
+            "exiles",
+        ):
             is_array = True
         key = name  # preserve case as in docs (all lower anyway)
         if key in dynamic_vars:
