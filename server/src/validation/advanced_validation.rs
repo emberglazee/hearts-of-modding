@@ -64,6 +64,11 @@ pub const EVENT_MISSING_DESC_LOC: &str = "HOM3019";
 pub const EVENT_PICTURE_SPRITE_NOT_FOUND: &str = "HOM3020";
 pub const EVENTS_SUBDIRECTORY_FILE: &str = "HOM3021";
 pub const BROKEN_EVENT_REFERENCE: &str = "HOM3022";
+/// `ruling_party` inside `set_politics` names a sub-ideology or an unknown
+/// token — the engine only accepts ideology groups there (democratic,
+/// communism, fascism, neutrality, plus modded groups). WARNING, not ERROR:
+/// engine-side severity is pending an empirical probe-mod verdict.
+pub const INVALID_RULING_PARTY: &str = "HOM3023";
 
 pub const PORTRAIT_UNKNOWN_GFX: &str = "HOM4001";
 pub const UNKNOWN_COUNTRY_METADATA_GFX: &str = "HOM4002";

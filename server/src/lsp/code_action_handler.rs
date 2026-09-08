@@ -123,6 +123,30 @@ impl Backend {
                             is_preferred: Some(true),
                             ..Default::default()
                         }));
+                    } else if code == "HOM3023" {
+                        // Sub-ideology in an ideology-group-only slot —
+                        // replace it with the parent group stored in `data`.
+                        // (Unknown-token HOM3023s carry no `data` and offer no fix.)
+                        let mut changes = HashMap::new();
+                        changes.insert(
+                            params.text_document.uri.clone(),
+                            vec![TextEdit {
+                                range: diagnostic.range,
+                                new_text: target_casing.to_string(),
+                            }],
+                        );
+
+                        actions.push(CodeActionOrCommand::CodeAction(CodeAction {
+                            title: format!("Change to ideology group: '{}'", target_casing),
+                            kind: Some(CodeActionKind::QUICKFIX),
+                            edit: Some(WorkspaceEdit {
+                                changes: Some(changes),
+                                ..Default::default()
+                            }),
+                            diagnostics: Some(vec![diagnostic.clone()]),
+                            is_preferred: Some(true),
+                            ..Default::default()
+                        }));
                     }
                 }
             } else {

@@ -5,6 +5,7 @@ pub mod events;
 pub mod formatting;
 pub mod hover_scripted;
 pub mod ideas;
+pub mod ideologies;
 pub mod loc_columns;
 pub mod loc_dups;
 pub mod loc_empty;

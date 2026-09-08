@@ -5,7 +5,11 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 | ℹ️ | If the last version here is not released yet, it's still in development. |
 |----|:-------------------------------------------------------------------------|
 
-## [v0.30.1] - 2026-09-07
+## [v0.31.0] - 2026-09-08
+
+### ✨ Added
+
+- **Ideology-group-only validation (HOM3023).** `set_politics.ruling_party`, `set_popularities` keys, `add_popularity.ideology`, `has_government`, and `has_ideology_group` now warn when given a sub-ideology or unknown token instead of an ideology group, while scope refs, `var:`, and country tags still pass through.
 
 ### 🧹 Internal
 

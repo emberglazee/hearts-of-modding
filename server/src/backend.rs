@@ -3626,6 +3626,7 @@ impl ValidationCtx {
             rules::oob_regiments::OobRegimentVisitor::visitor(),
             rules::events::EventValidationRule::visitor(),
             rules::decisions::DecisionsRule::visitor(),
+            rules::ideologies::IdeologyVisitor::visitor(),
         ];
 
         // Rules that still use check_assignment / check_block
