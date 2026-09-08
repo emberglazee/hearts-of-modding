@@ -262,6 +262,7 @@ impl Scope {
             | "complete_tooltip"
             | "ai_will_do"
             | "available"
+            | "activation"
             | "available_if_capitulated"
             | "bypass"
             | "bypass_if_unavailable"

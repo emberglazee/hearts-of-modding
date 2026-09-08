@@ -13095,6 +13095,27 @@
 			"version_added": "1.5",
 			"notes": "Decisions are found in common/decisions/*.txtOnly works on missions; regular decisions targeted this way become visible but do not activate."
 		},
+		"activation": {
+			"block_type": "effect_scope",
+			"deprecated": false,
+			"description": "Trigger block gating whether the decision or mission appears (checked daily, assuming allowed was true at game start).",
+			"examples": [
+				"activation = { ... }"
+			],
+			"name": "activation",
+			"notes": "",
+			"parameters": {},
+			"pushes_scope": "Country",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			},
+			"stack_behaviour": "push",
+			"vanilla_usage_count": 0,
+			"version_added": "1.0"
+		},
 		"add_ace": {
 			"name": "add_ace",
 			"description": "Adds an ace for the current scope.",

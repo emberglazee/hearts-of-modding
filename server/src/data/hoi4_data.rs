@@ -648,12 +648,20 @@ mod tests {
             "lookup_pushes_scope must be case-insensitive"
         );
         assert_eq!(lookup_pushes_scope("ALL_CORE_STATE"), Some(Scope::State));
+
+        // Decision/mission appearance block pushes Country scope
+        assert_eq!(
+            lookup_pushes_scope("activation"),
+            Some(Scope::Country),
+            "activation should push Country scope"
+        );
     }
 
     #[test]
     fn test_is_known_entity() {
         assert!(is_known_entity("has_government"));
         assert!(is_known_entity("add_ideas"));
+        assert!(is_known_entity("activation"));
         assert!(!is_known_entity("definitely_not_a_real_trigger_xyz123"));
     }
 

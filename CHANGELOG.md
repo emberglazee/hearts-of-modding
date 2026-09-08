@@ -11,6 +11,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Ideology-group-only validation (HOM3023).** `set_politics.ruling_party`, `set_popularities` keys, `add_popularity.ideology`, `has_government`, and `has_ideology_group` now warn when given a sub-ideology or unknown token instead of an ideology group, while scope refs, `var:`, and country tags still pass through.
 
+- **`activation` blocks are now recognized in decisions.** The decision/mission appearance trigger block gets Keyword highlighting, pushes Country scope for its contents, and never flags itself.
+
 ### 🧹 Internal
 
 - **Bumped extension dev dependencies:**
