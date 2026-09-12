@@ -15,6 +15,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Inline country flags in localisation previews.** `@TAG` in `.yml` hover previews now embeds the real `gfx/flags/TAG.tga` (mod roots shadow the game path) as an inline image instead of `[Flag: TAG]` text, matching the in-game render; unknown tags still fall back to text. This also fixes `@TAG` being mislabelled `****[Scope: Flag: TAG]****` by the scope pass.
 
+  - Added LSP dependency `image` v0.25.10 for this functionality.
+
 - **Focus `cost` overflow validation (HOM5011).** `cost` inside `focus` / `shared_focus` / `joint_focus` now errors past the engine maximum of 131762457.66935 weeks (~922,337,203 days), beyond which the value integer-overflows instead of extending the focus.
 
 ### 🧹 Internal
@@ -22,6 +24,10 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 - **Bumped extension dev dependencies:**
 
   - `eslint` v10.9.1 -> v10.10.0
+
+- **Bumped LSP dependency:**
+
+  - `smallvec` v1.16.0 -> v1.16.1
 
 ## [v0.30.0] - 2026-09-07
 
