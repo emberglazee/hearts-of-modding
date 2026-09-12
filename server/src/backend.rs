@@ -1180,6 +1180,12 @@ impl Backend {
         for ik in build_dynamic_ideology_keywords(&self.scanner_data) {
             keywords.insert(ik);
         }
+        // Same pattern for per-building construction/repair modifiers
+        // (`production_speed_<building>_factor` etc.) — building names come
+        // from the scan, so mod-added buildings highlight with no data change.
+        for bk in build_dynamic_building_keywords(&self.scanner_data) {
+            keywords.insert(bk);
+        }
         self.token_keywords.store(Arc::new(keywords));
     }
 
@@ -1465,6 +1471,46 @@ pub(crate) fn build_dynamic_ideology_keywords(scanner_data: &ScannerData) -> Vec
         let ideology_name = &entry.value().name;
         for suffix in IDEOLOGY_MODIFIER_SUFFIXES {
             keywords.push(format!("{}_{}", ideology_name, suffix));
+        }
+    }
+    keywords
+}
+
+/// Per-building construction/repair modifier families.
+///
+/// The engine builds these modifier names from each defined building type
+/// (`common/buildings/*.txt`): `production_speed_bunker_factor`,
+/// `repair_speed_dockyard_factor`, `state_production_speed_air_base_factor`,
+/// etc. (wiki `list-of-modifiers.md` documents them as
+/// `production_speed_<building_type>_factor`-style families). Mods can define
+/// custom buildings, so — like the per-ideology keywords above — these must
+/// be generated dynamically from the building scanner data rather than
+/// hardcoded. They highlight as `Keyword` (like other modifiers).
+///
+/// All four prefixes are generated for every scanned building. The wiki lists
+/// `rail_way`/`supply_node` under production only, but the engine pattern is
+/// per-building-type and highlighting is not a validity claim — validation
+/// intentionally has no unknown-modifier diagnostic.
+pub(crate) const BUILDING_MODIFIER_PREFIXES: &[&str] = &[
+    "production_speed_",
+    "repair_speed_",
+    "state_production_speed_",
+    "state_repair_speed_",
+];
+
+/// Generate dynamic keyword tokens from scanned building names.
+///
+/// For each building found in `scanner_data.buildings`, produces
+/// `<prefix><building>_factor` keys for every prefix in
+/// [`BUILDING_MODIFIER_PREFIXES`].
+///
+/// Called from [`Backend::update_entity_token_context`] after each scan.
+pub(crate) fn build_dynamic_building_keywords(scanner_data: &ScannerData) -> Vec<String> {
+    let mut keywords = Vec::new();
+    for entry in scanner_data.buildings.iter() {
+        let building_name = &entry.value().resolve().name;
+        for prefix in BUILDING_MODIFIER_PREFIXES {
+            keywords.push(format!("{prefix}{building_name}_factor"));
         }
     }
     keywords

@@ -207,3 +207,90 @@ fn test_ideology_modifier_suffixes_complete() {
     assert!(IDEOLOGY_MODIFIER_SUFFIXES.contains(&"influence"));
     assert!(IDEOLOGY_MODIFIER_SUFFIXES.contains(&"support"));
 }
+
+#[test]
+fn test_build_dynamic_building_keywords_vanilla() {
+    use crate::backend::{BUILDING_MODIFIER_PREFIXES, build_dynamic_building_keywords};
+    let sd = ScannerData::new();
+    for name in &["bunker", "dockyard", "arms_factory"] {
+        insert_test_building(&sd, name);
+    }
+
+    let keywords = build_dynamic_building_keywords(&sd);
+    // 3 buildings × 4 prefixes = 12 keywords
+    assert_eq!(keywords.len(), 12);
+
+    // The reported case: bunker production speed in an idea modifier block.
+    assert!(
+        keywords.contains(&"production_speed_bunker_factor".to_string()),
+        "missing production_speed_bunker_factor"
+    );
+    for prefix in BUILDING_MODIFIER_PREFIXES {
+        for name in &["bunker", "dockyard", "arms_factory"] {
+            let key = format!("{prefix}{name}_factor");
+            assert!(keywords.contains(&key), "Missing {key}");
+        }
+    }
+}
+
+#[test]
+fn test_build_dynamic_building_keywords_custom_mod() {
+    // A mod-added building (no wiki row, no static entry) highlights with
+    // zero data changes — the whole point of generating these dynamically.
+    use crate::backend::build_dynamic_building_keywords;
+    let sd = ScannerData::new();
+    insert_test_building(&sd, "my_mod_bunker");
+
+    let keywords = build_dynamic_building_keywords(&sd);
+    assert_eq!(keywords.len(), 4);
+    assert!(
+        keywords.contains(&"production_speed_my_mod_bunker_factor".to_string()),
+        "mod-added building must generate production keyword"
+    );
+    assert!(
+        keywords.contains(&"state_repair_speed_my_mod_bunker_factor".to_string()),
+        "mod-added building must generate state repair keyword"
+    );
+}
+
+#[test]
+fn test_build_dynamic_building_keywords_empty() {
+    use crate::backend::build_dynamic_building_keywords;
+    let sd = ScannerData::new();
+    // No buildings scanned → no keywords (same contract as ideologies).
+    let keywords = build_dynamic_building_keywords(&sd);
+    assert!(keywords.is_empty());
+}
+
+#[test]
+fn test_building_modifier_prefixes_complete() {
+    // The four per-building-type construction/repair families from
+    // wiki list-of-modifiers.md (`production_speed_<building_type>_factor`
+    // etc., verified against vanilla 00_traits.txt usage).
+    use crate::backend::BUILDING_MODIFIER_PREFIXES;
+    assert_eq!(BUILDING_MODIFIER_PREFIXES.len(), 4);
+    assert!(BUILDING_MODIFIER_PREFIXES.contains(&"production_speed_"));
+    assert!(BUILDING_MODIFIER_PREFIXES.contains(&"repair_speed_"));
+    assert!(BUILDING_MODIFIER_PREFIXES.contains(&"state_production_speed_"));
+    assert!(BUILDING_MODIFIER_PREFIXES.contains(&"state_repair_speed_"));
+}
+
+/// Seed one building into scanner data, mirroring the ideology test setup
+/// (`LayeredValue` wrap, explicit `ast::Range` — it has no `Default`).
+fn insert_test_building(sd: &ScannerData, name: &str) {
+    sd.buildings.insert(
+        std::sync::Arc::from(name),
+        crate::data::layered_value::LayeredValue::new(crate::scanner::building_scanner::Building {
+            name: name.to_string(),
+            max_level: None,
+            coastal_only: false,
+            path: std::sync::Arc::from("test"),
+            range: ast::Range {
+                start_line: 0,
+                start_col: 0,
+                end_line: 0,
+                end_col: 0,
+            },
+        }),
+    );
+}

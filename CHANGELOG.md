@@ -21,11 +21,13 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Focus `cost` overflow validation (HOM5011).** `cost` inside `focus` / `shared_focus` / `joint_focus` now errors past the engine maximum of 131762457.66935 weeks (~922,337,203 days), beyond which the value integer-overflows instead of extending the focus.
 
-### 🩹 Fixed
-
 - **Documented `prioritize` for random state scopes.**
 
+- **Per-building construction and repair modifiers now highlight.** `production_speed_bunker_factor` and its siblings (`production_speed_<building>_factor`, `repair_speed_<building>_factor`, `state_production_speed_<building>_factor`, `state_repair_speed_<building>_factor`) rendered as plain text; they are now generated from the buildings in your workspace scan, so mod-added buildings highlight with no data update.
+
 ### 🧹 Internal
+
+- **Definitions (`focus`, `shared_focus`, `joint_focus`, `technology_folders`, `technology_categories`) moved into a new top-level `definitions` table.** No longer counted as effects.
 
 - **Bumped extension dependencies:**
 
