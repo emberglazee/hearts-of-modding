@@ -1,5 +1,5 @@
 {
-	"version": 5,
+	"version": 6,
 	"triggers": {
 		"(building_count_trigger)": {
 			"block_type": "value_trigger",
@@ -38463,6 +38463,808 @@
 				"TechnologyTags"
 			],
 			"parameters": {},
+			"param_container": false
+		},
+		"country_event": {
+			"name": "country_event",
+			"description": "A country_event definition block in events/*.txt. Dual-shape: the same key is also an invocation effect (id/days/hours) usable in effect bodies — the invocation params stay in effects; this schema covers the definition form.",
+			"file_types": [
+				"Events"
+			],
+			"parameters": {
+				"id": {
+					"type": "string",
+					"value_type": "string",
+					"description": "Unique identifier of the event, format prefix.number. Called and fired by this id.",
+					"optional": false,
+					"repeated": false
+				},
+				"title": {
+					"type": "localisation key",
+					"value_type": "",
+					"description": "Title localisation key, shown as the event header.",
+					"optional": false,
+					"repeated": false
+				},
+				"desc": {
+					"type": "localisation key",
+					"value_type": "",
+					"description": "Body localisation key.",
+					"optional": false,
+					"repeated": false
+				},
+				"picture": {
+					"type": "string",
+					"value_type": "sprite",
+					"description": "Event picture GFX_ name from the interface event pictures.",
+					"optional": true,
+					"repeated": false
+				},
+				"is_triggered_only": {
+					"type": "boolean",
+					"value_type": "bool",
+					"description": "Fires only when called from scripts, focuses or decisions; never automatically. Use this or trigger.",
+					"optional": true,
+					"repeated": false
+				},
+				"trigger": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Automatic trigger conditions. Use this (usually with fire_only_once) or is_triggered_only.",
+					"optional": true,
+					"repeated": false
+				},
+				"immediate": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Effects executed immediately when the event fires, before any option is picked.",
+					"optional": true,
+					"repeated": false
+				},
+				"option": {
+					"type": "block",
+					"value_type": "block",
+					"description": "One selectable option: a name loc key plus trigger-gated effects.",
+					"optional": true,
+					"repeated": true
+				},
+				"fire_only_once": {
+					"type": "boolean",
+					"value_type": "bool",
+					"description": "Fires at most once per campaign; usually paired with trigger.",
+					"optional": true,
+					"repeated": false
+				},
+				"hidden": {
+					"type": "boolean",
+					"value_type": "bool",
+					"description": "Hidden event: no popup is shown, but immediate and option effects still run.",
+					"optional": true,
+					"repeated": false
+				},
+				"mean_time_to_happen": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Mean-time-to-happen delay block; a triggered event fires after the rolled delay.",
+					"optional": true,
+					"repeated": false
+				},
+				"major": {
+					"type": "boolean",
+					"value_type": "bool",
+					"description": "Broadcast to the whole world when yes. Rare on country events; the news_event form is the usual broadcast.",
+					"optional": true,
+					"repeated": false
+				},
+				"after": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Effects executed after the event window closes.",
+					"optional": true,
+					"repeated": false
+				},
+				"timeout_days": {
+					"type": "number",
+					"value_type": "int",
+					"description": "Days until the event auto-dismisses if the player picks nothing.",
+					"optional": true,
+					"repeated": false
+				},
+				"minor_flavor": {
+					"type": "boolean",
+					"value_type": "bool",
+					"description": "Flavor-grade styling for minor events such as ace promotions.",
+					"optional": true,
+					"repeated": false
+				}
+			},
+			"param_container": false
+		},
+		"state_event": {
+			"name": "state_event",
+			"description": "A state_event definition block in events/*.txt. Dual-shape: the same key is also an invocation effect (id/days/hours) usable in effect bodies — the invocation params stay in effects; this schema covers the definition form.",
+			"file_types": [
+				"Events"
+			],
+			"parameters": {
+				"id": {
+					"type": "string",
+					"value_type": "string",
+					"description": "Unique identifier of the event, format prefix.number. Called and fired by this id.",
+					"optional": false,
+					"repeated": false
+				},
+				"title": {
+					"type": "localisation key",
+					"value_type": "",
+					"description": "Title localisation key, shown as the event header.",
+					"optional": false,
+					"repeated": false
+				},
+				"desc": {
+					"type": "localisation key",
+					"value_type": "",
+					"description": "Body localisation key.",
+					"optional": false,
+					"repeated": false
+				},
+				"picture": {
+					"type": "string",
+					"value_type": "sprite",
+					"description": "Event picture GFX_ name from the interface event pictures.",
+					"optional": true,
+					"repeated": false
+				},
+				"is_triggered_only": {
+					"type": "boolean",
+					"value_type": "bool",
+					"description": "Fires only when called from scripts, focuses or decisions; never automatically. Use this or trigger.",
+					"optional": true,
+					"repeated": false
+				},
+				"trigger": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Automatic trigger conditions. Use this (usually with fire_only_once) or is_triggered_only.",
+					"optional": true,
+					"repeated": false
+				},
+				"immediate": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Effects executed immediately when the event fires, before any option is picked.",
+					"optional": true,
+					"repeated": false
+				},
+				"option": {
+					"type": "block",
+					"value_type": "block",
+					"description": "One selectable option: a name loc key plus trigger-gated effects.",
+					"optional": true,
+					"repeated": true
+				},
+				"fire_only_once": {
+					"type": "boolean",
+					"value_type": "bool",
+					"description": "Fires at most once per campaign; usually paired with trigger.",
+					"optional": true,
+					"repeated": false
+				},
+				"hidden": {
+					"type": "boolean",
+					"value_type": "bool",
+					"description": "Hidden event: no popup is shown, but immediate and option effects still run.",
+					"optional": true,
+					"repeated": false
+				}
+			},
+			"param_container": false
+		},
+		"news_event": {
+			"name": "news_event",
+			"description": "A news_event definition block in events/*.txt. Dual-shape: the same key is also an invocation effect (id/days/hours) usable in effect bodies — the invocation params stay in effects; this schema covers the definition form.",
+			"file_types": [
+				"Events"
+			],
+			"parameters": {
+				"id": {
+					"type": "string",
+					"value_type": "string",
+					"description": "Unique identifier of the event, format prefix.number. Called and fired by this id.",
+					"optional": false,
+					"repeated": false
+				},
+				"title": {
+					"type": "localisation key",
+					"value_type": "",
+					"description": "Title localisation key, shown as the event header.",
+					"optional": false,
+					"repeated": false
+				},
+				"desc": {
+					"type": "localisation key",
+					"value_type": "",
+					"description": "Body localisation key.",
+					"optional": false,
+					"repeated": false
+				},
+				"picture": {
+					"type": "string",
+					"value_type": "sprite",
+					"description": "Event picture GFX_ name from the interface event pictures.",
+					"optional": true,
+					"repeated": false
+				},
+				"is_triggered_only": {
+					"type": "boolean",
+					"value_type": "bool",
+					"description": "Fires only when called from scripts, focuses or decisions; never automatically. Use this or trigger.",
+					"optional": true,
+					"repeated": false
+				},
+				"trigger": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Automatic trigger conditions. Use this (usually with fire_only_once) or is_triggered_only.",
+					"optional": true,
+					"repeated": false
+				},
+				"immediate": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Effects executed immediately when the event fires, before any option is picked.",
+					"optional": true,
+					"repeated": false
+				},
+				"option": {
+					"type": "block",
+					"value_type": "block",
+					"description": "One selectable option: a name loc key plus trigger-gated effects.",
+					"optional": true,
+					"repeated": true
+				},
+				"fire_only_once": {
+					"type": "boolean",
+					"value_type": "bool",
+					"description": "Fires at most once per campaign; usually paired with trigger.",
+					"optional": true,
+					"repeated": false
+				},
+				"hidden": {
+					"type": "boolean",
+					"value_type": "bool",
+					"description": "Hidden event: no popup is shown, but immediate and option effects still run.",
+					"optional": true,
+					"repeated": false
+				},
+				"mean_time_to_happen": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Mean-time-to-happen delay block; a triggered event fires after the rolled delay.",
+					"optional": true,
+					"repeated": false
+				},
+				"major": {
+					"type": "boolean",
+					"value_type": "bool",
+					"description": "Broadcast to the whole world when yes; sender-only when no.",
+					"optional": true,
+					"repeated": false
+				},
+				"fire_for_sender": {
+					"type": "boolean",
+					"value_type": "bool",
+					"description": "Also fires the event for the sending country.",
+					"optional": true,
+					"repeated": false
+				},
+				"show_major": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Conditions controlling the major world-broadcast display.",
+					"optional": true,
+					"repeated": false
+				}
+			},
+			"param_container": false
+		},
+		"unit_leader_event": {
+			"name": "unit_leader_event",
+			"description": "A unit_leader_event definition block in events/*.txt. Dual-shape: the same key is also an invocation effect (id/days/hours) usable in effect bodies — the invocation params stay in effects; this schema covers the definition form.",
+			"file_types": [
+				"Events"
+			],
+			"parameters": {
+				"id": {
+					"type": "string",
+					"value_type": "string",
+					"description": "Unique identifier of the event, format prefix.number. Called and fired by this id.",
+					"optional": false,
+					"repeated": false
+				},
+				"title": {
+					"type": "localisation key",
+					"value_type": "",
+					"description": "Title localisation key, shown as the event header.",
+					"optional": false,
+					"repeated": false
+				},
+				"desc": {
+					"type": "localisation key",
+					"value_type": "",
+					"description": "Body localisation key.",
+					"optional": false,
+					"repeated": false
+				},
+				"picture": {
+					"type": "string",
+					"value_type": "sprite",
+					"description": "Event picture GFX_ name from the interface event pictures.",
+					"optional": true,
+					"repeated": false
+				},
+				"is_triggered_only": {
+					"type": "boolean",
+					"value_type": "bool",
+					"description": "Fires only when called from scripts, focuses or decisions; never automatically. Use this or trigger.",
+					"optional": true,
+					"repeated": false
+				},
+				"trigger": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Automatic trigger conditions. Use this (usually with fire_only_once) or is_triggered_only.",
+					"optional": true,
+					"repeated": false
+				},
+				"immediate": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Effects executed immediately when the event fires, before any option is picked.",
+					"optional": true,
+					"repeated": false
+				},
+				"option": {
+					"type": "block",
+					"value_type": "block",
+					"description": "One selectable option: a name loc key plus trigger-gated effects.",
+					"optional": true,
+					"repeated": true
+				},
+				"fire_only_once": {
+					"type": "boolean",
+					"value_type": "bool",
+					"description": "Fires at most once per campaign; usually paired with trigger.",
+					"optional": true,
+					"repeated": false
+				},
+				"hidden": {
+					"type": "boolean",
+					"value_type": "bool",
+					"description": "Hidden event: no popup is shown, but immediate and option effects still run.",
+					"optional": true,
+					"repeated": false
+				}
+			},
+			"param_container": false
+		},
+		"operative_leader_event": {
+			"name": "operative_leader_event",
+			"description": "An operative_leader_event definition block in events/*.txt. Dual-shape: the same key is also an invocation effect (id/days/hours/originator/recipient/...) usable in effect bodies — the invocation params stay in effects; this schema covers the definition form.",
+			"file_types": [
+				"Events"
+			],
+			"parameters": {
+				"id": {
+					"type": "string",
+					"value_type": "string",
+					"description": "Unique identifier of the event, format prefix.number. Called and fired by this id.",
+					"optional": false,
+					"repeated": false
+				},
+				"title": {
+					"type": "localisation key",
+					"value_type": "",
+					"description": "Title localisation key, shown as the event header.",
+					"optional": false,
+					"repeated": false
+				},
+				"desc": {
+					"type": "localisation key",
+					"value_type": "",
+					"description": "Body localisation key.",
+					"optional": false,
+					"repeated": false
+				},
+				"picture": {
+					"type": "string",
+					"value_type": "sprite",
+					"description": "Event picture GFX_ name from the interface event pictures.",
+					"optional": true,
+					"repeated": false
+				},
+				"is_triggered_only": {
+					"type": "boolean",
+					"value_type": "bool",
+					"description": "Fires only when called from scripts, focuses or decisions; never automatically. Use this or trigger.",
+					"optional": true,
+					"repeated": false
+				},
+				"trigger": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Automatic trigger conditions. Use this (usually with fire_only_once) or is_triggered_only.",
+					"optional": true,
+					"repeated": false
+				},
+				"immediate": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Effects executed immediately when the event fires, before any option is picked.",
+					"optional": true,
+					"repeated": false
+				},
+				"option": {
+					"type": "block",
+					"value_type": "block",
+					"description": "One selectable option: a name loc key plus trigger-gated effects.",
+					"optional": true,
+					"repeated": true
+				},
+				"fire_only_once": {
+					"type": "boolean",
+					"value_type": "bool",
+					"description": "Fires at most once per campaign; usually paired with trigger.",
+					"optional": true,
+					"repeated": false
+				},
+				"hidden": {
+					"type": "boolean",
+					"value_type": "bool",
+					"description": "Hidden event: no popup is shown, but immediate and option effects still run.",
+					"optional": true,
+					"repeated": false
+				},
+				"major": {
+					"type": "boolean",
+					"value_type": "bool",
+					"description": "Broadcast to the whole world when yes; sender-only when no.",
+					"optional": true,
+					"repeated": false
+				}
+			},
+			"param_container": false
+		},
+		"decision": {
+			"name": "decision",
+			"description": "A decision or mission instance: the arbitrarily-named block inside a decision-category container in common/decisions/*.txt. Routed by file position (top-level blocks in decision files), not by block key — the instance name is mod-defined. Covers plain, targeted and mission decisions as one union; mission-only and targeted-only keys say so.",
+			"file_types": [
+				"Decisions"
+			],
+			"parameters": {
+				"icon": {
+					"type": "string",
+					"value_type": "sprite",
+					"description": "Decision icon GFX_ name.",
+					"optional": false,
+					"repeated": false
+				},
+				"name": {
+					"type": "localisation key",
+					"value_type": "",
+					"description": "Display-name override localisation key. Used by missions for the mission title.",
+					"optional": true,
+					"repeated": false
+				},
+				"desc": {
+					"type": "localisation key",
+					"value_type": "",
+					"description": "Tooltip description localisation key (mission description on missions).",
+					"optional": true,
+					"repeated": false
+				},
+				"cost": {
+					"type": "number",
+					"value_type": "int",
+					"description": "Political power cost to take the decision.",
+					"optional": true,
+					"repeated": false
+				},
+				"days_remove": {
+					"type": "number",
+					"value_type": "int",
+					"description": "Days the decision stays active before it is removed.",
+					"optional": true,
+					"repeated": false
+				},
+				"days_re_enable": {
+					"type": "number",
+					"value_type": "int",
+					"description": "Cooldown in days before a repeatable decision can be taken again.",
+					"optional": true,
+					"repeated": false
+				},
+				"custom_cost_trigger": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Custom cost display conditions; shown with custom_cost_text.",
+					"optional": true,
+					"repeated": false
+				},
+				"custom_cost_text": {
+					"type": "localisation key",
+					"value_type": "",
+					"description": "Custom cost line localisation key, shown when custom_cost_trigger passes.",
+					"optional": true,
+					"repeated": false
+				},
+				"fire_only_once": {
+					"type": "boolean",
+					"value_type": "bool",
+					"description": "Can only be taken once per campaign.",
+					"optional": true,
+					"repeated": false
+				},
+				"allowed": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Start-of-game check only; gates whether the decision can ever appear.",
+					"optional": true,
+					"repeated": false
+				},
+				"available": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Continuous conditions for the decision to be clickable; unmet requirements grey it out instead of hiding it.",
+					"optional": true,
+					"repeated": false
+				},
+				"visible": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Continuous visibility conditions. A failing category-level visible hides every decision under it with no trace — prefer available for per-decision gates.",
+					"optional": true,
+					"repeated": false
+				},
+				"activation": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Mission appearance conditions (missions only).",
+					"optional": true,
+					"repeated": false
+				},
+				"remove_trigger": {
+					"type": "block",
+					"value_type": "block",
+					"description": "The decision is removed immediately when this passes.",
+					"optional": true,
+					"repeated": false
+				},
+				"cancel_trigger": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Cancellation conditions; take precedence over remove_trigger (missions).",
+					"optional": true,
+					"repeated": false
+				},
+				"cancel_if_not_visible": {
+					"type": "boolean",
+					"value_type": "bool",
+					"description": "Cancel the mission when it stops being visible.",
+					"optional": true,
+					"repeated": false
+				},
+				"modifier": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Ongoing modifiers while the decision is active.",
+					"optional": true,
+					"repeated": false
+				},
+				"targeted_modifier": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Modifiers applied to the targeted country (targeted decisions).",
+					"optional": true,
+					"repeated": false
+				},
+				"complete_effect": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Effects on taking (clicking / completing) the decision.",
+					"optional": true,
+					"repeated": false
+				},
+				"remove_effect": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Effects when the decision completes or is removed.",
+					"optional": true,
+					"repeated": false
+				},
+				"cancel_effect": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Effects when the decision or mission is cancelled.",
+					"optional": true,
+					"repeated": false
+				},
+				"timeout_effect": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Effects when a mission hits days_mission_timeout (missions only).",
+					"optional": true,
+					"repeated": false
+				},
+				"war_with_on_complete": {
+					"type": "tag",
+					"value_type": "tag",
+					"description": "War warning (or war goal) against the tag on completion.",
+					"optional": true,
+					"repeated": false
+				},
+				"war_with_on_remove": {
+					"type": "tag",
+					"value_type": "tag",
+					"description": "War warning against the tag on removal.",
+					"optional": true,
+					"repeated": false
+				},
+				"war_with_on_timeout": {
+					"type": "tag",
+					"value_type": "tag",
+					"description": "War warning against the tag on mission timeout.",
+					"optional": true,
+					"repeated": false
+				},
+				"war_with_target_on_timeout": {
+					"type": "tag",
+					"value_type": "tag",
+					"description": "War warning against the target on mission timeout.",
+					"optional": true,
+					"repeated": false
+				},
+				"war_with_target_on_remove": {
+					"type": "tag",
+					"value_type": "tag",
+					"description": "War warning against the target on removal.",
+					"optional": true,
+					"repeated": false
+				},
+				"fixed_random_seed": {
+					"type": "boolean",
+					"value_type": "bool",
+					"description": "Fix the random seed for the decision's random blocks.",
+					"optional": true,
+					"repeated": false
+				},
+				"highlight_states": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Map-highlight block (highlight_states_trigger and colors) for targeted decisions.",
+					"optional": true,
+					"repeated": false
+				},
+				"priority": {
+					"type": "number / block",
+					"value_type": "",
+					"description": "Decision list priority: a number, or a block with base plus triggered modifiers.",
+					"optional": true,
+					"repeated": false
+				},
+				"ai_will_do": {
+					"type": "block",
+					"value_type": "block",
+					"description": "AI weighting: factor plus modifiers.",
+					"optional": true,
+					"repeated": false
+				},
+				"ai_hint_pp_cost": {
+					"type": "number",
+					"value_type": "int",
+					"description": "Political-power cost hint for AI budgeting.",
+					"optional": true,
+					"repeated": false
+				},
+				"targets": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Explicit target list for targeted decisions (country tags and states).",
+					"optional": true,
+					"repeated": false
+				},
+				"target_array": {
+					"type": "variable",
+					"value_type": "variable",
+					"description": "Array variable holding the targeted decision's targets.",
+					"optional": true,
+					"repeated": false
+				},
+				"targets_dynamic": {
+					"type": "boolean",
+					"value_type": "bool",
+					"description": "Expand the target list to derived tags.",
+					"optional": true,
+					"repeated": false
+				},
+				"target_trigger": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Filter for the full-range target scan (targeted decisions).",
+					"optional": true,
+					"repeated": false
+				},
+				"target_root_trigger": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Target filter evaluated in ROOT scope.",
+					"optional": true,
+					"repeated": false
+				},
+				"state_target": {
+					"type": "string",
+					"value_type": "",
+					"description": "Regional targeting prefilter: yes/no/any/any_owned_state/any_controlled_state or a continent key. Must superset the body's requirement.",
+					"optional": true,
+					"repeated": false
+				},
+				"on_map_mode": {
+					"type": "string",
+					"value_type": "",
+					"description": "Map display mode: map_only, decision_view_only or map_and_decisions_view.",
+					"optional": true,
+					"repeated": false
+				},
+				"target_non_existing": {
+					"type": "boolean",
+					"value_type": "bool",
+					"description": "Whether non-existing countries are valid targets.",
+					"optional": true,
+					"repeated": false
+				},
+				"is_good": {
+					"type": "boolean",
+					"value_type": "bool",
+					"description": "Mission progress-bar color (missions only).",
+					"optional": true,
+					"repeated": false
+				},
+				"selectable_mission": {
+					"type": "boolean",
+					"value_type": "bool",
+					"description": "Whether the player must manually select the mission (missions only).",
+					"optional": true,
+					"repeated": false
+				},
+				"days_mission_timeout": {
+					"type": "int / variable",
+					"value_type": "int",
+					"description": "Mission time limit in days; accepts a variable (missions only).",
+					"optional": true,
+					"repeated": false
+				},
+				"cosmetic_tag": {
+					"type": "tag",
+					"value_type": "tag",
+					"description": "Display-tag override for the decision UI.",
+					"optional": true,
+					"repeated": false
+				},
+				"cosmetic_ideology": {
+					"type": "string",
+					"value_type": "",
+					"description": "Display-ideology override key for the decision UI.",
+					"optional": true,
+					"repeated": false
+				},
+				"power_balance": {
+					"type": "string",
+					"value_type": "",
+					"description": "Balance-of-power id associated with the decision.",
+					"optional": true,
+					"repeated": false
+				}
+			},
 			"param_container": false
 		}
 	},

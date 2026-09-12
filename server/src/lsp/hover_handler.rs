@@ -635,16 +635,44 @@ impl Backend {
                     // block data — not a generic trigger/effect/modifier.
                     // Hovering a param VALUES (e.g. an idea ref `SPE_x`) does
                     // not match a param name, so it falls through to the
-                    // entity checks below.
-                    if let Some(param) = context_key
+                    // entity checks below. Dual-shape keys resolve against
+                    // the table matching THIS file (`title` of a
+                    // `country_event` definition in events/ vs `days` of the
+                    // invocation effect elsewhere); decision/mission instance
+                    // bodies (arbitrary names) resolve against the `decision`
+                    // schema and display it as the owner.
+                    let cat_names = self.file_category_names(&uri);
+                    let chain = crate::scope::scope_context::find_enclosing_block_key_chain(
+                        &script, position,
+                    );
+                    let param_with_owner = context_key
                         .as_deref()
-                        .and_then(|pk| crate::data::hoi4_data::lookup_parameter(pk, &identifier))
-                    {
-                        let mut p_text = format!(
-                            "### 🧩 Parameter: `{}` of `{}`\n",
-                            identifier,
-                            context_key.as_deref().unwrap_or("")
-                        );
+                        .and_then(|pk| {
+                            crate::data::hoi4_data::lookup_parameter_in_file(
+                                pk,
+                                &identifier,
+                                &cat_names,
+                                chain.len() == 1,
+                            )
+                            .map(|p| (pk.to_string(), p))
+                        })
+                        .or_else(|| {
+                            if crate::data::hoi4_data::is_decision_instance_body(&chain, &cat_names)
+                            {
+                                crate::data::hoi4_data::lookup_definition("decision")
+                                    .and_then(|d| {
+                                        d.parameters.get(&identifier).or_else(|| {
+                                            d.parameters.get(&identifier.to_ascii_lowercase())
+                                        })
+                                    })
+                                    .map(|p| ("decision".to_string(), p))
+                            } else {
+                                None
+                            }
+                        });
+                    if let Some((param_owner, param)) = param_with_owner {
+                        let mut p_text =
+                            format!("### 🧩 Parameter: `{}` of `{}`\n", identifier, param_owner);
                         if !param.description.is_empty() {
                             p_text.push_str(&format!("\n{}", param.description));
                         }

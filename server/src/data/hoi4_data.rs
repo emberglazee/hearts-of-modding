@@ -463,6 +463,95 @@ pub fn is_param_container(block_key: &str) -> bool {
         || lookup_definition(block_key).is_some_and(|d| d.param_container)
 }
 
+/// File-category-aware parameter lookup for dual-shape keys.
+///
+/// Some keys live in BOTH tables with disjoint param sets: the invocation
+/// effect (`country_event = { id days }` in an option body) and the
+/// definition schema (`country_event = { title desc option }` at the top of
+/// an event file). When `file_cats` (FileCategory variant names for the
+/// current file) contains one of the definition's `file_types` AND this
+/// occurrence declares the block (`top_level`: the top-level block of the
+/// file), the DEFINITION table wins; a param it does not document falls
+/// through to the entity tables (a definition file can still nest an
+/// invocation, e.g. an option body firing `country_event = { id days }`).
+/// Nested occurrences of a dual-shape key are invocations and resolve
+/// entity-first. Otherwise identical to [`lookup_parameter`]. Single-shape
+/// keys resolve the same either way, so callers that already know the file's
+/// categories should always prefer this.
+///
+/// Semantic tokens and symbol_search deliberately stay on the
+/// order-insensitive [`lookup_parameter`]: highlighting and anchor rewrites
+/// only ask "does either table claim this key", which has no ordering.
+pub fn lookup_parameter_in_file(
+    block_key: &str,
+    param: &str,
+    file_cats: &[&str],
+    top_level: bool,
+) -> Option<&'static ParameterDef> {
+    if top_level {
+        if let Some(def) = lookup_definition(block_key) {
+            if def
+                .file_types
+                .iter()
+                .any(|ft| file_cats.iter().any(|c| c.eq_ignore_ascii_case(ft)))
+                && let Some(p) = def
+                    .parameters
+                    .get(param)
+                    .or_else(|| def.parameters.get(&param.to_ascii_lowercase()))
+            {
+                return Some(p);
+            }
+        }
+    }
+    lookup_parameter(block_key, param)
+}
+
+/// File-category-aware version of [`block_parameters`]: the definition map
+/// wins for a top-level occurrence in a matching file (see
+/// [`lookup_parameter_in_file`]), otherwise the entity-first unified map.
+pub fn block_parameters_in_file(
+    block_key: &str,
+    file_cats: &[&str],
+    top_level: bool,
+) -> Option<&'static HashMap<String, ParameterDef>> {
+    if top_level {
+        if let Some(def) = lookup_definition(block_key) {
+            if def
+                .file_types
+                .iter()
+                .any(|ft| file_cats.iter().any(|c| c.eq_ignore_ascii_case(ft)))
+            {
+                return Some(&def.parameters);
+            }
+        }
+    }
+    block_parameters(block_key)
+}
+
+/// True when the cursor sits directly inside a decision/mission instance body.
+///
+/// Decision instances are arbitrarily named (`TAG_decision = { ... }` inside
+/// a category container), so no block key routes to the `decision` schema.
+/// Instead: a Decisions-file chain of exactly [instance, category] whose
+/// instance key names neither an entity, a definition, nor a transparent
+/// block. Deeper chains (inside `available`, `complete_effect`, ...) resolve
+/// normally — those bodies hold plain triggers/effects.
+pub fn is_decision_instance_body(chain: &[String], file_cats: &[&str]) -> bool {
+    if chain.len() != 2 {
+        return false;
+    }
+    if !file_cats
+        .iter()
+        .any(|c| c.eq_ignore_ascii_case("Decisions"))
+    {
+        return false;
+    }
+    if is_transparent_block(&chain[0]) {
+        return false;
+    }
+    block_parameters(&chain[0]).is_none()
+}
+
 /// Resolve a key against the immediate parent first, then a threaded
 /// param-container anchor. Shared by semantic tokens, hover, and completion
 /// so a folder's `ledger`/`doctrine` classify identically everywhere.
@@ -866,6 +955,98 @@ mod tests {
         ] {
             assert!(kw.contains(key), "keyword set missing definition {key}");
         }
+    }
+
+    #[test]
+    fn test_dual_shape_file_aware_ordering() {
+        // country_event lives in BOTH tables: invocation effect (id/days)
+        // and definition schema (title/desc/option). `id` is genuinely
+        // shared; the two shapes are otherwise disjoint.
+        let inv = block_parameters("not_events_file_sentinel").is_none();
+        assert!(inv, "sanity: unknown keys resolve to neither table");
+        let entity_params = block_parameters("country_event").expect("invocation in effects");
+        let def_params = definition_parameters("country_event").expect("definition in definitions");
+        assert!(entity_params.contains_key("id") && def_params.contains_key("id"));
+        assert!(def_params.contains_key("title"));
+        assert!(!entity_params.contains_key("title"));
+        assert!(entity_params.contains_key("days"));
+        assert!(!def_params.contains_key("days"));
+
+        // In an Events file the top-level declaration resolves definition-side;
+        // elsewhere (and for nested invocations inside event files) the entity
+        // wins; a definition file can still nest an invocation (fall-through).
+        // Definition-only params stay visible everywhere (additive).
+        let events = ["Events"];
+        let decisions = ["Decisions"];
+        let title_events = lookup_parameter_in_file("country_event", "title", &events, true)
+            .expect("title in Events");
+        assert!(title_events.description.contains("header"));
+        // Nested occurrence in the same file: entity-first, which falls through
+        // to the unified tables — the definition doc still shows (additive).
+        let title_nested = lookup_parameter_in_file("country_event", "title", &events, false)
+            .expect("nested title falls through to unified lookup");
+        assert!(title_nested.description.contains("header"));
+        // `id` is genuinely shared: file context picks the description.
+        let id_events =
+            lookup_parameter_in_file("country_event", "id", &events, true).expect("id in Events");
+        assert!(id_events.description.contains("prefix.number"));
+        let id_other = lookup_parameter_in_file("country_event", "id", &decisions, false)
+            .expect("id elsewhere");
+        assert!(id_other.description.contains("event to fire"));
+        assert!(lookup_parameter_in_file("country_event", "days", &decisions, false).is_some());
+        assert!(lookup_parameter_in_file("country_event", "days", &events, false).is_some());
+        assert!(
+            block_parameters_in_file("country_event", &events, true)
+                .is_some_and(|p| p.contains_key("option"))
+        );
+        assert!(
+            block_parameters_in_file("country_event", &decisions, false)
+                .is_some_and(|p| !p.contains_key("option"))
+        );
+        // Nested map lookup in the matching file: invocation form.
+        assert!(
+            block_parameters_in_file("country_event", &events, false)
+                .is_some_and(|p| p.contains_key("days") && !p.contains_key("option"))
+        );
+        // Single-shape keys are unaffected by file context.
+        assert!(lookup_parameter_in_file("add_timed_idea", "days", &events, false).is_some());
+        assert!(lookup_parameter_in_file("focus", "available", &["Focuses"], false).is_some());
+    }
+
+    #[test]
+    fn test_is_decision_instance_body() {
+        let decisions = ["Decisions"];
+        let events = ["Events"];
+        // Directly inside an arbitrarily-named instance: yes.
+        assert!(is_decision_instance_body(
+            &["TAG_my_decision".to_string(), "TAG_category".to_string()],
+            &decisions
+        ));
+        // Wrong file, wrong depth, known-entity parent, transparent parent.
+        assert!(!is_decision_instance_body(
+            &["TAG_my_decision".to_string(), "TAG_category".to_string()],
+            &events
+        ));
+        assert!(!is_decision_instance_body(
+            &["TAG_category".to_string()],
+            &decisions
+        ));
+        assert!(!is_decision_instance_body(
+            &[
+                "has_war".to_string(),
+                "TAG_my_decision".to_string(),
+                "TAG_category".to_string()
+            ],
+            &decisions
+        ));
+        assert!(!is_decision_instance_body(
+            &["available".to_string(), "TAG_my_decision".to_string()],
+            &decisions
+        ));
+        assert!(!is_decision_instance_body(
+            &["option".to_string(), "TAG_my_decision".to_string()],
+            &decisions
+        ));
     }
 
     /// The `parameters` map is a PARTIAL picture of what a block accepts — the

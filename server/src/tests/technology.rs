@@ -819,3 +819,133 @@ fn test_focus_param_lookup_case_insensitive() {
     assert!(lookup_parameter("FOCUS", "AVAILABLE_IF_CAPITULATED").is_some());
     assert!(lookup_parameter("Shared_Focus", "Relative_Position_ID").is_some());
 }
+
+/// The five event-definition schemas: shared engine core in every type,
+/// measured per-type extras, dual-shape against the invocation effects.
+#[test]
+fn test_data_json_documents_event_definition_schemas() {
+    use crate::data::hoi4_data::{lookup_definition, lookup_entity};
+
+    let core = [
+        "id",
+        "title",
+        "desc",
+        "picture",
+        "is_triggered_only",
+        "trigger",
+        "immediate",
+        "option",
+        "fire_only_once",
+        "hidden",
+    ];
+    for key in [
+        "country_event",
+        "state_event",
+        "news_event",
+        "unit_leader_event",
+        "operative_leader_event",
+    ] {
+        let def =
+            lookup_definition(key).unwrap_or_else(|| panic!("{key} must resolve as a definition"));
+        assert_eq!(
+            def.file_types,
+            vec!["Events"],
+            "{key} is declared in event files"
+        );
+        for param in core {
+            assert!(
+                def.parameters.contains_key(param),
+                "{key} must document the shared core param {param}"
+            );
+        }
+        // Dual-shape: the invocation effect keeps its own disjoint-ish form.
+        let inv = lookup_entity(key).unwrap_or_else(|| panic!("{key} stays an effect too"));
+        assert!(inv.parameters.contains_key("id"));
+        assert!(
+            !inv.parameters.contains_key("title"),
+            "{key} invocation must not claim definition keys"
+        );
+        // None of the five is a param container (their params are own keys).
+        assert!(!def.param_container);
+    }
+
+    let news = lookup_definition("news_event").expect("news_event definition");
+    for param in [
+        "major",
+        "mean_time_to_happen",
+        "fire_for_sender",
+        "show_major",
+    ] {
+        assert!(news.parameters.contains_key(param), "news_event.{param}");
+    }
+    let country = lookup_definition("country_event").expect("country_event definition");
+    for param in [
+        "major",
+        "mean_time_to_happen",
+        "after",
+        "timeout_days",
+        "minor_flavor",
+    ] {
+        assert!(
+            country.parameters.contains_key(param),
+            "country_event.{param}"
+        );
+    }
+    let operative =
+        lookup_definition("operative_leader_event").expect("operative_leader_event definition");
+    assert!(operative.parameters.contains_key("major"));
+    let option = &country.parameters["option"];
+    assert!(option.repeated, "option must repeat");
+    assert!(!country.parameters["id"].optional, "id is mandatory");
+}
+
+/// The `decision` schema: union of plain/targeted/mission keys over 4125
+/// vanilla instances, routed by file position (instance names are mod-defined).
+#[test]
+fn test_data_json_documents_decision_schema() {
+    use crate::data::hoi4_data::{lookup_definition, lookup_entity};
+
+    assert!(
+        lookup_entity("decision").is_none(),
+        "decision is a file-routed schema, not an invocable entity"
+    );
+    let def = lookup_definition("decision").expect("decision definition");
+    assert_eq!(def.file_types, vec!["Decisions"]);
+    assert!(!def.param_container);
+    // Display + cost + gates + effects + AI + targeting + mission groups.
+    for param in [
+        "icon",
+        "cost",
+        "days_remove",
+        "fire_only_once",
+        "allowed",
+        "available",
+        "visible",
+        "complete_effect",
+        "remove_effect",
+        "ai_will_do",
+        "targets",
+        "target_trigger",
+        "state_target",
+        "activation",
+        "is_good",
+        "days_mission_timeout",
+        "timeout_effect",
+        "war_with_on_complete",
+        "cosmetic_tag",
+        "power_balance",
+        "highlight_states",
+        "custom_cost_trigger",
+    ] {
+        assert!(
+            def.parameters.contains_key(param),
+            "decision must document {param}"
+        );
+    }
+    assert!(
+        def.parameters["visible"]
+            .description
+            .contains("hides every decision"),
+        "visible must carry the category-gate warning"
+    );
+}

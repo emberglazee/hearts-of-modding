@@ -637,14 +637,25 @@ impl Backend {
             // the container's table applies to its sub-blocks.
             let chain =
                 crate::scope::scope_context::find_enclosing_block_key_chain(&script, position);
+            // File categories once: dual-shape keys (country_event as effect
+            // vs definition) resolve against the table matching THIS file,
+            // and definition names below are gated on the same categories.
+            let cat_names = self.file_category_names(&uri);
             let mut inherited_params: Option<
                 &'static std::collections::HashMap<String, crate::data::hoi4_data::ParameterDef>,
             > = None;
             // Chain is innermost first: take params from the first key that
             // documents any; a transparent block WITHOUT params stops the
-            // walk before an outer entity's table leaks into this body.
-            for key in chain.iter() {
-                if let Some(params) = crate::data::hoi4_data::block_parameters(key) {
+            // walk before an outer entity's table leaks into this body. A key
+            // counts as a definition declaration only at the top level
+            // (outermost chain position): deeper occurrences of a dual-shape
+            // key are invocations and resolve entity-first.
+            for (i, key) in chain.iter().enumerate() {
+                if let Some(params) = crate::data::hoi4_data::block_parameters_in_file(
+                    key,
+                    &cat_names,
+                    i + 1 == chain.len(),
+                ) {
                     if !params.is_empty() {
                         inherited_params = Some(params);
                         break;
@@ -653,6 +664,14 @@ impl Backend {
                 if crate::data::hoi4_data::is_transparent_block(key) {
                     break;
                 }
+            }
+            // Decision/mission instances are arbitrarily named, so no chain
+            // key routes to the `decision` schema: when the walk found nothing
+            // and the cursor sits directly in an instance body, use it.
+            if inherited_params.is_none()
+                && crate::data::hoi4_data::is_decision_instance_body(&chain, &cat_names)
+            {
+                inherited_params = crate::data::hoi4_data::definition_parameters("decision");
             }
             if let Some(params) = inherited_params {
                 let mut names: Vec<&String> = params.keys().collect();
@@ -704,10 +723,8 @@ impl Backend {
         // Additive like params: appended after them, before the generic list.
         let mut definition_items: Vec<CompletionItem> = Vec::new();
         {
-            let map_config = self.map_config_for_uri(&uri);
-            let cats =
-                crate::scanner::incremental_scanner::classify_file(&uri, &map_config.definitions);
-            if !cats.is_empty() {
+            let cat_names = self.file_category_names(&uri);
+            if !cat_names.is_empty() {
                 let mut names: Vec<&String> = crate::DEFINITIONS.keys().collect();
                 names.sort();
                 for name in names {
@@ -715,7 +732,7 @@ impl Backend {
                     if !def
                         .file_types
                         .iter()
-                        .any(|ft| cats.iter().any(|c| c.as_str().eq_ignore_ascii_case(ft)))
+                        .any(|ft| cat_names.iter().any(|c| c.eq_ignore_ascii_case(ft)))
                     {
                         continue;
                     }
@@ -837,6 +854,19 @@ fn scope_trigger_effect_items(current_scope: scope::Scope) -> std::sync::Arc<Vec
 }
 
 impl Backend {
+    /// FileCategory variant names for a uri, for definition gating and
+    /// dual-shape resolution (`country_event` as effect vs definition).
+    /// Pure path matching via [`classify_file`](crate::scanner::incremental_scanner::classify_file);
+    /// the csv name comes from the workspace map config. Names are
+    /// `&'static str` (variant spellings), so callers keep the vec freely.
+    pub(crate) fn file_category_names(&self, uri: &str) -> Vec<&'static str> {
+        let map_config = self.map_config_for_uri(uri);
+        crate::scanner::incremental_scanner::classify_file(uri, &map_config.definitions)
+            .into_iter()
+            .map(|c| c.as_str())
+            .collect()
+    }
+
     /// Column-aware completions for one `map/definition.csv` row
     /// (`ID;R;G;B;Type;Coastal;Terrain;Continent`).
     ///
