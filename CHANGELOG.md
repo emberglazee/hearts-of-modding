@@ -25,10 +25,13 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### 🧹 Internal
 
-- **Bumped extension dev dependencies:**
+- **Bumped extension dependencies:**
 
-  - `eslint` v10.9.1 -> v10.10.0
-  - `typescript-eslint` v8.69.0 -> v8.70.0
+  - Dev dependencies:
+    - `eslint` v10.9.1 -> v10.10.0
+    - `typescript-eslint` v8.69.0 -> v8.70.0
+  - Individual `package-lock.json` bumps:
+    - `js-yaml` v4.3.1 -> v4.3.2 (addresses: [CVE-2026-84375](https://github.com/advisories/GHSA-2883-xcg3-v3hh); [PR #15](https://github.com/emberglazee/hearts-of-modding/pull/16))
 
 - **Bumped LSP dependency:**
 
