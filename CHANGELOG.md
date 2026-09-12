@@ -28,6 +28,7 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 - **Bumped extension dev dependencies:**
 
   - `eslint` v10.9.1 -> v10.10.0
+  - `typescript-eslint` v8.69.0 -> v8.70.0
 
 - **Bumped LSP dependency:**
 
