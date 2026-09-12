@@ -4,6 +4,7 @@ use crate::parser::loc_parser;
 use crate::parser::parser;
 use crate::scope::scope;
 use crate::utils::loc_preview::paradox_to_markdown;
+use crate::utils::loc_preview::paradox_to_markdown_with_flags;
 use crate::utils::lsp_convert::RangeMapper;
 use crate::utils::modifier_display;
 use crate::utils::symbol_search::find_identifier_at;
@@ -25,6 +26,18 @@ impl Backend {
         let map_config = self.map_config_for_uri(&uri);
 
         let color_map = crate::utils::loc_preview::build_color_map(&self.scanner_data);
+        // Flag resolver for `@TAG` inline images in loc previews: mod roots
+        // shadow the game path (same layering as texture validation).
+        let roots = self.workspace_roots.load();
+        let game_path = self.config.game_path();
+        let resolve_flag = |tag: &str| {
+            crate::utils::loc_preview::resolve_flag_image(
+                tag,
+                &roots,
+                game_path.as_deref(),
+                &crate::utils::loc_preview::FLAG_CACHE,
+            )
+        };
         if let Some(content) = self.documents.get(&uri) {
             let mapper = RangeMapper::new(&content);
             if uri.ends_with(".yml") {
@@ -85,10 +98,11 @@ impl Backend {
 
                         hover_text.push_str(&format!("**Raw:** `{}`\n\n", entry.value));
                         hover_text.push_str("**Preview:**\n\n");
-                        hover_text.push_str(&paradox_to_markdown(
+                        hover_text.push_str(&paradox_to_markdown_with_flags(
                             &entry.value,
                             Some(global_loc),
                             Some(&color_map),
+                            &resolve_flag,
                         ));
 
                         return Ok(Some(Hover {
@@ -106,10 +120,11 @@ impl Backend {
                             <= entry.value_start_col + entry.value.len() as u32
                     {
                         let mut hover_text = "### 👁️ Localization Preview\n\n".to_string();
-                        hover_text.push_str(&paradox_to_markdown(
+                        hover_text.push_str(&paradox_to_markdown_with_flags(
                             &entry.value,
                             Some(global_loc),
                             Some(&color_map),
+                            &resolve_flag,
                         ));
 
                         return Ok(Some(Hover {

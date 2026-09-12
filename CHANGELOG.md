@@ -13,6 +13,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **`activation` blocks are now recognized in decisions.** The decision/mission appearance trigger block gets Keyword highlighting, pushes Country scope for its contents, and never flags itself.
 
+- **Inline country flags in localisation previews.** `@TAG` in `.yml` hover previews now embeds the real `gfx/flags/TAG.tga` (mod roots shadow the game path) as an inline image instead of `[Flag: TAG]` text, matching the in-game render; unknown tags still fall back to text. This also fixes `@TAG` being mislabelled `****[Scope: Flag: TAG]****` by the scope pass.
+
 ### 🧹 Internal
 
 - **Bumped extension dev dependencies:**

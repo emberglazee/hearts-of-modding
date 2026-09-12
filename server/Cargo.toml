@@ -20,6 +20,7 @@ regex = "1.13.1"
 futures = "0.3.34"
 sysinfo = "0.39.6"
 base64 = "0.23.1"
+image = { version = "0.25", default-features = false, features = ["tga", "png"] }
 arc-swap = "1.9.2"
 paste = { package = "pastey", version = "0.2.3" }
 rustc-hash = "2.1.3"
