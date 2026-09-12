@@ -86,7 +86,70 @@ EXCLUDE_ENTITIES = {
 
 # Hand-written parameter patches applied AFTER doc parsing. Use for params
 # the wiki formats awkwardly (block params, "X scope" prose, no `key =` prefix).
+# Entries here ALSO apply to entities with no mined doc row at all (e.g. the
+# `random_*` state scopes, documented in scopes.md §Priority rather than the
+# effects/triggers tables) — the merge loop seeds an empty base for those so a
+# hand patch can still land.
+PRIORITIZE_STATE_DESC = (
+    "State IDs to try first. Only if none listed meets the ownership/control "
+    "and limit conditions will another eligible state be picked; multiple "
+    "listed states share priority (random between them). State scopes with "
+    "random_ type only — random_neighbor_state does not support it."
+)
 PARAM_OVERRIDES = {
+    # `prioritize = { 123 321 }` for the five `random_*` state scopes that
+    # support it (scopes.md §Priority + per-row examples). Without this,
+    # `prioritize` highlights as unstyled white: the generator mines
+    # effects/triggers/data-structures.md, but these scopes are documented in
+    # scopes.md, whose `<pre>` examples the row parser cannot reach.
+    # `limit` is deliberately NOT added: it already highlights via the global
+    # keyword set, and documenting it here would recolor it (param wins over
+    # keyword) — unrelated churn.
+    "random_state": {
+        "prioritize": {
+            "type": "block",
+            "value_type": "state",
+            "description": PRIORITIZE_STATE_DESC,
+            "optional": True,
+            "repeated": False,
+        }
+    },
+    "random_owned_state": {
+        "prioritize": {
+            "type": "block",
+            "value_type": "state",
+            "description": PRIORITIZE_STATE_DESC,
+            "optional": True,
+            "repeated": False,
+        }
+    },
+    "random_core_state": {
+        "prioritize": {
+            "type": "block",
+            "value_type": "state",
+            "description": PRIORITIZE_STATE_DESC,
+            "optional": True,
+            "repeated": False,
+        }
+    },
+    "random_controlled_state": {
+        "prioritize": {
+            "type": "block",
+            "value_type": "state",
+            "description": PRIORITIZE_STATE_DESC,
+            "optional": True,
+            "repeated": False,
+        }
+    },
+    "random_owned_controlled_state": {
+        "prioritize": {
+            "type": "block",
+            "value_type": "state",
+            "description": PRIORITIZE_STATE_DESC,
+            "optional": True,
+            "repeated": False,
+        }
+    },
     "create_country_leader": {
         "traits": {
             "type": "block",
@@ -417,12 +480,12 @@ def main():
                 if doc_id.lower() == entity_id.lower() or doc_id.lower() == entity_id.strip("()").lower():
                     match = doc_id
                     break
-            if match is None:
+            if match is None and entity_id not in PARAM_OVERRIDES:
                 continue
             if entity_id in EXCLUDE_ENTITIES:
                 stats["excluded"] += 1
                 continue
-            params = dict(doc_params[match])
+            params = dict(doc_params[match]) if match is not None else {}
             apply_overrides(params, entity_id)
             # Drop/repair malformed rows AFTER overrides, so a hand-written
             # patch can rescue a param the wiki parsed badly.

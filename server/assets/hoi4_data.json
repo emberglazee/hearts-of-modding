@@ -22027,7 +22027,15 @@
 				"usage_restriction": ""
 			},
 			"pushes_scope": "State",
-			"parameters": {},
+			"parameters": {
+				"prioritize": {
+					"type": "block",
+					"value_type": "state",
+					"description": "State IDs to try first. Only if none listed meets the ownership/control and limit conditions will another eligible state be picked; multiple listed states share priority (random between them). State scopes with random_ type only — random_neighbor_state does not support it.",
+					"optional": true,
+					"repeated": false
+				}
+			},
 			"examples": [],
 			"stack_behaviour": "push",
 			"block_type": "effect_scope",
@@ -22044,7 +22052,15 @@
 				"usage_restriction": ""
 			},
 			"pushes_scope": "State",
-			"parameters": {},
+			"parameters": {
+				"prioritize": {
+					"type": "block",
+					"value_type": "state",
+					"description": "State IDs to try first. Only if none listed meets the ownership/control and limit conditions will another eligible state be picked; multiple listed states share priority (random between them). State scopes with random_ type only — random_neighbor_state does not support it.",
+					"optional": true,
+					"repeated": false
+				}
+			},
 			"examples": [],
 			"stack_behaviour": "push",
 			"block_type": "effect_scope",
@@ -22248,7 +22264,15 @@
 				"usage_restriction": ""
 			},
 			"pushes_scope": "State",
-			"parameters": {},
+			"parameters": {
+				"prioritize": {
+					"type": "block",
+					"value_type": "state",
+					"description": "State IDs to try first. Only if none listed meets the ownership/control and limit conditions will another eligible state be picked; multiple listed states share priority (random between them). State scopes with random_ type only — random_neighbor_state does not support it.",
+					"optional": true,
+					"repeated": false
+				}
+			},
 			"examples": [],
 			"stack_behaviour": "push",
 			"block_type": "effect_scope",
@@ -22265,7 +22289,15 @@
 				"usage_restriction": ""
 			},
 			"pushes_scope": "State",
-			"parameters": {},
+			"parameters": {
+				"prioritize": {
+					"type": "block",
+					"value_type": "state",
+					"description": "State IDs to try first. Only if none listed meets the ownership/control and limit conditions will another eligible state be picked; multiple listed states share priority (random between them). State scopes with random_ type only — random_neighbor_state does not support it.",
+					"optional": true,
+					"repeated": false
+				}
+			},
 			"examples": [],
 			"stack_behaviour": "push",
 			"block_type": "effect_scope",
@@ -22316,7 +22348,15 @@
 				"usage_restriction": ""
 			},
 			"pushes_scope": "State",
-			"parameters": {},
+			"parameters": {
+				"prioritize": {
+					"type": "block",
+					"value_type": "state",
+					"description": "State IDs to try first. Only if none listed meets the ownership/control and limit conditions will another eligible state be picked; multiple listed states share priority (random between them). State scopes with random_ type only — random_neighbor_state does not support it.",
+					"optional": true,
+					"repeated": false
+				}
+			},
 			"examples": [],
 			"stack_behaviour": "push",
 			"block_type": "effect_scope",

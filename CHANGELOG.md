@@ -5,7 +5,7 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 | ℹ️ | If the last version here is not released yet, it's still in development. |
 |----|:-------------------------------------------------------------------------|
 
-## [v0.31.0] - 2026-09-08
+## [v0.31.0] - 2026-09-12
 
 ### ✨ Added
 
@@ -18,6 +18,10 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
   - Added LSP dependency `image` v0.25.10 for this functionality.
 
 - **Focus `cost` overflow validation (HOM5011).** `cost` inside `focus` / `shared_focus` / `joint_focus` now errors past the engine maximum of 131762457.66935 weeks (~922,337,203 days), beyond which the value integer-overflows instead of extending the focus.
+
+### 🩹 Fixed
+
+- **Documented `prioritize` for random state scopes.**
 
 ### 🧹 Internal
 
