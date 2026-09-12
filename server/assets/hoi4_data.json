@@ -1,5 +1,5 @@
 {
-	"version": 4,
+	"version": 5,
 	"triggers": {
 		"(building_count_trigger)": {
 			"block_type": "value_trigger",
@@ -27706,71 +27706,6 @@
 			"version_added": "1.6",
 			"notes": "Use [[#swap_country_leader_traits|swap_country_leader_traits]] in character scope."
 		},
-		"technology_categories": {
-			"block_type": "value_effect",
-			"deprecated": false,
-			"description": "Declares technology category identifiers used by technologies' `categories = { ... }` blocks, research bonuses (`category_research` modifiers), and AI focus weighting. Each entry is a bare identifier separated by whitespace; the identifier doubles as the localisation key (with a `_research` suffixed variant for research-speed display). Defined in common/technology_tags/*.txt.",
-			"examples": [
-				"technology_categories = {\n\tlight_air\n\tmedium_air\n\tarmor\n}"
-			],
-			"name": "technology_categories",
-			"notes": "Structural declaration block, not an effect: contents are category names, never triggers or effects.",
-			"parameters": {},
-			"pushes_scope": null,
-			"scopes": {
-				"usage": [
-					"TechnologyTags"
-				],
-				"usage_restriction": ""
-			},
-			"stack_behaviour": "passthrough",
-			"vanilla_usage_count": 1,
-			"version_added": "1.0"
-		},
-		"technology_folders": {
-			"param_container": true,
-			"block_type": "value_effect",
-			"deprecated": false,
-			"description": "Declares the technology tree's folders (tabs). Each child block's key is the folder ID and its localisation key. `available` gates folder visibility with a trigger block evaluated per-country, `ledger` assigns the intelligence ledger (army, air, navy, military, civilian, all, hidden), and `doctrine = yes` marks a doctrine folder. Requires matching entries in interface/countrytechtreeview.gui (or countrydoctrinetreeview.gui for doctrines) for technologies inside to show up. Defined in common/technology_tags/*.txt.",
-			"examples": [
-				"technology_folders = {\n\tinfantry_folder = {\n\t\tledger = army\n\t}\n\tland_doctrine_folder = {\n\t\tledger = army\n\t\tdoctrine = yes\n\t}\n}"
-			],
-			"name": "technology_folders",
-			"notes": "Structural declaration block, not an effect: children are folder definitions keyed by folder ID.",
-			"parameters": {
-				"available": {
-					"description": "Trigger block that must be met for the folder to be visible to a country.",
-					"optional": true,
-					"repeated": false,
-					"type": "trigger clause",
-					"value_type": ""
-				},
-				"doctrine": {
-					"description": "Marks the folder as holding doctrines instead of technologies.",
-					"optional": true,
-					"repeated": false,
-					"type": "bool",
-					"value_type": ""
-				},
-				"ledger": {
-					"description": "The intelligence ledger the folder is assigned to.",
-					"optional": true,
-					"repeated": false,
-					"type": "army / air / navy / military / civilian / all / hidden",
-					"value_type": ""
-				}
-			},
-			"pushes_scope": null,
-			"scopes": {
-				"usage": [
-					"TechnologyTags"
-				],
-				"usage_restriction": ""
-			},
-			"stack_behaviour": "passthrough",
-			"vanilla_usage_count": 1,
-			"version_added": "1.0"
-		},
 		"on_research_complete": {
 			"block_type": "effect_scope",
 			"deprecated": false,
@@ -29938,417 +29873,6 @@
 					"repeated": false
 				}
 			}
-		},
-		"focus": {
-			"name": "focus",
-			"description": "A national focus inside common/national_focus/*.txt focus_tree blocks. Grants its completion_reward after being picked and worked on for cost days-worth of political power.",
-			"param_container": true,
-			"parameters": {
-				"id": {
-					"type": "string",
-					"value_type": "string",
-					"description": "Unique identifier of the focus. Prefixed with the country tag by convention to avoid clashes between trees.",
-					"optional": false,
-					"repeated": false
-				},
-				"icon": {
-					"type": "string",
-					"value_type": "sprite",
-					"description": "The sprite used as the focus icon (GFX_ name from interface/*.gfx).",
-					"optional": true,
-					"repeated": false
-				},
-				"x": {
-					"type": "number",
-					"value_type": "int",
-					"description": "Horizontal grid position. One unit is 96 pixels by default; larger values move the focus right. Relative to relative_position_id when that is set, otherwise to the top-left of the tree.",
-					"optional": false,
-					"repeated": false
-				},
-				"y": {
-					"type": "number",
-					"value_type": "int",
-					"description": "Vertical grid position. One unit is 130 pixels by default; larger values move the focus down. Relative to relative_position_id when that is set, otherwise to the top-left of the tree.",
-					"optional": false,
-					"repeated": false
-				},
-				"relative_position_id": {
-					"type": "string",
-					"value_type": "focus",
-					"description": "Positions this focus relative to another focus in the same tree: x and y are added to that focus' resolved position (which may itself be relative). Preferred over absolute positions for branches — moving one focus moves its whole subtree. Must not recurse (self/cycle) or point outside this focus tree: the engine behaves unstably, potentially crashing.",
-					"optional": true,
-					"repeated": false
-				},
-				"offset": {
-					"type": "block",
-					"value_type": "block",
-					"description": "Conditional position shift: x and y are added to the focus' position when the trigger = { ... } sub-block is true for the country at tree-load time (refreshed mid-session by mark_focus_tree_layout_dirty). Repeatable — typically one offset per importing tree with trigger = { has_focus_tree = ... }. Prefer relative_position_id for branch layout; use offset only on the top focus of a branch that needs moving.",
-					"optional": true,
-					"repeated": true
-				},
-				"cost": {
-					"type": "number",
-					"value_type": "int",
-					"description": "Focus completion cost in political power. 1 unit equals 7 days; the vanilla-standard value is 10 (= 70 days). Defaults to 10 if unset.",
-					"optional": true,
-					"repeated": false
-				},
-				"available_if_capitulated": {
-					"type": "boolean",
-					"value_type": "bool",
-					"description": "Allows the focus to be selected and completed while the country has capitulated. Defaults to no — a capitulated country can see the focus but cannot pick it. Vanilla typically sets this on branch-continuation focuses so a war loss cannot lock off the rest of the tree.",
-					"optional": true,
-					"repeated": false
-				},
-				"available": {
-					"type": "block",
-					"value_type": "block",
-					"description": "AND trigger block gating whether the focus can be picked, on top of prerequisites. Scoped to the country doing the focus; scope out to states or other countries for ownership, strength, or diplomatic conditions.",
-					"optional": true,
-					"repeated": false
-				},
-				"allow_branch": {
-					"type": "block",
-					"value_type": "block",
-					"description": "Trigger block deciding whether the focus (and its branch) is visible. Checked only when the focus tree is first loaded — refresh mid-session with mark_focus_tree_layout_dirty. A focus with its own allow_branch checks only itself, ignoring disallowed parents; without one, a disallowed parent disallows the child. Usually paired with offset blocks to swap whole branches per tree.",
-					"optional": true,
-					"repeated": false
-				},
-				"prerequisite": {
-					"type": "block",
-					"value_type": "block",
-					"description": "Focus(es) that must be completed first. Multiple focus = X lines inside one prerequisite block are ORs; multiple prerequisite blocks are ANDs.",
-					"optional": true,
-					"repeated": true
-				},
-				"mutually_exclusive": {
-					"type": "block",
-					"value_type": "block",
-					"description": "A focus that can never be taken if this one is completed (and vice versa). Renders the red mutual-exclusion arrow in the tree view.",
-					"optional": true,
-					"repeated": true
-				},
-				"bypass": {
-					"type": "block",
-					"value_type": "block",
-					"description": "AND trigger block for bypassing: while true the focus auto-completes without granting completion_reward. Same scoping as available. Combine with bypass_if_unavailable = yes to auto-bypass whenever available fails, or enable_automatic_bypass = no to forbid auto-bypass.",
-					"optional": true,
-					"repeated": false
-				},
-				"bypass_effect": {
-					"type": "block",
-					"value_type": "block",
-					"description": "Effects executed instead of completion_reward when the focus is bypassed (e.g. add_popularity = { ideology = fascism popularity = 0.05 }).",
-					"optional": true,
-					"repeated": false
-				},
-				"completion_reward": {
-					"type": "block",
-					"value_type": "block",
-					"description": "Effects executed when the focus completes.",
-					"optional": true,
-					"repeated": false
-				},
-				"ai_will_do": {
-					"type": "block",
-					"value_type": "block",
-					"description": "MTTH weight block for AI focus picking when no ai_national_focuses plan entry fires (factor/base plus modifier = { factor/add + triggers }). Each candidate rolls 0..value — times FOCUS_TREE_CONTINUE_FACTOR right after a prerequisite finished, times focus_factors from the active AI plan — highest roll wins; all-zero means the AI idles or takes continuous focuses.",
-					"optional": true,
-					"repeated": false
-				},
-				"search_filters": {
-					"type": "block",
-					"value_type": "block",
-					"description": "Bare FOCUS_FILTER_* identifiers shown in the focus-tree search menu. A custom filter needs a GFX_<filter-name> sprite and loc key with the exact filter name, or it will not render.",
-					"optional": true,
-					"repeated": false
-				}
-			},
-			"scopes": {
-				"usage": [
-					"Country"
-				],
-				"usage_restriction": ""
-			},
-			"pushes_scope": null,
-			"stack_behaviour": "passthrough",
-			"version_added": "1.0",
-			"examples": [
-				"focus = {\n\tid = TAG_my_focus\n\ticon = GFX_focus_TAG_my_focus\n\tx = 1\n\ty = 0\n\tcost = 10\n\tavailable_if_capitulated = no\n\tprerequisite = { focus = TAG_other_focus }\n\tcompletion_reward = { add_political_power = 100 }\n}"
-			],
-			"notes": "Positioning: x/y are grid units (96px / 130px by default), relative to relative_position_id when set. The engine behaves unstably on relative_position_id recursion (self-reference or cycles can crash the game); the referenced focus must be in the same tree. available_if_capitulated defaults to no."
-		},
-		"shared_focus": {
-			"name": "shared_focus",
-			"description": "Defines a focus outside any focus_tree block, imported into every tree listed via shared_focus = <id>. Same sub-structure as focus; positioning is per-tree via offset = { ... } blocks with trigger = { has_focus_tree = ... }.",
-			"param_container": true,
-			"parameters": {
-				"id": {
-					"type": "string",
-					"value_type": "string",
-					"description": "Unique identifier of the focus. Prefixed with the country tag by convention to avoid clashes between trees.",
-					"optional": false,
-					"repeated": false
-				},
-				"icon": {
-					"type": "string",
-					"value_type": "sprite",
-					"description": "The sprite used as the focus icon (GFX_ name from interface/*.gfx).",
-					"optional": true,
-					"repeated": false
-				},
-				"x": {
-					"type": "number",
-					"value_type": "int",
-					"description": "Horizontal grid position. One unit is 96 pixels by default; larger values move the focus right. Relative to relative_position_id when that is set, otherwise to the top-left of the tree.",
-					"optional": false,
-					"repeated": false
-				},
-				"y": {
-					"type": "number",
-					"value_type": "int",
-					"description": "Vertical grid position. One unit is 130 pixels by default; larger values move the focus down. Relative to relative_position_id when that is set, otherwise to the top-left of the tree.",
-					"optional": false,
-					"repeated": false
-				},
-				"relative_position_id": {
-					"type": "string",
-					"value_type": "focus",
-					"description": "Positions this focus relative to another focus in the same tree: x and y are added to that focus' resolved position (which may itself be relative). Preferred over absolute positions for branches — moving one focus moves its whole subtree. Must not recurse (self/cycle) or point outside this focus tree: the engine behaves unstably, potentially crashing.",
-					"optional": true,
-					"repeated": false
-				},
-				"offset": {
-					"type": "block",
-					"value_type": "block",
-					"description": "Conditional position shift: x and y are added to the focus' position when the trigger = { ... } sub-block is true for the country at tree-load time (refreshed mid-session by mark_focus_tree_layout_dirty). Repeatable — typically one offset per importing tree with trigger = { has_focus_tree = ... }. Prefer relative_position_id for branch layout; use offset only on the top focus of a branch that needs moving.",
-					"optional": true,
-					"repeated": true
-				},
-				"cost": {
-					"type": "number",
-					"value_type": "int",
-					"description": "Focus completion cost in political power. 1 unit equals 7 days; the vanilla-standard value is 10 (= 70 days). Defaults to 10 if unset.",
-					"optional": true,
-					"repeated": false
-				},
-				"available_if_capitulated": {
-					"type": "boolean",
-					"value_type": "bool",
-					"description": "Allows the focus to be selected and completed while the country has capitulated. Defaults to no — a capitulated country can see the focus but cannot pick it. Vanilla typically sets this on branch-continuation focuses so a war loss cannot lock off the rest of the tree.",
-					"optional": true,
-					"repeated": false
-				},
-				"available": {
-					"type": "block",
-					"value_type": "block",
-					"description": "AND trigger block gating whether the focus can be picked, on top of prerequisites. Scoped to the country doing the focus; scope out to states or other countries for ownership, strength, or diplomatic conditions.",
-					"optional": true,
-					"repeated": false
-				},
-				"allow_branch": {
-					"type": "block",
-					"value_type": "block",
-					"description": "Trigger block deciding whether the focus (and its branch) is visible. Checked only when the focus tree is first loaded — refresh mid-session with mark_focus_tree_layout_dirty. A focus with its own allow_branch checks only itself, ignoring disallowed parents; without one, a disallowed parent disallows the child. Usually paired with offset blocks to swap whole branches per tree.",
-					"optional": true,
-					"repeated": false
-				},
-				"prerequisite": {
-					"type": "block",
-					"value_type": "block",
-					"description": "Focus(es) that must be completed first. Multiple focus = X lines inside one prerequisite block are ORs; multiple prerequisite blocks are ANDs.",
-					"optional": true,
-					"repeated": true
-				},
-				"mutually_exclusive": {
-					"type": "block",
-					"value_type": "block",
-					"description": "A focus that can never be taken if this one is completed (and vice versa). Renders the red mutual-exclusion arrow in the tree view.",
-					"optional": true,
-					"repeated": true
-				},
-				"bypass": {
-					"type": "block",
-					"value_type": "block",
-					"description": "AND trigger block for bypassing: while true the focus auto-completes without granting completion_reward. Same scoping as available. Combine with bypass_if_unavailable = yes to auto-bypass whenever available fails, or enable_automatic_bypass = no to forbid auto-bypass.",
-					"optional": true,
-					"repeated": false
-				},
-				"bypass_effect": {
-					"type": "block",
-					"value_type": "block",
-					"description": "Effects executed instead of completion_reward when the focus is bypassed (e.g. add_popularity = { ideology = fascism popularity = 0.05 }).",
-					"optional": true,
-					"repeated": false
-				},
-				"completion_reward": {
-					"type": "block",
-					"value_type": "block",
-					"description": "Effects executed when the focus completes.",
-					"optional": true,
-					"repeated": false
-				},
-				"ai_will_do": {
-					"type": "block",
-					"value_type": "block",
-					"description": "MTTH weight block for AI focus picking when no ai_national_focuses plan entry fires (factor/base plus modifier = { factor/add + triggers }). Each candidate rolls 0..value — times FOCUS_TREE_CONTINUE_FACTOR right after a prerequisite finished, times focus_factors from the active AI plan — highest roll wins; all-zero means the AI idles or takes continuous focuses.",
-					"optional": true,
-					"repeated": false
-				},
-				"search_filters": {
-					"type": "block",
-					"value_type": "block",
-					"description": "Bare FOCUS_FILTER_* identifiers shown in the focus-tree search menu. A custom filter needs a GFX_<filter-name> sprite and loc key with the exact filter name, or it will not render.",
-					"optional": true,
-					"repeated": false
-				}
-			},
-			"scopes": {
-				"usage": [
-					"Country"
-				],
-				"usage_restriction": ""
-			},
-			"pushes_scope": null,
-			"stack_behaviour": "passthrough",
-			"version_added": "1.0",
-			"notes": "Prerequisites on a shared focus must resolve inside EVERY importing tree or the focus silently vanishes there. Use local entry focuses or keep entry shared focuses prerequisite-free."
-		},
-		"joint_focus": {
-			"name": "joint_focus",
-			"description": "Defines a focus shared by all members of a faction (used for joint trees such as the Nordic Defense Cooperation). Same sub-structure as shared_focus.",
-			"param_container": true,
-			"parameters": {
-				"id": {
-					"type": "string",
-					"value_type": "string",
-					"description": "Unique identifier of the focus. Prefixed with the country tag by convention to avoid clashes between trees.",
-					"optional": false,
-					"repeated": false
-				},
-				"icon": {
-					"type": "string",
-					"value_type": "sprite",
-					"description": "The sprite used as the focus icon (GFX_ name from interface/*.gfx).",
-					"optional": true,
-					"repeated": false
-				},
-				"x": {
-					"type": "number",
-					"value_type": "int",
-					"description": "Horizontal grid position. One unit is 96 pixels by default; larger values move the focus right. Relative to relative_position_id when that is set, otherwise to the top-left of the tree.",
-					"optional": false,
-					"repeated": false
-				},
-				"y": {
-					"type": "number",
-					"value_type": "int",
-					"description": "Vertical grid position. One unit is 130 pixels by default; larger values move the focus down. Relative to relative_position_id when that is set, otherwise to the top-left of the tree.",
-					"optional": false,
-					"repeated": false
-				},
-				"relative_position_id": {
-					"type": "string",
-					"value_type": "focus",
-					"description": "Positions this focus relative to another focus in the same tree: x and y are added to that focus' resolved position (which may itself be relative). Preferred over absolute positions for branches — moving one focus moves its whole subtree. Must not recurse (self/cycle) or point outside this focus tree: the engine behaves unstably, potentially crashing.",
-					"optional": true,
-					"repeated": false
-				},
-				"offset": {
-					"type": "block",
-					"value_type": "block",
-					"description": "Conditional position shift: x and y are added to the focus' position when the trigger = { ... } sub-block is true for the country at tree-load time (refreshed mid-session by mark_focus_tree_layout_dirty). Repeatable — typically one offset per importing tree with trigger = { has_focus_tree = ... }. Prefer relative_position_id for branch layout; use offset only on the top focus of a branch that needs moving.",
-					"optional": true,
-					"repeated": true
-				},
-				"cost": {
-					"type": "number",
-					"value_type": "int",
-					"description": "Focus completion cost in political power. 1 unit equals 7 days; the vanilla-standard value is 10 (= 70 days). Defaults to 10 if unset.",
-					"optional": true,
-					"repeated": false
-				},
-				"available_if_capitulated": {
-					"type": "boolean",
-					"value_type": "bool",
-					"description": "Allows the focus to be selected and completed while the country has capitulated. Defaults to no — a capitulated country can see the focus but cannot pick it. Vanilla typically sets this on branch-continuation focuses so a war loss cannot lock off the rest of the tree.",
-					"optional": true,
-					"repeated": false
-				},
-				"available": {
-					"type": "block",
-					"value_type": "block",
-					"description": "AND trigger block gating whether the focus can be picked, on top of prerequisites. Scoped to the country doing the focus; scope out to states or other countries for ownership, strength, or diplomatic conditions.",
-					"optional": true,
-					"repeated": false
-				},
-				"allow_branch": {
-					"type": "block",
-					"value_type": "block",
-					"description": "Trigger block deciding whether the focus (and its branch) is visible. Checked only when the focus tree is first loaded — refresh mid-session with mark_focus_tree_layout_dirty. A focus with its own allow_branch checks only itself, ignoring disallowed parents; without one, a disallowed parent disallows the child. Usually paired with offset blocks to swap whole branches per tree.",
-					"optional": true,
-					"repeated": false
-				},
-				"prerequisite": {
-					"type": "block",
-					"value_type": "block",
-					"description": "Focus(es) that must be completed first. Multiple focus = X lines inside one prerequisite block are ORs; multiple prerequisite blocks are ANDs.",
-					"optional": true,
-					"repeated": true
-				},
-				"mutually_exclusive": {
-					"type": "block",
-					"value_type": "block",
-					"description": "A focus that can never be taken if this one is completed (and vice versa). Renders the red mutual-exclusion arrow in the tree view.",
-					"optional": true,
-					"repeated": true
-				},
-				"bypass": {
-					"type": "block",
-					"value_type": "block",
-					"description": "AND trigger block for bypassing: while true the focus auto-completes without granting completion_reward. Same scoping as available. Combine with bypass_if_unavailable = yes to auto-bypass whenever available fails, or enable_automatic_bypass = no to forbid auto-bypass.",
-					"optional": true,
-					"repeated": false
-				},
-				"bypass_effect": {
-					"type": "block",
-					"value_type": "block",
-					"description": "Effects executed instead of completion_reward when the focus is bypassed (e.g. add_popularity = { ideology = fascism popularity = 0.05 }).",
-					"optional": true,
-					"repeated": false
-				},
-				"completion_reward": {
-					"type": "block",
-					"value_type": "block",
-					"description": "Effects executed when the focus completes.",
-					"optional": true,
-					"repeated": false
-				},
-				"ai_will_do": {
-					"type": "block",
-					"value_type": "block",
-					"description": "MTTH weight block for AI focus picking when no ai_national_focuses plan entry fires (factor/base plus modifier = { factor/add + triggers }). Each candidate rolls 0..value — times FOCUS_TREE_CONTINUE_FACTOR right after a prerequisite finished, times focus_factors from the active AI plan — highest roll wins; all-zero means the AI idles or takes continuous focuses.",
-					"optional": true,
-					"repeated": false
-				},
-				"search_filters": {
-					"type": "block",
-					"value_type": "block",
-					"description": "Bare FOCUS_FILTER_* identifiers shown in the focus-tree search menu. A custom filter needs a GFX_<filter-name> sprite and loc key with the exact filter name, or it will not render.",
-					"optional": true,
-					"repeated": false
-				}
-			},
-			"scopes": {
-				"usage": [
-					"Country"
-				],
-				"usage_restriction": ""
-			},
-			"pushes_scope": null,
-			"stack_behaviour": "passthrough",
-			"version_added": "1.0",
-			"notes": "Prerequisites on a shared focus must resolve inside EVERY importing tree or the focus silently vanishes there. Use local entry focuses or keep entry shared focuses prerequisite-free."
 		},
 		"capital": {
 			"name": "capital",
@@ -38511,6 +38035,435 @@
 			"stack_behaviour": "passthrough",
 			"block_type": "value_trigger",
 			"version_added": ""
+		}
+	},
+	"definitions": {
+		"focus": {
+			"name": "focus",
+			"description": "A national focus inside common/national_focus/*.txt focus_tree blocks. Grants its completion_reward after being picked and worked on for cost days-worth of political power.",
+			"file_types": [
+				"Focuses"
+			],
+			"parameters": {
+				"id": {
+					"type": "string",
+					"value_type": "string",
+					"description": "Unique identifier of the focus. Prefixed with the country tag by convention to avoid clashes between trees.",
+					"optional": false,
+					"repeated": false
+				},
+				"icon": {
+					"type": "string",
+					"value_type": "sprite",
+					"description": "The sprite used as the focus icon (GFX_ name from interface/*.gfx).",
+					"optional": true,
+					"repeated": false
+				},
+				"x": {
+					"type": "number",
+					"value_type": "int",
+					"description": "Horizontal grid position. One unit is 96 pixels by default; larger values move the focus right. Relative to relative_position_id when that is set, otherwise to the top-left of the tree.",
+					"optional": false,
+					"repeated": false
+				},
+				"y": {
+					"type": "number",
+					"value_type": "int",
+					"description": "Vertical grid position. One unit is 130 pixels by default; larger values move the focus down. Relative to relative_position_id when that is set, otherwise to the top-left of the tree.",
+					"optional": false,
+					"repeated": false
+				},
+				"relative_position_id": {
+					"type": "string",
+					"value_type": "focus",
+					"description": "Positions this focus relative to another focus in the same tree: x and y are added to that focus' resolved position (which may itself be relative). Preferred over absolute positions for branches — moving one focus moves its whole subtree. Must not recurse (self/cycle) or point outside this focus tree: the engine behaves unstably, potentially crashing.",
+					"optional": true,
+					"repeated": false
+				},
+				"offset": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Conditional position shift: x and y are added to the focus' position when the trigger = { ... } sub-block is true for the country at tree-load time (refreshed mid-session by mark_focus_tree_layout_dirty). Repeatable — typically one offset per importing tree with trigger = { has_focus_tree = ... }. Prefer relative_position_id for branch layout; use offset only on the top focus of a branch that needs moving.",
+					"optional": true,
+					"repeated": true
+				},
+				"cost": {
+					"type": "number",
+					"value_type": "int",
+					"description": "Focus completion cost in political power. 1 unit equals 7 days; the vanilla-standard value is 10 (= 70 days). Defaults to 10 if unset.",
+					"optional": true,
+					"repeated": false
+				},
+				"available_if_capitulated": {
+					"type": "boolean",
+					"value_type": "bool",
+					"description": "Allows the focus to be selected and completed while the country has capitulated. Defaults to no — a capitulated country can see the focus but cannot pick it. Vanilla typically sets this on branch-continuation focuses so a war loss cannot lock off the rest of the tree.",
+					"optional": true,
+					"repeated": false
+				},
+				"available": {
+					"type": "block",
+					"value_type": "block",
+					"description": "AND trigger block gating whether the focus can be picked, on top of prerequisites. Scoped to the country doing the focus; scope out to states or other countries for ownership, strength, or diplomatic conditions.",
+					"optional": true,
+					"repeated": false
+				},
+				"allow_branch": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Trigger block deciding whether the focus (and its branch) is visible. Checked only when the focus tree is first loaded — refresh mid-session with mark_focus_tree_layout_dirty. A focus with its own allow_branch checks only itself, ignoring disallowed parents; without one, a disallowed parent disallows the child. Usually paired with offset blocks to swap whole branches per tree.",
+					"optional": true,
+					"repeated": false
+				},
+				"prerequisite": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Focus(es) that must be completed first. Multiple focus = X lines inside one prerequisite block are ORs; multiple prerequisite blocks are ANDs.",
+					"optional": true,
+					"repeated": true
+				},
+				"mutually_exclusive": {
+					"type": "block",
+					"value_type": "block",
+					"description": "A focus that can never be taken if this one is completed (and vice versa). Renders the red mutual-exclusion arrow in the tree view.",
+					"optional": true,
+					"repeated": true
+				},
+				"bypass": {
+					"type": "block",
+					"value_type": "block",
+					"description": "AND trigger block for bypassing: while true the focus auto-completes without granting completion_reward. Same scoping as available. Combine with bypass_if_unavailable = yes to auto-bypass whenever available fails, or enable_automatic_bypass = no to forbid auto-bypass.",
+					"optional": true,
+					"repeated": false
+				},
+				"bypass_effect": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Effects executed instead of completion_reward when the focus is bypassed (e.g. add_popularity = { ideology = fascism popularity = 0.05 }).",
+					"optional": true,
+					"repeated": false
+				},
+				"completion_reward": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Effects executed when the focus completes.",
+					"optional": true,
+					"repeated": false
+				},
+				"ai_will_do": {
+					"type": "block",
+					"value_type": "block",
+					"description": "MTTH weight block for AI focus picking when no ai_national_focuses plan entry fires (factor/base plus modifier = { factor/add + triggers }). Each candidate rolls 0..value — times FOCUS_TREE_CONTINUE_FACTOR right after a prerequisite finished, times focus_factors from the active AI plan — highest roll wins; all-zero means the AI idles or takes continuous focuses.",
+					"optional": true,
+					"repeated": false
+				},
+				"search_filters": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Bare FOCUS_FILTER_* identifiers shown in the focus-tree search menu. A custom filter needs a GFX_<filter-name> sprite and loc key with the exact filter name, or it will not render.",
+					"optional": true,
+					"repeated": false
+				}
+			},
+			"param_container": true
+		},
+		"shared_focus": {
+			"name": "shared_focus",
+			"description": "Defines a focus outside any focus_tree block, imported into every tree listed via shared_focus = <id>. Same sub-structure as focus; positioning is per-tree via offset = { ... } blocks with trigger = { has_focus_tree = ... }.",
+			"file_types": [
+				"Focuses"
+			],
+			"parameters": {
+				"id": {
+					"type": "string",
+					"value_type": "string",
+					"description": "Unique identifier of the focus. Prefixed with the country tag by convention to avoid clashes between trees.",
+					"optional": false,
+					"repeated": false
+				},
+				"icon": {
+					"type": "string",
+					"value_type": "sprite",
+					"description": "The sprite used as the focus icon (GFX_ name from interface/*.gfx).",
+					"optional": true,
+					"repeated": false
+				},
+				"x": {
+					"type": "number",
+					"value_type": "int",
+					"description": "Horizontal grid position. One unit is 96 pixels by default; larger values move the focus right. Relative to relative_position_id when that is set, otherwise to the top-left of the tree.",
+					"optional": false,
+					"repeated": false
+				},
+				"y": {
+					"type": "number",
+					"value_type": "int",
+					"description": "Vertical grid position. One unit is 130 pixels by default; larger values move the focus down. Relative to relative_position_id when that is set, otherwise to the top-left of the tree.",
+					"optional": false,
+					"repeated": false
+				},
+				"relative_position_id": {
+					"type": "string",
+					"value_type": "focus",
+					"description": "Positions this focus relative to another focus in the same tree: x and y are added to that focus' resolved position (which may itself be relative). Preferred over absolute positions for branches — moving one focus moves its whole subtree. Must not recurse (self/cycle) or point outside this focus tree: the engine behaves unstably, potentially crashing.",
+					"optional": true,
+					"repeated": false
+				},
+				"offset": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Conditional position shift: x and y are added to the focus' position when the trigger = { ... } sub-block is true for the country at tree-load time (refreshed mid-session by mark_focus_tree_layout_dirty). Repeatable — typically one offset per importing tree with trigger = { has_focus_tree = ... }. Prefer relative_position_id for branch layout; use offset only on the top focus of a branch that needs moving.",
+					"optional": true,
+					"repeated": true
+				},
+				"cost": {
+					"type": "number",
+					"value_type": "int",
+					"description": "Focus completion cost in political power. 1 unit equals 7 days; the vanilla-standard value is 10 (= 70 days). Defaults to 10 if unset.",
+					"optional": true,
+					"repeated": false
+				},
+				"available_if_capitulated": {
+					"type": "boolean",
+					"value_type": "bool",
+					"description": "Allows the focus to be selected and completed while the country has capitulated. Defaults to no — a capitulated country can see the focus but cannot pick it. Vanilla typically sets this on branch-continuation focuses so a war loss cannot lock off the rest of the tree.",
+					"optional": true,
+					"repeated": false
+				},
+				"available": {
+					"type": "block",
+					"value_type": "block",
+					"description": "AND trigger block gating whether the focus can be picked, on top of prerequisites. Scoped to the country doing the focus; scope out to states or other countries for ownership, strength, or diplomatic conditions.",
+					"optional": true,
+					"repeated": false
+				},
+				"allow_branch": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Trigger block deciding whether the focus (and its branch) is visible. Checked only when the focus tree is first loaded — refresh mid-session with mark_focus_tree_layout_dirty. A focus with its own allow_branch checks only itself, ignoring disallowed parents; without one, a disallowed parent disallows the child. Usually paired with offset blocks to swap whole branches per tree.",
+					"optional": true,
+					"repeated": false
+				},
+				"prerequisite": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Focus(es) that must be completed first. Multiple focus = X lines inside one prerequisite block are ORs; multiple prerequisite blocks are ANDs.",
+					"optional": true,
+					"repeated": true
+				},
+				"mutually_exclusive": {
+					"type": "block",
+					"value_type": "block",
+					"description": "A focus that can never be taken if this one is completed (and vice versa). Renders the red mutual-exclusion arrow in the tree view.",
+					"optional": true,
+					"repeated": true
+				},
+				"bypass": {
+					"type": "block",
+					"value_type": "block",
+					"description": "AND trigger block for bypassing: while true the focus auto-completes without granting completion_reward. Same scoping as available. Combine with bypass_if_unavailable = yes to auto-bypass whenever available fails, or enable_automatic_bypass = no to forbid auto-bypass.",
+					"optional": true,
+					"repeated": false
+				},
+				"bypass_effect": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Effects executed instead of completion_reward when the focus is bypassed (e.g. add_popularity = { ideology = fascism popularity = 0.05 }).",
+					"optional": true,
+					"repeated": false
+				},
+				"completion_reward": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Effects executed when the focus completes.",
+					"optional": true,
+					"repeated": false
+				},
+				"ai_will_do": {
+					"type": "block",
+					"value_type": "block",
+					"description": "MTTH weight block for AI focus picking when no ai_national_focuses plan entry fires (factor/base plus modifier = { factor/add + triggers }). Each candidate rolls 0..value — times FOCUS_TREE_CONTINUE_FACTOR right after a prerequisite finished, times focus_factors from the active AI plan — highest roll wins; all-zero means the AI idles or takes continuous focuses.",
+					"optional": true,
+					"repeated": false
+				},
+				"search_filters": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Bare FOCUS_FILTER_* identifiers shown in the focus-tree search menu. A custom filter needs a GFX_<filter-name> sprite and loc key with the exact filter name, or it will not render.",
+					"optional": true,
+					"repeated": false
+				}
+			},
+			"param_container": true
+		},
+		"joint_focus": {
+			"name": "joint_focus",
+			"description": "Defines a focus shared by all members of a faction (used for joint trees such as the Nordic Defense Cooperation). Same sub-structure as shared_focus.",
+			"file_types": [
+				"Focuses"
+			],
+			"parameters": {
+				"id": {
+					"type": "string",
+					"value_type": "string",
+					"description": "Unique identifier of the focus. Prefixed with the country tag by convention to avoid clashes between trees.",
+					"optional": false,
+					"repeated": false
+				},
+				"icon": {
+					"type": "string",
+					"value_type": "sprite",
+					"description": "The sprite used as the focus icon (GFX_ name from interface/*.gfx).",
+					"optional": true,
+					"repeated": false
+				},
+				"x": {
+					"type": "number",
+					"value_type": "int",
+					"description": "Horizontal grid position. One unit is 96 pixels by default; larger values move the focus right. Relative to relative_position_id when that is set, otherwise to the top-left of the tree.",
+					"optional": false,
+					"repeated": false
+				},
+				"y": {
+					"type": "number",
+					"value_type": "int",
+					"description": "Vertical grid position. One unit is 130 pixels by default; larger values move the focus down. Relative to relative_position_id when that is set, otherwise to the top-left of the tree.",
+					"optional": false,
+					"repeated": false
+				},
+				"relative_position_id": {
+					"type": "string",
+					"value_type": "focus",
+					"description": "Positions this focus relative to another focus in the same tree: x and y are added to that focus' resolved position (which may itself be relative). Preferred over absolute positions for branches — moving one focus moves its whole subtree. Must not recurse (self/cycle) or point outside this focus tree: the engine behaves unstably, potentially crashing.",
+					"optional": true,
+					"repeated": false
+				},
+				"offset": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Conditional position shift: x and y are added to the focus' position when the trigger = { ... } sub-block is true for the country at tree-load time (refreshed mid-session by mark_focus_tree_layout_dirty). Repeatable — typically one offset per importing tree with trigger = { has_focus_tree = ... }. Prefer relative_position_id for branch layout; use offset only on the top focus of a branch that needs moving.",
+					"optional": true,
+					"repeated": true
+				},
+				"cost": {
+					"type": "number",
+					"value_type": "int",
+					"description": "Focus completion cost in political power. 1 unit equals 7 days; the vanilla-standard value is 10 (= 70 days). Defaults to 10 if unset.",
+					"optional": true,
+					"repeated": false
+				},
+				"available_if_capitulated": {
+					"type": "boolean",
+					"value_type": "bool",
+					"description": "Allows the focus to be selected and completed while the country has capitulated. Defaults to no — a capitulated country can see the focus but cannot pick it. Vanilla typically sets this on branch-continuation focuses so a war loss cannot lock off the rest of the tree.",
+					"optional": true,
+					"repeated": false
+				},
+				"available": {
+					"type": "block",
+					"value_type": "block",
+					"description": "AND trigger block gating whether the focus can be picked, on top of prerequisites. Scoped to the country doing the focus; scope out to states or other countries for ownership, strength, or diplomatic conditions.",
+					"optional": true,
+					"repeated": false
+				},
+				"allow_branch": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Trigger block deciding whether the focus (and its branch) is visible. Checked only when the focus tree is first loaded — refresh mid-session with mark_focus_tree_layout_dirty. A focus with its own allow_branch checks only itself, ignoring disallowed parents; without one, a disallowed parent disallows the child. Usually paired with offset blocks to swap whole branches per tree.",
+					"optional": true,
+					"repeated": false
+				},
+				"prerequisite": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Focus(es) that must be completed first. Multiple focus = X lines inside one prerequisite block are ORs; multiple prerequisite blocks are ANDs.",
+					"optional": true,
+					"repeated": true
+				},
+				"mutually_exclusive": {
+					"type": "block",
+					"value_type": "block",
+					"description": "A focus that can never be taken if this one is completed (and vice versa). Renders the red mutual-exclusion arrow in the tree view.",
+					"optional": true,
+					"repeated": true
+				},
+				"bypass": {
+					"type": "block",
+					"value_type": "block",
+					"description": "AND trigger block for bypassing: while true the focus auto-completes without granting completion_reward. Same scoping as available. Combine with bypass_if_unavailable = yes to auto-bypass whenever available fails, or enable_automatic_bypass = no to forbid auto-bypass.",
+					"optional": true,
+					"repeated": false
+				},
+				"bypass_effect": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Effects executed instead of completion_reward when the focus is bypassed (e.g. add_popularity = { ideology = fascism popularity = 0.05 }).",
+					"optional": true,
+					"repeated": false
+				},
+				"completion_reward": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Effects executed when the focus completes.",
+					"optional": true,
+					"repeated": false
+				},
+				"ai_will_do": {
+					"type": "block",
+					"value_type": "block",
+					"description": "MTTH weight block for AI focus picking when no ai_national_focuses plan entry fires (factor/base plus modifier = { factor/add + triggers }). Each candidate rolls 0..value — times FOCUS_TREE_CONTINUE_FACTOR right after a prerequisite finished, times focus_factors from the active AI plan — highest roll wins; all-zero means the AI idles or takes continuous focuses.",
+					"optional": true,
+					"repeated": false
+				},
+				"search_filters": {
+					"type": "block",
+					"value_type": "block",
+					"description": "Bare FOCUS_FILTER_* identifiers shown in the focus-tree search menu. A custom filter needs a GFX_<filter-name> sprite and loc key with the exact filter name, or it will not render.",
+					"optional": true,
+					"repeated": false
+				}
+			},
+			"param_container": true
+		},
+		"technology_folders": {
+			"name": "technology_folders",
+			"description": "Declares the technology tree's folders (tabs). Each child block's key is the folder ID and its localisation key. `available` gates folder visibility with a trigger block evaluated per-country, `ledger` assigns the intelligence ledger (army, air, navy, military, civilian, all, hidden), and `doctrine = yes` marks a doctrine folder. Requires matching entries in interface/countrytechtreeview.gui (or countrydoctrinetreeview.gui for doctrines) for technologies inside to show up. Defined in common/technology_tags/*.txt.",
+			"file_types": [
+				"TechnologyTags"
+			],
+			"parameters": {
+				"available": {
+					"description": "Trigger block that must be met for the folder to be visible to a country.",
+					"optional": true,
+					"repeated": false,
+					"type": "trigger clause",
+					"value_type": ""
+				},
+				"doctrine": {
+					"description": "Marks the folder as holding doctrines instead of technologies.",
+					"optional": true,
+					"repeated": false,
+					"type": "bool",
+					"value_type": ""
+				},
+				"ledger": {
+					"description": "The intelligence ledger the folder is assigned to.",
+					"optional": true,
+					"repeated": false,
+					"type": "army / air / navy / military / civilian / all / hidden",
+					"value_type": ""
+				}
+			},
+			"param_container": true
+		},
+		"technology_categories": {
+			"name": "technology_categories",
+			"description": "Declares technology category identifiers used by technologies' `categories = { ... }` blocks, research bonuses (`category_research` modifiers), and AI focus weighting. Each entry is a bare identifier separated by whitespace; the identifier doubles as the localisation key (with a `_research` suffixed variant for research-speed display). Defined in common/technology_tags/*.txt.",
+			"file_types": [
+				"TechnologyTags"
+			],
+			"parameters": {},
+			"param_container": false
 		}
 	},
 	"scopes": {

@@ -9,6 +9,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### ✨ Added
 
+- **Definition blocks separated from effects in `hoi4_data`.** `focus` / `shared_focus` / `joint_focus` and the technology-tags blocks no longer complete as effects inside event/decision bodies; they complete as definition blocks in their own files instead, with hover docs to match.
+
 - **Ideology-group-only validation (HOM3023).** `set_politics.ruling_party`, `set_popularities` keys, `add_popularity.ideology`, `has_government`, and `has_ideology_group` now warn when given a sub-ideology or unknown token instead of an ideology group, while scope refs, `var:`, and country tags still pass through.
 
 - **`activation` blocks are now recognized in decisions.** The decision/mission appearance trigger block gets Keyword highlighting, pushes Country scope for its contents, and never flags itself.

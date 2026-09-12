@@ -333,7 +333,7 @@ for_each_standard_scanner!(gen_has_path);
 /// that parses as provinces. It must be threaded in (not hardcoded) because
 /// other map csvs (adjacencies) have numeric first columns that would parse
 /// as junk provinces. Mirrors `is_line_data_uri`'s `ends_with` check.
-fn classify_file(path: &str, definitions_file: &str) -> Vec<FileCategory> {
+pub(crate) fn classify_file(path: &str, definitions_file: &str) -> Vec<FileCategory> {
     let lower = path.to_ascii_lowercase().replace('\\', "/");
 
     let mut cats = Vec::new();
@@ -694,7 +694,7 @@ pub(crate) fn dependency_affected_prefixes(
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-enum FileCategory {
+pub(crate) enum FileCategory {
     Localization,
     Events,
     ScriptedTriggers,
@@ -735,6 +735,57 @@ enum FileCategory {
     DecisionCategories,
     Technologies,
     TechnologyTags,
+}
+
+impl FileCategory {
+    /// Variant name as stored in `BlockSchema.file_types` (`hoi4_data.json`
+    /// `definitions`). Completion matches these case-insensitively against a
+    /// file's categories so definition names are offered only where the
+    /// engine accepts the block.
+    pub(crate) fn as_str(self) -> &'static str {
+        match self {
+            FileCategory::Localization => "Localization",
+            FileCategory::Events => "Events",
+            FileCategory::ScriptedTriggers => "ScriptedTriggers",
+            FileCategory::ScriptedEffects => "ScriptedEffects",
+            FileCategory::ScriptedLocalisation => "ScriptedLocalisation",
+            FileCategory::Achievements => "Achievements",
+            FileCategory::Modifiers => "Modifiers",
+            FileCategory::Ideologies => "Ideologies",
+            FileCategory::UnitLeaderTraits => "UnitLeaderTraits",
+            FileCategory::CountryLeaderTraits => "CountryLeaderTraits",
+            FileCategory::Traits => "Traits",
+            FileCategory::Ideas => "Ideas",
+            FileCategory::Characters => "Characters",
+            FileCategory::Buildings => "Buildings",
+            FileCategory::Resources => "Resources",
+            FileCategory::StateCategories => "StateCategories",
+            FileCategory::Continents => "Continents",
+            FileCategory::TagAliases => "TagAliases",
+            FileCategory::Abilities => "Abilities",
+            FileCategory::AiStrategyPlans => "AiStrategyPlans",
+            FileCategory::AiAreas => "AiAreas",
+            FileCategory::Defines => "Defines",
+            FileCategory::Countries => "Countries",
+            FileCategory::Variables => "Variables",
+            FileCategory::MusicAssets => "MusicAssets",
+            FileCategory::Sounds => "Sounds",
+            FileCategory::Portraits => "Portraits",
+            FileCategory::Sprites => "Sprites",
+            FileCategory::StrategicRegions => "StrategicRegions",
+            FileCategory::States => "States",
+            FileCategory::Provinces => "Provinces",
+            FileCategory::Terrains => "Terrains",
+            FileCategory::BalanceOfPower => "BalanceOfPower",
+            FileCategory::Oob => "Oob",
+            FileCategory::Units => "Units",
+            FileCategory::Focuses => "Focuses",
+            FileCategory::Decisions => "Decisions",
+            FileCategory::DecisionCategories => "DecisionCategories",
+            FileCategory::Technologies => "Technologies",
+            FileCategory::TechnologyTags => "TechnologyTags",
+        }
+    }
 }
 
 /// Update `ScannerData` with fresh entities extracted from a single saved file.
@@ -2388,6 +2439,50 @@ mod tests {
         assert!(
             cats.contains(&FileCategory::States),
             "history/states/*.txt should classify as States"
+        );
+    }
+
+    /// Definition-name completion is gated on these categories: every
+    /// `file_types` entry in the `definitions` table must name a real
+    /// FileCategory variant, and the engine paths for those categories must
+    /// classify accordingly — otherwise completion silently offers nothing
+    /// (or the wrong thing) in definition files.
+    #[test]
+    fn test_definition_file_types_match_file_categories() {
+        use crate::data::hoi4_data::lookup_definition;
+        for (path, category, def_name) in [
+            ("/mod/common/national_focus/focus.txt", "Focuses", "focus"),
+            (
+                "/mod/common/continuous_focus/palettes.txt",
+                "Focuses",
+                "shared_focus",
+            ),
+            (
+                "/mod/common/technology_tags/tags.txt",
+                "TechnologyTags",
+                "technology_folders",
+            ),
+        ] {
+            let cats = classify_file(path, "definition.csv");
+            assert!(
+                cats.iter().any(|c| c.as_str() == category),
+                "{path} should classify as {category}"
+            );
+            let schema = lookup_definition(def_name)
+                .unwrap_or_else(|| panic!("{def_name} must resolve as a definition"));
+            assert!(
+                schema.file_types.iter().any(|ft| ft == category),
+                "{def_name}.file_types should contain {category}"
+            );
+        }
+        // Negative control: event files are neither category, so no
+        // definition name is ever offered there.
+        let cats = classify_file("/mod/events/my_event.txt", "definition.csv");
+        assert!(
+            !cats
+                .iter()
+                .any(|c| c.as_str() == "Focuses" || c.as_str() == "TechnologyTags"),
+            "event files must not match definition categories"
         );
     }
 

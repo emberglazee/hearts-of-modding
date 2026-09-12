@@ -444,6 +444,13 @@ def main():
             for family in ("triggers", "effects", "modifiers")
             for eid, ent in v2[family].items()
             if ent.get("parameters")
+        } | {
+            # Definition-block schemas (focuses, technology folders, ...) live
+            # in their own table since v5 — a data-structures.md row matching
+            # one must not overwrite its hand-curated parameters either.
+            eid.lower()
+            for eid, ent in v2.get("definitions", {}).items()
+            if ent.get("parameters")
         }
         struct_rows = parse_rows(STRUCTURES_DOC)
         struct_new = 0

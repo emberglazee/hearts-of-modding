@@ -367,7 +367,7 @@ impl Backend {
 
         let mut current_scopes = vec![scope::Scope::Global];
         // Documented sub-keys of the block under the cursor, prepended to the
-        // generic list below (see the `entity_parameters` block for why these
+        // generic list below (see the `block_parameters` block for why these
         // must be additive rather than a replacement).
         let mut param_items: Vec<CompletionItem> = Vec::new();
 
@@ -644,7 +644,7 @@ impl Backend {
             // documents any; a transparent block WITHOUT params stops the
             // walk before an outer entity's table leaks into this body.
             for key in chain.iter() {
-                if let Some(params) = crate::data::hoi4_data::entity_parameters(key) {
+                if let Some(params) = crate::data::hoi4_data::block_parameters(key) {
                     if !params.is_empty() {
                         inherited_params = Some(params);
                         break;
@@ -694,6 +694,50 @@ impl Backend {
             }
         }
 
+        // Definition-block names legal in THIS file (`focus`/`shared_focus`/
+        // `joint_focus` in national-focus files, `technology_folders`/
+        // `technology_categories` in technology-tags files). Definitions are
+        // positional (file type), not scope-bound, so they are gated on
+        // FileCategory rather than the scope-filtered trigger/effect list
+        // below — a `focus` key is only ever offered where a focus block may
+        // be declared, never as an effect inside event/decision bodies.
+        // Additive like params: appended after them, before the generic list.
+        let mut definition_items: Vec<CompletionItem> = Vec::new();
+        {
+            let map_config = self.map_config_for_uri(&uri);
+            let cats =
+                crate::scanner::incremental_scanner::classify_file(&uri, &map_config.definitions);
+            if !cats.is_empty() {
+                let mut names: Vec<&String> = crate::DEFINITIONS.keys().collect();
+                names.sort();
+                for name in names {
+                    let def = &crate::DEFINITIONS[name];
+                    if !def
+                        .file_types
+                        .iter()
+                        .any(|ft| cats.iter().any(|c| c.as_str().eq_ignore_ascii_case(ft)))
+                    {
+                        continue;
+                    }
+                    definition_items.push(CompletionItem {
+                        label: name.clone(),
+                        kind: Some(CompletionItemKind::CLASS),
+                        detail: Some("Definition block".to_string()),
+                        sort_text: Some(format!("0_{name}")),
+                        documentation: if def.description.is_empty() {
+                            None
+                        } else {
+                            Some(Documentation::MarkupContent(MarkupContent {
+                                kind: MarkupKind::Markdown,
+                                value: def.description.clone(),
+                            }))
+                        },
+                        ..Default::default()
+                    });
+                }
+            }
+        }
+
         let mut items = Vec::new();
 
         let current_scope = scope::Scope::pick_inferred_scope(&current_scopes).effective_scope();
@@ -702,11 +746,13 @@ impl Backend {
         let scope_items = scope_trigger_effect_items(current_scope);
         // Scanner-derived entities, prebuilt after scans and cached (cheap clone).
         let entity_items = self.completion_entity_cache.load_full();
-        let total = param_items.len() + scope_items.len() + entity_items.len();
+        let total =
+            param_items.len() + definition_items.len() + scope_items.len() + entity_items.len();
         items.reserve(total);
         // Block parameters first — they carry a "0_" sort_text so the client
         // keeps them at the top regardless of insertion order.
         items.append(&mut param_items);
+        items.append(&mut definition_items);
         items.extend(scope_items.iter().cloned());
         items.extend(entity_items.iter().cloned());
 

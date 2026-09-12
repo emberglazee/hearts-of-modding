@@ -40,6 +40,8 @@ pub(crate) static EFFECTS: Lazy<&'static HashMap<String, data::hoi4_data::HOI4En
     Lazy::new(data::hoi4_data::get_effects);
 pub(crate) static MODIFIERS: Lazy<&'static HashMap<String, data::hoi4_data::HOI4Entity>> =
     Lazy::new(data::hoi4_data::get_modifiers);
+pub(crate) static DEFINITIONS: Lazy<&'static HashMap<String, data::hoi4_data::BlockSchema>> =
+    Lazy::new(data::hoi4_data::get_definitions);
 pub(crate) static SCOPES: Lazy<Vec<&'static str>> = Lazy::new(data::hoi4_data::get_scopes);
 pub(crate) static LOC_COMMANDS: Lazy<Vec<&'static str>> =
     Lazy::new(data::hoi4_data::get_loc_commands);

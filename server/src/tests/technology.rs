@@ -669,14 +669,16 @@ fn test_technology_keywords_seeded_from_data() {
 
 #[test]
 fn test_data_json_documents_technology_tag_blocks() {
-    use crate::data::hoi4_data::{lookup_entity, lookup_parameter};
+    use crate::data::hoi4_data::{lookup_definition, lookup_parameter};
 
-    // Both blocks are documented entities → they land in the static keyword
-    // set via build_static_semantic_keywords() and highlight automatically.
-    let cats = lookup_entity("technology_categories").expect("technology_categories in data JSON");
+    // Both blocks are definition schemas (not invocable effects) → they land
+    // in the static keyword set via the definitions seeding in
+    // build_static_semantic_keywords() and highlight automatically.
+    let cats =
+        lookup_definition("technology_categories").expect("technology_categories in data JSON");
     assert_eq!(cats.name, "technology_categories");
 
-    let folders = lookup_entity("technology_folders").expect("technology_folders in data JSON");
+    let folders = lookup_definition("technology_folders").expect("technology_folders in data JSON");
     assert_eq!(folders.name, "technology_folders");
 
     // Folder params resolve for hover/completion/semantic tokens.
@@ -744,11 +746,11 @@ fn test_delete_scrubs_tech_dep_graph_with_backslash_path_spelling() {
 /// game). Documented on focus / shared_focus / joint_focus alike.
 #[test]
 fn test_data_json_documents_focus_positioning_and_capitulation_keys() {
-    use crate::data::hoi4_data::{lookup_entity, lookup_parameter};
+    use crate::data::hoi4_data::{lookup_definition, lookup_parameter};
 
     for entity_key in ["focus", "shared_focus", "joint_focus"] {
-        let entity = lookup_entity(entity_key)
-            .unwrap_or_else(|| panic!("{entity_key} must be a documented entity"));
+        let entity = lookup_definition(entity_key)
+            .unwrap_or_else(|| panic!("{entity_key} must be a documented definition"));
         assert!(
             entity.param_container,
             "{entity_key} must anchor parameter resolution for its sub-blocks"

@@ -177,6 +177,43 @@ pub struct HOI4Entity {
     pub param_container: bool,
 }
 
+/// A declarative definition-block schema (national focuses, technology
+/// folders, ...): a top-level block with a FIXED set of documented sub-keys,
+/// but NOT an invocable trigger/effect/modifier.
+///
+/// Definitions live in their own `definitions` table rather than inside
+/// `effects` for one reason: triggers/effects/modifiers carry SCOPE contracts
+/// (`usage`, `pushes_scope`, `stack_behaviour`) that say where a key may be
+/// INVOKED, while a definition carries POSITIONAL contracts (file type, depth,
+/// parent) that say where a block may be DECLARED. Storing a definition as an
+/// effect asserts it is invocable wherever its scope allows — e.g. `focus`
+/// with Country usage would complete inside event options — and forces every
+/// consumer to remember an unwritten exclusion. The split makes the leak
+/// impossible: [`lookup_entity`] can never return a definition.
+///
+/// Parameter resolution ([`lookup_parameter`], [`block_parameters`],
+/// [`lookup_parameter_with_anchor`]) spans BOTH tables — params are params
+/// regardless of owner kind — but scope-filtered completion, HOM004, and the
+/// semantic keyword set only ever read the trigger/effect/modifier tables
+/// (plus definition NAMES where explicitly opted in).
+#[derive(Debug, Clone, Deserialize)]
+pub struct BlockSchema {
+    pub name: String,
+    pub description: String,
+    /// FileCategory variant names where this block may be declared
+    /// (e.g. `["Focuses"]`, `["TechnologyTags"]`). Completion offers
+    /// definition names only in files of these categories.
+    #[serde(default)]
+    pub file_types: Vec<String>,
+    #[serde(default)]
+    pub parameters: HashMap<String, ParameterDef>,
+    /// Same anchor semantics as [`HOI4Entity::param_container`]: when true,
+    /// this block's `parameters` describe its DIRECT SUB-BLOCKS rather than
+    /// scalar sub-keys of itself.
+    #[serde(default)]
+    pub param_container: bool,
+}
+
 /// Scope chain target (for dot-notation resolution like ROOT.owner.capital)
 #[derive(Debug, Clone, Deserialize)]
 pub struct ChainTarget {
@@ -226,6 +263,11 @@ pub struct AllDataV2 {
     pub triggers: HashMap<String, HOI4Entity>,
     pub effects: HashMap<String, HOI4Entity>,
     pub modifiers: HashMap<String, HOI4Entity>,
+    /// Declarative definition-block schemas (focuses, technology folders,
+    /// ...). Separate table from triggers/effects/modifiers on purpose — see
+    /// [`BlockSchema`]. Absent (pre-v5 JSON) defaults to empty.
+    #[serde(default)]
+    pub definitions: HashMap<String, BlockSchema>,
     #[serde(default)]
     pub scopes: HashMap<String, ScopeInfo>,
     #[serde(default)]
@@ -257,6 +299,11 @@ pub fn get_effects() -> &'static HashMap<String, HOI4Entity> {
 /// Get a reference to the static modifiers map
 pub fn get_modifiers() -> &'static HashMap<String, HOI4Entity> {
     &DATA.modifiers
+}
+
+/// Get a reference to the static definition-block schemas map
+pub fn get_definitions() -> &'static HashMap<String, BlockSchema> {
+    &DATA.definitions
 }
 
 /// Get scope info (chain targets, descriptions)
@@ -312,12 +359,17 @@ pub fn lookup_chain_target(from_scope: &Scope, target_name: &str) -> Option<&'st
     info.chain_targets.get(&lower)
 }
 
-/// Look up the entity (trigger, effect, or modifier) by key, case-insensitively.
+/// Look up a trigger, effect, or modifier by key, case-insensitively.
 ///
 /// DB keys are lowercase in the JSON; HOI4 files can write them in any case.
 /// The exact hit short-circuits so the lowercase fallback only allocates when
 /// the raw key isn't found. Checks triggers first, then effects, then
 /// modifiers (mirrors [`lookup_pushes_scope`]).
+///
+/// NEVER returns a definition-block schema — `focus`, `technology_folders`
+/// and friends live in the `definitions` table ([`lookup_definition`]).
+/// Scope-filtered completion and HOM004 go through here, so definitions can
+/// never leak into effect/trigger suggestions or validation.
 pub fn lookup_entity(key: &str) -> Option<&'static HOI4Entity> {
     if let Some(entity) = DATA
         .triggers
@@ -343,30 +395,72 @@ pub fn lookup_entity(key: &str) -> Option<&'static HOI4Entity> {
     None
 }
 
-/// Look up a documented parameter (sub-key) of a structured entity block.
+/// Look up a declarative definition-block schema by key, case-insensitively.
 ///
-/// `entity_key` is the block's key (e.g. `add_timed_idea`), `param` the
-/// sub-key inside it (e.g. `days`). Returns the parameter's definition when
-/// the entity documents it, `None` otherwise. Both lookups are
-/// case-insensitive.
-pub fn lookup_parameter(entity_key: &str, param: &str) -> Option<&'static ParameterDef> {
-    let entity = lookup_entity(entity_key)?;
-    if let Some(p) = entity.parameters.get(param) {
+/// DB keys are lowercase in the JSON; HOI4 files can write them in any case.
+/// The exact hit short-circuits so the lowercase fallback only allocates when
+/// the raw key isn't found. This is the ONLY path to the `definitions` table —
+/// [`lookup_entity`] (triggers/effects/modifiers) never returns these.
+pub fn lookup_definition(key: &str) -> Option<&'static BlockSchema> {
+    if let Some(def) = DATA.definitions.get(key) {
+        return Some(def);
+    }
+    DATA.definitions.get(&key.to_ascii_lowercase())
+}
+
+/// Look up a documented parameter (sub-key) of a structured block.
+///
+/// `block_key` is the block's key (e.g. `add_timed_idea`, or a definition
+/// like `focus`), `param` the sub-key inside it (e.g. `days`). Returns the
+/// parameter's definition when the block documents it, `None` otherwise.
+/// Both lookups are case-insensitive.
+///
+/// Spans BOTH the trigger/effect/modifier tables and the `definitions` table
+/// (entities first): params are params regardless of owner kind, so hover,
+/// semantic tokens, and completion resolve `ledger` inside a folder block
+/// exactly like `days` inside `add_timed_idea`.
+pub fn lookup_parameter(block_key: &str, param: &str) -> Option<&'static ParameterDef> {
+    if let Some(p) = lookup_entity(block_key).and_then(|entity| {
+        entity
+            .parameters
+            .get(param)
+            .or_else(|| entity.parameters.get(&param.to_ascii_lowercase()))
+    }) {
         return Some(p);
     }
-    entity.parameters.get(&param.to_ascii_lowercase())
+    lookup_definition(block_key).and_then(|def| {
+        def.parameters
+            .get(param)
+            .or_else(|| def.parameters.get(&param.to_ascii_lowercase()))
+    })
 }
 
-/// Iterate the documented parameters of an entity block, if any.
-pub fn entity_parameters(entity_key: &str) -> Option<&'static HashMap<String, ParameterDef>> {
-    lookup_entity(entity_key).map(|e| &e.parameters)
+/// Iterate the documented parameters of a block, if any.
+///
+/// Spans entities and definitions like [`lookup_parameter`]: returns the map
+/// for documented blocks, an (empty) map for undocumented entities —
+/// consumers check `is_empty()`. Returns `None` only when the key names
+/// neither an entity nor a definition.
+pub fn block_parameters(block_key: &str) -> Option<&'static HashMap<String, ParameterDef>> {
+    if let Some(entity) = lookup_entity(block_key) {
+        return Some(&entity.parameters);
+    }
+    lookup_definition(block_key).map(|d| &d.parameters)
 }
 
-/// True when `entity_key` documents its DIRECT sub-blocks in `parameters`
-/// (see [`HOI4Entity::param_container`]). Only such blocks anchor parameter
-/// resolution for the blocks nested inside them.
-pub fn is_param_container(entity_key: &str) -> bool {
-    lookup_entity(entity_key).is_some_and(|e| e.param_container)
+/// Iterate the documented parameters of a definition block, if any.
+#[allow(dead_code)]
+pub fn definition_parameters(def_key: &str) -> Option<&'static HashMap<String, ParameterDef>> {
+    lookup_definition(def_key).map(|d| &d.parameters)
+}
+
+/// True when `block_key` documents its DIRECT sub-blocks in `parameters`
+/// (see [`HOI4Entity::param_container`] and [`BlockSchema::param_container`]).
+/// Only such blocks anchor parameter resolution for the blocks nested inside
+/// them. Spans entities and definitions.
+pub fn is_param_container(block_key: &str) -> bool {
+    lookup_entity(block_key).is_some_and(|e| e.param_container)
+        || lookup_definition(block_key).is_some_and(|d| d.param_container)
 }
 
 /// Resolve a key against the immediate parent first, then a threaded
@@ -696,17 +790,82 @@ mod tests {
         // Unknown entity -> None.
         assert!(lookup_parameter("not_a_real_entity_xyz", "days").is_none());
 
-        // entity_parameters returns the map for documented entities, an
-        // (empty) map for undocumented ones — consumers check is_empty().
-        assert!(entity_parameters("add_timed_idea").is_some());
+        // block_parameters returns the map for documented blocks, an
+        // (empty) map for undocumented entities — consumers check is_empty().
+        // Returns None only for keys that are neither entity nor definition.
+        assert!(block_parameters("add_timed_idea").is_some());
         assert!(
-            entity_parameters("add_timed_idea").is_some_and(|p| !p.is_empty()),
+            block_parameters("add_timed_idea").is_some_and(|p| !p.is_empty()),
             "documented entity should have a non-empty parameters map"
         );
         assert!(
-            entity_parameters("add_political_power").is_some_and(|p| p.is_empty()),
+            block_parameters("add_political_power").is_some_and(|p| p.is_empty()),
             "undocumented entity keeps an empty parameters map"
         );
+        assert!(
+            block_parameters("not_a_real_entity_xyz").is_none(),
+            "unknown keys resolve to neither table"
+        );
+    }
+
+    #[test]
+    fn test_definitions_are_not_entities() {
+        // The architectural invariant: definition-block schemas (focuses,
+        // technology folders, ...) must NEVER resolve through the
+        // trigger/effect/modifier path, or they leak into scope-filtered
+        // completion and HOM004 as invocable effects.
+        for key in [
+            "focus",
+            "shared_focus",
+            "joint_focus",
+            "technology_folders",
+            "technology_categories",
+        ] {
+            assert!(
+                lookup_entity(key).is_none(),
+                "{key} is a definition, not an invocable entity"
+            );
+            assert!(
+                !is_known_entity(key),
+                "{key} must not count as a known trigger/effect/modifier"
+            );
+            let def = lookup_definition(key)
+                .unwrap_or_else(|| panic!("{key} must resolve as a definition"));
+            assert_eq!(def.name, key);
+        }
+        for key in ["focus", "shared_focus", "joint_focus", "technology_folders"] {
+            assert!(
+                lookup_definition(key).is_some_and(|d| !d.parameters.is_empty()),
+                "{key} must carry its documented sub-keys"
+            );
+        }
+        // Case-insensitive like every other data lookup.
+        assert!(lookup_definition("FOCUS").is_some());
+        assert!(lookup_definition("Technology_Folders").is_some());
+        assert!(lookup_definition("not_a_real_entity_xyz").is_none());
+        // Param resolution spans both tables: definition sub-keys resolve
+        // exactly like effect sub-keys.
+        assert!(lookup_parameter("focus", "available_if_capitulated").is_some());
+        assert!(lookup_parameter("technology_folders", "ledger").is_some());
+        assert!(block_parameters("focus").is_some_and(|p| !p.is_empty()));
+        assert!(definition_parameters("shared_focus").is_some_and(|p| !p.is_empty()));
+        assert!(definition_parameters("add_timed_idea").is_none());
+        // Param-container anchoring spans both tables too.
+        assert!(is_param_container("focus"));
+        assert!(is_param_container("technology_folders"));
+        assert!(!is_param_container("technology_categories"));
+        // Definition names still seed the static keyword set (highlighting
+        // unchanged after the move out of EFFECTS) without being invocable.
+        let kw = crate::backend::build_static_semantic_keywords();
+        for key in [
+            "focus",
+            "shared_focus",
+            "joint_focus",
+            "technology_folders",
+            "technology_categories",
+        ] {
+            assert!(kw.contains(key), "keyword set missing definition {key}");
+        }
     }
 
     /// The `parameters` map is a PARTIAL picture of what a block accepts — the
@@ -721,7 +880,7 @@ mod tests {
     fn test_parameters_are_partial_not_exhaustive() {
         // country_event documents the invocation form (id/days/hours) but NOT
         // the definition form's keys, which are far more common in practice.
-        let ce = entity_parameters("country_event").expect("country_event documented");
+        let ce = block_parameters("country_event").expect("country_event documented");
         assert!(ce.contains_key("id"), "invocation form is documented");
         for definition_key in ["title", "desc", "picture", "option", "is_triggered_only"] {
             assert!(
@@ -732,7 +891,7 @@ mod tests {
         }
 
         // `if` documents else/else_if/limit; its body holds arbitrary effects.
-        let if_params = entity_parameters("if").expect("if documented");
+        let if_params = block_parameters("if").expect("if documented");
         assert!(if_params.contains_key("limit"));
         for effect in ["set_country_flag", "country_event", "add_political_power"] {
             assert!(
@@ -744,7 +903,8 @@ mod tests {
 
     /// Guards the generator's validity filter: a parameter must never be named
     /// after its own block (`is_puppet = {{ is_puppet = ... }}` is nonsense),
-    /// and no type may be pure punctuation noise (`""`, `???`).
+    /// and no type may be pure punctuation noise (`""`, `???`). Covers the
+    /// `definitions` table too — a junk param is junk wherever it lives.
     #[test]
     fn test_no_malformed_parameters_in_data() {
         let mut problems: Vec<String> = Vec::new();
@@ -768,6 +928,23 @@ mod tests {
                     if !t.is_empty() && !t.chars().any(|c| c.is_ascii_alphanumeric()) {
                         problems.push(format!("{family}:{key}.{pname} has noise type {t:?}"));
                     }
+                }
+            }
+        }
+        for (key, def) in &DATA.definitions {
+            for (pname, pdef) in &def.parameters {
+                if pname == key {
+                    problems.push(format!("definitions:{key}.{pname} is self-referential"));
+                }
+                if !pname
+                    .chars()
+                    .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
+                {
+                    problems.push(format!("definitions:{key}.{pname} is not an identifier"));
+                }
+                let t = pdef.param_type.trim();
+                if !t.is_empty() && !t.chars().any(|c| c.is_ascii_alphanumeric()) {
+                    problems.push(format!("definitions:{key}.{pname} has noise type {t:?}"));
                 }
             }
         }

@@ -940,6 +940,16 @@ impl Backend {
                             &mut hover_text,
                             &format!("### ⚡ Effect: {}\n\n{}", entity.name, entity.description),
                         );
+                    } else if let Some(def) =
+                        crate::data::hoi4_data::lookup_definition(identifier.as_str())
+                    {
+                        push_section(
+                            &mut hover_text,
+                            &format!(
+                                "### 🧱 Definition block: {}\n\n{}",
+                                def.name, def.description
+                            ),
+                        );
                     } else if crate::SCOPES.contains(&identifier.to_uppercase().as_str()) {
                         push_section(
                             &mut hover_text,

@@ -24,7 +24,7 @@ use crate::scope::scope;
 use crate::utf16_len;
 use crate::utils::lsp_convert::{RangeMapper, ast_related_info_to_lsp, ast_tag_to_lsp};
 use crate::validation::advanced_validation;
-use crate::{EFFECTS, MODIFIERS, SCOPES, TRIGGERS};
+use crate::{DEFINITIONS, EFFECTS, MODIFIERS, SCOPES, TRIGGERS};
 
 // ── Processing tracking ───────────────────────────────────────────
 /// RAII guard that increments `pending_tasks` on creation and
@@ -105,7 +105,7 @@ pub(crate) struct Backend {
     /// bar icon should show a throbber (busy) or pulse (idle).
     pub(crate) pending_tasks: AtomicU64,
     /// Base static token keywords — computed once from TRIGGERS, EFFECTS, MODIFIERS,
-    /// SCOPES, and the hardcoded keyword list. Never changes at runtime.
+    /// DEFINITIONS, SCOPES, and the hardcoded keyword list. Never changes at runtime.
     /// The FULL keyword set (base + dynamic ideology-derived keywords) is stored in
     /// [`token_keywords`] (ArcSwap), rebuilt after each scan in
     /// [`update_entity_token_context`].
@@ -1491,6 +1491,13 @@ pub(crate) fn build_static_semantic_keywords() -> HashSet<String> {
     for k in MODIFIERS.keys() {
         keywords.insert(k.to_string());
     }
+    // Definition-block names (focus, technology_folders, ...) highlight as
+    // keywords too — highlighting is not an invocability claim, so the
+    // trigger/effect/modifier vs definition split does not apply here. This
+    // keeps highlighting identical for entries that moved out of EFFECTS.
+    for k in DEFINITIONS.keys() {
+        keywords.insert(k.to_string());
+    }
     for k in SCOPES.iter() {
         keywords.insert(k.to_string());
         keywords.insert(k.to_ascii_lowercase());
@@ -1630,11 +1637,9 @@ pub(crate) fn build_static_semantic_keywords() -> HashSet<String> {
     keywords.insert("hidden".to_string());
     keywords.insert("politics_tab".to_string());
 
-    // National focus tree structure keywords
+    // National focus tree structure keywords (focus/shared_focus/joint_focus
+    // come from the `definitions` table via the seeding loop above, not here).
     keywords.insert("focus_tree".to_string());
-    keywords.insert("focus".to_string());
-    keywords.insert("shared_focus".to_string());
-    keywords.insert("joint_focus".to_string());
     keywords.insert("continuous_focus_palette".to_string());
     keywords.insert("continuous_focus_position".to_string());
     keywords.insert("initial_show_position".to_string());
