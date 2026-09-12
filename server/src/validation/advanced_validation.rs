@@ -97,6 +97,10 @@ pub const DECISION_DUAL_COST: &str = "HOM5009";
 /// the focus-tree search menu — so severity is WARNING. A non-base filter is
 /// valid when a `GFX_<name>` sprite exists (that is how mods define filters).
 pub const UNKNOWN_FOCUS_SEARCH_FILTER: &str = "HOM5010";
+/// Focus `cost` (weeks) above the engine maximum (`131762457.66935`).
+/// Beyond this the value integer-overflows. ERROR: the focus duration wraps
+/// instead of extending. Empirically verified (user probe mod).
+pub const FOCUS_COST_EXCEEDS_MAX: &str = "HOM5011";
 
 // ── Syntax validation (HOM6000–HOM6004) ──
 /// Block implicitly closed at end-of-file (Clausewitz engine accepts this)
