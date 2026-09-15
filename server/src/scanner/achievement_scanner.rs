@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use crate::parser::parser;
@@ -11,30 +10,6 @@ pub struct Achievement {
     pub is_ribbon: bool,
     pub path: InternedStr,
     pub range: ast::Range,
-}
-
-pub fn scan_achievements<F>(roots: &[PathBuf], filter: &F) -> HashMap<String, Achievement>
-where
-    F: Fn(&std::path::Path) -> bool,
-{
-    let mut map = HashMap::new();
-    for root in roots {
-        crate::utils::fs_util::walk_and_parse_files(
-            &root.join("common/achievements"),
-            &["txt"],
-            filter,
-            |path, content| {
-                let (script, _) = parser::parse_script(&content);
-                find_achievements_in_entries(
-                    &script.entries,
-                    &script.source,
-                    &path.to_string_lossy(),
-                    &mut map,
-                );
-            },
-        );
-    }
-    map
 }
 
 pub fn scan_achievement_files<F>(files: &[PathBuf], filter: &F) -> HashMap<String, Achievement>

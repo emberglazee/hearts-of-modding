@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use crate::parser::parser;
@@ -20,27 +19,6 @@ pub struct AiStrategyPlan {
     pub path: InternedStr,
     #[allow(dead_code)]
     pub range: ast::Range,
-}
-
-pub fn scan_ai_strategy_plans<F>(roots: &[PathBuf], filter: &F) -> HashMap<String, AiStrategyPlan>
-where
-    F: Fn(&std::path::Path) -> bool,
-{
-    let mut plans = HashMap::new();
-
-    for root in roots {
-        crate::utils::fs_util::walk_and_parse_files(
-            &root.join("common/ai_strategy_plans"),
-            &["txt"],
-            filter,
-            |path, content| {
-                let (script, _) = parser::parse_script(&content);
-                extract_plans(&script.entries, &script.source, path, &mut plans);
-            },
-        );
-    }
-
-    plans
 }
 
 pub fn scan_ai_strategy_plan_files<F>(

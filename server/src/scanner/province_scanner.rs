@@ -1,8 +1,6 @@
-#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use std::collections::HashMap;
-use std::fs;
 use std::path::PathBuf;
 
 #[derive(Debug, Clone)]
@@ -78,45 +76,6 @@ fn insert_province(
             },
         );
     }
-}
-
-pub fn scan_provinces<F>(roots: &[PathBuf], filter: &F) -> HashMap<u32, Province>
-where
-    F: Fn(&std::path::Path) -> bool,
-{
-    let mut provinces = HashMap::new();
-
-    for root in roots {
-        let map_config = crate::utils::map_config::get_map_config(root);
-        let definition_path = root.join(format!("map/{}", map_config.definitions));
-        if definition_path.exists()
-            && !filter(&definition_path)
-            && let Ok(content) = fs::read_to_string(&definition_path)
-        {
-            for (line_idx, line) in content.lines().enumerate() {
-                // HOI4 definition.csv format: ID;R;G;B;Terrain;IsCoastal;ProvinceType;Continent
-                let parts: Vec<&str> = line.split(';').collect();
-                if parts.len() >= 8
-                    && let Ok(id) = parts[0].parse::<u32>()
-                {
-                    insert_province(id, line_idx, line, &parts, &definition_path, &mut provinces);
-                } else if let Some(id_str) = parts.first() {
-                    if let Ok(id) = id_str.parse::<u32>() {
-                        insert_province(
-                            id,
-                            line_idx,
-                            line,
-                            &parts,
-                            &definition_path,
-                            &mut provinces,
-                        );
-                    }
-                }
-            }
-        }
-    }
-
-    provinces
 }
 
 pub fn scan_province_files<F>(files: &[PathBuf], filter: &F) -> HashMap<u32, Province>

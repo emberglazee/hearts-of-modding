@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use crate::parser::parser;
@@ -15,27 +14,6 @@ pub struct Resource {
     pub path: InternedStr,
     #[allow(dead_code)]
     pub range: ast::Range,
-}
-
-pub fn scan_resources<F>(roots: &[PathBuf], filter: &F) -> HashMap<String, Resource>
-where
-    F: Fn(&std::path::Path) -> bool,
-{
-    let mut resources = HashMap::new();
-
-    for root in roots {
-        crate::utils::fs_util::walk_and_parse_files(
-            &root.join("common/resources"),
-            &["txt"],
-            filter,
-            |path, content| {
-                let (script, _) = parser::parse_script(&content);
-                extract_resources(&script.entries, &script.source, path, &mut resources);
-            },
-        );
-    }
-
-    resources
 }
 
 pub fn scan_resource_files<F>(files: &[PathBuf], filter: &F) -> HashMap<String, Resource>

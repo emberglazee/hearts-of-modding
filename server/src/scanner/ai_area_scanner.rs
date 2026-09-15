@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use crate::parser::parser;
@@ -17,27 +16,6 @@ pub struct AiArea {
     pub path: InternedStr,
     #[allow(dead_code)]
     pub range: ast::Range,
-}
-
-pub fn scan_ai_areas<F>(roots: &[PathBuf], filter: &F) -> HashMap<String, AiArea>
-where
-    F: Fn(&std::path::Path) -> bool,
-{
-    let mut areas = HashMap::new();
-
-    for root in roots {
-        crate::utils::fs_util::walk_and_parse_files(
-            &root.join("common/ai_areas"),
-            &["txt"],
-            filter,
-            |path, content| {
-                let (script, _) = parser::parse_script(&content);
-                extract_areas(&script.entries, &script.source, path, &mut areas);
-            },
-        );
-    }
-
-    areas
 }
 
 pub fn scan_ai_area_files<F>(files: &[PathBuf], filter: &F) -> HashMap<String, AiArea>

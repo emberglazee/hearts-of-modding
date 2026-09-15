@@ -1,9 +1,7 @@
-#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use crate::parser::parser;
 use std::collections::HashMap;
-use std::fs;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone)]
@@ -64,19 +62,6 @@ pub(crate) fn extract_continents(
             }
         }
     }
-}
-
-pub fn scan_continents(root: &Path) -> HashMap<String, Continent> {
-    let mut map = HashMap::new();
-    let path = root.join("map/continent.txt");
-    if !path.exists() {
-        return map;
-    }
-    if let Ok(content) = fs::read_to_string(&path) {
-        let (script, _) = parser::parse_script(&content);
-        extract_continents(&script.entries, &script.source, &path, &mut map);
-    }
-    map
 }
 
 pub fn scan_continent_files(files: &[PathBuf]) -> HashMap<String, Continent> {

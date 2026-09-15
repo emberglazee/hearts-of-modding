@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use crate::parser::parser;
@@ -12,6 +11,8 @@ use std::collections::HashMap;
 /// (e.g., my_event.123) to produce the internal event ID.
 #[derive(Debug, Clone)]
 pub struct EventNamespace {
+    /// Same value as the map key; kept on the entity for consumers.
+    #[allow(dead_code)]
     pub name: String,
     pub path: InternedStr,
     pub range: ast::Range,
@@ -112,16 +113,6 @@ where
     });
 
     namespaces
-}
-
-/// Extract `add_namespace` declarations from a single file (for incremental updates).
-pub fn find_namespaces_in_file(
-    content: &str,
-    file_path: &str,
-    map: &mut HashMap<String, EventNamespace>,
-) {
-    let (script, _) = parser::parse_script(content);
-    find_namespaces_in_entries(&script.entries, &script.source, file_path, map);
 }
 
 #[cfg(test)]

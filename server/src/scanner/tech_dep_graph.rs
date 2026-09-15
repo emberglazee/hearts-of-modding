@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::data::layered_value::LayeredValue;
 use crate::scanner::technology_scanner::Technology;
@@ -92,6 +91,8 @@ impl TechDependencyGraph {
     }
 
     /// Technologies directly led-to by `tech_id`.
+    /// Query helpers below mirror the event graph's API (see that module).
+    #[allow(dead_code)]
     pub(crate) fn callees_of(&self, tech_id: &str) -> Vec<String> {
         self.forward
             .get(tech_id)
@@ -108,11 +109,13 @@ impl TechDependencyGraph {
     }
 
     /// Number of technologies that directly lead to `tech_id`.
+    #[allow(dead_code)]
     pub(crate) fn caller_count(&self, tech_id: &str) -> usize {
         self.reverse.get(tech_id).map_or(0, |e| e.value().len())
     }
 
     /// Whether `tech_id` has zero incoming edges (no tech leads to it).
+    #[allow(dead_code)]
     pub(crate) fn is_orphaned(&self, tech_id: &str) -> bool {
         self.reverse
             .get(tech_id)

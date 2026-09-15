@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use crate::parser::parser;
@@ -15,27 +14,6 @@ pub struct StateCategory {
     pub path: InternedStr,
     #[allow(dead_code)]
     pub range: ast::Range,
-}
-
-pub fn scan_state_categories<F>(roots: &[PathBuf], filter: &F) -> HashMap<String, StateCategory>
-where
-    F: Fn(&std::path::Path) -> bool,
-{
-    let mut categories = HashMap::new();
-
-    for root in roots {
-        crate::utils::fs_util::walk_and_parse_files(
-            &root.join("common/state_category"),
-            &["txt"],
-            filter,
-            |path, content| {
-                let (script, _) = parser::parse_script(&content);
-                extract_categories(&script.entries, &script.source, path, &mut categories);
-            },
-        );
-    }
-
-    categories
 }
 
 pub fn scan_state_category_files<F>(files: &[PathBuf], filter: &F) -> HashMap<String, StateCategory>

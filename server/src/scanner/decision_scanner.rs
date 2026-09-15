@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use crate::parser::parser;
@@ -9,37 +8,13 @@ use std::path::{Path, PathBuf};
 #[derive(Debug, Clone)]
 pub struct Decision {
     /// The decision's key (e.g. `my_decision_1`)
+    /// Same value as the map key; kept on the entity for consumers.
+    #[allow(dead_code)]
     pub key: String,
     /// The category this decision belongs to (e.g. `my_decision_category`)
     pub category: String,
     pub path: InternedStr,
     pub range: ast::Range,
-}
-
-pub fn scan_decisions<F>(roots: &[PathBuf], filter: &F) -> HashMap<String, Decision>
-where
-    F: Fn(&Path) -> bool,
-{
-    let mut map = HashMap::new();
-
-    for root in roots {
-        crate::utils::fs_util::walk_and_parse_files(
-            &root.join("common/decisions"),
-            &["txt"],
-            filter,
-            |path, content| {
-                let (script, _) = parser::parse_script(&content);
-                find_decisions_in_entries(
-                    &script.entries,
-                    &script.source,
-                    &path.to_string_lossy(),
-                    &mut map,
-                );
-            },
-        );
-    }
-
-    map
 }
 
 pub fn scan_decision_files<F>(files: &[PathBuf], filter: &F) -> HashMap<String, Decision>
@@ -163,36 +138,6 @@ pub(crate) fn find_decisions_in_entries(
             _ => {}
         }
     }
-}
-
-/// Scan `categories/*.txt` files for declared category names.
-/// Returns a set of category names (top-level assignment keys).
-pub fn scan_category_declarations<F>(
-    roots: &[PathBuf],
-    filter: &F,
-) -> std::collections::HashSet<String>
-where
-    F: Fn(&Path) -> bool,
-{
-    let mut cats = std::collections::HashSet::new();
-    for root in roots {
-        crate::utils::fs_util::walk_and_parse_files(
-            &root.join("common/decisions/categories"),
-            &["txt"],
-            filter,
-            |_path, content| {
-                let (script, _) = parser::parse_script(&content);
-                for entry in &script.entries {
-                    if let ast::Entry::Assignment(ass) = entry {
-                        if let ast::Value::Block(_) = &ass.value.value {
-                            cats.insert(ass.key_text(&script.source).to_string());
-                        }
-                    }
-                }
-            },
-        );
-    }
-    cats
 }
 
 /// Like scan_category_declarations but for pre-filtered files.

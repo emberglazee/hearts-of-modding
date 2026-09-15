@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use crate::parser::parser;
@@ -16,63 +15,6 @@ pub struct Modifier {
 pub struct ModifierResult {
     pub custom_modifiers: HashMap<String, Modifier>,
     pub builtin_mappings: HashMap<String, String>,
-}
-
-pub fn scan_modifiers<F>(roots: &[PathBuf], filter: &F) -> ModifierResult
-where
-    F: Fn(&std::path::Path) -> bool,
-{
-    let mut custom_modifiers = HashMap::new();
-
-    for root in roots {
-        crate::utils::fs_util::walk_and_parse_files(
-            &root.join("common/modifiers"),
-            &["txt"],
-            filter,
-            |path, content| {
-                let (script, _) = parser::parse_script(&content);
-                for entry_ast in script.entries {
-                    if let ast::Entry::Assignment(ass) = entry_ast {
-                        let name = ass.key_text(&script.source).to_string();
-                        custom_modifiers.insert(
-                            name.clone(),
-                            Modifier {
-                                name,
-                                path: std::sync::Arc::from(path.to_string_lossy().as_ref()),
-                                range: ass.key_range,
-                            },
-                        );
-                    }
-                }
-            },
-        );
-        crate::utils::fs_util::walk_and_parse_files(
-            &root.join("common/dynamic_modifiers"),
-            &["txt"],
-            filter,
-            |path, content| {
-                let (script, _) = parser::parse_script(&content);
-                for entry_ast in script.entries {
-                    if let ast::Entry::Assignment(ass) = entry_ast {
-                        let name = ass.key_text(&script.source).to_string();
-                        custom_modifiers.insert(
-                            name.clone(),
-                            Modifier {
-                                name,
-                                path: std::sync::Arc::from(path.to_string_lossy().as_ref()),
-                                range: ass.key_range,
-                            },
-                        );
-                    }
-                }
-            },
-        );
-    }
-
-    ModifierResult {
-        custom_modifiers,
-        builtin_mappings: get_builtin_mappings(),
-    }
 }
 
 pub fn scan_modifier_files<F>(files: &[PathBuf], filter: &F) -> ModifierResult

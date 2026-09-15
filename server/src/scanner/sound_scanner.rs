@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use crate::parser::parser;
@@ -61,77 +60,6 @@ fn process_sound_file(
         falloffs,
         categories,
     );
-}
-
-fn scan_sound_dir<F>(
-    dir_path: &std::path::Path,
-    filter: &F,
-    sounds: &mut HashMap<String, Sound>,
-    sound_effects: &mut HashMap<String, SoundEffect>,
-    falloffs: &mut HashMap<String, Falloff>,
-    categories: &mut HashMap<String, SoundCategory>,
-) where
-    F: Fn(&std::path::Path) -> bool,
-{
-    crate::utils::fs_util::walk_and_parse_files(dir_path, &["asset"], filter, |path, content| {
-        process_sound_file(path, content, sounds, sound_effects, falloffs, categories);
-    });
-}
-
-pub fn scan_sounds<F>(roots: &[PathBuf], filter: &F) -> SoundScanResult
-where
-    F: Fn(&std::path::Path) -> bool,
-{
-    let mut sounds = HashMap::new();
-    let mut sound_effects = HashMap::new();
-    let mut falloffs = HashMap::new();
-    let mut categories = HashMap::new();
-
-    for root in roots {
-        let sound_dir = root.join("sound");
-        if sound_dir.exists() && !filter(&sound_dir) {
-            scan_sound_dir(
-                &sound_dir,
-                filter,
-                &mut sounds,
-                &mut sound_effects,
-                &mut falloffs,
-                &mut categories,
-            );
-        }
-
-        // Also scan integrated_dlc/*/sound/ and dlc/*/sound/ directories for vanilla sound effects
-        for dlc_root_name in ["integrated_dlc", "dlc"] {
-            let dlc_dir = root.join(dlc_root_name);
-            if dlc_dir.exists() && !filter(&dlc_dir) {
-                if let Ok(dlc_entries) = std::fs::read_dir(&dlc_dir) {
-                    for dlc_entry in dlc_entries.flatten() {
-                        let dlc_path = dlc_entry.path();
-                        if dlc_path.is_dir() {
-                            let dlc_sound_dir = dlc_path.join("sound");
-                            if dlc_sound_dir.exists() && !filter(&dlc_sound_dir) {
-                                scan_sound_dir(
-                                    &dlc_sound_dir,
-                                    filter,
-                                    &mut sounds,
-                                    &mut sound_effects,
-                                    &mut falloffs,
-                                    &mut categories,
-                                );
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    SoundScanResult {
-        sounds,
-        sound_effects,
-        falloffs,
-        categories,
-    }
 }
 
 pub fn scan_sound_files<F>(files: &[PathBuf], filter: &F) -> SoundScanResult

@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use crate::parser::parser;
@@ -31,50 +30,6 @@ pub struct MusicScanResult {
     pub assets: HashMap<String, MusicAsset>,
     pub stations: HashMap<String, MusicStation>,
     pub songs: HashMap<String, Song>,
-}
-
-pub fn scan_music<F>(roots: &[std::path::PathBuf], filter: &F) -> MusicScanResult
-where
-    F: Fn(&std::path::Path) -> bool,
-{
-    let mut assets = HashMap::new();
-    let mut stations = HashMap::new();
-    let mut songs = HashMap::new();
-
-    for root in roots {
-        crate::utils::fs_util::walk_and_parse_files(
-            &root.join("music"),
-            &["asset", "txt"],
-            filter,
-            |path, content| {
-                let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
-                if ext == "asset" {
-                    let (script, _) = parser::parse_script(&content);
-                    find_assets_in_entries(
-                        &script.entries,
-                        &script.source,
-                        &path.to_string_lossy(),
-                        &mut assets,
-                    );
-                } else if ext == "txt" {
-                    let (script, _) = parser::parse_script(&content);
-                    find_stations_and_songs_in_entries(
-                        &script.entries,
-                        &script.source,
-                        &path.to_string_lossy(),
-                        &mut stations,
-                        &mut songs,
-                    );
-                }
-            },
-        );
-    }
-
-    MusicScanResult {
-        assets,
-        stations,
-        songs,
-    }
 }
 
 pub fn scan_music_files<F>(files: &[PathBuf], filter: &F) -> MusicScanResult
@@ -232,7 +187,13 @@ mod tests {
         "#;
         fs::write(music_dir.join("music/test.txt"), txt_content).unwrap();
 
-        let result = scan_music(std::slice::from_ref(&music_dir), &|_| false);
+        let result = scan_music_files(
+            &[
+                music_dir.join("music/test.asset"),
+                music_dir.join("music/test.txt"),
+            ],
+            &|_| false,
+        );
 
         assert!(result.assets.contains_key("test_song"));
         assert_eq!(result.assets.get("test_song").unwrap().file, "test.ogg");
@@ -275,7 +236,13 @@ mod tests {
         "#;
         fs::write(music_dir.join("music/HoM_songs.txt"), txt_content).unwrap();
 
-        let result = scan_music(std::slice::from_ref(&music_dir), &|_| false);
+        let result = scan_music_files(
+            &[
+                music_dir.join("music/_HoM_soundtrack.asset"),
+                music_dir.join("music/HoM_songs.txt"),
+            ],
+            &|_| false,
+        );
 
         assert!(result.assets.contains_key("Makai_Symphony-Izanagi_izanami"));
         assert_eq!(

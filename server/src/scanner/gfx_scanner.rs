@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use std::collections::HashMap;
@@ -10,56 +9,6 @@ pub struct ColorCode {
     pub rgb: (u8, u8, u8),
     pub path: InternedStr,
     pub range: ast::Range,
-}
-
-pub fn scan_color_codes<F>(roots: &[std::path::PathBuf], filter: &F) -> HashMap<String, ColorCode>
-where
-    F: Fn(&Path) -> bool,
-{
-    let mut codes = HashMap::new();
-    let re_entry =
-        regex::Regex::new(r#""?(.)"?\s*=\s*\{\s*(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})\s*\}"#).unwrap();
-
-    for root in roots {
-        let dir = root.join("interface");
-        if !dir.exists() {
-            continue;
-        }
-        crate::utils::fs_util::walk_and_parse_files(&dir, &["gfx"], filter, |path, content| {
-            let path_str = path.to_string_lossy().to_string();
-            for (_start, block) in find_textcolors_blocks(&content) {
-                for cap in re_entry.captures_iter(&block) {
-                    let symbol = cap[1].to_string();
-                    let r: u8 = cap[2].parse().unwrap_or(0);
-                    let g: u8 = cap[3].parse().unwrap_or(0);
-                    let b: u8 = cap[4].parse().unwrap_or(0);
-
-                    let line = block[..cap.get(0).unwrap().start()].matches('\n').count() as u32;
-                    let col = block[..cap.get(0).unwrap().start()]
-                        .rfind('\n')
-                        .map(|i| cap.get(0).unwrap().start() - i - 1)
-                        .unwrap_or(cap.get(0).unwrap().start());
-
-                    codes.insert(
-                        symbol.clone(),
-                        ColorCode {
-                            symbol,
-                            rgb: (r, g, b),
-                            path: path_str.clone().into(),
-                            range: ast::Range {
-                                start_line: _start + line,
-                                start_col: col as u32,
-                                end_line: _start + line,
-                                end_col: col as u32 + cap.get(0).unwrap().len() as u32,
-                            },
-                        },
-                    );
-                }
-            }
-        });
-    }
-
-    codes
 }
 
 pub fn scan_color_code_files<F>(files: &[PathBuf], filter: &F) -> HashMap<String, ColorCode>

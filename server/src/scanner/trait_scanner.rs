@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use crate::parser::parser;
@@ -11,24 +10,6 @@ pub struct Trait {
     pub trait_type: String, // e.g., "Leader Trait", "Country Leader Trait"
     pub path: InternedStr,
     pub range: ast::Range,
-}
-
-pub fn scan_traits<F>(dir_path: &Path, trait_type: &str, filter: &F) -> HashMap<String, Trait>
-where
-    F: Fn(&Path) -> bool,
-{
-    let mut map = HashMap::new();
-    crate::utils::fs_util::walk_and_parse_files(dir_path, &["txt"], filter, |path, content| {
-        let (script, _) = parser::parse_script(&content);
-        find_traits_in_entries(
-            &script.entries,
-            &script.source,
-            &path.to_string_lossy(),
-            trait_type,
-            &mut map,
-        );
-    });
-    map
 }
 
 pub fn scan_trait_files<F>(

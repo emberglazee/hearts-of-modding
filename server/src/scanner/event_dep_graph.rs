@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::data::layered_value::LayeredValue;
 use crate::scanner::event_scanner::Event;
@@ -115,6 +114,10 @@ impl EventDependencyGraph {
     ///
     /// Returns an empty `Vec` if `event_id` has no outgoing edges
     /// or is not in the graph.
+    /// Query helpers below mirror the tech graph's API. No live consumer yet —
+    /// the call hierarchy reads the graph directly — but kept so the two graphs
+    /// stay symmetric.
+    #[allow(dead_code)]
     pub(crate) fn callees_of(&self, event_id: &str) -> Vec<String> {
         self.forward
             .get(event_id)
@@ -133,6 +136,7 @@ impl EventDependencyGraph {
     }
 
     /// Number of events that directly call `event_id`.
+    #[allow(dead_code)]
     pub(crate) fn caller_count(&self, event_id: &str) -> usize {
         self.reverse.get(event_id).map_or(0, |e| e.value().len())
     }
@@ -142,6 +146,7 @@ impl EventDependencyGraph {
     /// An orphaned event may still be legitimate if it's triggered by
     /// engine mechanics (on_startup, national_focus, decisions, etc.),
     /// but it's a strong signal that something may be wrong.
+    #[allow(dead_code)]
     pub(crate) fn is_orphaned(&self, event_id: &str) -> bool {
         self.reverse
             .get(event_id)
@@ -149,20 +154,9 @@ impl EventDependencyGraph {
     }
 
     /// Total number of distinct caller events in the graph.
+    #[allow(dead_code)]
     pub(crate) fn caller_count_total(&self) -> usize {
         self.forward.len()
-    }
-
-    /// Total number of distinct callee events in the graph.
-    pub(crate) fn callee_count_total(&self) -> usize {
-        // Only count callees that are the target of at least one edge
-        let mut count = 0;
-        for entry in self.reverse.iter() {
-            if !entry.value().is_empty() {
-                count += 1;
-            }
-        }
-        count
     }
 
     /// Clear all edges from the graph.

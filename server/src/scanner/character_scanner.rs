@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use crate::parser::parser;
@@ -30,32 +29,6 @@ pub struct Character {
     pub roles: Vec<CharacterRole>,
     pub path: InternedStr,
     pub range: ast::Range,
-}
-
-pub fn scan_characters<F>(roots: &[PathBuf], filter: &F) -> HashMap<String, Character>
-where
-    F: Fn(&std::path::Path) -> bool,
-{
-    let mut map = HashMap::new();
-
-    for root in roots {
-        crate::utils::fs_util::walk_and_parse_files(
-            &root.join("common/characters"),
-            &["txt"],
-            filter,
-            |path, content| {
-                let (script, _) = parser::parse_script(&content);
-                find_characters_in_entries(
-                    &script.entries,
-                    &script.source,
-                    &path.to_string_lossy(),
-                    &mut map,
-                );
-            },
-        );
-    }
-
-    map
 }
 
 pub fn scan_character_files<F>(files: &[PathBuf], filter: &F) -> HashMap<String, Character>

@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use crate::parser::parser;
@@ -89,18 +88,6 @@ fn analyze_trigger_body(entries: &[ast::Entry], source: &str) -> ScriptedTrigger
 /// can never be true for an AI country? See [`ScriptedTriggerAnalysis`].
 pub fn body_guarantees_ai_invisible(entries: &[ast::Entry], source: &str) -> bool {
     analyze_trigger_body(entries, source).guarantees_ai_invisible
-}
-
-pub fn scan_directory<F>(dir_path: &Path, filter: &F) -> HashMap<String, ScriptedEntity>
-where
-    F: Fn(&Path) -> bool,
-{
-    let mut map = HashMap::new();
-    crate::utils::fs_util::walk_and_parse_files(dir_path, &["txt"], filter, |path, content| {
-        let (script, _) = parser::parse_script(&content);
-        collect_entities(&script, path, &mut map);
-    });
-    map
 }
 
 pub fn scan_scripted_files<F>(files: &[PathBuf], filter: &F) -> HashMap<String, ScriptedEntity>

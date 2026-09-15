@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use crate::parser::parser;
@@ -18,27 +17,6 @@ pub struct Building {
     pub path: InternedStr,
     #[allow(dead_code)]
     pub range: ast::Range,
-}
-
-pub fn scan_buildings<F>(roots: &[PathBuf], filter: &F) -> HashMap<String, Building>
-where
-    F: Fn(&std::path::Path) -> bool,
-{
-    let mut buildings = HashMap::new();
-
-    for root in roots {
-        crate::utils::fs_util::walk_and_parse_files(
-            &root.join("common/buildings"),
-            &["txt"],
-            filter,
-            |path, content| {
-                let (script, _) = parser::parse_script(&content);
-                extract_buildings(&script.entries, &script.source, path, &mut buildings);
-            },
-        );
-    }
-
-    buildings
 }
 
 pub fn scan_building_files<F>(files: &[PathBuf], filter: &F) -> HashMap<String, Building>

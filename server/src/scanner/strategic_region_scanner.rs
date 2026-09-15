@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use crate::parser::parser;
@@ -15,27 +14,6 @@ pub struct StrategicRegion {
     pub naval_terrain: Option<String>,
     pub path: InternedStr,
     pub range: ast::Range,
-}
-
-pub fn scan_strategic_regions<F>(roots: &[PathBuf], filter: &F) -> HashMap<u32, StrategicRegion>
-where
-    F: Fn(&Path) -> bool,
-{
-    let mut regions = HashMap::new();
-
-    for root in roots {
-        crate::utils::fs_util::walk_and_parse_files(
-            &root.join("map/strategicregions"),
-            &["txt"],
-            filter,
-            |path, content| {
-                let (script, _) = parser::parse_script(&content);
-                extract_strategic_region(&script.entries, &script.source, path, &mut regions);
-            },
-        );
-    }
-
-    regions
 }
 
 pub fn scan_strategic_region_files<F>(

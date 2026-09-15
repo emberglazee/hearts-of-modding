@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use crate::parser::parser;
@@ -15,27 +14,6 @@ pub struct State {
     pub provinces: Vec<u32>,
     pub path: InternedStr,
     pub range: ast::Range,
-}
-
-pub fn scan_states<F>(roots: &[PathBuf], filter: &F) -> HashMap<u32, State>
-where
-    F: Fn(&std::path::Path) -> bool,
-{
-    let mut states = HashMap::new();
-
-    for root in roots {
-        crate::utils::fs_util::walk_and_parse_files(
-            &root.join("history/states"),
-            &["txt"],
-            filter,
-            |path, content| {
-                let (script, _) = parser::parse_script(&content);
-                extract_state(&script.entries, &script.source, path, &mut states);
-            },
-        );
-    }
-
-    states
 }
 
 pub fn scan_state_files<F>(files: &[PathBuf], filter: &F) -> HashMap<u32, State>

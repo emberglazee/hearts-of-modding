@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
@@ -140,15 +139,19 @@ impl FileOverlay {
     }
 
     /// Get all winning files as a reference to the internal map.
+    /// Collection accessors on the winning-file map. No live consumer yet.
+    #[allow(dead_code)]
     pub fn all_entries(&self) -> &HashMap<String, PathBuf> {
         &self.entries
     }
 
     /// Number of winning files in the overlay.
+    #[allow(dead_code)]
     pub fn len(&self) -> usize {
         self.entries.len()
     }
 
+    #[allow(dead_code)]
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty()
     }

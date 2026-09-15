@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use crate::parser::parser;
@@ -6,33 +5,12 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone)]
+/// Scanner-populated tag alias; the map key carries the name, no reader uses it.
+#[allow(dead_code)]
 pub struct TagAlias {
     pub name: String,
     pub path: InternedStr,
     pub range: ast::Range,
-}
-
-pub fn scan_tag_aliases<F>(roots: &[PathBuf], filter: &F) -> HashMap<String, TagAlias>
-where
-    F: Fn(&Path) -> bool,
-{
-    let mut map = HashMap::new();
-    for root in roots {
-        let dir = root.join("common/country_tag_aliases");
-        if !dir.exists() {
-            continue;
-        }
-        crate::utils::fs_util::walk_and_parse_files(&dir, &["txt"], filter, |path, content| {
-            let (script, _) = parser::parse_script(&content);
-            find_tag_aliases_in_entries(
-                &script.entries,
-                &script.source,
-                &path.to_string_lossy(),
-                &mut map,
-            );
-        });
-    }
-    map
 }
 
 pub fn scan_tag_alias_files<F>(files: &[PathBuf], filter: &F) -> HashMap<String, TagAlias>

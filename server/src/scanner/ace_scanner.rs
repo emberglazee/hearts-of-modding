@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use crate::parser::parser;
@@ -7,6 +6,8 @@ use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone)]
 pub struct AceModifier {
+    /// Same value as the map key; kept on the entity for consumers.
+    #[allow(dead_code)]
     pub name: String,
     pub path: InternedStr,
     pub range: ast::Range,

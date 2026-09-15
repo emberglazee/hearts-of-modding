@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::data::layered_value::LayeredValue;
 use crate::parser::ast;
@@ -13,6 +12,8 @@ use std::path::PathBuf;
 /// (infantry, artillery_brigade, light_armor, etc.) and support companies
 /// (engineer, artillery, recon, etc.).
 #[derive(Debug, Clone)]
+/// Scanner-populated unit type. `abbreviation`/`type_categories` have no reader yet.
+#[allow(dead_code)]
 pub struct UnitType {
     /// The unit type key (e.g. "infantry", "engineer", "artillery_brigade")
     pub name: String,
@@ -30,31 +31,6 @@ pub struct UnitType {
     pub categories: Vec<String>,
     pub path: InternedStr,
     pub range: ast::Range,
-}
-
-/// Scan common/units/ from the given roots (vanilla + mods).
-pub fn scan_units<F>(roots: &[PathBuf], filter: &F) -> HashMap<String, UnitType>
-where
-    F: Fn(&std::path::Path) -> bool,
-{
-    let mut map = HashMap::new();
-    for root in roots {
-        crate::utils::fs_util::walk_and_parse_files(
-            &root.join("common/units"),
-            &["txt"],
-            filter,
-            |path, content| {
-                let (script, _) = parser::parse_script(&content);
-                extract_unit_types(
-                    &script.entries,
-                    &script.source,
-                    &path.to_string_lossy(),
-                    &mut map,
-                );
-            },
-        );
-    }
-    map
 }
 
 /// Scan a pre-filtered list of unit files (used by FileOverlay).

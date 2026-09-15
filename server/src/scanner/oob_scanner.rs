@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use crate::parser::parser;
@@ -7,6 +6,9 @@ use std::path::PathBuf;
 
 /// A division template defined in an OOB file.
 #[derive(Debug, Clone)]
+/// Scanner-populated OOB data. `name`/`regiments`/`support` have no reader yet —
+/// HOM's OOB validation re-parses rather than consuming these.
+#[allow(dead_code)]
 pub struct OobDivisionTemplate {
     /// The display name of the template (from `name = "..."`)
     pub name: String,
@@ -20,6 +22,8 @@ pub struct OobDivisionTemplate {
 
 /// A division placement in an OOB file.
 #[derive(Debug, Clone)]
+/// Scanner-populated OOB data; descriptive fields have no reader yet.
+#[allow(dead_code)]
 pub struct OobDivision {
     pub name: String,
     pub template: String,
@@ -30,18 +34,11 @@ pub struct OobDivision {
 
 /// A fleet defined in an OOB file.
 #[derive(Debug, Clone)]
+/// Scanner-populated OOB data; descriptive fields have no reader yet.
+#[allow(dead_code)]
 pub struct OobFleet {
     pub name: String,
     pub naval_base: Option<u32>,
-    pub path: InternedStr,
-    pub range: ast::Range,
-}
-
-/// A ship within a task force.
-#[derive(Debug, Clone)]
-pub struct OobShip {
-    pub name: String,
-    pub definition: String,
     pub path: InternedStr,
     pub range: ast::Range,
 }
@@ -50,36 +47,6 @@ pub struct OobScanResult {
     pub division_templates: HashMap<String, OobDivisionTemplate>,
     pub divisions: HashMap<String, OobDivision>,
     pub fleets: HashMap<String, OobFleet>,
-}
-
-pub fn scan_oobs<F>(roots: &[PathBuf], filter: &F) -> OobScanResult
-where
-    F: Fn(&std::path::Path) -> bool,
-{
-    let mut result = OobScanResult {
-        division_templates: HashMap::new(),
-        divisions: HashMap::new(),
-        fleets: HashMap::new(),
-    };
-
-    for root in roots {
-        crate::utils::fs_util::walk_and_parse_files(
-            &root.join("history/units"),
-            &["txt"],
-            filter,
-            |path, content| {
-                let (script, _) = parser::parse_script(&content);
-                extract_oob_entities(
-                    &script.entries,
-                    &script.source,
-                    &path.to_string_lossy(),
-                    &mut result,
-                );
-            },
-        );
-    }
-
-    result
 }
 
 pub fn scan_oob_files<F>(files: &[PathBuf], filter: &F) -> OobScanResult

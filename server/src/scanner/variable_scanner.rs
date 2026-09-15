@@ -1,10 +1,8 @@
-#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use crate::parser::parser;
 use crate::scope::scope::Scope;
 use std::collections::HashMap;
-use std::fs;
 use std::path::PathBuf;
 #[derive(Debug, Clone)]
 pub struct Variable {
@@ -27,6 +25,10 @@ pub struct Array {
     pub name: String,
     pub path: InternedStr,
     pub range: ast::Range,
+    /// Set from `add_to_temp_array` (vs `add_to_array`). Kept because the
+    /// temp/regular distinction is engine-semantic and deliberately computed
+    /// at the scan site — no consumer reads it yet.
+    #[allow(dead_code)]
     pub is_temp: bool,
 }
 
@@ -44,68 +46,6 @@ pub struct ScanResult {
     pub variables: HashMap<String, Vec<Variable>>,
     pub arrays: HashMap<String, Vec<Array>>,
     pub event_targets: HashMap<String, Vec<EventTarget>>,
-}
-
-pub fn scan_roots<F>(roots: &[std::path::PathBuf], filter: &F) -> ScanResult
-where
-    F: Fn(&std::path::Path) -> bool,
-{
-    let mut variables: HashMap<String, Vec<Variable>> = HashMap::new();
-    let mut arrays: HashMap<String, Vec<Array>> = HashMap::new();
-    let mut event_targets: HashMap<String, Vec<EventTarget>> = HashMap::new();
-
-    for root in roots {
-        let mut dirs_to_check = vec![root.clone()];
-        while let Some(current_dir) = dirs_to_check.pop() {
-            if filter(&current_dir) {
-                continue;
-            }
-            if let Ok(entries) = fs::read_dir(current_dir) {
-                for entry in entries.flatten() {
-                    let path = entry.path();
-                    if path.is_dir() {
-                        if filter(&path) {
-                            continue;
-                        }
-                        // Skip some obviously non-script directories for performance
-                        let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
-                        if name == ".git"
-                            || name == "interface"
-                            || name == "gfx"
-                            || name == "localisation"
-                            || name == "map"
-                        {
-                            continue;
-                        }
-                        dirs_to_check.push(path);
-                    } else if path.extension().is_some_and(|ext| ext == "txt") {
-                        if filter(&path) {
-                            continue;
-                        }
-                        if let Ok(content) = fs::read_to_string(&path) {
-                            {
-                                let (script, _) = parser::parse_script(&content);
-                                scan_entries(
-                                    &script.entries,
-                                    &script.source,
-                                    &path.to_string_lossy(),
-                                    &mut variables,
-                                    &mut arrays,
-                                    &mut event_targets,
-                                );
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    ScanResult {
-        variables,
-        arrays,
-        event_targets,
-    }
 }
 
 pub fn scan_variable_files<F>(files: &[PathBuf], filter: &F) -> ScanResult

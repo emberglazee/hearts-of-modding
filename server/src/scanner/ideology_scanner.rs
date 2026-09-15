@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use crate::parser::parser;
@@ -12,23 +11,6 @@ pub struct Ideology {
     pub sub_ideology_ranges: HashMap<String, ast::Range>,
     pub path: InternedStr,
     pub range: ast::Range,
-}
-
-pub fn scan_ideologies<F>(dir_path: &Path, filter: &F) -> HashMap<String, Ideology>
-where
-    F: Fn(&Path) -> bool,
-{
-    let mut map = HashMap::new();
-    crate::utils::fs_util::walk_and_parse_files(dir_path, &["txt"], filter, |path, content| {
-        let (script, _) = parser::parse_script(&content);
-        find_ideologies_in_entries(
-            &script.entries,
-            &script.source,
-            &path.to_string_lossy(),
-            &mut map,
-        );
-    });
-    map
 }
 
 pub fn scan_ideology_files<F>(files: &[PathBuf], filter: &F) -> HashMap<String, Ideology>

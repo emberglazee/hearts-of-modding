@@ -43,6 +43,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### 🧹 Internal
 
+- **Dead code removed and the file-level `#![allow(dead_code)]` suppressions dropped from all 44 files.** The compiler can see unused items again: ~1,800 lines of superseded pre-FileOverlay scanner entry points, dead API surfaces (`EntityHit` / `find_symbols` / `symbol_kind`), structs nothing constructs, and unused imports are gone, and two scanner tests now exercise the live `_files` path instead of the directory-walking variant. The ~19 suppressions that remain are item-scoped with a stated reason, so `cargo check --all-targets` is warning-free and a new dead item fails CI.
+
 - **Definitions (`focus`, `shared_focus`, `joint_focus`, `technology_folders`, `technology_categories`) moved into a new top-level `definitions` table.** No longer counted as effects.
 
 - **Bumped extension dependencies:**

@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use crate::parser::parser;
@@ -9,32 +8,6 @@ use std::path::{Path, PathBuf};
 pub struct Focus {
     pub path: InternedStr,
     pub range: ast::Range,
-}
-
-pub fn scan_focuses<F>(roots: &[std::path::PathBuf], filter: &F) -> HashMap<String, Focus>
-where
-    F: Fn(&Path) -> bool,
-{
-    let mut map = HashMap::new();
-
-    for root in roots {
-        crate::utils::fs_util::walk_and_parse_files(
-            &root.join("common/national_focus"),
-            &["txt"],
-            filter,
-            |path, content| {
-                let (script, _) = parser::parse_script(&content);
-                find_focuses_in_entries(
-                    &script.entries,
-                    &script.source,
-                    &path.to_string_lossy(),
-                    &mut map,
-                );
-            },
-        );
-    }
-
-    map
 }
 
 /// Find focus IDs inside `focus = { ... }`, `shared_focus = { ... }`,

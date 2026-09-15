@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use crate::parser::parser;
@@ -31,27 +30,6 @@ pub struct Portrait {
     pub path: InternedStr,
     #[allow(dead_code)]
     pub range: ast::Range,
-}
-
-pub fn scan_portraits<F>(roots: &[PathBuf], filter: &F) -> HashMap<String, Portrait>
-where
-    F: Fn(&std::path::Path) -> bool,
-{
-    let mut portraits = HashMap::new();
-
-    for root in roots {
-        crate::utils::fs_util::walk_and_parse_files(
-            &root.join("portraits"),
-            &["txt"],
-            filter,
-            |path, content| {
-                let (script, _) = parser::parse_script(&content);
-                extract_portraits(&script.entries, &script.source, path, &mut portraits);
-            },
-        );
-    }
-
-    portraits
 }
 
 pub fn scan_portrait_files<F>(files: &[PathBuf], filter: &F) -> HashMap<String, Portrait>

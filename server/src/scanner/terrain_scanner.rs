@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
 use crate::parser::parser;
@@ -17,27 +16,6 @@ pub struct TerrainCategory {
     pub path: InternedStr,
     /// Range of the terrain key in the source file (for goto-definition)
     pub range: ast::Range,
-}
-
-pub fn scan_terrains<F>(roots: &[PathBuf], filter: &F) -> HashMap<String, TerrainCategory>
-where
-    F: Fn(&Path) -> bool,
-{
-    let mut terrains = HashMap::new();
-
-    for root in roots {
-        crate::utils::fs_util::walk_and_parse_files(
-            &root.join("common/terrain"),
-            &["txt"],
-            filter,
-            |path, content| {
-                let (script, _) = parser::parse_script(&content);
-                extract_terrain_categories(&script.entries, &script.source, path, &mut terrains);
-            },
-        );
-    }
-
-    terrains
 }
 
 pub fn scan_terrain_files<F>(files: &[PathBuf], filter: &F) -> HashMap<String, TerrainCategory>
