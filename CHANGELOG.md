@@ -31,6 +31,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Fixed a crash on non-ASCII script keys.** Highlighting and scope inference tested `var:` / `temp_var:` prefixes by slicing at a fixed byte index, so a key as ordinary as `café_industry` panicked the language server and dropped the connection; both paths now share one byte-wise prefix helper.
 
+- **Fixed a workspace scan abort on an unterminated `textcolors` block.** An `interface/*.gfx` file that ends mid-block — or right at the opening brace — made the colour-code scanner slice past its own start, and the panic takes the whole scan down with it; such a block now reads to the end of the file instead.
+
 ### 🧹 Internal
 
 - **Definitions (`focus`, `shared_focus`, `joint_focus`, `technology_folders`, `technology_categories`) moved into a new top-level `definitions` table.** No longer counted as effects.

@@ -112,10 +112,12 @@ fn find_textcolors_blocks(content: &str) -> Vec<(u32, String)> {
     let len = bytes.len();
     let mut i = 0;
 
+    const OPEN: &str = "textcolors = {";
+
     while i < len {
-        if let Some(pos) = content[i..].find("textcolors = {") {
+        if let Some(pos) = content[i..].find(OPEN) {
             let block_start_global = i + pos;
-            let block_content_start = block_start_global + "textcolors = {".len();
+            let block_content_start = block_start_global + OPEN.len();
             let line_offset = content[..block_start_global].matches('\n').count() as u32;
 
             let mut depth = 1u32;
@@ -128,7 +130,15 @@ fn find_textcolors_blocks(content: &str) -> Vec<(u32, String)> {
                 }
                 j += 1;
             }
-            let block_end = j - 1;
+            // `j` is one past the closing `}` when the block is closed, and
+            // `len` when it is not (truncated file, or a `{` inside a string).
+            // The body ends before the brace only when one was actually found:
+            // the old `j - 1` gave `len - 1` for an unterminated block, which
+            // can split a multi-byte char and — on a file ending at the opening
+            // brace — landed *before* the body start. Both panicked the slice
+            // below, and a panic here double-panics the orchestrator (the scan
+            // macro `.unwrap()`s its `spawn_blocking` handle).
+            let block_end = if depth == 0 { j - 1 } else { len };
 
             blocks.push((
                 line_offset,
@@ -142,4 +152,63 @@ fn find_textcolors_blocks(content: &str) -> Vec<(u32, String)> {
     }
 
     blocks
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_find_textcolors_blocks_never_panics_on_truncated_input() {
+        // Regression: `block_end` was `j - 1`, which for an unterminated block
+        // is `len - 1` — an index that can split a multi-byte char, and which
+        // lands *before* the body start when the file ends at the opening
+        // brace. Both panicked the body slice.
+        assert_eq!(
+            find_textcolors_blocks("textcolors = {"),
+            vec![(0, String::new())]
+        );
+
+        // Unterminated, ending inside a multi-byte char: `é` spans the last two
+        // bytes, so `len - 1` was not a char boundary.
+        let blocks = find_textcolors_blocks("textcolors = {\n\tx = é");
+        assert_eq!(blocks.len(), 1);
+        assert_eq!(blocks[0].1, "\n\tx = é");
+
+        // Unterminated but ASCII-terminated — no panic either way; the body
+        // runs to the end of the file.
+        assert_eq!(
+            find_textcolors_blocks("textcolors = {\n\tx = 1"),
+            vec![(0, "\n\tx = 1".to_string())]
+        );
+    }
+
+    #[test]
+    fn test_find_textcolors_blocks_wellformed() {
+        // Control: a closed block yields its body without the braces, and
+        // non-ASCII entries survive intact (the closing brace is ASCII, so the
+        // body end is always a char boundary).
+        let blocks =
+            find_textcolors_blocks("textcolors = {\n\tred = { 255 0 0 }\n\tcafé = { 1 2 3 }\n}\n");
+        assert_eq!(blocks.len(), 1);
+        assert_eq!(blocks[0].0, 0);
+        assert_eq!(blocks[0].1, "\n\tred = { 255 0 0 }\n\tcafé = { 1 2 3 }\n");
+
+        // Nested braces are tracked by depth, not by the first `}`.
+        let blocks = find_textcolors_blocks(
+            "textcolors = {\n\ta = { 1 2 3 }\n\tb = {\n\t\tc = { 4 5 6 }\n\t}\n}",
+        );
+        assert_eq!(blocks.len(), 1);
+        assert!(blocks[0].1.contains("c = { 4 5 6 }"));
+
+        // Two blocks: the second one's line offset is absolute.
+        let blocks = find_textcolors_blocks(
+            "textcolors = {\n\ta = { 1 2 3 }\n}\ntextcolors = {\n\tb = { 4 5 6 }\n}",
+        );
+        assert_eq!(blocks.len(), 2);
+        assert_eq!(blocks[1].0, 3);
+
+        // No blocks at all.
+        assert!(find_textcolors_blocks("spriteTypes = { }").is_empty());
+    }
 }
