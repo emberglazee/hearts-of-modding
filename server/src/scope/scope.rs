@@ -744,14 +744,9 @@ impl ScopeStack {
         // The remainder after the prefix is the variable name as tracked by
         // the scanner, including scope-qualified forms (`var:ETH.host_nation`
         // ↔ `set_variable = { ETH.host_nation = ROOT }`). `temp_var:` is
-        // checked first; byte slicing is safe (ASCII prefixes, length-guarded).
-        let var_name = if key.len() > 9 && key[..9].eq_ignore_ascii_case("temp_var:") {
-            Some(&key[9..])
-        } else if key.len() > 4 && key[..4].eq_ignore_ascii_case("var:") {
-            Some(&key[4..])
-        } else {
-            None
-        };
+        // checked first. Keys may be non-ASCII, so the prefix is matched on
+        // bytes — see `strip_var_prefix`.
+        let var_name = crate::data::hoi4_data::strip_var_prefix(key);
         if let Some(var_name) = var_name {
             // Case-insensitive prefix, case-preserving name: `VAR:X` and
             // `var:X` address the same variable. The scanner stores raw-case

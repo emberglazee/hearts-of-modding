@@ -611,6 +611,29 @@ pub fn is_builtin_variable(name: &str) -> bool {
     lookup_dynamic_variable(name).is_some()
 }
 
+/// Strip a `var:` / `temp_var:` prefix from a script key or value, returning
+/// the variable name that follows it. `temp_var:` is checked first (longer
+/// prefix); a bare prefix with nothing after it is not a match.
+///
+/// Script keys are **not** guaranteed ASCII — `parser::is_identifier_char`
+/// accepts non-ASCII alphanumerics, so `café_industry` (13 bytes / 11 chars)
+/// and `описание` (16 bytes / 8 chars) are legal keys. The prefix test
+/// therefore compares **bytes**, never `&str` slices: `key[..9]` panics
+/// whenever the index lands inside a multi-byte char, and a byte-length guard
+/// (`len() > 9`) does not prevent that — it is the *slicing* that panics, not
+/// the length test. A byte comparison cannot panic, and when it matches, the
+/// ASCII prefix guarantees the following index starts a char.
+pub fn strip_var_prefix(key: &str) -> Option<&str> {
+    let bytes = key.as_bytes();
+    if bytes.len() > 9 && bytes[..9].eq_ignore_ascii_case(b"temp_var:") {
+        Some(&key[9..])
+    } else if bytes.len() > 4 && bytes[..4].eq_ignore_ascii_case(b"var:") {
+        Some(&key[4..])
+    } else {
+        None
+    }
+}
+
 /// UTF-8 BOM as raw bytes.
 pub const UTF8_BOM: [u8; 3] = [0xEF, 0xBB, 0xBF];
 
@@ -754,6 +777,39 @@ mod tests {
         assert!(!get_effects().is_empty(), "Effects should not be empty");
         assert!(!get_modifiers().is_empty(), "Modifiers should not be empty");
         assert!(get_version() >= 2, "Version should be 2 or higher");
+    }
+
+    #[test]
+    fn test_strip_var_prefix_is_char_boundary_safe() {
+        // Script keys are not guaranteed ASCII, and a byte-length guard does
+        // NOT make a `&str` slice safe: every adversarial input below panicked
+        // (`byte index N is not a char boundary`) before the prefix test was
+        // switched to a byte comparison.
+        assert_eq!(strip_var_prefix("var:x"), Some("x"));
+        assert_eq!(strip_var_prefix("VAR:x"), Some("x"));
+        assert_eq!(strip_var_prefix("temp_var:x"), Some("x"));
+        assert_eq!(strip_var_prefix("TEMP_VAR:x"), Some("x"));
+        // Scope-qualified names are returned verbatim.
+        assert_eq!(
+            strip_var_prefix("var:ETH.host_nation"),
+            Some("ETH.host_nation")
+        );
+
+        // Adversarial: multi-byte chars straddling byte 4 and byte 9.
+        assert_eq!(strip_var_prefix("aééé"), None);
+        assert_eq!(strip_var_prefix("café_industry"), None);
+        assert_eq!(strip_var_prefix("описание"), None);
+        assert_eq!(strip_var_prefix("temp_varé"), None);
+
+        // A non-ASCII name AFTER a real prefix still strips.
+        assert_eq!(strip_var_prefix("var:описание"), Some("описание"));
+        assert_eq!(strip_var_prefix("temp_var:café"), Some("café"));
+
+        // Bare prefixes are not references, nor are lookalike words.
+        assert_eq!(strip_var_prefix("var:"), None);
+        assert_eq!(strip_var_prefix("temp_var:"), None);
+        assert_eq!(strip_var_prefix("variable"), None);
+        assert_eq!(strip_var_prefix(""), None);
     }
 
     #[test]

@@ -717,9 +717,8 @@ fn push_entry_tokens(
             // references into the variable store, mirroring the value-side
             // `var:` highlighting in push_value_tokens. Any prefixed key
             // qualifies (known or not); validity is validation's job.
-            let is_var_key = (key_text.len() > 9
-                && key_text[..9].eq_ignore_ascii_case("temp_var:"))
-                || (key_text.len() > 4 && key_text[..4].eq_ignore_ascii_case("var:"));
+            // Keys may be non-ASCII, so the prefix is matched on bytes.
+            let is_var_key = crate::data::hoi4_data::strip_var_prefix(key_text).is_some();
 
             // On-action keys (`on_*` inside `on_actions = { }`) — these are
             // engine hooks, not ordinary triggers/effects. Highlight them as
@@ -1894,6 +1893,60 @@ SPF_Invite_to_faction = {
                 tokens,
             );
         }
+    }
+
+    #[test]
+    fn test_non_ascii_var_scope_keys_do_not_panic() {
+        // Regression: the key-side `var:` / `temp_var:` prefix test sliced
+        // with a byte-length guard (`key[..9]`), which panics whenever the
+        // index lands inside a multi-byte char. Keys may be non-ASCII
+        // (`is_identifier_char` accepts them), and the test is computed for
+        // EVERY assignment key, so `var:aééé` (10 bytes) and `temp_varé`
+        // (10 bytes) each took the LSP connection down.
+        use crate::lsp::semantic_tokens::{SemanticTokenContext, get_semantic_tokens};
+        use crate::parser::parser::parse_script;
+        use std::collections::{HashMap, HashSet};
+
+        let input = "\
+test_trigger = {
+\tvar:aééé = { always = yes }
+\ttemp_varé = { always = yes }
+\tvar:ascii_ok = { always = yes }
+}
+";
+        let (script, _) = parse_script(input);
+        let ctx = SemanticTokenContext::new(Arc::new(HashSet::new()), Arc::new(HashMap::new()));
+        let result = get_semantic_tokens(&script, &ctx);
+
+        let mut variable_lines = Vec::new();
+        let mut last_line = 0u32;
+        match result {
+            SemanticTokensResult::Tokens(t) => {
+                for st in &t.data {
+                    let line = last_line + st.delta_line;
+                    if st.token_type == TokenType::Variable as u32 {
+                        variable_lines.push(line);
+                    }
+                    last_line = line;
+                }
+            }
+            _ => panic!("expected Tokens result"),
+        }
+
+        // `var:aééé` (line 1) keeps its Variable token; `var:ascii_ok` (line 3)
+        // is the ASCII control; `temp_varé` (line 2) is not a var reference.
+        assert!(
+            variable_lines.contains(&1),
+            "non-ASCII var key lost its Variable token: {variable_lines:?}"
+        );
+        assert!(
+            variable_lines.contains(&3),
+            "ASCII var key lost its Variable token: {variable_lines:?}"
+        );
+        assert!(
+            !variable_lines.contains(&2),
+            "`temp_varé` is not a var reference: {variable_lines:?}"
+        );
     }
 
     #[test]

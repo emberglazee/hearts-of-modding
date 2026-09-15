@@ -27,6 +27,10 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Per-building construction and repair modifiers now highlight.** `production_speed_bunker_factor` and its siblings (`production_speed_<building>_factor`, `repair_speed_<building>_factor`, `state_production_speed_<building>_factor`, `state_repair_speed_<building>_factor`) rendered as plain text; they are now generated from the buildings in your workspace scan, so mod-added buildings highlight with no data update.
 
+### 🩹 Fixed
+
+- **Fixed a crash on non-ASCII script keys.** Highlighting and scope inference tested `var:` / `temp_var:` prefixes by slicing at a fixed byte index, so a key as ordinary as `café_industry` panicked the language server and dropped the connection; both paths now share one byte-wise prefix helper.
+
 ### 🧹 Internal
 
 - **Definitions (`focus`, `shared_focus`, `joint_focus`, `technology_folders`, `technology_categories`) moved into a new top-level `definitions` table.** No longer counted as effects.
