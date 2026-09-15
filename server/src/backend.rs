@@ -193,30 +193,25 @@ impl Backend {
     /// plain data; validation happens in dedicated line-based validators
     /// (`validate_unitstacks_content` et al.) or not at all (plain `.csv`).
     ///
-    /// Mirrors the head of the `validate_content` dispatch so open/edit/save
-    /// and validation agree on what is a script. Returns `true` for:
-    ///   - `*.csv`, and
-    ///   - `map/supply_nodes.txt`, `map/railways.txt`, `map/buildings.txt`,
-    ///     `map/unitstacks.txt`, `map/weatherpositions.txt`, any
-    ///     `*adjacency_rules.txt`, and the file names `default.map` resolves
-    ///     for adjacencies/definitions.
+    /// The list lives in `scanner::incremental_scanner::is_line_data_path` so
+    /// the LSP entry points here and the incremental updater cannot drift. It
+    /// returns `true` for `*.csv` and the `map/*.txt` tables; the
+    /// map-config-named `adjacencies` file is checked here as well, because it
+    /// is line-data even when its name is not `*.csv`.
+    ///
+    /// `map/adjacency_rules.txt` is NOT line-data, despite an earlier claim in
+    /// this comment: it is script (`adjacency_rule = { ... }` — 76 braces and
+    /// zero semicolons in vanilla), and the full scan parses it with
+    /// `parse_script`. Listing it here is what kept it out of the incremental
+    /// path.
     pub(crate) fn is_line_data_uri(
         &self,
         uri: &str,
         map_config: &crate::utils::map_config::MapConfig,
     ) -> bool {
-        if uri.ends_with(".csv") {
-            return true;
-        }
         let norm = uri.replace('\\', "/");
-        norm.ends_with("/map/supply_nodes.txt")
-            || norm.ends_with("/map/railways.txt")
-            || norm.ends_with("/map/buildings.txt")
-            || norm.ends_with("/map/unitstacks.txt")
-            || norm.ends_with("/map/weatherpositions.txt")
-            || norm.ends_with("adjacency_rules.txt")
-            || norm.ends_with(&map_config.adjacencies)
-            || norm.ends_with(&map_config.definitions)
+        (!map_config.adjacencies.is_empty() && norm.ends_with(&map_config.adjacencies))
+            || crate::scanner::incremental_scanner::is_line_data_path(uri, &map_config.definitions)
     }
 
     /// Build the §-symbol → hex-colour map from scanned `interface/*.gfx`

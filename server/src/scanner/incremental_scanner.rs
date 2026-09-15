@@ -326,6 +326,41 @@ macro_rules! gen_has_path {
 }
 for_each_standard_scanner!(gen_has_path);
 
+/// True when `path` holds line-data rather than HOI4 script.
+///
+/// Line-data files are `;`- or whitespace-delimited tables (`*.csv`, the
+/// `map/*.txt` tables the engine reads as rows), NOT script. This matters for
+/// more than tidiness: `parse_script` is O(n²) on them, because every row fails
+/// `parse_entry` and each failure runs `find_resync_point`, which scans the
+/// entire remaining file for braces — measured >200 s on a 10 MB
+/// `map/unitstacks.txt` (264k rows). Every LSP entry point that might parse a
+/// file must gate on this first.
+///
+/// `definitions_file` is the `map/default.map` `definitions` filename for the
+/// file's root (default `definition.csv`); an empty value is ignored rather
+/// than matching every path (`str::ends_with("")` is always true).
+///
+/// `map/adjacency_rules.txt` is deliberately NOT here: despite the name it is
+/// script (`adjacency_rule = { name = "SUEZ_CANAL" ... }` — 76 braces, zero
+/// semicolons in vanilla), and the full scan parses it with `parse_script`.
+/// Listing it as line-data is what kept it out of the incremental path.
+pub(crate) fn is_line_data_path(path: &str, definitions_file: &str) -> bool {
+    let norm = path.replace('\\', "/").to_ascii_lowercase();
+    if norm.ends_with(".csv") {
+        return true;
+    }
+    if norm.ends_with("/map/supply_nodes.txt")
+        || norm.ends_with("/map/railways.txt")
+        || norm.ends_with("/map/buildings.txt")
+        || norm.ends_with("/map/unitstacks.txt")
+        || norm.ends_with("/map/weatherpositions.txt")
+    {
+        return true;
+    }
+    let defs = definitions_file.to_ascii_lowercase();
+    !defs.is_empty() && norm.ends_with(&defs)
+}
+
 /// Determines which scanner categories apply to a given file path.
 ///
 /// `definitions_file` is the `map/default.map` `definitions` filename
@@ -799,6 +834,13 @@ pub fn update_scanner_data_for_file(
     content: &str,
     definitions_file: &str,
 ) {
+    // Gate the script parse on the file's SHAPE, not on the caller: line-data
+    // tables are O(n²) to parse (see `is_line_data_path`) and nothing
+    // downstream consumes their AST. `did_save` and
+    // `did_change_watched_files` used to call this unconditionally, so saving
+    // `map/unitstacks.txt` ran a >200 s parse on the event loop.
+    let line_data = is_line_data_path(path_str, definitions_file);
+
     let categories = classify_file(path_str, definitions_file);
 
     for category in categories {
@@ -807,6 +849,10 @@ pub fn update_scanner_data_for_file(
             FileCategory::Defines => update_defines(scanner_data, content),
             FileCategory::Countries => update_country_tags(scanner_data, path_str, content),
             FileCategory::Provinces => update_provinces_csv(scanner_data, path_str, content),
+            // Line-data tables carry no script entities — skip the parse. Their
+            // own line-based refresh paths handle them (provinces csv above,
+            // and the map tables refresh on a full scan).
+            _ if line_data => {}
             _ => {
                 let (script, _parse_errors) = parser::parse_script(content);
                 update_from_ast(scanner_data, path_str, &script, category);
@@ -2402,6 +2448,93 @@ pub fn remove_path_from_scanner_data(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_is_line_data_path_covers_tables_but_not_script() {
+        // `*.csv` and the `map/*.txt` tables are data, not script.
+        assert!(is_line_data_path(
+            "/mod/map/definition.csv",
+            "definition.csv"
+        ));
+        assert!(is_line_data_path(
+            "/mod/map/adjacencies.csv",
+            "definition.csv"
+        ));
+        assert!(is_line_data_path(
+            "/mod/map/unitstacks.txt",
+            "definition.csv"
+        ));
+        assert!(is_line_data_path(
+            "/mod/map/supply_nodes.txt",
+            "definition.csv"
+        ));
+        // The configured definitions name matches in any directory.
+        assert!(is_line_data_path(
+            "/mod/map/vars/definition.csv",
+            "vars/definition.csv"
+        ));
+        // Case is not significant.
+        assert!(is_line_data_path(
+            "/mod/map/UnitStacks.TXT",
+            "definition.csv"
+        ));
+
+        // Script is not line-data — including `adjacency_rules.txt`, which
+        // carries `adjacency_rule = { ... }` blocks (76 braces and zero
+        // semicolons in vanilla) and is parsed with `parse_script` by the full
+        // scan. Classifying it as line-data is what kept it out of the
+        // incremental path.
+        assert!(!is_line_data_path(
+            "/mod/map/adjacency_rules.txt",
+            "definition.csv"
+        ));
+        assert!(!is_line_data_path(
+            "/mod/common/scripted_effects/x.txt",
+            "definition.csv"
+        ));
+        assert!(!is_line_data_path(
+            "/mod/events/my_event.txt",
+            "definition.csv"
+        ));
+
+        // An empty definitions name must not match everything
+        // (`str::ends_with("")` is always true).
+        assert!(!is_line_data_path("/mod/events/my_event.txt", ""));
+    }
+
+    #[test]
+    fn test_line_data_path_is_not_script_parsed() {
+        // Saving a line-data table must not reach `parse_script`: it is O(n²)
+        // there (>200 s measured on a 10 MB `map/unitstacks.txt`), and
+        // did_save / did_change_watched_files used to call the updater
+        // unconditionally.
+        let data = ScannerData::new();
+        let script_like = "set_variable = { my_counter = 1 }\n";
+
+        update_scanner_data_for_file(
+            &data,
+            "/mod/map/unitstacks.txt",
+            script_like,
+            "definition.csv",
+        );
+        assert!(
+            data.variables.is_empty(),
+            "a line-data path must not be parsed as script"
+        );
+
+        // Control: the same content on a script path is parsed and indexed, so
+        // the assertion above cannot pass vacuously.
+        update_scanner_data_for_file(
+            &data,
+            "/mod/common/scripted_effects/x.txt",
+            script_like,
+            "definition.csv",
+        );
+        assert!(
+            !data.variables.is_empty(),
+            "control path must still parse, otherwise this test proves nothing"
+        );
+    }
 
     /// Regression test: strategic-region files live under `map/strategicregions`
     /// (the path the full scan and scanner actually read), NOT

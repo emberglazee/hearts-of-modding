@@ -37,6 +37,10 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Fixed "Fix all styling issues" eating a character on non-ASCII indents.** Indentation fixes emitted a byte length where LSP wants a UTF-16 column, so a line indented with a non-breaking space — the usual result of pasting from a wiki page or a word processor — had its edit range overrun the indent and swallow the first character of the key.
 
+- **Fixed saving a line-data file hanging the language server.** `map/unitstacks.txt` and the other `;`-delimited tables were gated on open and change but not on save or external changes, so a save ran the script parser across every row — over 200 seconds on a 10 MB file, with the editor unresponsive; the gate now lives in the incremental updater itself, so every caller inherits it.
+
+- **Fixed `map/adjacency_rules.txt` being classified as line-data.** It is script (`adjacency_rule = { ... }` blocks), so the misclassification kept it out of the incremental path entirely; the line-data list is now one shared predicate used by both the LSP entry points and the incremental updater.
+
 ### 🧹 Internal
 
 - **Definitions (`focus`, `shared_focus`, `joint_focus`, `technology_folders`, `technology_categories`) moved into a new top-level `definitions` table.** No longer counted as effects.
