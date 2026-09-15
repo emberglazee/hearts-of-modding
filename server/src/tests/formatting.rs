@@ -335,4 +335,66 @@ mod tests {
         assert_eq!(d_range.end.line, f_range.end_line);
         assert_eq!(d_range.end.character, f_range.end_col);
     }
+
+    // ── Indentation fixes (UTF-16 columns) ──
+
+    /// Helper: run `collect_indentation_fixes` over `content` with a parsed AST.
+    fn get_indent_fixes(content: &str) -> Vec<(tower_lsp_server::ls_types::Range, String)> {
+        let (script, _errors) = parser::parse_script(content);
+        let mut fixes = Vec::new();
+        Backend::collect_indentation_fixes(content, Some(&script), &mut fixes);
+        fixes
+    }
+
+    #[test]
+    fn test_indentation_fix_uses_utf16_columns_for_non_ascii_whitespace() {
+        // `is_whitespace` includes NBSP (U+00A0), which is ONE UTF-16 unit but
+        // TWO bytes. Emitting the byte length as `character` made the edit
+        // range overrun the indent and swallow the first character of the line,
+        // so "Fix all styling issues" deleted a character of the key.
+        //
+        // This line is one the parser does not turn into an entry (its
+        // whitespace is ASCII-only), so it takes the spaces branch; NBSP plus
+        // an ASCII space is 3 bytes but 2 UTF-16 units.
+        let content = "a = b\n\u{a0} key = value\n";
+        let mut fixes = Vec::new();
+        Backend::collect_indentation_fixes(content, None, &mut fixes);
+
+        let (range, text) = fixes
+            .iter()
+            .find(|(r, _)| r.start.line == 1)
+            .expect("expected an indentation fix on the NBSP-indented line");
+        assert_eq!(text, "\t");
+        assert_eq!(range.start.character, 0);
+        assert_eq!(
+            range.end.character, 2,
+            "NBSP + space is two UTF-16 units (three bytes); a byte length would \
+             make the edit swallow the 'k'"
+        );
+    }
+
+    #[test]
+    fn test_indentation_fix_ascii_indent_range_unchanged() {
+        // Control: ASCII whitespace has identical byte and UTF-16 lengths, so
+        // the range is unaffected by the conversion.
+        let content = "test = {\n  key = value\n}\n";
+        let fixes = get_indent_fixes(content);
+        let (range, text) = fixes
+            .iter()
+            .find(|(r, _)| r.start.line == 1)
+            .expect("expected an indentation fix on the space-indented line");
+        assert_eq!(text, "\t");
+        assert_eq!((range.start.character, range.end.character), (0, 2));
+    }
+
+    #[test]
+    fn test_indentation_fix_tab_indent_is_left_alone() {
+        // Control: an already-correct tab indent produces no fix at all.
+        let content = "test = {\n\tkey = value\n}\n";
+        let fixes = get_indent_fixes(content);
+        assert!(
+            fixes.iter().all(|(r, _)| r.start.line != 1),
+            "a correct tab indent must not be rewritten: {fixes:?}"
+        );
+    }
 }

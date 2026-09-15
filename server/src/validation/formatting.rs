@@ -28,7 +28,6 @@ impl Backend {
     }
 
     pub(crate) fn collect_indentation_fixes(
-        &self,
         content: &str,
         script_opt: Option<&ast::Script>,
         fixes: &mut Vec<(Range, String)>,
@@ -43,6 +42,14 @@ impl Backend {
                 .chars()
                 .take_while(|c| c.is_whitespace())
                 .collect::<String>();
+            // LSP columns are UTF-16, and `leading` is not necessarily ASCII:
+            // `is_whitespace` includes NBSP (U+00A0), U+2000-200A and U+3000,
+            // each ONE UTF-16 unit but 2-3 bytes. Emitting the byte length made
+            // the edit range overrun the indent and swallow the first character
+            // of the line. Reachable on any line the parser did not turn into
+            // an entry — its whitespace is ASCII-only, so a line indented with
+            // NBSP (a paste from a wiki page or a word processor) falls here.
+            let leading_col = crate::utf16_len(&leading);
             if line.trim().is_empty() {
                 continue;
             }
@@ -58,7 +65,7 @@ impl Backend {
                             },
                             end: Position {
                                 line: line_idx as u32,
-                                character: leading.len() as u32,
+                                character: leading_col,
                             },
                         },
                         expected_str,
@@ -82,7 +89,7 @@ impl Backend {
                             },
                             end: Position {
                                 line: line_idx as u32,
-                                character: leading.len() as u32,
+                                character: leading_col,
                             },
                         },
                         new_indent,

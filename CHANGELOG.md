@@ -35,6 +35,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Fixed Format Document giving localization files a second BOM.** The formatter pushed a U+FEFF character into the document text to "ensure" a BOM, but a BOM belongs to the file's *encoding* — the editor keeps its own and writes both, producing exactly the "2+ BOMs" state HOM6005 then reports on our own output; BOM-prefixed input is now formatted instead of silently skipping.
 
+- **Fixed "Fix all styling issues" eating a character on non-ASCII indents.** Indentation fixes emitted a byte length where LSP wants a UTF-16 column, so a line indented with a non-breaking space — the usual result of pasting from a wiki page or a word processor — had its edit range overrun the indent and swallow the first character of the key.
+
 ### 🧹 Internal
 
 - **Definitions (`focus`, `shared_focus`, `joint_focus`, `technology_folders`, `technology_categories`) moved into a new top-level `definitions` table.** No longer counted as effects.

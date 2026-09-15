@@ -615,7 +615,7 @@ impl Backend {
                 };
 
                 let mut all_fixes = Vec::new();
-                self.collect_indentation_fixes(&content, script_opt.as_deref(), &mut all_fixes);
+                Self::collect_indentation_fixes(&content, script_opt.as_deref(), &mut all_fixes);
 
                 if !all_fixes.is_empty() {
                     let mut changes = HashMap::new();
@@ -872,7 +872,7 @@ impl Backend {
 
                     let mut indent_fixes = Vec::new();
                     let script_opt = if is_yaml { None } else { Some(&**script) };
-                    self.collect_indentation_fixes(&content, script_opt, &mut indent_fixes);
+                    Self::collect_indentation_fixes(&content, script_opt, &mut indent_fixes);
                     for (range, text) in indent_fixes {
                         all_changes.push(TextEdit {
                             range,
