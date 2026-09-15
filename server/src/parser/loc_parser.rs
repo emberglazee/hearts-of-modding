@@ -833,12 +833,17 @@ fn parse_loc_entry<'a>(input: Span<'a>, path: &'a str) -> IResult<Span<'a>, LocE
 }
 
 pub fn format_loc_file(input: &str, cosmetic_indent: bool) -> String {
+    // A BOM is a file-ENCODING marker (EF BB BF at the head of the bytes), not
+    // a character in the document text: VS Code strips it out of the synced
+    // text and restores it from the file's encoding on save. Emitting U+FEFF
+    // here therefore pushed a zero-width char into the buffer, which the editor
+    // then wrote IN ADDITION to the file's own BOM — the exact "2+ BOMs" state
+    // HOM6005 reports, produced by our own Format Document. Strip one if a
+    // client does send it (`trim()` does not remove U+FEFF, so the header scan
+    // below would otherwise miss `l_english:` and silently return the input
+    // unchanged), but never emit one.
+    let input = input.strip_prefix('\u{feff}').unwrap_or(input);
     let mut output = String::new();
-
-    // Ensure UTF-8 BOM
-    if !input.starts_with('\u{feff}') {
-        output.push('\u{feff}');
-    }
 
     let mut lines = input.lines();
 

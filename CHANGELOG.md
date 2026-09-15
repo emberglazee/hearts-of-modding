@@ -33,6 +33,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Fixed a workspace scan abort on an unterminated `textcolors` block.** An `interface/*.gfx` file that ends mid-block — or right at the opening brace — made the colour-code scanner slice past its own start, and the panic takes the whole scan down with it; such a block now reads to the end of the file instead.
 
+- **Fixed Format Document giving localization files a second BOM.** The formatter pushed a U+FEFF character into the document text to "ensure" a BOM, but a BOM belongs to the file's *encoding* — the editor keeps its own and writes both, producing exactly the "2+ BOMs" state HOM6005 then reports on our own output; BOM-prefixed input is now formatted instead of silently skipping.
+
 ### 🧹 Internal
 
 - **Definitions (`focus`, `shared_focus`, `joint_focus`, `technology_folders`, `technology_categories`) moved into a new top-level `definitions` table.** No longer counted as effects.
