@@ -52,6 +52,66 @@ pub fn is_known_ignored_file(path: &Path) -> bool {
     false
 }
 
+/// Identity of a directory, used to stop a recursive walk from following the
+/// same directory twice through a symlink cycle.
+///
+/// Unix uses `(device, inode)`: a symlink cycle necessarily revisits a
+/// directory, so the second visit is detectable no matter how the path was
+/// spelled. (Real example: a Wine bottle's `dosdevices/z:` points at `/`, and
+/// `/sys` is full of symlink cycles such as
+/// `module/uvc/holders/uvcvideo/drivers/usb:uvcvideo/module/...`, so the path
+/// grows without bound and never reaches a directory that hasn't been seen.)
+/// Other platforms fall back to the canonicalized path — same guarantee, more
+/// syscalls.
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+enum DirIdentity {
+    #[cfg(unix)]
+    Inode(u64, u64),
+    #[cfg(not(unix))]
+    RealPath(std::path::PathBuf),
+}
+
+fn dir_identity(path: &Path) -> Option<DirIdentity> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt;
+        std::fs::metadata(path)
+            .ok()
+            .map(|meta| DirIdentity::Inode(meta.dev(), meta.ino()))
+    }
+    #[cfg(not(unix))]
+    {
+        std::fs::canonicalize(path).ok().map(DirIdentity::RealPath)
+    }
+}
+
+/// Cycle guard for directory walks. `visit` returns `false` for a directory
+/// that was already walked, which is what terminates a walk that would
+/// otherwise follow a symlink cycle forever.
+///
+/// Symlinked directories that do *not* cycle are still traversed — mods rely on
+/// that (e.g. a `map` directory linked at the game install).
+#[derive(Default)]
+pub(crate) struct WalkedDirs {
+    seen: std::collections::HashSet<DirIdentity>,
+}
+
+impl WalkedDirs {
+    pub(crate) fn new() -> Self {
+        Self::default()
+    }
+
+    /// Record `path`. Returns `false` when this directory was already walked.
+    pub(crate) fn visit(&mut self, path: &Path) -> bool {
+        match dir_identity(path) {
+            Some(identity) => self.seen.insert(identity),
+            // No identity (unreadable, or deleted mid-walk): let the caller
+            // continue — the `read_dir` that follows fails harmlessly.
+            None => true,
+        }
+    }
+}
+
 /// Recursively walk a directory, collecting files whose extension matches
 /// one of `extensions` and for which `ignore_filter` returns `false`.
 /// If `skip_git` is `true`, `.git` directories are not descended into.
@@ -66,9 +126,10 @@ where
 {
     let mut matching_files = Vec::new();
     let mut dirs_to_check = vec![root.to_path_buf()];
+    let mut walked = WalkedDirs::new();
 
     while let Some(current_dir) = dirs_to_check.pop() {
-        if ignore_filter(&current_dir) {
+        if ignore_filter(&current_dir) || !walked.visit(&current_dir) {
             continue;
         }
         if let Ok(entries) = std::fs::read_dir(&current_dir) {
@@ -111,7 +172,11 @@ pub fn walk_and_parse_files<F, P>(
     }
 
     let mut dirs_to_check = vec![dir_path.to_path_buf()];
+    let mut walked = WalkedDirs::new();
     while let Some(current_dir) = dirs_to_check.pop() {
+        if !walked.visit(&current_dir) {
+            continue;
+        }
         if let Ok(entries) = std::fs::read_dir(&current_dir) {
             for entry in entries.flatten() {
                 let path = entry.path();
@@ -222,6 +287,74 @@ pub fn fuzzy_match(query_lowercase: &str, target: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(unix)]
+    fn temp_dir(name: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!(
+            "hom_fs_util_{}_{}_{}",
+            name,
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    /// A symlink cycle must terminate the walk. Real case: the server was
+    /// spawned with `$HOME` as its CWD, `collect_files(".")` therefore walked
+    /// the home directory, a Wine bottle's `dosdevices/z: -> /` symlink was
+    /// followed, and `/sys`'s own symlink cycles grew the path forever.
+    #[cfg(unix)]
+    #[test]
+    fn collect_files_terminates_on_symlink_cycle() {
+        use std::os::unix::fs::symlink;
+
+        let root = temp_dir("cycle");
+        let sub = root.join("sub");
+        std::fs::create_dir_all(&sub).unwrap();
+        std::fs::write(sub.join("real.txt"), "").unwrap();
+        // sub/loop -> sub: a directory that contains itself
+        symlink(&sub, sub.join("loop")).unwrap();
+
+        let (tx, rx) = std::sync::mpsc::channel();
+        let walk_root = root.clone();
+        std::thread::spawn(move || {
+            let files = collect_files(&walk_root, &["txt"], |_| false, false);
+            let _ = tx.send(files.len());
+        });
+        let count = rx
+            .recv_timeout(std::time::Duration::from_secs(30))
+            .expect("collect_files did not terminate on a symlink cycle");
+        assert_eq!(count, 1, "the file in the cycling tree is collected once");
+
+        std::fs::remove_dir_all(&root).ok();
+    }
+
+    /// Cycle protection must not turn into "never follow symlinks": mods link
+    /// directories (e.g. `map` at the game install) and those must be walked.
+    #[cfg(unix)]
+    #[test]
+    fn collect_files_still_follows_a_symlinked_directory() {
+        use std::os::unix::fs::symlink;
+
+        let root = temp_dir("link");
+        let outside = temp_dir("outside");
+        std::fs::write(outside.join("shared.txt"), "").unwrap();
+        symlink(&outside, root.join("linked")).unwrap();
+
+        let files = collect_files(&root, &["txt"], |_| false, false);
+        assert_eq!(
+            files.len(),
+            1,
+            "a symlinked directory is still traversed: {files:?}"
+        );
+
+        std::fs::remove_dir_all(&root).ok();
+        std::fs::remove_dir_all(&outside).ok();
+    }
 
     #[test]
     fn test_fuzzy_match() {

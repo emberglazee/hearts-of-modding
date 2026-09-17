@@ -46,6 +46,29 @@ impl tower_lsp_server::ls_types::notification::Notification for ColorCodesNotifi
 
 impl LanguageServer for Backend {
     async fn initialize(&self, params: InitializeParams) -> Result<InitializeResult> {
+        // The workspace folders the client opened. Read here (and only here):
+        // `initialized` needs them, and by then `params` is gone. The server must
+        // NOT fall back to `.` — it is spawned with the extension host's CWD,
+        // which is the user's home directory, not the folder they opened.
+        let mut client_roots: Vec<std::path::PathBuf> = Vec::new();
+        if let Some(folders) = params.workspace_folders.as_ref() {
+            for folder in folders {
+                if let Some(path) = folder.uri.to_file_path() {
+                    client_roots.push(path.into_owned());
+                }
+            }
+        }
+        if client_roots.is_empty() {
+            #[allow(deprecated)] // fallback for clients that predate workspaceFolders
+            if let Some(uri) = params.root_uri.as_ref() {
+                if let Some(path) = uri.to_file_path() {
+                    client_roots.push(path.into_owned());
+                }
+            }
+        }
+        self.client_workspace_roots
+            .store(std::sync::Arc::new(client_roots));
+
         if let Some(options) = params.initialization_options {
             if let Some(path) = options.get("gamePath").and_then(|v| v.as_str()) {
                 if !path.is_empty() {
@@ -235,6 +258,12 @@ impl LanguageServer for Backend {
             )
             .await;
 
+        // Workspace folders the user opened, captured in `initialize` from the
+        // client's `workspaceFolders`. Every "workspace root" use below reads
+        // this instead of the process CWD (see the field docs in backend.rs).
+        let client_roots: Vec<std::path::PathBuf> =
+            self.client_workspace_roots.load().as_ref().clone();
+
         // Build the VFS root stack: game path (lowest priority) → dependency
         // mods → workspace (highest priority). The scan_dashmap_layered! macro
         // iterates roots in order, pushing each root's entries into LayeredValue
@@ -302,9 +331,14 @@ impl LanguageServer for Backend {
                         .await;
 
                     // Read the workspace descriptor.mod to find declared dependencies
-                    // and replace_path directives.
-                    let descriptor_path = std::path::Path::new("descriptor.mod");
-                    if descriptor_path.exists() {
+                    // and replace_path directives. It lives in the workspace folder
+                    // the user opened — resolved against that root, never against
+                    // the server CWD (which is the extension host's, i.e. $HOME).
+                    let descriptor_path = client_roots
+                        .iter()
+                        .map(|root| root.join("descriptor.mod"))
+                        .find(|path| path.exists());
+                    if let Some(descriptor_path) = descriptor_path.as_ref() {
                         match std::fs::read_to_string(descriptor_path) {
                             Ok(content) => {
                                 // Parse replace_path declarations first — these must be
@@ -423,39 +457,55 @@ impl LanguageServer for Backend {
             }
         }
 
-        // 5. Workspace root (active mod, highest priority)
+        // 5. Workspace folder(s) the user opened (active mod, highest priority)
         //
-        // But if the workspace IS the HOI4 game installation directory, skip
-        // pushing "." to avoid double-scanning every file — the game path root
-        // (step 1) already covers this directory. Without this check, the same
-        // files would be walked twice through the overlay, and every entity
-        // would get an identical duplicate layer, causing false-positive
-        // diagnostics ("everything is a duplicate of everything else").
-        let same_as_game = gp
-            .as_ref()
-            .and_then(|gp_path| {
-                let ws = std::path::Path::new(".").canonicalize().ok();
-                let gp = std::path::Path::new(gp_path).canonicalize().ok();
-                ws.zip(gp).map(|(w, g)| w == g)
-            })
-            .unwrap_or(false);
-
-        if same_as_game {
+        // These come from the client's `workspaceFolders` (captured in
+        // `initialize`) — NOT from `.`. The server's CWD is the extension host's
+        // CWD, which is `$HOME` for a normally-launched VS Code; walking `.`
+        // therefore walked the entire home directory (and, through a Wine
+        // bottle's `dosdevices/z: -> /` symlink, the whole filesystem) before
+        // ever returning.
+        //
+        // If a workspace folder IS the HOI4 game installation directory we skip
+        // it: the game path root (step 1) already covers those files, and
+        // pushing it again would walk them twice through the overlay, giving
+        // every entity an identical duplicate layer and false-positive
+        // "everything is a duplicate of everything else" diagnostics.
+        if client_roots.is_empty() {
             self.client
                 .log_message(
-                    MessageType::INFO,
-                    "Workspace root is the configured HOI4 game installation path — \
-                     skipping duplicate workspace root to avoid double-scanning.",
+                    MessageType::WARNING,
+                    "No workspace folder was reported by the client — the workspace \
+                     root is not scanned. Open the mod folder in the editor so the \
+                     server can index it.",
                 )
                 .await;
-        } else {
-            roots.push(std::path::PathBuf::from("."));
+        }
+        for ws_root in &client_roots {
+            let same_as_game = gp.as_ref().is_some_and(|gp_path| {
+                let ws = ws_root.canonicalize().unwrap_or_else(|_| ws_root.clone());
+                let gp_real = std::path::Path::new(gp_path)
+                    .canonicalize()
+                    .unwrap_or_else(|_| std::path::PathBuf::from(gp_path));
+                ws == gp_real
+            });
+
+            if same_as_game {
+                self.client
+                    .log_message(
+                        MessageType::INFO,
+                        "Workspace root is the configured HOI4 game installation path — \
+                         skipping duplicate workspace root to avoid double-scanning.",
+                    )
+                    .await;
+            } else {
+                roots.push(ws_root.clone());
+            }
         }
 
         // Store roots for texture file path resolution and other validation.
-        // Canonicalize so the `.` workspace root becomes its real absolute
-        // path — per-URI lookups (map config resolution, etc.) match document
-        // URIs against these roots, and a bare `.` never matches a URI prefix.
+        // Canonicalize so every root is a real absolute path — per-URI lookups
+        // (map config resolution, etc.) match document URIs against these roots.
         let stored_roots: Vec<std::path::PathBuf> = roots
             .iter()
             .map(|r| r.canonicalize().unwrap_or_else(|_| r.clone()))
@@ -542,10 +592,9 @@ impl LanguageServer for Backend {
             .await;
 
         // Collect workspace file paths for rename operations
-        // Use the workspace root (last element) — not the game path
-        if let Some(workspace_root) = roots.last() {
-            self.collect_workspace_files(std::slice::from_ref(workspace_root))
-                .await;
+        // Use the workspace folder(s) — never the CWD, and never the game path
+        if !client_roots.is_empty() {
+            self.collect_workspace_files(&client_roots).await;
         }
 
         // Re-validate all open documents now that we have all data
@@ -555,9 +604,11 @@ impl LanguageServer for Backend {
             }
         }
 
-        // Workspace-wide scan
+        // Workspace-wide scan (per opened folder — never the CWD)
         if self.config.workspace_scan_enabled() {
-            self.validate_workspace(std::path::Path::new(".")).await;
+            for root in &client_roots {
+                self.validate_workspace(root).await;
+            }
         }
 
         // Register file watchers so did_change_watched_files fires for
@@ -639,8 +690,13 @@ impl LanguageServer for Backend {
                         self.config.set_workspace_scan_enabled(enabled);
                         let _ws = self.config.workspace_scan_enabled();
                         // If the user just enabled the workspace scan, trigger it now
+                        // (per opened folder — never the CWD).
                         if enabled {
-                            self.validate_workspace(std::path::Path::new(".")).await;
+                            let roots: Vec<std::path::PathBuf> =
+                                self.client_workspace_roots.load().as_ref().clone();
+                            for root in &roots {
+                                self.validate_workspace(root).await;
+                            }
                         } else {
                             // Toggling off orphans every Problems entry the
                             // last scan published — no re-scan will ever clear
@@ -1092,7 +1148,6 @@ impl LanguageServer for Backend {
         match self.get_or_parse_ast(&uri).await {
             Some((script, _)) => {
                 let ctx = self.build_semantic_token_context();
-
                 Ok(Some(semantic_tokens::get_semantic_tokens(&script, &ctx)))
             }
             _ => Ok(None),
@@ -1343,8 +1398,10 @@ impl LanguageServer for Backend {
             {
                 let mut locations = Vec::new();
 
-                // Search in all roots
-                let mut roots = vec![std::path::PathBuf::from(".")];
+                // Search in the workspace folder(s) and the game path — never the
+                // CWD (see `client_workspace_roots` docs in backend.rs).
+                let mut roots: Vec<std::path::PathBuf> =
+                    self.client_workspace_roots.load().as_ref().clone();
                 let gp = self.config.game_path();
                 if let Some(ref path) = gp {
                     roots.push(std::path::PathBuf::from(path));

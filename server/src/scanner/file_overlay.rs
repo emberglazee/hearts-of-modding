@@ -175,8 +175,9 @@ impl FileOverlay {
         F: Fn(&Path) -> bool,
     {
         let mut dirs = vec![root.to_path_buf()];
+        let mut walked = crate::utils::fs_util::WalkedDirs::new();
         while let Some(current_dir) = dirs.pop() {
-            if filter(&current_dir) {
+            if filter(&current_dir) || !walked.visit(&current_dir) {
                 continue;
             }
 
@@ -282,6 +283,34 @@ mod tests {
     /// Dummy filter that passes everything.
     fn pass_all(_: &Path) -> bool {
         false
+    }
+
+    /// A symlink cycle used to make this walk non-terminating — and it runs
+    /// inside the `initialized` notification, so the server answered nothing
+    /// afterwards (no semantic tokens, no hover, no diagnostics; the log stopped
+    /// right after "server initialized!"). It must terminate.
+    #[test]
+    #[cfg(unix)]
+    fn test_walk_terminates_on_symlink_cycle() {
+        use std::os::unix::fs::symlink;
+
+        let root = temp_dir();
+        create_file(&root.join("events/cycle.txt"));
+        // events/loop -> events: a directory that contains itself
+        symlink(root.join("events"), root.join("events/loop")).unwrap();
+
+        let (tx, rx) = std::sync::mpsc::channel();
+        let roots = vec![root.clone()];
+        std::thread::spawn(move || {
+            let overlay = FileOverlay::build(&roots, &["txt"], pass_all, &[]);
+            let _ = tx.send(overlay.all_entries().len());
+        });
+        let count = rx
+            .recv_timeout(std::time::Duration::from_secs(30))
+            .expect("overlay walk did not terminate on a symlink cycle");
+        assert_eq!(count, 1, "the cycling directory is walked once");
+
+        fs::remove_dir_all(&root).ok();
     }
 
     #[test]

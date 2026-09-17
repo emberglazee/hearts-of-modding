@@ -41,6 +41,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Fixed `map/adjacency_rules.txt` being classified as line-data.** It is script (`adjacency_rule = { ... }` blocks), so the misclassification kept it out of the incremental path entirely; the line-data list is now one shared predicate used by both the LSP entry points and the incremental updater.
 
+- **Fixed the language server going silent right after "server initialized!".** Semantic highlighting, hover and diagnostics all stopped at once: the startup file scan treated "the workspace root" as the relative path `.`, which resolves to the *server process's* working directory — the editor's, not the folder you opened. For a normally-launched editor that is your home directory, where an unrelated Wine-prefix symlink leads into a self-referencing system path and the walk never returned, inside the initialization handler. The scan now indexes the folder(s) the editor actually reports, and every directory walk carries a visited-directory guard so no symlink can stall it again.
+
 ### 🧹 Internal
 
 - **Dead code removed and the file-level `#![allow(dead_code)]` suppressions dropped from all 44 files.** The compiler can see unused items again: ~1,800 lines of superseded pre-FileOverlay scanner entry points, dead API surfaces (`EntityHit` / `find_symbols` / `symbol_kind`), structs nothing constructs, and unused imports are gone, and two scanner tests now exercise the live `_files` path instead of the directory-walking variant. The ~19 suppressions that remain are item-scoped with a stated reason, so `cargo check --all-targets` is warning-free and a new dead item fails CI.

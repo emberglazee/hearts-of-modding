@@ -131,6 +131,7 @@ async fn main() {
             config: Arc::new(Config::new()),
             system_info: Mutex::new(sysinfo::System::new()),
             workspace_roots: ArcSwap::from_pointee(Vec::new()),
+            client_workspace_roots: ArcSwap::from_pointee(Vec::new()),
             compute_pool,
             pending_tasks: AtomicU64::new(0),
             base_token_keywords: base_keywords.clone(),

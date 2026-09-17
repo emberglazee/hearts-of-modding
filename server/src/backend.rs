@@ -94,6 +94,19 @@ pub(crate) struct Backend {
     pub(crate) config: Arc<Config>,
     pub(crate) system_info: Mutex<sysinfo::System>,
     pub(crate) workspace_roots: ArcSwap<Vec<std::path::PathBuf>>,
+    /// Workspace folders the client reported in `initialize` (`workspaceFolders`,
+    /// falling back to the deprecated `rootUri`), as absolute paths.
+    ///
+    /// This is the folder the user actually opened, and everything that needs
+    /// "the workspace root" must read it from here. The server is spawned with
+    /// the *extension host's* CWD (typically `$HOME`), so the relative path `.`
+    /// that used to stand in for the workspace root resolved to the home
+    /// directory: the initial overlay walk descended into `$HOME`, followed a
+    /// Wine bottle's `dosdevices/z: -> /` symlink and looped through its sysfs
+    /// cycles forever — inside the `initialized` notification, so the server
+    /// answered nothing afterwards (no semantic tokens, no hover, no
+    /// diagnostics; the log stops right after "server initialized!").
+    pub(crate) client_workspace_roots: ArcSwap<Vec<std::path::PathBuf>>,
     /// Bounded thread pool for CPU-bound work (workspace scan + single-file
     /// validation). Using Rayon's default global pool (all logical cores)
     /// pegs every CPU during large-file validation and starves VS Code's
