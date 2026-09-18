@@ -39,19 +39,41 @@ Measured corpus (2026-09-18, game 1.19.3.0):
 | `allow_achievements` occurrences | rule level, option level, and inside `default = { }` |
 | Naive rule×option cross-check | **0 real errors** in vanilla; the only 4 hits in Hearts of Minecraft are inside comments (a commented-out `PLC_ai_behavior` block) |
 
-### Engine merge semantics (measured)
+### Rule resolution: the FIRST definition of a token wins (engine-verified)
 
-Neither Hearts of Minecraft nor For Tomorrow's Sake declares
-`replace_path="common/game_rules"` (the only `replace_path` in either that even
-mentions the word is Hearts of Minecraft's `common/factions/rules`), yet Hearts
-of Minecraft's 1128-line file carries 34 rules while vanilla's 3551 lines carry
-86 — and the 20 overlapping tokens have **byte-identical option sets**. So the
-engine merges rules **per token across files**, and a mod's redefinition
-replaces the vanilla rule **wholesale**, not option-by-option. The validator
-must therefore check an option against the *resolved winning layer's* option
-set, never the vanilla union: a partial redefinition silently drops the options
-it omits. (The "wholesale, not option-merge" half is the one claim the probe
-confirms — see §9 item 1.)
+Settled 2026-09-18 by the probe's load-time validation channel (game 1.19.3.0;
+engine messages quoted verbatim in §9):
+
+- `has_game_rule = { rule = allow_wargoals option = PDX_PROBE_FREE_X }` — where
+  `PDX_PROBE_FREE_X` is an option the probe's **own redeclaration** of
+  `allow_wargoals` declares — is rejected:
+  `game rule option PDX_PROBE_FREE_X is not valid for the rule allow_wargoals`,
+  while vanilla's `FREE_25`, which that redeclaration omits, stays **valid**.
+  Redeclaring a vanilla rule therefore does nothing: the first definition
+  (vanilla, loaded first) is the one that binds.
+- The same holds within one mod: `PDX_probe_rule_b`, declared in
+  `00_rules_probe_a.txt` and again in `01_rules_probe_b.txt` with a disjoint
+  option set, validates `FROM_FILE_A` and rejects `FROM_FILE_B`. First file wins.
+
+Consequences for the server:
+
+1. `LayeredValue`'s highest-priority-wins resolution is the **wrong model for
+   game rules**. The registry must resolve to the *first* definition in load
+   order (vanilla → parent mod → submod, filename order within a root) and its
+   option set — no union across layers, no mod-overrides-vanilla.
+2. Validation of an `option` token must run against that first-definition set.
+   A mod redefinition's options are not merely lower priority; they are invalid.
+3. Hearts of Minecraft is unaffected in practice today: all 20 of its vanilla
+   redeclarations are identical to vanilla in every field the comparison covers
+   (name, group, icon, rule- and option-level `allow_achievements`, DLC fields,
+   the option list and its order) — i.e. they are no-ops. A future edit inside
+   one of those blocks would silently never apply, which is worth recording for
+   the mod authors rather than fixing in the LSP.
+
+Residual unknown (single mechanism vs two): vanilla-beats-mod and
+first-file-beats-second-file are both consistent with "first definition wins in
+load order", which is what the LSP will implement. A mod-vs-mod conflict across
+different roots was not probed.
 
 ## §1 Data model
 
@@ -158,11 +180,39 @@ now owns real highlighting for them).
 `rules/game_rules.rs`, an `AstVisitor` + `after_walk`, registered in
 `Backend::check_semantic`; `ValidationContext` gains a `game_rules` reference.
 
-| Code | Fires when | Default |
+| Code | Fires when | Severity |
 |---|---|---|
-| `HOM5012` | `rule = X` inside `has_game_rule` where X resolves in no scanned `game_rules` (case-insensitive) | WARN |
-| `HOM5013` | `option = Y` where the rule resolves but Y is not one of *that resolved rule's* options | WARN |
-| `HOM5014` | `has_game_rule` block missing `rule` or missing `option` — the engine evaluates the block false, so the gate is dead | WARN |
+| `HOM5012` | `rule = X` inside `has_game_rule` where X resolves in no scanned `game_rules` (case-insensitive) | **ERROR** |
+| `HOM5013` | `option = Y` where the rule resolves but Y is not one of *that resolved rule's* options | **ERROR** |
+| `HOM5014` | `has_game_rule` block missing `rule` or missing `option` | **ERROR** |
+
+**All three at ERROR — engine-verified, not aspirational.** The engine validates
+every `has_game_rule` block statically at load and logs a matching message for
+each of these three cases, then drops the trigger
+(`trigger.cpp:117: Trigger failed to validate`). The LSP emits exactly the class
+of problem the engine itself reports, at the engine's own severity class:
+
+| Engine message (`triggerimplementation.cpp`) | LSP code |
+|---|---|
+| `9803`: `game rule <X> does not exist` | `HOM5012` |
+| `9823`: `game rule option <Y> is not valid for the rule <X>` | `HOM5013` |
+| `9808`: `rule option is not specified` | `HOM5014` (no `option`) |
+| `9796`: `game rule is not specified` | `HOM5014` (no `rule`) |
+
+Two nuances this evidence forces:
+
+- **DLC gating makes a declaration conditional.** A rule carrying `required_dlc`
+  (or `exclude_dlc`) whose condition is not met is *not registered* — the engine
+  then reports every use of it as `does not exist`. Verified on this machine: the
+  two vanilla rules gated behind "Thunder at Our Gates" (`INS_ai_behavior`,
+  `SIA_ai_behavior`) are absent because that DLC is not installed, so **vanilla's
+  own `common/on_actions/00_on_actions.txt` logs four such errors per load in a
+  stock install**. The server therefore treats a DLC-gated declaration as
+  sufficient for `HOM5012` silence — a deliberate false negative, since resolving
+  installed-DLC state is out of scope (§8).
+- The engine validates **eagerly at parse time**, so commented-out blocks are
+  never parsed and stay silent automatically — no extra guard needed for the
+  commented `PLC_ai_behavior` usages in Hearts of Minecraft.
 
 - Only blocks whose key is `has_game_rule` are considered; `rule` / `option`
   elsewhere in the language is untouched (`option` is a transparent block used
@@ -200,7 +250,8 @@ HOM50xx band (HOM5011 is the highest allocated today).
 
 - Definition site: the rule's block token and the `name =` values of its option
   blocks resolve through the registry arms the macro generates
-  (`Enum` / `EnumMember`).
+  (`Enum` / `EnumMember`). A `default = { }` block's `name` value is an option
+  token like any other (engine-verified, §9 F8), so it takes `EnumMember` too.
 - Usage site: `has_game_rule`, `rule` and `option` are keyword-keyed already;
   the change is the **value** side —
   `rule = allow_wargoals` → `Enum`,
@@ -243,38 +294,54 @@ summary, explanation continuing on the same line.
   class of check. Revisit only if the probe shows the checks can misfire.
 - Any change to game-rule *loading* or the keyword set.
 
-## §9 Open items (probe-driven)
+## §9 Probe status
 
-The probe mod `probe_game_rules` (user mod dir, pointer `.mod` alongside) runs
-ten checks in one game load via a flag-guarded `on_daily`, and
-`scripts/analyze_game_rules_probe.py --user-dir …` prints the verdict table.
-Items it settles, in order of impact on this spec:
+The probe mod `probe_game_rules` (user mod dir, pointer `.mod` alongside)
+carries a `# F<n>` marker on each `has_game_rule = {` line, and
+`scripts/analyze_game_rules_probe.py` maps the engine's own `file:line`
+citations back to those keys. Two channels: **load-time validation**
+(`logs/error.log`, populated as soon as the game reaches a game-start screen)
+and **runtime evaluation** (`logs/game.log`, needs one campaign day).
 
-1. **F3/F3b** — does a redefinition replace the vanilla option set wholesale
-   (expected) or merge with it? *Wholesale* is what §1's resolution model
-   assumes; *merge* would mean validation must union across layers instead.
-2. **F4** — which file wins when two files of the same mod declare the same
-   token (the LSP's `LayeredValue` keeps both layers per priority and resolves
-   the highest; the engine has only file order to go on).
-3. **F1/F2** — an unknown rule token and an unknown option token both evaluate
-   false. This is the severity evidence for HOM5012/5013: if either logs an
-   `error.log` line the engine considers it an error and the default should be
-   ERROR; if both are silent, WARN stands (a silent dead gate).
-4. **F5** — case-insensitivity of rule and option matching. Required before
-   promising case-insensitive resolution in §3.
-5. **F6** — is the first option the implicit default when no `default` block
-   exists (vanilla header claim) or has 1.19.3 moved to a whitelist? Affects
-   the `default` ordering in §6 hover and whether a missing `default` is
-   reportable.
-6. **F8** — is a `default`-only token a legal `has_game_rule` target? If yes,
-   `is_default` options must be offered in §6 completion as well.
-7. **F9/F10** — blocks missing `rule` or `option`: confirm the engine tolerates
-   them (HOM5014 stays WARN) rather than logging a parse error.
+### Settled by the load-time channel (2026-09-18, 1.19.3.0)
 
-Once the verdicts land: write them into the
-`hearts-of-modding` skill reference `references/game-rules-empirical.md`, set the
-final severities, and record any model correction in this spec's §1/§3 before
-implementation starts.
+| Key | Verdict | Consequence |
+|---|---|---|
+| F1 | `game rule pdx_probe_nonexistent_rule does not exist` | HOM5012 = ERROR |
+| F2 | `game rule option pdx_probe_nonexistent_option is not valid for the rule allow_wargoals` | HOM5013 = ERROR |
+| F3 | clean — vanilla `FREE_25` still valid despite the redeclaration omitting it | first definition wins (§1) |
+| F3b | the redeclaration's own option is **rejected** | a mod cannot extend a vanilla rule |
+| F4a / F4b | `FROM_FILE_A` valid, `FROM_FILE_B` rejected | first file wins within a mod |
+| F5 | differently-cased rule **and** option tokens accepted | case-insensitive matching, both directions |
+| F8 | a token declared only inside `default = { }` is a valid target | default-block tokens belong in the option set (affects §5/§6) |
+| F9 | `rule option is not specified` | HOM5014 = ERROR |
+| F10 | `game rule is not specified` | HOM5014 = ERROR |
+| Control | F7 validated clean | the probe's own rules registered; the run is trustworthy |
+
+### Outstanding (needs one campaign day)
+
+- **F6a/F6b** — with no `default` block, which option does the engine
+  preselect? Both tokens validate, so only the runtime/UI answer distinguishes
+  "first option block is the implicit default" (the vanilla header's claim) from
+  a changed rule. Affects §6 hover/completion ordering.
+- **F11–F16 runtime halves** — F11 (defective definition still matchable),
+  F12 (which duplicate option token survives), F13 (bad icon: rule still gates),
+  F14/F15 (a rule carrying `required_dlc`/`exclude_dlc` that the machine fails:
+  expect the rule to be dropped — the mechanism the vanilla INS/SIA errors in
+  §3 exposed), F16 (option-level DLC gating: option dropped, or rule killed).
+  Their load-time rows currently read `does not exist` only because those rules
+  had not been written yet when the log was produced — the next load is the
+  real test.
+- The engine's exact messages are reproduced verbatim by the analyzer's
+  "engine messages" section; encode them in the skill reference rather than
+  paraphrasing.
+
+### Residual (not probed)
+
+- Mod-vs-mod conflict across different roots (see §1).
+- Whether `allow_achievements` correctness matters to the engine at all: no
+  probe case exists for a wrong `allow_achievements` value, so §4's HOM5019 sits
+  on corpus evidence only.
 
 ## §10 File inventory
 
@@ -285,7 +352,7 @@ implementation starts.
 - `server/src/tests/game_rules.rs`
 - `~/.hermes/skills/gaming/hoi4-modding/scripts/analyze_game_rules_probe.py`
 - `~/.hermes/skills/gaming/hoi4-modding/references/game-rules-empirical.md` (post-probe)
-- mod dir: `probe_game_rules.mod` + `probe_game_rules/` (3 game-rules files, 1 on_actions file, 1 loc file, descriptor) under `~/.local/share/Paradox Interactive/Hearts of Iron IV/mod/`
+- mod dir: `probe_game_rules.mod` + `probe_game_rules/` — 4 game-rules files (`00_rules_probe_a.txt`, `01_rules_probe_b.txt`, `02_rules_probe_defects.txt`, `99_rules_probe_z.txt`), 1 on_actions file (13 → 19 `# F<n>`-marked checks), 1 probe-only loc file, descriptor — under `~/.local/share/Paradox Interactive/Hearts of Iron IV/mod/`
 - FTS (For Tomorrow's Sake) is the second live mod in the same playset — `~/git/github/emberglazee/Hearts-Of-Minecraft-For-Tomorrows-Sake`, symlinked from the mod dir as `hom-fts`, zero `replace_path` entries and no `game_rules` directory of its own, so it contributes no rules but does consume the parent's
 
 **Modified**
