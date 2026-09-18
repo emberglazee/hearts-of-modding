@@ -217,6 +217,11 @@ Two nuances this evidence forces:
 - Only blocks whose key is `has_game_rule` are considered; `rule` / `option`
   elsewhere in the language is untouched (`option` is a transparent block used
   by events, `rule` is unremarkable).
+- **`has_game_rule` is an equality check against the SELECTED option** (probe
+  F3/F7/F16/F17): a perfectly valid option token that is not the currently
+  chosen one evaluates FALSE at runtime. The LSP must therefore never read
+  "valid token, false result" as a defect — `HOM5013` fires only on tokens the
+  rule does not declare, never on "declared but unselected".
 - Case-insensitive resolution both ways, mirroring the engine (probe F5
   measures whether the engine really is insensitive to option-token case; if it
   is not, matching tightens to case-sensitive for options).
@@ -229,19 +234,22 @@ Two nuances this evidence forces:
 
 Second visitor in the same module, gated on `FileCategory::GameRules`.
 
-| Code | Fires when |
-|---|---|
-| `HOM5015` | rule block missing required `name` / `group`; or an option block missing `name` / `text` |
-| `HOM5016` | duplicate rule token across files (a mod redefinition without `replace_path`), or duplicate option token inside one rule — the engine keeps the last, so the earlier definition is unreachable |
-| `HOM5017` | loc key (`name`, `desc`, `text`, `group`) resolves in neither the scanned loc registry nor vanilla, compared case-insensitively — the game renders the raw key with no `error.log` signal |
-| `HOM5018` | `icon` names a sprite that is not in the sprite registry |
-| `HOM5019` | an option sets `allow_achievements = yes` under a rule-level `allow_achievements = no` — the option-level value can never take effect |
+| Code | Fires when | Severity |
+|---|---|---|
+| `HOM5015` | rule block missing required `name` / `group`; or an option block missing `name` / `text` | WARN |
+| `HOM5016` | duplicate rule token (the later definition is ignored — see §1), or duplicate option token inside one rule | WARN |
+| `HOM5017` | loc key (`name`, `desc`, `text`, `group`) resolves in neither the scanned loc registry nor vanilla, case-insensitively | WARN |
+| `HOM5018` | `icon` names a sprite that is not in the sprite registry | WARN |
+| `HOM5019` | an option sets `allow_achievements = yes` under a rule-level `allow_achievements = no` (dead field) | INFO |
 
-Severity split: **HOM5015/5016/5019 = WARN**, **HOM5017/5018 = INFO**. The two
-INFO codes are the ones most likely to have a source outside the scanned set (a
-DLC loc file, a submod's own art) and both degrade only the UI. HOM5015 is a
-WARN rather than ERROR because a rule without `name`/`group` still loads and
-still gates script.
+**The engine is silent on all five** (probe F11/F12/F13: a rule with no `group`, an option with no `text`, a duplicated option token and a nonexistent `icon` sprite all registered, validated clean against script, and gated correctly at runtime — zero `error.log` lines). So these are *stricter than the engine* by design, and the justification must be player-visible harm, not breakage:
+
+- HOM5015/5017 — the game-rules screen renders the raw key and the rule loses its group heading. Visible to every player, invisible in the log.
+- HOM5016 — a duplicate/ignored definition is silent intent loss: this is exactly the trap Hearts of Minecraft's 20 vanilla-rule redeclarations sit in today (§1.3), so the diagnostic is worth having even though the engine shrugs.
+- HOM5018 — matches the house convention for missing assets (`HOM4003` idea picture, sprite and portrait checks all use WARNING).
+- HOM5019 — INFO, matching the "harmless redundancy" band; no engine-visible effect at all.
+
+Because none of the five is engine-logged, none may be ERROR: that band is reserved for what the engine itself rejects.
 
 Codes are allocated in `validation/advanced_validation.rs` in the existing
 HOM50xx band (HOM5011 is the highest allocated today).
@@ -309,7 +317,7 @@ and **runtime evaluation** (`logs/game.log`, needs one campaign day).
 |---|---|---|
 | F1 | `game rule pdx_probe_nonexistent_rule does not exist` | HOM5012 = ERROR |
 | F2 | `game rule option pdx_probe_nonexistent_option is not valid for the rule allow_wargoals` | HOM5013 = ERROR |
-| F3 | clean — vanilla `FREE_25` still valid despite the redeclaration omitting it | first definition wins (§1) |
+| F3 | runtime FALSE = "FREE_25 is not the *selected* option" (equality semantics); the merge/replace question is settled by F3b | see §1 |
 | F3b | the redeclaration's own option is **rejected** | a mod cannot extend a vanilla rule |
 | F4a / F4b | `FROM_FILE_A` valid, `FROM_FILE_B` rejected | first file wins within a mod |
 | F5 | differently-cased rule **and** option tokens accepted | case-insensitive matching, both directions |
@@ -318,23 +326,35 @@ and **runtime evaluation** (`logs/game.log`, needs one campaign day).
 | F10 | `game rule is not specified` | HOM5014 = ERROR |
 | Control | F7 validated clean | the probe's own rules registered; the run is trustworthy |
 
-### Outstanding (needs one campaign day)
+### Settled by the runtime channel (same day, one campaign day)
 
-- **F6a/F6b** — with no `default` block, which option does the engine
-  preselect? Both tokens validate, so only the runtime/UI answer distinguishes
-  "first option block is the implicit default" (the vanilla header's claim) from
-  a changed rule. Affects §6 hover/completion ordering.
-- **F11–F16 runtime halves** — F11 (defective definition still matchable),
-  F12 (which duplicate option token survives), F13 (bad icon: rule still gates),
-  F14/F15 (a rule carrying `required_dlc`/`exclude_dlc` that the machine fails:
-  expect the rule to be dropped — the mechanism the vanilla INS/SIA errors in
-  §3 exposed), F16 (option-level DLC gating: option dropped, or rule killed).
-  Their load-time rows currently read `does not exist` only because those rules
-  had not been written yet when the log was produced — the next load is the
-  real test.
-- The engine's exact messages are reproduced verbatim by the analyzer's
-  "engine messages" section; encode them in the skill reference rather than
-  paraphrasing.
+| Key | Verdict | Consequence |
+|---|---|---|
+| F6 / F6a | `FIRST_OPTION` — with no `default` block the **first** option block is the selected one | the vanilla header's claim holds on 1.19.3; completion/hover order options with the default first, and a missing `default` block is not reportable |
+| F5 | `case_insensitive=TRUE` | case-insensitive at runtime too, not just at validation |
+| F8 | `default_only_token=TRUE` | a `default`-block token is selectable *and* matchable |
+| F11 | `TRUE` — a rule with no `group` and an option with no `text` registers and gates normally | HOM5015/5017 are stricter than the engine, not engine-backed |
+| F12 | `TRUE` — a duplicated option token is accepted and matchable, no complaint | HOM5016 stays WARN for the *intent-loss* reason, not breakage |
+| F13 | `TRUE` — a nonexistent `icon` sprite does not stop registration | HOM5018 = WARN (house convention for missing assets) |
+| F14 / F15 | `FALSE`, and load-clean — a rule whose `required_dlc`/`exclude_dlc` is unmet is **registered but never true** | a DLC-gated rule is a dead gate on an install that fails the condition |
+| F16 | `FALSE`, load-clean — the gated option token still validates | option-level DLC gating filters selection, not validity |
+| F1/F2/F3b/F9/F10 | `FALSE` — engine-invalid blocks also evaluate false at runtime | the ERROR severities hold on both channels |
+| Control | F7 (as re-specified) is the active-option check | the first pass had a mis-specified control — see below |
+
+**Probe defect found and fixed by this run:** the original "control" (F7) named a
+valid but *unselected* option and expected TRUE, so it reported
+`CONTROL FAILED` — which was really the equality semantics above, not a broken
+run. The probe now has a correct control (F7 = the rule's default-block token)
+and an explicit F17 for the valid-but-unselected case, so a future run cannot
+mis-report either.
+
+### Outstanding (needs one more load)
+
+- **F17** — valid-but-unselected option, expected FALSE: formalises the
+  equality semantics that the mis-specified control accidentally demonstrated.
+- **F18a/F18b** — a DLC-gated rule with two options: both false proves
+  "registered but never set" (F14/F15's shape), one true would mean it falls
+  back to its default. This is the discriminator for the DLC policy in §3.
 
 ### Residual (not probed)
 
