@@ -1063,7 +1063,8 @@ country_event = {
     );
 
     // Control: a scripted trigger WITHOUT an AI-invisibility proof must NOT
-    // suppress — the diagnostic still fires.
+    // suppress — the diagnostic still fires. The weight stays below the
+    // solid-100 dominance bar so only the invisibility proof could silence it.
     let input_control = r#"
 country_event = {
     id = test.4
@@ -1072,7 +1073,7 @@ country_event = {
     is_triggered_only = yes
     option = {
         name = TEST_4_A
-        ai_chance = { factor = 100 }
+        ai_chance = { factor = 50 }
     }
     option = {
         name = HoM.debug
@@ -1099,6 +1100,10 @@ country_event = {
 
 /// OR blocks never prove invisibility (one true arm keeps the option visible
 /// to the AI) — the diagnostic stays.
+///
+/// The weighted option's weight is deliberately BELOW the solid-100 dominance
+/// bar: at `factor = 100` the unwritten option would be suppressed on
+/// dominance grounds and the test would pass for the wrong reason.
 #[test]
 fn hom3017_not_suppressed_by_or_containing_is_ai_no() {
     let input = r#"
@@ -1109,7 +1114,7 @@ country_event = {
     is_triggered_only = yes
     option = {
         name = TEST_5_A
-        ai_chance = { factor = 100 }
+        ai_chance = { factor = 50 }
     }
     option = {
         name = TEST_5_B
@@ -1154,11 +1159,16 @@ country_event = {
     );
 }
 
-/// One debug option + one visible option WITH ai_chance + one visible option
-/// WITHOUT: two visible options, one missing → still flagged (the missing one
-/// dilutes the weighted choice).
+/// One debug option + one visible option WITH a solid `factor = 100` + one
+/// visible option WITHOUT: the unwritten option is the only one the AI could
+/// pick by accident, and it is a ~1% pick behind a 100:1 weight — suppressed.
+///
+/// (This test asserted the opposite until the "solid 100" understanding the
+/// v0.28.0 changelog promised was actually implemented: `factor = 100` beside
+/// an unwritten option is the idiomatic "the AI always takes this" and must
+/// not be reported as a missing-weight problem.)
 #[test]
-fn hom3017_flags_visible_missing_among_two_visible() {
+fn hom3017_suppressed_for_solid_100_among_visible_options() {
     let input = r#"
 country_event = {
     id = test.7
@@ -1180,7 +1190,11 @@ country_event = {
 }
 "#;
     let diags = run_event_visitor(input, "file:///events/aaa_test.txt", &[]);
-    assert_eq!(ai_chance_diags(&diags).len(), 1, "{:?}", diags);
+    assert!(
+        ai_chance_diags(&diags).is_empty(),
+        "factor 100 dominates the unwritten option (100:1): {:?}",
+        ai_chance_diags(&diags)
+    );
 }
 
 /// EXACT reproduction of Hearts-Of-Minecraft IMP_Events.txt imp.1 + HoM's real
@@ -1540,5 +1554,302 @@ country_event = {
         ai_chance_diags(&diags).is_empty(),
         "invisible + zero + missing => effective 1 => suppress: {:?}",
         diags
+    );
+}
+
+// ---------------------------------------------------------------------------
+// HOM3017: dominant written weights ("solid 100") and mutually exclusive
+// option triggers
+// ---------------------------------------------------------------------------
+
+/// The idiom the v0.28.0 changelog promised but never implemented: one option
+/// with a solid `factor = 100`, the other with no `ai_chance` at all. The
+/// unwritten option is a ~1% pick (100:1, and the engine rolls a d100), so
+/// the AI's decision is made by the written weight — HOM3017 is noise.
+#[test]
+fn hom3017_suppressed_for_solid_100_factor_and_missing() {
+    let input = r#"
+country_event = {
+    id = test.30
+    title = t
+    desc = d
+    is_triggered_only = yes
+    option = { name = test.30.a ai_chance = { factor = 100 } }
+    option = { name = test.30.b }
+}
+"#;
+    let diags = run_event_visitor(input, "file:///events/test.txt", &[]);
+    assert!(
+        ai_chance_diags(&diags).is_empty(),
+        "factor 100 + missing must suppress HOM3017: {:?}",
+        ai_chance_diags(&diags)
+    );
+}
+
+/// Same with `base = 100` (Hearts of Minecraft red.53 / TRL.1 shape).
+#[test]
+fn hom3017_suppressed_for_solid_100_base_and_missing() {
+    let input = r#"
+country_event = {
+    id = test.31
+    title = t
+    desc = d
+    is_triggered_only = yes
+    option = {
+        name = test.31.a
+        add_stability = -0.05
+        ai_chance = {
+            base = 100
+        }
+    }
+    option = {
+        name = test.31.b
+        add_stability = 0.05
+    }
+}
+"#;
+    let diags = run_event_visitor(input, "file:///events/test.txt", &[]);
+    assert!(
+        ai_chance_diags(&diags).is_empty(),
+        "base 100 + missing must suppress HOM3017: {:?}",
+        ai_chance_diags(&diags)
+    );
+}
+
+/// The dominant option may itself be trigger-gated: with a single unwritten
+/// option left, that option is either the only one visible (forced) or behind
+/// a 100:1 weight — never an arbitrary choice.
+#[test]
+fn hom3017_suppressed_for_gated_solid_100_and_one_missing() {
+    let input = r#"
+country_event = {
+    id = test.32
+    title = t
+    desc = d
+    is_triggered_only = yes
+    option = {
+        name = test.32.a
+        trigger = { has_war = yes }
+        ai_chance = { factor = 100 }
+    }
+    option = {
+        name = test.32.b
+        trigger = { has_war = no }
+    }
+}
+"#;
+    let diags = run_event_visitor(input, "file:///events/test.txt", &[]);
+    assert!(
+        ai_chance_diags(&diags).is_empty(),
+        "gated factor 100 + one missing must suppress: {:?}",
+        ai_chance_diags(&diags)
+    );
+}
+
+/// Three unwritten options beside a solid 100 (Hearts of Minecraft twn.8):
+/// 100 >= 20 * 3, so the written option still takes ~97% of the d100 roll.
+#[test]
+fn hom3017_suppressed_for_solid_100_beside_three_missing() {
+    let input = r#"
+country_event = {
+    id = test.33
+    title = t
+    desc = d
+    is_triggered_only = yes
+    option = { name = test.33.a ai_chance = { factor = 100 } }
+    option = { name = test.33.b }
+    option = { name = test.33.c }
+    option = { name = test.33.d }
+}
+"#;
+    let diags = run_event_visitor(input, "file:///events/test.txt", &[]);
+    assert!(
+        ai_chance_diags(&diags).is_empty(),
+        "100 dominates three unwritten options (100:3): {:?}",
+        ai_chance_diags(&diags)
+    );
+}
+
+/// Six unwritten options dilute a solid 100 past the dominance bar
+/// (100 < 20 * 6) — the unwritten options are ~6% of the pick, flagged.
+#[test]
+fn hom3017_still_flags_for_solid_100_beside_six_missing() {
+    let input = r#"
+country_event = {
+    id = test.34
+    title = t
+    desc = d
+    is_triggered_only = yes
+    option = { name = test.34.a ai_chance = { factor = 100 } }
+    option = { name = test.34.b }
+    option = { name = test.34.c }
+    option = { name = test.34.d }
+    option = { name = test.34.e }
+    option = { name = test.34.f }
+    option = { name = test.34.g }
+}
+"#;
+    let diags = run_event_visitor(input, "file:///events/test.txt", &[]);
+    assert_eq!(
+        ai_chance_diags(&diags).len(),
+        1,
+        "six unwritten options are no longer dominated: {:?}",
+        diags
+    );
+}
+
+/// `modifier` makes the dominant weight conditional (it can be zeroed), so it
+/// proves nothing — HOM3017 stays.
+#[test]
+fn hom3017_still_flags_when_dominant_weight_is_conditional() {
+    let input = r#"
+country_event = {
+    id = test.35
+    title = t
+    desc = d
+    is_triggered_only = yes
+    option = {
+        name = test.35.a
+        ai_chance = { base = 100 modifier = { factor = 0 tag = ENG } }
+    }
+    option = { name = test.35.b }
+}
+"#;
+    let diags = run_event_visitor(input, "file:///events/test.txt", &[]);
+    assert_eq!(
+        ai_chance_diags(&diags).len(),
+        1,
+        "conditional weight proves no dominance: {:?}",
+        diags
+    );
+}
+
+/// A trigger-gated dominant option beside TWO unwritten options: when the gate
+/// is false the unwritten pair compete with each other, so the warning stays.
+#[test]
+fn hom3017_still_flags_for_gated_dominant_and_two_missing() {
+    let input = r#"
+country_event = {
+    id = test.36
+    title = t
+    desc = d
+    is_triggered_only = yes
+    option = {
+        name = test.36.a
+        trigger = { has_war = yes }
+        ai_chance = { factor = 100 }
+    }
+    option = { name = test.36.b }
+    option = { name = test.36.c }
+}
+"#;
+    let diags = run_event_visitor(input, "file:///events/test.txt", &[]);
+    assert_eq!(
+        ai_chance_diags(&diags).len(),
+        1,
+        "gated dominant + two unwritten options: {:?}",
+        diags
+    );
+}
+
+/// The reported bug — Hearts of Minecraft `spe.51` as a news_event: the two
+/// options' triggers are exact negations of each other, so exactly one is
+/// visible to any recipient and its pick is forced no matter the weights.
+#[test]
+fn hom3017_suppressed_for_complementary_option_triggers() {
+    let input = r#"
+news_event = {
+	id = spe.51
+	title = "Southern Player Empire Merges Houses"
+	desc = spe.51.d
+	picture = GFX_long_live_the_empire
+	is_triggered_only = yes
+	fire_only_once = no
+	major = yes
+	option = {
+		trigger = {
+			NOT = {
+				original_tag = SPE
+			}
+		}
+		ai_chance = {
+			factor = 100
+		}
+		name = "An interesting development."
+	}
+	option = {
+		trigger = {
+			original_tag = SPE
+		}
+		name = "Long live House Kingsley-Neuer!"
+		add_stability = 0.05
+	}
+}
+"#;
+    let diags = run_event_visitor(input, "file:///events/BoH_SPE_events.txt", &[]);
+    assert!(
+        ai_chance_diags(&diags).is_empty(),
+        "mutually exclusive option triggers force the pick: {:?}",
+        ai_chance_diags(&diags)
+    );
+}
+
+/// Complementary triggers are only complementary when they are actually
+/// negations of the same condition — a different tag is a different condition,
+/// so both options can be visible at once and the warning stays.
+#[test]
+fn hom3017_still_flags_for_non_complementary_triggers() {
+    let input = r#"
+news_event = {
+    id = test.37
+    title = t
+    desc = d
+    is_triggered_only = yes
+    option = {
+        trigger = { NOT = { original_tag = SPE } }
+        name = test.37.a
+    }
+    option = {
+        trigger = { original_tag = IMP }
+        name = test.37.b
+    }
+}
+"#;
+    let diags = run_event_visitor(input, "file:///events/test.txt", &[]);
+    assert_eq!(
+        ai_chance_diags(&diags).len(),
+        1,
+        "non-complementary triggers do not prove exclusivity: {:?}",
+        diags
+    );
+}
+
+/// Comments and whitespace inside the trigger must not defeat the comparison.
+#[test]
+fn hom3017_complementary_triggers_ignore_comments_and_spacing() {
+    let input = r#"
+news_event = {
+    id = test.38
+    title = t
+    desc = d
+    is_triggered_only = yes
+    option = {
+        trigger = { NOT = { original_tag = SPE } }
+        name = test.38.a
+    }
+    option = {
+        trigger = {
+            # only the southern players
+            original_tag  =  SPE
+        }
+        name = test.38.b
+    }
+}
+"#;
+    let diags = run_event_visitor(input, "file:///events/test.txt", &[]);
+    assert!(
+        ai_chance_diags(&diags).is_empty(),
+        "comment/whitespace-insensitive signature: {:?}",
+        ai_chance_diags(&diags)
     );
 }

@@ -7,6 +7,23 @@ use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString, Uri};
 
+/// The AI weight a missing `ai_chance` block implies.
+/// Wiki (event-modding.md): "If unset, assumed to be 1."
+const IMPLICIT_AI_WEIGHT: f64 = 1.0;
+
+/// How far an unconditionally-weighted option must outweigh the options that
+/// lack an `ai_chance` block before their implicit weights stop mattering.
+/// 20:1 leaves the unwritten options under ~5% combined; the idiomatic
+/// `factor = 100` beside one unwritten option is 100:1 (~1%), and the engine
+/// rolls a d100, so an unwritten option can never fall below 1% either.
+const AI_DOMINANCE_RATIO: f64 = 20.0;
+
+/// The weight that means "the AI always takes this one" in HOI4 content.
+/// A written weight below it expresses a *preference*, not a decision — the
+/// unwritten options are then still part of the AI's choice, so only a
+/// weight at or above this bar may silence HOM3017.
+const AI_SOLID_WEIGHT: f64 = 100.0;
+
 /// State tracked for a single event option definition during validation.
 struct EventOptionDef {
     /// Range of the `option` key (for diagnostic positioning).
@@ -15,14 +32,21 @@ struct EventOptionDef {
     has_name: bool,
     /// Whether this option has an `ai_chance` block.
     has_ai_chance: bool,
-    /// Whether this option's `ai_chance` block is a *solid* zero weight
-    /// (`base = 0` or `factor = 0` with no `modifier` and no non-zero `add`).
-    /// A solid-zero option is never picked by the AI unless every option
-    /// is zero (wiki: "If all options have a weight of zero, the first one
-    /// is chosen"). For the AI's proportional pick it is effectively
-    /// invisible, so a remaining single non-zero option (even with implicit
-    /// weight 1 from missing ai_chance) is forced to 100%.
-    is_zero_weight_ai_chance: bool,
+    /// The option's UNCONDITIONAL AI weight: `base * factor + add` when the
+    /// `ai_chance` block is a plain scalar block (defaults 1/1/0), or
+    /// `Some(IMPLICIT_AI_WEIGHT)` when the block is absent.
+    ///
+    /// `None` means the weight cannot be pinned down — any `modifier`, any
+    /// unknown key, or an unparseable value — so it may be anything,
+    /// including zero.
+    ///
+    /// A `Some(0.0)` weight is a *solid* zero (`base = 0` / `factor = 0` with
+    /// no `modifier` and no non-zero `add`): the AI never picks that option
+    /// unless every option is zero (wiki: "If all options have a weight of
+    /// zero, the first one is chosen"). For the AI's proportional pick it is
+    /// effectively invisible, so a remaining single non-zero option (even with
+    /// implicit weight 1 from a missing ai_chance) is forced to 100%.
+    certain_weight: Option<f64>,
     /// Whether the option's `trigger` PROVABLY hides it from the AI:
     /// - direct `is_ai = no`
     /// - `NOT = { is_ai = yes }`
@@ -33,6 +57,107 @@ struct EventOptionDef {
     /// event fires "will not appear" — the AI cannot pick it, so it holds no
     /// share of the ai_chance weight distribution.
     provably_ai_invisible: bool,
+    /// Whether the option carries a `trigger` at all. An option without one is
+    /// visible to every recipient, so it cannot be mutually exclusive with
+    /// anything.
+    has_trigger: bool,
+    /// Canonical serialization of the option's `trigger` body, used to prove
+    /// two options mutually exclusive (`X` vs `NOT = { X }`). `None` when the
+    /// option has no trigger or the trigger is not a plain block.
+    trigger_sig: Option<String>,
+}
+
+/// Weight/trigger facts for one AI-VISIBLE option, collected on the event so
+/// the HOM3017 suppression checks can reason about the whole option set at
+/// once instead of one option at a time.
+#[derive(Debug, Clone)]
+struct VisibleOption {
+    /// See [`EventOptionDef::certain_weight`].
+    certain_weight: Option<f64>,
+    /// See [`EventOptionDef::has_trigger`].
+    has_trigger: bool,
+    /// See [`EventOptionDef::trigger_sig`].
+    trigger_sig: Option<String>,
+}
+
+impl VisibleOption {
+    /// Whether this option holds a share of the proportional pick. Unknown
+    /// weights (`None`) count — they may well be non-zero; a solid zero
+    /// (`Some(0.0)`) does not.
+    fn contributes_weight(&self) -> bool {
+        self.certain_weight != Some(0.0)
+    }
+
+    /// Provably cannot be visible at the same time as `other`: one option's
+    /// `trigger` body is the literal negation of the other's. An option with
+    /// no trigger is visible to everyone, and one whose trigger is not a
+    /// plain block cannot be compared — both return false.
+    fn mutually_exclusive_with(&self, other: &Self) -> bool {
+        match (self.trigger_sig.as_deref(), other.trigger_sig.as_deref()) {
+            (Some(a), Some(b)) => {
+                a == negated_trigger_signature(b) || b == negated_trigger_signature(a)
+            }
+            _ => false,
+        }
+    }
+}
+
+/// The canonical signature of `NOT = { <sig> }` — an assignment of the
+/// `not` keyword to a block, exactly as [`EventVisitor::write_signature`]
+/// serializes one.
+fn negated_trigger_signature(sig: &str) -> String {
+    format!("not={{{sig}}}")
+}
+
+impl EventDef {
+    /// AI-visible options that still hold a share of the proportional pick
+    /// (visible minus solid-zero).
+    fn effective_options(&self) -> impl Iterator<Item = &VisibleOption> {
+        self.visible_options
+            .iter()
+            .filter(|o| o.contributes_weight())
+    }
+
+    /// Every remaining option's `trigger` is the exact negation of every
+    /// other's, so at most ONE option can be visible to any given recipient —
+    /// its pick is forced whatever the weights say, and the AI never faces a
+    /// choice between them.
+    fn options_pairwise_exclusive(&self) -> bool {
+        let opts: Vec<&VisibleOption> = self.effective_options().collect();
+        if opts.len() < 2 {
+            return false;
+        }
+        opts.iter()
+            .enumerate()
+            .all(|(i, a)| opts[i + 1..].iter().all(|b| a.mutually_exclusive_with(b)))
+    }
+
+    /// Some option visible to EVERY recipient (no `trigger`) carries an
+    /// unconditional weight of at least [`AI_SOLID_WEIGHT`] — the idiomatic
+    /// "the AI always takes this" — and at least [`AI_DOMINANCE_RATIO`] times
+    /// the combined implicit weight of the options missing `ai_chance`. Those
+    /// are picked under ~5% of the time together (100:1 for the idiomatic
+    /// `factor = 100` beside one unwritten option), so the AI's decision is
+    /// made by the written weight, not by the unwritten ones.
+    fn unwritten_options_dominated(&self) -> bool {
+        if self.options_missing_ai_chance == 0 {
+            return false;
+        }
+        // Each unwritten option defaults to weight 1.
+        let unwritten_weight = f64::from(self.options_missing_ai_chance);
+        self.visible_options.iter().any(|o| {
+            let Some(weight) = o.certain_weight else {
+                return false;
+            };
+            // A trigger-gated heavy option can be absent for some recipients,
+            // leaving the unwritten options to compete with each other; that
+            // only stays harmless while a single unwritten option remains.
+            if o.has_trigger && unwritten_weight > IMPLICIT_AI_WEIGHT {
+                return false;
+            }
+            weight >= AI_SOLID_WEIGHT && weight >= AI_DOMINANCE_RATIO * unwritten_weight
+        })
+    }
 }
 
 /// State tracked for the event itself.
@@ -66,6 +191,9 @@ struct EventDef {
     /// When this is <= 1 the AI's pick is forced (100%) even if
     /// `ai_visible_option_count` is 2, so HOM3017 is suppressed.
     ai_visible_effective_option_count: u32,
+    /// Every AI-visible option's weight/trigger facts, in document order —
+    /// the whole-set view the suppression checks below need.
+    visible_options: Vec<VisibleOption>,
     /// Key range of the last option missing `ai_chance` (for diagnostic positioning).
     last_missing_ai_chance_range: Option<ast::Range>,
     /// Range of the `title` assignment key (for HOM3018 positioning).
@@ -279,7 +407,26 @@ impl EventVisitor {
         // ai_chance block), its pick is likewise forced to 100% and HOM3017
         // is suppressed (e.g. one option `factor = 0`, the other missing
         // ai_chance → missing defaults to 1, total 1, missing is guaranteed).
-        let forced_choice = state.ai_visible_effective_option_count <= 1;
+        //
+        // Extension: the unwritten options are equally irrelevant when the AI
+        // provably has no choice to make among them, which is true whenever
+        //
+        //   1. the option triggers are mutually exclusive (X vs NOT = { X }),
+        //      so at most one option can be visible to a given recipient and
+        //      its pick is forced no matter what the weights say; or
+        //   2. an option visible to everyone carries a solid weight (>= 100,
+        //      the idiomatic "the AI always takes this") and at least
+        //      AI_DOMINANCE_RATIO:1 over the unwritten ones, so the AI takes it
+        //      ~95%+ of the time — `factor = 100` beside one unwritten option
+        //      is 100:1, the "solid 100" pattern.
+        //
+        // Both are conservative: an option with a `modifier`, an unknown
+        // `ai_chance` key, or an unparseable weight has an unknown weight and
+        // never proves dominance, and a trigger that is not a plain block
+        // never proves exclusivity.
+        let forced_choice = state.ai_visible_effective_option_count <= 1
+            || state.options_pairwise_exclusive()
+            || state.unwritten_options_dominated();
         if state.option_count > 1 && !forced_choice && state.options_missing_ai_chance > 0 {
             let diag_range = state
                 .last_missing_ai_chance_range
@@ -669,6 +816,7 @@ impl AstVisitor for EventVisitor {
                 options_missing_ai_chance: 0,
                 ai_visible_option_count: 0,
                 ai_visible_effective_option_count: 0,
+                visible_options: Vec::new(),
                 last_missing_ai_chance_range: None,
                 title_range: None,
                 desc_range: None,
@@ -757,12 +905,15 @@ impl AstVisitor for EventVisitor {
                 state.has_option = true;
                 state.option_count += 1;
             }
+            let trigger_body = Self::option_trigger_body(&ass.value, ctx.source);
             self.option_stack.push(EventOptionDef {
                 key_range: ass.key_range.clone(),
                 has_name: false,
                 has_ai_chance: false,
-                is_zero_weight_ai_chance: false,
+                certain_weight: Some(IMPLICIT_AI_WEIGHT),
                 provably_ai_invisible: Self::evaluate_option_trigger_ai_visibility(&ass.value, ctx),
+                has_trigger: trigger_body.is_some(),
+                trigger_sig: trigger_body.map(|body| Self::trigger_signature(body, ctx.source)),
             });
             return;
         }
@@ -776,8 +927,8 @@ impl AstVisitor for EventVisitor {
                     }
                     "ai_chance" if matches!(&ass.value.value, ast::Value::Block(_)) => {
                         state.has_ai_chance = true;
-                        state.is_zero_weight_ai_chance =
-                            Self::is_solid_zero_ai_chance(&ass.value, ctx.source);
+                        state.certain_weight =
+                            Self::unconditional_ai_weight(&ass.value, ctx.source);
                     }
                     _ => {}
                 }
@@ -813,11 +964,14 @@ impl AstVisitor for EventVisitor {
                         // weighted pick: its share is 0 unless every option is
                         // zero (wiki fallback to first option). Single
                         // remaining non-zero option is forced to 100%.
-                        let contributes_weight =
-                            !(state.has_ai_chance && state.is_zero_weight_ai_chance);
-                        if contributes_weight {
+                        if state.certain_weight != Some(0.0) {
                             event.ai_visible_effective_option_count += 1;
                         }
+                        event.visible_options.push(VisibleOption {
+                            certain_weight: state.certain_weight,
+                            has_trigger: state.has_trigger,
+                            trigger_sig: state.trigger_sig.clone(),
+                        });
                     }
                     if !state.has_ai_chance && !state.provably_ai_invisible {
                         event.options_missing_ai_chance += 1;
@@ -978,27 +1132,94 @@ impl ValidationRule for EventValidationRule {
 }
 
 impl EventVisitor {
+    /// The option block's `trigger` body, when it has one written as a plain
+    /// block. `None` for an option with no trigger or a non-block trigger.
+    fn option_trigger_body<'a>(
+        value: &'a ast::NodeedValue,
+        source: &str,
+    ) -> Option<&'a [ast::Entry]> {
+        let ast::Value::Block(entries) = &value.value else {
+            return None;
+        };
+        for entry in entries {
+            if let ast::Entry::Assignment(ass) = entry
+                && ass.key_text(source).eq_ignore_ascii_case("trigger")
+            {
+                return match &ass.value.value {
+                    ast::Value::Block(trigger_body) => Some(trigger_body),
+                    _ => None,
+                };
+            }
+        }
+        None
+    }
+
     /// Evaluate an option block's `trigger` (if any) for provable AI
     /// invisibility. No trigger at all → visible to the AI (returns false).
     fn evaluate_option_trigger_ai_visibility(
         value: &ast::NodeedValue,
         ctx: &ValidationContext,
     ) -> bool {
-        let ast::Value::Block(entries) = &value.value else {
-            return false;
-        };
-        // Find the option's trigger block, if present.
+        match Self::option_trigger_body(value, ctx.source) {
+            Some(trigger_body) => Self::option_provably_ai_invisible(trigger_body, ctx.source, ctx),
+            None => false,
+        }
+    }
+
+    /// Canonical, case-folded, whitespace-free serialization of a trigger body.
+    ///
+    /// Deliberately NOT a semantic analysis — it only has to be stable enough
+    /// to prove that one option's trigger is the other's written out as
+    /// `NOT = { ... }` (the standard way an author makes two options
+    /// mutually exclusive). Comments are skipped; keys and values are
+    /// lowercased (the engine compares tokens case-insensitively).
+    fn trigger_signature(entries: &[ast::Entry], source: &str) -> String {
+        let mut out = String::new();
+        Self::write_signature(entries, source, &mut out);
+        out
+    }
+
+    fn write_signature(entries: &[ast::Entry], source: &str, out: &mut String) {
         for entry in entries {
-            if let ast::Entry::Assignment(ass) = entry {
-                if ass.key_text(ctx.source).eq_ignore_ascii_case("trigger") {
-                    if let ast::Value::Block(trigger_body) = &ass.value.value {
-                        return Self::option_provably_ai_invisible(trigger_body, ctx.source, ctx);
-                    }
-                    return false;
+            match entry {
+                ast::Entry::Assignment(ass) => {
+                    out.push_str(&ass.key_text(source).to_ascii_lowercase());
+                    out.push_str(match ass.operator {
+                        ast::Operator::Equals => "=",
+                        ast::Operator::LessThan => "<",
+                        ast::Operator::GreaterThan => ">",
+                        ast::Operator::NotEquals => "!=",
+                        ast::Operator::LessOrEqual => "<=",
+                        ast::Operator::GreaterOrEqual => ">=",
+                    });
+                    Self::write_value_signature(&ass.value.value, source, out);
                 }
+                ast::Entry::Value(v) => Self::write_value_signature(&v.value, source, out),
+                // Comments carry no meaning for the comparison.
+                ast::Entry::Comment(..) => {}
             }
         }
-        false
+    }
+
+    fn write_value_signature(value: &ast::Value, source: &str, out: &mut String) {
+        match value {
+            ast::Value::String(span) => out.push_str(&span.resolve(source).to_ascii_lowercase()),
+            ast::Value::QuotedString(s) => out.push_str(&s.to_ascii_lowercase()),
+            // `100.0` and `100` must serialize identically.
+            ast::Value::Number(n) => out.push_str(&format!("{n}")),
+            ast::Value::Boolean(b) => out.push_str(if *b { "yes" } else { "no" }),
+            ast::Value::Block(entries) => {
+                out.push('{');
+                Self::write_signature(entries, source, out);
+                out.push('}');
+            }
+            ast::Value::TaggedBlock(tag, entries, _) => {
+                out.push_str(&tag.resolve(source).to_ascii_lowercase());
+                out.push('{');
+                Self::write_signature(entries, source, out);
+                out.push('}');
+            }
+        }
     }
 
     /// Statically decide whether an option `trigger` block PROVES the option
@@ -1098,82 +1319,48 @@ impl EventVisitor {
         has_proof(entries, source, ctx)
     }
 
-    /// Determine whether an `ai_chance` block is a *solid* zero weight.
+    /// Compute an `ai_chance` block's UNCONDITIONAL weight, when it has one.
     ///
-    /// Wiki (event-modding.md): weights are proportional; a missing
-    /// `ai_chance` defaults to 1. `base` and `factor` are the only
-    /// unconditional scalars that can force a weight to 0 — but any
-    /// `modifier = { ... }` or a non-zero `add` can rescue the weight
-    /// conditionally, so those disqualify the solid-zero guarantee.
-    ///
-    /// Conservative: any `modifier`, any non-zero `add`, any unknown key,
-    /// or any unparseable numeric makes this return false (not proven zero).
-    fn is_solid_zero_ai_chance(value: &ast::NodeedValue, source: &str) -> bool {
+    /// Wiki (event-modding.md): the block is structured like a
+    /// `mean_time_to_happen` — `base` (default 1), `factor` (default 1) and
+    /// `add` (default 0) combine into the weight, and `modifier = { ... }`
+    /// blocks adjust it conditionally. So the weight is exactly
+    /// `base * factor + add` **only** while no `modifier` is present: a
+    /// `modifier` can multiply the weight by 0 in some scenario, and any
+    /// unknown key or unparseable value means the same. Those return `None`
+    /// (unknown, possibly zero) — the conservative answer, since a caller may
+    /// only ever conclude "never picked" from an exact `Some(0.0)`.
+    fn unconditional_ai_weight(value: &ast::NodeedValue, source: &str) -> Option<f64> {
         let ast::Value::Block(entries) = &value.value else {
-            return false;
+            return None;
         };
-        let mut has_modifier = false;
         let mut base: Option<f64> = None;
         let mut factor: Option<f64> = None;
         let mut add: Option<f64> = None;
 
         for entry in entries {
             let ast::Entry::Assignment(ass) = entry else {
-                // Stray values without keys inside ai_chance are unknown — not solid.
+                // Stray values without keys inside ai_chance are unknown.
                 if matches!(entry, ast::Entry::Value(_)) {
-                    return false;
+                    return None;
                 }
                 continue; // comments
             };
             let key_lc = ass.key_text(source).to_ascii_lowercase();
             match key_lc.as_str() {
-                "modifier" => {
-                    has_modifier = true;
-                }
-                "base" => {
-                    let Some(v) = Self::parse_ai_chance_numeric(&ass.value.value, source) else {
-                        return false;
-                    };
-                    base = Some(v);
-                }
+                // A conditional weight can be anything, including zero.
+                "modifier" => return None,
+                "base" => base = Some(Self::parse_ai_chance_numeric(&ass.value.value, source)?),
                 "factor" => {
-                    let Some(v) = Self::parse_ai_chance_numeric(&ass.value.value, source) else {
-                        return false;
-                    };
-                    factor = Some(v);
+                    factor = Some(Self::parse_ai_chance_numeric(&ass.value.value, source)?);
                 }
-                "add" => {
-                    let Some(v) = Self::parse_ai_chance_numeric(&ass.value.value, source) else {
-                        return false;
-                    };
-                    add = Some(v);
-                }
-                _ => {
-                    // Unknown key inside ai_chance — conservatively not solid zero.
-                    return false;
-                }
+                "add" => add = Some(Self::parse_ai_chance_numeric(&ass.value.value, source)?),
+                // Unknown key inside ai_chance — conservatively unknown.
+                _ => return None,
             }
         }
 
-        if has_modifier {
-            return false;
-        }
-        if let Some(a) = add {
-            if a != 0.0 {
-                return false;
-            }
-        }
-        if let Some(f) = factor {
-            if f == 0.0 {
-                return true;
-            }
-        }
-        if let Some(b) = base {
-            if b == 0.0 {
-                return true;
-            }
-        }
-        false
+        Some(base.unwrap_or(1.0) * factor.unwrap_or(1.0) + add.unwrap_or(0.0))
     }
 
     fn parse_ai_chance_numeric(val: &ast::Value, source: &str) -> Option<f64> {
