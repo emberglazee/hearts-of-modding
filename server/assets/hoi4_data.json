@@ -14667,7 +14667,7 @@
 		},
 		"add_manpower": {
 			"name": "add_manpower",
-			"description": "Adds the specified amount of total population to the current state.",
+			"description": "Adds manpower to the country's manpower pool in Country scope, or population to the current state in State scope (state history stores a state's population as `manpower`).",
 			"scopes": {
 				"usage": [
 					"Country",
@@ -14678,7 +14678,8 @@
 			"pushes_scope": null,
 			"parameters": {},
 			"examples": [
-				"add_manpower = 10000"
+				"GER = { add_manpower = 10000 }",
+				"345 = { add_manpower = 10000 }"
 			],
 			"stack_behaviour": "passthrough",
 			"block_type": "value_effect",

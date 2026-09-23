@@ -954,6 +954,29 @@ mod tests {
     }
 
     #[test]
+    fn test_add_manpower_documents_scope_dispatch() {
+        // add_manpower means two different things depending on scope: Country
+        // scope feeds the manpower pool, State scope adds population (the value
+        // state history stores as `manpower`). Hover and completion render only
+        // `description`, so it has to name both — the wiki-derived text used to
+        // describe the state behaviour alone, which left the country-scope
+        // meaning unstated.
+        let entity = lookup_entity("add_manpower").expect("add_manpower in DB");
+        assert!(entity.scopes.allows(&Scope::Country));
+        assert!(entity.scopes.allows(&Scope::State));
+        assert!(
+            entity.description.contains("manpower pool"),
+            "country behaviour missing from description: {}",
+            entity.description
+        );
+        assert!(
+            entity.description.contains("population"),
+            "state behaviour missing from description: {}",
+            entity.description
+        );
+    }
+
+    #[test]
     fn test_definitions_are_not_entities() {
         // The architectural invariant: definition-block schemas (focuses,
         // technology folders, ...) must NEVER resolve through the

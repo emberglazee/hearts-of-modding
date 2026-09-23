@@ -5,7 +5,7 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 | ℹ️ | If the last version here is not released yet, it's still in development. |
 |----|:-------------------------------------------------------------------------|
 
-## [v0.31.0] - 2026-09-23
+## [v0.31.0] - 2026-09-24
 
 ### ✨ Added
 
@@ -44,6 +44,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 - **Fixed the language server going silent right after "server initialized!".** Semantic highlighting, hover and diagnostics all stopped at once: the startup file scan treated "the workspace root" as the relative path `.`, which resolves to the *server process's* working directory — the editor's, not the folder you opened. For a normally-launched editor that is your home directory, where an unrelated Wine-prefix symlink leads into a self-referencing system path and the walk never returned, inside the initialization handler. The scan now indexes the folder(s) the editor actually reports, and every directory walk carries a visited-directory guard so no symlink can stall it again.
 
 - **Fixed `HOM3017` still flagging options the AI cannot really choose between.** The "solid 100" half of what the v0.28.0 notes promised was never implemented, so an event with one option at `factor = 100` or `base = 100` and the others left unwritten still warned about the unwritten ones, even though the AI takes the weighted option ~99% of the time. Two options whose triggers are exact negations of each other (`original_tag = SPE` vs `NOT = { original_tag = SPE }`) are understood as well: exactly one can ever be visible, so the pick is forced no matter what the weights say. A written weight below 100, a weight carrying a `modifier`, or a trigger-gated heavy option beside two or more unwritten options all report exactly as before.
+
+- **Fixed the `add_manpower` hover text describing only half of what the effect does.** It is scope-dispatched — Country scope adds manpower to the pool, State scope adds population to that state — but the description said only "total population to the current state", leaving the country-scope meaning unstated.
 
 ### 🧹 Internal
 
