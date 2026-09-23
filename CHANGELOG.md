@@ -5,7 +5,7 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 | ℹ️ | If the last version here is not released yet, it's still in development. |
 |----|:-------------------------------------------------------------------------|
 
-## [v0.31.0] - 2026-09-12
+## [v0.31.0] - 2026-09-23
 
 ### ✨ Added
 
@@ -52,8 +52,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 - **Bumped extension dependencies:**
 
   - Dev dependencies:
-    - `eslint` v10.9.1 -> v10.10.0
-    - `typescript-eslint` v8.69.0 -> v8.70.0
+    - `eslint` v10.9.1 -> v10.11.0
+    - `typescript-eslint` v8.69.0 -> v8.70.1
   - Individual `package-lock.json` bumps:
     - `js-yaml` v4.3.1 -> v4.3.2 (addresses: [CVE-2026-84375](https://github.com/advisories/GHSA-2883-xcg3-v3hh); [PR #15](https://github.com/emberglazee/hearts-of-modding/pull/16))
 
