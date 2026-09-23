@@ -27,6 +27,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Per-building construction and repair modifiers now highlight.** `production_speed_bunker_factor` and its siblings (`production_speed_<building>_factor`, `repair_speed_<building>_factor`, `state_production_speed_<building>_factor`, `state_repair_speed_<building>_factor`) rendered as plain text; they are now generated from the buildings in your workspace scan, so mod-added buildings highlight with no data update.
 
+- **File-wide `@` variables now highlight.** A name defined once with `@SPE_BASE = 10` and every `base = @SPE_BASE` that uses it render as variables instead of plain text — including names defined indented inside a block, the way vanilla technologies do it — while targeted-variable and flag suffixes such as `resource@iron` and `my_flag_@PREV` stay untouched.
+
 ### 🩹 Fixed
 
 - **Fixed a crash on non-ASCII script keys.** Highlighting and scope inference tested `var:` / `temp_var:` prefixes by slicing at a fixed byte index, so a key as ordinary as `café_industry` panicked the language server and dropped the connection; both paths now share one byte-wise prefix helper.

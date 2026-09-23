@@ -186,6 +186,77 @@ fn resolve_entity_kind<'a>(ctx: &'a SemanticTokenContext, name: &str) -> Option<
     None
 }
 
+/// Collect the file-wide variables of one document — the `@name = <scalar>`
+/// definitions.
+///
+/// `@name = value` binds a name that applies to the whole file (the engine's
+/// file-local `@` operator; `documentation/script_concept_documentation.md`).
+/// Locality is corpus-verified: none of the ~3,700 vanilla + Hearts of Minecraft
+/// `.txt` files uses a `@name` its own file does not define, and every definition
+/// in both corpora carries a scalar value (no `@name = { }` exists), so a block
+/// value is not a definition. Definitions may be indented inside a block —
+/// vanilla `common/technologies/electronic_mechanical_engineering.txt` defines
+/// `@radio = -3` inside `technologies = { }` and uses it in nested `position`
+/// blocks — so the whole entry tree is walked.
+fn collect_file_variables(entries: &[Entry], source: &str, out: &mut HashSet<String>) {
+    for entry in entries {
+        match entry {
+            Entry::Assignment(ass) => {
+                if let Some(name) = ass.key_text(source).strip_prefix('@') {
+                    if !name.is_empty()
+                        && !matches!(ass.value.value, Value::Block(_) | Value::TaggedBlock(..))
+                    {
+                        out.insert(name.to_ascii_lowercase());
+                    }
+                }
+                match &ass.value.value {
+                    Value::Block(inner) => collect_file_variables(inner, source, out),
+                    Value::TaggedBlock(_, inner, _) => collect_file_variables(inner, source, out),
+                    _ => {}
+                }
+            }
+            Entry::Value(val) => match &val.value {
+                Value::Block(inner) => collect_file_variables(inner, source, out),
+                Value::TaggedBlock(_, inner, _) => collect_file_variables(inner, source, out),
+                _ => {}
+            },
+            Entry::Comment(..) => {}
+        }
+    }
+}
+
+/// The file-wide `@` variable names defined in a document (stored lowercased —
+/// see `is_file_variable`).
+fn file_variables(script: &Script) -> HashSet<String> {
+    let mut file_vars = HashSet::new();
+    collect_file_variables(&script.entries, &script.source, &mut file_vars);
+    file_vars
+}
+
+/// True when `token` names a file-wide `@` variable — `@NAME` with NAME defined
+/// in the same document. A name defined in another file does not count.
+///
+/// Not every `@` is one of these: `resource@iron` and `my_flag_@PREV` target a
+/// variable/flag at a country, and the engine only accepts the target after the
+/// first character — such tokens keep their ordinary highlighting.
+///
+/// Lookup is case-insensitive, mirroring `resolve_entity_kind`: HOI4 script
+/// identifiers are case-insensitive, and the corpus never case-mismatches one of
+/// these names, so the fallback only ever fires on a typo.
+fn is_file_variable(file_vars: &HashSet<String>, token: &str) -> bool {
+    let Some(name) = token.strip_prefix('@') else {
+        return false;
+    };
+    if name.is_empty() {
+        return false;
+    }
+    if file_vars.contains(name) {
+        return true;
+    }
+    let lower = name.to_ascii_lowercase();
+    lower != name && file_vars.contains(&lower)
+}
+
 /// Precomputed line-start byte offsets + LineIndex for O(1) byte→UTF-16
 /// column conversion. Used by script semantic tokens (where AST ranges store
 /// byte columns) to produce LSP-compatible UTF-16 column values.
@@ -230,9 +301,19 @@ impl Utf16Index {
 
 pub fn get_semantic_tokens(script: &Script, ctx: &SemanticTokenContext) -> SemanticTokensResult {
     let utf16 = Utf16Index::new(&script.source);
+    let file_vars = file_variables(script);
     let mut tokens = Vec::new();
     for entry in &script.entries {
-        push_entry_tokens(entry, &mut tokens, ctx, &script.source, None, &utf16, None);
+        push_entry_tokens(
+            entry,
+            &mut tokens,
+            ctx,
+            &file_vars,
+            &script.source,
+            None,
+            &utf16,
+            None,
+        );
     }
 
     tokens_to_lsp(tokens)
@@ -258,6 +339,7 @@ pub fn get_semantic_tokens_range(
     range: &tower_lsp_server::ls_types::Range,
 ) -> SemanticTokensResult {
     let utf16 = Utf16Index::new(&script.source);
+    let file_vars = file_variables(script);
     let mut tokens = Vec::new();
     for entry in &script.entries {
         // Determine the full range of the entry (key + value tree)
@@ -272,7 +354,16 @@ pub fn get_semantic_tokens_range(
             continue;
         }
 
-        push_entry_tokens(entry, &mut tokens, ctx, &script.source, None, &utf16, None);
+        push_entry_tokens(
+            entry,
+            &mut tokens,
+            ctx,
+            &file_vars,
+            &script.source,
+            None,
+            &utf16,
+            None,
+        );
     }
 
     tokens_to_lsp(tokens)
@@ -680,6 +771,7 @@ fn push_entry_tokens(
     entry: &Entry,
     tokens: &mut Vec<RawToken>,
     ctx: &SemanticTokenContext,
+    file_vars: &HashSet<String>,
     source: &str,
     parent_key: Option<&str>,
     utf16: &Utf16Index,
@@ -719,6 +811,12 @@ fn push_entry_tokens(
             // qualifies (known or not); validity is validation's job.
             // Keys may be non-ASCII, so the prefix is matched on bytes.
             let is_var_key = crate::data::hoi4_data::strip_var_prefix(key_text).is_some();
+
+            // File-wide `@` variables in key position — the definition
+            // itself (`@SPE_BASE = 10`) and the rare `@name <op> value`
+            // comparison. Highlighted like the uses so definition and use
+            // read as one name.
+            let is_file_var_key = is_file_variable(file_vars, key_text);
 
             // On-action keys (`on_*` inside `on_actions = { }`) — these are
             // engine hooks, not ordinary triggers/effects. Highlight them as
@@ -762,7 +860,9 @@ fn push_entry_tokens(
                     length: key_len,
                     token_type: TokenType::MetaScope as u32,
                 });
-            } else if is_var_key {
+            } else if is_var_key || is_file_var_key {
+                // `var:` / `temp_var:` scope keys and file-wide `@` variables
+                // both name a value the script itself defines.
                 tokens.push(RawToken {
                     line: key_line,
                     start: key_start,
@@ -873,6 +973,7 @@ fn push_entry_tokens(
                 &ass.value,
                 tokens,
                 ctx,
+                file_vars,
                 source,
                 Some(key_text),
                 utf16,
@@ -880,7 +981,16 @@ fn push_entry_tokens(
             );
         }
         Entry::Value(val) => {
-            push_value_tokens(val, tokens, ctx, source, parent_key, utf16, param_anchor);
+            push_value_tokens(
+                val,
+                tokens,
+                ctx,
+                file_vars,
+                source,
+                parent_key,
+                utf16,
+                param_anchor,
+            );
         }
         Entry::Comment(_, range) => {
             let com_line = range.start_line;
@@ -900,6 +1010,7 @@ fn push_value_tokens(
     val: &NodeedValue,
     tokens: &mut Vec<RawToken>,
     ctx: &SemanticTokenContext,
+    file_vars: &HashSet<String>,
     source: &str,
     parent_key: Option<&str>,
     utf16: &Utf16Index,
@@ -913,6 +1024,19 @@ fn push_value_tokens(
     match &val.value {
         Value::String(span) => {
             let s = span.resolve(source);
+
+            // File-wide `@` variable use (`base = @SPE_BASE`) — Variable
+            // whatever the enclosing key is.
+            if is_file_variable(file_vars, s) {
+                tokens.push(RawToken {
+                    line: val_line,
+                    start: val_start,
+                    length: val_len,
+                    token_type: TokenType::Variable as u32,
+                });
+                return;
+            }
+
             let is_localization_value =
                 parent_key.is_some_and(|k| LOCALIZATION_VALUE_FIELDS.contains(&k));
 
@@ -1032,7 +1156,16 @@ fn push_value_tokens(
         }
         Value::Block(entries) => {
             for entry in entries {
-                push_entry_tokens(entry, tokens, ctx, source, parent_key, utf16, param_anchor);
+                push_entry_tokens(
+                    entry,
+                    tokens,
+                    ctx,
+                    file_vars,
+                    source,
+                    parent_key,
+                    utf16,
+                    param_anchor,
+                );
             }
         }
         Value::TaggedBlock(tag, entries, _) => {
@@ -1050,7 +1183,16 @@ fn push_value_tokens(
                 token_type: TokenType::Keyword as u32,
             });
             for entry in entries {
-                push_entry_tokens(entry, tokens, ctx, source, parent_key, utf16, param_anchor);
+                push_entry_tokens(
+                    entry,
+                    tokens,
+                    ctx,
+                    file_vars,
+                    source,
+                    parent_key,
+                    utf16,
+                    param_anchor,
+                );
             }
         }
         Value::QuotedString(_) => {
@@ -2686,6 +2828,186 @@ is_in_array = { faction_members = THIS }
                 .any(|(l, txt, tt)| *l == 5 && txt == "faction_members" && *tt == "type"),
             "shorthand faction_members key must be type, got {:#?}",
             abs
+        );
+    }
+
+    /// Helper: decode a token stream into `(line, token_text, token_type_name)`
+    /// using the real legend order.
+    fn decode_script_tokens(content: &str, data: &[SemanticToken]) -> Vec<(u32, String, String)> {
+        let legend = [
+            "keyword",
+            "variable",
+            "string",
+            "number",
+            "operator",
+            "comment",
+            "type",
+            "event",
+            "function",
+            "enum",
+            "enum_member",
+            "struct",
+            "class",
+            "property",
+            "escape",
+            "parameter",
+            "boolean",
+            "meta_scope",
+        ];
+        let mut out = Vec::new();
+        let (mut last_line, mut last_start) = (0u32, 0u32);
+        for st in data {
+            let line = last_line + st.delta_line;
+            let start = if st.delta_line == 0 {
+                last_start + st.delta_start
+            } else {
+                st.delta_start
+            };
+            let line_str = content.lines().nth(line as usize).unwrap_or("");
+            let byte_start = crate::utf16_to_byte_offset(line_str, start as usize);
+            let txt = line_str
+                .get(byte_start..)
+                .and_then(|s| s.get(..st.length as usize))
+                .unwrap_or("")
+                .to_string();
+            let ty = legend.get(st.token_type as usize).copied().unwrap_or("?");
+            out.push((line, txt, ty.to_string()));
+            last_line = line;
+            last_start = start;
+        }
+        out
+    }
+
+    /// Helper: parse `content` and collect its script semantic tokens.
+    fn collect_script_tokens(content: &str) -> Vec<(u32, String, String)> {
+        use crate::parser::parser::parse_script;
+        let (script, _) = parse_script(content);
+        let ctx = SemanticTokenContext::new(Arc::new(HashSet::new()), Arc::new(HashMap::new()));
+        let SemanticTokensResult::Tokens(t) = get_semantic_tokens(&script, &ctx) else {
+            panic!("expected tokens");
+        };
+        decode_script_tokens(content, &t.data)
+    }
+
+    #[test]
+    fn test_file_variable_definition_and_uses_highlight_as_variable() {
+        // `@NAME = 10` defines a variable that applies to the whole file. The
+        // definition and every use highlight as Variable; a name this file does
+        // not define stays a plain string.
+        let content = "@SPE_BASE = 10\nbase = @SPE_BASE\nfactor = @SPE_UNDEFINED\n";
+        let toks = collect_script_tokens(content);
+        assert!(
+            toks.iter()
+                .any(|(l, t, ty)| *l == 0 && t == "@SPE_BASE" && ty == "variable"),
+            "file-variable definition must be variable, got {:#?}",
+            toks
+        );
+        assert!(
+            toks.iter()
+                .any(|(l, t, ty)| *l == 1 && t == "@SPE_BASE" && ty == "variable"),
+            "file-variable use must be variable, got {:#?}",
+            toks
+        );
+        assert!(
+            !toks
+                .iter()
+                .any(|(l, t, ty)| *l == 2 && t == "@SPE_UNDEFINED" && ty == "variable"),
+            "a name undefined in this file must not be variable, got {:#?}",
+            toks
+        );
+    }
+
+    #[test]
+    fn test_file_variable_targeted_suffixes_stay_strings() {
+        // `name@TAG` targets a variable/flag at a country — the `@` there is not
+        // a file variable, even when one of that name exists in the file.
+        let content = "@iron = 5\nset_temp_variable = { t = resource@iron }\nset_country_flag = my_flag_@PREV\n";
+        let toks = collect_script_tokens(content);
+        for text in ["resource@iron", "my_flag_@PREV"] {
+            assert!(
+                toks.iter().any(|(_, t, ty)| t == text && ty == "string"),
+                "{text} must stay a string, got {:#?}",
+                toks
+            );
+            assert!(
+                !toks.iter().any(|(_, t, ty)| t == text && ty == "variable"),
+                "{text} must not be a file variable, got {:#?}",
+                toks
+            );
+        }
+    }
+
+    #[test]
+    fn test_file_variable_indented_definition_and_case_insensitive_use() {
+        // Vanilla defines file variables indented inside a block
+        // (common/technologies/electronic_mechanical_engineering.txt:
+        // `technologies = { @radio = -3 ... }`), and uses match
+        // case-insensitively like every other script name.
+        let content = "technologies = {\n\t@radio = -3\n\tradio_tech = { position = { x = @radio } }\n}\nbase = @RADIO\n";
+        let toks = collect_script_tokens(content);
+        assert!(
+            toks.iter()
+                .any(|(l, t, ty)| *l == 1 && t == "@radio" && ty == "variable"),
+            "indented file-variable definition must be variable, got {:#?}",
+            toks
+        );
+        assert!(
+            toks.iter()
+                .any(|(l, t, ty)| *l == 2 && t == "@radio" && ty == "variable"),
+            "file-variable use inside a nested block must be variable, got {:#?}",
+            toks
+        );
+        assert!(
+            toks.iter()
+                .any(|(l, t, ty)| *l == 4 && t == "@RADIO" && ty == "variable"),
+            "case-insensitive file-variable use must be variable, got {:#?}",
+            toks
+        );
+    }
+
+    #[test]
+    fn test_file_variable_block_valued_key_is_not_a_definition() {
+        // File variables are scalars — no `@name = { }` exists in the vanilla or
+        // mod corpora, so a block-valued `@` key defines nothing and neither it
+        // nor its uses highlight.
+        let content = "@not_a_var = { x = 1 }\nbase = @not_a_var\n";
+        let toks = collect_script_tokens(content);
+        assert!(
+            !toks.iter().any(|(_, _, ty)| ty == "variable"),
+            "block-valued `@` key must not define a file variable, got {:#?}",
+            toks
+        );
+    }
+
+    #[test]
+    fn test_file_variable_highlighted_via_range_request() {
+        // The viewport (range) entry point must highlight file variables too —
+        // the definition can be scrolled off-screen while the use is visible.
+        use crate::parser::parser::parse_script;
+        use tower_lsp_server::ls_types::{Position, Range as LspRange};
+        let content = "@SPE_BASE = 10\nfiller = 1\nbase = @SPE_BASE\n";
+        let (script, _) = parse_script(content);
+        let ctx = SemanticTokenContext::new(Arc::new(HashSet::new()), Arc::new(HashMap::new()));
+        let range = LspRange {
+            start: Position {
+                line: 2,
+                character: 0,
+            },
+            end: Position {
+                line: 2,
+                character: 20,
+            },
+        };
+        let SemanticTokensResult::Tokens(t) = get_semantic_tokens_range(&script, &ctx, &range)
+        else {
+            panic!("expected tokens");
+        };
+        let toks = decode_script_tokens(content, &t.data);
+        assert!(
+            toks.iter()
+                .any(|(l, t, ty)| *l == 2 && t == "@SPE_BASE" && ty == "variable"),
+            "file-variable use in a range request must be variable, got {:#?}",
+            toks
         );
     }
 }
