@@ -10,7 +10,8 @@
 		"url": "https://github.com/emberglazee/Hearts-of-Modding"
 	},
 	"engines": {
-		"vscode": "^1.82.0"
+		"vscode": "^1.82.0",
+		"node": "^22.13.0 || >=24"
 	},
 	"categories": [
 		"Programming Languages"
@@ -314,7 +315,7 @@
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",
 		"@stylistic/eslint-plugin": "^5.10.0",
-		"@types/node": "18.15.0",
+		"@types/node": "16.18.126",
 		"@types/vscode": "1.82.0",
 		"@vscode/vsce": "^3.9.2",
 		"esbuild": "^0.28.2",
