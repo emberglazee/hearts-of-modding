@@ -317,7 +317,7 @@
 		"@stylistic/eslint-plugin": "^5.10.0",
 		"@types/node": "16.18.126",
 		"@types/vscode": "1.82.0",
-		"@vscode/vsce": "^3.9.2",
+		"@vscode/vsce": "^4.0.0",
 		"esbuild": "^0.28.2",
 		"eslint": "^10.11.0",
 		"globals": "^17.12.0",
