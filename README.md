@@ -12,7 +12,7 @@
 
 [**GitHub**](https://github.com/emberglazee/hearts-of-modding) • [**Discussion**](https://github.com/emberglazee/hearts-of-modding/discussions/3) • [**VSC Marketplace**](https://marketplace.visualstudio.com/items?itemName=emberglaze.hearts-of-modding) • [**OVSX Registry**](https://open-vsx.org/extension/emberglaze/hearts-of-modding)
 
-An experimental work-in-progress high-performance **Visual Studio Code** extension for **Hearts of Iron IV (HOI4)** modding, powered by a dedicated Language Server Protocol (LSP) server written in **Rust**.
+A work-in-progress high-performance **Visual Studio Code** extension for **Hearts of Iron IV (HOI4)** modding, powered by a dedicated Language Server Protocol (LSP) server written in **Rust**.
 
 Inspired by [CWTools](https://github.com/cwtools/cwtools) and [VModer](https://github.com/textGamex/VModer). Written with performance in mind.
 
