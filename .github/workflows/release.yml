@@ -18,7 +18,10 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # NEVER cancel a side-effecting release: a cancel landing between the bump
+  # push and release creation would leave main bumped with no release.
+  # Re-run safety comes from the tag guard + CHANGELOG checks in the bump job.
+  cancel-in-progress: false
 
 jobs:
   # ── Version bump FIRST: every downstream artifact (server binaries, VSIX, ──
@@ -51,6 +54,33 @@ jobs:
           fi
 
           VERSION=$(node -p "require('./package.json').version")
+
+          # ── Re-run safety: never publish a version that is already tagged. ──
+          # ls-remote exit codes: 0 = tag exists, 2 = no match, anything else
+          # = the query itself failed (abort rather than skip the guard).
+          rc=0
+          git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" > /tmp/lsremote.txt 2>&1 || rc=$?
+          if [ "$rc" -eq 0 ]; then
+            echo "::error::Tag v$VERSION already exists on origin — that release is already published. If a previous run pushed the bump but never published it, re-dispatch with bump = none to release the current tree."
+            exit 1
+          elif [ "$rc" -ne 2 ]; then
+            echo "::error::Could not query origin tags (exit $rc):"
+            cat /tmp/lsremote.txt
+            exit 1
+          fi
+
+          # ── The CHANGELOG must already carry this version, BEFORE pushing. ──
+          if ! grep -q "^## \[v$VERSION\]" ../CHANGELOG.md; then
+            echo "::error::CHANGELOG.md has no '## [v$VERSION]' section — add it (and commit it) before dispatching this release."
+            exit 1
+          fi
+          if [ "${{ inputs.bump }}" != "none" ]; then
+            staged=$(sed -nE 's/^## \[v([^]]+)\].*/\1/p' ../CHANGELOG.md | head -1)
+            if [ "$staged" != "$VERSION" ]; then
+              echo "::error::CHANGELOG.md stages v$staged but this dispatch computes v$VERSION — stage that section, or dispatch the bump type it corresponds to."
+              exit 1
+            fi
+          fi
 
           if [ "${{ inputs.bump }}" != "none" ]; then
             sed -i "0,/^version = .*/s//version = \"$VERSION\"/" ../server/Cargo.toml

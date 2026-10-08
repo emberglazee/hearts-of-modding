@@ -19,6 +19,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **CI clippy now lints every target (`--all-targets`) on Linux and Windows.** Test code and `cfg(windows)` code were previously outside the gate; enabling it surfaced exactly one lint, fixed in the same change (`clippy::for_kv_map` in `tests/loc_dups.rs`).
 
+- **Release dispatches are re-run safe.** The release workflow no longer cancels a run mid-flight, aborts before doing anything when the target tag already exists (with a `none`-bump remedy for a bumped-but-unreleased tree), and validates the CHANGELOG's section for the release version *before* the bump is pushed — a missing or mismatched section now fails while nothing has left the repository.
+
 - **Clamped the minimal Node.js version required to build the extension to `^22.13.0 || >=24`.**
 
 - **Bumped extension dependencies:**
