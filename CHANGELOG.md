@@ -22,6 +22,11 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
   - `globals` v17.12.0 -> v17.13.0
   - `typescript-eslint` v8.70.1 -> v8.71.1
 
+- **Bumped LSP dependencies:**
+
+  - `tokio` v1.53.1 -> v1.53.2
+  - `smallvec` v1.16.1 -> v1.16.2
+
 ## [v0.31.0] - 2026-09-24
 
 ### ✨ Added
