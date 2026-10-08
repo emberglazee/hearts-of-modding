@@ -12,10 +12,15 @@ on:
         type: string
 
 jobs:
-  # ── Static gate: formatting + lint, fast feedback on the cheapest runner. ──
+  # ── Static gate: formatting + lint on both Linux and Windows — the ──
+  # ── Windows leg exists so `cfg(windows)` code is actually linted.    ──
   check:
-    name: Check
-    runs-on: ubuntu-latest
+    name: Check (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@v6
         with:
@@ -39,7 +44,7 @@ jobs:
       - name: Clippy
         run: |
           cd server
-          cargo clippy --locked -- --deny warnings
+          cargo clippy --all-targets --locked -- --deny warnings
 
   # ── Native test matrix: every target that gets a release binary, tested on
   # ── its own runner. macOS amd64 is excluded — it is a cross-build from the

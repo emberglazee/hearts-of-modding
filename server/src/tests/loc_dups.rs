@@ -14,7 +14,7 @@ mod tests {
 #   PLC_skarabii: \"Skarabii\"
 ";
         let (parsed, _, _) = loc_parser::parse_loc_file(content, "test.yml");
-        for (k, _v) in parsed.iter() {
+        for k in parsed.keys() {
             println!("Parsed key: {}", k);
         }
         assert!(!parsed.contains_key("PLC_pcrafter_general_desc"));

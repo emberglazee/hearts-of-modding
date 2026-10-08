@@ -17,6 +17,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **The Rust toolchain is pinned (`rust-toolchain.toml`, currently 1.99.0) and the MSRV floor is declared.** CI floated on the latest `stable`, so any new Rust release could change `rustfmt` output or add lints and turn CI red with zero repo change; the CI jobs, local dev setups and the declared `rust-version = "1.95"` now agree on a version that is bumped deliberately.
 
+- **CI clippy now lints every target (`--all-targets`) on Linux and Windows.** Test code and `cfg(windows)` code were previously outside the gate; enabling it surfaced exactly one lint, fixed in the same change (`clippy::for_kv_map` in `tests/loc_dups.rs`).
+
 - **Clamped the minimal Node.js version required to build the extension to `^22.13.0 || >=24`.**
 
 - **Bumped extension dependencies:**
