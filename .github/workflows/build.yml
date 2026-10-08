@@ -43,6 +43,25 @@ jobs:
           cd client
           npm run lint
 
+  # ── Version sync gate: client/package.json and server/Cargo.toml must ──
+  # ── agree. Release bumps set both together; this catches PRs (and any    ──
+  # ── hand edit) that update one and forget the other.                     ──
+  version-sync:
+    name: Version Sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Compare versions
+        run: |
+          pkg=$(python3 -c "import json; print(json.load(open('client/package.json'))['version'])")
+          cargo=$(grep -m1 '^version = ' server/Cargo.toml | sed -E 's/^version = "(.*)"/\1/')
+          echo "package.json=$pkg  Cargo.toml=$cargo"
+          if [ "$pkg" != "$cargo" ]; then
+            echo "::error::Version mismatch: client/package.json ($pkg) != server/Cargo.toml ($cargo) — bump them together."
+            exit 1
+          fi
+
   package-extension:
     name: Package Extension
     needs: [build-server, lint-client]

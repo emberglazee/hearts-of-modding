@@ -39,7 +39,7 @@ jobs:
       - name: Clippy
         run: |
           cd server
-          cargo clippy -- --deny warnings
+          cargo clippy --locked -- --deny warnings
 
   # ── Native test matrix: every target that gets a release binary, tested on
   # ── its own runner. macOS amd64 is excluded — it is a cross-build from the
@@ -78,7 +78,7 @@ jobs:
       - name: Run Tests
         run: |
           cd server
-          cargo test
+          cargo test --locked
         env:
           RUST_BACKTRACE: 1
 

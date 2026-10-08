@@ -55,6 +55,13 @@ jobs:
           if [ "${{ inputs.bump }}" != "none" ]; then
             sed -i "0,/^version = .*/s//version = \"$VERSION\"/" ../server/Cargo.toml
 
+            # Fail fast if the sed above did not land: a silent no-op would
+            # commit a bumped package.json with a stale Cargo.toml.
+            grep -q "^version = \"$VERSION\"$" ../server/Cargo.toml || {
+              echo "::error::server/Cargo.toml version was not updated to $VERSION"
+              exit 1
+            }
+
             # Sync hom-lsp's OWN version line in Cargo.lock. The previous
             # approach (`cargo generate-lockfile`) re-resolved the whole
             # dependency graph, silently upgrading unrelated crates inside
