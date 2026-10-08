@@ -18,6 +18,9 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 - **Bumped extension dev dependencies:**
 
   - `vsce` v3.9.2 -> v4.0.0
+  - `eslint` v10.11.0 -> v10.12.0
+  - `globals` v17.12.0 -> v17.13.0
+  - `typescript-eslint` v8.70.1 -> v8.71.1
 
 ## [v0.31.0] - 2026-09-24
 
