@@ -78,6 +78,83 @@ pub(crate) fn cleared_problem_uris(
     previous.difference(current).cloned().collect()
 }
 
+/// HOM6006 diagnostic when `rel_path` — a workspace-root-relative,
+/// '/'-separated path — lies inside a checksummed directory and its FILE NAME
+/// contains non-ASCII characters.
+///
+/// Scope follows the game's shipped `checksum_manifest.txt`: `common/` with
+/// `.txt`/`.lua`, `events/` and `history/` with `.txt`, `map/` with
+/// `.txt`/`.map`/`.bmp`/`.csv` (sub-directories included, extensions compared
+/// case-insensitively). The checksum hashes file names, and Windows and Linux
+/// encode non-ASCII names differently, so the same mod yields different
+/// checksums per OS and cross-platform multiplayer refuses to start —
+/// verified empirically (Hearts of Minecraft #154: renaming files alone
+/// changed the checksum array).
+///
+/// Only the file NAME is checked, never parent directories: the filename
+/// bytes are what the probe showed feeding the checksum, and flagging
+/// directories would guess beyond the evidence.
+pub(crate) fn non_ascii_checksum_filename_diagnostic(rel_path: &str) -> Option<Diagnostic> {
+    let rel = rel_path.replace('\\', "/");
+    let (dir, _) = rel.split_once('/')?;
+    let file_name = rel.rsplit('/').next().unwrap_or(&rel);
+    let ext = file_name
+        .rsplit_once('.')
+        .map(|(_, e)| e.to_ascii_lowercase())
+        .unwrap_or_default();
+
+    let ext_is = |allowed: &[&str]| allowed.iter().any(|a| ext == *a);
+    let in_scope = if dir.eq_ignore_ascii_case("common") {
+        ext_is(&["txt", "lua"])
+    } else if dir.eq_ignore_ascii_case("events") || dir.eq_ignore_ascii_case("history") {
+        ext_is(&["txt"])
+    } else if dir.eq_ignore_ascii_case("map") {
+        ext_is(&["txt", "map", "bmp", "csv"])
+    } else {
+        false
+    };
+
+    if !in_scope || file_name.is_ascii() {
+        return None;
+    }
+
+    Some(Diagnostic {
+        range: tower_lsp_server::ls_types::Range {
+            start: tower_lsp_server::ls_types::Position {
+                line: 0,
+                character: 0,
+            },
+            end: tower_lsp_server::ls_types::Position {
+                line: 0,
+                character: 1,
+            },
+        },
+        severity: Some(DiagnosticSeverity::WARNING),
+        message: "This file's name contains non-ASCII characters, which breaks multiplayer \
+                  between operating systems. The game's checksum hashes file names, and \
+                  Windows and Linux encode non-ASCII names differently \u{2014} players on the \
+                  other system compute a different checksum and cannot join the same \
+                  session. Rename the file using ASCII characters only (in-game names \
+                  come from localisation)."
+            .to_string(),
+        code: Some(NumberOrString::String(
+            crate::validation::advanced_validation::NON_ASCII_CHECKSUM_FILENAME.to_string(),
+        )),
+        source: Some("Hearts of Modding".to_string()),
+        ..Default::default()
+    })
+}
+
+/// Workspace-root-relative form of `path_str` when it sits inside `root_str` —
+/// both compared in forward-slash form (see `normalize_path_str`). `None`
+/// when the path is outside the root, or IS the root itself (not a file).
+pub(crate) fn relative_to_root(path_str: &str, root_str: &str) -> Option<String> {
+    let path = crate::scanner::incremental_scanner::normalize_path_str(path_str);
+    let root = crate::scanner::incremental_scanner::normalize_path_str(root_str);
+    let boundary = format!("{}/", root.trim_end_matches('/'));
+    path.strip_prefix(&boundary).map(str::to_string)
+}
+
 pub(crate) struct Backend {
     pub(crate) client: Client,
     pub(crate) documents: Arc<DashMap<String, String>>,
@@ -2258,6 +2335,17 @@ impl ValidationCtx {
         outcome
     }
 
+    /// Workspace-root-relative path for `uri` in forward-slash form (URI
+    /// percent-encoding resolved via `to_file_path`), or `None` when the
+    /// document is outside every workspace root. Root resolution matches
+    /// `map_config_for_uri` (longest containing root wins).
+    pub(crate) fn workspace_relative_path(&self, uri: &Uri) -> Option<String> {
+        let roots = self.workspace_roots.load();
+        let root = crate::utils::map_config::matching_root(&roots, uri.as_str())?;
+        let path = uri.to_file_path()?;
+        relative_to_root(&path.to_string_lossy(), &root.to_string_lossy())
+    }
+
     pub(crate) fn validate_content(
         &self,
         uri: &Uri,
@@ -2272,6 +2360,18 @@ impl ValidationCtx {
         if let Some(path) = uri.to_file_path() {
             if crate::utils::fs_util::is_known_ignored_file(&path) {
                 return diagnostics;
+            }
+        }
+
+        // Non-ASCII file name in a checksummed directory (HOM6006): the game's
+        // MP checksum hashes the file list of common/, events/, history/ and
+        // map/ (checksum_manifest.txt); non-ASCII names encode differently per
+        // OS, so Linux and Windows players compute different checksums and MP
+        // refuses. Pure URI logic — no disk access — and it covers both open
+        // documents and every workspace-scanned file.
+        if let Some(rel) = self.workspace_relative_path(uri) {
+            if let Some(diagnostic) = non_ascii_checksum_filename_diagnostic(&rel) {
+                diagnostics.push(diagnostic);
             }
         }
 

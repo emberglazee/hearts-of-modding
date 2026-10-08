@@ -3,6 +3,7 @@ pub mod backend;
 pub mod decision_activation;
 pub mod dependency_resolution;
 pub mod events;
+pub mod filename_checksum;
 pub mod formatting;
 pub mod hover_scripted;
 pub mod ideas;

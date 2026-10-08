@@ -5,6 +5,20 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 | ℹ️ | If the last version here is not released yet, it's still in development. |
 |----|:-------------------------------------------------------------------------|
 
+## [v0.32.0] - 2026-10-08
+
+### ✨ Added
+
+- **Non-ASCII file name validation (HOM6006).** File names under `common/`, `events/`, `history/` and `map/` (the scope of the game's `checksum_manifest.txt`) now warn when they contain non-ASCII characters: the multiplayer checksum hashes file names, and Windows and Linux encode non-ASCII names differently, so players on different systems compute different checksums and cannot join the same session. Rename the file to ASCII-only — in-game names come from localisation.
+
+### 🧹 Internal
+
+- **Clamped the minimal Node.js version required to build the extension to `^22.13.0 || >=24`.**
+
+- **Bumped extension dev dependencies:**
+
+  - `vsce` v3.9.2 -> v4.0.0
+
 ## [v0.31.0] - 2026-09-24
 
 ### ✨ Added

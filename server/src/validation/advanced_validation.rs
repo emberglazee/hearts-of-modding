@@ -136,6 +136,16 @@ pub const MALFORMED_LEADING_DOT_NUMBER: &str = "HOM6004";
 /// "UTF-8 with BOM".
 pub const LOC_BOM_ISSUE: &str = "HOM6005";
 
+/// File name inside a checksummed directory (`common/`, `events/`,
+/// `history/`, `map/` — the scope of the game's shipped `checksum_manifest.txt`)
+/// that contains non-ASCII characters. The multiplayer checksum hashes file
+/// names, and Windows and Linux encode non-ASCII names differently, so the
+/// same mod yields different checksums per OS and cross-platform multiplayer
+/// refuses to start (empirically verified in Hearts of Minecraft #154:
+/// renaming files alone changed the checksum array). WARNING: the game loads
+/// the files fine and single-player is unaffected — the breakage is MP-only.
+pub const NON_ASCII_CHECKSUM_FILENAME: &str = "HOM6006";
+
 #[derive(Debug, Clone)]
 /// Kept for public API compatibility; no longer directly constructed by validation rules.
 #[allow(dead_code)]
