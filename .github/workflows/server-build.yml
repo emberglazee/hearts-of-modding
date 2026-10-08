@@ -2,6 +2,14 @@ name: Build Server (Reusable)
 
 on:
   workflow_call:
+    inputs:
+      # Commit to build. Callers that need a specific commit (the release
+      # workflow builds the version-bump commit) pass it here; everyone else
+      # gets the caller's own SHA — the previous behaviour.
+      ref:
+        description: 'Commit to check out (defaults to the caller SHA)'
+        required: false
+        type: string
 
 jobs:
   # ── Static gate: formatting + lint, fast feedback on the cheapest runner. ──
@@ -10,6 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref || github.sha }}
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -54,6 +64,8 @@ jobs:
             target: aarch64-apple-darwin
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref || github.sha }}
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -102,6 +114,8 @@ jobs:
             asset: hom-lsp-macos-amd64
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref || github.sha }}
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -117,7 +131,10 @@ jobs:
         shell: bash
         run: |
           cd server
-          cargo build --release --target ${{ matrix.target }}
+          # --locked: the release bump edits Cargo.lock (one version line); if
+          # that edit ever left the lock inconsistent, this fails the release
+          # instead of cargo silently repairing it at build time.
+          cargo build --release --locked --target ${{ matrix.target }}
 
       - name: Smoke Test Server Startup
         if: matrix.target == 'x86_64-pc-windows-msvc'

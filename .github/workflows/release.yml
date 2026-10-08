@@ -21,8 +21,90 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # ── Version bump FIRST: every downstream artifact (server binaries, VSIX, ──
+  # ── the tag) must describe one and the same commit. Building before the   ──
+  # ── bump shipped binaries whose CARGO_PKG_VERSION was the PREVIOUS         ──
+  # ── release's (the v0.31.0 asset self-reported 0.30.0).                    ──
+  bump:
+    name: Bump Version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.bump.outputs.VERSION }}
+      sha: ${{ steps.bump.outputs.SHA }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Use Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Bump Version
+        id: bump
+        run: |
+          cd client
+
+          if [ "${{ inputs.bump }}" != "none" ]; then
+            npm version ${{ inputs.bump }} --no-git-tag-version
+          fi
+
+          VERSION=$(node -p "require('./package.json').version")
+
+          if [ "${{ inputs.bump }}" != "none" ]; then
+            sed -i "0,/^version = .*/s//version = \"$VERSION\"/" ../server/Cargo.toml
+
+            # Sync hom-lsp's OWN version line in Cargo.lock. The previous
+            # approach (`cargo generate-lockfile`) re-resolved the whole
+            # dependency graph, silently upgrading unrelated crates inside
+            # this commit — and the release shipped binaries built from the
+            # pre-bump lock. Edit the entry directly instead.
+            python3 - "$VERSION" <<'PY'
+          import pathlib
+          import re
+          import sys
+
+          version = sys.argv[1]
+          lock = pathlib.Path("../server/Cargo.lock")
+          text = lock.read_text()
+          new_text, count = re.subn(
+              r'(\[\[package\]\]\nname = "hom-lsp"\nversion = )"[^"]+"',
+              lambda m: m.group(1) + '"' + version + '"',
+              text,
+              count=1,
+          )
+          if count != 1:
+              sys.exit(f"hom-lsp entry not found in Cargo.lock (matches={count})")
+          lock.write_text(new_text)
+          PY
+
+            # The only permitted lockfile change is that single version line.
+            added=$(git diff --numstat -- ../server/Cargo.lock | cut -f1)
+            removed=$(git diff --numstat -- ../server/Cargo.lock | cut -f2)
+            if [ "$added" != "1" ] || [ "$removed" != "1" ]; then
+              echo "::error::Cargo.lock churn: expected exactly 1 added + 1 removed line (hom-lsp version), got +$added/-$removed"
+              git diff -- ../server/Cargo.lock
+              exit 1
+            fi
+
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add package.json package-lock.json ../server/Cargo.toml ../server/Cargo.lock
+            git commit -m "chore: bump version to $VERSION"
+            git push
+          fi
+
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "SHA=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
+  # ── Server binaries build from the BUMPED commit, so each binary ──
+  # ── self-reports the version its release tag names.               ──
   build-server:
+    needs: bump
     uses: ./.github/workflows/server-build.yml
+    with:
+      ref: ${{ needs.bump.outputs.sha }}
 
   lint-client:
     name: Lint Client
@@ -49,7 +131,7 @@ jobs:
 
   create-release:
     name: Create Release
-    needs: [build-server, lint-client]
+    needs: [bump, build-server, lint-client]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -57,6 +139,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          # Pin the whole job to the exact commit the binaries were built
+          # from (the bump commit), not the branch head.
+          ref: ${{ needs.bump.outputs.sha }}
           # Full history + tags: the release description script counts
           # contributions since the previous release tag (git describe/
           # rev-list) and resolves heads to SHAs for the compare API.
@@ -73,34 +158,6 @@ jobs:
         run: |
           cd client
           npm ci
-
-      - name: Bump Version
-        id: bump
-        run: |
-          cd client
-
-          if [ "${{ inputs.bump }}" != "none" ]; then
-            npm version ${{ inputs.bump }} --no-git-tag-version
-          fi
-
-          VERSION=$(node -p "require('./package.json').version")
-
-          if [ "${{ inputs.bump }}" != "none" ]; then
-            sed -i "0,/^version = .*/s//version = \"$VERSION\"/" ../server/Cargo.toml
-
-            # Regenerate Cargo.lock to reflect the new version
-            cd ../server
-            cargo generate-lockfile
-            cd ../client
-
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add package.json package-lock.json ../server/Cargo.toml ../server/Cargo.lock
-            git commit -m "chore: bump version to $VERSION"
-            git push
-          fi
-
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Download Server Binaries
         uses: actions/download-artifact@v8
@@ -140,7 +197,7 @@ jobs:
         run: |
           cd client
           npm run compile
-          npx vsce package -o ../hearts-of-modding-${{ steps.bump.outputs.VERSION }}.vsix
+          npx vsce package -o ../hearts-of-modding-${{ needs.bump.outputs.version }}.vsix
 
       # Checksums for every published artifact. The extension downloads this
       # file alongside a standalone binary and verifies the bytes before
@@ -149,7 +206,7 @@ jobs:
       # `sha256sum -c SHA256SUMS`.
       - name: Generate SHA256SUMS
         run: |
-          cp hearts-of-modding-${{ steps.bump.outputs.VERSION }}.vsix release-assets/
+          cp hearts-of-modding-${{ needs.bump.outputs.version }}.vsix release-assets/
           cd release-assets
           # Bare filenames (no ./ prefix) so the client can match on the asset
           # name exactly as it requests it.
@@ -162,20 +219,23 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: v${{ steps.bump.outputs.VERSION }}
-          name: v${{ steps.bump.outputs.VERSION }}
+          tag_name: v${{ needs.bump.outputs.version }}
+          name: v${{ needs.bump.outputs.version }}
+          # Pin the tag to the exact commit the artifacts were built from,
+          # instead of whatever the default branch happens to point at.
+          target_commitish: ${{ needs.bump.outputs.sha }}
           files: |
-            hearts-of-modding-${{ steps.bump.outputs.VERSION }}.vsix
+            hearts-of-modding-${{ needs.bump.outputs.version }}.vsix
             release-assets/*
           body_path: release_notes.md
           draft: false
-          prerelease: ${{ contains(steps.bump.outputs.VERSION, '-') }}
+          prerelease: ${{ contains(needs.bump.outputs.version, '-') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish to Open VSX Registry
         run: |
-          npx ovsx publish hearts-of-modding-${{ steps.bump.outputs.VERSION }}.vsix --pat ${{ secrets.OPEN_VSX_TOKEN }}
+          npx ovsx publish hearts-of-modding-${{ needs.bump.outputs.version }}.vsix --pat ${{ secrets.OPEN_VSX_TOKEN }}
 
       # Run names are fixed at trigger time ("Release (minor)") before the
       # version bump runs, so the actual version is invisible from the Actions
@@ -183,8 +243,8 @@ jobs:
       # the previous version — to the job summary so it shows up on the run's
       # Summary tab.
       - name: Release Summary
-        if: always() && steps.bump.outputs.VERSION
+        if: always() && needs.bump.outputs.version
         run: |
           python .github/scripts/generate_release_summary.py \
-            --version ${{ steps.bump.outputs.VERSION }} \
+            --version ${{ needs.bump.outputs.version }} \
             --bump ${{ inputs.bump }}

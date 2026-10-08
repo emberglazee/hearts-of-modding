@@ -13,6 +13,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### 🧹 Internal
 
+- **Release builds now compile from the version-bump commit, so shipped binaries report the version their tag names.** The bump used to run *after* the server binaries were built — every release shipped an `hom-lsp` that self-reported the previous version (the v0.31.0 asset answered `0.30.0` in the LSP handshake) and the extension warned about a "stale server binary" on fresh installs. The bump is now the first job, the binaries build from its commit, the tag is pinned to that commit, and the Cargo.lock sync edits one version line instead of re-resolving the dependency graph (guarded: any other lockfile churn fails the release).
+
 - **Clamped the minimal Node.js version required to build the extension to `^22.13.0 || >=24`.**
 
 - **Bumped extension dev dependencies:**
