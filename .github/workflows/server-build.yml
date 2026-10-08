@@ -22,7 +22,7 @@ jobs:
           ref: ${{ inputs.ref || github.sha }}
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@1.99.0
         with:
           components: clippy, rustfmt
 
@@ -68,7 +68,7 @@ jobs:
           ref: ${{ inputs.ref || github.sha }}
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@1.99.0
 
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
@@ -118,7 +118,7 @@ jobs:
           ref: ${{ inputs.ref || github.sha }}
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@1.99.0
         with:
           targets: ${{ matrix.target }}
 

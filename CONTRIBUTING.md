@@ -27,7 +27,7 @@ Anything from simple usage and review, to bug reporting and testing, to direct c
 
 System dependencies (or atleast the rough idea of what to install):
 
-- Rust (`rustup`, stable) + `rustfmt` + `clippy`, >= v1.95.0 (forced by `sysinfo`, would be >= v1.85.0 otherwise)
+- Rust (`rustup`) — the toolchain is pinned in `rust-toolchain.toml` (currently 1.99.0) and `rustup` installs it automatically; floor >= v1.95.0 (forced by `sysinfo`, would be >= v1.85.0 otherwise)
 - Node.js + `npm`, >= v20.19.0
 - C compiler + `make` + POSIX `sh`, for `jemalloc`
 - `git`, to clone the repository (`jemalloc` fork is fetched by `cargo`)

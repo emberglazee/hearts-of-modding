@@ -15,6 +15,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Release builds now compile from the version-bump commit, so shipped binaries report the version their tag names.** The bump used to run *after* the server binaries were built — every release shipped an `hom-lsp` that self-reported the previous version (the v0.31.0 asset answered `0.30.0` in the LSP handshake) and the extension warned about a "stale server binary" on fresh installs. The bump is now the first job, the binaries build from its commit, the tag is pinned to that commit, and the Cargo.lock sync edits one version line instead of re-resolving the dependency graph (guarded: any other lockfile churn fails the release). All CI cargo steps run `--locked` so dependency-lock drift fails CI instead of being silently repaired, and a version-sync job fails any change where `client/package.json` and `server/Cargo.toml` versions disagree.
 
+- **The Rust toolchain is pinned (`rust-toolchain.toml`, currently 1.99.0) and the MSRV floor is declared.** CI floated on the latest `stable`, so any new Rust release could change `rustfmt` output or add lints and turn CI red with zero repo change; the CI jobs, local dev setups and the declared `rust-version = "1.95"` now agree on a version that is bumped deliberately.
+
 - **Clamped the minimal Node.js version required to build the extension to `^22.13.0 || >=24`.**
 
 - **Bumped extension dependencies:**

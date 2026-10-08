@@ -1,0 +1,10 @@
+# Pin the toolchain used by CI and local builds.
+#
+# Why pinned: CI floated on the latest `stable`, so a new Rust release could
+# change `rustfmt` output or add lints and turn CI red with zero repo change.
+# Bump deliberately: update the channel here and the three
+# `dtolnay/rust-toolchain@<version>` refs in .github/workflows/server-build.yml
+# together, then re-run `cargo fmt --check`, clippy and the tests locally.
+[toolchain]
+channel = "1.99.0"
+components = ["rustfmt", "clippy"]

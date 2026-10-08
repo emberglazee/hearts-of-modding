@@ -2,6 +2,7 @@
 name = "hom-lsp"
 version = "0.31.0"
 edition = "2024"
+rust-version = "1.95"
 
 [[bin]]
 name = "hom-lsp"
