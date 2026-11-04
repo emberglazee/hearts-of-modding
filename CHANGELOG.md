@@ -5,7 +5,7 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 | ℹ️ | If the last version here is not released yet, it's still in development. |
 |----|:-------------------------------------------------------------------------|
 
-## [v0.32.0] - 2026-10-08
+## [v0.32.0] - 2026-11-04
 
 ### ✨ Added
 
@@ -26,13 +26,10 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 - **Bumped extension dependencies:**
 
   - Dev dependencies:
-    - `vsce` v3.9.2 -> v4.0.0
-    - `eslint` v10.11.0 -> v10.12.0
-    - `globals` v17.12.0 -> v17.13.0
-    - `typescript-eslint` v8.70.1 -> v8.71.1
-  - Individual `package-lock.json` bumps:
-    - `brace-expansion` v2.1.4 -> v2.1.7 (dependency of `vscode-languageclient@9.0.1/minimatch@5.1.9`)
-    - `brace-expansion` v5.0.9 -> v5.0.12 (dependency of `@vscode/vsce@4.0.0/minimatch@10.2.6`)
+    - `vsce` v3.9.2 -> v4.1.0
+    - `eslint` v10.11.0 -> v10.14.0
+    - `globals` v17.12.0 -> v17.14.0
+    - `typescript-eslint` v8.70.1 -> v8.72.1
 
 - **Bumped LSP dependencies:**
 
