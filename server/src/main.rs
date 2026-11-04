@@ -129,7 +129,11 @@ async fn main() {
             document_locs: Arc::new(DashMap::new()),
             scanner_data: Arc::new(ScannerData::new()),
             config: Arc::new(Config::new()),
-            system_info: Mutex::new(sysinfo::System::new()),
+            // `System::new()` became fallible in sysinfo 0.40. A failure here
+            // only costs the `hoi4/getMemoryUsage` status-bar readout (the
+            // client hides the item on an empty response), so it must not take
+            // the server down.
+            system_info: Mutex::new(sysinfo::System::new().ok()),
             workspace_roots: ArcSwap::from_pointee(Vec::new()),
             client_workspace_roots: ArcSwap::from_pointee(Vec::new()),
             compute_pool,

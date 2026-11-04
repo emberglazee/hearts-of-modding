@@ -1439,18 +1439,23 @@ impl LanguageServer for Backend {
             let json = serde_json::to_value(&events_map).unwrap();
             return Ok(Some(json));
         } else if params.command == "hoi4/getMemoryUsage" {
-            let mut sys = self.system_info.lock().unwrap();
-            if let Ok(pid) = sysinfo::get_current_pid() {
-                sys.refresh_processes(sysinfo::ProcessesToUpdate::Some(&[pid]), true);
-                if let Some(process) = sys.process(pid) {
-                    let memory = process.memory();
-                    let pending = self.pending_tasks.load(Ordering::Relaxed);
-                    let json = serde_json::json!({
-                        "memoryUsedBytes": memory,
-                        "pendingTasks": pending
-                    });
-                    return Ok(Some(json));
-                }
+            let Ok(pid) = sysinfo::get_current_pid() else {
+                return Ok(None);
+            };
+            let mut guard = self.system_info.lock().unwrap();
+            // `None` only where the platform refused to initialise sysinfo.
+            let Some(sys) = guard.as_mut() else {
+                return Ok(None);
+            };
+            sys.refresh_processes(sysinfo::ProcessesToUpdate::Some(&[pid]), true);
+            if let Some(process) = sys.process(pid) {
+                let memory = process.memory();
+                let pending = self.pending_tasks.load(Ordering::Relaxed);
+                let json = serde_json::json!({
+                    "memoryUsedBytes": memory,
+                    "pendingTasks": pending
+                });
+                return Ok(Some(json));
             }
             return Ok(None);
         } else if params.command == "hoi4/getColorCodes" {

@@ -33,8 +33,12 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Bumped LSP dependencies:**
 
-  - `tokio` v1.53.1 -> v1.53.2
-  - `smallvec` v1.16.1 -> v1.16.2
+  - `tokio` v1.53.1 -> v1.54.1
+  - `smallvec` v1.16.1 -> v1.16.4
+  - `sysinfo` v0.39.6 -> v0.40.1
+  - `tokio-util` v0.7.19 -> v0.7.20
+  - `serde_json` v1.0.151 -> v1.0.154
+  - `arc-swap` v1.9.2 -> v1.9.3
 
 ## [v0.31.0] - 2026-09-24
 

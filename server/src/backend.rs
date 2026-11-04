@@ -169,7 +169,7 @@ pub(crate) struct Backend {
     pub(crate) document_cancellation_tokens: DashMap<String, CancellationToken>,
     pub(crate) scanner_data: Arc<ScannerData>,
     pub(crate) config: Arc<Config>,
-    pub(crate) system_info: Mutex<sysinfo::System>,
+    pub(crate) system_info: Mutex<Option<sysinfo::System>>,
     pub(crate) workspace_roots: ArcSwap<Vec<std::path::PathBuf>>,
     /// Workspace folders the client reported in `initialize` (`workspaceFolders`,
     /// falling back to the deprecated `rootUri`), as absolute paths.
