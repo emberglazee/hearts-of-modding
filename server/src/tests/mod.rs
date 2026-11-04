@@ -20,6 +20,7 @@ pub mod parser_skip;
 pub mod provinces;
 pub mod red_reserved;
 pub mod registry;
+pub mod scope_parameters;
 pub mod scripted_loc;
 pub mod technology;
 pub mod units;

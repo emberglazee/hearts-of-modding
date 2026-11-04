@@ -1,4 +1,4 @@
-use crate::rules::{ValidationContext, ValidationRule};
+use crate::rules::{ParentContext, ValidationContext, ValidationRule};
 use crate::scope::scope::ScopeStack;
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
@@ -16,6 +16,7 @@ impl ValidationRule for CountryMetadataRule {
         ctx: &ValidationContext,
         _scope: &ScopeStack,
         _pushed_scope: bool,
+        _parent: ParentContext<'_>,
         diags: &mut Vec<Diagnostic>,
     ) {
         let key_lower = ass.key_text(ctx.source).to_ascii_lowercase();

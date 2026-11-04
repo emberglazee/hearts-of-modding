@@ -1,5 +1,5 @@
 use crate::parser::ast;
-use crate::rules::{ValidationContext, ValidationRule};
+use crate::rules::{ParentContext, ValidationContext, ValidationRule};
 use crate::scope::scope::{Scope, ScopeCtx, ScopeStack};
 use tower_lsp_server::ls_types::Diagnostic;
 
@@ -137,6 +137,7 @@ pub fn walk_script(
         in_air_wings,
         false,
         false,
+        ParentContext::default(),
     );
 
     // Post-walk hook for cross-reference checks
@@ -155,6 +156,7 @@ fn walk_entries(
     in_air_wings: bool,
     in_random_list: bool,
     in_state_targeted_decision: bool,
+    parent: ParentContext<'_>,
 ) {
     // Scan the current block's entries for state_target = yes to detect
     // state-targeted decisions. Inside those, FROM refers to the target state.
@@ -222,7 +224,7 @@ fn walk_entries(
 
                 // 2) check_assignment for rules that use the traditional pattern
                 for rule in rules {
-                    rule.check_assignment(ass, ctx, scope_stack, pushed_scope, diags);
+                    rule.check_assignment(ass, ctx, scope_stack, pushed_scope, parent, diags);
                 }
 
                 // 3) Check for duplicate keys, then recurse into children
@@ -244,6 +246,26 @@ fn walk_entries(
                             new_in_air_wings,
                             Some(key),
                         );
+                        // Derive the context passed to entries INSIDE this
+                        // block: this key becomes their parent, and a
+                        // documented param-container anchors itself while its
+                        // direct children keep it (a folder instance holds the
+                        // container's params one level down). Anything deeper
+                        // consumes it. Mirrors `semantic_tokens` exactly so
+                        // HOM004 resolves parameters the same way the editor
+                        // classifies them.
+                        let child_anchor = if crate::data::hoi4_data::is_param_container(key) {
+                            Some(key)
+                        } else if parent.param_anchor.is_some() && parent.key == parent.param_anchor
+                        {
+                            parent.param_anchor
+                        } else {
+                            None
+                        };
+                        let child_context = ParentContext {
+                            key: Some(key),
+                            param_anchor: child_anchor,
+                        };
                         walk_entries(
                             inner,
                             visitors,
@@ -254,6 +276,7 @@ fn walk_entries(
                             new_in_air_wings,
                             new_in_random_list,
                             state_targeted,
+                            child_context,
                         );
                     }
                     _ => {}
@@ -289,6 +312,9 @@ fn walk_entries(
                         in_air_wings,
                         in_random_list,
                         state_targeted,
+                        // An anonymous block has no key, so it neither becomes
+                        // a parent nor consumes the anchor.
+                        parent,
                     );
                 }
                 _ => {}

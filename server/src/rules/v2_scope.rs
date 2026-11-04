@@ -1,5 +1,5 @@
 use crate::parser::ast;
-use crate::rules::{ValidationContext, ValidationRule};
+use crate::rules::{ParentContext, ValidationContext, ValidationRule};
 use crate::scope::scope::{Scope, ScopeStack};
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
@@ -26,6 +26,7 @@ impl ValidationRule for V2ScopeRule {
         ctx: &ValidationContext,
         scope: &ScopeStack,
         _pushed_scope: bool,
+        parent: ParentContext<'_>,
         diags: &mut Vec<Diagnostic>,
     ) {
         let key = ass.key_text(ctx.source);
@@ -130,6 +131,32 @@ impl ValidationRule for V2ScopeRule {
             // Skip HOM004 at the structural level; explicit iterators
             // (every_state, every_country, etc.) still push correct scopes.
             if raw_scope == Scope::ScriptedEffect || raw_scope == Scope::ScriptedTrigger {
+                return;
+            }
+
+            // A key the enclosing block documents as a PARAMETER is parsed
+            // positionally by the engine against that block's schema — it is
+            // not a nested invocation, so its own scope contract does not
+            // apply. `promote_leader = yes` inside `add_country_leader_role`
+            // is the canonical collision (the same key also names a
+            // Character-scope effect, "promotes general to field marshal"),
+            // and `skill` inside `create_corps_commander` / `create_field_marshal`
+            // / `create_navy_leader` is the same shape. Both are vanilla
+            // patterns; flagging them was a false positive on ~80 lines of
+            // Hearts of Minecraft alone.
+            //
+            // Checked here — after every other skip, immediately before
+            // emitting — because it costs a parameter-table lookup and only
+            // matters when a mismatch would actually be reported. Resolution
+            // goes through the same anchored helper semantic tokens and hover
+            // use, so HOM004 cannot drift from what the editor shows.
+            if crate::data::hoi4_data::lookup_parameter_with_anchor(
+                parent.key,
+                parent.param_anchor,
+                key,
+            )
+            .is_some()
+            {
                 return;
             }
 

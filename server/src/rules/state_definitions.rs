@@ -2,7 +2,7 @@ use crate::data::interner::InternedStr;
 use crate::data::layered_value::LayeredValue;
 use crate::parser::ast;
 use crate::rules::visitor::AstVisitor;
-use crate::rules::{ValidationContext, ValidationRule};
+use crate::rules::{ParentContext, ValidationContext, ValidationRule};
 use crate::scope::scope::ScopeStack;
 use dashmap::DashMap;
 use std::collections::HashSet;
@@ -25,6 +25,7 @@ impl ValidationRule for StateDefinitionRule {
         ctx: &ValidationContext,
         _scope: &ScopeStack,
         _pushed_scope: bool,
+        _parent: ParentContext<'_>,
         diags: &mut Vec<Diagnostic>,
     ) {
         let key_lower = ass.key_text(ctx.source).to_ascii_lowercase();

@@ -1,7 +1,7 @@
 use crate::data::hoi4_data;
 use crate::data::interner::InternedStr;
 use crate::parser::ast;
-use crate::rules::{ValidationContext, ValidationRule};
+use crate::rules::{ParentContext, ValidationContext, ValidationRule};
 use crate::scanner::variable_scanner::{Array, EventTarget, Variable};
 use crate::scope::scope::{Scope, ScopeStack};
 use dashmap::DashMap;
@@ -461,6 +461,7 @@ impl ValidationRule for VariableRule {
         _ctx: &ValidationContext,
         _scope: &ScopeStack,
         _pushed_scope: bool,
+        _parent: ParentContext<'_>,
         _diags: &mut Vec<Diagnostic>,
     ) {
         // We need mutable access to file_vars/file_arrays for definitions, so this is a limitation
@@ -499,6 +500,7 @@ impl ValidationRule for VariableRuleState {
         ctx: &ValidationContext,
         scope: &ScopeStack,
         _pushed_scope: bool,
+        _parent: ParentContext<'_>,
         diags: &mut Vec<Diagnostic>,
     ) {
         self.rule

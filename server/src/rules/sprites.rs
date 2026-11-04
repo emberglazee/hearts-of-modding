@@ -1,5 +1,5 @@
 use crate::parser::ast;
-use crate::rules::{ValidationContext, ValidationRule};
+use crate::rules::{ParentContext, ValidationContext, ValidationRule};
 use crate::scope::scope::{Scope, ScopeStack};
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
@@ -17,6 +17,7 @@ impl ValidationRule for SpriteRule {
         ctx: &ValidationContext,
         scope: &ScopeStack,
         _pushed_scope: bool,
+        _parent: ParentContext<'_>,
         diags: &mut Vec<Diagnostic>,
     ) {
         let key_lower = ass.key_text(ctx.source).to_ascii_lowercase();

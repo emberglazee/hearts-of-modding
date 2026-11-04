@@ -125,6 +125,25 @@ impl<'a> ValidationContext<'a> {
     }
 }
 
+/// The block that encloses the assignment currently being checked.
+///
+/// Recursion context threaded down the single AST walk so a rule can tell a
+/// nested *invocation* from a *parameter* of the block it sits in — the two
+/// are indistinguishable from the key alone. `promote_leader = yes` inside
+/// `add_country_leader_role = { ... }` is the canonical case: the same key
+/// also names a Character-scope effect, so a key-only scope check reports a
+/// false mismatch for a line the engine parses as a boolean parameter.
+#[derive(Clone, Copy, Debug, Default)]
+pub(crate) struct ParentContext<'a> {
+    /// Key of the immediately enclosing assignment (`None` at file top level).
+    pub key: Option<&'a str>,
+    /// Threaded param-container anchor — see
+    /// [`crate::data::hoi4_data::is_param_container`]. Matches the context
+    /// semantic tokens, hover, and completion resolve against, so HOM004
+    /// cannot drift from what the editor shows.
+    pub param_anchor: Option<&'a str>,
+}
+
 /// A validation rule for HOI4 script semantics.
 ///
 /// Rules are registered in [`Backend::check_semantic`] and invoked during
@@ -144,12 +163,18 @@ pub(crate) trait ValidationRule {
     /// scope stack was pushed for it (i.e. it's a structural node, not a
     /// simple value assignment). Rules can use this to distinguish definition
     /// entries from their children.
+    ///
+    /// `parent` is the enclosing block of this assignment (see
+    /// [`ParentContext`]). Rules that treat a key as an invocation must check
+    /// it before reporting: a documented parameter of the enclosing block is
+    /// parsed positionally by the engine, not invoked.
     fn check_assignment(
         &self,
         _ass: &ast::Assignment,
         _ctx: &ValidationContext,
         _scope: &scope::ScopeStack,
         _pushed_scope: bool,
+        _parent: ParentContext<'_>,
         _diags: &mut Vec<Diagnostic>,
     ) {
     }

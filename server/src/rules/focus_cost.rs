@@ -11,7 +11,7 @@
 //! the scope check keeps those silent (false negatives over false positives).
 
 use crate::parser::ast;
-use crate::rules::{ValidationContext, ValidationRule};
+use crate::rules::{ParentContext, ValidationContext, ValidationRule};
 use crate::scope::scope::{Scope, ScopeStack};
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 
@@ -30,6 +30,7 @@ impl ValidationRule for FocusCostRule {
         ctx: &ValidationContext,
         scope: &ScopeStack,
         _pushed_scope: bool,
+        _parent: ParentContext<'_>,
         diags: &mut Vec<Diagnostic>,
     ) {
         if !ass.key_text(ctx.source).eq_ignore_ascii_case("cost") {
