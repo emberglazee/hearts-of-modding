@@ -212,6 +212,13 @@ pub struct BlockSchema {
     /// scalar sub-keys of itself.
     #[serde(default)]
     pub param_container: bool,
+    /// Scope this block's body runs in, when the block changes scope without
+    /// being an invocable trigger/effect. `highlight_states_trigger` is the
+    /// motivating case: a decision's per-state filter, evaluated once for every
+    /// state on the map, so its body holds State triggers even though no state
+    /// scope was entered by an iterator.
+    #[serde(default)]
+    pub pushes_scope: Option<Scope>,
 }
 
 /// Scope chain target (for dot-notation resolution like ROOT.owner.capital)
@@ -338,6 +345,16 @@ pub fn lookup_pushes_scope(key: &str) -> Option<Scope> {
         .or_else(|| DATA.effects.get(&key.to_ascii_lowercase()))
     {
         return entity.pushes_scope;
+    }
+    // Then definition blocks — structural containers that are not invocable
+    // but whose body still runs in a different scope
+    // (`highlight_states_trigger` is evaluated per state).
+    if let Some(def) = DATA
+        .definitions
+        .get(key)
+        .or_else(|| DATA.definitions.get(&key.to_ascii_lowercase()))
+    {
+        return def.pushes_scope;
     }
     None
 }

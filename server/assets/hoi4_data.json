@@ -38039,6 +38039,64 @@
 		}
 	},
 	"definitions": {
+		"highlight_states": {
+			"name": "highlight_states",
+			"description": "State and province highlighting for a decision or a decision category: outlines states while the decision is hovered, available and active.",
+			"file_types": [],
+			"parameters": {
+				"highlight_state_targets": {
+					"type": "block",
+					"value_type": "state",
+					"description": "States to outline, as repeated `state = <id>` lines.",
+					"optional": true,
+					"repeated": false
+				},
+				"highlight_states_trigger": {
+					"type": "block",
+					"value_type": "state",
+					"description": "Trigger block evaluated for every state on the map, for when the highlighted states are not known statically. Its body runs in State scope.",
+					"optional": true,
+					"repeated": false
+				},
+				"highlight_provinces": {
+					"type": "block",
+					"value_type": "province",
+					"description": "Bare list of province IDs to outline (1.13.6+).",
+					"optional": true,
+					"repeated": false
+				},
+				"highlight_only_provinces": {
+					"type": "bool",
+					"value_type": "bool",
+					"description": "Outline only the listed provinces instead of their states.",
+					"optional": true,
+					"repeated": false
+				},
+				"highlight_color_before_active": {
+					"type": "int",
+					"value_type": "int",
+					"description": "Outline colour before the decision is taken, 0-3. White when unset.",
+					"optional": true,
+					"repeated": false
+				},
+				"highlight_color_while_active": {
+					"type": "int",
+					"value_type": "int",
+					"description": "Outline colour while the decision runs, 0-3. White when unset.",
+					"optional": true,
+					"repeated": false
+				}
+			},
+			"param_container": false
+		},
+		"highlight_states_trigger": {
+			"name": "highlight_states_trigger",
+			"description": "Per-state filter inside highlight_states. The engine evaluates it once for every state on the map, so its body holds State-scope triggers.",
+			"file_types": [],
+			"parameters": {},
+			"param_container": false,
+			"pushes_scope": "State"
+		},
 		"focus": {
 			"name": "focus",
 			"description": "A national focus inside common/national_focus/*.txt focus_tree blocks. Grants its completion_reward after being picked and worked on for cost days-worth of political power.",

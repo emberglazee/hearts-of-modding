@@ -2996,6 +2996,47 @@ bwc_cat = {
     }
 
     #[test]
+    fn test_decision_highlight_states_params_get_property_tokens() {
+        // `highlight_states` is a nested block: nothing in the key chain carries
+        // its parameters, so before the schema entry every key inside it was
+        // plain text (`state` alone was coloured, as a keyword).
+        let content = "\
+bwc_cat = {
+    dec = {
+        highlight_states = {
+            highlight_state_targets = {
+                state = 724
+            }
+            highlight_states_trigger = {
+                is_capital = yes
+            }
+            highlight_provinces = { 123 456 }
+            highlight_only_provinces = yes
+            highlight_color_while_active = 3
+            highlight_color_before_active = 2
+        }
+    }
+}
+";
+        let toks = collect_script_tokens_in(content, &["Decisions"]);
+        for (line, key) in [
+            (3u32, "highlight_state_targets"),
+            (6, "highlight_states_trigger"),
+            (9, "highlight_provinces"),
+            (10, "highlight_only_provinces"),
+            (11, "highlight_color_while_active"),
+            (12, "highlight_color_before_active"),
+        ] {
+            assert!(
+                toks.iter()
+                    .any(|(l, t, ty)| *l == line && t == key && ty == "property"),
+                "{key} must be a property token, got {:#?}",
+                toks
+            );
+        }
+    }
+
+    #[test]
     fn test_decision_category_block_is_not_anchored_to_the_instance_schema() {
         // A category sits at the top level and has its own keys (`icon`,
         // `picture`, `visible`). Only instance bodies get the `decision`
