@@ -1147,7 +1147,9 @@ impl LanguageServer for Backend {
         // debounce window.
         match self.get_or_parse_ast(&uri).await {
             Some((script, _)) => {
-                let ctx = self.build_semantic_token_context();
+                let ctx = self
+                    .build_semantic_token_context()
+                    .with_file_categories(self.file_category_names(&uri));
                 Ok(Some(semantic_tokens::get_semantic_tokens(&script, &ctx)))
             }
             _ => Ok(None),
@@ -1187,7 +1189,9 @@ impl LanguageServer for Backend {
         // Script files — use range-aware AST walking with a fresh AST
         match self.get_or_parse_ast(&uri).await {
             Some((script, _)) => {
-                let ctx = self.build_semantic_token_context();
+                let ctx = self
+                    .build_semantic_token_context()
+                    .with_file_categories(self.file_category_names(&uri));
                 let result = semantic_tokens::get_semantic_tokens_range(&script, &ctx, &range);
                 match result {
                     SemanticTokensResult::Tokens(t) => {

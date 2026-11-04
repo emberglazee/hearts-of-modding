@@ -46,6 +46,14 @@ const LOCALIZATION_VALUE_FIELDS: [&str; 4] = ["name", "desc", "custom_descriptio
 pub struct SemanticTokenContext {
     pub keywords: Arc<HashSet<String>>,
     pub entity_names: Arc<HashMap<String, EntityKind>>,
+    /// `FileCategory` names for the document being tokenized; empty when the
+    /// caller has no file context (unit tests, ad-hoc calls).
+    ///
+    /// Some blocks carry no schema of their own: a decision/mission instance is
+    /// arbitrarily named (`core_bwc = { … }`), so no key routes to the
+    /// `decision` schema and its parameters would tokenize as plain text. The
+    /// file type is what identifies those bodies.
+    pub file_categories: Vec<&'static str>,
 }
 
 impl SemanticTokenContext {
@@ -56,7 +64,14 @@ impl SemanticTokenContext {
         SemanticTokenContext {
             keywords,
             entity_names,
+            file_categories: Vec::new(),
         }
+    }
+
+    /// Attach the document's file categories (see [`Self::file_categories`]).
+    pub fn with_file_categories(mut self, categories: Vec<&'static str>) -> Self {
+        self.file_categories = categories;
+        self
     }
 }
 
@@ -961,10 +976,26 @@ fn push_entry_tokens(
             // instances hold the container's params one level down); anything
             // deeper consumes it (a folder's `available` body must not inherit
             // folder params).
+            //
+            // Decision and mission instances are the exception with no key to
+            // hang on: they are arbitrarily named (`core_bwc = { … }` inside a
+            // category), so nothing in the chain routes to the `decision`
+            // schema. The file category identifies them, and the body anchors
+            // to that schema, which puts `cancel_if_not_visible` on the same
+            // footing as `fire_only_once` and `icon` instead of leaving the
+            // ones missing from the static keyword set uncoloured.
             let child_anchor = if crate::data::hoi4_data::is_param_container(key_text) {
                 Some(key_text)
             } else if param_anchor.is_some() && parent_key == param_anchor {
                 param_anchor
+            } else if parent_key.is_some_and(|category| {
+                crate::data::hoi4_data::is_decision_instance_body_keys(
+                    key_text,
+                    category,
+                    &ctx.file_categories,
+                )
+            }) {
+                Some("decision")
             } else {
                 None
             };
@@ -2237,6 +2268,7 @@ test_trigger = {
         let ctx = SemanticTokenContext {
             keywords: StdArc::new(keywords),
             entity_names: StdArc::new(entity_names),
+            file_categories: Vec::new(),
         };
 
         let result = get_semantic_tokens(&script, &ctx);
@@ -2316,6 +2348,7 @@ test_trigger = {
         let ctx = SemanticTokenContext {
             keywords: StdArc::new(HashSet::new()),
             entity_names: StdArc::new(HashMap::new()),
+            file_categories: Vec::new(),
         };
 
         let result = get_semantic_tokens(&script, &ctx);
@@ -2393,6 +2426,7 @@ test_trigger = {
         let ctx = SemanticTokenContext {
             keywords: StdArc::new(keywords),
             entity_names: StdArc::new(HashMap::new()),
+            file_categories: Vec::new(),
         };
 
         let result = get_semantic_tokens(&script, &ctx);
@@ -2474,6 +2508,7 @@ test_trigger = {
         let ctx = SemanticTokenContext {
             keywords: StdArc::new(keywords),
             entity_names: StdArc::new(HashMap::new()),
+            file_categories: Vec::new(),
         };
 
         let result = get_semantic_tokens(&script, &ctx);
@@ -2887,6 +2922,93 @@ is_in_array = { faction_members = THIS }
             panic!("expected tokens");
         };
         decode_script_tokens(content, &t.data)
+    }
+
+    /// Helper: like [`collect_script_tokens`], with the document's file
+    /// categories attached. Some block schemas are identified by file type
+    /// alone (decision instances), so they are invisible without this.
+    fn collect_script_tokens_in(
+        content: &str,
+        cats: &[&'static str],
+    ) -> Vec<(u32, String, String)> {
+        use crate::parser::parser::parse_script;
+        let (script, _) = parse_script(content);
+        let ctx = SemanticTokenContext::new(Arc::new(HashSet::new()), Arc::new(HashMap::new()))
+            .with_file_categories(cats.to_vec());
+        let SemanticTokensResult::Tokens(t) = get_semantic_tokens(&script, &ctx) else {
+            panic!("expected tokens");
+        };
+        decode_script_tokens(content, &t.data)
+    }
+
+    #[test]
+    fn test_decision_instance_params_get_property_token() {
+        // Decision instances are arbitrarily named, so no key in the chain
+        // routes to the `decision` schema; the file category identifies the
+        // body. Every documented parameter must tokenize like an event body's
+        // parameters do, not just the ones that happen to sit in the static
+        // keyword set (`fire_only_once` was keyword, `cancel_if_not_visible`
+        // was nothing at all).
+        let content = "\
+bwc_cat = {
+    core_bwc = {
+        cancel_if_not_visible = yes
+        fire_only_once = yes
+        days_re_enable = 30
+        available = {
+            compliance > 50
+        }
+    }
+}
+";
+        let toks = collect_script_tokens_in(content, &["Decisions"]);
+        for (line, key) in [
+            (2u32, "cancel_if_not_visible"),
+            (3, "fire_only_once"),
+            (4, "days_re_enable"),
+            (5, "available"),
+        ] {
+            assert!(
+                toks.iter()
+                    .any(|(l, t, ty)| *l == line && t == key && ty == "property"),
+                "{key} must be a property token inside a decision body, got {:#?}",
+                toks
+            );
+        }
+        // The anchor is consumed on descent: triggers inside `available` are
+        // not decision parameters.
+        assert!(
+            !toks
+                .iter()
+                .any(|(l, t, ty)| *l == 6 && t == "compliance" && ty == "property"),
+            "the decision anchor must not leak into `available`, got {:#?}",
+            toks
+        );
+
+        // Control: the same text outside a Decisions file has no schema to
+        // anchor to, so these keys stay uncoloured.
+        let plain = collect_script_tokens(content);
+        assert!(
+            !plain.iter().any(|(_, t, _)| t == "cancel_if_not_visible"),
+            "without the file category the key must not be tokenized, got {:#?}",
+            plain
+        );
+    }
+
+    #[test]
+    fn test_decision_category_block_is_not_anchored_to_the_instance_schema() {
+        // A category sits at the top level and has its own keys (`icon`,
+        // `picture`, `visible`). Only instance bodies get the `decision`
+        // schema, so category-level `icon` must stay uncoloured here.
+        let content = "bwc_cat = {\n    icon = GFX_decision_category_generic\n}\n";
+        let toks = collect_script_tokens_in(content, &["Decisions"]);
+        assert!(
+            !toks
+                .iter()
+                .any(|(l, t, ty)| *l == 1 && t == "icon" && ty == "property"),
+            "category blocks must not resolve against the decision schema, got {:#?}",
+            toks
+        );
     }
 
     #[test]

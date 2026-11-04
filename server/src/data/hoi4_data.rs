@@ -537,6 +537,20 @@ pub fn block_parameters_in_file(
 /// block. Deeper chains (inside `available`, `complete_effect`, ...) resolve
 /// normally — those bodies hold plain triggers/effects.
 pub fn is_decision_instance_body(chain: &[String], file_cats: &[&str]) -> bool {
+    let keys: Vec<&str> = chain.iter().map(String::as_str).collect();
+    decision_instance(&keys, file_cats)
+}
+
+/// [`is_decision_instance_body`] for callers that already hold the two keys.
+///
+/// The semantic-token walker sees `instance = { … }` inside a category as
+/// `(key, parent_key)` and has no chain to build, so this avoids allocating two
+/// `String`s per block it descends into.
+pub fn is_decision_instance_body_keys(instance: &str, category: &str, file_cats: &[&str]) -> bool {
+    decision_instance(&[instance, category], file_cats)
+}
+
+fn decision_instance(chain: &[&str], file_cats: &[&str]) -> bool {
     if chain.len() != 2 {
         return false;
     }
@@ -546,10 +560,10 @@ pub fn is_decision_instance_body(chain: &[String], file_cats: &[&str]) -> bool {
     {
         return false;
     }
-    if is_transparent_block(&chain[0]) {
+    if is_transparent_block(chain[0]) {
         return false;
     }
-    block_parameters(&chain[0]).is_none()
+    block_parameters(chain[0]).is_none()
 }
 
 /// Resolve a key against the immediate parent first, then a threaded
