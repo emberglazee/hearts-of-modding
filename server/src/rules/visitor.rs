@@ -158,12 +158,20 @@ fn walk_entries(
     in_state_targeted_decision: bool,
     parent: ParentContext<'_>,
 ) {
-    // Scan the current block's entries for state_target = yes to detect
+    // Scan the current block's entries for `state_target` to detect
     // state-targeted decisions. Inside those, FROM refers to the target state.
+    //
+    // The value is not always a boolean. Vanilla writes `state_target = yes`
+    // (209 sites), a state iterator (`any_controlled_state` 34,
+    // `any_owned_state` 20) and continent names (`europe`, `asia`, `africa`, …).
+    // Every form means the decision targets a state, so FROM inside its body is
+    // that state and State-scope triggers there are valid. Recognising only the
+    // boolean left the other forms resolving FROM to Country.
     let has_state_target = entries.iter().any(|e| {
         if let ast::Entry::Assignment(ass) = e {
-            ass.key_text(ctx.source) == "state_target"
-                && matches!(&ass.value.value, ast::Value::Boolean(true))
+            ass.key_text(ctx.source)
+                .eq_ignore_ascii_case("state_target")
+                && !matches!(&ass.value.value, ast::Value::Boolean(false))
         } else {
             false
         }

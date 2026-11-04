@@ -1,6 +1,7 @@
 pub mod abilities;
 pub mod backend;
 pub mod decision_activation;
+pub mod decision_state_target;
 pub mod dependency_resolution;
 pub mod events;
 pub mod filename_checksum;
