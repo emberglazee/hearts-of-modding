@@ -798,7 +798,6 @@ async function startServerInner(context: ExtensionContext, statusBarItem: Status
     }
 
     if (!fs.existsSync(serverModule)) {
-        source = { kind: 'missing' }
         const detail = `no server binary for ${process.platform}-${process.arch} (looked for ${asset}). Language features are unavailable.`
         // Identify the extension build even in the total-failure case — this is
         // exactly the report where "which version are you running?" gets asked.
