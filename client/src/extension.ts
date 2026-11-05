@@ -465,7 +465,9 @@ export async function activate(context: ExtensionContext) {
     context.subscriptions.push(commands.registerCommand('hearts-of-modding.showMemoryUsage', async () => {
         const config = workspace.getConfiguration('hoi4.showMemoryUsage')
         const currentState = config.get('enabled')
-        await config.update('enabled', !currentState, true)
+        // UI preference: workspace scope, like the other toggle commands, so
+        // it does not leak into every window the user opens.
+        await config.update('enabled', !currentState, ConfigurationTarget.Workspace)
         window.showInformationMessage(`Memory Usage Display: ${!currentState ? 'Enabled' : 'Disabled'}`)
     }))
 
@@ -543,7 +545,9 @@ export async function activate(context: ExtensionContext) {
         const fileUri = await window.showOpenDialog(options)
         if (fileUri && fileUri[0]) {
             const folderPath = fileUri[0].fsPath
-            await workspace.getConfiguration('hoi4').update('gamePath', folderPath, true)
+            // A machine path, so global scope is intended here; the explicit
+            // enum replaces the deprecated boolean form of the same thing.
+            await workspace.getConfiguration('hoi4').update('gamePath', folderPath, ConfigurationTarget.Global)
             window.showInformationMessage(`HOI4 Game Path set to: ${folderPath}`)
         }
     }))
@@ -551,7 +555,9 @@ export async function activate(context: ExtensionContext) {
     context.subscriptions.push(commands.registerCommand('hearts-of-modding.toggleStyling', async () => {
         const config = workspace.getConfiguration('hoi4.styling')
         const currentState = config.get('enabled')
-        await config.update('enabled', !currentState, true)
+        // Workspace scope, like toggleScopeValidation: writing this globally
+        // turned styling checks on for every workspace the user opened.
+        await config.update('enabled', !currentState, ConfigurationTarget.Workspace)
         window.showInformationMessage(`HOI4 Styling Checks: ${!currentState ? 'Enabled' : 'Disabled'}`)
     }))
 
@@ -793,10 +799,24 @@ async function startServerInner(context: ExtensionContext, statusBarItem: Status
 
     if (!fs.existsSync(serverModule)) {
         source = { kind: 'missing' }
+        const detail = `no server binary for ${process.platform}-${process.arch} (looked for ${asset}). Language features are unavailable.`
         // Identify the extension build even in the total-failure case — this is
         // exactly the report where "which version are you running?" gets asked.
-        logPanelProvider.append('ERROR', `CRITICAL: No server binary found! (Hearts of Modding v${extensionVersion(context)}, looked for ${asset}) Language features will not be available.`)
-        outputChannel.appendLine('CRITICAL: No server binary found! Language features will not be available.')
+        logPanelProvider.append('ERROR', `CRITICAL: ${detail} Hearts of Modding v${extensionVersion(context)}.`)
+        outputChannel.appendLine(`CRITICAL: ${detail}`)
+        // Starting a language client against a path that does not exist only
+        // surfaces a spawn failure inside the client's own error handler, so
+        // the user sees a dead extension with no reason. Stop here and say why.
+        const showLog = 'Show Log'
+        void window.showErrorMessage(`Hearts of Modding: ${detail}`, showLog).then(choice => {
+            if (choice === showLog) {
+                void commands.executeCommand('workbench.view.extension.hoi4-log').then(
+                    undefined,
+                    () => { /* view unavailable — the output channel still has the logs */ }
+                )
+            }
+        })
+        return
     } else {
         logInfo(`Using server binary at: ${serverModule} (${describeSource(source)})`)
     }
