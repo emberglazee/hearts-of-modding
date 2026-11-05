@@ -1322,15 +1322,13 @@ impl LanguageServer for Backend {
                     (Arc::new(s), e)
                 });
                 let mut scope_stack = scope::ScopeStack::new(scope::initial_scope_for_uri(&uri));
-                let sctx = scope::ScopeCtx {
-                    uri: &uri,
-                    event_targets: Some(&self.scanner_data.event_targets),
-                    characters: Some(&self.scanner_data.characters),
-                    achievements: Some(&self.scanner_data.achievements),
-                    variables: Some(&self.scanner_data.variables),
-                    in_random_list: false,
-                    state_targeted: false,
-                };
+                let sctx = scope::ScopeCtx::new(
+                    &uri,
+                    Some(&self.scanner_data.event_targets),
+                    Some(&self.scanner_data.characters),
+                    Some(&self.scanner_data.achievements),
+                    Some(&self.scanner_data.variables),
+                );
                 match find_identifier_at(&script, position, &mut scope_stack, &sctx) {
                     Some((id, _, assigned_value, context_key)) => {
                         (Some(id), assigned_value, context_key)
@@ -1388,15 +1386,13 @@ impl LanguageServer for Backend {
 
         if let Some((script, _)) = self.ensure_ast_cached(&uri) {
             let mut scope_stack = scope::ScopeStack::new(scope::initial_scope_for_uri(&uri));
-            let sctx = scope::ScopeCtx {
-                uri: &uri,
-                event_targets: Some(&self.scanner_data.event_targets),
-                characters: Some(&self.scanner_data.characters),
-                achievements: Some(&self.scanner_data.achievements),
-                variables: Some(&self.scanner_data.variables),
-                in_random_list: false,
-                state_targeted: false,
-            };
+            let sctx = scope::ScopeCtx::new(
+                &uri,
+                Some(&self.scanner_data.event_targets),
+                Some(&self.scanner_data.characters),
+                Some(&self.scanner_data.achievements),
+                Some(&self.scanner_data.variables),
+            );
             if let Some((identifier, _, _, _)) =
                 find_identifier_at(&script, position, &mut scope_stack, &sctx)
             {

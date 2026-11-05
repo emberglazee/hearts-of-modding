@@ -11,15 +11,13 @@ fn scopes_at(content: &str, uri: &str, line: u32, ch: u32) -> Vec<Scope> {
     let event_targets = DashMap::new();
     let characters = DashMap::new();
     let achievements = DashMap::new();
-    let sctx = ScopeCtx {
+    let sctx = ScopeCtx::new(
         uri,
-        event_targets: Some(&event_targets),
-        characters: Some(&characters),
-        achievements: Some(&achievements),
-        variables: None,
-        in_random_list: false,
-        state_targeted: false,
-    };
+        Some(&event_targets),
+        Some(&characters),
+        Some(&achievements),
+        None,
+    );
     let pos = Position {
         line,
         character: ch,

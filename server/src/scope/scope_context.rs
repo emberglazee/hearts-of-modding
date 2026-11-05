@@ -38,9 +38,21 @@ fn find_scope_context_in_entry(
 ) -> Option<String> {
     match entry {
         ast::Entry::Assignment(ass) => {
+            let key_text = ass.key_text(&script.source);
+            // The block key itself resolves in the parent's context; its
+            // entries resolve in this block's. Weight keys and state-targeted
+            // FROM depend on that distinction (see scope::child_flags).
+            let child_sctx = match &ass.value.value {
+                ast::Value::Block(inner) | ast::Value::TaggedBlock(_, inner, _) => {
+                    let (in_random_list, state_targeted) =
+                        scope::child_flags(key_text, inner, &script.source, sctx.state_targeted);
+                    sctx.with_flags(in_random_list, state_targeted)
+                }
+                _ => *sctx,
+            };
             if is_pos_in_range(pos, &ass.value.range) {
                 if let ast::Value::Block(_) | ast::Value::TaggedBlock(_, _, _) = &ass.value.value {
-                    let key = ass.key_text(&script.source);
+                    let key = key_text;
                     // Unified resolution — the SAME path the validation walker
                     // uses (file-type initial scope + full ScopeCtx maps), so
                     // hover/completion never diverge from HOM004.
@@ -60,7 +72,7 @@ fn find_scope_context_in_entry(
                 }
 
                 if let Some(inner) =
-                    find_scope_context_in_value(&ass.value, pos, scope_stack, sctx, script)
+                    find_scope_context_in_value(&ass.value, pos, scope_stack, &child_sctx, script)
                 {
                     return Some(inner);
                 }

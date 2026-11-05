@@ -584,15 +584,13 @@ impl Backend {
                 let initial_scope = scope::initial_scope_for_uri(&uri);
                 let mut scope_stack = scope::ScopeStack::new(initial_scope);
                 let achievements = &self.scanner_data.achievements;
-                let sctx = scope::ScopeCtx {
-                    uri: &uri,
-                    event_targets: Some(&self.scanner_data.event_targets),
-                    characters: Some(&self.scanner_data.characters),
-                    achievements: Some(achievements),
-                    variables: Some(&self.scanner_data.variables),
-                    in_random_list: false,
-                    state_targeted: false,
-                };
+                let sctx = scope::ScopeCtx::new(
+                    &uri,
+                    Some(&self.scanner_data.event_targets),
+                    Some(&self.scanner_data.characters),
+                    Some(achievements),
+                    Some(&self.scanner_data.variables),
+                );
                 if let Some((identifier, final_scopes, assigned_value, context_key)) =
                     find_identifier_at(&script, position, &mut scope_stack, &sctx)
                 {

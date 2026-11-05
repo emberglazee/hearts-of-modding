@@ -167,15 +167,10 @@ fn walk_entries(
     // Every form means the decision targets a state, so FROM inside its body is
     // that state and State-scope triggers there are valid. Recognising only the
     // boolean left the other forms resolving FROM to Country.
-    let has_state_target = entries.iter().any(|e| {
-        if let ast::Entry::Assignment(ass) = e {
-            ass.key_text(ctx.source)
-                .eq_ignore_ascii_case("state_target")
-                && !matches!(&ass.value.value, ast::Value::Boolean(false))
-        } else {
-            false
-        }
-    });
+    //
+    // Shared with the cursor walkers (hover/goto/references/completion) so the
+    // two paths cannot drift.
+    let has_state_target = crate::scope::scope::block_targets_state(entries, ctx.source);
     let state_targeted = in_state_targeted_decision || has_state_target;
 
     for entry in entries {
@@ -244,7 +239,7 @@ fn walk_entries(
                         // weights as keys (e.g. `10 = { ... }` vs `100 = event.id`).
                         // Those keys are NOT State IDs and must not push State
                         // scope. Treat both as weight blocks.
-                        let new_in_random_list = key == "random_list" || key == "random_events";
+                        let new_in_random_list = crate::scope::scope::is_weight_block_key(key);
                         crate::backend::check_duplicate_keys(
                             inner,
                             diags,

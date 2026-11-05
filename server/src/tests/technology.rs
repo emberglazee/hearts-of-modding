@@ -481,15 +481,13 @@ fn test_scope_resolution_for_technology_tag_containers() {
 
     // A folder's `available` trigger block resolves to Country scope inside
     // the stack — the engine evaluates it per-country.
-    let sctx = ScopeCtx {
-        uri: "/mod/common/technology_tags/test.txt",
-        event_targets: None,
-        characters: None,
-        achievements: None,
-        variables: None,
-        in_random_list: false,
-        state_targeted: false,
-    };
+    let sctx = ScopeCtx::new(
+        "/mod/common/technology_tags/test.txt",
+        None,
+        None,
+        None,
+        None,
+    );
     let mut stack = ScopeStack::new(Scope::Global);
     let (s, _) = stack.resolve_entry_scope("technology_folders", &sctx);
     assert_eq!(s, Scope::TechnologyFolders);

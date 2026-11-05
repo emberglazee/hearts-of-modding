@@ -1,5 +1,6 @@
 pub mod abilities;
 pub mod backend;
+pub mod cursor_scope_flags;
 pub mod decision_activation;
 pub mod decision_highlight;
 pub mod decision_state_target;

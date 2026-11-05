@@ -377,15 +377,13 @@ impl Backend {
             // (event targets, characters, achievements) so completion never
             // diverges from HOM004 scope inference.
             let initial_scope = scope::initial_scope_for_uri(&uri);
-            let sctx = scope::ScopeCtx {
-                uri: &uri,
-                event_targets: Some(&self.scanner_data.event_targets),
-                characters: Some(&self.scanner_data.characters),
-                achievements: Some(&self.scanner_data.achievements),
-                variables: Some(&self.scanner_data.variables),
-                in_random_list: false,
-                state_targeted: false,
-            };
+            let sctx = scope::ScopeCtx::new(
+                &uri,
+                Some(&self.scanner_data.event_targets),
+                Some(&self.scanner_data.characters),
+                Some(&self.scanner_data.achievements),
+                Some(&self.scanner_data.variables),
+            );
             let (ctx, scopes) = find_scope_context_at(&script, position, initial_scope, &sctx);
             current_scopes = scopes;
 

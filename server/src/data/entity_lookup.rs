@@ -696,15 +696,13 @@ mod tests {
         let data = lookup.data;
 
         let mut scope_stack = ScopeStack::new(crate::scope::scope::initial_scope_for_uri(&uri));
-        let sctx = crate::scope::scope::ScopeCtx {
-            uri: &uri,
-            event_targets: Some(&data.event_targets),
-            characters: Some(&data.characters),
-            achievements: Some(&data.achievements),
-            variables: Some(&data.variables),
-            in_random_list: false,
-            state_targeted: false,
-        };
+        let sctx = crate::scope::scope::ScopeCtx::new(
+            &uri,
+            Some(&data.event_targets),
+            Some(&data.characters),
+            Some(&data.achievements),
+            Some(&data.variables),
+        );
         let line = 1u32;
         let col = content.lines().nth(1).unwrap().find("422").unwrap() as u32;
         let res = find_identifier_at(

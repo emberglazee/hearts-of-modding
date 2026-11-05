@@ -114,11 +114,29 @@ pub fn find_in_entry(
                 None
             };
 
+            // Mirror the validation walker's block context before descending:
+            // keys inside `random_list`/`random_events` are weights, not state
+            // ids, and `FROM` inside a `state_target` decision is the target
+            // state. Without this every hover/goto/reference on a weight key
+            // resolved as State and FROM resolved as the country.
+            let child_sctx = match &ass.value.value {
+                ast::Value::Block(inner) | ast::Value::TaggedBlock(_, inner, _) => {
+                    let (in_random_list, state_targeted) = scope::child_flags(
+                        ass.key_text(source),
+                        inner,
+                        source,
+                        sctx.state_targeted,
+                    );
+                    sctx.with_flags(in_random_list, state_targeted)
+                }
+                _ => *sctx,
+            };
+
             let mut res = find_in_value(
                 &ass.value,
                 pos,
                 scope_stack,
-                sctx,
+                &child_sctx,
                 Some(ass.key_text(source).to_string()),
                 child_anchor,
                 source,

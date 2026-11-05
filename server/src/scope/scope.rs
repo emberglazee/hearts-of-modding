@@ -1,5 +1,6 @@
 use crate::data::interner::InternedStr;
 use crate::data::layered_value::LayeredValue;
+use crate::parser::ast;
 use crate::scanner::achievement_scanner::Achievement;
 use crate::scanner::character_scanner::Character;
 use crate::scanner::variable_scanner::{EventTarget, Variable};
@@ -419,6 +420,7 @@ pub fn resolve_key_scope(
 ///
 /// Pass whatever data is available at the call site. Maps that aren't available
 /// are `None` — the corresponding lookups are simply skipped.
+#[derive(Clone, Copy)]
 pub struct ScopeCtx<'a> {
     pub uri: &'a str,
     /// Optional scanner maps so callers that lack them (hover/symbol paths)
@@ -432,8 +434,89 @@ pub struct ScopeCtx<'a> {
     /// `temp_var:name = { }` scope blocks. `None` simply means "no data for
     /// this lookup" (unknown vars keep resolving `Unknown`, as before).
     pub variables: Option<&'a DashMap<InternedStr, Vec<Variable>>>,
+    /// True when the keys of the block being resolved are `random_list` /
+    /// `random_events` weights. A numeric weight is not a state id.
     pub in_random_list: bool,
+    /// True inside a decision that carries `state_target`, where `FROM` is the
+    /// target state rather than the country.
     pub state_targeted: bool,
+}
+
+impl<'a> ScopeCtx<'a> {
+    /// Build a ctx from a file's scanned maps. The two context flags start
+    /// false, which is correct at file root; walkers that descend blocks call
+    /// [`child_flags`] and pass the result through [`with_flags`].
+    pub fn new(
+        uri: &'a str,
+        event_targets: Option<&'a DashMap<InternedStr, Vec<EventTarget>>>,
+        characters: Option<&'a DashMap<InternedStr, LayeredValue<Character>>>,
+        achievements: Option<&'a DashMap<InternedStr, LayeredValue<Achievement>>>,
+        variables: Option<&'a DashMap<InternedStr, Vec<Variable>>>,
+    ) -> Self {
+        ScopeCtx {
+            uri,
+            event_targets,
+            characters,
+            achievements,
+            variables,
+            in_random_list: false,
+            state_targeted: false,
+        }
+    }
+
+    #[must_use]
+    pub fn with_flags(self, in_random_list: bool, state_targeted: bool) -> Self {
+        ScopeCtx {
+            in_random_list,
+            state_targeted,
+            ..self
+        }
+    }
+}
+
+/// Context flags for the entries INSIDE a block whose key is `key`.
+///
+/// `random_list` and `random_events` both use numeric weights as keys, which
+/// must not resolve as state ids. `state_target` marks a decision whose `FROM`
+/// is the target state; vanilla writes it as `yes`, a state iterator or a
+/// continent name, so any value other than `no` counts.
+///
+/// The random flag describes this block only (mirroring the validation walker,
+/// which resets it per block), while the state-target flag inherits down the
+/// tree.
+pub fn child_flags(
+    key: &str,
+    entries: &[ast::Entry],
+    source: &str,
+    parent_state_targeted: bool,
+) -> (bool, bool) {
+    (
+        is_weight_block_key(key),
+        parent_state_targeted || block_targets_state(entries, source),
+    )
+}
+
+/// `random_list` and `random_events` keys hold weights, not state ids.
+pub fn is_weight_block_key(key: &str) -> bool {
+    key.eq_ignore_ascii_case("random_list") || key.eq_ignore_ascii_case("random_events")
+}
+
+/// Whether a block declares `state_target`.
+///
+/// The value is not always a boolean. Vanilla writes `state_target = yes`
+/// (209 sites), a state iterator (`any_controlled_state` 34, `any_owned_state`
+/// 20) and continent names (`europe`, `asia`, `africa`, …). Every form means
+/// the decision targets a state, so `FROM` inside its body is that state.
+/// Recognising only the boolean left the other forms resolving `FROM` to
+/// Country.
+pub fn block_targets_state(entries: &[ast::Entry], source: &str) -> bool {
+    entries.iter().any(|entry| match entry {
+        ast::Entry::Assignment(ass) => {
+            ass.key_text(source).eq_ignore_ascii_case("state_target")
+                && !matches!(&ass.value.value, ast::Value::Boolean(false))
+        }
+        _ => false,
+    })
 }
 
 /// Detect the initial scope for a script file based on its path — the SAME

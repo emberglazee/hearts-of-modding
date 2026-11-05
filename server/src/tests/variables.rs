@@ -754,15 +754,13 @@ fn test_resolve_var_scope_block_from_tracked_variables() {
             scope: Scope::Country,
         }],
     );
-    let sctx = ScopeCtx {
-        uri: "/mod/common/decisions/test.txt",
-        event_targets: None,
-        characters: None,
-        achievements: None,
-        variables: Some(&vars),
-        in_random_list: false,
-        state_targeted: false,
-    };
+    let sctx = ScopeCtx::new(
+        "/mod/common/decisions/test.txt",
+        None,
+        None,
+        None,
+        Some(&vars),
+    );
     let stack = ScopeStack::new(Scope::Country);
     let (s, _) = stack.resolve_entry_scope("var:UNO_target", &sctx);
     assert_eq!(s, Scope::Country);

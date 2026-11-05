@@ -234,15 +234,13 @@ fn test_initial_scope_and_on_actions_wrapper() {
     let empty: DashMap<InternedStr, Vec<EventTarget>> = DashMap::new();
     let chars: DashMap<InternedStr, LayeredValue<crate::scanner::character_scanner::Character>> =
         DashMap::new();
-    let sctx = ScopeCtx {
-        uri: "/mod/common/on_actions/test.txt",
-        event_targets: Some(&empty),
-        characters: Some(&chars),
-        achievements: None,
-        variables: None,
-        in_random_list: false,
-        state_targeted: false,
-    };
+    let sctx = ScopeCtx::new(
+        "/mod/common/on_actions/test.txt",
+        Some(&empty),
+        Some(&chars),
+        None,
+        None,
+    );
     let (s, _) = stack.resolve_entry_scope("on_actions", &sctx);
     assert_eq!(
         s,
@@ -268,15 +266,7 @@ fn test_nested_on_key_not_treated_as_on_action() {
     let chars: DashMap<InternedStr, LayeredValue<crate::scanner::character_scanner::Character>> =
         DashMap::new();
     let uri = "/mod/common/on_actions/test.txt";
-    let sctx = ScopeCtx {
-        uri,
-        event_targets: Some(&empty),
-        characters: Some(&chars),
-        achievements: None,
-        variables: None,
-        in_random_list: false,
-        state_targeted: false,
-    };
+    let sctx = ScopeCtx::new(uri, Some(&empty), Some(&chars), None, None);
 
     // Global > OnActions > on_daily (Country) > effect (Unknown — walker does NOT push, so stack stays Country)
     let mut stack = ScopeStack::new(Scope::OnActions);
