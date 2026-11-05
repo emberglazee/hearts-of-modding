@@ -1164,6 +1164,13 @@ fn update_modifiers(scanner_data: &ScannerData, path_str: &str, script: &ast::Sc
     );
 }
 
+/// Path accessor for `sub_ideologies` layers, which are
+/// `(ideology, range, path)` tuples. A named fn rather than a closure so the
+/// `Fn(&T) -> &str` bound gets the higher-ranked signature.
+fn sub_ideology_path(v: &(InternedStr, ast::Range, InternedStr)) -> &str {
+    v.2.as_ref()
+}
+
 fn update_ideologies(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
     let mut new_entries = HashMap::new();
     ideology_scanner::find_ideologies_in_entries(
@@ -1194,50 +1201,18 @@ fn update_ideologies(scanner_data: &ScannerData, path_str: &str, script: &ast::S
         new_entries
     );
 
-    // sub_ideologies is a tuple (String, Range, String) — handle manually
-    // since tuples can't implement HasPath or use the retain_path! macro
-    if let Some((_, old_keys)) = scanner_data
-        .sub_ideologies_file_index
-        .remove(&index_key(path_str))
-    {
-        for key in &old_keys {
-            let empty = match scanner_data.sub_ideologies.get_mut(key) {
-                Some(mut value) => {
-                    let p: &str = path_str;
-                    value.layers_mut().retain(|v| !path_matches(&v.2, p));
-                    value.layers().is_empty()
-                }
-                None => false,
-            };
-            if empty {
-                scanner_data.sub_ideologies.remove(key);
-            }
-        }
-    } else {
-        let p_owned = path_str.to_owned();
-        scanner_data.sub_ideologies.retain(|_, lv| {
-            lv.layers_mut().retain(|v| !path_matches(&v.2, &p_owned));
-            !lv.layers().is_empty()
-        });
-    }
-    let mut sub_keys = Vec::with_capacity(sub_map.len());
-    for (key, value) in sub_map {
-        match scanner_data.sub_ideologies.get_mut(&key) {
-            Some(mut existing) => {
-                existing.push(value);
-            }
-            None => {
-                scanner_data.sub_ideologies.insert(
-                    key.clone(),
-                    crate::data::layered_value::LayeredValue::new(value),
-                );
-            }
-        }
-        sub_keys.push(key);
-    }
-    scanner_data
-        .sub_ideologies_file_index
-        .insert(index_key(path_str), sub_keys);
+    // `sub_ideologies` layers are (ideology, range, path) tuples, so this uses
+    // the macro's custom path accessor. The hand-rolled copy that used to sit
+    // here called `push`, which appends at the highest-priority end: re-scanning
+    // a lower-priority file promoted its sub-ideology over the mod that
+    // overrides it, until a full rescan.
+    retain_path!(
+        scanner_data.sub_ideologies,
+        scanner_data.sub_ideologies_file_index,
+        path_str,
+        sub_map,
+        sub_ideology_path
+    );
 }
 
 fn update_traits(
@@ -3115,6 +3090,39 @@ mod tests {
             map.get("shared_key").unwrap().resolve().name,
             "workspace_v2"
         );
+
+        // Same rule for the tuple-valued `sub_ideologies` map, which goes through
+        // the 5-arg form of the macro. That map used to be a hand-rolled copy
+        // calling `push`, so re-scanning a dependency file promoted its
+        // sub-ideology over the workspace layer until a full rescan.
+        let data = crate::data::scanner_data::ScannerData::new();
+        let ideology_text =
+            |sub: &str| format!("ideologies = {{ fascism = {{ types = {{ {sub} = {{ }} }} }} }}");
+        let (ws_script, _) = crate::parser::parser::parse_script(&ideology_text("nazism"));
+        update_ideologies(&data, "/mod/workspace/common/ideologies/x.txt", &ws_script);
+        let resolve_sub = |d: &crate::data::scanner_data::ScannerData| -> String {
+            d.sub_ideologies
+                .get("nazism")
+                .expect("sub-ideology present")
+                .resolve()
+                .2
+                .to_string()
+        };
+        assert_eq!(resolve_sub(&data), "/mod/workspace/common/ideologies/x.txt");
+
+        let (dep_script, _) = crate::parser::parser::parse_script(&ideology_text("nazism"));
+        update_ideologies(&data, "/mod/dep/common/ideologies/x.txt", &dep_script);
+        assert_eq!(
+            resolve_sub(&data),
+            "/mod/workspace/common/ideologies/x.txt",
+            "a re-scanned dependency file must not outrank the workspace layer"
+        );
+        assert_eq!(data.sub_ideologies.get("nazism").unwrap().layers().len(), 2);
+
+        // A second re-scan of the dependency file replaces its layer in place.
+        update_ideologies(&data, "/mod/dep/common/ideologies/x.txt", &dep_script);
+        assert_eq!(data.sub_ideologies.get("nazism").unwrap().layers().len(), 2);
+        assert_eq!(resolve_sub(&data), "/mod/workspace/common/ideologies/x.txt");
 
         set_scan_roots(Vec::new());
     }
