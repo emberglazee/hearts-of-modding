@@ -119,9 +119,12 @@ const FLAG_THUMB_H: u32 = 24;
 
 /// Resolve `@TAG` to its engine flag (`gfx/flags/TAG.tga` — always the default
 /// flag, never ideology variants; `hoi4-wiki/documentation/localisation.md`
-/// §"Country's flags"). Mod roots shadow the game path (FileOverlay
-/// semantics, cf. `rules/gfx_textures.rs` texture lookup). Returns `None` when
-/// no file exists or it fails to decode — callers fall back to `[Flag: TAG]`.
+/// §"Country's flags"). The highest-priority layer wins: `roots` is built
+/// lowest-first for the VFS (game path, dependency mods, then the workspace), so
+/// this walks it in reverse. Iterating it in build order instead made the game
+/// path shadow every mod, which is wrong for the seven tags Hearts of Minecraft
+/// redefines. Returns `None` when no file exists or it fails to decode — callers
+/// fall back to `[Flag: TAG]`.
 pub fn resolve_flag_image(
     tag: &str,
     roots: &[std::path::PathBuf],
@@ -132,10 +135,13 @@ pub fn resolve_flag_image(
     // canonical uppercase (mod files are uppercase by convention).
     let upper = tag.to_uppercase();
     let spellings: [&str; 2] = [tag, &upper];
-    for dir in roots.iter().map(Some).chain(std::iter::once(
-        game_path.map(std::path::PathBuf::from).as_ref(),
-    )) {
-        let Some(dir) = dir else { continue };
+    // The game path also sits in `roots`, as the lowest layer. Keep it as an
+    // explicit fallback for callers that resolve without a root stack, but do
+    // not stat it twice.
+    let game_dir = game_path
+        .map(std::path::Path::new)
+        .filter(|gp| !roots.iter().any(|r| r.as_path() == *gp));
+    for dir in roots.iter().rev().map(|p| p.as_path()).chain(game_dir) {
         for spelling in spellings {
             // `spellings` may hold the same &str twice; the cache makes the
             // duplicate lookup free.
@@ -860,6 +866,61 @@ mod tests {
         std::fs::remove_file(&path).unwrap();
         assert!(resolve_flag_image("KFS", &roots, None, &cache).is_some());
         std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    /// Layer precedence: `roots` is a VFS stack built lowest priority first, so
+    /// the last root wins a name collision. This is the Hearts of Minecraft case,
+    /// where the mod redefines CAT, HAW, ICE, OMN, SAM, SER and SOL.
+    #[test]
+    fn test_highest_priority_root_wins_flag_collision() {
+        use image::ImageEncoder;
+
+        let base = std::env::temp_dir().join(format!("hom_flag_layers_{}", std::process::id()));
+        let write_flag = |dir: &std::path::Path, tag: &str, w: u32, h: u32| {
+            let flags = dir.join("gfx/flags");
+            std::fs::create_dir_all(&flags).unwrap();
+            let px = vec![255u8; (w * h * 4) as usize];
+            let f = std::fs::File::create(flags.join(format!("{tag}.tga"))).unwrap();
+            image::codecs::tga::TgaEncoder::new(f)
+                .write_image(&px, w, h, image::ExtendedColorType::Rgba8)
+                .unwrap();
+        };
+
+        let vanilla = base.join("vanilla");
+        let mod_root = base.join("mod");
+        write_flag(&vanilla, "CAT", 4, 2); // 4:2 -> 48x24
+        write_flag(&vanilla, "VAN", 4, 2);
+        write_flag(&mod_root, "CAT", 2, 8); // 2:8 -> 6x24
+
+        // Both layers define CAT; the last root must win.
+        let cache: DashMap<String, FlagImage> = DashMap::new();
+        let roots = vec![vanilla.clone(), mod_root.clone()];
+        let hit = resolve_flag_image("CAT", &roots, None, &cache).expect("flag resolves");
+        assert_eq!(
+            hit.width_px, 6,
+            "highest-priority root wins the collision (vanilla would be 48)"
+        );
+        assert_eq!(hit.height_px, 24);
+
+        // The lower layer still answers for a tag the mod does not define.
+        let cache_vanilla: DashMap<String, FlagImage> = DashMap::new();
+        let wide =
+            resolve_flag_image("VAN", &roots, None, &cache_vanilla).expect("vanilla-only tag");
+        assert_eq!(wide.width_px, 48);
+
+        // Without the game path in the stack, it still works as a fallback.
+        let cache_fallback: DashMap<String, FlagImage> = DashMap::new();
+        let only_mod = vec![mod_root.clone()];
+        let from_game = resolve_flag_image(
+            "VAN",
+            &only_mod,
+            Some(vanilla.to_str().unwrap()),
+            &cache_fallback,
+        )
+        .expect("game path fallback");
+        assert_eq!(from_game.width_px, 48);
+
+        std::fs::remove_dir_all(&base).unwrap();
     }
 
     /// Same contract for `$key$` references: the membership test
