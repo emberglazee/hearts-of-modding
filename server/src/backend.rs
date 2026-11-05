@@ -691,6 +691,15 @@ impl Backend {
         // Pacing with small sleeps prevents VS Code's receive buffer from
         // filling up when there are thousands of files to publish.
         for (i, (uri, diags)) in pending.iter().enumerate() {
+            // This scan validated files as they are on disk. An open document's
+            // Problems belong to `validate_document`, which validates the live
+            // buffer; publishing the disk view here replaces an unsaved fix with
+            // its old error (or hides an unsaved mistake) until the next
+            // keystroke. `publish_workspace_clear` skips open documents for the
+            // same reason, so a scan must not write them either.
+            if self.documents.contains_key(uri.as_str()) {
+                continue;
+            }
             self.client
                 .publish_diagnostics(uri.clone(), diags.clone(), None)
                 .await;
