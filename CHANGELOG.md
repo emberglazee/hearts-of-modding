@@ -5,6 +5,12 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 | ℹ️ | If the last version here is not released yet, it's still in development. |
 |----|:-------------------------------------------------------------------------|
 
+## [v0.32.1] - 2026-11-06
+
+### 🩹 Fixed
+
+- **History country files no longer flag their top-level effects as `HOM004`.** `initial_scope_for_uri` had no branch for `/history/countries/`, so files like `MCC - Championship Island.txt` started in Global scope and every `capital`, `set_country_flag`, `oob`, `set_technology`, `add_ideas`, `set_politics`, `recruit_character`, … reported "is not valid in Global scope". They now start in Country scope, matching the engine. Test on the reported file's effect list; reverting the branch reproduces the mismatches. `history/states/`, `history/general/` and `history/units/` are left at the default and will be handled if diagnostics appear there.
+
 ## [v0.32.0] - 2026-11-05
 
 ### ✨ Added

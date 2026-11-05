@@ -533,6 +533,10 @@ pub fn initial_scope_for_uri(uri: &str) -> Scope {
         // }). The `characters` wrapper then pushes Character, so every token
         // body evaluates with THIS = character.
         Scope::Country
+    } else if uri.contains("/history/countries/") {
+        // History files are evaluated in the country's scope: `capital`, `oob`,
+        // `set_technology`, `add_ideas`, `set_politics`, … at top level.
+        Scope::Country
     } else if uri.contains("/common/decisions/") {
         Scope::Country
     } else if uri.contains("/common/aces/") {
