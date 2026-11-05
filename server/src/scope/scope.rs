@@ -965,6 +965,16 @@ impl ScopeStack {
             return (Scope::Country, false);
         }
 
+        // 5b. Strategic region weather blocks are property bags: temperature,
+        // no_phenomenon, rain_light, ... are not triggers/effects and must not
+        // be checked against the enclosing Strategic Region scope.
+        let lower_key = key.to_ascii_lowercase();
+        if (lower_key == "weather" || lower_key == "period")
+            && ctx.uri.contains("/map/strategicregions/")
+        {
+            return (Scope::ModifierBag, true);
+        }
+
         // 6. Modifier application blocks → ModifierBag (validation skipped).
         // Covers the plural/plural-suffixed forms (`modifiers`, `unit_modifiers`),
         // the singular containers used by ideas and characters — `modifier`,
@@ -974,7 +984,6 @@ impl ScopeStack {
         // Their entries are modifier keys and equipment/research categories, not
         // triggers: validating `armor = 0.15` as a trigger against the enclosing
         // Idea scope is a category error (modifiers have no runtime scope).
-        let lower_key = key.to_ascii_lowercase();
         if lower_key == "modifiers"
             || lower_key == "modifier"
             || lower_key.ends_with("_modifiers")

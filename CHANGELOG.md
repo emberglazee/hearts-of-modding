@@ -5,9 +5,11 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 | ℹ️ | If the last version here is not released yet, it's still in development. |
 |----|:-------------------------------------------------------------------------|
 
-## [v0.32.1] - 2026-11-06
+## [v0.32.1] - 2026-11-08
 
 ### 🩹 Fixed
+
+- **Strategic region weather keys no longer flag as `HOM004`.** A strategic region's `weather = { period = { ... } }` block carries weather properties (`temperature`, `no_phenomenon`, `rain_light`, `rain_heavy`, `snow`, `blizzard`, `arctic_water`, `mud`, `sandstorm`, `min_snow_level`, `between`), none of which are triggers or effects. `temperature` is also registered as a Unit-scope trigger, so the enclosing Strategic Region scope made every one of these report "is not valid in Strategic Region scope. Expected scopes: Unit". The `weather` and `period` blocks now resolve as `ModifierBag` (validation skipped) inside strategic region files, matching how modifier and equipment-bonus blocks are already handled. Covered by `strategic_region_scope.rs`; reverting the branch makes `temperature` reappear as a mismatch.
 
 - **History country files no longer flag their top-level effects as `HOM004`.** `initial_scope_for_uri` had no branch for `/history/countries/`, so those files started in Global scope and every `capital`, `set_country_flag`, `oob`, `set_technology`, `add_ideas`, `set_politics`, `recruit_character`, … reported "is not valid in Global scope". They now start in Country scope, matching the engine. Test on a representative effect list; reverting the branch reproduces the mismatches. `history/states/`, `history/general/` and `history/units/` are left at the default and will be handled if diagnostics appear there.
 

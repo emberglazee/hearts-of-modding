@@ -27,6 +27,7 @@ pub mod registry;
 pub mod scope_blocks;
 pub mod scope_parameters;
 pub mod scripted_loc;
+pub mod strategic_region_scope;
 pub mod technology;
 pub mod units;
 pub mod utf16_conversion;
