@@ -125,14 +125,21 @@ impl FileOverlay {
     pub fn winning_files_in(&self, prefix: &str) -> Vec<PathBuf> {
         // Normalize prefix to use forward slashes
         let prefix_norm = prefix.trim_end_matches('/');
+        if prefix_norm.is_empty() {
+            // `scan_variables` passes "" to mean every winning file. That used
+            // to work through `starts_with("")`, which is true for any string.
+            return self.entries.values().cloned().collect();
+        }
         let prefix_check = format!("{}/", prefix_norm);
 
         self.entries
             .iter()
             .filter(|(rel_path, _)| {
-                rel_path.as_str() == prefix_norm
-                    || rel_path.starts_with(&prefix_check)
-                    || rel_path.starts_with(prefix_norm)
+                // A bare `starts_with(prefix_norm)` also matched sibling
+                // directories, so `map` collected `map_modes/` and
+                // `common/ideas` collected `common/ideas_extra/`. The equality
+                // arm covers the prefix itself, the slash arm its subtree.
+                rel_path.as_str() == prefix_norm || rel_path.starts_with(&prefix_check)
             })
             .map(|(_, abs_path)| abs_path.clone())
             .collect()
@@ -536,6 +543,54 @@ mod tests {
         assert!(
             entries.contains_key("common/scripted_localisation/mod_loc.txt"),
             "mod scripted loc must remain in overlay"
+        );
+
+        fs::remove_dir_all(&root).ok();
+    }
+
+    /// Sibling directories that share a name prefix are different directories.
+    /// `winning_files_in("map")` must not collect `map_modes/`, and
+    /// `common/ideas` must not collect `common/ideas_extra/`.
+    #[test]
+    fn test_winning_files_in_does_not_match_sibling_prefixes() {
+        let root = temp_dir();
+        let vanilla = root.join("vanilla");
+        create_file(&vanilla.join("map/unitstacks.txt"));
+        create_file(&vanilla.join("map_modes/unitstacks.txt"));
+        create_file(&vanilla.join("common/ideas/usa.txt"));
+        create_file(&vanilla.join("common/ideas_extra/usa.txt"));
+
+        let overlay = FileOverlay::build(std::slice::from_ref(&vanilla), &["txt"], pass_all, &[]);
+        let names = |prefix: &str| -> Vec<String> {
+            overlay
+                .winning_files_in(prefix)
+                .iter()
+                .map(|p| p.to_string_lossy().replace('\\', "/"))
+                .collect()
+        };
+
+        let map = names("map");
+        assert_eq!(map.len(), 1, "map/ must not collect map_modes/: {map:?}");
+        assert!(map[0].ends_with("/map/unitstacks.txt"));
+
+        let ideas = names("common/ideas");
+        assert_eq!(
+            ideas.len(),
+            1,
+            "common/ideas must not collect common/ideas_extra/: {ideas:?}"
+        );
+        assert!(ideas[0].ends_with("/common/ideas/usa.txt"));
+
+        // A trailing slash still works, and the exact key still matches.
+        assert_eq!(names("common/ideas/").len(), 1);
+        assert_eq!(names("map/").len(), 1);
+
+        // An empty prefix means "every winning file" (`scan_variables` relies
+        // on it); that must survive the prefix tightening.
+        assert_eq!(
+            names("").len(),
+            4,
+            "the empty prefix must return every entry"
         );
 
         fs::remove_dir_all(&root).ok();
