@@ -5,13 +5,19 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 | ℹ️ | If the last version here is not released yet, it's still in development. |
 |----|:-------------------------------------------------------------------------|
 
-## [v0.32.0] - 2026-11-04
+## [v0.32.0] - 2026-11-05
 
 ### ✨ Added
 
 - **Non-ASCII file name validation (HOM6006).** File names under `common/`, `events/`, `history/` and `map/` (the files the game's `checksum_manifest.txt` covers) now warn when they contain non-ASCII characters. The multiplayer checksum hashes file names, and Windows and Linux encode non-ASCII names differently, so players on different systems compute different checksums and cannot join the same session. Rename the file to ASCII; in-game names come from localisation.
 
 ### 🩹 Fixed
+
+- **Idea and character definition files no longer report valid vanilla triggers as scope mismatches (HOM004).** `allowed` sat in `transparent_block_types`, and that check runs before the `Country` mapping in `Scope::from_str`, so `allowed = { original_tag = ... }` validated in the enclosing `Idea` scope instead of `Country`. Vanilla writes `allowed = {` 6,315 times in `common/ideas` and 3,373 times in `common/characters`; the full vanilla corpus produced **8,516 diagnostics across `common/ideas`** and **6,487 across `common/characters`**, all false. The transparency list and the keyword list are now separate (`keyword_block_types` keeps the highlighting, `transparent_block_types` keeps only the blocks that truly inherit a scope), so `allowed` pushes `Country` again. `allowed_civil_war`, `allowed_to_remove`, `cancel`, `on_add`, `on_remove` and `do_effect` gained their missing scope mappings in the same pass, and modifier containers (`modifier`, `targeted_modifier`, `research_bonus`, `equipment_bonus`, an idea's `rule`) are treated as the flat bags they are instead of trigger blocks. Result: **8,516 → 3** diagnostics in `common/ideas` and **6,487 → 4** in `common/characters`, with no new diagnostics anywhere in the sample.
+
+- **`common/characters/` now has a scope model.** Character definition files started in `Global`, so every `advisor` / `corps_commander` / `country_leader` body was validated as `Global` — `skill = 4` warned that it expected `Character, Unit`, and nothing else resolved. The file now starts in `Country` (in a character file `THIS` is the character and `ROOT` is its country, which is how vanilla writes `ROOT = { has_government = ... }` inside `on_add`), `characters` and `generate_character` push `Character`, and the per-block rules match the engine: `on_add` / `on_remove` run on the character, `do_effect` runs on the country, and `allowed` / `available` / `visible` are skipped because vanilla mixes country triggers (`original_tag`, `has_completed_focus`) with character triggers (`has_character_flag`, `is_country_leader`) in the same block — no single scope describes them, and a missed diagnostic is cheaper than a false one.
+
+- **`ROOT` inside a definition file now means the country, not the file marker (HOM004).** A pointer resolved to the first non-transparent stack node, which is the file's initial `Global` marker, so `ROOT = { exists = no }` inside an idea validated in `Global` and warned. The initial marker is now skipped, and entity-definition scopes (`Idea`, `Hidden Idea Category`, `Focus Tree`, `National Focus`, `Technologies`) resolve to the country the engine evaluates them on.
 
 - **Scope validation no longer reports an effect's *parameters* as scope mismatches (HOM004).** `promote_leader = yes` inside `add_country_leader_role = { ... }` is a documented boolean parameter, but the same word also names a Character-scope effect, so the vanilla pattern warned on every country-scope focus reward and decision that used it. When the enclosing block documents a key as a parameter, the check now treats it as a parameter; that also clears `skill` inside `create_corps_commander`. The same key used as a real invocation is still flagged.
 

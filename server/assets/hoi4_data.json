@@ -39381,11 +39381,33 @@
 			"description": "Global scope"
 		}
 	},
-	"transparent_block_types": [
+	"keyword_block_types": [
 		"AND",
 		"NOT",
 		"OR",
 		"allowed",
+		"chance",
+		"count_triggers",
+		"custom_override_tooltip",
+		"custom_trigger_tooltip",
+		"effect_tooltip",
+		"for_each_loop",
+		"for_each_scope_loop",
+		"for_loop_effect",
+		"hidden_effect",
+		"hidden_trigger",
+		"if",
+		"limit",
+		"option",
+		"random",
+		"random_list",
+		"trigger",
+		"while_loop_effect"
+	],
+	"transparent_block_types": [
+		"AND",
+		"NOT",
+		"OR",
 		"chance",
 		"count_triggers",
 		"custom_override_tooltip",

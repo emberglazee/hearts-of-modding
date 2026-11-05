@@ -50,11 +50,20 @@ pub enum Scope {
     /// `doctrine`); the folder's `available` block is evaluated per-country,
     /// so the container is effectively country-scoped.
     TechnologyFolders,
-    /// A modifier-application target block (e.g. `unit_modifiers = { }`).
+    /// A modifier-application target block (e.g. `unit_modifiers = { }`), an
+    /// idea `rule = { }` block, or any other flat bag of modifier keys.
     /// The engine reads these as a flat bag of modifiers and routes them
     /// per-key — not a trigger/effect evaluation scope. V2ScopeRule skips
     /// scope checks inside these blocks.
     ModifierBag,
+    /// A trigger block inside a character definition (`allowed`, `available`,
+    /// `visible` under `common/characters/` or `generate_character`). The engine
+    /// evaluates these with the character as THIS, yet vanilla freely mixes
+    /// country triggers (`original_tag`, `has_completed_focus`) with character
+    /// triggers (`has_character_flag`, `is_country_leader`) in the same block,
+    /// so neither scope describes it. `V2ScopeRule` skips scope checks here —
+    /// a false negative is cheaper than flagging valid vanilla content.
+    CharacterCondition,
     /// Structural container for `common/on_actions/*.txt` (`on_actions = { }`). Its children are individual `on_*` blocks, each with its own runtime
     /// scope (Country / State / Character / Unit / Global).
     OnActions,
@@ -96,6 +105,7 @@ impl Scope {
             Scope::TechnologyCategories => "Technology Categories",
             Scope::TechnologyFolders => "Technology Folders",
             Scope::ModifierBag => "Modifier Bag",
+            Scope::CharacterCondition => "Character Condition",
             Scope::OnActions => "On Actions",
             Scope::ScriptedEffect => "Scripted Effect",
             Scope::ScriptedTrigger => "Scripted Trigger",
@@ -111,6 +121,10 @@ impl Scope {
             Scope::FocusTree | Scope::NationalFocus | Scope::Technologies => Scope::Country,
             Scope::OnActions => Scope::Global,
             Scope::ScriptedEffect | Scope::ScriptedTrigger => Scope::Country,
+            // Character condition blocks are character-context trigger blocks;
+            // `Character` gives the most useful completion filtering (character
+            // triggers dominate them).
+            Scope::CharacterCondition => Scope::Character,
             Scope::Unknown => Scope::Global,
             other => *other,
         }
@@ -143,7 +157,7 @@ impl Scope {
             | Scope::ScriptedTrigger
             | Scope::FocusTree
             | Scope::NationalFocus => 1,
-            Scope::Unknown | Scope::ModifierBag => 0,
+            Scope::Unknown | Scope::ModifierBag | Scope::CharacterCondition => 0,
         }
     }
 
@@ -166,6 +180,24 @@ impl Scope {
             }
         }
         best_scope
+    }
+
+    /// The runtime scope a definition-body scope evaluates against.
+    ///
+    /// Entity-definition scopes exist so the editor can tell an idea body from
+    /// a country body, but the engine evaluates them on a country: a `ROOT`
+    /// pointer inside `common/ideas` or a focus tree means the country, not the
+    /// definition container. Used by [`ScopeStack::resolve_pointer`] so `ROOT`
+    /// does not resolve to `Idea`/`Focus Tree`.
+    pub fn runtime_root_scope(&self) -> Scope {
+        match self {
+            Scope::Idea
+            | Scope::HiddenIdeaCategory
+            | Scope::NationalFocus
+            | Scope::FocusTree
+            | Scope::Technologies => Scope::Country,
+            other => *other,
+        }
     }
 
     /// Map an `on_*` action name to its runtime scope.
@@ -245,6 +277,14 @@ impl Scope {
             // wildcard so they're recognized as structural scopes.
             "scripted_effect" | "scripted_effects" => Scope::ScriptedEffect,
             "scripted_trigger" | "scripted_triggers" => Scope::ScriptedTrigger,
+            // Character definitions. `characters` is the file-level container in
+            // `common/characters/*.txt`; `generate_character` is the effect-block
+            // form used by `history/general/*.txt`. Both bodies are evaluated
+            // with ROOT/THIS = the character — role blocks (`advisor`,
+            // `corps_commander`, `country_leader`, ...) inherit this scope and
+            // must NOT be listed here: `country_leader = { ... }` also appears
+            // inside effects and decisions, where it is not a character body.
+            "characters" | "generate_character" => Scope::Character,
             "country"
             | "ger"
             | "eng"
@@ -274,6 +314,10 @@ impl Scope {
             | "cancel_if_invalid"
             | "continue_if_invalid"
             | "allowed"
+            | "allowed_to_remove"
+            | "allowed_civil_war"
+            | "cancel"
+            | "do_effect"
             | "enable"
             | "daily_cost"
             | "on_start"
@@ -398,6 +442,14 @@ pub struct ScopeCtx<'a> {
 pub fn initial_scope_for_uri(uri: &str) -> Scope {
     if uri.contains("/common/abilities/") {
         Scope::Character
+    } else if uri.contains("/common/characters/") {
+        // Character definition files: `characters = { token = { ... } }`.
+        // The file starts in Country scope so that ROOT resolves to the country
+        // (in a character file THIS is the character, ROOT is its country — see
+        // vanilla `on_add = { IF = { limit = { ROOT = { has_government = ... }`
+        // }). The `characters` wrapper then pushes Character, so every token
+        // body evaluates with THIS = character.
+        Scope::Country
     } else if uri.contains("/common/decisions/") {
         Scope::Country
     } else if uri.contains("/common/aces/") {
@@ -514,11 +566,19 @@ impl ScopeStack {
     /// - PREV: Previous non-transparent scope before the current one
     pub fn resolve_pointer(&self, pointer: &str) -> Scope {
         match pointer.to_ascii_uppercase().as_str() {
+            // ROOT = the runtime scope the definition body is evaluated against.
+            // The bottom node is the file's initial marker, which is `Global`
+            // for definition files (`ideas`, `events`, `common/characters`, ...)
+            // — it is not a scope the content runs in, so it is skipped. Entity
+            // definition scopes then map to the country they evaluate on
+            // (`Idea`, `Focus Tree`, `Technologies`), so `ROOT = { ... }` inside
+            // an idea checks country triggers, as vanilla expects.
             "ROOT" => self
                 .nodes
                 .iter()
-                .find(|n| !n.is_transparent)
-                .map_or(Scope::Global, |n| n.scope_type),
+                .enumerate()
+                .find(|(idx, n)| !n.is_transparent && !(*idx == 0 && n.scope_type == Scope::Global))
+                .map_or(Scope::Global, |(_, n)| n.scope_type.runtime_root_scope()),
             "THIS" => self.current(),
             "PREV" => self
                 .nodes
@@ -665,7 +725,8 @@ impl ScopeStack {
     ///    3b. `var:` / `temp_var:` scope block → inferred variable value scope
     /// 4. Chain target from current scope (e.g. State → owner → Country)
     /// 5. Ace file `effect` block → Country scope (ace modifiers are Country-scoped)
-    /// 6. Modifier application blocks (`modifiers`, `*_modifiers`) → ModifierBag
+    /// 6. Modifier application blocks (`modifier`, `modifiers`, `*_modifier(s)`,
+    ///    `research_bonus`, `equipment_bonus`) → ModifierBag
     /// 7. Legacy fallback:
     ///    a. Meta-scope (THIS/ROOT/PREV/FROM)
     ///    b. Achievement-aware resolution via `resolve_key_scope`
@@ -683,6 +744,38 @@ impl ScopeStack {
             || matches!(key.to_ascii_uppercase().as_str(), "AND" | "OR" | "NOT")
         {
             return (self.current(), true);
+        }
+
+        // 1a. Character definition blocks. Inside a character body the engine
+        // evaluates `allowed` / `available` / `visible` with the character as
+        // THIS, but vanilla mixes country triggers (`original_tag`,
+        // `has_completed_focus`) with character triggers (`has_character_flag`,
+        // `is_country_leader`) in the same block — including `visible`, which
+        // the V2 data otherwise pushes to Country as a technology-folder block.
+        // Neither scope is right, so validation is skipped for the subtree.
+        if self.current() == Scope::Character {
+            let lower = key.to_ascii_lowercase();
+            if matches!(lower.as_str(), "allowed" | "available" | "visible") {
+                // `common/abilities/*.txt` is the one place where `allowed` is a
+                // pure Character trigger block (`OWNER = { ... }` inside it
+                // resolves as Character) — keep validating it there.
+                if ctx.uri.contains("/common/abilities/") {
+                    return (Scope::Character, false);
+                }
+                return (Scope::CharacterCondition, true);
+            }
+            // `on_add` / `on_remove` on an advisor or leader body run with THIS =
+            // the character (vanilla sets character flags there); `ROOT` inside
+            // them resolves to the owning country.
+            if matches!(lower.as_str(), "on_add" | "on_remove") {
+                return (Scope::Character, false);
+            }
+        }
+
+        // 1a'. Hook blocks evaluated on the owning country everywhere else —
+        // idea and decision `on_add` / `on_remove` apply to the country.
+        if matches!(key.to_ascii_lowercase().as_str(), "on_add" | "on_remove") {
+            return (Scope::Country, false);
         }
 
         // 1b. On-actions: `on_actions` wrapper and per-action `on_*` blocks
@@ -785,8 +878,24 @@ impl ScopeStack {
             return (Scope::Country, false);
         }
 
-        // 6. Modifier application blocks (unit_modifiers, modifiers, *_modifiers)
-        if key == "modifiers" || key.ends_with("_modifiers") {
+        // 6. Modifier application blocks → ModifierBag (validation skipped).
+        // Covers the plural/plural-suffixed forms (`modifiers`, `unit_modifiers`),
+        // the singular containers used by ideas and characters — `modifier`,
+        // `targeted_modifier`, `research_bonus`, `equipment_bonus` — and the
+        // idea `rule` block, whose entries are declarative permissions
+        // (`can_guarantee_other_ideologies`) rather than scoped triggers.
+        // Their entries are modifier keys and equipment/research categories, not
+        // triggers: validating `armor = 0.15` as a trigger against the enclosing
+        // Idea scope is a category error (modifiers have no runtime scope).
+        let lower_key = key.to_ascii_lowercase();
+        if lower_key == "modifiers"
+            || lower_key == "modifier"
+            || lower_key.ends_with("_modifiers")
+            || lower_key.ends_with("_modifier")
+            || lower_key == "research_bonus"
+            || lower_key == "equipment_bonus"
+            || lower_key == "rule"
+        {
             return (Scope::ModifierBag, true);
         }
 

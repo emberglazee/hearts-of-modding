@@ -122,7 +122,10 @@ impl ValidationRule for V2ScopeRule {
             // ModifierBag scope (unit_modifiers etc.) skips strict scope checks.
             // The engine reads these blocks as a flat modifier bag and routes
             // entries per-key — asking "what scope is it" is a category error.
-            if raw_scope == Scope::ModifierBag {
+            // CharacterCondition blocks (character `allowed`/`available`/
+            // `visible`) are likewise polymorphic: vanilla mixes country and
+            // character triggers in them, so no single scope fits.
+            if raw_scope == Scope::ModifierBag || raw_scope == Scope::CharacterCondition {
                 return;
             }
 

@@ -277,6 +277,18 @@ pub struct AllDataV2 {
     pub definitions: HashMap<String, BlockSchema>,
     #[serde(default)]
     pub scopes: HashMap<String, ScopeInfo>,
+    /// Blocks rendered as structural keywords. A **superset** of
+    /// [`Self::transparent_block_types`]: every scope-neutral block is also a
+    /// keyword, but not every keyword is scope-neutral — `allowed` is the
+    /// canonical case (a structural keyword whose body the engine evaluates on
+    /// the owning country, so it must push `Country`, not inherit).
+    #[serde(default)]
+    pub keyword_block_types: Vec<String>,
+    /// Blocks that inherit the enclosing scope unchanged (AND/OR/NOT, `limit`,
+    /// `if`, `random_list`, tooltip wrappers, ...). Scope-pushing keywords such
+    /// as `allowed` deliberately do NOT belong here — listing one here bypasses
+    /// `Scope::from_str`'s mapping and makes its body validate in the
+    /// enclosing scope instead of its own.
     #[serde(default)]
     pub transparent_block_types: Vec<String>,
     #[serde(default)]
@@ -319,9 +331,12 @@ pub fn get_scope_info() -> &'static HashMap<String, ScopeInfo> {
     &DATA.scopes
 }
 
-/// Get transparent block type names
-pub fn get_transparent_block_types() -> &'static [String] {
-    &DATA.transparent_block_types
+/// Get keyword block type names — every block the editor renders as a
+/// structural keyword. Superset of the scope-transparent set (see
+/// [`is_transparent_block`]): includes scope-pushing keywords such as `allowed`
+/// that must not be treated as scope-neutral.
+pub fn get_keyword_block_types() -> &'static [String] {
+    &DATA.keyword_block_types
 }
 
 /// Look up what scope a keyword pushes (if it has a pushes_scope)

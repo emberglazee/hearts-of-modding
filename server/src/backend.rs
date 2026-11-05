@@ -2038,8 +2038,10 @@ pub(crate) fn build_static_semantic_keywords() -> HashSet<String> {
     keywords.insert("or".to_string());
     keywords.insert("not".to_string());
 
-    // Add transparent block types from V2 data
-    for block in crate::data::hoi4_data::get_transparent_block_types() {
+    // Add structural block keywords from V2 data. The keyword list is a
+    // superset of the scope-transparent list: `allowed` is a keyword but
+    // pushes Country, so it must not be filtered through the transparency set.
+    for block in crate::data::hoi4_data::get_keyword_block_types() {
         keywords.insert(block.clone());
     }
 
