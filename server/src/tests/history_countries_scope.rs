@@ -2,8 +2,9 @@
 //! effects (`capital`, `oob`, `set_technology`, `add_ideas`, `set_politics`,
 //! …) do not flag as `HOM004`.
 //!
-//! Regression for the reported dump: every effect in
-//! `history/countries/MCC - Championship Island.txt` resolved to Global scope.
+//! Regression: before the branch was added, these files started in Global
+//! scope and every top-level country effect reported "is not valid in Global
+//! scope".
 
 use crate::rules::v2_scope::V2ScopeRule;
 use crate::scope::scope::{Scope, initial_scope_for_uri};
@@ -33,7 +34,7 @@ set_stability = 0.5
 set_war_support = 0.5
 recruit_character = SOME_CHAR
 "#;
-    let uri = "/mod/history/countries/MCC - Championship Island.txt";
+    let uri = "/mod/history/countries/GER - Germany.txt";
     let initial = initial_scope_for_uri(uri);
     assert_eq!(initial, Scope::Country);
 

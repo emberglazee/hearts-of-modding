@@ -122,9 +122,10 @@ const FLAG_THUMB_H: u32 = 24;
 /// §"Country's flags"). The highest-priority layer wins: `roots` is built
 /// lowest-first for the VFS (game path, dependency mods, then the workspace), so
 /// this walks it in reverse. Iterating it in build order instead made the game
-/// path shadow every mod, which is wrong for the seven tags Hearts of Minecraft
-/// redefines. Returns `None` when no file exists or it fails to decode — callers
-/// fall back to `[Flag: TAG]`.
+/// path shadow every mod, which is wrong whenever a mod redefines one of the
+/// engine's tags (seven such tags in the reference consumer mod). Returns
+/// `None` when no file exists or it fails to decode — callers fall back to
+/// `[Flag: TAG]`.
 pub fn resolve_flag_image(
     tag: &str,
     roots: &[std::path::PathBuf],
@@ -167,7 +168,7 @@ pub fn resolve_flag_image(
 }
 
 /// Decode a flag `.tga` to a height-`FLAG_THUMB_H` PNG data URI. Tall custom
-/// banners (Hearts of Minecraft flags are 82x164) survive intact — aspect is
+/// banners (reference consumer mod flags are 82x164) survive intact — aspect is
 /// preserved end to end, `FLAG_DISPLAY_H` only scales at render time.
 fn decode_flag(bytes: &[u8]) -> Option<(u32, u32, String)> {
     let img = image::load_from_memory_with_format(bytes, image::ImageFormat::Tga).ok()?;
@@ -869,8 +870,9 @@ mod tests {
     }
 
     /// Layer precedence: `roots` is a VFS stack built lowest priority first, so
-    /// the last root wins a name collision. This is the Hearts of Minecraft case,
-    /// where the mod redefines CAT, HAW, ICE, OMN, SAM, SER and SOL.
+    /// the last root wins a name collision. This is the case where a mod
+    /// redefines a tag the base game also ships (CAT, HAW, ICE, OMN, SAM, SER
+    /// and SOL in the reference consumer mod).
     #[test]
     fn test_highest_priority_root_wins_flag_collision() {
         use image::ImageEncoder;

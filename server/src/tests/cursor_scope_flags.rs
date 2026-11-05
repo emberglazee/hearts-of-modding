@@ -55,7 +55,7 @@ fn completion_scope_flags_match_the_cursor_walker() {
         "completion must not treat a random_list weight as a state, got {scopes:?}"
     );
 
-    let content = "decisions = {\n\tbwc_cat = {\n\t\tcore_bwc = {\n\t\t\tstate_target = yes\n\t\t\tavailable = {\n\t\t\t\tFROM = { compliance > 50 }\n\t\t\t}\n\t\t}\n\t}\n}\n";
+    let content = "decisions = {\n\tmy_decision = {\n\t\tmy_core = {\n\t\t\tstate_target = yes\n\t\t\tavailable = {\n\t\t\t\tFROM = { compliance > 50 }\n\t\t\t}\n\t\t}\n\t}\n}\n";
     let uri = "/mod/common/decisions/test.txt";
     let (script, _) = crate::parser::parser::parse_script(content);
     let (_, scopes) = crate::scope::scope_context::find_scope_context_at(
@@ -101,7 +101,7 @@ fn numeric_key_outside_random_list_is_still_a_state() {
 fn from_in_state_targeted_decision_resolves_to_the_target_state() {
     for target in ["yes", "any_controlled_state"] {
         let content = format!(
-            "decisions = {{\n\tbwc_cat = {{\n\t\tcore_bwc = {{\n\t\t\tstate_target = {target}\n\t\t\tavailable = {{\n\t\t\t\tFROM = {{ compliance > 50 }}\n\t\t\t}}\n\t\t}}\n\t}}\n}}\n"
+            "decisions = {{\n\tmy_decision = {{\n\t\tmy_core = {{\n\t\t\tstate_target = {target}\n\t\t\tavailable = {{\n\t\t\t\tFROM = {{ compliance > 50 }}\n\t\t\t}}\n\t\t}}\n\t}}\n}}\n"
         );
         let (identifier, scopes) =
             identifier_scopes(&content, "/mod/common/decisions/test.txt", "compliance");
@@ -117,7 +117,7 @@ fn from_in_state_targeted_decision_resolves_to_the_target_state() {
 /// evaluated for, which is what hover showed before.
 #[test]
 fn from_without_state_target_stays_a_country() {
-    let content = "decisions = {\n\tbwc_cat = {\n\t\tcore_bwc = {\n\t\t\tavailable = {\n\t\t\t\tFROM = { has_war = yes }\n\t\t\t}\n\t\t}\n\t}\n}\n";
+    let content = "decisions = {\n\tmy_decision = {\n\t\tmy_core = {\n\t\t\tavailable = {\n\t\t\t\tFROM = { has_war = yes }\n\t\t\t}\n\t\t}\n\t}\n}\n";
     let (identifier, scopes) =
         identifier_scopes(content, "/mod/common/decisions/test.txt", "has_war");
     assert_eq!(identifier, "has_war");

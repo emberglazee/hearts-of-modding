@@ -88,8 +88,8 @@ pub(crate) fn cleared_problem_uris(
 /// case-insensitively). The checksum hashes file names, and Windows and Linux
 /// encode non-ASCII names differently, so the same mod yields different
 /// checksums per OS and cross-platform multiplayer refuses to start —
-/// verified empirically (Hearts of Minecraft #154: renaming files alone
-/// changed the checksum array).
+/// verified empirically (issue #154: renaming files alone changed the
+/// checksum array).
 ///
 /// Only the file NAME is checked, never parent directories: the filename
 /// bytes are what the probe showed feeding the checksum, and flagging
