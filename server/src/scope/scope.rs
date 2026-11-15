@@ -1120,9 +1120,11 @@ impl ScopeStack {
         // `state_target` (ctx.state_targeted).
         if ctx.uri.contains("/common/decisions/") && ctx.state_targeted {
             match lk.as_str() {
-                "target_trigger" | "target_root_trigger" => return (Scope::State, false),
+                // `target_trigger` runs per candidate target state in state-targeted
+                // decisions (FROM = target state). `target_root_trigger` runs on the
+                // acting country (ROOT), so it must keep country scope.
+                "target_trigger" | "highlight_state_targets" => return (Scope::State, false),
                 "targeted_modifier" => return (Scope::ModifierBag, true),
-                "highlight_state_targets" => return (Scope::State, false),
                 _ => {}
             }
         }
