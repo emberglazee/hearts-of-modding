@@ -218,9 +218,9 @@ impl AstVisitor for OobRegimentVisitor {
             if !exists {
                 diags.push(Diagnostic {
                     range: _ctx.range(key_range),
-                    severity: Some(DiagnosticSeverity::WARNING),
+                    severity: Some(DiagnosticSeverity::HINT),
                     message: format!(
-                        "Unknown division template: '{}' — no template with that name is defined in this file",
+                        "Unknown division template: '{}' — no template with that name is defined in this file (may be created at runtime)",
                         ref_name
                     ),
                     code: Some(NumberOrString::String(

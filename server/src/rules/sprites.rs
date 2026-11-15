@@ -33,6 +33,12 @@ impl ValidationRule for SpriteRule {
             return;
         };
 
+        // Dynamic sprite names (e.g. GFX_bop_FIN_[GetLeaderBopIcon]_foo) cannot
+        // be resolved statically — skip them.
+        if val.contains('[') || val.contains(']') {
+            return;
+        }
+
         let mut lookup_key = val.to_string();
 
         // Country idea "picture" field resolution
@@ -61,7 +67,7 @@ impl ValidationRule for SpriteRule {
                     lookup_key, val
                 ),
                 code: Some(NumberOrString::String(
-                    crate::validation::advanced_validation::UNKNOWN_TRIGGER.to_string(),
+                    crate::validation::advanced_validation::UNKNOWN_SPRITE.to_string(),
                 )),
                 source: Some("Hearts of Modding".to_string()),
                 ..Default::default()

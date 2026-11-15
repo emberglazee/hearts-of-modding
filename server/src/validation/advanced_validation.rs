@@ -2,7 +2,13 @@ use crate::parser::ast;
 
 /// Diagnostic codes for advanced validation
 pub const PARSE_ERROR: &str = "HOM001";
-pub const UNKNOWN_TRIGGER: &str = "HOM002";
+pub const UNKNOWN_SPRITE: &str = "HOM002a";
+pub const UNKNOWN_COUNTRY_TAG: &str = "HOM002b";
+pub const UNKNOWN_TRAIT: &str = "HOM002c";
+pub const UNKNOWN_IDEOLOGY: &str = "HOM002d";
+pub const UNKNOWN_ABILITY: &str = "HOM002e";
+pub const UNKNOWN_SOUND_EFFECT: &str = "HOM002f";
+pub const UNKNOWN_PROVINCE_ID: &str = "HOM002g";
 #[allow(dead_code)]
 pub const UNKNOWN_EFFECT: &str = "HOM003";
 pub const SCOPE_MISMATCH: &str = "HOM004";
@@ -79,6 +85,8 @@ pub const IDEA_CASE_MISMATCH: &str = "HOM4004";
 /// (RED always 0), so severity is WARNING not ERROR. Appears at the
 /// definition site in `common/country_tags`/`common/countries`/`history/countries`.
 pub const RESERVED_COUNTRY_TAG: &str = "HOM4005";
+/// Texture file referenced by a .gfx/.gui texturefile = does not exist.
+pub const TEXTURE_FILE_NOT_FOUND: &str = "HOM4006";
 pub const UNKNOWN_STATE_CATEGORY: &str = "HOM5001";
 pub const UNKNOWN_RESOURCE: &str = "HOM5002";
 pub const UNKNOWN_BUILDING: &str = "HOM5003";

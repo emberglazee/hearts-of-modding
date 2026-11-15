@@ -44,6 +44,46 @@ impl ValidationRule for V2ScopeRule {
             return;
         }
 
+        // Event definition blocks. `unit_leader_event = { id = ... }` in
+        // events/*.txt DEFINES an event; the same identifier is also a
+        // fire-an-event effect whose scope is the leader. Validating the
+        // definition key against the file scope is meaningless — there is no
+        // usage here. (`country_event`/`news_event` happen to be Global-flagged
+        // and slip through today; unit_leader_event and operative_leader_event
+        // do not.)
+        // The walker checks the key after pushing the block's own scope, so a
+        // depth-1 definition sits at len 2 (file marker + definition).
+        if scope.len() <= 2
+            && ctx.uri.contains("/events/")
+            && matches!(
+                key,
+                "country_event"
+                    | "news_event"
+                    | "state_event"
+                    | "unit_leader_event"
+                    | "operative_leader_event"
+            )
+        {
+            return;
+        }
+
+        // `gain_xp = { ... }` in a unit-leader trait is the trait's XP gate —
+        // a division trigger block — not the Character-scope `gain_xp` effect
+        // of the same name. The block itself pushes Unit (scope.rs), so the key
+        // would otherwise be checked against the scope it just pushed.
+        if ctx.uri.contains("/common/unit_leader/") && key == "gain_xp" {
+            return;
+        }
+
+        // Depth-1 block keys in doctrine track files NAME a track: `armor = {
+        // ... }` is the armoured-doctrine track and `operations = { ... }` the
+        // operations track. Those identifiers collide with trigger/modifier
+        // names (`armor` is a Unit trigger), but they are definitions, not
+        // usages, so there is no scope to check them against.
+        if scope.len() == 1 && ctx.uri.contains("/common/doctrines/") {
+            return;
+        }
+
         // Skip idea structure keys (cost, level, picture, etc.) when in Idea scope
         // — these are idea properties, not trigger/effect/modifier usages
         if current_scope == Scope::Idea && crate::rules::visitor::is_idea_structure_key(key) {
@@ -133,7 +173,10 @@ impl ValidationRule for V2ScopeRule {
             // the top-level definition body runs in the caller's scope.
             // Skip HOM004 at the structural level; explicit iterators
             // (every_state, every_country, etc.) still push correct scopes.
-            if raw_scope == Scope::ScriptedEffect || raw_scope == Scope::ScriptedTrigger {
+            if raw_scope == Scope::ScriptedEffect
+                || raw_scope == Scope::ScriptedTrigger
+                || raw_scope == Scope::ScriptedLocalisation
+            {
                 return;
             }
 

@@ -164,7 +164,7 @@ mod tests {
         let diags = run_visitor("ideology = stalinism");
         let unknown: Vec<_> = diags
             .iter()
-            .filter(|d| matches!(&d.code, Some(NumberOrString::String(c)) if c == "HOM002"))
+            .filter(|d| matches!(&d.code, Some(NumberOrString::String(c)) if c == "HOM002d"))
             .collect();
         assert!(
             unknown.is_empty(),

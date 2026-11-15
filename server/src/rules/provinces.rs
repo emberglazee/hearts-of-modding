@@ -70,7 +70,7 @@ fn check_is_province(val: &ast::NodeedValue, ctx: &ValidationContext, diags: &mu
                 severity: Some(DiagnosticSeverity::WARNING),
                 message: format!("Unknown province ID: {}", id),
                 code: Some(NumberOrString::String(
-                    crate::validation::advanced_validation::UNKNOWN_TRIGGER.to_string(),
+                    crate::validation::advanced_validation::UNKNOWN_PROVINCE_ID.to_string(),
                 )),
                 source: Some("Hearts of Modding".to_string()),
                 ..Default::default()
