@@ -1167,7 +1167,7 @@ impl LanguageServer for Backend {
         // YAML localization files
         if uri.ends_with(".yml") {
             return if let Some(content) = self.documents.get(&uri) {
-                let result = semantic_tokens::loc_semantic_tokens(&content);
+                let result = semantic_tokens::loc_semantic_tokens_range(&content, &range);
                 Ok(Some(filter_semantic_tokens_by_range(result, &range)))
             } else {
                 Ok(None)
@@ -1177,7 +1177,7 @@ impl LanguageServer for Backend {
         // CSV map files
         if uri.ends_with(".csv") {
             return if let Some(content) = self.documents.get(&uri) {
-                match semantic_tokens::csv_semantic_tokens(&content) {
+                match semantic_tokens::csv_semantic_tokens_range(&content, &range) {
                     Some(result) => Ok(Some(filter_semantic_tokens_by_range(result, &range))),
                     None => Ok(None),
                 }
