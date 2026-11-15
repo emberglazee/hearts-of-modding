@@ -125,7 +125,7 @@ impl ValidationRule for CountryTagRule {
                 severity: Some(DiagnosticSeverity::WARNING),
                 message: format!("Unknown country tag: '{}'", val),
                 code: Some(NumberOrString::String(
-                    crate::validation::advanced_validation::UNKNOWN_TRIGGER.to_string(),
+                    crate::validation::advanced_validation::UNKNOWN_COUNTRY_TAG.to_string(),
                 )),
                 source: Some("Hearts of Modding".to_string()),
                 ..Default::default()

@@ -31,8 +31,16 @@ impl ValidationRule for IdeologyRule {
             return;
         };
 
-        if !ctx.ideologies.contains_key(val)
-            && !ctx.sub_ideologies.contains_key(val)
+        if !(ctx.ideologies.contains_key(val)
+            || ctx
+                .ideologies
+                .iter()
+                .any(|e| e.key().eq_ignore_ascii_case(val)))
+            && !(ctx.sub_ideologies.contains_key(val)
+                || ctx
+                    .sub_ideologies
+                    .iter()
+                    .any(|e| e.key().eq_ignore_ascii_case(val)))
             && !is_dynamic_ideology_ref(val)
         {
             diags.push(Diagnostic {
@@ -40,7 +48,7 @@ impl ValidationRule for IdeologyRule {
                 severity: Some(DiagnosticSeverity::WARNING),
                 message: format!("Unknown ideology: '{}'", val),
                 code: Some(NumberOrString::String(
-                    crate::validation::advanced_validation::UNKNOWN_TRIGGER.to_string(),
+                    crate::validation::advanced_validation::UNKNOWN_IDEOLOGY.to_string(),
                 )),
                 source: Some("Hearts of Modding".to_string()),
                 ..Default::default()
@@ -76,7 +84,7 @@ pub(crate) fn is_dynamic_ideology_ref(val: &str) -> bool {
     //   ideology = GER  → use Germany's current ideology
     let is_country_tag = is_valid_tag(val);
 
-    is_scope_ref || is_var_ref || is_country_tag
+    is_scope_ref || is_var_ref || is_country_tag || val.contains('@')
 }
 
 /// True when `val` names an ideology group (parent ideology), matched

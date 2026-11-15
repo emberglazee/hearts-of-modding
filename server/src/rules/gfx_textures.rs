@@ -28,7 +28,7 @@ impl<'a> GfxTextureRule<'a> {
         diags: &mut Vec<Diagnostic>,
     ) {
         let game_path = &ctx.game_path;
-        let gfx_dir = self.gfx_file_path.parent();
+        let _ = self.gfx_file_path;
 
         for entry in entries {
             match entry {
@@ -61,32 +61,33 @@ impl<'a> GfxTextureRule<'a> {
                             let normalized = val.replace('\\', "/");
                             let mut found = false;
 
-                            // Try relative to game path
+                            // Build candidate roots: game path + workspace/mod roots +
+                            // every dlc/* and integrated_dlc/* subdirectory of the game path.
+                            let mut roots: Vec<std::path::PathBuf> = Vec::new();
                             if let Some(ref gp) = *game_path {
-                                let full = std::path::Path::new(gp).join(&normalized);
+                                let gp = std::path::PathBuf::from(gp);
+                                roots.push(gp.clone());
+                                for dlc_prefix in ["dlc", "integrated_dlc"] {
+                                    let dlc_dir = gp.join(dlc_prefix);
+                                    if let Ok(entries) = std::fs::read_dir(&dlc_dir) {
+                                        for entry in entries.flatten() {
+                                            let p = entry.path();
+                                            if p.is_dir() {
+                                                roots.push(p);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            for root in ctx.workspace_roots {
+                                roots.push(root.clone());
+                            }
+
+                            for root in &roots {
+                                let full = root.join(&normalized);
                                 if full.exists() {
                                     found = true;
-                                }
-                            }
-
-                            // Try relative to each workspace/mod root
-                            if !found {
-                                for root in ctx.workspace_roots {
-                                    let full = root.join(&normalized);
-                                    if full.exists() {
-                                        found = true;
-                                        break;
-                                    }
-                                }
-                            }
-
-                            // Try relative to .gfx file directory
-                            if !found {
-                                if let Some(dir) = gfx_dir {
-                                    let full = dir.join(&normalized);
-                                    if full.exists() {
-                                        found = true;
-                                    }
+                                    break;
                                 }
                             }
 
@@ -94,6 +95,9 @@ impl<'a> GfxTextureRule<'a> {
                                 diags.push(Diagnostic {
                                     range: ctx.range(&ass.value.range),
                                     severity: Some(DiagnosticSeverity::WARNING),
+                                    code: Some(tower_lsp_server::ls_types::NumberOrString::String(
+                                        crate::validation::advanced_validation::TEXTURE_FILE_NOT_FOUND.to_string(),
+                                    )),
                                     message: format!("Texture file not found: '{}'", val),
                                     source: Some("Hearts of Modding".to_string()),
                                     ..Default::default()
@@ -220,14 +224,12 @@ mod tests {
     }
 
     #[test]
-    fn test_texture_found_via_gfx_file_directory_fallback() {
-        // Texture placed relative to .gfx file's directory (not workspace root).
-        // .gfx file:  {root}/some_subdir/some_file.gfx
-        // texture:    {root}/some_subdir/gfx/interface/test.dds
-        // → resolved by joining gfx parent dir with the texturefile path
+    fn test_texture_not_found_without_gfx_file_directory_fallback() {
+        // After R5-2 the .gfx-file-directory fallback is removed (engine is
+        // root-relative). A texture that exists only next to the .gfx file but
+        // not under any enumerated root must now be reported.
         let tmp = PathBuf::from("target/gfx_texture_test_gfxdir_fallback");
         let _ = fs::remove_dir_all(&tmp);
-        fs::create_dir_all(tmp.join("gfx/interface")).unwrap();
 
         let subdir = tmp.join("some_subdir");
         fs::create_dir_all(subdir.join("gfx/interface")).unwrap();
@@ -245,10 +247,36 @@ mod tests {
 
         let diags =
             validate_texture_file(content, &gfx_file, std::slice::from_ref(&tmp), None, false);
-        assert!(
-            diags.is_empty(),
-            "Texture found via .gfx file directory fallback should report no diagnostic"
+        // texture is under subdir, not under tmp root nor any dlc root -> not found
+        assert_eq!(
+            diags.len(),
+            1,
+            "Texture only next to .gfx file should now be reported missing, got: {:?}",
+            diags
         );
+
+        let _ = fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn test_texture_found_in_dlc_root() {
+        let tmp = PathBuf::from("target/gfx_texture_test_dlc_root");
+        let _ = fs::remove_dir_all(&tmp);
+        let dlc = tmp.join("dlc/dlc_test");
+        fs::create_dir_all(dlc.join("gfx/interface")).unwrap();
+        let texture_path = dlc.join("gfx/interface/dlc_texture.dds");
+        fs::write(&texture_path, b"fake dds").unwrap();
+
+        let gfx_file = PathBuf::from("/tmp/gfx_texture_test_dlc_root_file.gfx");
+        let content = r#"spriteTypes = {
+            spriteType = {
+                name = "GFX_dlc"
+                texturefile = "gfx/interface/dlc_texture.dds"
+            }
+        }"#;
+
+        let diags = validate_texture_file(content, &gfx_file, &[], Some(&tmp.to_string_lossy()), false);
+        assert!(diags.is_empty(), "Texture in DLC root should be found, got: {:?}", diags);
 
         let _ = fs::remove_dir_all(&tmp);
     }

@@ -95,18 +95,32 @@ impl Backend {
         let filtered: Vec<std::path::PathBuf> = all_files
             .into_iter()
             .filter(|p| {
-                p.extension()
+                // Only the map-config-named definitions csv (default
+                // `definition.csv`) parses as provinces. Other map csvs such as
+                // `adjacencies.csv` share a numeric first column and would clobber
+                // real province data (e.g. is_coastal). Gate on the configured
+                // definitions filename per workspace root.
+                let is_csv = p
+                    .extension()
                     .and_then(|e| e.to_str())
                     .map(|e| e == "csv")
+                    .unwrap_or(false);
+                if !is_csv {
+                    return false;
+                }
+                let defs_name = self.map_config_for_uri(&p.to_string_lossy()).definitions;
+                p.file_name()
+                    .and_then(|n| n.to_str())
+                    .map(|n| n.eq_ignore_ascii_case(&defs_name))
                     .unwrap_or(false)
             })
             .collect();
-        let result = tokio::task::spawn_blocking(move || {
+            let result = tokio::task::spawn_blocking(move || {
             province_scanner::scan_province_files(&filtered, &filter)
-        })
-        .await
-        .unwrap();
-        self.scanner_data.provinces.clear();
+            })
+            .await
+            .unwrap();
+            self.scanner_data.provinces.clear();
         for (k, v) in result {
             self.scanner_data.provinces.insert(k, v);
         }
@@ -1112,6 +1126,7 @@ impl Backend {
         let ul_files: Vec<std::path::PathBuf> = overlay.winning_files_in("common/unit_leader");
         let cl_files: Vec<std::path::PathBuf> = overlay.winning_files_in("common/country_leader");
         let tr_files: Vec<std::path::PathBuf> = overlay.winning_files_in("common/traits");
+        let st_files: Vec<std::path::PathBuf> = overlay.winning_files_in("common/scientist_traits");
         let result = tokio::task::spawn_blocking(move || {
             let mut map = HashMap::new();
             for (files, trait_type) in [
@@ -1121,6 +1136,11 @@ impl Backend {
             ] {
                 map.extend(trait_scanner::scan_trait_files(files, trait_type, &filter));
             }
+            map.extend(trait_scanner::scan_top_level_trait_files(
+                &st_files,
+                "Scientist Trait",
+                &filter,
+            ));
             map
         })
         .await
@@ -1142,15 +1162,47 @@ impl Backend {
     }
 
     pub(crate) async fn scan_sprites(&self, overlay: &crate::scanner::file_overlay::FileOverlay) {
-        scan_dashmap_overlay!(
-            self,
-            overlay,
-            "interface",
-            sprite_scanner::scan_sprite_files,
-            sprites,
-            &["gfx", "gui"],
-            "Total: Loaded {} sprite definitions"
-        );
+        let filter = self.get_sync_filter();
+        let mut files: Vec<std::path::PathBuf> = overlay.winning_files_in("interface");
+        // Also include DLC and integrated DLC interface directories
+        for dlc_prefix in ["dlc", "integrated_dlc"] {
+            files.extend(
+                overlay
+                    .winning_files_in(dlc_prefix)
+                    .into_iter()
+                    .filter(|p| {
+                        let s = p.to_string_lossy().replace('\\', "/");
+                        s.contains("/interface/")
+                    }),
+            );
+        }
+        // Only .gfx/.gui files contain sprite definitions
+        files.retain(|p| {
+            p.extension()
+                .and_then(|e| e.to_str())
+                .is_some_and(|e| e == "gfx" || e == "gui")
+        });
+        // Dedup by path
+        files.sort();
+        files.dedup();
+        let result = tokio::task::spawn_blocking(move || {
+            sprite_scanner::scan_sprite_files(&files, &filter)
+        })
+        .await
+        .unwrap();
+        self.scanner_data.sprites.clear();
+        for (k, v) in result {
+            self.scanner_data
+                .sprites
+                .insert(k.into(), crate::data::layered_value::LayeredValue::new(v));
+        }
+        let count = self.scanner_data.sprites.len();
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!("Total: Loaded {} sprite definitions", count),
+            )
+            .await;
     }
 
     pub(crate) async fn scan_characters(

@@ -31,7 +31,7 @@ impl ValidationRule for TraitRule {
                 severity: Some(DiagnosticSeverity::WARNING),
                 message: format!("Unknown trait: '{}'", val),
                 code: Some(NumberOrString::String(
-                    crate::validation::advanced_validation::UNKNOWN_TRIGGER.to_string(),
+                    crate::validation::advanced_validation::UNKNOWN_TRAIT.to_string(),
                 )),
                 source: Some("Hearts of Modding".to_string()),
                 ..Default::default()
