@@ -955,7 +955,7 @@ impl Backend {
                         }
                     }
 
-                    // Check triggers/effects from hardcoded data
+                    // Check triggers/effects/modifiers from hardcoded data
                     if let Some(entity) = crate::TRIGGERS.get(identifier.as_str()) {
                         push_section(
                             &mut hover_text,
@@ -966,6 +966,18 @@ impl Backend {
                             &mut hover_text,
                             &format!("### ⚡ Effect: {}\n\n{}", entity.name, entity.description),
                         );
+                    } else if let Some(entity) = crate::MODIFIERS.get(identifier.as_str()) {
+                        let mut m_text = format!("### 📊 Modifier: {}\n\n{}", entity.name, entity.description);
+                        // Show scope applicability if known
+                        let scopes = &entity.scopes;
+                        if !scopes.usage.is_empty() {
+                            let scope_names: Vec<String> = scopes.usage.iter().map(|s| format!("{:?}", s)).collect();
+                            m_text.push_str(&format!("\n\n**Scopes:** {}", scope_names.join(", ")));
+                        }
+                        if !scopes.usage_restriction.is_empty() {
+                            m_text.push_str(&format!("\n**Restriction:** {}", scopes.usage_restriction));
+                        }
+                        push_section(&mut hover_text, &m_text);
                     } else if let Some(def) =
                         crate::data::hoi4_data::lookup_definition(identifier.as_str())
                     {
@@ -977,12 +989,27 @@ impl Backend {
                             ),
                         );
                     } else if crate::SCOPES.contains(&identifier.to_uppercase().as_str()) {
+                        let up = identifier.to_uppercase();
+                        // Try JSON scope description first (Country/State/Character/Unit/Global)
+                        let scope_desc = crate::data::hoi4_data::get_scope_info()
+                            .get(&up)
+                            .map(|s| s.description.as_str()).filter(|d| !d.is_empty())
+                            .map(|d| d.to_string())
+                            .unwrap_or_else(|| match up.as_str() {
+                                "ROOT" => "The root scope of the current script context (usually the country the script is running for).".to_string(),
+                                "FROM" => "The scope that invoked the current effect/trigger (context-dependent; often the source country, state, or character).".to_string(),
+                                "PREV" => "The previous scope before the last scope change.".to_string(),
+                                "THIS" => "The current scope.".to_string(),
+                                "OWNER" => "The owner of the current scope (e.g. state owner when in state scope, country owner in character scope).".to_string(),
+                                "CONTROLLER" => "The controller of the current state scope.".to_string(),
+                                "CAPITAL_SCOPE" => "The capital state scope of the current country.".to_string(),
+                                "OVERLORD" => "The overlord country of the current subject country.".to_string(),
+                                "FACTION_LEADER" => "The leader country of the current country's faction.".to_string(),
+                                _ => "Standard Paradox scope token.".to_string(),
+                            });
                         push_section(
                             &mut hover_text,
-                            &format!(
-                                "### 🎯 Scope: {}\n\nStandard Paradox scope.",
-                                identifier.to_uppercase()
-                            ),
+                            &format!("### 🎯 Scope: {}\n\n{}", up, scope_desc),
                         );
                     } else if crate::LOC_COMMANDS.contains(&identifier.as_str()) {
                         push_section(
