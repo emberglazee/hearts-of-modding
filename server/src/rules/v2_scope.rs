@@ -103,6 +103,13 @@ impl ValidationRule for V2ScopeRule {
             .or_else(|| crate::MODIFIERS.get(key));
 
         if let Some(entity) = entity {
+            // Combatant is a combined Country+Unit scope (combat tactics): accept
+            // the key if it is valid in either constituent scope.
+            let allows_in_current = if raw_scope == Scope::Combatant {
+                entity.scopes.allows(&Scope::Country) || entity.scopes.allows(&Scope::Unit)
+            } else {
+                entity.scopes.allows(&current_scope)
+            };
             // Skip keys with pushes_scope — these are structural scope-pushers
             // (e.g. controller, any_country, all_state) not real triggers.
             // The V2ScopeRule should only validate actual trigger/effect usage.
@@ -142,7 +149,7 @@ impl ValidationRule for V2ScopeRule {
             if !ctx.scope_validation_enabled {
                 return;
             }
-            if entity.scopes.allows(&current_scope) {
+            if allows_in_current {
                 return;
             }
 
