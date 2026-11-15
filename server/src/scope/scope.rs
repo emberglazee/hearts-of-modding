@@ -29,6 +29,11 @@ pub enum Scope {
     NationalFocus,
     /// Strategic region (air zone / naval region)
     StrategicRegion,
+    /// Combatant scope used by `common/combat_tactics.txt`: a tactic body and its
+    /// `trigger` evaluate in a combined Country+Unit context (vanilla documents
+    /// `trigger = { # combined scope for both country and combatant }`), so both
+    /// country and unit triggers/effects are valid here. HOM004 accepts either.
+    Combatant,
     /// Ace pilot modifier definitions (common/aces/*.txt)
     /// Represents the file-level scope for ace modifier definitions.
     Ace,
@@ -108,6 +113,7 @@ impl Scope {
             Scope::FocusTree => "Focus Tree",
             Scope::NationalFocus => "National Focus",
             Scope::StrategicRegion => "Strategic Region",
+            Scope::Combatant => "Combatant",
             Scope::Ace => "Ace",
             Scope::TechnologyTags => "Technology Tags",
             Scope::Technologies => "Technologies",
@@ -129,6 +135,7 @@ impl Scope {
     pub fn effective_scope(&self) -> Scope {
         match self {
             Scope::FocusTree | Scope::NationalFocus | Scope::Technologies => Scope::Country,
+            Scope::Combatant => Scope::Country,
             Scope::OnActions => Scope::Global,
             Scope::ScriptedEffect | Scope::ScriptedTrigger | Scope::ScriptedLocalisation => {
                 Scope::Country
@@ -150,7 +157,7 @@ impl Scope {
     /// 0 Unknown and ModifierBag (no useful filtering semantics).
     pub fn scope_tier_rank(&self) -> u8 {
         match self {
-            Scope::Unit | Scope::Character | Scope::Ace | Scope::StrategicRegion => 5,
+            Scope::Unit | Scope::Character | Scope::Ace | Scope::StrategicRegion | Scope::Combatant => 5,
             Scope::Idea
             | Scope::MusicTrack
             | Scope::MusicStation
@@ -580,6 +587,17 @@ pub fn initial_scope_for_uri(uri: &str) -> Scope {
         Scope::Country
     } else if uri.contains("/common/decisions/") {
         Scope::Country
+    } else if uri.contains("/common/combat_tactics/") || uri.ends_with("/common/combat_tactics.txt") {
+        // Tactic bodies evaluate in a combined Country+Unit context (the engine
+        // provides both the country and the combatant). Modelled as Combatant so
+        // triggers valid in either scope are accepted.
+        Scope::Combatant
+    } else if uri.contains("/common/profile_pictures/")
+        || uri.contains("/common/profile_backgrounds/")
+    {
+        // Data-only definition files (cosmetic/profile assets). No trigger/effect
+        // evaluation; treat bodies as modifier/property bags to avoid false HOM004.
+        Scope::ModifierBag
     } else if uri.contains("/common/aces/") {
         Scope::Ace
     } else if uri.contains("/common/units/") {
@@ -1059,6 +1077,72 @@ impl ScopeStack {
         {
             return (Scope::ModifierBag, true);
         }
+
+        // 1h. Combat tactics (`common/combat_tactics.txt`). The file starts in
+        // Combatant scope (combined Country+Unit). Tactic definition bodies and
+        // their `trigger`/`active` evaluation stay in that combined scope so
+        // both country and unit conditions are valid; modifier/stat leaves like
+        // `attacker`, `defender`, `base` are numeric/property bags and are not
+        // scope-checked as triggers when used as assignments, but as blocks they
+        // can hold modifier math — treat `base` as a modifier bag.
+        if ctx.uri.contains("/common/combat_tactics") {
+            if lk == "base" {
+                return (Scope::ModifierBag, true);
+            }
+            if lk == "phases" {
+                return (Scope::ModifierBag, true);
+            }
+        }
+
+        // 1i. Unit and equipment definitions (`common/units/`). Stat/property
+        // bodies: `equipments` children are equipment archetypes/variants, and
+        // `sub_units` children are unit type definitions — both are flat bags of
+        // stats/modifiers, not trigger bodies. Treat their definition blocks as
+        // ModifierBag. The `sub_units` / `equipments` wrappers themselves are
+        // transparent containers (inherit file scope).
+        if ctx.uri.contains("/common/units/") {
+            if matches!(lk.as_str(), "equipments" | "sub_units") {
+                return (self.current(), true);
+            }
+            // Equipment definitions live under `equipments = { <def> = { ... } }`.
+            // Sub-unit definitions live under `sub_units = { <def> = { ... } }`.
+            // At those positions the current scope is the file's Global (wrapper
+            // was transparent); treat definition bodies as property bags.
+            if self.current() == Scope::Global {
+                return (Scope::ModifierBag, true);
+            }
+        }
+
+        // 1j. State-targeted decisions: `target_trigger` / `target_root_trigger`
+        // evaluate their conditions against the target state, while the rest of
+        // the decision body (`available`, `visible`, `complete_effect`, etc.)
+        // evaluates on the country. Only when the enclosing decision declares
+        // `state_target` (ctx.state_targeted).
+        if ctx.uri.contains("/common/decisions/") && ctx.state_targeted {
+            match lk.as_str() {
+                "target_trigger" | "target_root_trigger" => return (Scope::State, false),
+                "targeted_modifier" => return (Scope::ModifierBag, true),
+                "highlight_state_targets" => return (Scope::State, false),
+                _ => {}
+            }
+        }
+
+        // 1k. AI strategy state-targeted fragments. In strategy plans/strategies,
+        // `states = { ... }` is a list of state IDs, and blocks that select/weight
+        // by state (e.g. `ai_strategy` entries with state context) carry state
+        // references; treat `states` as a weight/id bag (numeric keys handled
+        // safely) and `area` is resolved by engine as strategic/area ref but
+        // often collides — keep conservative: treat `states` container as
+        // transparent/random-list-like for numeric ids, and let `area` be
+        // accepted as a property key by not forcing Country trigger check via bag
+        // when used as a simple value (handled below) — but as block, be careful.
+        if ctx.uri.contains("/common/ai_strategy/") || ctx.uri.contains("/common/ai_strategy_plans/") {
+            if lk == "states" {
+                // numeric state-id list container
+                return (self.current(), true);
+            }
+        }
+
 
         // 2. V2: Known trigger/effect with explicit scope push
         if let Some(pushed) = crate::data::hoi4_data::lookup_pushes_scope(key) {
