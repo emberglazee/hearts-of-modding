@@ -745,38 +745,47 @@ fn parse_loc_entry<'a>(input: Span<'a>, path: &'a str) -> IResult<Span<'a>, LocE
     let (input, _) = char('"').parse(input)?;
     let start_val = input;
 
-    // Parse string content: value runs from the opening quote to the last
-    // (unescaped) quote on the current line. HOI4 tolerates unescaped
-    // internal quotes, so the closing quote is simply the last quote on the
-    // line (trailing comments never contain quotes in vanilla). R4-4.
-    let frag = input.fragment();
-    let line_end = frag.find('\n').unwrap_or(frag.len());
-    let line = &frag[..line_end];
+    // Parse string content, handling escaped quotes
+    let mut value = String::new();
+    let mut current = input;
 
-    let mut close_pos: Option<usize> = None;
-    let mut i = 0usize;
-    while i < line.len() {
-        if line.as_bytes()[i] == b'"' {
-            let escaped = i > 0 && line.as_bytes()[i - 1] == b'\\';
-            if !escaped {
-                close_pos = Some(i);
+    loop {
+        // Try to find a quote
+        match take_until::<&str, Span, nom::error::Error<Span>>("\"").parse(current) {
+            Ok((after_quote, before_quote)) => {
+                value.push_str(before_quote.fragment());
+
+                // Check if the quote is escaped
+                if value.ends_with('\\') {
+                    // It's an escaped quote, include it and continue
+                    value.push('"');
+                    current = after_quote;
+                    // Skip the quote character
+                    match char::<Span, nom::error::Error<Span>>('"').parse(current) {
+                        Ok((after, _)) => {
+                            current = after;
+                        }
+                        _ => {
+                            break;
+                        }
+                    }
+                } else {
+                    // It's the closing quote
+                    current = after_quote;
+                    break;
+                }
+            }
+            _ => {
+                // No quote found, this is an error
+                return Err(nom::Err::Error(nom::error::Error::new(
+                    current,
+                    nom::error::ErrorKind::Char,
+                )));
             }
         }
-        i += 1;
     }
-    let close_pos = match close_pos {
-        Some(p) => p,
-        None => {
-            return Err(nom::Err::Error(nom::error::Error::new(
-                input,
-                nom::error::ErrorKind::Char,
-            )));
-        }
-    };
-    let value = frag[..close_pos].to_string();
-    // Advance past the closing quote.
-    let (input, _) = nom::bytes::complete::take::<usize, Span, nom::error::Error<Span>>(close_pos + 1)
-        .parse(input)?;
+
+    let (input, _) = char('"').parse(current)?;
 
     let (version, version_range) = if let Some(v_span) = version_span {
         (Some(v_span.fragment().to_string()), Some(to_range(v_span)))
