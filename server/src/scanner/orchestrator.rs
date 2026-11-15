@@ -95,18 +95,32 @@ impl Backend {
         let filtered: Vec<std::path::PathBuf> = all_files
             .into_iter()
             .filter(|p| {
-                p.extension()
+                // Only the map-config-named definitions csv (default
+                // `definition.csv`) parses as provinces. Other map csvs such as
+                // `adjacencies.csv` share a numeric first column and would clobber
+                // real province data (e.g. is_coastal). Gate on the configured
+                // definitions filename per workspace root.
+                let is_csv = p
+                    .extension()
                     .and_then(|e| e.to_str())
                     .map(|e| e == "csv")
+                    .unwrap_or(false);
+                if !is_csv {
+                    return false;
+                }
+                let defs_name = self.map_config_for_uri(&p.to_string_lossy()).definitions;
+                p.file_name()
+                    .and_then(|n| n.to_str())
+                    .map(|n| n.eq_ignore_ascii_case(&defs_name))
                     .unwrap_or(false)
             })
             .collect();
-        let result = tokio::task::spawn_blocking(move || {
+            let result = tokio::task::spawn_blocking(move || {
             province_scanner::scan_province_files(&filtered, &filter)
-        })
-        .await
-        .unwrap();
-        self.scanner_data.provinces.clear();
+            })
+            .await
+            .unwrap();
+            self.scanner_data.provinces.clear();
         for (k, v) in result {
             self.scanner_data.provinces.insert(k, v);
         }
