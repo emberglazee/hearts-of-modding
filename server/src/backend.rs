@@ -3396,48 +3396,26 @@ impl ValidationCtx {
         // them on every iteration (1280 × 610 = 780k+ DashMap lookups per file).
         let color_code_set: std::collections::HashSet<String> =
             color_codes.iter().map(|e| e.key().to_string()).collect();
-        let country_tag_set: std::collections::HashSet<String> = self
+        // Union country tags with tag-alias keys (SOU, SPA, ...) so loc scopes
+        // like [SOU.GetAdjective] validate. See R4-1.
+        let mut country_tag_set: std::collections::HashSet<String> = self
             .scanner_data
             .country_tags
             .iter()
             .map(|e| e.key().to_string())
             .collect();
+        for e in self.scanner_data.tag_aliases.iter() {
+            country_tag_set.insert(e.key().to_string());
+        }
 
         for entry in parsed.values() {
             // No yield needed: workspace scans run on Rayon's dedicated pool,
             // so the LSP runtime never blocks during large loc files.
 
-            // Check for unnecessary version numbers
-            if let Some(d) = loc_parser::check_unnecessary_version(entry) {
-                diagnostics.push(Diagnostic {
-                    range: mapper.range(&d.range),
-                    severity: Some(match d.severity {
-                        ast::DiagnosticSeverity::Error => DiagnosticSeverity::ERROR,
-                        ast::DiagnosticSeverity::Warning => DiagnosticSeverity::WARNING,
-                        ast::DiagnosticSeverity::Information => DiagnosticSeverity::INFORMATION,
-                        ast::DiagnosticSeverity::Hint => DiagnosticSeverity::HINT,
-                    }),
-                    message: d.message,
-                    code: d.code.map(NumberOrString::String),
-                    source: Some("Hearts of Modding".to_string()),
-                    tags: if d.tags.is_empty() {
-                        None
-                    } else {
-                        Some(d.tags.iter().map(ast_tag_to_lsp).collect())
-                    },
-                    related_information: if d.related_information.is_empty() {
-                        None
-                    } else {
-                        Some(
-                            d.related_information
-                                .iter()
-                                .map(ast_related_info_to_lsp)
-                                .collect(),
-                        )
-                    },
-                    ..Default::default()
-                });
-            }
+            // Check for unnecessary version numbers is disabled by default:
+            // `:0` is the canonical "new/updated" marker used by Paradox's
+            // translation pipeline, so flagging every `:0` is noise (R4-3).
+            let _ = entry;
 
             let loc_diagnostics = loc_parser::validate_loc_string(
                 entry,

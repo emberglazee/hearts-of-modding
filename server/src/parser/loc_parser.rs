@@ -153,6 +153,8 @@ pub fn validate_loc_string(
         "GetBopTrendTextIcon",
         "GetSheHe",
         "GetSheHeCap",
+        "GetHeShe",
+        "GetHeSheCap",
         "GetHerHim",
         "GetHerHimCap",
         "GetHerHis",
@@ -213,6 +215,7 @@ pub fn validate_loc_string(
         "UNIT",
         "CHARACTER",
         "GLOBAL",
+        "Overlord",
         "Owner",
         "Controller",
         "Capital",
@@ -295,7 +298,7 @@ pub fn validate_loc_string(
                 // Validate formatting codes: *, ^, =, 0..9, %, %%, +, -, or color chars
                 for c in formatting.chars() {
                     if !c.is_ascii_digit()
-                        && !"*^=%+-.".contains(c)
+                        && !"*^=%+-.~".contains(c)
                         && !c.is_ascii_alphabetic()
                         && c != '!'
                     {
@@ -331,7 +334,16 @@ pub fn validate_loc_string(
         // Handle localization formatters [formatter|token]
         if let Some(pipe_pos) = inner.find('|') {
             let formatter = &inner[..pipe_pos];
-            if !formatters.contains(&formatter) {
+            // Skip when the part before `|` is a scope/command expression or
+            // contains `.` (case modifiers like [FROM.GetAdjective|l|U] use `|`
+            // for case conversion, not the formatter|token pattern). R4-7.
+            let before_pipe = formatter;
+            let is_scope_like = before_pipe.contains('.')
+                || scopes.iter().any(|s| s.eq_ignore_ascii_case(before_pipe))
+                || loc_commands.iter().any(|c| c.eq_ignore_ascii_case(before_pipe));
+            if is_scope_like {
+                // still validate inner scope parts below? Continue to scope validation
+            } else if !formatters.contains(&formatter) {
                 let range = Range {
                     start_line: entry.range.start_line,
                     start_col: entry.value_start_col + start_pos + 1,
@@ -347,7 +359,12 @@ pub fn validate_loc_string(
                     tags: Vec::new(),
                 });
             }
-            continue;
+            if is_scope_like {
+                // Strip case-conversion modifiers (|l|U) before scope validation.
+                inner = before_pipe;
+            } else {
+                continue;
+            }
         }
 
         let parts: Vec<&str> = inner.split('.').collect();
@@ -367,7 +384,7 @@ pub fn validate_loc_string(
                 && (country_tags.is_empty() || country_tags.contains(&part_upper));
 
             // Check if this part is a known scope keyword, event target, scripted loc, or numeric (state ID)
-            let is_scope_or_target = scopes.contains(&part_upper.as_str())
+            let is_scope_or_target = scopes.iter().any(|s| s.eq_ignore_ascii_case(part))
                 || event_targets.contains_key(*part)
                 || scripted_locs.contains_key(*part)
                 || part.chars().all(|c| c.is_ascii_digit());
@@ -431,7 +448,7 @@ pub fn validate_loc_string(
             let formatting = &inner[pipe_pos + 1..];
             for c in formatting.chars() {
                 if !c.is_ascii_digit()
-                    && !"*^=%+-.".contains(c)
+                    && !"*^=%+-.~".contains(c)
                     && !c.is_ascii_alphabetic()
                     && c != '!'
                 {
@@ -468,34 +485,14 @@ pub fn validate_loc_string(
     // 3. Validate Color Codes §Y...§!
     // NOTE: HOI4 color codes are flat/replacement-based, not nested.
     // Each new color code replaces the previous one, and §! resets to default.
-    // A color code is only "unclosed" if it's the last one before end-of-string
-    // with no §! after it.
-    let mut open_color: Option<(String, u32)> = None;
+    // Colours persist to end of line, so an "unclosed" colour is valid (R4-5).
     for cap in RE_COLOR.captures_iter(&entry.value) {
         let m = cap.get(0).unwrap();
         let code = cap.get(1).unwrap().as_str();
         let pos = m.start() as u32;
 
         if code == "!" {
-            if open_color.is_none() {
-                let range = Range {
-                    start_line: entry.range.start_line,
-                    start_col: entry.value_start_col + pos,
-                    end_line: entry.range.start_line,
-                    end_col: entry.value_start_col + pos + 3,
-                };
-                diagnostics.push(LocDiagnostic {
-                    range,
-                    message: "Dangling color reset symbol '§!' without an opening color code."
-                        .to_string(),
-                    severity: DiagnosticSeverity::Information,
-                    code: Some("dangling_color_reset".to_string()),
-                    related_information: Vec::new(),
-                    tags: Vec::new(),
-                });
-            } else {
-                open_color = None;
-            }
+            // no-op: redundant reset is harmless (R4-2)
         } else {
             if !color_codes.contains(code) {
                 let range = Range {
@@ -516,30 +513,12 @@ pub fn validate_loc_string(
                     tags: Vec::new(),
                 });
             }
-            // Any new color code replaces the previous one — they don't nest
-            open_color = Some((code.to_string(), pos));
+            // Any new colour code replaces the previous one (flat model).
         }
     }
 
-    if let Some((code, pos)) = open_color {
-        let range = Range {
-            start_line: entry.range.start_line,
-            start_col: entry.value_start_col + pos,
-            end_line: entry.range.start_line,
-            end_col: entry.value_start_col + pos + 3,
-        };
-        diagnostics.push(LocDiagnostic {
-            range,
-            message: format!(
-                "Unclosed color code '§{}'. Expected a matching '§!' reset.",
-                code
-            ),
-            severity: DiagnosticSeverity::Information,
-            code: Some("unclosed_color_code".to_string()),
-            related_information: Vec::new(),
-            tags: Vec::new(),
-        });
-    }
+    // Colours persist to end of line, so an unclosed colour is valid (R4-5).
+    let _ = entry;
 
     diagnostics
 }
@@ -671,8 +650,7 @@ pub fn parse_loc_file(
     Option<String>,
 ) {
     let mut map: HashMap<InternedStr, LocEntry> = HashMap::new();
-    let mut diagnostics = validate_loc_file_structure(input);
-    diagnostics.extend(validate_unescaped_quotes_in_file(input));
+    let diagnostics = validate_loc_file_structure(input);
 
     let input_clean = input.strip_prefix('\u{feff}').unwrap_or(input);
     let span = Span::new(input_clean);
@@ -767,47 +745,38 @@ fn parse_loc_entry<'a>(input: Span<'a>, path: &'a str) -> IResult<Span<'a>, LocE
     let (input, _) = char('"').parse(input)?;
     let start_val = input;
 
-    // Parse string content, handling escaped quotes
-    let mut value = String::new();
-    let mut current = input;
+    // Parse string content: value runs from the opening quote to the last
+    // (unescaped) quote on the current line. HOI4 tolerates unescaped
+    // internal quotes, so the closing quote is simply the last quote on the
+    // line (trailing comments never contain quotes in vanilla). R4-4.
+    let frag = input.fragment();
+    let line_end = frag.find('\n').unwrap_or(frag.len());
+    let line = &frag[..line_end];
 
-    loop {
-        // Try to find a quote
-        match take_until::<&str, Span, nom::error::Error<Span>>("\"").parse(current) {
-            Ok((after_quote, before_quote)) => {
-                value.push_str(before_quote.fragment());
-
-                // Check if the quote is escaped
-                if value.ends_with('\\') {
-                    // It's an escaped quote, include it and continue
-                    value.push('"');
-                    current = after_quote;
-                    // Skip the quote character
-                    match char::<Span, nom::error::Error<Span>>('"').parse(current) {
-                        Ok((after, _)) => {
-                            current = after;
-                        }
-                        _ => {
-                            break;
-                        }
-                    }
-                } else {
-                    // It's the closing quote
-                    current = after_quote;
-                    break;
-                }
-            }
-            _ => {
-                // No quote found, this is an error
-                return Err(nom::Err::Error(nom::error::Error::new(
-                    current,
-                    nom::error::ErrorKind::Char,
-                )));
+    let mut close_pos: Option<usize> = None;
+    let mut i = 0usize;
+    while i < line.len() {
+        if line.as_bytes()[i] == b'"' {
+            let escaped = i > 0 && line.as_bytes()[i - 1] == b'\\';
+            if !escaped {
+                close_pos = Some(i);
             }
         }
+        i += 1;
     }
-
-    let (input, _) = char('"').parse(current)?;
+    let close_pos = match close_pos {
+        Some(p) => p,
+        None => {
+            return Err(nom::Err::Error(nom::error::Error::new(
+                input,
+                nom::error::ErrorKind::Char,
+            )));
+        }
+    };
+    let value = frag[..close_pos].to_string();
+    // Advance past the closing quote.
+    let (input, _) = nom::bytes::complete::take::<usize, Span, nom::error::Error<Span>>(close_pos + 1)
+        .parse(input)?;
 
     let (version, version_range) = if let Some(v_span) = version_span {
         (Some(v_span.fragment().to_string()), Some(to_range(v_span)))
