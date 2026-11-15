@@ -43,3 +43,4 @@ hoi4-wiki/
 .hermes/
 docs/design/
 docs/plan/
+__pycache__/
