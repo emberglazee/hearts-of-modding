@@ -465,26 +465,45 @@ const LOC_LANGUAGE_PREFIXES: [&str; 10] = [
 /// - Nested key refs ($key$) → Variable
 /// - Escape sequences (\n, \") → EscapeCharacter
 pub fn loc_semantic_tokens(content: &str) -> SemanticTokensResult {
+    loc_semantic_tokens_impl(content, None)
+}
+
+pub fn loc_semantic_tokens_range(
+    content: &str,
+    range: &tower_lsp_server::ls_types::Range,
+) -> SemanticTokensResult {
+    loc_semantic_tokens_impl(content, Some((range.start.line, range.end.line)))
+}
+
+fn loc_semantic_tokens_impl(content: &str, line_range: Option<(u32, u32)>) -> SemanticTokensResult {
     let mut tokens = Vec::new();
 
     for (line_idx, line) in content.lines().enumerate() {
         let line_u32 = line_idx as u32;
-        let line_len = line.len() as u32;
+        if let Some((start, end)) = line_range {
+            if line_u32 < start || line_u32 > end {
+                continue;
+            }
+        }
+        // UTF-16 index for this line: every column emitted below must be in
+        // UTF-16 code units (LSP convention), never raw bytes.
+        let utf16 = LineIndex::new(line);
 
         if line.is_empty() {
             continue;
         }
 
         let trimmed_start = line.trim_start();
-        let trim_col = (line.len() - trimmed_start.len()) as u32;
+        let trim_col = utf16.byte_to_utf16(line.len() - trimmed_start.len());
 
         // ── Comment lines ──
         if trimmed_start.starts_with('#') {
-            let hash_col = line.find('#').unwrap() as u32;
+            let hash_col = utf16.byte_to_utf16(line.find('#').unwrap());
+            let line_len_u16 = utf16.byte_to_utf16(line.len() as usize);
             tokens.push(RawToken {
                 line: line_u32,
                 start: hash_col,
-                length: line_len - hash_col,
+                length: line_len_u16 - hash_col,
                 token_type: TokenType::Comment as u32,
             });
             continue;
@@ -496,7 +515,7 @@ pub fn loc_semantic_tokens(content: &str) -> SemanticTokensResult {
             .any(|p| trimmed_start.starts_with(p))
             && trimmed_start.contains(':')
         {
-            let colon_col = line.find(':').unwrap() as u32;
+            let colon_col = utf16.byte_to_utf16(line.find(':').unwrap());
             tokens.push(RawToken {
                 line: line_u32,
                 start: trim_col,
@@ -515,11 +534,13 @@ pub fn loc_semantic_tokens(content: &str) -> SemanticTokensResult {
         // ── Localization entry: <key>:<version> "<value>" ──
         // Find the first colon to split key from the rest
         if let Some(first_colon) = line.find(':') {
-            let first_colon_u = first_colon as u32;
+            let first_colon_byte = first_colon;
+            let first_colon_u = utf16.byte_to_utf16(first_colon_byte);
 
             // Key token (from first non-whitespace to colon)
-            let key_start = line.find(|c: char| !c.is_whitespace()).unwrap_or(0) as u32;
-            if first_colon_u > key_start {
+            let key_start_byte = line.find(|c: char| !c.is_whitespace()).unwrap_or(0);
+            let key_start = utf16.byte_to_utf16(key_start_byte);
+            if first_colon_byte as u32 > key_start_byte as u32 && first_colon_u > key_start {
                 tokens.push(RawToken {
                     line: line_u32,
                     start: key_start,
@@ -588,7 +609,8 @@ pub fn loc_semantic_tokens(content: &str) -> SemanticTokensResult {
             let quote_start = remaining.find('"');
 
             if let Some(qs) = quote_start {
-                let abs_quote_col = first_colon_u + 1u32 + search_start as u32 + qs as u32;
+                let abs_quote_byte = first_colon_byte + 1usize + search_start + qs;
+                let abs_quote_col = utf16.byte_to_utf16(abs_quote_byte);
 
                 // Opening quote
                 tokens.push(RawToken {
@@ -601,7 +623,7 @@ pub fn loc_semantic_tokens(content: &str) -> SemanticTokensResult {
                 // Find closing quote (not escaped by backslash)
                 // Track BYTE offset, not char offset — multibyte chars like §
                 // would otherwise cause off-by-one errors.
-                let value_start_byte = abs_quote_col as usize + 1;
+                let value_start_byte = abs_quote_byte + 1;
                 let rest_after_open = &line[value_start_byte..];
                 let mut closing_rel = None;
                 let mut byte_offset = 0;
@@ -765,11 +787,11 @@ pub fn loc_semantic_tokens(content: &str) -> SemanticTokensResult {
                     });
                 } else {
                     // No closing quote found — highlight as String from open to end
-                    let remaining_len = line_len.saturating_sub(abs_quote_col);
+                    let line_len_u16 = utf16.byte_to_utf16(line.len() as usize);
                     tokens.push(RawToken {
                         line: line_u32,
                         start: abs_quote_col,
-                        length: remaining_len,
+                        length: line_len_u16.saturating_sub(abs_quote_col),
                         token_type: TokenType::String as u32,
                     });
                 }
@@ -1274,10 +1296,30 @@ fn adjacency_csv_col(col_idx: u32) -> u32 {
 /// are coloured positionally: numbers, keywords (type/coastal), and
 /// terrain names (Type).
 pub fn csv_semantic_tokens(content: &str) -> Option<SemanticTokensResult> {
+    csv_semantic_tokens_impl(content, None)
+}
+
+pub fn csv_semantic_tokens_range(
+    content: &str,
+    range: &tower_lsp_server::ls_types::Range,
+) -> Option<SemanticTokensResult> {
+    csv_semantic_tokens_impl(content, Some((range.start.line, range.end.line)))
+}
+
+fn csv_semantic_tokens_impl(
+    content: &str,
+    line_range: Option<(u32, u32)>,
+) -> Option<SemanticTokensResult> {
     let mut tokens = Vec::new();
 
     for (line_idx, line) in content.lines().enumerate() {
         let line_u32 = line_idx as u32;
+        if let Some((start, end)) = line_range {
+            if line_u32 < start || line_u32 > end {
+                continue;
+            }
+        }
+        let utf16 = crate::utils::line_index::LineIndex::new(line);
         let trimmed = line.trim();
 
         // Skip empty lines
@@ -1288,10 +1330,12 @@ pub fn csv_semantic_tokens(content: &str) -> Option<SemanticTokensResult> {
         // Comment lines starting with `#`
         if trimmed.starts_with('#') {
             if let Some(hash_pos) = line.find('#') {
+                let hash_u16 = utf16.byte_to_utf16(hash_pos);
+                let line_len_u16 = utf16.byte_to_utf16(line.len());
                 tokens.push(RawToken {
                     line: line_u32,
-                    start: hash_pos as u32,
-                    length: (line.len() - hash_pos) as u32,
+                    start: hash_u16,
+                    length: line_len_u16 - hash_u16,
                     token_type: TokenType::Comment as u32,
                 });
             }
@@ -1347,10 +1391,12 @@ pub fn csv_semantic_tokens(content: &str) -> Option<SemanticTokensResult> {
                             definition_csv_col(col_idx)
                         };
 
+                        let col_start_u16 = utf16.byte_to_utf16(content_start);
+                        let col_end_u16 = utf16.byte_to_utf16(content_start + trimmed_val.len());
                         tokens.push(RawToken {
                             line: line_u32,
-                            start: content_start as u32,
-                            length: trimmed_val.len() as u32,
+                            start: col_start_u16,
+                            length: col_end_u16 - col_start_u16,
                             token_type,
                         });
                     }
@@ -1376,10 +1422,12 @@ pub fn csv_semantic_tokens(content: &str) -> Option<SemanticTokensResult> {
                         definition_csv_col(col_idx)
                     };
 
+                    let col_start_u16 = utf16.byte_to_utf16(content_start);
+                    let col_end_u16 = utf16.byte_to_utf16(content_start + trimmed_val.len());
                     tokens.push(RawToken {
                         line: line_u32,
-                        start: content_start as u32,
-                        length: trimmed_val.len() as u32,
+                        start: col_start_u16,
+                        length: col_end_u16 - col_start_u16,
                         token_type,
                     });
                 }
@@ -1591,6 +1639,52 @@ mod tests {
         assert_eq!(variables.len(), 1, "one nested key");
     }
 
+    #[test]
+    fn test_loc_non_ascii_key_positions() {
+        // Non-ASCII key before the colon must be highlighted with UTF-16 columns.
+        let content = "l_english:\n König:0 \"value\"\n";
+        let tokens = collect_loc_tokens(content);
+        // Find the type token (key) on line 1
+        let key_tok = tokens
+            .iter()
+            .find(|t| t.0 == 1 && t.3 == "type")
+            .expect("key token");
+        // " König" -> key starts at UTF-16 col 1 (space) length 6? "König" = 6 chars but König is 6 UTF-16 (K ö n i g = 5? wait König = K-ö-n-i-g =5 chars) Actually "König" = 5 chars. Let's assert start=1, length=5.
+        assert_eq!(key_tok.1, 1, "key start utf16");
+        assert_eq!(key_tok.2, 5, "key length utf16");
+        // colon operator at col 6
+        let colon_tok = tokens.iter().find(|t| t.0 == 1 && t.3 == "operator" && t.2 == 1).unwrap();
+        assert_eq!(colon_tok.1, 6, "colon col utf16");
+        // value string open quote
+        let open = tokens.iter().find(|t| t.0 == 1 && t.3 == "string" && t.2 == 1).unwrap();
+        assert_eq!(open.1, 9, "open quote col utf16");
+    }
+
+    #[test]
+    fn test_loc_range_skips_outside_lines() {
+        let content = "l_english:\n A:0 \"a\"\n B:0 \"b\"\n C:0 \"c\"\n";
+        let range = tower_lsp_server::ls_types::Range {
+            start: tower_lsp_server::ls_types::Position { line: 2, character: 0 },
+            end: tower_lsp_server::ls_types::Position { line: 2, character: 10 },
+        };
+        let res = loc_semantic_tokens_range(content, &range);
+        match res {
+            SemanticTokensResult::Tokens(t) => {
+                // decode
+                let mut abs: Vec<(u32,u32)> = Vec::new();
+                let mut ll=0u32; let mut ls=0u32;
+                for st in &t.data {
+                    let l = ll + st.delta_line;
+                    let c = if st.delta_line==0 { ls+st.delta_start } else { st.delta_start };
+                    abs.push((l,c));
+                    ll=l; ls=c;
+                }
+                assert!(abs.iter().all(|(l,_)| *l==2), "only line 2 tokens: {:?}", abs);
+                assert!(!abs.is_empty());
+            }
+            _ => panic!("expected tokens"),
+        }
+    }
     #[test]
     fn test_loc_no_version() {
         // Format: KEY: "value" (no version number)

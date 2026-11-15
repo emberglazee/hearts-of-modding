@@ -1728,6 +1728,9 @@ pub(crate) fn build_static_semantic_keywords() -> HashSet<String> {
     keywords.insert("volume".to_string());
     keywords.insert("file".to_string());
 
+    // Alert container keyword (common/alerts.txt)
+    keywords.insert("alerts".to_string());
+
     // Structural block keywords (scope filter, conditional, option blocks)
     keywords.insert("limit".to_string());
     keywords.insert("else".to_string());
