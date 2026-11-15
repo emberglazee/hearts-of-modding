@@ -324,7 +324,7 @@ impl EventVisitor {
         // keys are the text before the first `:` — e.g. `foo` from `foo:0 "..."`
         // — so they can never contain `:` and the scan never suppressed
         // anything, just cost O(N) per missing key.)
-        if !ctx.loc.is_empty() {
+        if !ctx.loc.is_empty() && !state.is_hidden {
             if let Some(ref key) = state.title_key {
                 if !ctx.loc.contains_key(key.as_str()) {
                     let d = state.title_range.as_ref().unwrap_or(&state.key_range);
