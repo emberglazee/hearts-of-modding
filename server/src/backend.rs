@@ -2057,6 +2057,37 @@ pub(crate) fn build_static_semantic_keywords() -> HashSet<String> {
         keywords.insert(block.clone());
     }
 
+    // Additional container/structural keys used by scanner-less or
+    // under-covered file families (MIO, equipment groups, scripted diplomacy,
+    // modifier definitions, alerts instances, etc.). Generic assignment-key
+    // fallback in semantic_tokens provides baseline highlighting; these ensure
+    // top-level containers remain Keyword-typed where expected.
+    for k in [
+        "military_industrial_organization",
+        "scripted_diplomatic_actions",
+        "equipment_groups",
+        "equipment_type",
+        "archetype",
+        "modifier_definitions",
+        "color_type",
+        "value_type",
+        "precision",
+        "postfix",
+        "category",
+        "on_sent_effect",
+        "reject_effect",
+        "send_scripted_gui",
+        "show_acceptance_on_action_button",
+        "requires_acceptance",
+        "command_power",
+        "cost_string",
+        "selectable",
+        "scripted_gui",
+        "mio_cat_eq_all_light_tank",
+    ] {
+        keywords.insert(k.to_string());
+    }
+
     keywords
 }
 

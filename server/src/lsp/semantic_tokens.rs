@@ -974,6 +974,19 @@ fn push_entry_tokens(
                         length: key_len,
                         token_type: TokenType::Parameter as u32,
                     });
+                } else if parent_key.is_none() {
+                    // Top-level unclassified assignment keys (containers, mod-defined
+                    // roots, scanner-less family entries) get baseline Property
+                    // highlighting instead of being left plain. Deeper unknown keys
+                    // stay uncolored to avoid misclassifying data values/params in
+                    // contexts with specific semantics (e.g. clear_array bodies,
+                    // decision-category blocks).
+                    tokens.push(RawToken {
+                        line: key_line,
+                        start: key_start,
+                        length: key_len,
+                        token_type: TokenType::Property as u32,
+                    });
                 }
             }
 
