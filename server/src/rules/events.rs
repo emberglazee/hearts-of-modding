@@ -30,6 +30,8 @@ struct EventOptionDef {
     key_range: ast::Range,
     /// Whether this option has a `name` field.
     has_name: bool,
+    /// Whether the option body is empty (`option = { }`).
+    is_empty: bool,
     /// Whether this option has an `ai_chance` block.
     has_ai_chance: bool,
     /// The option's UNCONDITIONAL AI weight: `base * factor + add` when the
@@ -167,6 +169,7 @@ struct EventDef {
     has_desc: bool,
     has_picture: bool,
     is_hidden: bool,
+    is_news_event: bool,
     has_mtth: bool,
     has_is_triggered_only: bool,
     /// Whether this block is an event call (nested inside another event),
@@ -427,7 +430,11 @@ impl EventVisitor {
         let forced_choice = state.ai_visible_effective_option_count <= 1
             || state.options_pairwise_exclusive()
             || state.unwritten_options_dominated();
-        if state.option_count > 1 && !forced_choice && state.options_missing_ai_chance > 0 {
+        if !state.is_news_event
+            && state.option_count > 1
+            && !forced_choice
+            && state.options_missing_ai_chance > 0
+        {
             let diag_range = state
                 .last_missing_ai_chance_range
                 .as_ref()
@@ -808,6 +815,7 @@ impl AstVisitor for EventVisitor {
                 has_desc: false,
                 has_picture: false,
                 is_hidden: false,
+                is_news_event: key.eq_ignore_ascii_case("news_event"),
                 has_mtth: false,
                 has_is_triggered_only: false,
                 is_call: self.event_depth > 0 || !ctx.uri.contains("/events/"),
@@ -909,6 +917,10 @@ impl AstVisitor for EventVisitor {
             self.option_stack.push(EventOptionDef {
                 key_range: ass.key_range.clone(),
                 has_name: false,
+                is_empty: match &ass.value.value {
+                    ast::Value::Block(entries) => entries.is_empty(),
+                    _ => false,
+                },
                 has_ai_chance: false,
                 certain_weight: Some(IMPLICIT_AI_WEIGHT),
                 provably_ai_invisible: Self::evaluate_option_trigger_ai_visibility(&ass.value, ctx),
@@ -978,7 +990,18 @@ impl AstVisitor for EventVisitor {
                         event.last_missing_ai_chance_range = Some(state.key_range.clone());
                     }
                 }
-                self.validate_option(&state, ctx, diags);
+                // Suppress HOM3013 (missing option name) for empty option blocks
+                // (`option = { }`) and for hidden events, where a nameless
+                // no-op option is legitimate.
+                let suppress_name = state.is_empty
+                    || self
+                        .event_stack
+                        .last()
+                        .map(|e| e.is_hidden)
+                        .unwrap_or(false);
+                if !suppress_name {
+                    self.validate_option(&state, ctx, diags);
+                }
             }
             return;
         }

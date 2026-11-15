@@ -1758,7 +1758,7 @@ country_event = {
 #[test]
 fn hom3017_suppressed_for_complementary_option_triggers() {
     let input = r#"
-news_event = {
+country_event = {
 	id = spe.51
 	title = "Southern Player Empire Merges Houses"
 	desc = spe.51.d
@@ -1800,7 +1800,7 @@ news_event = {
 #[test]
 fn hom3017_still_flags_for_non_complementary_triggers() {
     let input = r#"
-news_event = {
+country_event = {
     id = test.37
     title = t
     desc = d
@@ -1828,7 +1828,7 @@ news_event = {
 #[test]
 fn hom3017_complementary_triggers_ignore_comments_and_spacing() {
     let input = r#"
-news_event = {
+country_event = {
     id = test.38
     title = t
     desc = d
