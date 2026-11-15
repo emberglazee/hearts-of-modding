@@ -33,6 +33,12 @@ impl ValidationRule for SpriteRule {
             return;
         };
 
+        // Dynamic sprite names (e.g. GFX_bop_FIN_[GetLeaderBopIcon]_foo) cannot
+        // be resolved statically — skip them.
+        if val.contains('[') || val.contains(']') {
+            return;
+        }
+
         let mut lookup_key = val.to_string();
 
         // Country idea "picture" field resolution

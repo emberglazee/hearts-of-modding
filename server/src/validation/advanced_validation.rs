@@ -85,6 +85,8 @@ pub const IDEA_CASE_MISMATCH: &str = "HOM4004";
 /// (RED always 0), so severity is WARNING not ERROR. Appears at the
 /// definition site in `common/country_tags`/`common/countries`/`history/countries`.
 pub const RESERVED_COUNTRY_TAG: &str = "HOM4005";
+/// Texture file referenced by a .gfx/.gui texturefile = does not exist.
+pub const TEXTURE_FILE_NOT_FOUND: &str = "HOM4006";
 pub const UNKNOWN_STATE_CATEGORY: &str = "HOM5001";
 pub const UNKNOWN_RESOURCE: &str = "HOM5002";
 pub const UNKNOWN_BUILDING: &str = "HOM5003";
