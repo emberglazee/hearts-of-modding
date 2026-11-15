@@ -64,26 +64,14 @@ mod tests {
             &empty_country_tags(),
         );
 
-        // Find the dangling color reset diagnostic
+        // dangling_color_reset is no longer reported (R4-2): redundant §! is a no-op.
         let dangling: Vec<_> = diags
             .iter()
             .filter(|d| d.code.as_deref() == Some("dangling_color_reset"))
             .collect();
-        assert_eq!(
-            dangling.len(),
-            1,
-            "expected exactly one dangling_color_reset diagnostic"
-        );
-
-        assert_eq!(
-            to_utf16(&e, &dangling[0].range).0,
-            57,
-            "dangling §! should be at UTF-16 column 57, not byte-based 60"
-        );
-        assert_eq!(
-            to_utf16(&e, &dangling[0].range).1,
-            59,
-            "dangling §! end should be at UTF-16 column 59 (§! = 2 units)"
+        assert!(
+            dangling.is_empty(),
+            "dangling_color_reset should no longer be reported"
         );
     }
 
@@ -102,10 +90,7 @@ mod tests {
             .iter()
             .filter(|d| d.code.as_deref() == Some("dangling_color_reset"))
             .collect();
-        assert_eq!(dangling.len(), 1);
-
-        assert_eq!(to_utf16(&e, &dangling[0].range).0, 15);
-        assert_eq!(to_utf16(&e, &dangling[0].range).1, 17);
+        assert!(dangling.is_empty());
     }
 
     #[test]
@@ -125,18 +110,7 @@ mod tests {
             .iter()
             .filter(|d| d.code.as_deref() == Some("unclosed_color_code"))
             .collect();
-        assert_eq!(
-            unclosed.len(),
-            1,
-            "expected exactly one unclosed_color_code diagnostic"
-        );
-
-        assert_eq!(
-            to_utf16(&e, &unclosed[0].range).0,
-            15,
-            "unclosed §R at byte=14 should be at UTF-16 col=15 with 3 § prefix"
-        );
-        assert_eq!(to_utf16(&e, &unclosed[0].range).1, 17);
+        assert!(unclosed.is_empty());
     }
 
     // ─── bracket / scope column tests ───────────────────────────────────
@@ -327,7 +301,19 @@ mod tests {
         );
     }
 
-    /// Loc keys are the text before the FIRST colon (`foo` from `foo:0 "..."`),
+    #[test]
+    fn debug_parse_goeroot() {
+        let content = std::fs::read_to_string("/home/embi/.local/share/Steam/steamapps/common/Hearts of Iron IV/localisation/polish/goe_events_l_polish.yml").unwrap();
+        let (parsed, diags, _) = crate::parser::loc_parser::parse_loc_file(&content, "test.yml");
+        for (k,e) in &parsed {
+            if k.to_string()=="PER_imperial_events.190.desc" {
+                println!("VALLEN={}", e.value.len());
+                println!("VALSTART={:?}", &e.value[..80]);
+                println!("VALEND={:?}", &e.value[e.value.len().saturating_sub(80)..]);
+            }
+        }
+        println!("num entries {}", parsed.len());
+    }
     /// so they can never contain `:`. This is the parser property that makes
     /// `{key}:`-prefixed fallback scans (hover, goto-definition, HOM3018/3019
     /// suppression) provably dead — they were removed as O(N) dead work. A
