@@ -2103,7 +2103,8 @@ pub(crate) fn check_duplicate_keys<'a>(
                 || key == "variable_name"
                 || key == "icon"
                 || (in_air_wings && key == "name")
-                || (parent_key == Some("province") && key == "id");
+                || (parent_key == Some("province") && key == "id")
+                || (parent_key == Some("instance") && key == "name");
 
             if is_modifier && !is_exception {
                 if let Some(prev_range) = seen_keys.get(key) {
@@ -2967,6 +2968,9 @@ impl ValidationCtx {
                 continue;
             }
             let parts: Vec<&str> = trimmed.split(';').collect();
+            if parts.first().map(|p| p.trim()) == Some("-1") {
+                continue;
+            }
             if parts.len() < 9 {
                 diagnostics.push(Diagnostic {
                     range: Range {

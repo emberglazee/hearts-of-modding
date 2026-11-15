@@ -95,8 +95,8 @@ impl VariableRule {
         let lower = key.to_ascii_lowercase();
         match lower.as_str() {
             // Definitions (setters/creators)
-            "set_variable" | "change_variable" => Some(VarRefKind::Definition),
-            "set_temp_variable" | "set_local_variable" => Some(VarRefKind::Temp),
+            "set_variable" | "change_variable" | "randomize_variable" => Some(VarRefKind::Definition),
+            "set_temp_variable" | "set_local_variable" | "randomize_temp_variable" => Some(VarRefKind::Temp),
             // Reads (checkers/queries)
             // NOTE: unset variables read as 0 — the engine recovers gracefully,
             // so unresolved reads validate at WARNING (typo-catching), never ERROR.
@@ -109,7 +109,6 @@ impl VariableRule {
             | "modulo_variable"
             | "clamp_variable"
             | "round_variable"
-            | "randomize_variable"
             | "set_variable_to_random"
             | "clear_variable" => Some(VarRefKind::Mutation),
             // Temp mutations
@@ -120,7 +119,6 @@ impl VariableRule {
             | "modulo_temp_variable"
             | "clamp_temp_variable"
             | "round_temp_variable"
-            | "randomize_temp_variable"
             | "set_temp_variable_to_random"
             | "clear_temp_variable" => Some(VarRefKind::Temp),
             // Array creations (definitions)
@@ -248,6 +246,13 @@ impl VariableRule {
             return true;
         }
 
+        // Dynamic indirection: `var:`/`temp_var:`-prefixed names resolve at
+        // runtime, so we cannot know the array identity statically.
+        let lower = name.to_ascii_lowercase();
+        if lower.starts_with("var:") || lower.starts_with("temp_var:") {
+            return true;
+        }
+
         // Built-in engine-provided arrays (dynamic variables) never need an
         // explicit `add_to_array`. They are available implicitly per scope
         // (e.g. `faction_members`, `allies`, `owned_states`) and would otherwise
@@ -259,6 +264,28 @@ impl VariableRule {
             return true;
         }
 
+        // Array identity is scope-bound: definitions use bare or `ROOT.`-prefixed
+        // names (`owned_states_at_game_start`, `ROOT.limited_war_states`) while
+        // callers carry scope qualifiers (`RAJ.owned_states_at_game_start`,
+        // `FROM.FIN_states_…`). Normalize by stripping leading scope-qualifier
+        // segments (all-uppercase) so the bare name is compared on both sides.
+        fn bare_array_name(n: &str) -> &str {
+            let mut s = n;
+            while let Some(dot) = s.find('.') {
+                let (head, rest) = s.split_at(dot);
+                if !head.is_empty()
+                    && head.chars().all(|c| c.is_ascii_uppercase())
+                    && !rest.is_empty()
+                {
+                    s = &rest[1..];
+                } else {
+                    break;
+                }
+            }
+            s
+        }
+        let bare = bare_array_name(name);
+
         // File-local arrays (both regular and temp defs) — scope-aware.
         // Temp array defs are stored with is_temp flag but for reads we accept
         // either: a temp array read may be satisfied by a temp def in the same
@@ -266,8 +293,10 @@ impl VariableRule {
         // permissive (false-negative over false-positive) while the precise
         // temp-vs-regular read distinction is not encoded in the trigger key
         // (is_in_array reads both).
-        if let Some((def_scope, _temp, _, _)) = self.file_arrays.get(name) {
-            if *def_scope == current_scope || self.is_accessible_scope(*def_scope, current_scope) {
+        for (key, (def_scope, _temp, _, _)) in self.file_arrays.iter() {
+            if bare_array_name(key) == bare
+                && (*def_scope == current_scope || self.is_accessible_scope(*def_scope, current_scope))
+            {
                 return true;
             }
         }
@@ -275,15 +304,11 @@ impl VariableRule {
         // Workspace arrays — only regular arrays (add_to_array) are in ScannerData;
         // add_to_temp_array writes are chain-local but we still store them for
         // cross-file typo-catching permissiveness. If any entry exists, consider defined.
-        if let Some(entry) = self.workspace_arrays.get(name) {
-            if !entry.value().is_empty() {
+        for entry in self.workspace_arrays.iter() {
+            if bare_array_name(entry.key()) == bare && !entry.value().is_empty() {
                 return true;
             }
         }
-
-        // Also check global-prefixed name in workspace (scanner stores stripped? No, stores raw.
-        // We already stripped global. for is_global check, but workspace keys are raw names
-        // like "TIR_global_campaign_holders" not "global.X", so this is not needed.)
 
         false
     }
