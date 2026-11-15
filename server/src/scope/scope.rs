@@ -80,6 +80,14 @@ pub enum Scope {
     /// as `ScriptedEffect` — top-level trigger definitions inherit the caller's
     /// scope at use-site.
     ScriptedTrigger,
+    /// File-level scope for `common/scripted_localisation/*.txt`.
+    ///
+    /// A `defined_text = { name/text = { trigger = { ... } localization_key = } }`
+    /// body is evaluated in whatever scope the displayed string is used in —
+    /// the same polymorphism as `ScriptedEffect`, only for localisation. No
+    /// single runtime scope describes it, so HOM004 is skipped at the
+    /// structural level while explicit iterators still push their own scopes.
+    ScriptedLocalisation,
     Unknown,
 }
 
@@ -110,6 +118,7 @@ impl Scope {
             Scope::OnActions => "On Actions",
             Scope::ScriptedEffect => "Scripted Effect",
             Scope::ScriptedTrigger => "Scripted Trigger",
+            Scope::ScriptedLocalisation => "Scripted Localisation",
             Scope::Unknown => "Unknown",
         }
     }
@@ -121,7 +130,9 @@ impl Scope {
         match self {
             Scope::FocusTree | Scope::NationalFocus | Scope::Technologies => Scope::Country,
             Scope::OnActions => Scope::Global,
-            Scope::ScriptedEffect | Scope::ScriptedTrigger => Scope::Country,
+            Scope::ScriptedEffect | Scope::ScriptedTrigger | Scope::ScriptedLocalisation => {
+                Scope::Country
+            }
             // Character condition blocks are character-context trigger blocks;
             // `Character` gives the most useful completion filtering (character
             // triggers dominate them).
@@ -156,6 +167,7 @@ impl Scope {
             | Scope::OnActions
             | Scope::ScriptedEffect
             | Scope::ScriptedTrigger
+            | Scope::ScriptedLocalisation
             | Scope::FocusTree
             | Scope::NationalFocus => 1,
             Scope::Unknown | Scope::ModifierBag | Scope::CharacterCondition => 0,
@@ -196,9 +208,38 @@ impl Scope {
             | Scope::HiddenIdeaCategory
             | Scope::NationalFocus
             | Scope::FocusTree
-            | Scope::Technologies => Scope::Country,
+            | Scope::Technologies
+            | Scope::ScriptedLocalisation => Scope::Country,
             other => *other,
         }
+    }
+
+    /// True for scopes that only ever sit at the bottom of a stack: the file's
+    /// initial marker, not a scope its content runs in.
+    ///
+    /// [`ScopeStack::resolve_pointer`] skips one of these at index 0 so `ROOT`
+    /// lands on the first *runtime* scope the content executes in. `OnActions`
+    /// is the case that matters: the file starts at `OnActions`, each `on_*`
+    /// hook pushes its own runtime scope, and `root = { ... }` inside the hook
+    /// must resolve to the hook's scope — not to the marker, whose effective
+    /// scope is Global (vanilla `07_nsb_on_actions.txt` does exactly this in
+    /// 763 places).
+    ///
+    /// Deliberately narrow: scopes that carry a meaningful runtime root of
+    /// their own (`Idea`, `NationalFocus`, `Technologies` → Country; `Ace` →
+    /// the ace) are NOT markers, so `ROOT` keeps resolving through them.
+    pub fn is_file_level_marker(&self) -> bool {
+        matches!(
+            self,
+            Scope::Global
+                | Scope::Unknown
+                | Scope::OnActions
+                | Scope::ModifierBag
+                | Scope::CharacterCondition
+                | Scope::TechnologyTags
+                | Scope::TechnologyCategories
+                | Scope::TechnologyFolders
+        )
     }
 
     /// Map an `on_*` action name to its runtime scope.
@@ -582,6 +623,37 @@ pub fn initial_scope_for_uri(uri: &str) -> Scope {
     } else if uri.contains("/common/scripted_triggers/") {
         // Same semantics as scripted_effects — polymorphic triggers.
         Scope::ScriptedTrigger
+    } else if uri.contains("/history/units/") {
+        // Order-of-battle files. Top level is country script:
+        // `division_template = { ... }`, `add_equipment_production = { ... }`,
+        // plus bare `has_government` / `original_tag` conditions. Starting at
+        // Global turned 6.8k valid OOB lines into HOM004.
+        Scope::Country
+    } else if uri.contains("/common/scripted_localisation/") {
+        // `defined_text` bodies are polymorphic — see `ScriptedLocalisation`.
+        Scope::ScriptedLocalisation
+    } else if uri.contains("/common/autonomous_states/")
+        || uri.contains("/common/bop/")
+        || uri.contains("/common/factions/")
+        || uri.contains("/common/doctrines/")
+        || uri.contains("/common/military_industrial_organization/")
+        || uri.contains("/common/special_projects/")
+        || uri.contains("/common/raids/")
+        || uri.contains("/common/operations/")
+        || uri.contains("/common/intelligence_agencies/")
+        || uri.contains("/common/technology_sharing/")
+        || uri.contains("/common/collections/")
+        || uri.contains("/common/focus_inlay_windows/")
+        || uri.contains("/common/operation_phases/")
+        || uri.contains("/common/wargoals/")
+        || uri.contains("/common/resistance_activity/")
+    {
+        // Country-evaluated definition families: their bodies hold country
+        // triggers (`available`, `allowed`, `visible`, `enable`, `limit`,
+        // `original_tag`) inside transparent blocks, so the definition block
+        // itself is what has to carry the scope. Falling through to Global made
+        // every one of them a HOM004 false positive.
+        Scope::Country
     } else {
         Scope::Global
     }
@@ -664,7 +736,9 @@ impl ScopeStack {
                 .nodes
                 .iter()
                 .enumerate()
-                .find(|(idx, n)| !n.is_transparent && !(*idx == 0 && n.scope_type == Scope::Global))
+                .find(|(idx, n)| {
+                    !n.is_transparent && !(*idx == 0 && n.scope_type.is_file_level_marker())
+                })
                 .map_or(Scope::Global, |(_, n)| n.scope_type.runtime_root_scope()),
             "THIS" => self.current(),
             "PREV" => self
@@ -891,6 +965,99 @@ impl ScopeStack {
                     return (s, false);
                 }
             }
+        }
+
+        let lk = key.to_ascii_lowercase();
+
+        // 1c. Event definition blocks (`events/*.txt`). The file's initial
+        // scope stays Global — correct, because `namespace = ...` and
+        // `add_namespace = ...` are file-level declarations. Each event
+        // definition then runs in its own scope: country events on a country,
+        // state events on a state, leader events on the leader. Without this
+        // the whole body (`trigger`, `immediate`, `option`) validated at Global
+        // and every country trigger inside it was a false positive.
+        //
+        // Gated on `/events/` because `country_event = { id = ... }` is ALSO a
+        // fire-an-event effect used all over script.
+        if ctx.uri.contains("/events/") {
+            match lk.as_str() {
+                "country_event" | "news_event" => return (Scope::Country, false),
+                "state_event" => return (Scope::State, false),
+                // Leader/operative events are SHOWN to the leader's owner:
+                // vanilla puts country effects (`activate_mission`,
+                // `puppet`, `add_political_power`) straight in their options,
+                // with the leader as FROM. The body is country scope.
+                "unit_leader_event" | "operative_leader_event" => return (Scope::Country, false),
+                _ => {}
+            }
+        }
+
+        // 1d. Modifier-container definition blocks. `leader_traits = { ... }`
+        // and the flat `my_dm = { ... }` bodies of common/dynamic_modifiers and
+        // common/modifiers hold modifier keys directly, with no `modifier = { }`
+        // wrapper, so they inherit the file scope and every modifier key that
+        // collides with a trigger name became a HOM004. The engine reads these
+        // bodies as a flat bag and routes each key to its own effect — asking
+        // "what scope is `planning_gain_factor`" is a category error.
+        // Sub-blocks that DO evaluate in a scope (`unit_trigger`, `gain_xp`,
+        // `allowed`) are matched below, after this arm is done.
+        if lk == "leader_traits" || lk == "unit_leader_traits" {
+            return (Scope::ModifierBag, true);
+        }
+        if (ctx.uri.contains("/common/dynamic_modifiers/")
+            || ctx.uri.contains("/common/modifiers/"))
+            && self.current() == Scope::Global
+        {
+            return (Scope::ModifierBag, true);
+        }
+
+        // 1e. Structural blocks whose body scope the engine defines but the
+        // data tables do not push.
+        match lk.as_str() {
+            // Unit-leader trait gate: `unit_trigger = { division_has_majority_template = ... }`
+            // is a division trigger block, so `owner = { ... }` inside it chains
+            // to Country the normal way.
+            "unit_trigger" => return (Scope::Unit, false),
+            // A trait's XP-gain gate is a DIVISION trigger block: vanilla
+            // gates it on `temperature`, `has_combat_modifier`,
+            // `is_fighting_in_terrain`, `fastest_unit`. (The `gain_xp = 10`
+            // effect is a scalar and never reaches this arm.)
+            "gain_xp" if ctx.uri.contains("/common/unit_leader/") => {
+                return (Scope::Unit, false)
+            }
+            // Special-project scientist blocks evaluate on the scientist.
+            "scientist_effects" | "scientist_trigger" => return (Scope::Character, false),
+            // Operation target selection runs on the candidate state.
+            "selection_target_state" => return (Scope::State, false),
+            // Balance-of-power activation hooks run for the country holding it.
+            "on_activate" | "on_deactivate" => return (Scope::Country, false),
+            _ => {}
+        }
+
+        // 1f. Raid outcome blocks. `success = { base = 0.75 experience = {
+        // weight = 0.25 } resistance = { ... } }` is a probability/weight bag,
+        // not a trigger body — its entries are weights per outcome axis. The
+        // effect blocks nested inside it do evaluate, on the victim/raider
+        // country respectively.
+        if ctx.uri.contains("/common/raids/") {
+            match lk.as_str() {
+                "success" | "failure" => return (Scope::ModifierBag, true),
+                "victim_effects" | "raider_effects" => return (Scope::Country, false),
+                _ => {}
+            }
+        }
+
+        // 1g. Collection definitions (`common/collections/`). `limit` and
+        // `operators` run once per ELEMENT of the collection, and the element
+        // scope is decided by the collection's `input` (`game:all_states` →
+        // State, `game:all_countries` → Country, `game:all_controlled_states`
+        // → State, …). That is not statically resolvable from the block alone,
+        // so no scope is claimed here rather than guessing Country and
+        // flagging every state trigger.
+        if ctx.uri.contains("/common/collections/")
+            && matches!(lk.as_str(), "limit" | "operators" | "input")
+        {
+            return (Scope::ModifierBag, true);
         }
 
         // 2. V2: Known trigger/effect with explicit scope push
