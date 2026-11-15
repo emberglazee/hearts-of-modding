@@ -1112,6 +1112,7 @@ impl Backend {
         let ul_files: Vec<std::path::PathBuf> = overlay.winning_files_in("common/unit_leader");
         let cl_files: Vec<std::path::PathBuf> = overlay.winning_files_in("common/country_leader");
         let tr_files: Vec<std::path::PathBuf> = overlay.winning_files_in("common/traits");
+        let st_files: Vec<std::path::PathBuf> = overlay.winning_files_in("common/scientist_traits");
         let result = tokio::task::spawn_blocking(move || {
             let mut map = HashMap::new();
             for (files, trait_type) in [
@@ -1121,6 +1122,11 @@ impl Backend {
             ] {
                 map.extend(trait_scanner::scan_trait_files(files, trait_type, &filter));
             }
+            map.extend(trait_scanner::scan_top_level_trait_files(
+                &st_files,
+                "Scientist Trait",
+                &filter,
+            ));
             map
         })
         .await

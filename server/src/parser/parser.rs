@@ -102,7 +102,11 @@ pub fn is_identifier_char(c: char) -> bool {
         // Non-ASCII alphanumeric (accents like é, à, è from HOI4 names/characters).
         // Also allow curly/smart quotes (\u{201c} \u{201d}) and curly apostrophe (\u{2019})
         // — they appear in vanilla 00_names.txt and the engine treats them as plain text.
-        c.is_alphanumeric() || c == '\u{201c}' || c == '\u{201d}' || c == '\u{2019}'
+        c.is_alphanumeric()
+            || c == '\u{201c}'
+            || c == '\u{201d}'
+            || c == '\u{2019}'
+            || c == '\u{00a7}'
     }
 }
 
@@ -319,8 +323,11 @@ fn parse_block(input: Span) -> IResult<Span, (Vec<ast::Entry>, Range)> {
     // `traits = { trait_cautious, inflexible_strategist }`). Treat each comma
     // as an optional separator before entries, like whitespace, so both
     // space-separated and comma-separated entry lists are accepted.
-    let (input, entries) =
-        many0(preceded(opt(tag(",")), preceded(multispace0, parse_entry))).parse(input)?;
+    let (input, entries) = many0(preceded(
+        opt(tag(",")),
+        preceded(skip_ws_comments, parse_entry),
+    ))
+    .parse(input)?;
     // Try explicit closing '}' first. If not found, check if remaining
     // content is only closing braces (safe implicit close) or new scopes
     // after the gap (structural break — propagate error for HOM001).
@@ -376,6 +383,10 @@ fn only_closing_braces_until_eof(span: Span) -> bool {
 }
 
 fn skip_ws_comments(input: Span) -> IResult<Span, ()> {
+    let (input, _) = multispace0(input)?;
+    // Consume `;` statement terminators used by the GUI/GFX dialect (and any
+    // stray terminators) — the Clausewitz parser treats `;` as whitespace.
+    let (input, _) = take_while(|c: char| c == ';')(input)?;
     let (input, _) = multispace0(input)?;
     match comment(input) {
         Ok((remaining, _)) => skip_ws_comments(remaining),

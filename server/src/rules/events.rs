@@ -222,6 +222,10 @@ struct EventDef {
 struct EventVisitor {
     /// Depth of event definition nesting (>0 means inside an event definition).
     event_depth: u32,
+    /// Depth of non-event blocks nested inside the current event (0 = event top level).
+    /// Used to gate `id` tracking so nested blocks' `id` keys (country tags etc.)
+    /// are not mis-attributed as the event id.
+    event_block_depth: u32,
     /// Stack of events being tracked (supports nested effects).
     event_stack: Vec<EventDef>,
     /// Stack of option definitions currently being walked.
@@ -238,6 +242,7 @@ impl EventVisitor {
     fn new() -> Self {
         Self {
             event_depth: 0,
+            event_block_depth: 0,
             event_stack: Vec::new(),
             option_stack: Vec::new(),
             seen_namespaces: HashSet::new(),
@@ -827,12 +832,24 @@ impl AstVisitor for EventVisitor {
                 id: None,
                 id_range: None,
             });
+            self.event_block_depth = 0;
             self.event_depth += 1;
             return;
         }
 
         if self.event_depth == 0 {
             return;
+        }
+
+        // Track depth of non-event blocks so nested `id` keys are not
+        // mis-attributed as the event id.
+        let is_block = matches!(
+            &ass.value.value,
+            ast::Value::Block(_) | ast::Value::TaggedBlock(..)
+        );
+        let is_event = Self::is_event_type(key);
+        if !self.in_option() && is_block && !is_event {
+            self.event_block_depth += 1;
         }
 
         // ── Track event-level properties (not inside options) ──────
@@ -872,7 +889,9 @@ impl AstVisitor for EventVisitor {
                         };
                     }
                     "id" => {
-                        if let Some(s) = ass.value.value.as_str(ctx.source) {
+                        if self.event_block_depth == 0
+                            && let Some(s) = ass.value.value.as_str(ctx.source)
+                        {
                             state.id = Some(s.to_string());
                             state.id_range = Some(ass.value.range.clone());
                         }
@@ -1024,6 +1043,19 @@ impl AstVisitor for EventVisitor {
                             });
                         }
                     }
+                }
+            }
+        }
+        // Decrement non-event block depth on exit.
+        if self.event_depth > 0 {
+            let is_event = Self::is_event_type(key);
+            let is_block = matches!(
+                &ass.value.value,
+                ast::Value::Block(_) | ast::Value::TaggedBlock(..)
+            );
+            if !is_event && is_block && !self.in_option() {
+                if self.event_block_depth > 0 {
+                    self.event_block_depth -= 1;
                 }
             }
         }
