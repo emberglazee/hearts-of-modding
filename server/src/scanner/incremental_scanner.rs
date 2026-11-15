@@ -414,6 +414,9 @@ pub(crate) fn classify_file(path: &str, definitions_file: &str) -> Vec<FileCateg
         if lower.contains("/common/traits/") {
             cats.push(FileCategory::Traits);
         }
+        if lower.contains("/common/scientist_traits/") {
+            cats.push(FileCategory::Traits);
+        }
         if lower.contains("/common/ideas/") {
             cats.push(FileCategory::Ideas);
         }
@@ -1222,13 +1225,23 @@ fn update_traits(
     script: &ast::Script,
 ) {
     let mut new_entries = HashMap::new();
-    trait_scanner::find_traits_in_entries(
-        &script.entries,
-        &script.source,
-        path_str,
-        trait_type,
-        &mut new_entries,
-    );
+    if path_str.contains("scientist_traits") {
+        trait_scanner::find_top_level_traits_in_entries(
+            &script.entries,
+            &script.source,
+            path_str,
+            trait_type,
+            &mut new_entries,
+        );
+    } else {
+        trait_scanner::find_traits_in_entries(
+            &script.entries,
+            &script.source,
+            path_str,
+            trait_type,
+            &mut new_entries,
+        );
+    }
 
     retain_path!(
         scanner_data.traits,

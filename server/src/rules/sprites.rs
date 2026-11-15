@@ -61,7 +61,7 @@ impl ValidationRule for SpriteRule {
                     lookup_key, val
                 ),
                 code: Some(NumberOrString::String(
-                    crate::validation::advanced_validation::UNKNOWN_TRIGGER.to_string(),
+                    crate::validation::advanced_validation::UNKNOWN_SPRITE.to_string(),
                 )),
                 source: Some("Hearts of Modding".to_string()),
                 ..Default::default()

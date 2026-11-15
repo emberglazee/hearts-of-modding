@@ -85,3 +85,54 @@ pub(crate) fn find_traits_in_entries(
         }
     }
 }
+pub(crate) fn find_top_level_traits_in_entries(
+    entries: &[ast::Entry],
+    source: &str,
+    file_path: &str,
+    trait_type: &str,
+    map: &mut HashMap<String, Trait>,
+) {
+    for entry in entries {
+        if let ast::Entry::Assignment(ass) = entry {
+            let name = ass.key_text(source).to_string();
+            map.insert(
+                name.clone(),
+                Trait {
+                    name,
+                    trait_type: trait_type.to_string(),
+                    path: std::sync::Arc::from(file_path),
+                    range: ass.key_range.clone(),
+                },
+            );
+        }
+    }
+}
+
+pub fn scan_top_level_trait_files<F>(
+    files: &[std::path::PathBuf],
+    trait_type: &str,
+    filter: &F,
+) -> HashMap<String, Trait>
+where
+    F: Fn(&std::path::Path) -> bool,
+{
+    let mut map = HashMap::new();
+    crate::utils::fs_util::parse_winning_files(files, filter, |path, content| {
+        let (script, _) = parser::parse_script(&content);
+        for entry in &script.entries {
+            if let ast::Entry::Assignment(ass) = entry {
+                let name = ass.key_text(&script.source).to_string();
+                map.insert(
+                    name.clone(),
+                    Trait {
+                        name,
+                        trait_type: trait_type.to_string(),
+                        path: std::sync::Arc::from(path.to_string_lossy().to_string()),
+                        range: ass.key_range.clone(),
+                    },
+                );
+            }
+        }
+    });
+    map
+}

@@ -2,7 +2,13 @@ use crate::parser::ast;
 
 /// Diagnostic codes for advanced validation
 pub const PARSE_ERROR: &str = "HOM001";
-pub const UNKNOWN_TRIGGER: &str = "HOM002";
+pub const UNKNOWN_SPRITE: &str = "HOM002a";
+pub const UNKNOWN_COUNTRY_TAG: &str = "HOM002b";
+pub const UNKNOWN_TRAIT: &str = "HOM002c";
+pub const UNKNOWN_IDEOLOGY: &str = "HOM002d";
+pub const UNKNOWN_ABILITY: &str = "HOM002e";
+pub const UNKNOWN_SOUND_EFFECT: &str = "HOM002f";
+pub const UNKNOWN_PROVINCE_ID: &str = "HOM002g";
 #[allow(dead_code)]
 pub const UNKNOWN_EFFECT: &str = "HOM003";
 pub const SCOPE_MISMATCH: &str = "HOM004";
