@@ -1142,15 +1142,47 @@ impl Backend {
     }
 
     pub(crate) async fn scan_sprites(&self, overlay: &crate::scanner::file_overlay::FileOverlay) {
-        scan_dashmap_overlay!(
-            self,
-            overlay,
-            "interface",
-            sprite_scanner::scan_sprite_files,
-            sprites,
-            &["gfx", "gui"],
-            "Total: Loaded {} sprite definitions"
-        );
+        let filter = self.get_sync_filter();
+        let mut files: Vec<std::path::PathBuf> = overlay.winning_files_in("interface");
+        // Also include DLC and integrated DLC interface directories
+        for dlc_prefix in ["dlc", "integrated_dlc"] {
+            files.extend(
+                overlay
+                    .winning_files_in(dlc_prefix)
+                    .into_iter()
+                    .filter(|p| {
+                        let s = p.to_string_lossy().replace('\\', "/");
+                        s.contains("/interface/")
+                    }),
+            );
+        }
+        // Only .gfx/.gui files contain sprite definitions
+        files.retain(|p| {
+            p.extension()
+                .and_then(|e| e.to_str())
+                .is_some_and(|e| e == "gfx" || e == "gui")
+        });
+        // Dedup by path
+        files.sort();
+        files.dedup();
+        let result = tokio::task::spawn_blocking(move || {
+            sprite_scanner::scan_sprite_files(&files, &filter)
+        })
+        .await
+        .unwrap();
+        self.scanner_data.sprites.clear();
+        for (k, v) in result {
+            self.scanner_data
+                .sprites
+                .insert(k.into(), crate::data::layered_value::LayeredValue::new(v));
+        }
+        let count = self.scanner_data.sprites.len();
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!("Total: Loaded {} sprite definitions", count),
+            )
+            .await;
     }
 
     pub(crate) async fn scan_characters(
