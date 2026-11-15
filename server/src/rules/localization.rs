@@ -29,13 +29,51 @@ impl ValidationRule for LocalizationRule {
     ) {
         let uri_lower = ctx.uri.to_ascii_lowercase();
         let uri_norm = crate::scanner::incremental_scanner::normalize_path_str(&uri_lower);
+
+        // Scripted localisation: `name` is a defined_text identifier, not a loc key.
         if uri_norm.contains("/common/scripted_localisation/") {
+            return;
+        }
+
+        // GUI/GFX/asset files: `name`/`text`/etc. are widget/sprite identifiers.
+        if uri_lower.ends_with(".gui")
+            || uri_lower.ends_with(".gfx")
+            || uri_lower.ends_with(".asset")
+        {
+            return;
+        }
+
+        // AI-equipment variants, game rules, focus titlebar styles, codenames,
+        // plane filters, GFX .txt configs are identifiers, not loc keys.
+        if uri_norm.contains("/ai_equipment/")
+            || uri_norm.contains("titlebar_styles")
+            || uri_norm.contains("codenames_operatives")
+            || uri_norm.contains("plane_filters")
+            || uri_norm.contains("/gfx/")
+        {
             return;
         }
 
         let key_lower = ass.key_text(ctx.source).to_ascii_lowercase();
         if key_lower != "name" && key_lower != "desc" && key_lower != "text" && key_lower != "title"
         {
+            return;
+        }
+
+        // Game rules: option/default tokens (enum identifiers).
+        if uri_norm.contains("/game_rules/") && key_lower == "name" {
+            return;
+        }
+
+        // Event files: title/desc owned by events.rs (HOM3018/HOM3019), incl.
+        // hidden-event suppression. Option `name` (HOM005) is still checked.
+        if uri_norm.contains("/events/") && (key_lower == "title" || key_lower == "desc") {
+            return;
+        }
+
+        // Quoted values are inline display text, never loc-key references
+        // (mirrors events.rs HOM3018/HOM3019 quoted-skip).
+        if matches!(ass.value.value, ast::Value::QuotedString(_)) {
             return;
         }
 
@@ -237,7 +275,7 @@ mod tests {
 	title = TAG.8.title
 	desc = TAG.8.desc
 }"#;
-        let diags = run_with_loc(source, "/events/a.txt", &["SOME_OTHER_KEY"]);
+        let diags = run_with_loc(source, "/common/ideas/a.txt", &["SOME_OTHER_KEY"]);
         let h005: Vec<&Diagnostic> = diags
             .iter()
             .filter(|d| d.code == Some(NumberOrString::String("HOM005".to_string())))
@@ -245,9 +283,80 @@ mod tests {
         assert_eq!(h005.len(), 2, "both dotted keys are missing: {:?}", h005);
     }
 
-    /// The literal-word suppression must SURVIVE for underscore-free words:
-    /// vanilla carries ~1.1k of them (`add_ace = { name = Margaret }`,
-    /// common/names data). No underscore/dot → still treated as literal.
+    /// Quoted string values are inline display text, not loc keys: HOM005 must
+    /// NOT fire for `name = "Some Missing Key"`.
+    #[test]
+    fn test_quoted_value_not_flagged() {
+        let source = r#"country = {
+	name = "Some Missing Key"
+}"#;
+        let diags = run_with_loc(source, "/common/countries/a.txt", &["SOME_OTHER_KEY"]);
+        let h005: Vec<&Diagnostic> = diags
+            .iter()
+            .filter(|d| d.code == Some(NumberOrString::String("HOM005".to_string())))
+            .collect();
+        assert!(
+            h005.is_empty(),
+            "quoted values are literals, not loc keys, got: {:?}",
+            h005
+        );
+    }
+
+    /// GUI files: `name` is a widget/sprite identifier, never a loc key.
+    #[test]
+    fn test_gui_file_not_flagged() {
+        let source = r#"guiTypes = {
+	containerWindowType = {
+		name = my_widget_name
+	}
+}"#;
+        let diags = run_with_loc(source, "/interface/foo.gui", &["SOME_OTHER_KEY"]);
+        let h005: Vec<&Diagnostic> = diags
+            .iter()
+            .filter(|d| d.code == Some(NumberOrString::String("HOM005".to_string())))
+            .collect();
+        assert!(h005.is_empty(), "gui files must not be scanned, got: {:?}", h005);
+    }
+
+    /// Event files: `title`/`desc` are owned by HOM3018/HOM3019, so HOM005
+    /// must not re-flag them. Option `name` still fires.
+    #[test]
+    fn test_event_title_desc_not_flagged_by_hom005() {
+        let source = r#"country_event = {
+	id = ns.1
+	title = MISSING_TITLE_KEY
+	desc = MISSING_DESC_KEY
+	option = {
+		name = MISSING_OPTION_KEY
+	}
+}"#;
+        let diags = run_with_loc(source, "/events/a.txt", &["SOME_OTHER_KEY"]);
+        let h005: Vec<&Diagnostic> = diags
+            .iter()
+            .filter(|d| d.code == Some(NumberOrString::String("HOM005".to_string())))
+            .collect();
+        assert_eq!(
+            h005.len(),
+            1,
+            "only the option name should fire HOM005 in event files, got: {:?}",
+            h005
+        );
+    }
+
+    /// True positive preserved: a genuinely missing unquoted key in a normal
+    /// script file still fires HOM005.
+    #[test]
+    fn test_true_positive_still_flagged() {
+        let source = r#"country = {
+	name = GENUINELY_MISSING_KEY
+}"#;
+        let diags = run_with_loc(source, "/common/countries/a.txt", &["SOME_OTHER_KEY"]);
+        let h005: Vec<&Diagnostic> = diags
+            .iter()
+            .filter(|d| d.code == Some(NumberOrString::String("HOM005".to_string())))
+            .collect();
+        assert_eq!(h005.len(), 1, "true positive must still fire: {:?}", h005);
+    }
     #[test]
     fn test_literal_words_still_suppressed() {
         let source = r#"add_ace = {
