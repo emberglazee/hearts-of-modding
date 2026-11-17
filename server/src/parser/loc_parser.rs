@@ -109,6 +109,7 @@ pub fn validate_loc_string(
     >,
     color_codes: &HashSet<String>,
     country_tags: &HashSet<String>,
+    characters: &DashMap<InternedStr, LayeredValue<crate::scanner::character_scanner::Character>>,
 ) -> Vec<LocDiagnostic> {
     let mut diagnostics = Vec::new();
 
@@ -204,6 +205,11 @@ pub fn validate_loc_string(
         "GetNonIdeologyAdjectiveCap",
         "GetLeader",
         "GetDateText",
+        // Engine-accepted aliases observed in vanilla localisation/script usage.
+        "GetNameAdj",
+        "GetAdj",
+        "GetNameCap",
+        "Adjective",
     ];
     let scopes = [
         "ROOT",
@@ -373,9 +379,26 @@ pub fn validate_loc_string(
         let mut current_part_start = start_pos + 1; // +1 for [
         let mut all_parts_invalid = true;
 
-        for part in &parts {
+        for (i, part) in parts.iter().enumerate() {
             let mut valid = false;
             let part_upper = part.to_uppercase();
+
+            // event_target: / global_event_target: prefix (and optional leading '?') on scope roots.
+            let mut lookup_part = *part;
+            if i == 0 {
+                let mut lp = *part;
+                if let Some(rest) = lp.strip_prefix('?') {
+                    lp = rest;
+                }
+                for prefix in ["event_target:", "global_event_target:"] {
+                    if lp.len() >= prefix.len() && lp[..prefix.len()].eq_ignore_ascii_case(prefix) {
+                        lp = &lp[prefix.len()..];
+                        break;
+                    }
+                }
+                lookup_part = lp;
+            }
+            let lookup_upper = lookup_part.to_uppercase();
 
             // Check if this part is a known loc_command (valid in any position
             // — some commands like GetLeader, GetCapital act as scope transitions)
@@ -383,43 +406,58 @@ pub fn validate_loc_string(
 
             // Check if this part is a country tag like GER, USA, SOV
             let is_country_tag = crate::scanner::country_scanner::is_valid_tag(&part_upper)
-                && (country_tags.is_empty() || country_tags.contains(&part_upper));
+                && (country_tags.is_empty() || country_tags.contains(&part_upper))
+                || (!lookup_part.is_empty()
+                    && crate::scanner::country_scanner::is_valid_tag(&lookup_upper)
+                    && (country_tags.is_empty() || country_tags.contains(&lookup_upper)));
 
-            // Check if this part is a known scope keyword, event target, scripted loc, or numeric (state ID)
+            // Check if this part is a known scope keyword, event target, scripted loc, character, or numeric (state ID)
             let is_scope_or_target = scopes.iter().any(|s| s.eq_ignore_ascii_case(part))
+                || scopes.iter().any(|s| s.eq_ignore_ascii_case(lookup_part))
                 || event_targets.contains_key(*part)
+                || event_targets.contains_key(lookup_part)
                 || scripted_locs.contains_key(*part)
-                || part.chars().all(|c| c.is_ascii_digit());
+                || scripted_locs.contains_key(lookup_part)
+                || characters.contains_key(*part)
+                || characters.contains_key(lookup_part)
+                || (!part.is_empty() && part.chars().all(|c| c.is_ascii_digit()))
+                || (!lookup_part.is_empty() && lookup_part.chars().all(|c| c.is_ascii_digit()));
 
             if is_loc_command || is_scope_or_target || is_country_tag {
                 valid = true;
             }
 
             if !valid {
-                let range = Range {
-                    start_line: entry.range.start_line,
-                    start_col: entry.value_start_col + current_part_start,
-                    end_line: entry.range.start_line,
-                    end_col: entry.value_start_col + current_part_start + part.len() as u32,
-                };
-                diagnostics.push(LocDiagnostic {
-                    range,
-                    message: format!(
-                        "Unrecognized '{}' scope or command in square brackets. If you intended literal text, note that HOI4 does not support backslash-escaping — use a different approach (e.g., concatenation or rewriting).",
-                        part,
-                    ),
-                    severity: DiagnosticSeverity::Information,
-                    code: Some("invalid_loc_scope".to_string()),
-                    related_information: Vec::new(),
-                    tags: Vec::new(),
-                });
+                // Empty segments (e.g. literal "[...]" in text) are not parsable
+                // scope/command tokens; skip per-part noise but keep the whole
+                // bracket eligible for the all-parts-invalid hint.
+                if !part.is_empty() {
+                    let range = Range {
+                        start_line: entry.range.start_line,
+                        start_col: entry.value_start_col + current_part_start,
+                        end_line: entry.range.start_line,
+                        end_col: entry.value_start_col + current_part_start + part.len() as u32,
+                    };
+                    diagnostics.push(LocDiagnostic {
+                        range,
+                        message: format!(
+                            "Unrecognized '{}' scope or command in square brackets. If you intended literal text, note that HOI4 does not support backslash-escaping — use a different approach (e.g., concatenation or rewriting).",
+                            part,
+                        ),
+                        severity: DiagnosticSeverity::Information,
+                        code: Some("invalid_loc_scope".to_string()),
+                        related_information: Vec::new(),
+                        tags: Vec::new(),
+                    });
+                }
             } else {
                 all_parts_invalid = false;
             }
             current_part_start += part.len() as u32 + 1; // +1 for .
         }
 
-        if all_parts_invalid {
+        let has_non_empty_part = parts.iter().any(|p| !p.trim().is_empty());
+        if all_parts_invalid && has_non_empty_part {
             diagnostics.push(LocDiagnostic {
                 range: Range {
                     start_line: entry.range.start_line,

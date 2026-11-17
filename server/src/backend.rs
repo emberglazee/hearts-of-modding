@@ -3457,6 +3457,7 @@ impl ValidationCtx {
                 scripted_locs,
                 &color_code_set,
                 &country_tag_set,
+                &self.scanner_data.characters,
             );
             for d in loc_diagnostics {
                 diagnostics.push(Diagnostic {

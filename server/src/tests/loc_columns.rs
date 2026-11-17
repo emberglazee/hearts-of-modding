@@ -22,6 +22,11 @@ mod tests {
         HashSet::new()
     }
 
+    fn empty_characters() -> DashMap<InternedStr, LayeredValue<crate::scanner::character_scanner::Character>> {
+        DashMap::new()
+    }
+
+
     /// Helper: build a minimal LocEntry with a given value and value_start_col
     fn entry(value: &str, value_start_col: u32, start_line: u32) -> LocEntry {
         LocEntry {
@@ -62,6 +67,7 @@ mod tests {
             &empty_scripted_locs(),
             &empty_color_codes(),
             &empty_country_tags(),
+            &empty_characters(),
         );
 
         // dangling_color_reset is no longer reported (R4-2): redundant §! is a no-op.
@@ -84,6 +90,7 @@ mod tests {
             &empty_scripted_locs(),
             &empty_color_codes(),
             &empty_country_tags(),
+            &empty_characters(),
         );
 
         let dangling: Vec<_> = diags
@@ -104,6 +111,7 @@ mod tests {
             &empty_scripted_locs(),
             &empty_color_codes(),
             &empty_country_tags(),
+            &empty_characters(),
         );
 
         let unclosed: Vec<_> = diags
@@ -124,6 +132,7 @@ mod tests {
             &empty_scripted_locs(),
             &empty_color_codes(),
             &empty_country_tags(),
+            &empty_characters(),
         );
 
         let unescaped: Vec<_> = diags
@@ -164,6 +173,7 @@ mod tests {
             &empty_scripted_locs(),
             &empty_color_codes(),
             &empty_country_tags(),
+            &empty_characters(),
         );
 
         let invalid: Vec<_> = diags
@@ -192,6 +202,7 @@ mod tests {
             &empty_scripted_locs(),
             &empty_color_codes(),
             &empty_country_tags(),
+            &empty_characters(),
         );
 
         // Should get invalid_var_format diagnostics for '@'
@@ -223,6 +234,7 @@ mod tests {
             &empty_scripted_locs(),
             &empty_color_codes(),
             &empty_country_tags(),
+            &empty_characters(),
         );
 
         let var_fmts: Vec<_> = diags
@@ -253,6 +265,7 @@ mod tests {
             &empty_scripted_locs(),
             &empty_color_codes(),
             &empty_country_tags(),
+            &empty_characters(),
         );
 
         let escaped: Vec<_> = diags
@@ -283,6 +296,7 @@ mod tests {
             &empty_scripted_locs(),
             &empty_color_codes(),
             &empty_country_tags(),
+            &empty_characters(),
         );
 
         let unknown_fmt: Vec<_> = diags
