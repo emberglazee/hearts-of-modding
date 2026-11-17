@@ -1084,7 +1084,7 @@ impl ScopeStack {
         if ctx.uri.contains("/common/resistance_activity/") {
             match lk.as_str() {
                 "available" | "weight" | "effect" | "state_modifier" => {
-                    return (Scope::State, false)
+                    return (Scope::State, false);
                 }
                 _ => {}
             }
@@ -1097,9 +1097,7 @@ impl ScopeStack {
         if ctx.uri.contains("/common/special_projects/") {
             match lk.as_str() {
                 "facility_state_effects" => return (Scope::State, false),
-                "country_effects" | "enable_equipment_modules" => {
-                    return (Scope::Country, false)
-                }
+                "country_effects" | "enable_equipment_modules" => return (Scope::Country, false),
                 _ => {}
             }
         }
@@ -1184,8 +1182,12 @@ impl ScopeStack {
         {
             match lk.as_str() {
                 "states" => return (self.current(), true),
-                "research" | "ai_national_focuses" | "ideas" | "traits"
-                | "equipment_variant" | "allowed" => {
+                "research"
+                | "ai_national_focuses"
+                | "ideas"
+                | "traits"
+                | "equipment_variant"
+                | "allowed" => {
                     // 'allowed' here is a simple condition bag in some plan files,
                     // but keeping it as transparent/current is fine; treat heavy
                     // property bags as ModifierBag to silence trigger-name collisions.

@@ -5,13 +5,55 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 | ℹ️ | If the last version here is not released yet, it's still in development. |
 |----|:-------------------------------------------------------------------------|
 
-## [v0.32.1] - 2026-11-08
+## [v0.33.0] - 2026-11-17
+
+> A sweep of the entire vanilla script corpus: all 8,347 files driven through the real
+> language server over stdio, in both diagnostic and semantic-token mode. On a clean,
+> unmodified install the diagnostics went from **693,741 to 2,810** (−99.6%), and every
+> surviving diagnostic was read by hand and classified as a real vanilla defect or a
+> documented limitation. Nothing here was silenced to make a number smaller.
+
+### ✨ Added
+
+- **`Scope::ScriptedLocalisation`, for the polymorphic definition family that produced 536,141 diagnostics on its own.** `common/scripted_localisation/*.txt` definitions are evaluated in whatever scope the caller uses, so validating them against the file's initial scope was always wrong. They now resolve to a structural scope that defers to the caller, the way `Scope::ScriptedEffect` already did.
+
+- **`HOM4006`, for a texture a `.gfx` file references but the install does not ship.** Vanilla DLC `.gfx` files reference textures that are genuinely absent (`gfx/interface/ideas/idea_roman_dmowski.dds` exists nowhere in the install), and the old code reported these with no code at all, so they could not be filtered or searched. 275 of them are now a named diagnostic.
+
+- **The overloaded `HOM002` is split into `HOM002a`–`HOM002g`** — sprite, country tag, trait, ideology, ability, sound and province. One code covering seven unrelated entity kinds meant a user could not tell which of them a message referred to, and could not suppress one without suppressing all seven.
+
+- **`vanilla_scope_families.rs`, 14 tests with negative controls.** Every scope family resolved by this release is covered by a fixture taken from vanilla and by a control that fails if the resolution is widened too far. Reverting any single branch makes its fixture fail.
 
 ### 🩹 Fixed
 
+- **`HOM005` "Missing localization key": 110,446 → 152.** The check fired on files that are not script at all — `.gui` property names (`text = "atk_flag"` inside a UI type definition), `.gfx` and `.asset` data, `game_rules`, and event `title`/`desc` keys that `HOM3018`/`HOM3019` already own. The 152 survivors are genuine: keys that no localisation file in the install defines.
+
+- **The localisation string linter is silent on clean vanilla: `unnecessary_version` 2,378 → 0, `dangling_color_reset` 1,929 → 0, `unescaped_quote` 445 → 0, `unclosed_color_code` 56 → 0, `unknown_loc_formatter` 5 → 0, `invalid_var_format` 77 → 7.** The seven survivors are real malformed strings in shipped files, including a fullwidth `｜` used as a formatter separator.
+
+- **`invalid_loc_scope` 8,084 → 693, by teaching the checker real HOI4 forms rather than widening its allow-list.** It now understands `event_target:`, `?event_target:` and `global_event_target:` prefixes, and recognises character IDs and saved event targets as valid scope roots. The 693 that remain are names the checker cannot resolve statically — dynamic targets saved at runtime, and scripted-localisation names — and are reported rather than guessed at.
+
+- **Sprites and textures from DLC roots are visible to the scanner.** Only the top-level `interface/` tree was walked, so all 53 DLC interface directories were invisible and every sprite they define read as undefined: `HOM4001` 2,844 → 68, and the ~8,492 texture diagnostics that carried no code at all dropped to 10.
+
+- **`HOM004` scope mismatches: 557,091 → 693.** The definition families were resolved to their real structural scopes rather than to their file's initial scope: `common/scripted_localisation` (see above), `history/units/` order-of-battle files (Country scripts: 6,844 assignments), `unit_leader_event` and `operative_leader_event` bodies (Country), and event definitions, which no longer push a scope at all.
+
+- **The parser accepts the script vanilla actually ships.** `;` is a statement terminator in `.gui` and `.gfx`; `§` is a valid identifier character; a nested `id` inside an event is no longer mistaken for the event's own id; `name` inside an `instance` block is no longer a duplicate key; ideology references are case-insensitive and `@`-prefixed values are treated as dynamic; `common/scientist_traits/` is scanned; and the `-1` sentinel row in `adjacencies.csv` is skipped instead of being read as a province.
+
+- **Scattered single-rule false positives.** `HOM9001` (203 → 1) no longer reads `randomize_variable` as a variable read and no longer rejects a correctly scoped array prefix; `HOM3017` (748 → 273) no longer hints on first-party `news_event`s; `HOM3006` no longer flags a division template defined in another file in the same OOB; `HOM2007` no longer ingests `adjacencies.csv` and clobbers the coastal flag; `HOM3013` no longer fires on option blocks that are legitimately empty.
+
+- **Structural scopes for the remaining definition families.** Equipment and hull bodies hold stat keys (`build_cost_ic`, `repair_speed_factor`, `max_strength`) and resolve as property bags; `common/combat_tactics.txt` bodies evaluate in a combined country-and-combatant context, which the engine states in its own comment and which is now modelled explicitly as `Combatant` rather than skipped; profile-picture definitions are data, not script.
+
+- **A state-targeted decision's `target_trigger` keeps country scope; the candidate state is `FROM`.** Vanilla writes `owns_state = FROM` and `has_completed_focus` inside it, both country triggers, so treating the block as state-scoped reported correct script as broken. `target_root_trigger` was already country-scoped and stays that way.
+
+- **Semantic tokens land in the right columns on non-ASCII localisation keys.** The localisation token path mixed byte offsets with UTF-16 columns, so every token after a non-ASCII character was shifted. The range path also tokenised the whole file and then filtered to the requested range; it now tokenises only the range, which matters on the 948,508-line scripted-localisation files.
+
+- **Files with no dedicated scanner get keyword tokens instead of none.** Assignment keys in families without a scanner emitted no keyword token at all; they now fall back to keyword/property tokens derived from the scanned data rather than a hand-maintained allow-list.
+
+- **Static modifiers get hover text.** `hover_handler.rs` had no `MODIFIERS` branch, so a documented static modifier showed nothing — 68 of the 80 most frequent hover misses across the corpus were exactly this. Hover also now names the scopes a modifier applies to, and the scope keywords (`ROOT`, `FROM`, `PREV`, `THIS`, `OWNER`, `CONTROLLER`, `OVERLORD`, `FACTION_LEADER`) explain themselves.
+
+- **Twelve high-frequency entities had empty descriptions** (`hidden_effect`, `random`, `promote_leader`, `set_temp_variable`, `random_list`, `for_each_scope_loop`, …) and 9 of the 25 scope variants had no documentation at all. Filled from verified vanilla usage; nothing was invented for an entity whose behaviour was not confirmed against shipped script.
+
 - **Strategic region weather keys no longer flag as `HOM004`.** A strategic region's `weather = { period = { ... } }` block carries weather properties (`temperature`, `no_phenomenon`, `rain_light`, `rain_heavy`, `snow`, `blizzard`, `arctic_water`, `mud`, `sandstorm`, `min_snow_level`, `between`), none of which are triggers or effects. `temperature` is also registered as a Unit-scope trigger, so the enclosing Strategic Region scope made every one of these report "is not valid in Strategic Region scope. Expected scopes: Unit". The `weather` and `period` blocks now resolve as `ModifierBag` (validation skipped) inside strategic region files, matching how modifier and equipment-bonus blocks are already handled. Covered by `strategic_region_scope.rs`; reverting the branch makes `temperature` reappear as a mismatch.
 
-- **History country files no longer flag their top-level effects as `HOM004`.** `initial_scope_for_uri` had no branch for `/history/countries/`, so those files started in Global scope and every `capital`, `set_country_flag`, `oob`, `set_technology`, `add_ideas`, `set_politics`, `recruit_character`, … reported "is not valid in Global scope". They now start in Country scope, matching the engine. Test on a representative effect list; reverting the branch reproduces the mismatches. `history/states/`, `history/general/` and `history/units/` are left at the default and will be handled if diagnostics appear there.
+- **History country files no longer flag their top-level effects as `HOM004`.** `initial_scope_for_uri` had no branch for `/history/countries/`, so those files started in Global scope and every `capital`, `set_country_flag`, `oob`, `set_technology`, `add_ideas`, `set_politics`, `recruit_character`, … reported "is not valid in Global scope". They now start in Country scope, matching the engine. Test on a representative effect list; reverting the branch reproduces the mismatches. `history/states/` and `history/general/` are left at the default; `history/units/` is resolved separately, above.
 
 ## [v0.32.0] - 2026-11-05
 

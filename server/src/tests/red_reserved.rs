@@ -19,10 +19,10 @@ mod red_tests {
         HashSet::new()
     }
 
-    fn empty_characters() -> DashMap<InternedStr, LayeredValue<crate::scanner::character_scanner::Character>> {
+    fn empty_characters()
+    -> DashMap<InternedStr, LayeredValue<crate::scanner::character_scanner::Character>> {
         DashMap::new()
     }
-
 
     fn entry(value: &str) -> LocEntry {
         LocEntry {

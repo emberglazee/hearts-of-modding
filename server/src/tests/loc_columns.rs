@@ -22,10 +22,10 @@ mod tests {
         HashSet::new()
     }
 
-    fn empty_characters() -> DashMap<InternedStr, LayeredValue<crate::scanner::character_scanner::Character>> {
+    fn empty_characters()
+    -> DashMap<InternedStr, LayeredValue<crate::scanner::character_scanner::Character>> {
         DashMap::new()
     }
-
 
     /// Helper: build a minimal LocEntry with a given value and value_start_col
     fn entry(value: &str, value_start_col: u32, start_line: u32) -> LocEntry {
