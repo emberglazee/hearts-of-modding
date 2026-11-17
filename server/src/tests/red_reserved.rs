@@ -19,6 +19,11 @@ mod red_tests {
         HashSet::new()
     }
 
+    fn empty_characters() -> DashMap<InternedStr, LayeredValue<crate::scanner::character_scanner::Character>> {
+        DashMap::new()
+    }
+
+
     fn entry(value: &str) -> LocEntry {
         LocEntry {
             key: InternedStr::from("test"),
@@ -63,6 +68,7 @@ mod red_tests {
             &empty_scripted_locs(),
             &empty_color_codes(),
             &tags,
+            &empty_characters(),
         );
         let invalid: Vec<_> = diags
             .iter()
@@ -86,6 +92,7 @@ mod red_tests {
             &empty_scripted_locs(),
             &empty_color_codes(),
             &tags,
+            &empty_characters(),
         );
         let invalid: Vec<_> = diags
             .iter()
@@ -110,6 +117,7 @@ mod red_tests {
             &empty_scripted_locs(),
             &empty_color_codes(),
             &tags,
+            &empty_characters(),
         );
         let invalid: Vec<_> = diags
             .iter()
