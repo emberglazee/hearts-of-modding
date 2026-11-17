@@ -375,3 +375,24 @@ fn bare_role_stat_outside_a_role_body_is_still_flagged() {
         "a bare `skill` in a country reward must still be reported"
     );
 }
+
+/// `complete_tooltip` is display-only. Vanilla `common/national_focus/generic.txt:639`
+/// lists a state-scoped effect there because the tooltip renders it, not because
+/// the engine runs it in the focus's Country scope.
+#[test]
+fn complete_tooltip_bodies_are_display_only() {
+    let input = "focus = {\n\tid = zz_tip\n\tcomplete_tooltip = {\n\t\tnavy_experience = 25\n\t\tadd_extra_state_shared_building_slots = 3\n\t\tadd_building_construction = {\n\t\t\ttype = dockyard\n\t\t\tlevel = 1\n\t\t\tinstant_build = yes\n\t\t}\n\t}\n\tcompletion_reward = {\n\t\tadd_political_power = 10\n\t}\n}\n";
+    assert_no_mismatch(NATIONAL_FOCUS_URI, input);
+}
+
+/// Negative control: the same effect in `completion_reward`, which the engine
+/// does execute in Country scope, is still reported.
+#[test]
+fn state_effect_in_completion_reward_is_still_flagged() {
+    let input = "focus = {\n\tid = zz_tip\n\tcompletion_reward = {\n\t\tadd_extra_state_shared_building_slots = 3\n\t}\n}\n";
+    let bad = mismatched(&walk(NATIONAL_FOCUS_URI, input));
+    assert!(
+        !bad.is_empty(),
+        "a state-scoped effect in an executed country reward must still be reported"
+    );
+}

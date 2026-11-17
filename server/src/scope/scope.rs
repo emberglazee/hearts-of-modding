@@ -352,7 +352,6 @@ impl Scope {
             | "select_effect"
             | "bypass_effect"
             | "cancel_effect"
-            | "complete_tooltip"
             | "ai_will_do"
             | "available"
             | "activation"
@@ -1051,6 +1050,17 @@ impl ScopeStack {
         // and country-leader bodies are bags of the same kind (`slot`, `idea`,
         // `country_leader = { ideology expire traits }`), so they are covered by
         // the same rule rather than one at a time.
+        // `complete_tooltip` is display-only: its entries are effect names the
+        // engine renders into the focus tooltip, never executed. Validating them
+        // as script flagged state-scoped effects listed for display, e.g.
+        // `add_extra_state_shared_building_slots` in vanilla
+        // `common/national_focus/generic.txt:639`. Cost of the bag: scope is no
+        // longer checked inside the 409 tooltip blocks vanilla ships, which is
+        // the correct trade — a tooltip entry has no scope to be wrong in.
+        if lk == "complete_tooltip" {
+            return (Scope::ModifierBag, true);
+        }
+
         if matches!(
             lk.as_str(),
             "add_field_marshal_role"
