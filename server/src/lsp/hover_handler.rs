@@ -967,15 +967,20 @@ impl Backend {
                             &format!("### ⚡ Effect: {}\n\n{}", entity.name, entity.description),
                         );
                     } else if let Some(entity) = crate::MODIFIERS.get(identifier.as_str()) {
-                        let mut m_text = format!("### 📊 Modifier: {}\n\n{}", entity.name, entity.description);
+                        let mut m_text =
+                            format!("### 📊 Modifier: {}\n\n{}", entity.name, entity.description);
                         // Show scope applicability if known
                         let scopes = &entity.scopes;
                         if !scopes.usage.is_empty() {
-                            let scope_names: Vec<String> = scopes.usage.iter().map(|s| format!("{:?}", s)).collect();
+                            let scope_names: Vec<String> =
+                                scopes.usage.iter().map(|s| format!("{:?}", s)).collect();
                             m_text.push_str(&format!("\n\n**Scopes:** {}", scope_names.join(", ")));
                         }
                         if !scopes.usage_restriction.is_empty() {
-                            m_text.push_str(&format!("\n**Restriction:** {}", scopes.usage_restriction));
+                            m_text.push_str(&format!(
+                                "\n**Restriction:** {}",
+                                scopes.usage_restriction
+                            ));
                         }
                         push_section(&mut hover_text, &m_text);
                     } else if let Some(def) =

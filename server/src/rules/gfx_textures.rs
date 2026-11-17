@@ -275,8 +275,13 @@ mod tests {
             }
         }"#;
 
-        let diags = validate_texture_file(content, &gfx_file, &[], Some(&tmp.to_string_lossy()), false);
-        assert!(diags.is_empty(), "Texture in DLC root should be found, got: {:?}", diags);
+        let diags =
+            validate_texture_file(content, &gfx_file, &[], Some(&tmp.to_string_lossy()), false);
+        assert!(
+            diags.is_empty(),
+            "Texture in DLC root should be found, got: {:?}",
+            diags
+        );
 
         let _ = fs::remove_dir_all(&tmp);
     }

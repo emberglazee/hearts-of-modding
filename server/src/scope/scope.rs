@@ -157,7 +157,11 @@ impl Scope {
     /// 0 Unknown and ModifierBag (no useful filtering semantics).
     pub fn scope_tier_rank(&self) -> u8 {
         match self {
-            Scope::Unit | Scope::Character | Scope::Ace | Scope::StrategicRegion | Scope::Combatant => 5,
+            Scope::Unit
+            | Scope::Character
+            | Scope::Ace
+            | Scope::StrategicRegion
+            | Scope::Combatant => 5,
             Scope::Idea
             | Scope::MusicTrack
             | Scope::MusicStation
@@ -587,7 +591,8 @@ pub fn initial_scope_for_uri(uri: &str) -> Scope {
         Scope::Country
     } else if uri.contains("/common/decisions/") {
         Scope::Country
-    } else if uri.contains("/common/combat_tactics/") || uri.ends_with("/common/combat_tactics.txt") {
+    } else if uri.contains("/common/combat_tactics/") || uri.ends_with("/common/combat_tactics.txt")
+    {
         // Tactic bodies evaluate in a combined Country+Unit context (the engine
         // provides both the country and the combatant). Modelled as Combatant so
         // triggers valid in either scope are accepted.
@@ -1040,9 +1045,7 @@ impl ScopeStack {
             // gates it on `temperature`, `has_combat_modifier`,
             // `is_fighting_in_terrain`, `fastest_unit`. (The `gain_xp = 10`
             // effect is a scalar and never reaches this arm.)
-            "gain_xp" if ctx.uri.contains("/common/unit_leader/") => {
-                return (Scope::Unit, false)
-            }
+            "gain_xp" if ctx.uri.contains("/common/unit_leader/") => return (Scope::Unit, false),
             // Special-project scientist blocks evaluate on the scientist.
             "scientist_effects" | "scientist_trigger" => return (Scope::Character, false),
             // Operation target selection runs on the candidate state.
@@ -1141,13 +1144,14 @@ impl ScopeStack {
         // transparent/random-list-like for numeric ids, and let `area` be
         // accepted as a property key by not forcing Country trigger check via bag
         // when used as a simple value (handled below) — but as block, be careful.
-        if ctx.uri.contains("/common/ai_strategy/") || ctx.uri.contains("/common/ai_strategy_plans/") {
+        if ctx.uri.contains("/common/ai_strategy/")
+            || ctx.uri.contains("/common/ai_strategy_plans/")
+        {
             if lk == "states" {
                 // numeric state-id list container
                 return (self.current(), true);
             }
         }
-
 
         // 2. V2: Known trigger/effect with explicit scope push
         if let Some(pushed) = crate::data::hoi4_data::lookup_pushes_scope(key) {

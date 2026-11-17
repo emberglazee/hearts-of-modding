@@ -315,7 +315,11 @@ mod tests {
             .iter()
             .filter(|d| d.code == Some(NumberOrString::String("HOM005".to_string())))
             .collect();
-        assert!(h005.is_empty(), "gui files must not be scanned, got: {:?}", h005);
+        assert!(
+            h005.is_empty(),
+            "gui files must not be scanned, got: {:?}",
+            h005
+        );
     }
 
     /// Event files: `title`/`desc` are owned by HOM3018/HOM3019, so HOM005

@@ -340,7 +340,9 @@ pub fn validate_loc_string(
             let before_pipe = formatter;
             let is_scope_like = before_pipe.contains('.')
                 || scopes.iter().any(|s| s.eq_ignore_ascii_case(before_pipe))
-                || loc_commands.iter().any(|c| c.eq_ignore_ascii_case(before_pipe));
+                || loc_commands
+                    .iter()
+                    .any(|c| c.eq_ignore_ascii_case(before_pipe));
             if is_scope_like {
                 // still validate inner scope parts below? Continue to scope validation
             } else if !formatters.contains(&formatter) {

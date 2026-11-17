@@ -95,8 +95,12 @@ impl VariableRule {
         let lower = key.to_ascii_lowercase();
         match lower.as_str() {
             // Definitions (setters/creators)
-            "set_variable" | "change_variable" | "randomize_variable" => Some(VarRefKind::Definition),
-            "set_temp_variable" | "set_local_variable" | "randomize_temp_variable" => Some(VarRefKind::Temp),
+            "set_variable" | "change_variable" | "randomize_variable" => {
+                Some(VarRefKind::Definition)
+            }
+            "set_temp_variable" | "set_local_variable" | "randomize_temp_variable" => {
+                Some(VarRefKind::Temp)
+            }
             // Reads (checkers/queries)
             // NOTE: unset variables read as 0 — the engine recovers gracefully,
             // so unresolved reads validate at WARNING (typo-catching), never ERROR.
@@ -295,7 +299,8 @@ impl VariableRule {
         // (is_in_array reads both).
         for (key, (def_scope, _temp, _, _)) in self.file_arrays.iter() {
             if bare_array_name(key) == bare
-                && (*def_scope == current_scope || self.is_accessible_scope(*def_scope, current_scope))
+                && (*def_scope == current_scope
+                    || self.is_accessible_scope(*def_scope, current_scope))
             {
                 return true;
             }

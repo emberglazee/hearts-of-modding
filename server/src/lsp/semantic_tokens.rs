@@ -1666,10 +1666,16 @@ mod tests {
         assert_eq!(key_tok.1, 1, "key start utf16");
         assert_eq!(key_tok.2, 5, "key length utf16");
         // colon operator at col 6
-        let colon_tok = tokens.iter().find(|t| t.0 == 1 && t.3 == "operator" && t.2 == 1).unwrap();
+        let colon_tok = tokens
+            .iter()
+            .find(|t| t.0 == 1 && t.3 == "operator" && t.2 == 1)
+            .unwrap();
         assert_eq!(colon_tok.1, 6, "colon col utf16");
         // value string open quote
-        let open = tokens.iter().find(|t| t.0 == 1 && t.3 == "string" && t.2 == 1).unwrap();
+        let open = tokens
+            .iter()
+            .find(|t| t.0 == 1 && t.3 == "string" && t.2 == 1)
+            .unwrap();
         assert_eq!(open.1, 9, "open quote col utf16");
     }
 
@@ -1677,22 +1683,38 @@ mod tests {
     fn test_loc_range_skips_outside_lines() {
         let content = "l_english:\n A:0 \"a\"\n B:0 \"b\"\n C:0 \"c\"\n";
         let range = tower_lsp_server::ls_types::Range {
-            start: tower_lsp_server::ls_types::Position { line: 2, character: 0 },
-            end: tower_lsp_server::ls_types::Position { line: 2, character: 10 },
+            start: tower_lsp_server::ls_types::Position {
+                line: 2,
+                character: 0,
+            },
+            end: tower_lsp_server::ls_types::Position {
+                line: 2,
+                character: 10,
+            },
         };
         let res = loc_semantic_tokens_range(content, &range);
         match res {
             SemanticTokensResult::Tokens(t) => {
                 // decode
-                let mut abs: Vec<(u32,u32)> = Vec::new();
-                let mut ll=0u32; let mut ls=0u32;
+                let mut abs: Vec<(u32, u32)> = Vec::new();
+                let mut ll = 0u32;
+                let mut ls = 0u32;
                 for st in &t.data {
                     let l = ll + st.delta_line;
-                    let c = if st.delta_line==0 { ls+st.delta_start } else { st.delta_start };
-                    abs.push((l,c));
-                    ll=l; ls=c;
+                    let c = if st.delta_line == 0 {
+                        ls + st.delta_start
+                    } else {
+                        st.delta_start
+                    };
+                    abs.push((l, c));
+                    ll = l;
+                    ls = c;
                 }
-                assert!(abs.iter().all(|(l,_)| *l==2), "only line 2 tokens: {:?}", abs);
+                assert!(
+                    abs.iter().all(|(l, _)| *l == 2),
+                    "only line 2 tokens: {:?}",
+                    abs
+                );
                 assert!(!abs.is_empty());
             }
             _ => panic!("expected tokens"),

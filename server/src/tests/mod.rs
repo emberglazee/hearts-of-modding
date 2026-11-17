@@ -30,7 +30,7 @@ pub mod scripted_loc;
 pub mod strategic_region_scope;
 pub mod technology;
 pub mod units;
-pub mod vanilla_scope_families;
 pub mod utf16_conversion;
+pub mod vanilla_scope_families;
 pub mod variables;
 pub mod workspace_diagnostics;

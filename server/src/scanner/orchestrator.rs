@@ -115,12 +115,12 @@ impl Backend {
                     .unwrap_or(false)
             })
             .collect();
-            let result = tokio::task::spawn_blocking(move || {
+        let result = tokio::task::spawn_blocking(move || {
             province_scanner::scan_province_files(&filtered, &filter)
-            })
-            .await
-            .unwrap();
-            self.scanner_data.provinces.clear();
+        })
+        .await
+        .unwrap();
+        self.scanner_data.provinces.clear();
         for (k, v) in result {
             self.scanner_data.provinces.insert(k, v);
         }
@@ -1185,11 +1185,10 @@ impl Backend {
         // Dedup by path
         files.sort();
         files.dedup();
-        let result = tokio::task::spawn_blocking(move || {
-            sprite_scanner::scan_sprite_files(&files, &filter)
-        })
-        .await
-        .unwrap();
+        let result =
+            tokio::task::spawn_blocking(move || sprite_scanner::scan_sprite_files(&files, &filter))
+                .await
+                .unwrap();
         self.scanner_data.sprites.clear();
         for (k, v) in result {
             self.scanner_data
