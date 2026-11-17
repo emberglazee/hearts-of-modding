@@ -345,3 +345,33 @@ is_coastal = yes
         "expected is_coastal to be rejected at country scope, got {bad:#?}"
     );
 }
+
+// ---------------------------------------------------------------------------
+// Effect bodies that are parameter bags, not script
+// ---------------------------------------------------------------------------
+
+const NATIONAL_FOCUS_URI: &str = "/mod/common/national_focus/zz_focus.txt";
+
+/// `add_*_role` bodies carry role stats, not trigger script. Vanilla
+/// `common/national_focus/greece.txt:89` writes
+/// `add_corps_commander_role = { character = GRE_x skill = 1 attack_skill = 1 … }`
+/// inside a focus `completion_reward`, which runs in Country scope; validating
+/// the body there reported `skill` (a Character/Unit key) 48 times across
+/// vanilla national focuses.
+#[test]
+fn leader_role_effect_bodies_are_parameter_bags() {
+    let input = "focus = {\n\tid = zz_role\n\tcompletion_reward = {\n\t\tadd_corps_commander_role = {\n\t\t\tcharacter = ZZZ_leader\n\t\t\tskill = 2\n\t\t\tattack_skill = 1\n\t\t\tdefense_skill = 1\n\t\t\tplanning_skill = 1\n\t\t\tlogistics_skill = 1\n\t\t}\n\t\tadd_field_marshal_role = {\n\t\t\tcharacter = ZZZ_leader\n\t\t\tskill = 3\n\t\t}\n\t\tadd_naval_commander_role = {\n\t\t\tCharacter = ZZZ_leader\n\t\t\tskill = 1\n\t\t}\n\t\tadd_country_leader_role = {\n\t\t\tcharacter = ZZZ_leader\n\t\t\tcountry_leader = {\n\t\t\t\tideology = moderatism\n\t\t\t\texpire = \"1965.1.1.1\"\n\t\t\t\ttraits = { ZZZ_trait }\n\t\t\t}\n\t\t}\n\t}\n}\n";
+    assert_no_mismatch(NATIONAL_FOCUS_URI, input);
+}
+
+/// Negative control: the same key outside a role body is still a real mismatch,
+/// so the bag rule cannot swallow a genuine country-scope `skill`.
+#[test]
+fn bare_role_stat_outside_a_role_body_is_still_flagged() {
+    let input = "focus = {\n\tid = zz_role\n\tcompletion_reward = {\n\t\tskill = 2\n\t}\n}\n";
+    let bad = mismatched(&walk(NATIONAL_FOCUS_URI, input));
+    assert!(
+        !bad.is_empty(),
+        "a bare `skill` in a country reward must still be reported"
+    );
+}

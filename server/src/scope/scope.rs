@@ -1042,6 +1042,27 @@ impl ScopeStack {
             return (Scope::ModifierBag, true);
         }
 
+        // 1d'. Leader-role effect bodies are parameter bags, not script:
+        // `add_corps_commander_role = { character = X skill = 1 attack_skill = 1 }`
+        // (vanilla `common/national_focus/greece.txt:89`). `skill` and the
+        // `*_skill` keys are Character/Unit properties, so validating the body in
+        // the enclosing Country scope reported every role grant as HOM004 — 48 of
+        // the vanilla national-focus mismatches were this one shape. The advisor
+        // and country-leader bodies are bags of the same kind (`slot`, `idea`,
+        // `country_leader = { ideology expire traits }`), so they are covered by
+        // the same rule rather than one at a time.
+        if matches!(
+            lk.as_str(),
+            "add_field_marshal_role"
+                | "add_corps_commander_role"
+                | "add_naval_commander_role"
+                | "add_advisor_role"
+                | "add_country_leader_role"
+                | "add_scientist_role"
+        ) {
+            return (Scope::ModifierBag, true);
+        }
+
         // 1e. Structural blocks whose body scope the engine defines but the
         // data tables do not push.
         match lk.as_str() {
