@@ -499,7 +499,7 @@ fn loc_semantic_tokens_impl(content: &str, line_range: Option<(u32, u32)>) -> Se
         // ── Comment lines ──
         if trimmed_start.starts_with('#') {
             let hash_col = utf16.byte_to_utf16(line.find('#').unwrap());
-            let line_len_u16 = utf16.byte_to_utf16(line.len() as usize);
+            let line_len_u16 = utf16.byte_to_utf16(line.len());
             tokens.push(RawToken {
                 line: line_u32,
                 start: hash_col,
@@ -787,7 +787,7 @@ fn loc_semantic_tokens_impl(content: &str, line_range: Option<(u32, u32)>) -> Se
                     });
                 } else {
                     // No closing quote found — highlight as String from open to end
-                    let line_len_u16 = utf16.byte_to_utf16(line.len() as usize);
+                    let line_len_u16 = utf16.byte_to_utf16(line.len());
                     tokens.push(RawToken {
                         line: line_u32,
                         start: abs_quote_col,

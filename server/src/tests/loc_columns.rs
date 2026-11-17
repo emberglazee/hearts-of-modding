@@ -318,7 +318,7 @@ mod tests {
     #[test]
     fn debug_parse_goeroot() {
         let content = std::fs::read_to_string("/home/embi/.local/share/Steam/steamapps/common/Hearts of Iron IV/localisation/polish/goe_events_l_polish.yml").unwrap();
-        let (parsed, diags, _) = crate::parser::loc_parser::parse_loc_file(&content, "test.yml");
+        let (parsed, _diags, _) = crate::parser::loc_parser::parse_loc_file(&content, "test.yml");
         for (k, e) in &parsed {
             if k.to_string() == "PER_imperial_events.190.desc" {
                 println!("VALLEN={}", e.value.len());
