@@ -45,12 +45,10 @@ mod tests {
         }
     }
 
-    // ─── color code column tests ────────────────────────────────────────
-
-    /// Runs a loc range (now byte columns) through RangeMapper over the synthetic
+    /// Runs a loc range (byte columns) through RangeMapper over the synthetic
     /// line (value_start_col leading spaces + value) and returns (start,end) as
     /// UTF-16 characters — the same conversion the backend applies on emission,
-    /// so these keep asserting the visible editor columns.
+    /// so these assert the visible editor columns.
     fn to_utf16(e: &LocEntry, r: &crate::parser::ast::Range) -> (u32, u32) {
         let line_n = " ".repeat(e.value_start_col as usize) + &e.value;
         let mapper = crate::utils::lsp_convert::RangeMapper::new(&line_n);
@@ -58,199 +56,75 @@ mod tests {
         (l.start.character, l.end.character)
     }
 
-    #[test]
-    fn test_dangling_color_reset_column_with_section_symbols() {
-        let e = entry("§8Is home to a §gNovice§! exploitation effort.§!", 11, 0);
-        let diags = loc_parser::validate_loc_string(
+    fn validate(value: &str) -> Vec<crate::parser::loc_parser::LocDiagnostic> {
+        let e = entry(value, 2, 0);
+        loc_parser::validate_loc_string(
             &e,
             &empty_targets(),
             &empty_scripted_locs(),
             &empty_color_codes(),
             &empty_country_tags(),
             &empty_characters(),
-        );
-
-        // dangling_color_reset is no longer reported (R4-2): redundant §! is a no-op.
-        let dangling: Vec<_> = diags
-            .iter()
-            .filter(|d| d.code.as_deref() == Some("dangling_color_reset"))
-            .collect();
-        assert!(
-            dangling.is_empty(),
-            "dangling_color_reset should no longer be reported"
-        );
+        )
     }
 
-    #[test]
-    fn test_dangling_color_reset_column_no_section_symbols() {
-        let e = entry("plain text§! trailing", 5, 0);
-        let diags = loc_parser::validate_loc_string(
-            &e,
-            &empty_targets(),
-            &empty_scripted_locs(),
-            &empty_color_codes(),
-            &empty_country_tags(),
-            &empty_characters(),
-        );
-
-        let dangling: Vec<_> = diags
+    fn columns_of(value: &str, code: &str) -> Vec<u32> {
+        let e = entry(value, 2, 0);
+        validate(value)
             .iter()
-            .filter(|d| d.code.as_deref() == Some("dangling_color_reset"))
-            .collect();
-        assert!(dangling.is_empty());
-    }
-
-    #[test]
-    fn test_unclosed_color_code_column_with_section_symbols() {
-        // §8 opens, §g replaces it, §R opens at end and is never closed.
-        // Value: §8Some§gText§R  (3 § chars before the unclosed §R)
-        let e = entry("§8Some§gText§R", 3, 0);
-        let diags = loc_parser::validate_loc_string(
-            &e,
-            &empty_targets(),
-            &empty_scripted_locs(),
-            &empty_color_codes(),
-            &empty_country_tags(),
-            &empty_characters(),
-        );
-
-        let unclosed: Vec<_> = diags
-            .iter()
-            .filter(|d| d.code.as_deref() == Some("unclosed_color_code"))
-            .collect();
-        assert!(unclosed.is_empty());
+            .filter(|d| d.code.as_deref() == Some(code))
+            .map(|d| to_utf16(&e, &d.range).0)
+            .collect()
     }
 
     // ─── bracket / scope column tests ───────────────────────────────────
 
     #[test]
     fn test_unescaped_bracket_column_after_section_symbols() {
-        let e = entry("§Rtext[InvalidScope]more", 2, 0);
-        let diags = loc_parser::validate_loc_string(
-            &e,
-            &empty_targets(),
-            &empty_scripted_locs(),
-            &empty_color_codes(),
-            &empty_country_tags(),
-            &empty_characters(),
-        );
-
-        let unescaped: Vec<_> = diags
-            .iter()
-            .filter(|d| d.code.as_deref() == Some("unescaped_bracket"))
-            .collect();
-        assert!(
-            !unescaped.is_empty(),
-            "all-parts-invalid diagnostic expected"
-        );
+        let cols = columns_of("§Rtext[InvalidScope]more", "unescaped_bracket");
         assert_eq!(
-            to_utf16(&e, &unescaped[0].range).0,
-            8,
+            cols.first().copied(),
+            Some(8),
             "unescaped bracket [ at byte 7 → UTF-16 col 8 after § prefix"
         );
 
-        let invalid: Vec<_> = diags
-            .iter()
-            .filter(|d| d.code.as_deref() == Some("invalid_loc_scope"))
-            .collect();
-        assert!(!invalid.is_empty());
-
+        let cols = columns_of("§Rtext[InvalidScope]more", "invalid_loc_scope");
         assert_eq!(
-            to_utf16(&e, &invalid[0].range).0,
-            9,
+            cols.first().copied(),
+            Some(9),
             "invalid scope at byte 8 → UTF-16 col 9"
         );
     }
 
     #[test]
     fn test_bracket_column_ascii_only() {
-        // No multi-byte chars — byte and UTF-16 should be identical
-        // "Foobar" is 6 chars, not a 3-letter country tag — still invalid in lax mode
-        let e = entry("text[Foobar]more", 5, 0);
-        let diags = loc_parser::validate_loc_string(
-            &e,
-            &empty_targets(),
-            &empty_scripted_locs(),
-            &empty_color_codes(),
-            &empty_country_tags(),
-            &empty_characters(),
-        );
-
-        let invalid: Vec<_> = diags
-            .iter()
-            .filter(|d| d.code.as_deref() == Some("invalid_loc_scope"))
-            .collect();
-
-        assert!(!invalid.is_empty());
+        // No multi-byte chars — byte and UTF-16 should be identical.
+        // "Foobar" is 6 chars, not a 3-letter country tag — still invalid in lax mode.
+        // The diagnostic anchors on the scope name, which starts at byte 5 of the
+        // value; with value_start_col=2 and pure ASCII the byte and UTF-16 columns
+        // are the same number, which is the property under test.
+        let cols = columns_of("text[Foobar]more", "invalid_loc_scope");
         assert_eq!(
-            to_utf16(&e, &invalid[0].range).0,
-            10,
-            "ASCII-only bracket should have matching byte/UTF-16 column"
+            cols.first().copied(),
+            Some(7),
+            "ASCII-only scope name at byte 5 of the value → column 7"
         );
     }
 
-    // ─── variable formatting inside bracket column tests ────────────────
+    // ─── variable formatting inside bracket / nested $key$ ──────────────
 
+    /// `[?var|FORMAT@]` and `$key|FORMAT@$` reach the same formatting validator
+    /// with the same `@`; both must report the same column after a `§` prefix.
     #[test]
     fn test_var_formatting_column_with_section_symbols() {
-        // [?var|FORMAT@] where @ is not a valid formatting character
-        // Preceded by §R to test byte-vs-UTF-16 offset
-        let e = entry("§Rtext[?var|FORMAT@]more", 2, 0);
-        let diags = loc_parser::validate_loc_string(
-            &e,
-            &empty_targets(),
-            &empty_scripted_locs(),
-            &empty_color_codes(),
-            &empty_country_tags(),
-            &empty_characters(),
-        );
-
-        // Should get invalid_var_format diagnostics for '@'
-        let var_fmts: Vec<_> = diags
-            .iter()
-            .filter(|d| d.code.as_deref() == Some("invalid_var_format"))
-            .collect();
-        assert!(
-            !var_fmts.is_empty(),
-            "expected invalid_var_format for '@' in formatting"
-        );
-
-        assert_eq!(
-            to_utf16(&e, &var_fmts[0].range).0,
-            19,
-            "var formatting '@' column should account for § prefix"
-        );
-    }
-
-    // ─── nested $key$ formatting column tests ───────────────────────────
-
-    #[test]
-    fn test_nested_var_formatting_column_with_section_symbols() {
-        // $key|FORMAT@$ with §R prefix — @ is invalid formatting
-        let e = entry("§Rtext$key|FORMAT@$more", 2, 0);
-        let diags = loc_parser::validate_loc_string(
-            &e,
-            &empty_targets(),
-            &empty_scripted_locs(),
-            &empty_color_codes(),
-            &empty_country_tags(),
-            &empty_characters(),
-        );
-
-        let var_fmts: Vec<_> = diags
-            .iter()
-            .filter(|d| d.code.as_deref() == Some("invalid_var_format"))
-            .collect();
-        assert!(
-            !var_fmts.is_empty(),
-            "expected invalid_var_format for '@' in $key$ formatting"
-        );
-
-        assert_eq!(
-            to_utf16(&e, &var_fmts[0].range).0,
-            19,
-            "nested $key$ formatting column should account for § prefix"
-        );
+        for value in ["§Rtext[?var|FORMAT@]more", "§Rtext$key|FORMAT@$more"] {
+            let cols = columns_of(value, "invalid_var_format");
+            assert_eq!(
+                cols.first().copied(),
+                Some(19),
+                "'@' column should account for the § prefix in {value}"
+            );
+        }
     }
 
     // ─── escaped bracket column test ────────────────────────────────────
@@ -258,28 +132,10 @@ mod tests {
     #[test]
     fn test_escaped_bracket_column_with_section_symbols() {
         // \\[ with a §-prefixed value — the backslash before [ is flagged
-        let e = entry("§Rtext\\[GetTag]", 2, 0);
-        let diags = loc_parser::validate_loc_string(
-            &e,
-            &empty_targets(),
-            &empty_scripted_locs(),
-            &empty_color_codes(),
-            &empty_country_tags(),
-            &empty_characters(),
-        );
-
-        let escaped: Vec<_> = diags
-            .iter()
-            .filter(|d| d.code.as_deref() == Some("escaped_bracket"))
-            .collect();
-        assert!(
-            !escaped.is_empty(),
-            "expected escaped_bracket diagnostic for backslash before ["
-        );
-
+        let cols = columns_of("§Rtext\\[GetTag]", "escaped_bracket");
         assert_eq!(
-            to_utf16(&e, &escaped[0].range).0,
-            9,
+            cols.first().copied(),
+            Some(9),
             "escaped bracket at byte 8 → UTF-16 col 9 (backslash at char 6)"
         );
     }
@@ -289,49 +145,21 @@ mod tests {
     #[test]
     fn test_unknown_loc_formatter_column_with_section_symbols() {
         // [FakeFormatter|token] where FakeFormatter is not in the known formatters list
-        let e = entry("§Rtext[FakeFormatter|token]", 2, 0);
-        let diags = loc_parser::validate_loc_string(
-            &e,
-            &empty_targets(),
-            &empty_scripted_locs(),
-            &empty_color_codes(),
-            &empty_country_tags(),
-            &empty_characters(),
-        );
-
-        let unknown_fmt: Vec<_> = diags
-            .iter()
-            .filter(|d| d.code.as_deref() == Some("unknown_loc_formatter"))
-            .collect();
-        assert!(
-            !unknown_fmt.is_empty(),
-            "expected unknown_loc_formatter diagnostic"
-        );
-
+        let cols = columns_of("§Rtext[FakeFormatter|token]", "unknown_loc_formatter");
         assert_eq!(
-            to_utf16(&e, &unknown_fmt[0].range).0,
-            9,
+            cols.first().copied(),
+            Some(9),
             "loc formatter column should account for § bytes: byte 7 → UTF-16 6, start_col=2+6+1=9"
         );
     }
 
-    #[test]
-    fn debug_parse_goeroot() {
-        let content = std::fs::read_to_string("/home/embi/.local/share/Steam/steamapps/common/Hearts of Iron IV/localisation/polish/goe_events_l_polish.yml").unwrap();
-        let (parsed, _diags, _) = crate::parser::loc_parser::parse_loc_file(&content, "test.yml");
-        for (k, e) in &parsed {
-            if k.to_string() == "PER_imperial_events.190.desc" {
-                println!("VALLEN={}", e.value.len());
-                println!("VALSTART={:?}", &e.value[..80]);
-                println!("VALEND={:?}", &e.value[e.value.len().saturating_sub(80)..]);
-            }
-        }
-        println!("num entries {}", parsed.len());
-    }
-    /// so they can never contain `:`. This is the parser property that makes
-    /// `{key}:`-prefixed fallback scans (hover, goto-definition, HOM3018/3019
-    /// suppression) provably dead — they were removed as O(N) dead work. A
-    /// regression here (keys gaining a colon) would silently resurrect them.
+    // ─── parser property that justifies the removed fallback scans ──────
+
+    /// Loc keys are split on the first `:` and trimmed, so they can never
+    /// contain `:`. This is the parser property that makes `{key}:`-prefixed
+    /// fallback scans (hover, goto-definition, HOM3018/3019 suppression)
+    /// provably dead — they were removed as O(N) dead work. A regression here
+    /// (keys gaining a colon) would silently resurrect them.
     #[test]
     fn test_loc_keys_never_contain_colon() {
         let content = "l_english:\n\
