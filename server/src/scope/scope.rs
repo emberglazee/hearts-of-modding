@@ -1015,21 +1015,29 @@ impl ScopeStack {
             }
         }
 
-        // 1d. Modifier-container definition blocks. `leader_traits = { ... }`
-        // and the flat `my_dm = { ... }` bodies of common/dynamic_modifiers and
-        // common/modifiers hold modifier keys directly, with no `modifier = { }`
-        // wrapper, so they inherit the file scope and every modifier key that
-        // collides with a trigger name became a HOM004. The engine reads these
-        // bodies as a flat bag and routes each key to its own effect — asking
-        // "what scope is `planning_gain_factor`" is a category error.
-        // Sub-blocks that DO evaluate in a scope (`unit_trigger`, `gain_xp`,
-        // `allowed`) are matched below, after this arm is done.
+        // 1d. Modifier-container / data definition blocks whose bodies are flat
+        // bags of properties or modifiers, not trigger/effect evaluation scopes.
+        // `leader_traits`, dynamic/static modifiers, terrain categories, state
+        // categories, building definitions, intelligence agency upgrades and
+        // character-generation data all hold keys that collide with triggers
+        // (e.g. `hardness`, `naval_mine_hit_chance`, `local_building_slots`,
+        // `attack_skill_level`, `civilian_factory_use`). Treating their top-level
+        // definition blocks as ModifierBag skips HOM004 while nested evaluation
+        // blocks with their own structural scope are still pushed by later arms.
         if lk == "leader_traits" || lk == "unit_leader_traits" {
             return (Scope::ModifierBag, true);
         }
-        if (ctx.uri.contains("/common/dynamic_modifiers/")
-            || ctx.uri.contains("/common/modifiers/"))
-            && self.current() == Scope::Global
+        if self.current() == Scope::Global
+            && (ctx.uri.contains("/common/dynamic_modifiers/")
+                || ctx.uri.contains("/common/modifiers/")
+                || ctx.uri.contains("/common/terrain/")
+                || ctx.uri.contains("/common/state_category/")
+                || ctx.uri.contains("/common/buildings/")
+                || ctx.uri.contains("/common/intelligence_agency_upgrades/")
+                || ctx.uri.contains("/common/generation/")
+                || ctx.uri.contains("/common/country_leader/")
+                || ctx.uri.contains("/common/unit_leader/")
+                || ctx.uri.contains("/common/opinion_modifiers/"))
         {
             return (Scope::ModifierBag, true);
         }
@@ -1064,6 +1072,34 @@ impl ScopeStack {
             match lk.as_str() {
                 "success" | "failure" => return (Scope::ModifierBag, true),
                 "victim_effects" | "raider_effects" => return (Scope::Country, false),
+                _ => {}
+            }
+        }
+
+        // 1f'. Resistance activities (`common/resistance_activity/`): the
+        // activity is evaluated per state, so `available`, `weight`, `effect`
+        // and `state_modifier` run in State scope (vanilla checks
+        // `non_damaged_building_level` in `available`, applies state damage in
+        // `effect`).
+        if ctx.uri.contains("/common/resistance_activity/") {
+            match lk.as_str() {
+                "available" | "weight" | "effect" | "state_modifier" => {
+                    return (Scope::State, false)
+                }
+                _ => {}
+            }
+        }
+
+        // 1f''. Special projects: `facility_state_effects` runs in the state
+        // hosting the facility (vanilla does `set_building_level` there), while
+        // `country_effects` / `enable_equipment_modules` run on the owning
+        // country.
+        if ctx.uri.contains("/common/special_projects/") {
+            match lk.as_str() {
+                "facility_state_effects" => return (Scope::State, false),
+                "country_effects" | "enable_equipment_modules" => {
+                    return (Scope::Country, false)
+                }
                 _ => {}
             }
         }
@@ -1135,21 +1171,32 @@ impl ScopeStack {
             }
         }
 
-        // 1k. AI strategy state-targeted fragments. In strategy plans/strategies,
-        // `states = { ... }` is a list of state IDs, and blocks that select/weight
-        // by state (e.g. `ai_strategy` entries with state context) carry state
-        // references; treat `states` as a weight/id bag (numeric keys handled
-        // safely) and `area` is resolved by engine as strategic/area ref but
-        // often collides — keep conservative: treat `states` container as
-        // transparent/random-list-like for numeric ids, and let `area` be
-        // accepted as a property key by not forcing Country trigger check via bag
-        // when used as a simple value (handled below) — but as block, be careful.
+        // 1k. AI strategy / focus / plan data: `states` is a numeric state-id
+        // list; `research`, `ai_national_focuses`, `ideas`, `traits` and
+        // `equipment_variant` blocks are property/weight bags (e.g. `armor` in
+        // `research = { armor = 25.0 }` is a tech-category weight, not the
+        // Unit-scope trigger). `area` in ai_strategy entries names a strategic
+        // area, colliding with the State-scope trigger of the same name — do
+        // not push a scope for it.
         if ctx.uri.contains("/common/ai_strategy/")
             || ctx.uri.contains("/common/ai_strategy_plans/")
+            || ctx.uri.contains("/common/ai_focuses/")
         {
-            if lk == "states" {
-                // numeric state-id list container
-                return (self.current(), true);
+            match lk.as_str() {
+                "states" => return (self.current(), true),
+                "research" | "ai_national_focuses" | "ideas" | "traits"
+                | "equipment_variant" | "allowed" => {
+                    // 'allowed' here is a simple condition bag in some plan files,
+                    // but keeping it as transparent/current is fine; treat heavy
+                    // property bags as ModifierBag to silence trigger-name collisions.
+                }
+                _ => {}
+            }
+            if matches!(
+                lk.as_str(),
+                "research" | "ai_national_focuses" | "ideas" | "traits" | "equipment_variant"
+            ) {
+                return (Scope::ModifierBag, true);
             }
         }
 
@@ -1260,6 +1307,14 @@ impl ScopeStack {
             .resolve_meta_scope(key)
             .unwrap_or_else(|| resolve_key_scope(key, ctx.achievements));
 
+        // 7a'. Peace conference actions evaluate FROM.FROM.FROM as the target
+        // state (FROM=negotiator, FROM.FROM=loser, FROM.FROM.FROM=state).
+        if ctx.uri.contains("/common/peace_conference/")
+            && key.eq_ignore_ascii_case("FROM.FROM.FROM")
+        {
+            s = Scope::State;
+        }
+
         // 7c. Known character tokens -> Character scope
         if s == Scope::Unknown {
             if let Some(characters) = ctx.characters {
@@ -1275,7 +1330,16 @@ impl ScopeStack {
             && !key.is_empty()
             && key.as_bytes().iter().all(|b| b.is_ascii_digit())
         {
-            s = Scope::State;
+            // Data-only definition files and unit/equipment definition trees:
+            // numeric entries are IDs/slots/levels, not state scopes.
+            if ctx.uri.contains("/common/profile_pictures/")
+                || ctx.uri.contains("/common/profile_backgrounds/")
+                || ctx.uri.contains("/common/units/")
+            {
+                s = Scope::ModifierBag;
+            } else {
+                s = Scope::State;
+            }
         }
 
         // 7e. State-targeted decisions: FROM -> State

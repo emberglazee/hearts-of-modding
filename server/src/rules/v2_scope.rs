@@ -75,6 +75,17 @@ impl ValidationRule for V2ScopeRule {
             return;
         }
 
+        // AI strategy/focus/plan files: `area` (strategic area name) and
+        // `region`/`states` appear as data properties colliding with trigger
+        // names; suppress HOM004 for these keys in those definition files.
+        if (ctx.uri.contains("/common/ai_strategy/")
+            || ctx.uri.contains("/common/ai_strategy_plans/")
+            || ctx.uri.contains("/common/ai_focuses/"))
+            && matches!(key, "area" | "states" | "region")
+        {
+            return;
+        }
+
         // Depth-1 block keys in doctrine track files NAME a track: `armor = {
         // ... }` is the armoured-doctrine track and `operations = { ... }` the
         // operations track. Those identifiers collide with trigger/modifier
