@@ -131,3 +131,55 @@ fn top_level_character_effect_still_fires() {
         diags.iter().map(|d| &d.message).collect::<Vec<_>>()
     );
 }
+
+/// A trait body is named after the trait, so the schema has to be reached
+/// through the `leader_traits` container. Without it `sprite`,
+/// `custom_modifier_tooltip` and `gui_row` have no parameter, no hover and no
+/// completion entry.
+#[test]
+fn leader_trait_schema_is_reached_through_its_container() {
+    use crate::data::hoi4_data::{is_trait_definition_body_keys, lookup_definition};
+
+    let def = lookup_definition("leader_trait").expect("leader_trait schema must exist");
+    for key in [
+        "sprite",
+        "trait_type",
+        "gui_row",
+        "gui_column",
+        "custom_modifier_tooltip",
+        "hidden_modifier",
+        "field_marshal_modifier",
+        "attack_skill_factor",
+    ] {
+        assert!(
+            def.parameters.contains_key(key),
+            "leader_trait must document `{key}`"
+        );
+    }
+    assert!(
+        def.file_types.iter().any(|f| f == "CountryLeaderTraits")
+            && def.file_types.iter().any(|f| f == "UnitLeaderTraits"),
+        "the schema applies to both trait directories, got {:?}",
+        def.file_types
+    );
+
+    let country = ["CountryLeaderTraits"];
+    assert!(is_trait_definition_body_keys(
+        "SPF_Colonial_administration",
+        "leader_traits",
+        &country
+    ));
+    assert!(is_trait_definition_body_keys(
+        "independence_activist",
+        "unit_leader_traits",
+        &country
+    ));
+    assert!(
+        !is_trait_definition_body_keys("some_key", "ideas", &country),
+        "only the trait containers identify the schema"
+    );
+    assert!(
+        !is_trait_definition_body_keys("some_key", "leader_traits", &["Ideas"]),
+        "the rule is scoped to trait files"
+    );
+}
