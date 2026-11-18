@@ -5,6 +5,17 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 | ℹ️ | If the last version here is not released yet, it's still in development. |
 |----|:-------------------------------------------------------------------------|
 
+## [v0.33.1] - 2026-11-18
+
+> Two `HOM004` families reported correct vanilla script as broken. Measured on the full
+> corpus: **2,810 → 2,716 diagnostics, 94 removed, 0 added** across all 8,347 files.
+
+### 🩹 Fixed
+
+- **A leader-role grant no longer flags its own stat keys: `HOM004` on `skill`, 79 occurrences → 0.** `add_corps_commander_role = { character = GER_hans skill = 2 attack_skill = 1 … }` holds parameters, not script, but the parameter table declared only `character` for the three military role effects. `skill` is a Character/Unit property, so the checker compared it against the enclosing Country scope and every role grant in vanilla reported a mismatch. The stat keys are now declared, matching `create_corps_commander`, `create_field_marshal` and `create_navy_leader`, and `add_country_leader_role` also accepts `promote_character`, which vanilla uses. The body stays a normal Country block, so a nested `country_leader = { ideology traits }` and any undeclared key inside it are still checked.
+
+- **Focus tooltips no longer flag the effects they list: `HOM004` inside `complete_tooltip`, 15 occurrences → 0.** A `complete_tooltip` block lists effects for the engine to render into the tooltip; it never executes them, so a State effect such as `add_extra_state_shared_building_slots` has no scope to be wrong in. Vanilla ships 409 of these blocks, and scope is no longer checked inside them.
+
 ## [v0.33.0] - 2026-11-17
 
 > A sweep of the entire vanilla script corpus: all 8,347 files driven through the real
