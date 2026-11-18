@@ -5,12 +5,24 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 | ℹ️ | If the last version here is not released yet, it's still in development. |
 |----|:-------------------------------------------------------------------------|
 
-## [v0.33.1] - 2026-11-18
+## [v0.34.0] - 2026-11-18
 
-> Two `HOM004` families reported correct vanilla script as broken. Measured on the full
-> corpus: **2,810 → 2,712 diagnostics, 98 removed, 0 added** across all 8,347 files.
+> Two `HOM004` families reported correct vanilla script as broken, and equipment had no
+> index at all. Measured on the full corpus: **2,810 → 2,712 diagnostics, 98 removed, 0
+> added** across all 8,347 files; the equipment work that follows is token/completion only
+> and moves the corpus not at all (**2,712 → 2,712, 0 removed, 0 added**).
 
 ### ✨ Added
+
+- **An equipment scanner: every archetype and variant under `common/units/equipment`.** Equipment is the namespace behind `equipment_bonus`, `has_equipment`, `send_equipment`, `add_equipment_to_stockpile`, `create_equipment_variant` and the rest of the family, and nothing indexed it — those names resolved to nothing, so goto-definition and rename had nothing to point at and a bonus block's keys stayed plain text. Each definition now carries `is_archetype`, `archetype` (the archetype a variant belongs to), `parent` (the previous variant in the upgrade line), `type` (the unit category) and `year`. The directory also holds `equipment_modules`, `duplicate_archetypes` and `search_filters`; only `equipments = { … }` is read.
+
+- **A schema for equipment definitions: `equipment`, 87 keys.** A definition body is named after the equipment, so no block key routes to a schema; it is reached through the `equipments` container, the way a trait is reached through `leader_traits`. The structural fields (`year`, `priority`, `module_slots`, `interface_category`, `is_archetype`, `is_buildable`, `group_by`, …) and the combat stats (`build_cost_ic`, `reliability`, `armor_value`, `soft_attack`, `air_agility`, …) now highlight, hover and complete inside a definition.
+
+- **A schema for the `equipment_bonus` stat body: `equipment_bonus_group`, 42 keys.** `equipment_bonus = { <group> = { <stat> = <value> } }` takes a group key — an equipment archetype *or* a unit type, both legal — and a stat body. The stat set is the 42 keys vanilla actually writes there, measured rather than guessed: 36 are also definition stats, and six are bonus-only (`instant`, `production_efficiency_cap_factor`, the three `naval_*_hit_chance_factor` keys and `submarine_carrier_size`). Special projects reach the same shape one block deeper through `add_equipment_bonus = { name = … bonus = { … } }`, and are covered by the same rule.
+
+- **Completion in an equipment context offers equipment and nothing else.** Directly inside `equipment_bonus` it lists the 21 unit types vanilla uses plus every scanned archetype and variant, each with its type and year; directly inside `has_equipment` it lists equipment names only; inside a group body it lists exactly the 42 stats. Before, all three positions merged the 344 generic triggers and effects with every entity in the workspace — 25,351 candidates in a group body, measured — because nothing marked those bodies as a closed namespace.
+
+- **Equipment unit types highlight as `enumMember`.** `train`, `armor`, `convoy` and the rest are values of `type =`, not definitions, so they never enter the entity index and a bonus block keyed by one stayed plain text. The scanned type set now types them, while an archetype or variant key resolves to its definition as `struct`.
 
 - **A leader-role block now reports a stat that belongs to a different role: `HOM1005`.** Admirals take `maneuvering_skill` and `coordination_skill`; corps commanders and field marshals take `planning_skill` and `logistics_skill`. The engine reads a role block against that role's own schema, so an army stat written on an admiral is dropped without an error and the leader keeps the default value, which no log shows. The check covers `add_corps_commander_role`, `add_field_marshal_role`, `add_naval_commander_role` and their `create_*` forms, plus the `corps_commander`, `field_marshal` and `navy_leader` blocks in `common/characters`. The role set comes from the parameter table rather than a list in the code, and the warning names the roles that do accept the stat. Vanilla reports nothing.
 
@@ -23,6 +35,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 - **The modifier table covers every modifier vanilla writes: 722 → 880 entries.** `political_advisor_cost_factor` and `mobilization_laws_cost_factor` were reported from `hom_traits.txt`, and both were missing while vanilla uses them 174 and 146 times. The gap was measured rather than patched: the engine's own `modifiers_l_english.yml` lists 925 modifier ids, and 158 names that vanilla writes in `common/modifiers`, `common/dynamic_modifiers` and the leader-trait files had no entry. Each new entry carries the game's display name where one exists; the rest say that the base game ships no localisation string for them.
 
 ### 🩹 Fixed
+
+- **`hom_traits.txt` went from 38 uncoloured keys to 2, and both survivors are dead keys.** The 36 that now colour are `equipment_bonus` groups and stats: `infantry_equipment`, `artillery_equipment`, `support_equipment`, `train_equipment` and `convoy` resolve to their definitions, `train` types as a unit type, and `build_cost_ic`, `reliability`, `instant`, `soft_attack` and `armor_value` are properties with hover text. The two left are `reliability_factor`, where the engine's stat is `reliability`, and `mechanized_speed_factor`, which vanilla never writes and no localisation string defines — neither does anything in game.
 
 - **A character's `country_leader` block highlights its keys, and all four leader roles highlight `desc`.** `country_leader` had no parameter table, so `ideology`, `traits`, `expire` and `id` stayed plain keywords while the same shape in the three unit-leader roles was highlighted; `desc` was missing from all four, which left one plain line inside every documented block. Both gaps are closed: the engine documents `desc` for `create_country_leader` and for the scientist role block, and vanilla simply never writes one in a leader role. Documenting the block also types its values, so `ideology = piracy_ideology` resolves to the ideology and trait names resolve to their entity, where the whole block used to read as string. No diagnostic changes: 2,716 → 2,716.
 
