@@ -24281,6 +24281,20 @@
 					"description": "Which country receives the equipment.",
 					"optional": false,
 					"repeated": false
+				},
+				"equipment": {
+					"type": "equipment",
+					"value_type": "equipment",
+					"description": "The equipment to send. Same slot as `type`: vanilla writes both spellings, and the example above uses this one.",
+					"optional": true,
+					"repeated": false
+				},
+				"old_prioritised": {
+					"type": "bool",
+					"value_type": "bool",
+					"description": "Send from the oldest stock first (`yes`) instead of the newest.",
+					"optional": true,
+					"repeated": false
 				}
 			},
 			"examples": [
