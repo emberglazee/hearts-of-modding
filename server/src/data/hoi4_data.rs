@@ -480,6 +480,97 @@ pub fn block_parameters(block_key: &str) -> Option<&'static HashMap<String, Para
     lookup_definition(block_key).map(|d| &d.parameters)
 }
 
+/// One leader-role effect and the skill stats it documents.
+pub struct LeaderRoleSchema {
+    /// Effect key as spelled in the data table (e.g. `add_naval_commander_role`).
+    pub block: &'static str,
+    /// Sorted skill parameters: always `skill` plus the role's own stats.
+    pub skills: Vec<&'static str>,
+}
+
+/// Every effect whose parameter table documents a full leader stat block —
+/// `skill` plus at least three `<stat>_skill` stats.
+///
+/// Derived, not named: the six leader-role effects (`add_corps_commander_role`,
+/// `add_field_marshal_role`, `add_naval_commander_role` and their `create_*`
+/// forms) are the only entries in the table with this shape. A stat added
+/// upstream flows into the rule without a code change, and a block that is not
+/// a leader role can never be mistaken for one.
+static LEADER_ROLES: Lazy<Vec<LeaderRoleSchema>> = Lazy::new(|| {
+    fn push(
+        out: &mut Vec<LeaderRoleSchema>,
+        name: &'static str,
+        params: &'static HashMap<String, ParameterDef>,
+    ) {
+        if !params.contains_key("skill") {
+            return;
+        }
+        let mut skills: Vec<&'static str> = params
+            .keys()
+            .map(|k| k.as_str())
+            .filter(|k| k.ends_with("_skill"))
+            .collect();
+        if skills.len() < 3 {
+            return;
+        }
+        skills.push("skill");
+        skills.sort_unstable();
+        out.push(LeaderRoleSchema {
+            block: name,
+            skills,
+        });
+    }
+
+    let mut out = Vec::new();
+    for (name, entity) in &DATA.effects {
+        push(&mut out, name.as_str(), &entity.parameters);
+    }
+    // Character definitions declare the same stat block in `common/characters`
+    // (`corps_commander`, `field_marshal`, `navy_leader`), so the rule covers
+    // both ways a leader role is written.
+    for (name, def) in &DATA.definitions {
+        push(&mut out, name.as_str(), &def.parameters);
+    }
+    out.sort_by_key(|s| s.block);
+    out
+});
+
+/// Every skill stat any leader role documents — the vocabulary a misplaced
+/// stat has to come from. `skill`, `attack_skill`, `defense_skill`,
+/// `planning_skill`, `logistics_skill`, `maneuvering_skill`,
+/// `coordination_skill`.
+static LEADER_SKILLS: Lazy<Vec<&'static str>> = Lazy::new(|| {
+    let mut v: Vec<&'static str> = LEADER_ROLES
+        .iter()
+        .flat_map(|s| s.skills.iter().copied())
+        .collect();
+    v.sort_unstable();
+    v.dedup();
+    v
+});
+
+/// The leader-role schema for `block_key`, case-insensitively, or `None` when
+/// the block is not a leader role. Six candidates, so a scan beats a map.
+pub fn leader_role(block_key: &str) -> Option<&'static LeaderRoleSchema> {
+    LEADER_ROLES
+        .iter()
+        .find(|s| s.block.eq_ignore_ascii_case(block_key))
+}
+
+/// True when `key` names a leader skill stat at all (any role's).
+pub fn is_leader_skill(key: &str) -> bool {
+    LEADER_SKILLS.iter().any(|s| s.eq_ignore_ascii_case(key))
+}
+
+/// Leader-role blocks whose schema documents `skill`, sorted.
+pub fn leader_roles_accepting(skill: &str) -> Vec<&'static str> {
+    LEADER_ROLES
+        .iter()
+        .filter(|s| s.skills.iter().any(|x| x.eq_ignore_ascii_case(skill)))
+        .map(|s| s.block)
+        .collect()
+}
+
 /// Iterate the documented parameters of a definition block, if any.
 #[allow(dead_code)]
 pub fn definition_parameters(def_key: &str) -> Option<&'static HashMap<String, ParameterDef>> {

@@ -370,6 +370,10 @@ impl Backend {
         // generic list below (see the `block_parameters` block for why these
         // must be additive rather than a replacement).
         let mut param_items: Vec<CompletionItem> = Vec::new();
+        // True when the cursor sits inside a block that documents its own
+        // parameters: that body takes those keys, so definition names are not
+        // offered there (`corps_commander` inside a `navy_leader` body).
+        let mut has_param_table = false;
 
         // Try to find context for HOI4 scripts
         if let Some((script, _)) = self.ensure_ast_cached(&uri) {
@@ -672,6 +676,7 @@ impl Backend {
                 inherited_params = crate::data::hoi4_data::definition_parameters("decision");
             }
             if let Some(params) = inherited_params {
+                has_param_table = true;
                 let mut names: Vec<&String> = params.keys().collect();
                 names.sort();
                 param_items.reserve(names.len());
@@ -719,8 +724,10 @@ impl Backend {
         // below — a `focus` key is only ever offered where a focus block may
         // be declared, never as an effect inside event/decision bodies.
         // Additive like params: appended after them, before the generic list.
+        // Suppressed inside a documented block: its body is parameters, and a
+        // definition cannot be declared nested in one.
         let mut definition_items: Vec<CompletionItem> = Vec::new();
-        {
+        if !has_param_table {
             let cat_names = self.file_category_names(&uri);
             if !cat_names.is_empty() {
                 let mut names: Vec<&String> = crate::DEFINITIONS.keys().collect();

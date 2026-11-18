@@ -3836,6 +3836,7 @@ impl ValidationCtx {
             Box::new(rules::events::EventValidationRule),
             Box::new(rules::decisions::DecisionsRule),
             Box::new(rules::v2_scope::V2ScopeRule),
+            Box::new(rules::leader_role_skills::LeaderRoleSkillRule),
             // Variable/flag/array validation (Layer 1)
             Box::new(rules::variables::VariableRuleState::new(
                 &self.scanner_data.variables,

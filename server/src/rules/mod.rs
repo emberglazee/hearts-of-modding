@@ -24,6 +24,7 @@ pub(crate) mod focus_search_filters;
 pub(crate) mod gfx_textures;
 pub(crate) mod ideas;
 pub(crate) mod ideologies;
+pub(crate) mod leader_role_skills;
 pub(crate) mod localization;
 pub(crate) mod oob_regiments;
 pub(crate) mod portraits;

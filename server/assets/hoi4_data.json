@@ -39500,6 +39500,204 @@
 				}
 			},
 			"param_container": false
+		},
+		"corps_commander": {
+			"name": "corps_commander",
+			"description": "The corps commander role of a character, declared inside common/characters/*.txt. Holds the leader's starting stats, traits and visibility gate.",
+			"file_types": [
+				"Characters"
+			],
+			"parameters": {
+				"skill": {
+					"type": "int",
+					"value_type": "int",
+					"description": "The skill of the leader.",
+					"optional": false,
+					"repeated": false
+				},
+				"attack_skill": {
+					"type": "int",
+					"value_type": "int",
+					"description": "The attack skill of the leader.",
+					"optional": false,
+					"repeated": false
+				},
+				"defense_skill": {
+					"type": "int",
+					"value_type": "int",
+					"description": "The defense skill of the leader.",
+					"optional": false,
+					"repeated": false
+				},
+				"planning_skill": {
+					"type": "int",
+					"value_type": "int",
+					"description": "The planning skill of the leader.",
+					"optional": false,
+					"repeated": false
+				},
+				"logistics_skill": {
+					"type": "int",
+					"value_type": "int",
+					"description": "The logistics skill of the leader.",
+					"optional": false,
+					"repeated": false
+				},
+				"traits": {
+					"type": "block",
+					"value_type": "",
+					"description": "The traits the leader starts with.",
+					"optional": false,
+					"repeated": false
+				},
+				"legacy_id": {
+					"type": "int",
+					"value_type": "int",
+					"description": "The legacy ID used for the unit leader. Optional.",
+					"optional": true,
+					"repeated": false
+				},
+				"visible": {
+					"type": "block",
+					"value_type": "",
+					"description": "Optional trigger block: the role is offered only when it evaluates true.",
+					"optional": true,
+					"repeated": false
+				}
+			},
+			"param_container": false
+		},
+		"field_marshal": {
+			"name": "field_marshal",
+			"description": "The field marshal role of a character, declared inside common/characters/*.txt. Holds the leader's starting stats, traits and visibility gate.",
+			"file_types": [
+				"Characters"
+			],
+			"parameters": {
+				"skill": {
+					"type": "int",
+					"value_type": "int",
+					"description": "The skill of the leader.",
+					"optional": false,
+					"repeated": false
+				},
+				"attack_skill": {
+					"type": "int",
+					"value_type": "int",
+					"description": "The attack skill of the leader.",
+					"optional": false,
+					"repeated": false
+				},
+				"defense_skill": {
+					"type": "int",
+					"value_type": "int",
+					"description": "The defense skill of the leader.",
+					"optional": false,
+					"repeated": false
+				},
+				"planning_skill": {
+					"type": "int",
+					"value_type": "int",
+					"description": "The planning skill of the leader.",
+					"optional": false,
+					"repeated": false
+				},
+				"logistics_skill": {
+					"type": "int",
+					"value_type": "int",
+					"description": "The logistics skill of the leader.",
+					"optional": false,
+					"repeated": false
+				},
+				"traits": {
+					"type": "block",
+					"value_type": "",
+					"description": "The traits the leader starts with.",
+					"optional": false,
+					"repeated": false
+				},
+				"legacy_id": {
+					"type": "int",
+					"value_type": "int",
+					"description": "The legacy ID used for the unit leader. Optional.",
+					"optional": true,
+					"repeated": false
+				},
+				"visible": {
+					"type": "block",
+					"value_type": "",
+					"description": "Optional trigger block: the role is offered only when it evaluates true.",
+					"optional": true,
+					"repeated": false
+				}
+			},
+			"param_container": false
+		},
+		"navy_leader": {
+			"name": "navy_leader",
+			"description": "The navy leader role of a character, declared inside common/characters/*.txt. Holds the leader's starting stats, traits and visibility gate.",
+			"file_types": [
+				"Characters"
+			],
+			"parameters": {
+				"skill": {
+					"type": "int",
+					"value_type": "int",
+					"description": "The skill of the leader.",
+					"optional": false,
+					"repeated": false
+				},
+				"attack_skill": {
+					"type": "int",
+					"value_type": "int",
+					"description": "The attack skill of the leader.",
+					"optional": false,
+					"repeated": false
+				},
+				"defense_skill": {
+					"type": "int",
+					"value_type": "int",
+					"description": "The defense skill of the leader.",
+					"optional": false,
+					"repeated": false
+				},
+				"maneuvering_skill": {
+					"type": "int",
+					"value_type": "int",
+					"description": "The maneuvering skill of the leader.",
+					"optional": false,
+					"repeated": false
+				},
+				"coordination_skill": {
+					"type": "int",
+					"value_type": "int",
+					"description": "The coordination skill of the leader.",
+					"optional": false,
+					"repeated": false
+				},
+				"traits": {
+					"type": "block",
+					"value_type": "",
+					"description": "The traits the leader starts with.",
+					"optional": false,
+					"repeated": false
+				},
+				"legacy_id": {
+					"type": "int",
+					"value_type": "int",
+					"description": "The legacy ID used for the unit leader. Optional.",
+					"optional": true,
+					"repeated": false
+				},
+				"visible": {
+					"type": "block",
+					"value_type": "",
+					"description": "Optional trigger block: the role is offered only when it evaluates true.",
+					"optional": true,
+					"repeated": false
+				}
+			},
+			"param_container": false
 		}
 	},
 	"scopes": {

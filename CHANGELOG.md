@@ -10,6 +10,12 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 > Two `HOM004` families reported correct vanilla script as broken. Measured on the full
 > corpus: **2,810 → 2,716 diagnostics, 94 removed, 0 added** across all 8,347 files.
 
+### ✨ Added
+
+- **A leader-role block now reports a stat that belongs to a different role: `HOM1005`.** Admirals take `maneuvering_skill` and `coordination_skill`; corps commanders and field marshals take `planning_skill` and `logistics_skill`. The engine reads a role block against that role's own schema, so an army stat written on an admiral is dropped without an error and the leader keeps the default value, which no log shows. The check covers `add_corps_commander_role`, `add_field_marshal_role`, `add_naval_commander_role` and their `create_*` forms, plus the `corps_commander`, `field_marshal` and `navy_leader` blocks in `common/characters`. The role set comes from the parameter table rather than a list in the code, and the warning names the roles that do accept the stat. Vanilla reports nothing.
+
+- **Completion inside a character's leader-role block lists the keys that block accepts.** `corps_commander`, `field_marshal` and `navy_leader` had no parameter table, so the body offered 344 generic triggers and none of its eight keys. They are now documented as character definitions: the stats, `traits`, `legacy_id` and `visible` come first, and definition names are no longer offered inside a documented block.
+
 ### 🩹 Fixed
 
 - **A leader-role grant no longer flags its own stat keys: `HOM004` on `skill`, 79 occurrences → 0.** `add_corps_commander_role = { character = GER_hans skill = 2 attack_skill = 1 … }` holds parameters, not script, but the parameter table declared only `character` for the three military role effects. `skill` is a Character/Unit property, so the checker compared it against the enclosing Country scope and every role grant in vanilla reported a mismatch. The stat keys are now declared, matching `create_corps_commander`, `create_field_marshal` and `create_navy_leader`, and `add_country_leader_role` also accepts `promote_character`, which vanilla uses. The body stays a normal Country block, so a nested `country_leader = { ideology traits }` and any undeclared key inside it are still checked.

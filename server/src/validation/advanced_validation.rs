@@ -16,6 +16,12 @@ pub const MISSING_LOCALIZATION: &str = "HOM005";
 
 pub const BUILDING_LEVEL_EXCEEDS_MAX: &str = "HOM1002";
 pub const CHARACTER_SKILL_EXCEEDS_MAX: &str = "HOM1004";
+/// A leader-role block was given a stat that belongs to a DIFFERENT role
+/// (`planning_skill` on a naval commander). The engine reads role stats
+/// positionally against that role's own schema, so a foreign stat is dropped
+/// in silence and the leader arrives with the default. Lives in the
+/// character/leader family next to [`CHARACTER_SKILL_EXCEEDS_MAX`].
+pub const WRONG_LEADER_ROLE_SKILL: &str = "HOM1005";
 pub const CHARACTER_SUBSKILL_EXCEEDS_PRACTICAL: &str = "HOM1006";
 pub const CHARACTER_NEGATIVE_SKILL: &str = "HOM1007";
 pub const VICTORY_POINT_PROVINCE_NOT_IN_STATE: &str = "HOM2001";

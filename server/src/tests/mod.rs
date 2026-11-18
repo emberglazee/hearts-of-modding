@@ -12,6 +12,7 @@ pub mod history_countries_scope;
 pub mod hover_scripted;
 pub mod ideas;
 pub mod ideologies;
+pub mod leader_role_skills;
 pub mod loc_columns;
 pub mod loc_dups;
 pub mod loc_empty;
