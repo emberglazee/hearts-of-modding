@@ -1336,7 +1336,20 @@ impl ScopeStack {
         }
 
         // 7c. Known character tokens -> Character scope
-        if s == Scope::Unknown {
+        //
+        // Not inside a trait definition file, and not inside a property bag. A
+        // trait id and a character id live in separate engine namespaces and may
+        // legally be the same string (`SPF_Colonial_administration` is both a
+        // character and a country-leader trait in Hearts of Minecraft). Resolving
+        // the trait key through the character index pushed Character onto the
+        // trait body, so every country modifier inside it was reported as
+        // out-of-scope. `common/country_leader` and `common/unit_leader` hold
+        // only trait definitions — a bare token there is never a character
+        // reference — and inside a ModifierBag a bare name is a property, not a
+        // scope.
+        let in_trait_file =
+            ctx.uri.contains("/common/country_leader/") || ctx.uri.contains("/common/unit_leader/");
+        if s == Scope::Unknown && !in_trait_file && self.current() != Scope::ModifierBag {
             if let Some(characters) = ctx.characters {
                 if characters.contains_key(key) {
                     s = Scope::Character;

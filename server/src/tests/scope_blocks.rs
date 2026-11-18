@@ -278,6 +278,36 @@ fn character_token_block_switches_to_character_scope() {
     );
 }
 
+/// A country-leader trait id may be the same string as a character id — the
+/// engine keeps the two namespaces apart. Resolving the trait key through the
+/// character index pushed Character onto the trait body, so every country
+/// modifier inside it was reported as out-of-scope.
+#[test]
+fn trait_id_colliding_with_a_character_is_still_a_property_bag() {
+    let ctx = TestCtx::new().with_scope_validation(true).with_file(
+        "/mod/common/characters/other.txt",
+        "characters = { SPF_Colonial_administration = { name = SPF_Colonial_administration } }",
+    );
+    let uri = "/mod/common/country_leader/00_traits.txt";
+    let diags = ctx.walk(
+        r#"leader_traits = {
+            SPF_Colonial_administration = {
+                stability_factor = -0.15
+                offence = -0.25
+            }
+        }"#,
+        uri,
+        initial_scope_for_uri(uri),
+        vec![Box::new(V2ScopeRule)],
+        vec![],
+    );
+    let bad = mismatched(&diags);
+    assert!(
+        bad.is_empty(),
+        "a trait id may collide with a character id, got {bad:#?}"
+    );
+}
+
 /// `allowed` is a rendered keyword AND a scope-pushing block: the two data
 /// lists must stay ordered that way, or the transparency short-circuit will
 /// swallow the push again.
