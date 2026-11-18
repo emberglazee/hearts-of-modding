@@ -675,6 +675,13 @@ impl Backend {
             {
                 inherited_params = crate::data::hoi4_data::definition_parameters("decision");
             }
+            // Trait definitions are the same shape: an arbitrary trait id inside
+            // `leader_traits`, so the container identifies the schema.
+            if inherited_params.is_none()
+                && crate::data::hoi4_data::is_trait_definition_body(&chain, &cat_names)
+            {
+                inherited_params = crate::data::hoi4_data::definition_parameters("leader_trait");
+            }
             if let Some(params) = inherited_params {
                 has_param_table = true;
                 let mut names: Vec<&String> = params.keys().collect();

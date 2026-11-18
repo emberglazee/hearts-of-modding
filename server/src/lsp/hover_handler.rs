@@ -655,18 +655,26 @@ impl Backend {
                             .map(|p| (pk.to_string(), p))
                         })
                         .or_else(|| {
-                            if crate::data::hoi4_data::is_decision_instance_body(&chain, &cat_names)
-                            {
-                                crate::data::hoi4_data::lookup_definition("decision")
+                            let schema = if crate::data::hoi4_data::is_decision_instance_body(
+                                &chain, &cat_names,
+                            ) {
+                                Some("decision")
+                            } else if crate::data::hoi4_data::is_trait_definition_body(
+                                &chain, &cat_names,
+                            ) {
+                                Some("leader_trait")
+                            } else {
+                                None
+                            };
+                            schema.and_then(|name| {
+                                crate::data::hoi4_data::lookup_definition(name)
                                     .and_then(|d| {
                                         d.parameters.get(&identifier).or_else(|| {
                                             d.parameters.get(&identifier.to_ascii_lowercase())
                                         })
                                     })
-                                    .map(|p| ("decision".to_string(), p))
-                            } else {
-                                None
-                            }
+                                    .map(|p| (name.to_string(), p))
+                            })
                         });
                     if let Some((param_owner, param)) = param_with_owner {
                         let mut p_text =

@@ -38211,6 +38211,1586 @@
 			"stack_behaviour": "passthrough",
 			"block_type": "value_trigger",
 			"version_added": ""
+		},
+		"Navy_intel_factor": {
+			"name": "Navy_intel_factor",
+			"description": "Navy intel factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nNavy_intel_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"Navy_intel_to_others": {
+			"name": "Navy_intel_to_others",
+			"description": "Navy intel to others. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nNavy_intel_to_others = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"air_spirit_category_type_cost_factor": {
+			"name": "air_spirit_category_type_cost_factor",
+			"description": "Air Force Command Spirit Cost.\n\n**Example:**\n```paradox\nair_spirit_category_type_cost_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"aircraft_manufacturer_cost_factor": {
+			"name": "aircraft_manufacturer_cost_factor",
+			"description": "Aircraft Designer Cost.\n\n**Example:**\n```paradox\naircraft_manufacturer_cost_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"army_chief_cost_factor": {
+			"name": "army_chief_cost_factor",
+			"description": "Army Chief Cost.\n\n**Example:**\n```paradox\narmy_chief_cost_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"army_spirit_category_type_cost_factor": {
+			"name": "army_spirit_category_type_cost_factor",
+			"description": "Army Command Spirit Cost.\n\n**Example:**\n```paradox\narmy_spirit_category_type_cost_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"attacker_modifier": {
+			"name": "attacker_modifier",
+			"description": "Attacker modifier. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nattacker_modifier = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"bunker_max_level_terrain_limit": {
+			"name": "bunker_max_level_terrain_limit",
+			"description": "Bunker max level terrain limit. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nbunker_max_level_terrain_limit = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"cat_deep_battle_cost_factor": {
+			"name": "cat_deep_battle_cost_factor",
+			"description": "Deep Battle Doctrine Cost.\n\n**Example:**\n```paradox\ncat_deep_battle_cost_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"cat_mass_mobilization_cost_factor": {
+			"name": "cat_mass_mobilization_cost_factor",
+			"description": "Mass Mobilization Doctrine Cost.\n\n**Example:**\n```paradox\ncat_mass_mobilization_cost_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"coastal_bunker_max_level_terrain_limit": {
+			"name": "coastal_bunker_max_level_terrain_limit",
+			"description": "Coastal bunker max level terrain limit. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\ncoastal_bunker_max_level_terrain_limit = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"communism_drift": {
+			"name": "communism_drift",
+			"description": "Daily Communism Support.\n\n**Example:**\n```paradox\ncommunism_drift = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"country_resource_chromium": {
+			"name": "country_resource_chromium",
+			"description": "Chromium.\n\n**Example:**\n```paradox\ncountry_resource_chromium = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"country_resource_cost_oil": {
+			"name": "country_resource_cost_oil",
+			"description": "Oil Consumption.\n\n**Example:**\n```paradox\ncountry_resource_cost_oil = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"country_resource_cost_rubber": {
+			"name": "country_resource_cost_rubber",
+			"description": "Rubber Consumption.\n\n**Example:**\n```paradox\ncountry_resource_cost_rubber = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"country_resource_oil": {
+			"name": "country_resource_oil",
+			"description": "Oil.\n\n**Example:**\n```paradox\ncountry_resource_oil = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"country_resource_rubber": {
+			"name": "country_resource_rubber",
+			"description": "Rubber.\n\n**Example:**\n```paradox\ncountry_resource_rubber = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"country_resource_tungsten": {
+			"name": "country_resource_tungsten",
+			"description": "Tungsten.\n\n**Example:**\n```paradox\ncountry_resource_tungsten = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"democratic_drift": {
+			"name": "democratic_drift",
+			"description": "Daily Democracy Support.\n\n**Example:**\n```paradox\ndemocratic_drift = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"economy_cost_factor": {
+			"name": "economy_cost_factor",
+			"description": "Economy Laws Cost.\n\n**Example:**\n```paradox\neconomy_cost_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"fascism_acceptance": {
+			"name": "fascism_acceptance",
+			"description": "Acceptance of Fascist Diplomacy.\n\n**Example:**\n```paradox\nfascism_acceptance = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"fascism_drift": {
+			"name": "fascism_drift",
+			"description": "Daily Fascism Support.\n\n**Example:**\n```paradox\nfascism_drift = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"high_command_cost_factor": {
+			"name": "high_command_cost_factor",
+			"description": "High Command Cost.\n\n**Example:**\n```paradox\nhigh_command_cost_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"industrial_concern_cost_factor": {
+			"name": "industrial_concern_cost_factor",
+			"description": "Industrial Concern Cost.\n\n**Example:**\n```paradox\nindustrial_concern_cost_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"land_mastery_gain_factor": {
+			"name": "land_mastery_gain_factor",
+			"description": "Land mastery gain factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nland_mastery_gain_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"local_resources_coal_factor": {
+			"name": "local_resources_coal_factor",
+			"description": "Coal Gain Efficiency.\n\n**Example:**\n```paradox\nlocal_resources_coal_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"materiel_manufacturer_cost_factor": {
+			"name": "materiel_manufacturer_cost_factor",
+			"description": "Materiel Designer Cost.\n\n**Example:**\n```paradox\nmateriel_manufacturer_cost_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"mobilization_laws_cost_factor": {
+			"name": "mobilization_laws_cost_factor",
+			"description": "Conscription Laws Cost.\n\n**Example:**\n```paradox\nmobilization_laws_cost_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"naval_manufacturer_cost_factor": {
+			"name": "naval_manufacturer_cost_factor",
+			"description": "Naval Designer Cost.\n\n**Example:**\n```paradox\nnaval_manufacturer_cost_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"navy_spirit_category_type_cost_factor": {
+			"name": "navy_spirit_category_type_cost_factor",
+			"description": "Navy Command Spirit Cost.\n\n**Example:**\n```paradox\nnavy_spirit_category_type_cost_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"neutrality_drift": {
+			"name": "neutrality_drift",
+			"description": "Daily Support for Unaligned.\n\n**Example:**\n```paradox\nneutrality_drift = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"political_advisor_cost_factor": {
+			"name": "political_advisor_cost_factor",
+			"description": "Political Advisor Cost.\n\n**Example:**\n```paradox\npolitical_advisor_cost_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"production_speed_air_base_factor": {
+			"name": "production_speed_air_base_factor",
+			"description": "Production speed air base factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nproduction_speed_air_base_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"production_speed_air_facility_factor": {
+			"name": "production_speed_air_facility_factor",
+			"description": "Production speed air facility factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nproduction_speed_air_facility_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"production_speed_anti_air_building_factor": {
+			"name": "production_speed_anti_air_building_factor",
+			"description": "Production speed anti air building factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nproduction_speed_anti_air_building_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"production_speed_arms_factory_factor": {
+			"name": "production_speed_arms_factory_factor",
+			"description": "Production speed arms factory factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nproduction_speed_arms_factory_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"production_speed_bunker_factor": {
+			"name": "production_speed_bunker_factor",
+			"description": "Production speed bunker factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nproduction_speed_bunker_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"production_speed_coastal_bunker_factor": {
+			"name": "production_speed_coastal_bunker_factor",
+			"description": "Production speed coastal bunker factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nproduction_speed_coastal_bunker_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"production_speed_dockyard_factor": {
+			"name": "production_speed_dockyard_factor",
+			"description": "Production speed dockyard factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nproduction_speed_dockyard_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"production_speed_energy_infrastructure_factor": {
+			"name": "production_speed_energy_infrastructure_factor",
+			"description": "Production speed energy infrastructure factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nproduction_speed_energy_infrastructure_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"production_speed_fuel_silo_factor": {
+			"name": "production_speed_fuel_silo_factor",
+			"description": "Production speed fuel silo factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nproduction_speed_fuel_silo_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"production_speed_industrial_complex_factor": {
+			"name": "production_speed_industrial_complex_factor",
+			"description": "Production speed industrial complex factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nproduction_speed_industrial_complex_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"production_speed_industrial_infrastructure_factor": {
+			"name": "production_speed_industrial_infrastructure_factor",
+			"description": "Production speed industrial infrastructure factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nproduction_speed_industrial_infrastructure_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"production_speed_infrastructure_factor": {
+			"name": "production_speed_infrastructure_factor",
+			"description": "Production speed infrastructure factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nproduction_speed_infrastructure_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"production_speed_land_facility_factor": {
+			"name": "production_speed_land_facility_factor",
+			"description": "Production speed land facility factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nproduction_speed_land_facility_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"production_speed_naval_base_factor": {
+			"name": "production_speed_naval_base_factor",
+			"description": "Production speed naval base factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nproduction_speed_naval_base_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"production_speed_naval_facility_factor": {
+			"name": "production_speed_naval_facility_factor",
+			"description": "Production speed naval facility factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nproduction_speed_naval_facility_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"production_speed_nuclear_facility_factor": {
+			"name": "production_speed_nuclear_facility_factor",
+			"description": "Production speed nuclear facility factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nproduction_speed_nuclear_facility_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"production_speed_nuclear_reactor_factor": {
+			"name": "production_speed_nuclear_reactor_factor",
+			"description": "Production speed nuclear reactor factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nproduction_speed_nuclear_reactor_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"production_speed_radar_station_factor": {
+			"name": "production_speed_radar_station_factor",
+			"description": "Production speed radar station factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nproduction_speed_radar_station_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"production_speed_raiL_way_factor": {
+			"name": "production_speed_raiL_way_factor",
+			"description": "Production speed raiL way factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nproduction_speed_raiL_way_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"production_speed_rail_way_factor": {
+			"name": "production_speed_rail_way_factor",
+			"description": "Production speed rail way factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nproduction_speed_rail_way_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"production_speed_supply_node_factor": {
+			"name": "production_speed_supply_node_factor",
+			"description": "Production speed supply node factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nproduction_speed_supply_node_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"production_speed_synthetic_refinery_factor": {
+			"name": "production_speed_synthetic_refinery_factor",
+			"description": "Production speed synthetic refinery factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nproduction_speed_synthetic_refinery_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"repair_speed_infrastructure_factor": {
+			"name": "repair_speed_infrastructure_factor",
+			"description": "Repair speed infrastructure factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nrepair_speed_infrastructure_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"repair_speed_rail_way_factor": {
+			"name": "repair_speed_rail_way_factor",
+			"description": "Repair speed rail way factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nrepair_speed_rail_way_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"sp_air_helicopter_speed_factor": {
+			"name": "sp_air_helicopter_speed_factor",
+			"description": "Helicopter Research Speed.\n\n**Example:**\n```paradox\nsp_air_helicopter_speed_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"sp_air_intercontinental_bomber_speed_factor": {
+			"name": "sp_air_intercontinental_bomber_speed_factor",
+			"description": "Intercontinental Bomber Research Speed.\n\n**Example:**\n```paradox\nsp_air_intercontinental_bomber_speed_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"sp_air_mothership_aircraft_speed_factor": {
+			"name": "sp_air_mothership_aircraft_speed_factor",
+			"description": "Mothership Aircraft Research Speed.\n\n**Example:**\n```paradox\nsp_air_mothership_aircraft_speed_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"sp_commercial_nuclear_reactor_speed_factor": {
+			"name": "sp_commercial_nuclear_reactor_speed_factor",
+			"description": "Commercial Nuclear Reactor Research Speed.\n\n**Example:**\n```paradox\nsp_commercial_nuclear_reactor_speed_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"sp_land_land_cruiser_speed_factor": {
+			"name": "sp_land_land_cruiser_speed_factor",
+			"description": "Land Cruiser Research Speed.\n\n**Example:**\n```paradox\nsp_land_land_cruiser_speed_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"sp_naval_ice_carrier_speed_factor": {
+			"name": "sp_naval_ice_carrier_speed_factor",
+			"description": "Ice Aircraft Carrier Research Speed.\n\n**Example:**\n```paradox\nsp_naval_ice_carrier_speed_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"sp_naval_modern_battleship_speed_factor": {
+			"name": "sp_naval_modern_battleship_speed_factor",
+			"description": "Modern Battleship Research Speed.\n\n**Example:**\n```paradox\nsp_naval_modern_battleship_speed_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"sp_naval_modern_carrier_speed_factor": {
+			"name": "sp_naval_modern_carrier_speed_factor",
+			"description": "Modern Carrier Research Speed.\n\n**Example:**\n```paradox\nsp_naval_modern_carrier_speed_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"sp_nuclear_bomb_speed_factor": {
+			"name": "sp_nuclear_bomb_speed_factor",
+			"description": "Nuclear Bomb Project Research Speed.\n\n**Example:**\n```paradox\nsp_nuclear_bomb_speed_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"sp_nuclear_engines_speed_factor": {
+			"name": "sp_nuclear_engines_speed_factor",
+			"description": "Nuclear Engines Research Speed.\n\n**Example:**\n```paradox\nsp_nuclear_engines_speed_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"sp_nuclear_warheads_speed_factor": {
+			"name": "sp_nuclear_warheads_speed_factor",
+			"description": "Nuclear Warheads Research Speed.\n\n**Example:**\n```paradox\nsp_nuclear_warheads_speed_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"sp_tag_artillery_speed_factor": {
+			"name": "sp_tag_artillery_speed_factor",
+			"description": "Artillery Special Projects Speed.\n\n**Example:**\n```paradox\nsp_tag_artillery_speed_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"sp_tag_helicopter_speed_factor": {
+			"name": "sp_tag_helicopter_speed_factor",
+			"description": "Helicopter Special Projects Speed.\n\n**Example:**\n```paradox\nsp_tag_helicopter_speed_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"sp_tag_jet_speed_factor": {
+			"name": "sp_tag_jet_speed_factor",
+			"description": "Jet Special Projects Speed.\n\n**Example:**\n```paradox\nsp_tag_jet_speed_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"sp_tag_nuclear_power_speed_factor": {
+			"name": "sp_tag_nuclear_power_speed_factor",
+			"description": "Nuclear Power Special Projects Speed.\n\n**Example:**\n```paradox\nsp_tag_nuclear_power_speed_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"sp_tag_nuclear_warfare_speed_factor": {
+			"name": "sp_tag_nuclear_warfare_speed_factor",
+			"description": "Nuclear Warfare Special Projects Speed.\n\n**Example:**\n```paradox\nsp_tag_nuclear_warfare_speed_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"sp_tag_rocket_speed_factor": {
+			"name": "sp_tag_rocket_speed_factor",
+			"description": "Rocket Projects Speed.\n\n**Example:**\n```paradox\nsp_tag_rocket_speed_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"sp_tag_submarine_speed_factor": {
+			"name": "sp_tag_submarine_speed_factor",
+			"description": "Submarine Special Projects Speed.\n\n**Example:**\n```paradox\nsp_tag_submarine_speed_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"sp_tag_surface_ship_speed_factor": {
+			"name": "sp_tag_surface_ship_speed_factor",
+			"description": "Surface Ship Special Projects Speed.\n\n**Example:**\n```paradox\nsp_tag_surface_ship_speed_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"sp_tag_tank_speed_factor": {
+			"name": "sp_tag_tank_speed_factor",
+			"description": "Tank Special Projects Speed.\n\n**Example:**\n```paradox\nsp_tag_tank_speed_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"specialization_nuclear_speed_factor": {
+			"name": "specialization_nuclear_speed_factor",
+			"description": "$specialization_nuclear$ Special Projects Speed.\n\n**Example:**\n```paradox\nspecialization_nuclear_speed_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"state_bunker_max_level_terrain_limit": {
+			"name": "state_bunker_max_level_terrain_limit",
+			"description": "State bunker max level terrain limit. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nstate_bunker_max_level_terrain_limit = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"state_production_speed_air_base_factor": {
+			"name": "state_production_speed_air_base_factor",
+			"description": "State production speed air base factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nstate_production_speed_air_base_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"state_production_speed_arms_factory_factor": {
+			"name": "state_production_speed_arms_factory_factor",
+			"description": "State production speed arms factory factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nstate_production_speed_arms_factory_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"state_production_speed_bunker_factor": {
+			"name": "state_production_speed_bunker_factor",
+			"description": "State production speed bunker factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nstate_production_speed_bunker_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"state_production_speed_coastal_bunker_factor": {
+			"name": "state_production_speed_coastal_bunker_factor",
+			"description": "State production speed coastal bunker factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nstate_production_speed_coastal_bunker_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"state_production_speed_dockyard_factor": {
+			"name": "state_production_speed_dockyard_factor",
+			"description": "State production speed dockyard factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nstate_production_speed_dockyard_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"state_production_speed_industrial_complex_factor": {
+			"name": "state_production_speed_industrial_complex_factor",
+			"description": "State production speed industrial complex factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nstate_production_speed_industrial_complex_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"state_production_speed_infrastructure_factor": {
+			"name": "state_production_speed_infrastructure_factor",
+			"description": "State production speed infrastructure factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nstate_production_speed_infrastructure_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"state_production_speed_naval_base_factor": {
+			"name": "state_production_speed_naval_base_factor",
+			"description": "State production speed naval base factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nstate_production_speed_naval_base_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"state_production_speed_rail_way_factor": {
+			"name": "state_production_speed_rail_way_factor",
+			"description": "State production speed rail way factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nstate_production_speed_rail_way_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"state_production_speed_stronghold_network_factor": {
+			"name": "state_production_speed_stronghold_network_factor",
+			"description": "State production speed stronghold network factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nstate_production_speed_stronghold_network_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"state_production_speed_supply_node_factor": {
+			"name": "state_production_speed_supply_node_factor",
+			"description": "State production speed supply node factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nstate_production_speed_supply_node_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"state_production_speed_synthetic_refinery_factor": {
+			"name": "state_production_speed_synthetic_refinery_factor",
+			"description": "State production speed synthetic refinery factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nstate_production_speed_synthetic_refinery_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"state_repair_speed_bunker_factor": {
+			"name": "state_repair_speed_bunker_factor",
+			"description": "State repair speed bunker factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nstate_repair_speed_bunker_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"state_repair_speed_infrastructure_factor": {
+			"name": "state_repair_speed_infrastructure_factor",
+			"description": "State repair speed infrastructure factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nstate_repair_speed_infrastructure_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"state_repair_speed_supply_node_factor": {
+			"name": "state_repair_speed_supply_node_factor",
+			"description": "State repair speed supply node factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nstate_repair_speed_supply_node_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"state_resource_aluminium": {
+			"name": "state_resource_aluminium",
+			"description": "Aluminum.\n\n**Example:**\n```paradox\nstate_resource_aluminium = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"state_resource_chromium": {
+			"name": "state_resource_chromium",
+			"description": "Chromium.\n\n**Example:**\n```paradox\nstate_resource_chromium = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"state_resource_oil": {
+			"name": "state_resource_oil",
+			"description": "Oil.\n\n**Example:**\n```paradox\nstate_resource_oil = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"state_resource_rubber": {
+			"name": "state_resource_rubber",
+			"description": "Rubber.\n\n**Example:**\n```paradox\nstate_resource_rubber = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"state_resource_steel": {
+			"name": "state_resource_steel",
+			"description": "Steel.\n\n**Example:**\n```paradox\nstate_resource_steel = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"state_resource_tungsten": {
+			"name": "state_resource_tungsten",
+			"description": "Tungsten.\n\n**Example:**\n```paradox\nstate_resource_tungsten = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"state_resources_oil_factor": {
+			"name": "state_resources_oil_factor",
+			"description": "Local Available £resources_strip|1 Oil.\n\n**Example:**\n```paradox\nstate_resources_oil_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"state_resources_steel_factor": {
+			"name": "state_resources_steel_factor",
+			"description": "Local Available £resources_strip|5 Steel.\n\n**Example:**\n```paradox\nstate_resources_steel_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"tank_manufacturer_cost_factor": {
+			"name": "tank_manufacturer_cost_factor",
+			"description": "Tank Designer Cost.\n\n**Example:**\n```paradox\ntank_manufacturer_cost_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"temporary_state_resource_aluminium": {
+			"name": "temporary_state_resource_aluminium",
+			"description": "Aluminum.\n\n**Example:**\n```paradox\ntemporary_state_resource_aluminium = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"temporary_state_resource_chromium": {
+			"name": "temporary_state_resource_chromium",
+			"description": "Chromium.\n\n**Example:**\n```paradox\ntemporary_state_resource_chromium = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"temporary_state_resource_coal": {
+			"name": "temporary_state_resource_coal",
+			"description": "Coal.\n\n**Example:**\n```paradox\ntemporary_state_resource_coal = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"temporary_state_resource_oil": {
+			"name": "temporary_state_resource_oil",
+			"description": "Oil.\n\n**Example:**\n```paradox\ntemporary_state_resource_oil = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"temporary_state_resource_rubber": {
+			"name": "temporary_state_resource_rubber",
+			"description": "Rubber.\n\n**Example:**\n```paradox\ntemporary_state_resource_rubber = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"temporary_state_resource_steel": {
+			"name": "temporary_state_resource_steel",
+			"description": "Steel.\n\n**Example:**\n```paradox\ntemporary_state_resource_steel = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"temporary_state_resource_tungsten": {
+			"name": "temporary_state_resource_tungsten",
+			"description": "Tungsten.\n\n**Example:**\n```paradox\ntemporary_state_resource_tungsten = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"theorist_cost_factor": {
+			"name": "theorist_cost_factor",
+			"description": "Theorist Cost.\n\n**Example:**\n```paradox\ntheorist_cost_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"trade_laws_cost_factor": {
+			"name": "trade_laws_cost_factor",
+			"description": "Trade Laws Cost.\n\n**Example:**\n```paradox\ntrade_laws_cost_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"unit_artillery_brigade_design_cost_factor": {
+			"name": "unit_artillery_brigade_design_cost_factor",
+			"description": "Unit artillery brigade design cost factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nunit_artillery_brigade_design_cost_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"unit_camelry_design_cost_factor": {
+			"name": "unit_camelry_design_cost_factor",
+			"description": "Unit camelry design cost factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nunit_camelry_design_cost_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"unit_cavalry_design_cost_factor": {
+			"name": "unit_cavalry_design_cost_factor",
+			"description": "Unit cavalry design cost factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nunit_cavalry_design_cost_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"unit_infantry_design_cost_factor": {
+			"name": "unit_infantry_design_cost_factor",
+			"description": "Unit infantry design cost factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nunit_infantry_design_cost_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"unit_mechanized_design_cost_factor": {
+			"name": "unit_mechanized_design_cost_factor",
+			"description": "Unit mechanized design cost factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nunit_mechanized_design_cost_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"unit_motorized_design_cost_factor": {
+			"name": "unit_motorized_design_cost_factor",
+			"description": "Unit motorized design cost factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nunit_motorized_design_cost_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"command_cap_increase": {
+			"name": "command_cap_increase",
+			"description": "Command cap increase. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\ncommand_cap_increase = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"democratic_acceptance": {
+			"name": "democratic_acceptance",
+			"description": "Democratic acceptance. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\ndemocratic_acceptance = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"communism_acceptance": {
+			"name": "communism_acceptance",
+			"description": "Communism acceptance. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\ncommunism_acceptance = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"neutrality_acceptance": {
+			"name": "neutrality_acceptance",
+			"description": "Neutrality acceptance. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nneutrality_acceptance = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"air_chief_cost_factor": {
+			"name": "air_chief_cost_factor",
+			"description": "Air chief cost factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nair_chief_cost_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"navy_chief_cost_factor": {
+			"name": "navy_chief_cost_factor",
+			"description": "Navy chief cost factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nnavy_chief_cost_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"production_speed_rocket_site_factor": {
+			"name": "production_speed_rocket_site_factor",
+			"description": "Production speed rocket site factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nproduction_speed_rocket_site_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"production_speed_naval_supply_hub_factor": {
+			"name": "production_speed_naval_supply_hub_factor",
+			"description": "Production speed naval supply hub factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nproduction_speed_naval_supply_hub_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"production_speed_naval_headquarters_factor": {
+			"name": "production_speed_naval_headquarters_factor",
+			"description": "Production speed naval headquarters factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nproduction_speed_naval_headquarters_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"country_resource_steel": {
+			"name": "country_resource_steel",
+			"description": "Country resource steel. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\ncountry_resource_steel = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"country_resource_aluminium": {
+			"name": "country_resource_aluminium",
+			"description": "Country resource aluminium. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\ncountry_resource_aluminium = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"country_resource_coal": {
+			"name": "country_resource_coal",
+			"description": "Country resource coal. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\ncountry_resource_coal = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"new_base_strike_mastery_gain_factor": {
+			"name": "new_base_strike_mastery_gain_factor",
+			"description": "New base strike mastery gain factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nnew_base_strike_mastery_gain_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"new_mobile_warfare_mastery_gain_factor": {
+			"name": "new_mobile_warfare_mastery_gain_factor",
+			"description": "New mobile warfare mastery gain factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nnew_mobile_warfare_mastery_gain_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"new_strategic_destruction_mastery_gain_factor": {
+			"name": "new_strategic_destruction_mastery_gain_factor",
+			"description": "New strategic destruction mastery gain factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nnew_strategic_destruction_mastery_gain_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"new_battlefield_support_mastery_gain_factor": {
+			"name": "new_battlefield_support_mastery_gain_factor",
+			"description": "New battlefield support mastery gain factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nnew_battlefield_support_mastery_gain_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"new_operational_integrity_mastery_gain_factor": {
+			"name": "new_operational_integrity_mastery_gain_factor",
+			"description": "New operational integrity mastery gain factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nnew_operational_integrity_mastery_gain_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"new_fleet_in_being_mastery_gain_factor": {
+			"name": "new_fleet_in_being_mastery_gain_factor",
+			"description": "New fleet in being mastery gain factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nnew_fleet_in_being_mastery_gain_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"new_convoy_raiding_mastery_gain_factor": {
+			"name": "new_convoy_raiding_mastery_gain_factor",
+			"description": "New convoy raiding mastery gain factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nnew_convoy_raiding_mastery_gain_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"superior_firepower_mastery_gain_factor": {
+			"name": "superior_firepower_mastery_gain_factor",
+			"description": "Superior firepower mastery gain factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nsuperior_firepower_mastery_gain_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"grand_battleplan_mastery_gain_factor": {
+			"name": "grand_battleplan_mastery_gain_factor",
+			"description": "Grand battleplan mastery gain factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\ngrand_battleplan_mastery_gain_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"mass_assault_mastery_gain_factor": {
+			"name": "mass_assault_mastery_gain_factor",
+			"description": "Mass assault mastery gain factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nmass_assault_mastery_gain_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"guerilla_war_mastery_gain_factor": {
+			"name": "guerilla_war_mastery_gain_factor",
+			"description": "Guerilla war mastery gain factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nguerilla_war_mastery_gain_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"peoples_war_mastery_gain_factor": {
+			"name": "peoples_war_mastery_gain_factor",
+			"description": "Peoples war mastery gain factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\npeoples_war_mastery_gain_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"operations_track_mastery_gain_factor": {
+			"name": "operations_track_mastery_gain_factor",
+			"description": "Operations track mastery gain factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\noperations_track_mastery_gain_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"specialization_air_speed_factor": {
+			"name": "specialization_air_speed_factor",
+			"description": "Specialization air speed factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nspecialization_air_speed_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"specialization_land_speed_factor": {
+			"name": "specialization_land_speed_factor",
+			"description": "Specialization land speed factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nspecialization_land_speed_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"specialization_naval_speed_factor": {
+			"name": "specialization_naval_speed_factor",
+			"description": "Specialization naval speed factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nspecialization_naval_speed_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"operation_boost_resistance_cost": {
+			"name": "operation_boost_resistance_cost",
+			"description": "Operation boost resistance cost. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\noperation_boost_resistance_cost = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"operation_boost_resistance_outcome": {
+			"name": "operation_boost_resistance_outcome",
+			"description": "Operation boost resistance outcome. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\noperation_boost_resistance_outcome = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"operation_make_resistance_contacts_risk": {
+			"name": "operation_make_resistance_contacts_risk",
+			"description": "Operation make resistance contacts risk. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\noperation_make_resistance_contacts_risk = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"operation_make_resistance_contacts_cost": {
+			"name": "operation_make_resistance_contacts_cost",
+			"description": "Operation make resistance contacts cost. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\noperation_make_resistance_contacts_cost = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"operation_coup_government_outcome": {
+			"name": "operation_coup_government_outcome",
+			"description": "Operation coup government outcome. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\noperation_coup_government_outcome = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"operation_targeted_sabotage_industry_outcome": {
+			"name": "operation_targeted_sabotage_industry_outcome",
+			"description": "Operation targeted sabotage industry outcome. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\noperation_targeted_sabotage_industry_outcome = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"operation_targeted_sabotage_resources_outcome": {
+			"name": "operation_targeted_sabotage_resources_outcome",
+			"description": "Operation targeted sabotage resources outcome. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\noperation_targeted_sabotage_resources_outcome = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"operation_targeted_sabotage_infrastructure_outcome": {
+			"name": "operation_targeted_sabotage_infrastructure_outcome",
+			"description": "Operation targeted sabotage infrastructure outcome. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\noperation_targeted_sabotage_infrastructure_outcome = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"local_resources_oil_factor": {
+			"name": "local_resources_oil_factor",
+			"description": "Local resources oil factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nlocal_resources_oil_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"leader_default_proximity_offset": {
+			"name": "leader_default_proximity_offset",
+			"description": "Leader default proximity offset. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nleader_default_proximity_offset = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"tactic_overwhelming_fire_preferred_weight_factor": {
+			"name": "tactic_overwhelming_fire_preferred_weight_factor",
+			"description": "Tactic overwhelming fire preferred weight factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\ntactic_overwhelming_fire_preferred_weight_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"sp_tag_aircraft_speed_factor": {
+			"name": "sp_tag_aircraft_speed_factor",
+			"description": "Sp tag aircraft speed factor. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\nsp_tag_aircraft_speed_factor = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
+		},
+		"gain_xp_on_spotting": {
+			"name": "gain_xp_on_spotting",
+			"description": "Gain xp on spotting. No base-game localisation string — the engine reports this modifier by its id.\n\n**Example:**\n```paradox\ngain_xp_on_spotting = 0.1\n```",
+			"scopes": {
+				"usage": [
+					"Country"
+				],
+				"usage_restriction": ""
+			}
 		}
 	},
 	"definitions": {
@@ -39764,6 +41344,254 @@
 				}
 			},
 			"param_container": false
+		},
+		"leader_trait": {
+			"name": "leader_trait",
+			"description": "A country- or unit-leader trait, declared inside `leader_traits` / `unit_leader_traits` in common/country_leader/*.txt and common/unit_leader/*.txt. The block is named after the trait, so the schema is reached through the container rather than the key.",
+			"file_types": [
+				"CountryLeaderTraits",
+				"UnitLeaderTraits"
+			],
+			"parameters": {
+				"sprite": {
+					"type": "int",
+					"value_type": "int",
+					"description": "Index of the trait's icon in the leader-trait sprite sheet. Vanilla uses 1-17; the number is not a GFX name.",
+					"optional": true,
+					"repeated": false
+				},
+				"trait_type": {
+					"type": "string",
+					"value_type": "string",
+					"description": "Unit-leader traits only: `personality_trait`, `assignable_trait`, `status_trait`, `basic_trait` or `basic_terrain_trait`. Decides which trait list the entry belongs to.",
+					"optional": true,
+					"repeated": false
+				},
+				"type": {
+					"type": "string",
+					"value_type": "string",
+					"description": "Which leaders may hold the trait: `all`, `land`, `navy`, `corps_commander`, `field_marshal` or `operative`. May also be a block of conditions.",
+					"optional": true,
+					"repeated": false
+				},
+				"gui_row": {
+					"type": "int",
+					"value_type": "int",
+					"description": "Row of the trait's icon in the leader panel grid.",
+					"optional": true,
+					"repeated": false
+				},
+				"gui_column": {
+					"type": "int",
+					"value_type": "int",
+					"description": "Column of the trait's icon in the leader panel grid.",
+					"optional": true,
+					"repeated": false
+				},
+				"random": {
+					"type": "bool",
+					"value_type": "bool",
+					"description": "Whether the random trait roll may pick this trait. Vanilla writes `random = no` for story traits.",
+					"optional": true,
+					"repeated": false
+				},
+				"cost": {
+					"type": "int",
+					"value_type": "int",
+					"description": "Command power cost to assign the trait (advisor traits in common/unit_leader).",
+					"optional": true,
+					"repeated": false
+				},
+				"slot": {
+					"type": "string",
+					"value_type": "string",
+					"description": "Advisor slot the trait occupies: `high_command`, `army_chief`, `navy_chief`, `air_chief`, `theorist`, ...",
+					"optional": true,
+					"repeated": false
+				},
+				"mutually_exclusive": {
+					"type": "string",
+					"value_type": "trait",
+					"description": "Trait id that cannot be held at the same time as this one.",
+					"optional": true,
+					"repeated": false
+				},
+				"specialist_advisor_trait": {
+					"type": "string",
+					"value_type": "trait",
+					"description": "Advisor-trait upgrade granted at the specialist tier.",
+					"optional": true,
+					"repeated": false
+				},
+				"expert_advisor_trait": {
+					"type": "string",
+					"value_type": "trait",
+					"description": "Advisor-trait upgrade granted at the expert tier.",
+					"optional": true,
+					"repeated": false
+				},
+				"genius_advisor_trait": {
+					"type": "string",
+					"value_type": "trait",
+					"description": "Advisor-trait upgrade granted at the genius tier.",
+					"optional": true,
+					"repeated": false
+				},
+				"enable_ability": {
+					"type": "string",
+					"value_type": "string",
+					"description": "Commander ability unlocked while the trait is held.",
+					"optional": true,
+					"repeated": false
+				},
+				"custom_modifier_tooltip": {
+					"type": "string",
+					"value_type": "string",
+					"description": "Localisation key used as the trait's modifier tooltip instead of the generated one.",
+					"optional": true,
+					"repeated": false
+				},
+				"custom_gain_xp_trigger_tooltip": {
+					"type": "string",
+					"value_type": "string",
+					"description": "Localisation key describing the trait's experience-gain condition.",
+					"optional": true,
+					"repeated": false
+				},
+				"attack_skill": {
+					"type": "int",
+					"value_type": "int",
+					"description": "Attack skill the trait adds to (or subtracts from) the leader.",
+					"optional": true,
+					"repeated": false
+				},
+				"defense_skill": {
+					"type": "int",
+					"value_type": "int",
+					"description": "Defense skill the trait adds to (or subtracts from) the leader.",
+					"optional": true,
+					"repeated": false
+				},
+				"planning_skill": {
+					"type": "int",
+					"value_type": "int",
+					"description": "Planning skill the trait adds to (or subtracts from) the leader.",
+					"optional": true,
+					"repeated": false
+				},
+				"logistics_skill": {
+					"type": "int",
+					"value_type": "int",
+					"description": "Logistics skill the trait adds to (or subtracts from) the leader.",
+					"optional": true,
+					"repeated": false
+				},
+				"attack_skill_factor": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Percentage change to the leader's attack skill.",
+					"optional": true,
+					"repeated": false
+				},
+				"defense_skill_factor": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Percentage change to the leader's defense skill.",
+					"optional": true,
+					"repeated": false
+				},
+				"planning_skill_factor": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Percentage change to the leader's planning skill.",
+					"optional": true,
+					"repeated": false
+				},
+				"logistics_skill_factor": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Percentage change to the leader's logistics skill.",
+					"optional": true,
+					"repeated": false
+				},
+				"modifier": {
+					"type": "block",
+					"value_type": "modifier",
+					"description": "Country modifiers the trait applies.",
+					"optional": true,
+					"repeated": false
+				},
+				"hidden_modifier": {
+					"type": "block",
+					"value_type": "modifier",
+					"description": "Country modifiers the trait applies without showing them in the tooltip.",
+					"optional": true,
+					"repeated": false
+				},
+				"non_shared_modifier": {
+					"type": "block",
+					"value_type": "modifier",
+					"description": "Modifiers that apply only to the leader's own country, not to shared copies of the trait.",
+					"optional": true,
+					"repeated": false
+				},
+				"field_marshal_modifier": {
+					"type": "block",
+					"value_type": "modifier",
+					"description": "Modifiers applied only while the trait is held by a field marshal.",
+					"optional": true,
+					"repeated": false
+				},
+				"corps_commander_modifier": {
+					"type": "block",
+					"value_type": "modifier",
+					"description": "Modifiers applied only while the trait is held by a corps commander.",
+					"optional": true,
+					"repeated": false
+				},
+				"building_module_modifier": {
+					"type": "block",
+					"value_type": "modifier",
+					"description": "Modifiers applied to the buildings the trait's owner uses.",
+					"optional": true,
+					"repeated": false
+				},
+				"sub_unit_modifiers": {
+					"type": "block",
+					"value_type": "modifier",
+					"description": "Modifiers applied to the leader's sub-units.",
+					"optional": true,
+					"repeated": false
+				},
+				"targeted_modifier": {
+					"type": "block",
+					"value_type": "modifier",
+					"description": "Modifiers applied to a targeted country, state or unit.",
+					"optional": true,
+					"repeated": false
+				},
+				"equipment_bonus": {
+					"type": "block",
+					"value_type": "equipment",
+					"description": "Stat bonuses granted to specific equipment archetypes.",
+					"optional": true,
+					"repeated": false
+				},
+				"override_effect_tooltip": {
+					"type": "string",
+					"value_type": "string",
+					"description": "Localisation key that replaces the trait's generated effect tooltip.",
+					"optional": true,
+					"repeated": false
+				},
+				"custom_prerequisite_tooltip": {
+					"type": "string",
+					"value_type": "string",
+					"description": "Localisation key describing why the trait cannot be taken.",
+					"optional": true,
+					"repeated": false
+				}
+			}
 		}
 	},
 	"scopes": {

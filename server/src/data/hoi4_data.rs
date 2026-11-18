@@ -689,6 +689,39 @@ fn decision_instance(chain: &[&str], file_cats: &[&str]) -> bool {
     block_parameters(chain[0]).is_none()
 }
 
+/// True when the cursor sits directly inside a trait definition body.
+///
+/// Trait ids are arbitrary (`independence_activist`, `SPF_Colonial_administration`),
+/// so — like decision instances — no block key routes to the `leader_trait`
+/// schema: the `leader_traits` / `unit_leader_traits` container does. Without
+/// this the body has no parameter table, which is why `sprite`,
+/// `custom_modifier_tooltip` and `gui_row` came out uncoloured and missing from
+/// completion.
+pub fn is_trait_definition_body(chain: &[String], file_cats: &[&str]) -> bool {
+    let keys: Vec<&str> = chain.iter().map(String::as_str).collect();
+    trait_definition(&keys, file_cats)
+}
+
+/// [`is_trait_definition_body`] for callers that already hold the two keys.
+pub fn is_trait_definition_body_keys(key: &str, parent: &str, file_cats: &[&str]) -> bool {
+    trait_definition(&[key, parent], file_cats)
+}
+
+fn trait_definition(chain: &[&str], file_cats: &[&str]) -> bool {
+    if chain.len() != 2 {
+        return false;
+    }
+    if !matches!(chain[1], "leader_traits" | "unit_leader_traits") {
+        return false;
+    }
+    if chain[0].is_empty() || chain[0].starts_with('@') {
+        return false;
+    }
+    file_cats
+        .iter()
+        .any(|c| *c == "CountryLeaderTraits" || *c == "UnitLeaderTraits")
+}
+
 /// Resolve a key against the immediate parent first, then a threaded
 /// param-container anchor. Shared by semantic tokens, hover, and completion
 /// so a folder's `ledger`/`doctrine` classify identically everywhere.

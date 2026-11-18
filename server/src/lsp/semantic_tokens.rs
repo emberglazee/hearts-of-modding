@@ -1031,6 +1031,14 @@ fn push_entry_tokens(
                 )
             }) {
                 Some("decision")
+            } else if parent_key.is_some_and(|parent| {
+                crate::data::hoi4_data::is_trait_definition_body_keys(
+                    key_text,
+                    parent,
+                    &ctx.file_categories,
+                )
+            }) {
+                Some("leader_trait")
             } else {
                 None
             };
