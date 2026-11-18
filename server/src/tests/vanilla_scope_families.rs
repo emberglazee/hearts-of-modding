@@ -359,13 +359,13 @@ const NATIONAL_FOCUS_URI: &str = "/mod/common/national_focus/zz_focus.txt";
 /// the body there reported `skill` (a Character/Unit key) 48 times across
 /// vanilla national focuses.
 #[test]
-fn leader_role_effect_bodies_are_parameter_bags() {
+fn leader_role_effect_bodies_accept_their_documented_parameters() {
     let input = "focus = {\n\tid = zz_role\n\tcompletion_reward = {\n\t\tadd_corps_commander_role = {\n\t\t\tcharacter = ZZZ_leader\n\t\t\tskill = 2\n\t\t\tattack_skill = 1\n\t\t\tdefense_skill = 1\n\t\t\tplanning_skill = 1\n\t\t\tlogistics_skill = 1\n\t\t}\n\t\tadd_field_marshal_role = {\n\t\t\tcharacter = ZZZ_leader\n\t\t\tskill = 3\n\t\t}\n\t\tadd_naval_commander_role = {\n\t\t\tCharacter = ZZZ_leader\n\t\t\tskill = 1\n\t\t}\n\t\tadd_country_leader_role = {\n\t\t\tcharacter = ZZZ_leader\n\t\t\tcountry_leader = {\n\t\t\t\tideology = moderatism\n\t\t\t\texpire = \"1965.1.1.1\"\n\t\t\t\ttraits = { ZZZ_trait }\n\t\t\t}\n\t\t}\n\t}\n}\n";
     assert_no_mismatch(NATIONAL_FOCUS_URI, input);
 }
 
 /// Negative control: the same key outside a role body is still a real mismatch,
-/// so the bag rule cannot swallow a genuine country-scope `skill`.
+/// so the parameter declaration cannot swallow a genuine country-scope `skill`.
 #[test]
 fn bare_role_stat_outside_a_role_body_is_still_flagged() {
     let input = "focus = {\n\tid = zz_role\n\tcompletion_reward = {\n\t\tskill = 2\n\t}\n}\n";
@@ -373,6 +373,20 @@ fn bare_role_stat_outside_a_role_body_is_still_flagged() {
     assert!(
         !bad.is_empty(),
         "a bare `skill` in a country reward must still be reported"
+    );
+}
+
+/// The role body is a normal Country block with a parameter schema, not a
+/// blanket bag: anything the schema does not declare is still validated, so a
+/// state-scoped effect nested in a role body is reported. This is the coverage a
+/// body-wide `ModifierBag` would have traded away.
+#[test]
+fn undeclared_key_inside_a_role_body_is_still_validated() {
+    let input = "focus = {\n\tid = zz_role\n\tcompletion_reward = {\n\t\tadd_corps_commander_role = {\n\t\t\tcharacter = ZZZ_leader\n\t\t\tskill = 2\n\t\t\tadd_extra_state_shared_building_slots = 1\n\t\t}\n\t}\n}\n";
+    let bad = mismatched(&walk(NATIONAL_FOCUS_URI, input));
+    assert!(
+        !bad.is_empty(),
+        "a state-scoped effect inside a role body must still be reported"
     );
 }
 

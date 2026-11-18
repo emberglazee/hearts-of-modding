@@ -1041,35 +1041,22 @@ impl ScopeStack {
             return (Scope::ModifierBag, true);
         }
 
-        // 1d'. Leader-role effect bodies are parameter bags, not script:
-        // `add_corps_commander_role = { character = X skill = 1 attack_skill = 1 }`
-        // (vanilla `common/national_focus/greece.txt:89`). `skill` and the
-        // `*_skill` keys are Character/Unit properties, so validating the body in
-        // the enclosing Country scope reported every role grant as HOM004 — 48 of
-        // the vanilla national-focus mismatches were this one shape. The advisor
-        // and country-leader bodies are bags of the same kind (`slot`, `idea`,
-        // `country_leader = { ideology expire traits }`), so they are covered by
-        // the same rule rather than one at a time.
-        // `complete_tooltip` is display-only: its entries are effect names the
+        // 1d'. `complete_tooltip` is display-only: its entries are effect names the
         // engine renders into the focus tooltip, never executed. Validating them
         // as script flagged state-scoped effects listed for display, e.g.
         // `add_extra_state_shared_building_slots` in vanilla
         // `common/national_focus/generic.txt:639`. Cost of the bag: scope is no
         // longer checked inside the 409 tooltip blocks vanilla ships, which is
         // the correct trade — a tooltip entry has no scope to be wrong in.
+        //
+        // Leader-role bodies (`add_corps_commander_role = { character = X skill = 1 }`)
+        // are NOT bagged here. They are parameter bags too, but the parameter
+        // table already models them, and bagging the whole body would stop
+        // validating the nested blocks inside it (`country_leader = { ideology
+        // traits }`, `advisor = { slot idea }`). Declaring the role's parameters
+        // in `hoi4_data.json` silences the stat keys while leaving the body a
+        // normal Country block.
         if lk == "complete_tooltip" {
-            return (Scope::ModifierBag, true);
-        }
-
-        if matches!(
-            lk.as_str(),
-            "add_field_marshal_role"
-                | "add_corps_commander_role"
-                | "add_naval_commander_role"
-                | "add_advisor_role"
-                | "add_country_leader_role"
-                | "add_scientist_role"
-        ) {
             return (Scope::ModifierBag, true);
         }
 

@@ -13689,6 +13689,62 @@
 					"description": "The character to modify.",
 					"optional": false,
 					"repeated": false
+				},
+				"skill": {
+					"type": "int",
+					"value_type": "int",
+					"description": "The skill of the leader.",
+					"optional": false,
+					"repeated": false
+				},
+				"attack_skill": {
+					"type": "int",
+					"value_type": "int",
+					"description": "The attack skill of the leader.",
+					"optional": false,
+					"repeated": false
+				},
+				"defense_skill": {
+					"type": "int",
+					"value_type": "int",
+					"description": "The defense skill of the leader.",
+					"optional": false,
+					"repeated": false
+				},
+				"planning_skill": {
+					"type": "int",
+					"value_type": "int",
+					"description": "The planning skill of the leader.",
+					"optional": false,
+					"repeated": false
+				},
+				"logistics_skill": {
+					"type": "int",
+					"value_type": "int",
+					"description": "The logistics skill of the leader.",
+					"optional": false,
+					"repeated": false
+				},
+				"traits": {
+					"type": "block",
+					"value_type": "",
+					"description": "The traits the leader spawns with.",
+					"optional": false,
+					"repeated": false
+				},
+				"female": {
+					"type": "bool",
+					"value_type": "bool",
+					"description": "The gender of the leader.",
+					"optional": false,
+					"repeated": false
+				},
+				"legacy_id": {
+					"type": "int",
+					"value_type": "int",
+					"description": "The legacy ID used for the unit leader. Optional.",
+					"optional": true,
+					"repeated": false
 				}
 			},
 			"examples": [
@@ -13729,6 +13785,13 @@
 					"type": "bool",
 					"value_type": "bool",
 					"description": "Will promote the leader to be the leader of the assigned party. Optional, defaults to false.",
+					"optional": true,
+					"repeated": false
+				},
+				"promote_character": {
+					"type": "bool",
+					"value_type": "bool",
+					"description": "Promotes the character instead of the country leader.",
 					"optional": true,
 					"repeated": false
 				}
@@ -14505,6 +14568,62 @@
 					"description": "The character to modify.",
 					"optional": false,
 					"repeated": false
+				},
+				"skill": {
+					"type": "int",
+					"value_type": "int",
+					"description": "The skill of the leader.",
+					"optional": false,
+					"repeated": false
+				},
+				"attack_skill": {
+					"type": "int",
+					"value_type": "int",
+					"description": "The attack skill of the leader.",
+					"optional": false,
+					"repeated": false
+				},
+				"defense_skill": {
+					"type": "int",
+					"value_type": "int",
+					"description": "The defense skill of the leader.",
+					"optional": false,
+					"repeated": false
+				},
+				"planning_skill": {
+					"type": "int",
+					"value_type": "int",
+					"description": "The planning skill of the leader.",
+					"optional": false,
+					"repeated": false
+				},
+				"logistics_skill": {
+					"type": "int",
+					"value_type": "int",
+					"description": "The logistics skill of the leader.",
+					"optional": false,
+					"repeated": false
+				},
+				"traits": {
+					"type": "block",
+					"value_type": "",
+					"description": "The traits the leader spawns with.",
+					"optional": false,
+					"repeated": false
+				},
+				"female": {
+					"type": "bool",
+					"value_type": "bool",
+					"description": "The gender of the leader.",
+					"optional": false,
+					"repeated": false
+				},
+				"legacy_id": {
+					"type": "int",
+					"value_type": "int",
+					"description": "The legacy ID used for the unit leader. Optional.",
+					"optional": true,
+					"repeated": false
 				}
 			},
 			"examples": [
@@ -15171,6 +15290,62 @@
 					"value_type": "character",
 					"description": "The character to modify.",
 					"optional": false,
+					"repeated": false
+				},
+				"skill": {
+					"type": "int",
+					"value_type": "int",
+					"description": "The skill of the leader.",
+					"optional": false,
+					"repeated": false
+				},
+				"attack_skill": {
+					"type": "int",
+					"value_type": "int",
+					"description": "The attack skill of the leader.",
+					"optional": false,
+					"repeated": false
+				},
+				"defense_skill": {
+					"type": "int",
+					"value_type": "int",
+					"description": "The defense skill of the leader.",
+					"optional": false,
+					"repeated": false
+				},
+				"maneuvering_skill": {
+					"type": "int",
+					"value_type": "int",
+					"description": "The maneuvering skill of the leader.",
+					"optional": false,
+					"repeated": false
+				},
+				"coordination_skill": {
+					"type": "int",
+					"value_type": "int",
+					"description": "The coordination skill of the leader.",
+					"optional": false,
+					"repeated": false
+				},
+				"traits": {
+					"type": "block",
+					"value_type": "",
+					"description": "The traits the leader spawns with.",
+					"optional": false,
+					"repeated": false
+				},
+				"female": {
+					"type": "bool",
+					"value_type": "bool",
+					"description": "The gender of the leader.",
+					"optional": false,
+					"repeated": false
+				},
+				"legacy_id": {
+					"type": "int",
+					"value_type": "int",
+					"description": "The legacy ID used for the unit leader. Optional.",
+					"optional": true,
 					"repeated": false
 				}
 			},
