@@ -8,7 +8,7 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 ## [v0.33.1] - 2026-11-18
 
 > Two `HOM004` families reported correct vanilla script as broken. Measured on the full
-> corpus: **2,810 → 2,716 diagnostics, 94 removed, 0 added** across all 8,347 files.
+> corpus: **2,810 → 2,712 diagnostics, 98 removed, 0 added** across all 8,347 files.
 
 ### ✨ Added
 
@@ -18,6 +18,10 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Completion inside a character's leader-role block lists the keys that block accepts.** `corps_commander`, `field_marshal` and `navy_leader` had no parameter table, so the body offered 344 generic triggers and none of its eight keys. They are now documented as character definitions: the stats, `traits`, `legacy_id` and `visible` come first, and definition names are no longer offered inside a documented block.
 
+- **A trait definition has a parameter table now: `leader_trait`.** A trait body in `common/country_leader` and `common/unit_leader` is named after the trait, so no block key could route to a schema and the body had none. `sprite`, `trait_type`, `gui_row`, `gui_column`, `custom_modifier_tooltip` and the `*_modifier` bags sat there uncoloured, with no hover and no completion, while the same keys in a documented block were typed. The schema is reached through the `leader_traits` container, the way a decision instance is reached through its category, and it declares the 34 keys vanilla writes in those bodies.
+
+- **The modifier table covers every modifier vanilla writes: 722 → 880 entries.** `political_advisor_cost_factor` and `mobilization_laws_cost_factor` were reported from `hom_traits.txt`, and both were missing while vanilla uses them 174 and 146 times. The gap was measured rather than patched: the engine's own `modifiers_l_english.yml` lists 925 modifier ids, and 158 names that vanilla writes in `common/modifiers`, `common/dynamic_modifiers` and the leader-trait files had no entry. Each new entry carries the game's display name where one exists; the rest say that the base game ships no localisation string for them.
+
 ### 🩹 Fixed
 
 - **A character's `country_leader` block highlights its keys, and all four leader roles highlight `desc`.** `country_leader` had no parameter table, so `ideology`, `traits`, `expire` and `id` stayed plain keywords while the same shape in the three unit-leader roles was highlighted; `desc` was missing from all four, which left one plain line inside every documented block. Both gaps are closed: the engine documents `desc` for `create_country_leader` and for the scientist role block, and vanilla simply never writes one in a leader role. Documenting the block also types its values, so `ideology = piracy_ideology` resolves to the ideology and trait names resolve to their entity, where the whole block used to read as string. No diagnostic changes: 2,716 → 2,716.
@@ -25,6 +29,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 - **A leader-role grant no longer flags its own stat keys: `HOM004` on `skill`, 79 occurrences → 0.** `add_corps_commander_role = { character = GER_hans skill = 2 attack_skill = 1 … }` holds parameters, not script, but the parameter table declared only `character` for the three military role effects. `skill` is a Character/Unit property, so the checker compared it against the enclosing Country scope and every role grant in vanilla reported a mismatch. The stat keys are now declared, matching `create_corps_commander`, `create_field_marshal` and `create_navy_leader`, and `add_country_leader_role` also accepts `promote_character`, which vanilla uses. The body stays a normal Country block, so a nested `country_leader = { ideology traits }` and any undeclared key inside it are still checked.
 
 - **Focus tooltips no longer flag the effects they list: `HOM004` inside `complete_tooltip`, 15 occurrences → 0.** A `complete_tooltip` block lists effects for the engine to render into the tooltip; it never executes them, so a State effect such as `add_extra_state_shared_building_slots` has no scope to be wrong in. Vanilla ships 409 of these blocks, and scope is no longer checked inside them.
+
+- **A leader trait whose id is also a character id no longer reports its own modifiers: `HOM004` 599 → 595.** `SPF_Colonial_administration` is a character in `common/characters/SPF.txt` and a country-leader trait in `common/country_leader/hom_traits.txt`, and the engine keeps the two namespaces apart. The scope resolver looked every bare token up in the character index, so the trait body was validated as Character and its four country modifiers came back as out of scope. Vanilla has the same collision: `SWE_exiled_revolutionaries` is both a character and a trait, which is where the four corpus diagnostics were. Character tokens are no longer resolved inside trait definition files, or inside a property bag, where a bare name is a property.
 
 ### 🧹 Internal
 
