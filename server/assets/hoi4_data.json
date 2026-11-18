@@ -39550,6 +39550,13 @@
 					"optional": false,
 					"repeated": false
 				},
+				"desc": {
+					"type": "string",
+					"value_type": "string",
+					"description": "Localisation key for the role's description. Optional; vanilla leader roles leave it out.",
+					"optional": true,
+					"repeated": false
+				},
 				"legacy_id": {
 					"type": "int",
 					"value_type": "int",
@@ -39614,6 +39621,13 @@
 					"value_type": "",
 					"description": "The traits the leader starts with.",
 					"optional": false,
+					"repeated": false
+				},
+				"desc": {
+					"type": "string",
+					"value_type": "string",
+					"description": "Localisation key for the role's description. Optional; vanilla leader roles leave it out.",
+					"optional": true,
 					"repeated": false
 				},
 				"legacy_id": {
@@ -39682,6 +39696,13 @@
 					"optional": false,
 					"repeated": false
 				},
+				"desc": {
+					"type": "string",
+					"value_type": "string",
+					"description": "Localisation key for the role's description. Optional; vanilla leader roles leave it out.",
+					"optional": true,
+					"repeated": false
+				},
 				"legacy_id": {
 					"type": "int",
 					"value_type": "int",
@@ -39693,6 +39714,51 @@
 					"type": "block",
 					"value_type": "",
 					"description": "Optional trigger block: the role is offered only when it evaluates true.",
+					"optional": true,
+					"repeated": false
+				}
+			},
+			"param_container": false
+		},
+		"country_leader": {
+			"name": "country_leader",
+			"description": "The country leader role of a character, declared inside common/characters/*.txt. Ties the character to a party ideology, optionally with an expiry date and traits.",
+			"file_types": [
+				"Characters"
+			],
+			"parameters": {
+				"ideology": {
+					"type": "string",
+					"value_type": "string",
+					"description": "The ideology (or sub-ideology) this leader represents.",
+					"optional": false,
+					"repeated": false
+				},
+				"traits": {
+					"type": "block",
+					"value_type": "trait",
+					"description": "The traits the leader starts with.",
+					"optional": false,
+					"repeated": false
+				},
+				"expire": {
+					"type": "string",
+					"value_type": "string",
+					"description": "Date the leader steps down, e.g. \"1965.1.1.1\". Optional.",
+					"optional": true,
+					"repeated": false
+				},
+				"id": {
+					"type": "int",
+					"value_type": "int",
+					"description": "Legacy numeric leader id. Vanilla writes -1 for characters declared in common/characters. Optional.",
+					"optional": true,
+					"repeated": false
+				},
+				"desc": {
+					"type": "string",
+					"value_type": "string",
+					"description": "Localisation key for the leader's description. Optional; vanilla country leaders leave it out.",
 					"optional": true,
 					"repeated": false
 				}
