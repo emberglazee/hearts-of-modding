@@ -514,6 +514,13 @@ pub(crate) fn classify_file(path: &str, definitions_file: &str) -> Vec<FileCateg
             cats.push(FileCategory::Units);
         }
 
+        // Equipment archetypes and variants (common/units/equipment/**/*.txt).
+        // The directory sits inside common/units, so these files carry both
+        // categories; the equipment extractor ignores sub_units and vice versa.
+        if lower.contains("/common/units/equipment/") {
+            cats.push(FileCategory::Equipments);
+        }
+
         // Technology definitions (common/technologies/*.txt)
         if lower.contains("/common/technologies/") {
             cats.push(FileCategory::Technologies);
@@ -768,6 +775,7 @@ pub(crate) enum FileCategory {
     BalanceOfPower,
     Oob,
     Units,
+    Equipments,
     Focuses,
     Decisions,
     DecisionCategories,
@@ -817,6 +825,7 @@ impl FileCategory {
             FileCategory::BalanceOfPower => "BalanceOfPower",
             FileCategory::Oob => "Oob",
             FileCategory::Units => "Units",
+            FileCategory::Equipments => "Equipments",
             FileCategory::Focuses => "Focuses",
             FileCategory::Decisions => "Decisions",
             FileCategory::DecisionCategories => "DecisionCategories",
@@ -938,6 +947,7 @@ fn update_from_ast(
         FileCategory::BalanceOfPower => update_balance_of_powers(scanner_data, path_str, script),
         FileCategory::Oob => update_oobs(scanner_data, path_str, script),
         FileCategory::Units => update_units(scanner_data, path_str, script),
+        FileCategory::Equipments => update_equipments(scanner_data, path_str, script),
         FileCategory::Focuses => update_focuses(scanner_data, path_str, script),
         FileCategory::Decisions => update_decisions(scanner_data, path_str, script),
         FileCategory::DecisionCategories => {
@@ -1293,6 +1303,23 @@ fn update_buildings(scanner_data: &ScannerData, path_str: &str, script: &ast::Sc
     retain_path!(
         scanner_data.buildings,
         scanner_data.buildings_file_index,
+        path_str,
+        new_entries
+    );
+}
+
+fn update_equipments(scanner_data: &ScannerData, path_str: &str, script: &ast::Script) {
+    let mut new_entries = HashMap::new();
+    crate::scanner::equipment_scanner::find_equipments_in_entries(
+        &script.entries,
+        &script.source,
+        path_str,
+        &mut new_entries,
+    );
+
+    retain_path!(
+        scanner_data.equipments,
+        scanner_data.equipments_file_index,
         path_str,
         new_entries
     );
@@ -2176,6 +2203,13 @@ pub fn remove_path_from_scanner_data(
                 remove_path!(
                     scanner_data.resources,
                     scanner_data.resources_file_index,
+                    path_str
+                );
+            }
+            FileCategory::Equipments => {
+                remove_path!(
+                    scanner_data.equipments,
+                    scanner_data.equipments_file_index,
                     path_str
                 );
             }

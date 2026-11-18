@@ -641,6 +641,26 @@ impl Backend {
         );
     }
 
+    /// Equipment archetypes and variants from `common/units/equipment`.
+    ///
+    /// `modules/` sits inside the same directory and is scanned too, but its
+    /// files hold `equipment_modules = { }` rather than `equipments = { }`, so
+    /// the extractor leaves them alone.
+    pub(crate) async fn scan_equipments(
+        &self,
+        overlay: &crate::scanner::file_overlay::FileOverlay,
+    ) {
+        scan_dashmap_overlay!(
+            self,
+            overlay,
+            "common/units/equipment",
+            crate::scanner::equipment_scanner::scan_equipment_files,
+            equipments,
+            &["txt"],
+            "Total: Loaded {} equipments"
+        );
+    }
+
     pub(crate) async fn scan_decisions(&self, overlay: &crate::scanner::file_overlay::FileOverlay) {
         scan_dashmap_overlay!(
             self,

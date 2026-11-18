@@ -16,6 +16,7 @@ use crate::scanner::character_scanner;
 use crate::scanner::continent_scanner;
 use crate::scanner::country_scanner;
 use crate::scanner::decision_scanner;
+use crate::scanner::equipment_scanner;
 use crate::scanner::event_namespace_scanner;
 use crate::scanner::event_scanner;
 use crate::scanner::focus_scanner;
@@ -85,6 +86,7 @@ pub(crate) struct ScannerData {
     // These use LayeredValue to preserve lower-priority layers when
     // a higher-priority file is deleted.
     pub unit_types: DashMap<InternedStr, LayeredValue<unit_scanner::UnitType>>,
+    pub equipments: DashMap<InternedStr, LayeredValue<equipment_scanner::Equipment>>,
     pub localization: DashMap<InternedStr, LayeredValue<loc_parser::LocEntry>>,
     pub scripted_triggers: DashMap<InternedStr, LayeredValue<scripted_scanner::ScriptedEntity>>,
     pub scripted_effects: DashMap<InternedStr, LayeredValue<scripted_scanner::ScriptedEntity>>,
@@ -161,6 +163,7 @@ pub(crate) struct ScannerData {
     // to avoid O(N) DashMap::retain on every keystroke.
     pub localization_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub unit_types_file_index: DashMap<InternedStr, Vec<InternedStr>>,
+    pub equipments_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub scripted_triggers_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub scripted_effects_file_index: DashMap<InternedStr, Vec<InternedStr>>,
     pub ideologies_file_index: DashMap<InternedStr, Vec<InternedStr>>,
@@ -232,6 +235,7 @@ impl ScannerData {
         ScannerData {
             interner: Interner::new(),
             unit_types: DashMap::new(),
+            equipments: DashMap::new(),
             localization: DashMap::new(),
             scripted_triggers: DashMap::new(),
             scripted_effects: DashMap::new(),
@@ -293,6 +297,7 @@ impl ScannerData {
             event_namespaces_file_index: DashMap::new(),
             localization_file_index: DashMap::new(),
             unit_types_file_index: DashMap::new(),
+            equipments_file_index: DashMap::new(),
             scripted_triggers_file_index: DashMap::new(),
             scripted_effects_file_index: DashMap::new(),
             ideologies_file_index: DashMap::new(),

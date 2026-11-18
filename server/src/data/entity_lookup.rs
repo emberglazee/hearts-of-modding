@@ -67,6 +67,7 @@ pub enum EntityKind {
     OobDivisionTemplate,
     OobFleet,
     UnitType,
+    Equipment,
     Technology,
     TechnologyTag,
 }

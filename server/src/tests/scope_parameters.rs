@@ -183,3 +183,99 @@ fn leader_trait_schema_is_reached_through_its_container() {
         "the rule is scoped to trait files"
     );
 }
+
+#[test]
+fn equipment_schema_is_reached_through_its_container() {
+    use crate::data::hoi4_data::{is_equipment_body_keys, lookup_definition};
+
+    let def = lookup_definition("equipment").expect("equipment schema must exist");
+    for key in [
+        "is_archetype",
+        "archetype",
+        "parent",
+        "type",
+        "year",
+        "module_slots",
+        "build_cost_ic",
+        "reliability",
+        "armor_value",
+        "soft_attack",
+    ] {
+        assert!(
+            def.parameters.contains_key(key),
+            "equipment must document `{key}`"
+        );
+    }
+    assert!(
+        def.file_types.iter().any(|f| f == "Equipments"),
+        "the schema applies to common/units/equipment, got {:?}",
+        def.file_types
+    );
+
+    assert!(is_equipment_body_keys("infantry_equipment", "equipments"));
+    assert!(is_equipment_body_keys("light_tank_chassis_1", "equipments"));
+    assert!(
+        !is_equipment_body_keys("tank_gun", "equipment_modules"),
+        "modules live in the same directory but are a different namespace"
+    );
+    assert!(
+        !is_equipment_body_keys("infantry", "sub_units"),
+        "only the equipments container identifies the schema"
+    );
+}
+
+#[test]
+fn equipment_bonus_group_documents_the_vanilla_stat_set() {
+    use crate::data::hoi4_data::{is_equipment_bonus_group_keys, lookup_definition};
+
+    let def = lookup_definition("equipment_bonus_group")
+        .expect("equipment_bonus_group schema must exist");
+    for key in [
+        "build_cost_ic",
+        "reliability",
+        "instant",
+        "soft_attack",
+        "armor_value",
+        "maximum_speed",
+    ] {
+        assert!(
+            def.parameters.contains_key(key),
+            "equipment_bonus_group must document `{key}`"
+        );
+    }
+    assert!(
+        !def.parameters.contains_key("is_archetype"),
+        "structural definition keys are not bonus stats"
+    );
+
+    assert!(is_equipment_bonus_group_keys("armor", "equipment_bonus"));
+    assert!(is_equipment_bonus_group_keys(
+        "infantry_equipment",
+        "equipment_bonus"
+    ));
+    assert!(
+        !is_equipment_bonus_group_keys("armor", "equipments"),
+        "the rule is reached through equipment_bonus only"
+    );
+
+    // Special projects reach the same body one block deeper.
+    let project = [
+        "armor".to_string(),
+        "bonus".to_string(),
+        "add_equipment_bonus".to_string(),
+    ];
+    assert!(crate::data::hoi4_data::is_equipment_bonus_group(
+        &project,
+        &[]
+    ));
+    assert!(crate::data::hoi4_data::is_equipment_bonus_container(
+        &project[1..]
+    ));
+    assert!(crate::data::hoi4_data::is_equipment_bonus_container(&[
+        "equipment_bonus".to_string()
+    ]));
+    assert!(
+        !crate::data::hoi4_data::is_equipment_bonus_container(&["armor".to_string()]),
+        "a group body is not itself a group container"
+    );
+}

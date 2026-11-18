@@ -1270,10 +1270,22 @@ impl Backend {
         // entity_token_context is ArcSwap<HashMap> — load_full() gives Arc<HashMap>.
         // Both are cheap Arc clones, no deep copies of the underlying collections
         // on every keystroke.
+        //
+        // Equipment unit types are the exception: they are values of `type =`,
+        // not definitions, so they never enter the entity map. A few dozen
+        // strings rebuilt per request keeps them correct after incremental
+        // edits without adding another refresh hook.
+        let mut equipment_groups: HashSet<String> = HashSet::new();
+        for entry in self.scanner_data.equipments.iter() {
+            if let Some(ty) = entry.value().resolve().group_type.as_ref() {
+                equipment_groups.insert(ty.clone());
+            }
+        }
         semantic_tokens::SemanticTokenContext::new(
             self.token_keywords.load_full(),
             self.entity_token_context.load_full(),
         )
+        .with_equipment_groups(Arc::new(equipment_groups))
     }
 
     /// Refresh the entity name map from current scanner data.

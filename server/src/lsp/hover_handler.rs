@@ -663,6 +663,13 @@ impl Backend {
                                 &chain, &cat_names,
                             ) {
                                 Some("leader_trait")
+                            } else if crate::data::hoi4_data::is_equipment_body(&chain, &cat_names)
+                            {
+                                Some("equipment")
+                            } else if crate::data::hoi4_data::is_equipment_bonus_group(
+                                &chain, &cat_names,
+                            ) {
+                                Some("equipment_bonus_group")
                             } else {
                                 None
                             };

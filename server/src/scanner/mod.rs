@@ -10,6 +10,7 @@ pub mod character_scanner;
 pub mod continent_scanner;
 pub mod country_scanner;
 pub mod decision_scanner;
+pub mod equipment_scanner;
 pub mod event_dep_graph;
 pub mod event_namespace_scanner;
 pub mod event_scanner;

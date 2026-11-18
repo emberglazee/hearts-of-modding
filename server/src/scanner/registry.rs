@@ -149,6 +149,14 @@ macro_rules! for_each_standard_scanner {
             &["txt"]
         );
         $mac!(
+            equipment_scanner,
+            Equipment,
+            Equipment,
+            equipments,
+            "common/units/equipment",
+            &["txt"]
+        );
+        $mac!(
             gfx_scanner,
             ColorCode,
             ColorCode,

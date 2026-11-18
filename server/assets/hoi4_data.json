@@ -41592,6 +41592,925 @@
 					"repeated": false
 				}
 			}
+		},
+		"equipment": {
+			"name": "equipment",
+			"description": "An equipment definition from common/units/equipment/*.txt: an archetype (`is_archetype = yes`) or a variant that points at one with `archetype = <name>`. The block is named after the equipment, so the schema is reached through the `equipments` container.",
+			"file_types": [
+				"Equipments"
+			],
+			"parameters": {
+				"year": {
+					"type": "int",
+					"value_type": "int",
+					"description": "Year the design becomes available.",
+					"optional": true,
+					"repeated": false
+				},
+				"priority": {
+					"type": "int",
+					"value_type": "int",
+					"description": "Sort hint the production interface uses for designs of the same year.",
+					"optional": true,
+					"repeated": false
+				},
+				"archetype": {
+					"type": "string",
+					"value_type": "equipment",
+					"description": "Archetype this variant belongs to: the `is_archetype = yes` design it upgrades from.",
+					"optional": true,
+					"repeated": false
+				},
+				"parent": {
+					"type": "string",
+					"value_type": "equipment",
+					"description": "Previous variant in the upgrade chain. The research tree links a variant to its parent.",
+					"optional": true,
+					"repeated": false
+				},
+				"visual_level": {
+					"type": "int",
+					"value_type": "int",
+					"description": "Model tier shown on the unit model. Cosmetic.",
+					"optional": true,
+					"repeated": false
+				},
+				"abbreviation": {
+					"type": "string",
+					"value_type": "string",
+					"description": "Short label used in the division designer and production UI.",
+					"optional": true,
+					"repeated": false
+				},
+				"module_slots": {
+					"type": "block",
+					"value_type": "module",
+					"description": "Module slots the design accepts, e.g. `fixed_ship_battery_slot = 2`.",
+					"optional": true,
+					"repeated": false
+				},
+				"interface_category": {
+					"type": "string",
+					"value_type": "string",
+					"description": "Category the design is grouped under in the production interface.",
+					"optional": true,
+					"repeated": false
+				},
+				"is_archetype": {
+					"type": "bool",
+					"value_type": "bool",
+					"description": "Marks the block as an archetype: the base design every variant derives from.",
+					"optional": true,
+					"repeated": false
+				},
+				"is_buildable": {
+					"type": "bool",
+					"value_type": "bool",
+					"description": "Whether the equipment can be produced at all. `no` hides it from the production list.",
+					"optional": true,
+					"repeated": false
+				},
+				"is_convertable": {
+					"type": "bool",
+					"value_type": "bool",
+					"description": "Whether older variants can be converted into this design.",
+					"optional": true,
+					"repeated": false
+				},
+				"group_by": {
+					"type": "string",
+					"value_type": "string",
+					"description": "Interface grouping key that sorts related designs together.",
+					"optional": true,
+					"repeated": false
+				},
+				"picture": {
+					"type": "string",
+					"value_type": "sprite",
+					"description": "GFX picture shown in the production and equipment lists.",
+					"optional": true,
+					"repeated": false
+				},
+				"sprite": {
+					"type": "string",
+					"value_type": "sprite",
+					"description": "Sprite used for the equipment icon in the interface.",
+					"optional": true,
+					"repeated": false
+				},
+				"derived_variant_name": {
+					"type": "string",
+					"value_type": "string",
+					"description": "Name pattern for variants derived from this design.",
+					"optional": true,
+					"repeated": false
+				},
+				"type": {
+					"type": "string",
+					"value_type": "string",
+					"description": "Unit category the equipment belongs to (`armor`, `infantry`, `fighter`, `convoy`, `train`, ...).",
+					"optional": true,
+					"repeated": false
+				},
+				"model": {
+					"type": "string",
+					"value_type": "string",
+					"description": "3D model reference.",
+					"optional": true,
+					"repeated": false
+				},
+				"active": {
+					"type": "bool",
+					"value_type": "bool",
+					"description": "Whether the design is enabled. `no` keeps it out of the game until a script enables it.",
+					"optional": true,
+					"repeated": false
+				},
+				"air_map_icon_frame": {
+					"type": "int",
+					"value_type": "int",
+					"description": "Frame index of the air map icon.",
+					"optional": true,
+					"repeated": false
+				},
+				"family": {
+					"type": "string",
+					"value_type": "string",
+					"description": "Equipment family used by the upgrade and obsolescence logic.",
+					"optional": true,
+					"repeated": false
+				},
+				"interface_overview_category_index": {
+					"type": "int",
+					"value_type": "int",
+					"description": "Position of the design inside its interface category.",
+					"optional": true,
+					"repeated": false
+				},
+				"allow_mission_type": {
+					"type": "string",
+					"value_type": "string",
+					"description": "Air mission type the design may fly. Repeatable.",
+					"optional": true,
+					"repeated": false
+				},
+				"forbid_mission_type": {
+					"type": "string",
+					"value_type": "string",
+					"description": "Air mission type the design may not fly. Repeatable.",
+					"optional": true,
+					"repeated": false
+				},
+				"can_license": {
+					"type": "bool",
+					"value_type": "bool",
+					"description": "Whether other countries may license this design.",
+					"optional": true,
+					"repeated": false
+				},
+				"type_override": {
+					"type": "string",
+					"value_type": "string",
+					"description": "Overrides `type` for the checks that read it.",
+					"optional": true,
+					"repeated": false
+				},
+				"max_military_factories": {
+					"type": "int",
+					"value_type": "int",
+					"description": "Cap on military factories that may build this design.",
+					"optional": true,
+					"repeated": false
+				},
+				"alias": {
+					"type": "string",
+					"value_type": "string",
+					"description": "Alternative name the equipment also answers to.",
+					"optional": true,
+					"repeated": false
+				},
+				"visual_tech_level_addition": {
+					"type": "int",
+					"value_type": "int",
+					"description": "Offset added to the visual tech level when picking a model.",
+					"optional": true,
+					"repeated": false
+				},
+				"ai_type": {
+					"type": "string",
+					"value_type": "string",
+					"description": "Archetype hint the AI uses when comparing designs.",
+					"optional": true,
+					"repeated": false
+				},
+				"substitute": {
+					"type": "string",
+					"value_type": "equipment",
+					"description": "Equipment that stands in for this one when it is unavailable.",
+					"optional": true,
+					"repeated": false
+				},
+				"offensive_weapons": {
+					"type": "int",
+					"value_type": "int",
+					"description": "Offensive weapon slot count.",
+					"optional": true,
+					"repeated": false
+				},
+				"supply_truck": {
+					"type": "bool",
+					"value_type": "bool",
+					"description": "Marks the design as a supply truck.",
+					"optional": true,
+					"repeated": false
+				},
+				"default_carrier_composition_weight": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Weight the AI uses when filling a carrier air wing.",
+					"optional": true,
+					"repeated": false
+				},
+				"one_use_only": {
+					"type": "bool",
+					"value_type": "bool",
+					"description": "Consumable: the equipment is destroyed when it is used.",
+					"optional": true,
+					"repeated": false
+				},
+				"carrier_capable": {
+					"type": "bool",
+					"value_type": "bool",
+					"description": "Whether the design can operate from carriers.",
+					"optional": true,
+					"repeated": false
+				},
+				"build_cost_ic": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Production cost in industrial capacity.",
+					"optional": true,
+					"repeated": false
+				},
+				"reliability": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Chance the equipment is not lost to attrition.",
+					"optional": true,
+					"repeated": false
+				},
+				"maximum_speed": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Maximum speed.",
+					"optional": true,
+					"repeated": false
+				},
+				"fuel_consumption": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Fuel used per day.",
+					"optional": true,
+					"repeated": false
+				},
+				"armor_value": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Armor value.",
+					"optional": true,
+					"repeated": false
+				},
+				"manpower": {
+					"type": "int",
+					"value_type": "int",
+					"description": "Manpower needed to produce the equipment.",
+					"optional": true,
+					"repeated": false
+				},
+				"air_attack": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Air attack: anti-air for ground equipment, air-to-air for aircraft.",
+					"optional": true,
+					"repeated": false
+				},
+				"sub_detection": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Submarine detection.",
+					"optional": true,
+					"repeated": false
+				},
+				"surface_detection": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Surface detection.",
+					"optional": true,
+					"repeated": false
+				},
+				"max_strength": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Hit points.",
+					"optional": true,
+					"repeated": false
+				},
+				"naval_range": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Naval range.",
+					"optional": true,
+					"repeated": false
+				},
+				"air_range": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Air range.",
+					"optional": true,
+					"repeated": false
+				},
+				"air_agility": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Air agility.",
+					"optional": true,
+					"repeated": false
+				},
+				"breakthrough": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Breakthrough.",
+					"optional": true,
+					"repeated": false
+				},
+				"defense": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Defense.",
+					"optional": true,
+					"repeated": false
+				},
+				"naval_strike_attack": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Naval strike attack: aircraft against ships.",
+					"optional": true,
+					"repeated": false
+				},
+				"naval_speed": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Naval speed.",
+					"optional": true,
+					"repeated": false
+				},
+				"naval_strike_targetting": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Naval strike targeting.",
+					"optional": true,
+					"repeated": false
+				},
+				"hard_attack": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Hard attack.",
+					"optional": true,
+					"repeated": false
+				},
+				"ap_attack": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Armor penetration.",
+					"optional": true,
+					"repeated": false
+				},
+				"soft_attack": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Soft attack.",
+					"optional": true,
+					"repeated": false
+				},
+				"air_defence": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Air defense.",
+					"optional": true,
+					"repeated": false
+				},
+				"lend_lease_cost": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Shipping space the design occupies when lend-leased.",
+					"optional": true,
+					"repeated": false
+				},
+				"hardness": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Hardness: share of incoming fire that counts as hard attack.",
+					"optional": true,
+					"repeated": false
+				},
+				"air_superiority": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Air superiority attack.",
+					"optional": true,
+					"repeated": false
+				},
+				"naval_dominance_factor": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Contribution to naval dominance in a strategic region.",
+					"optional": true,
+					"repeated": false
+				},
+				"surface_visibility": {
+					"type": "float",
+					"value_type": "float",
+					"description": "How easily the ship is detected on the surface.",
+					"optional": true,
+					"repeated": false
+				},
+				"lg_armor_piercing": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Light gun armor piercing.",
+					"optional": true,
+					"repeated": false
+				},
+				"lg_attack": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Light gun attack.",
+					"optional": true,
+					"repeated": false
+				},
+				"torpedo_attack": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Torpedo attack.",
+					"optional": true,
+					"repeated": false
+				},
+				"anti_air_attack": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Anti-air attack.",
+					"optional": true,
+					"repeated": false
+				},
+				"hg_attack": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Heavy gun attack.",
+					"optional": true,
+					"repeated": false
+				},
+				"hg_armor_piercing": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Heavy gun armor piercing.",
+					"optional": true,
+					"repeated": false
+				},
+				"sub_attack": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Anti-submarine attack.",
+					"optional": true,
+					"repeated": false
+				},
+				"air_bombing": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Strategic bombing attack.",
+					"optional": true,
+					"repeated": false
+				},
+				"weight": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Weight, used by transport and carrier capacity.",
+					"optional": true,
+					"repeated": false
+				},
+				"sub_visibility": {
+					"type": "float",
+					"value_type": "float",
+					"description": "How easily the submarine is detected.",
+					"optional": true,
+					"repeated": false
+				},
+				"air_ground_attack": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Ground attack.",
+					"optional": true,
+					"repeated": false
+				},
+				"naval_weather_penalty_factor": {
+					"type": "float",
+					"value_type": "float",
+					"description": "How much bad weather degrades the ship.",
+					"optional": true,
+					"repeated": false
+				},
+				"carrier_size": {
+					"type": "int",
+					"value_type": "int",
+					"description": "Air wing capacity when the hull is used as a carrier.",
+					"optional": true,
+					"repeated": false
+				},
+				"additional_collateral_damage": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Extra collateral damage dealt.",
+					"optional": true,
+					"repeated": false
+				},
+				"railway_gun_attack": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Railway gun bombardment attack.",
+					"optional": true,
+					"repeated": false
+				},
+				"railway_gun_attack_range_index_in_define": {
+					"type": "int",
+					"value_type": "int",
+					"description": "Index into the railway gun range defines.",
+					"optional": true,
+					"repeated": false
+				},
+				"railway_gun_annex_ratio": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Share of a state's infrastructure a railway gun can suppress.",
+					"optional": true,
+					"repeated": false
+				},
+				"railway_gun_hours_between_redistribution": {
+					"type": "int",
+					"value_type": "int",
+					"description": "Hours between railway gun relocations.",
+					"optional": true,
+					"repeated": false
+				},
+				"max_organisation": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Organisation the equipment adds to its unit.",
+					"optional": true,
+					"repeated": false
+				},
+				"instant": {
+					"type": "bool",
+					"value_type": "bool",
+					"description": "Build instantly: the equipment is added without production time.",
+					"optional": true,
+					"repeated": false
+				},
+				"naval_heavy_gun_hit_chance_factor": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Hit chance for heavy naval guns.",
+					"optional": true,
+					"repeated": false
+				},
+				"naval_light_gun_hit_chance_factor": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Hit chance for light naval guns.",
+					"optional": true,
+					"repeated": false
+				},
+				"naval_torpedo_hit_chance_factor": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Hit chance for torpedoes.",
+					"optional": true,
+					"repeated": false
+				},
+				"production_efficiency_cap_factor": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Changes the production efficiency cap for this equipment.",
+					"optional": true,
+					"repeated": false
+				},
+				"submarine_carrier_size": {
+					"type": "int",
+					"value_type": "int",
+					"description": "Carrier capacity for submarine-borne aircraft.",
+					"optional": true,
+					"repeated": false
+				}
+			}
+		},
+		"equipment_bonus_group": {
+			"name": "equipment_bonus_group",
+			"description": "The stat body of one equipment group inside an `equipment_bonus` block. The group key is an equipment archetype or a unit `type`, so the schema is reached through `equipment_bonus` rather than the key.",
+			"file_types": [],
+			"parameters": {
+				"additional_collateral_damage": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Extra collateral damage dealt.",
+					"optional": true,
+					"repeated": false
+				},
+				"air_agility": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Air agility.",
+					"optional": true,
+					"repeated": false
+				},
+				"air_attack": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Air attack: anti-air for ground equipment, air-to-air for aircraft.",
+					"optional": true,
+					"repeated": false
+				},
+				"air_bombing": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Strategic bombing attack.",
+					"optional": true,
+					"repeated": false
+				},
+				"air_defence": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Air defense.",
+					"optional": true,
+					"repeated": false
+				},
+				"air_ground_attack": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Ground attack.",
+					"optional": true,
+					"repeated": false
+				},
+				"air_range": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Air range.",
+					"optional": true,
+					"repeated": false
+				},
+				"anti_air_attack": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Anti-air attack.",
+					"optional": true,
+					"repeated": false
+				},
+				"ap_attack": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Armor penetration.",
+					"optional": true,
+					"repeated": false
+				},
+				"armor_value": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Armor value.",
+					"optional": true,
+					"repeated": false
+				},
+				"breakthrough": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Breakthrough.",
+					"optional": true,
+					"repeated": false
+				},
+				"build_cost_ic": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Production cost in industrial capacity.",
+					"optional": true,
+					"repeated": false
+				},
+				"carrier_size": {
+					"type": "int",
+					"value_type": "int",
+					"description": "Air wing capacity when the hull is used as a carrier.",
+					"optional": true,
+					"repeated": false
+				},
+				"defense": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Defense.",
+					"optional": true,
+					"repeated": false
+				},
+				"fuel_consumption": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Fuel used per day.",
+					"optional": true,
+					"repeated": false
+				},
+				"hard_attack": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Hard attack.",
+					"optional": true,
+					"repeated": false
+				},
+				"hardness": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Hardness: share of incoming fire that counts as hard attack.",
+					"optional": true,
+					"repeated": false
+				},
+				"hg_attack": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Heavy gun attack.",
+					"optional": true,
+					"repeated": false
+				},
+				"instant": {
+					"type": "bool",
+					"value_type": "bool",
+					"description": "Build instantly: the equipment is added without production time.",
+					"optional": true,
+					"repeated": false
+				},
+				"lg_armor_piercing": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Light gun armor piercing.",
+					"optional": true,
+					"repeated": false
+				},
+				"lg_attack": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Light gun attack.",
+					"optional": true,
+					"repeated": false
+				},
+				"max_strength": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Hit points.",
+					"optional": true,
+					"repeated": false
+				},
+				"maximum_speed": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Maximum speed.",
+					"optional": true,
+					"repeated": false
+				},
+				"naval_heavy_gun_hit_chance_factor": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Hit chance for heavy naval guns.",
+					"optional": true,
+					"repeated": false
+				},
+				"naval_light_gun_hit_chance_factor": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Hit chance for light naval guns.",
+					"optional": true,
+					"repeated": false
+				},
+				"naval_range": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Naval range.",
+					"optional": true,
+					"repeated": false
+				},
+				"naval_speed": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Naval speed.",
+					"optional": true,
+					"repeated": false
+				},
+				"naval_strike_attack": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Naval strike attack: aircraft against ships.",
+					"optional": true,
+					"repeated": false
+				},
+				"naval_strike_targetting": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Naval strike targeting.",
+					"optional": true,
+					"repeated": false
+				},
+				"naval_torpedo_hit_chance_factor": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Hit chance for torpedoes.",
+					"optional": true,
+					"repeated": false
+				},
+				"naval_weather_penalty_factor": {
+					"type": "float",
+					"value_type": "float",
+					"description": "How much bad weather degrades the ship.",
+					"optional": true,
+					"repeated": false
+				},
+				"production_efficiency_cap_factor": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Changes the production efficiency cap for this equipment.",
+					"optional": true,
+					"repeated": false
+				},
+				"railway_gun_attack": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Railway gun bombardment attack.",
+					"optional": true,
+					"repeated": false
+				},
+				"railway_gun_hours_between_redistribution": {
+					"type": "int",
+					"value_type": "int",
+					"description": "Hours between railway gun relocations.",
+					"optional": true,
+					"repeated": false
+				},
+				"reliability": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Chance the equipment is not lost to attrition.",
+					"optional": true,
+					"repeated": false
+				},
+				"soft_attack": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Soft attack.",
+					"optional": true,
+					"repeated": false
+				},
+				"sub_detection": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Submarine detection.",
+					"optional": true,
+					"repeated": false
+				},
+				"sub_visibility": {
+					"type": "float",
+					"value_type": "float",
+					"description": "How easily the submarine is detected.",
+					"optional": true,
+					"repeated": false
+				},
+				"submarine_carrier_size": {
+					"type": "int",
+					"value_type": "int",
+					"description": "Carrier capacity for submarine-borne aircraft.",
+					"optional": true,
+					"repeated": false
+				},
+				"surface_detection": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Surface detection.",
+					"optional": true,
+					"repeated": false
+				},
+				"surface_visibility": {
+					"type": "float",
+					"value_type": "float",
+					"description": "How easily the ship is detected on the surface.",
+					"optional": true,
+					"repeated": false
+				},
+				"torpedo_attack": {
+					"type": "float",
+					"value_type": "float",
+					"description": "Torpedo attack.",
+					"optional": true,
+					"repeated": false
+				}
+			}
 		}
 	},
 	"scopes": {

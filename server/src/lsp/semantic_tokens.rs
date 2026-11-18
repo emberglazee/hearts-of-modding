@@ -54,6 +54,13 @@ pub struct SemanticTokenContext {
     /// `decision` schema and its parameters would tokenize as plain text. The
     /// file type is what identifies those bodies.
     pub file_categories: Vec<&'static str>,
+    /// Equipment unit types (`armor`, `infantry`, `train`, `convoy`, ...),
+    /// collected from the scanned equipment definitions.
+    ///
+    /// A unit type is not a definition, so it never enters `entity_names`:
+    /// `equipment_bonus = { train = { … } }` keys an equipment group by the
+    /// type string, which has no block of its own to resolve to.
+    pub equipment_groups: Arc<HashSet<String>>,
 }
 
 impl SemanticTokenContext {
@@ -65,7 +72,15 @@ impl SemanticTokenContext {
             keywords,
             entity_names,
             file_categories: Vec::new(),
+            equipment_groups: Arc::new(HashSet::new()),
         }
+    }
+
+    /// Attach the equipment unit types (see [`Self::equipment_groups`]).
+    #[must_use]
+    pub fn with_equipment_groups(mut self, groups: Arc<HashSet<String>>) -> Self {
+        self.equipment_groups = groups;
+        self
     }
 
     /// Attach the document's file categories (see [`Self::file_categories`]).
@@ -99,9 +114,10 @@ fn entity_kind_to_token_type(kind: EntityKind) -> u32 {
         }
 
         // Data structures → Struct
-        EntityKind::Trait | EntityKind::Character | EntityKind::Building => {
-            TokenType::Struct as u32
-        }
+        EntityKind::Trait
+        | EntityKind::Character
+        | EntityKind::Building
+        | EntityKind::Equipment => TokenType::Struct as u32,
 
         // Named concept definitions → Class
         EntityKind::Idea
@@ -951,7 +967,18 @@ fn push_entry_tokens(
                     matches!(parent_key, Some("civilian") | Some("army") | Some("navy"))
                         && matches!(key_text, "large" | "small");
 
-                if is_idea_category {
+                let is_equipment_group =
+                    matches!(parent_key, Some("equipment_bonus") | Some("bonus"))
+                        && ctx.equipment_groups.contains(key_text);
+
+                if is_equipment_group {
+                    tokens.push(RawToken {
+                        line: key_line,
+                        start: key_start,
+                        length: key_len,
+                        token_type: TokenType::EnumMember as u32,
+                    });
+                } else if is_idea_category {
                     tokens.push(RawToken {
                         line: key_line,
                         start: key_start,
@@ -1039,6 +1066,14 @@ fn push_entry_tokens(
                 )
             }) {
                 Some("leader_trait")
+            } else if parent_key.is_some_and(|parent| {
+                crate::data::hoi4_data::is_equipment_body_keys(key_text, parent)
+            }) {
+                Some("equipment")
+            } else if parent_key.is_some_and(|parent| {
+                crate::data::hoi4_data::is_equipment_bonus_group_keys(key_text, parent)
+            }) {
+                Some("equipment_bonus_group")
             } else {
                 None
             };
@@ -2406,6 +2441,7 @@ test_trigger = {
             keywords: StdArc::new(keywords),
             entity_names: StdArc::new(entity_names),
             file_categories: Vec::new(),
+            equipment_groups: StdArc::new(HashSet::new()),
         };
 
         let result = get_semantic_tokens(&script, &ctx);
@@ -2486,6 +2522,7 @@ test_trigger = {
             keywords: StdArc::new(HashSet::new()),
             entity_names: StdArc::new(HashMap::new()),
             file_categories: Vec::new(),
+            equipment_groups: StdArc::new(HashSet::new()),
         };
 
         let result = get_semantic_tokens(&script, &ctx);
@@ -2564,6 +2601,7 @@ test_trigger = {
             keywords: StdArc::new(keywords),
             entity_names: StdArc::new(HashMap::new()),
             file_categories: Vec::new(),
+            equipment_groups: StdArc::new(HashSet::new()),
         };
 
         let result = get_semantic_tokens(&script, &ctx);
@@ -2646,6 +2684,7 @@ test_trigger = {
             keywords: StdArc::new(keywords),
             entity_names: StdArc::new(HashMap::new()),
             file_categories: Vec::new(),
+            equipment_groups: StdArc::new(HashSet::new()),
         };
 
         let result = get_semantic_tokens(&script, &ctx);

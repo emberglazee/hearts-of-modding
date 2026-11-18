@@ -707,6 +707,62 @@ pub fn is_trait_definition_body_keys(key: &str, parent: &str, file_cats: &[&str]
     trait_definition(&[key, parent], file_cats)
 }
 
+/// True when `key` opens an equipment definition body (`common/units/equipment`).
+///
+/// Equipment blocks are named after the equipment, so — like traits and
+/// decisions — no block key routes to the `equipment` schema: the `equipments`
+/// container does.
+pub fn is_equipment_body(chain: &[String], _file_cats: &[&str]) -> bool {
+    matches!(chain, [key, parent] if parent == "equipments" && !key.is_empty())
+}
+
+/// True when `key` opens the stat body of one equipment group inside an
+/// `equipment_bonus` block.
+///
+/// ```hoi4
+/// equipment_bonus = {
+///     armor = {            # <- equipment group (archetype or unit type)
+///         armor_value = 0.02   # <- equipment stat
+///     }
+/// }
+/// ```
+///
+/// The group key is an archetype or a unit `type`, both of which are a
+/// different namespace from the stats, so the schema is reached through
+/// `equipment_bonus` rather than the key.
+pub fn is_equipment_bonus_group(chain: &[String], _file_cats: &[&str]) -> bool {
+    match chain {
+        [key, parent, ..] if parent == "equipment_bonus" => !key.is_empty(),
+        // Special projects reach the same shape one block deeper:
+        // `add_equipment_bonus = { name = … bonus = { <group> = { <stat> } } }`
+        [key, bonus, project, ..] if bonus == "bonus" && project == "add_equipment_bonus" => {
+            !key.is_empty()
+        }
+        _ => false,
+    }
+}
+
+/// True when the cursor sits directly in a block that takes equipment groups
+/// as keys: `equipment_bonus = { … }` or the `bonus` block of
+/// `add_equipment_bonus`.
+pub fn is_equipment_bonus_container(chain: &[String]) -> bool {
+    match chain {
+        [first, ..] if first == "equipment_bonus" => true,
+        [first, second, ..] if first == "bonus" && second == "add_equipment_bonus" => true,
+        _ => false,
+    }
+}
+
+/// [`is_equipment_body`] for callers that already hold the two keys.
+pub fn is_equipment_body_keys(key: &str, parent: &str) -> bool {
+    parent == "equipments" && !key.is_empty()
+}
+
+/// [`is_equipment_bonus_group`] for callers that already hold the two keys.
+pub fn is_equipment_bonus_group_keys(key: &str, parent: &str) -> bool {
+    parent == "equipment_bonus" && !key.is_empty()
+}
+
 fn trait_definition(chain: &[&str], file_cats: &[&str]) -> bool {
     if chain.len() != 2 {
         return false;

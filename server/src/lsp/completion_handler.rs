@@ -374,6 +374,10 @@ impl Backend {
         // parameters: that body takes those keys, so definition names are not
         // offered there (`corps_commander` inside a `navy_leader` body).
         let mut has_param_table = false;
+        // Equipment bodies are closed namespaces: every valid key is an
+        // equipment stat (or, in a definition, a definition field), so the
+        // generic trigger/effect/entity list is noise there.
+        let mut closed_namespace = false;
 
         // Try to find context for HOI4 scripts
         if let Some((script, _)) = self.ensure_ast_cached(&uri) {
@@ -643,6 +647,14 @@ impl Backend {
             // vs definition) resolve against the table matching THIS file,
             // and definition names below are gated on the same categories.
             let cat_names = self.file_category_names(&uri);
+            // Equipment contexts are closed namespaces: an `equipment_bonus`
+            // block only takes equipment groups (archetypes and unit types),
+            // and `has_equipment` only takes equipment names. Offering the
+            // generic trigger/effect flood there would make every candidate
+            // wrong, so these return before the shared merge.
+            if let Some(items) = self.equipment_completion_items(&chain) {
+                return Ok(Some(CompletionResponse::Array(items)));
+            }
             let mut inherited_params: Option<
                 &'static std::collections::HashMap<String, crate::data::hoi4_data::ParameterDef>,
             > = None;
@@ -681,6 +693,17 @@ impl Backend {
                 && crate::data::hoi4_data::is_trait_definition_body(&chain, &cat_names)
             {
                 inherited_params = crate::data::hoi4_data::definition_parameters("leader_trait");
+            }
+            // Equipment definitions and equipment-bonus bodies are named after
+            // the equipment or its group, so their containers identify them.
+            if crate::data::hoi4_data::is_equipment_body(&chain, &cat_names) {
+                inherited_params = crate::data::hoi4_data::definition_parameters("equipment");
+                closed_namespace = inherited_params.is_some();
+            }
+            if crate::data::hoi4_data::is_equipment_bonus_group(&chain, &cat_names) {
+                inherited_params =
+                    crate::data::hoi4_data::definition_parameters("equipment_bonus_group");
+                closed_namespace = inherited_params.is_some();
             }
             if let Some(params) = inherited_params {
                 has_param_table = true;
@@ -774,6 +797,10 @@ impl Backend {
         // Static triggers + effects, prebuilt per scope and cached (cheap clone).
         let scope_items = scope_trigger_effect_items(current_scope);
         // Scanner-derived entities, prebuilt after scans and cached (cheap clone).
+        // A closed namespace returns its own table and nothing else.
+        if closed_namespace {
+            return Ok(Some(CompletionResponse::Array(param_items)));
+        }
         let entity_items = self.completion_entity_cache.load_full();
         let total =
             param_items.len() + definition_items.len() + scope_items.len() + entity_items.len();
@@ -786,6 +813,88 @@ impl Backend {
         items.extend(entity_items.iter().cloned());
 
         Ok(Some(CompletionResponse::Array(items)))
+    }
+
+    /// Completion for the two closed equipment namespaces.
+    ///
+    /// * directly inside `equipment_bonus` → equipment groups: unit `type`
+    ///   values first, then archetypes
+    /// * directly inside `has_equipment` → equipment names, archetypes first
+    ///
+    /// Returns `None` for every other position so the caller keeps the shared
+    /// path. Variants are offered too: `has_equipment` checks stockpiles, which
+    /// are keyed by variant as well as archetype.
+    fn equipment_completion_items(&self, chain: &[String]) -> Option<Vec<CompletionItem>> {
+        let first = chain.first()?.as_str();
+        let wants_groups = if crate::data::hoi4_data::is_equipment_bonus_container(chain) {
+            true
+        } else if first == "has_equipment" {
+            false
+        } else {
+            return None;
+        };
+        let mut items = Vec::new();
+        if wants_groups {
+            let mut types: Vec<String> = self
+                .scanner_data
+                .equipments
+                .iter()
+                .filter_map(|e| e.value().resolve().group_type.clone())
+                .collect();
+            types.sort_unstable();
+            types.dedup();
+            items.reserve(types.len());
+            for ty in types {
+                items.push(CompletionItem {
+                    label: ty.clone(),
+                    kind: Some(CompletionItemKind::ENUM),
+                    detail: Some("Equipment group: unit type".to_string()),
+                    sort_text: Some(format!("0_{ty}")),
+                    ..Default::default()
+                });
+            }
+        }
+        for entry in self.scanner_data.equipments.iter() {
+            let eq = entry.value().resolve();
+            let year = eq.year.map(|y| format!(", {y}")).unwrap_or_default();
+            let detail = if eq.is_archetype {
+                match eq.group_type.as_deref() {
+                    Some(ty) => format!("Equipment archetype ({ty}{year})"),
+                    None => format!("Equipment archetype{year}"),
+                }
+            } else {
+                let base = match eq.archetype.as_deref() {
+                    Some(arch) => format!("Equipment variant of {arch}{year}"),
+                    None => format!("Equipment{year}"),
+                };
+                // `parent` is the previous variant in the upgrade line; it is
+                // the archetype itself for the first variant, worth naming only
+                // when it points somewhere else.
+                match eq.parent.as_deref() {
+                    Some(parent) if Some(parent) != eq.archetype.as_deref() => {
+                        format!("{base} · upgrades {parent}")
+                    }
+                    _ => base,
+                }
+            };
+            items.push(CompletionItem {
+                label: eq.name.clone(),
+                kind: Some(if eq.is_archetype {
+                    CompletionItemKind::CLASS
+                } else {
+                    CompletionItemKind::VALUE
+                }),
+                detail: Some(detail),
+                sort_text: Some(format!(
+                    "{}_{}",
+                    if eq.is_archetype { 1 } else { 2 },
+                    eq.name
+                )),
+                ..Default::default()
+            });
+        }
+        items.sort_by(|a, b| a.sort_text.cmp(&b.sort_text));
+        Some(items)
     }
 }
 
