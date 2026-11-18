@@ -16,6 +16,14 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Focus tooltips no longer flag the effects they list: `HOM004` inside `complete_tooltip`, 15 occurrences → 0.** A `complete_tooltip` block lists effects for the engine to render, not execute, so a State effect such as `add_extra_state_shared_building_slots` listed in a focus tooltip has no scope to be wrong in; vanilla ships 409 of these blocks. Scope is no longer validated inside them — the one place where a display entry cannot be a scope error.
 
+### 🧹 Internal
+
+- **Bumped extension dependencies:**
+
+  - Dev dependencies:
+    - `vsce` v4.1.0 -> v4.1.1
+    - `eslint` v10.14.0 -> v10.15.0
+
 ## [v0.33.0] - 2026-11-17
 
 > A sweep of the entire vanilla script corpus: all 8,347 files driven through the real
