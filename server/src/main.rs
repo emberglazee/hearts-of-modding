@@ -16,6 +16,7 @@ mod utils;
 mod validation;
 
 mod backend;
+mod cli_analyze;
 mod config;
 mod log_level;
 mod rules;
@@ -24,15 +25,11 @@ pub(crate) use crate::backend::Backend;
 
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
-use std::sync::atomic::AtomicU64;
-use std::sync::{Arc, Mutex};
+use std::path::PathBuf;
 
-use arc_swap::ArcSwap;
-use dashmap::{DashMap, DashSet};
+pub(crate) use crate::data::scanner_data::ScannerData;
+
 use tower_lsp_server::{LspService, Server};
-
-use crate::config::Config;
-use crate::data::scanner_data::ScannerData;
 
 pub(crate) static TRIGGERS: Lazy<&'static HashMap<String, data::hoi4_data::HOI4Entity>> =
     Lazy::new(data::hoi4_data::get_triggers);
@@ -88,63 +85,57 @@ pub(crate) fn utf16_to_byte_offset(s: &str, utf16_offset: usize) -> usize {
 }
 #[tokio::main]
 async fn main() {
-    // CLI validation mode: cargo run --release -- <file_path>
+    // Static analysis: `hom-lsp analyze <file>` (the bare `<file>` form is the
+    // same thing). No transport, no client, one process.
     let args: Vec<String> = std::env::args().collect();
-    let mut cli_path: Option<String> = None;
-    let mut cli_scope_validation = false;
-    for arg in &args[1..] {
-        if arg == "--scope-validation" {
-            cli_scope_validation = true;
-        } else if !arg.starts_with("--") {
-            cli_path = Some(arg.clone());
+    let mut cli_path: Option<PathBuf> = None;
+    let mut cli_game: Option<PathBuf> = None;
+    let mut cli_discover_game = true;
+    let mut cli_workspaces: Vec<PathBuf> = Vec::new();
+    let mut cli_scope_validation = true;
+    let mut cli_styling = false;
+    let mut cli_tokens = false;
+    let mut cli_json = false;
+    let mut args = args[1..].iter();
+    while let Some(arg) = args.next() {
+        match arg.as_str() {
+            "analyze" => {}
+            "--game" => cli_game = args.next().map(PathBuf::from),
+            "--no-game" => cli_discover_game = false,
+            "--workspace" => {
+                if let Some(w) = args.next() {
+                    cli_workspaces.push(PathBuf::from(w));
+                }
+            }
+            "--scope-validation" => cli_scope_validation = true,
+            "--no-scope-validation" => cli_scope_validation = false,
+            "--styling" => cli_styling = true,
+            "--tokens" => cli_tokens = true,
+            "--json" => cli_json = true,
+            other if other.starts_with("--") => {} // --stdio and friends: server mode
+            other => cli_path = Some(PathBuf::from(other)),
         }
     }
     if let Some(path) = cli_path {
-        cli_validate(&path, cli_scope_validation).await;
-        return;
+        let code = cli_analyze::run(cli_analyze::Options {
+            path,
+            game: cli_game,
+            discover_game: cli_discover_game,
+            workspaces: cli_workspaces,
+            scope_validation: cli_scope_validation,
+            styling: cli_styling,
+            tokens: cli_tokens,
+            json: cli_json,
+            timeout: std::time::Duration::from_secs(600),
+        })
+        .await;
+        std::process::exit(code);
     }
 
     let stdin = tokio::io::stdin();
     let stdout = tokio::io::stdout();
 
-    let (service, socket) = LspService::new(|client| {
-        let base_keywords = Arc::new(backend::build_static_semantic_keywords());
-        // Bound the scan pool to 2/3 of logical cores (min 4). Rayon's
-        // default = all logical cores, which pegs the CPU during large-file
-        // validation and starves VS Code's extension host, causing UI
-        // stuttering. Leaving headroom keeps the editor responsive.
-        let num_threads = std::thread::available_parallelism()
-            .map(|n| (n.get() * 2 / 3).max(4))
-            .unwrap_or(8);
-        let compute_pool = rayon::ThreadPoolBuilder::new()
-            .num_threads(num_threads)
-            .thread_name(|i| format!("hom-scan-{i}"))
-            .build()
-            .expect("rayon scan pool");
-        Backend {
-            client,
-            documents: Arc::new(DashMap::new()),
-            document_asts: Arc::new(DashMap::new()),
-            document_cancellation_tokens: DashMap::new(),
-            document_locs: Arc::new(DashMap::new()),
-            scanner_data: Arc::new(ScannerData::new()),
-            config: Arc::new(Config::new()),
-            // `System::new()` became fallible in sysinfo 0.40. A failure here
-            // only costs the `hoi4/getMemoryUsage` status-bar readout (the
-            // client hides the item on an empty response), so it must not take
-            // the server down.
-            system_info: Mutex::new(sysinfo::System::new().ok()),
-            workspace_roots: ArcSwap::from_pointee(Vec::new()),
-            client_workspace_roots: ArcSwap::from_pointee(Vec::new()),
-            compute_pool,
-            pending_tasks: AtomicU64::new(0),
-            base_token_keywords: base_keywords.clone(),
-            token_keywords: ArcSwap::from_pointee((*base_keywords).clone()),
-            entity_token_context: ArcSwap::from_pointee(HashMap::new()),
-            completion_entity_cache: ArcSwap::from_pointee(Vec::new()),
-            workspace_problem_uris: DashSet::new(),
-        }
-    });
+    let (service, socket) = LspService::new(backend::Backend::new);
     Server::new(stdin, stdout, socket).serve(service).await;
 }
 
@@ -156,192 +147,3 @@ mod tests;
 /// the same builder as integration-style test files.
 #[cfg(test)]
 pub(crate) mod test_support;
-
-/// CLI validation mode: parse and validate a file, print diagnostics.
-async fn cli_validate(path: &str, scope_validation: bool) {
-    let content = match std::fs::read_to_string(path) {
-        Ok(c) => c,
-        Err(e) => {
-            eprintln!("Error reading {}: {}", path, e);
-            return;
-        }
-    };
-
-    let (script, parse_errors) = crate::parser::parser::parse_script(&content);
-    let source = &script.source;
-
-    // Single source of truth for file-type scope inference — the same fn the
-    // validation walker, hover, and completion use, so CLI diagnostics can't
-    // diverge from editor behaviour (the hand-rolled copy this replaces had
-    // already drifted: no technology/technology_tags arms).
-    let initial_scope = crate::scope::scope::initial_scope_for_uri(path);
-
-    // Build typed empty DashMaps for ValidationContext
-    use crate::data::interner::InternedStr;
-    use crate::data::layered_value::LayeredValue;
-    use dashmap::DashMap;
-
-    let loc: DashMap<InternedStr, LayeredValue<crate::parser::loc_parser::LocEntry>> =
-        DashMap::new();
-    let st: DashMap<InternedStr, LayeredValue<crate::scanner::scripted_scanner::ScriptedEntity>> =
-        DashMap::new();
-    let se: DashMap<InternedStr, LayeredValue<crate::scanner::scripted_scanner::ScriptedEntity>> =
-        DashMap::new();
-    let ideologies: DashMap<InternedStr, LayeredValue<crate::scanner::ideology_scanner::Ideology>> =
-        DashMap::new();
-    let sub_ideologies: DashMap<
-        InternedStr,
-        LayeredValue<(InternedStr, crate::parser::ast::Range, InternedStr)>,
-    > = DashMap::new();
-    let traits: DashMap<InternedStr, LayeredValue<crate::scanner::trait_scanner::Trait>> =
-        DashMap::new();
-    let sprites: DashMap<InternedStr, LayeredValue<crate::scanner::sprite_scanner::Sprite>> =
-        DashMap::new();
-    let ideas: DashMap<InternedStr, LayeredValue<crate::scanner::idea_scanner::Idea>> =
-        DashMap::new();
-    let characters: DashMap<
-        InternedStr,
-        LayeredValue<crate::scanner::character_scanner::Character>,
-    > = DashMap::new();
-    let provinces: DashMap<u32, crate::scanner::province_scanner::Province> = DashMap::new();
-    let modifier_mappings: DashMap<InternedStr, String> = DashMap::new();
-    let sound_effects: DashMap<
-        InternedStr,
-        LayeredValue<crate::scanner::sound_scanner::SoundEffect>,
-    > = DashMap::new();
-    let country_tags: DashMap<
-        InternedStr,
-        LayeredValue<crate::scanner::country_scanner::CountryTag>,
-    > = DashMap::new();
-    let buildings: DashMap<InternedStr, LayeredValue<crate::scanner::building_scanner::Building>> =
-        DashMap::new();
-    let resources: DashMap<InternedStr, LayeredValue<crate::scanner::resource_scanner::Resource>> =
-        DashMap::new();
-    let state_categories: DashMap<
-        InternedStr,
-        LayeredValue<crate::scanner::state_category_scanner::StateCategory>,
-    > = DashMap::new();
-    let continents: DashMap<
-        InternedStr,
-        LayeredValue<crate::scanner::continent_scanner::Continent>,
-    > = DashMap::new();
-    let strategic_regions: DashMap<u32, crate::scanner::strategic_region_scanner::StrategicRegion> =
-        DashMap::new();
-    let states: DashMap<u32, crate::scanner::state_scanner::State> = DashMap::new();
-    let terrain_categories: DashMap<
-        InternedStr,
-        LayeredValue<crate::scanner::terrain_scanner::TerrainCategory>,
-    > = DashMap::new();
-    let abilities: DashMap<InternedStr, LayeredValue<crate::scanner::ability_scanner::Ability>> =
-        DashMap::new();
-    let ace_modifiers: DashMap<
-        InternedStr,
-        LayeredValue<crate::scanner::ace_scanner::AceModifier>,
-    > = DashMap::new();
-    let tag_aliases: DashMap<
-        InternedStr,
-        LayeredValue<crate::scanner::tag_alias_scanner::TagAlias>,
-    > = DashMap::new();
-    let event_targets: DashMap<InternedStr, Vec<crate::scanner::variable_scanner::EventTarget>> =
-        DashMap::new();
-    let variables: DashMap<InternedStr, Vec<crate::scanner::variable_scanner::Variable>> =
-        DashMap::new();
-    let event_namespaces: DashMap<
-        InternedStr,
-        LayeredValue<crate::scanner::event_namespace_scanner::EventNamespace>,
-    > = DashMap::new();
-    let events: DashMap<InternedStr, LayeredValue<crate::scanner::event_scanner::Event>> =
-        DashMap::new();
-    let decisions: DashMap<InternedStr, LayeredValue<crate::scanner::decision_scanner::Decision>> =
-        DashMap::new();
-    let decision_categories: DashMap<InternedStr, LayeredValue<()>> = DashMap::new();
-    let unit_types: DashMap<InternedStr, LayeredValue<crate::scanner::unit_scanner::UnitType>> =
-        DashMap::new();
-
-    let range_mapper = crate::utils::lsp_convert::RangeMapper::new(source);
-
-    let ctx = crate::rules::ValidationContext {
-        uri: path,
-        source,
-        range_mapper: &range_mapper,
-        loc: &loc,
-        scripted_triggers: &st,
-        scripted_effects: &se,
-        ideologies: &ideologies,
-        sub_ideologies: &sub_ideologies,
-        traits: &traits,
-        sprites: &sprites,
-        ideas: &ideas,
-        characters: &characters,
-        provinces: &provinces,
-        modifier_mappings: &modifier_mappings,
-        ignored_loc_regex: &[],
-        comments: &[],
-        sound_effects: &sound_effects,
-        country_tags: &country_tags,
-        tag_aliases: &tag_aliases,
-        buildings: &buildings,
-        resources: &resources,
-        state_categories: &state_categories,
-        continents: &continents,
-        strategic_regions: &strategic_regions,
-        states: &states,
-        terrain_categories: &terrain_categories,
-        abilities: &abilities,
-        ace_modifiers: &ace_modifiers,
-        game_path: None,
-        styling_enabled: false,
-        scope_validation_enabled: scope_validation,
-        workspace_roots: &[],
-        unit_types: &unit_types,
-        event_targets: &event_targets,
-        variables: &variables,
-        event_namespaces: &event_namespaces,
-        events: &events,
-        decisions: &decisions,
-        decision_categories: &decision_categories,
-    };
-
-    let mut visitors: Vec<Box<dyn crate::rules::visitor::AstVisitor>> = Vec::new();
-    let rules: Vec<Box<dyn crate::rules::ValidationRule>> =
-        vec![Box::new(crate::rules::v2_scope::V2ScopeRule)];
-
-    let mut diags = Vec::new();
-    crate::rules::visitor::walk_script(
-        &script.entries,
-        &mut visitors,
-        &rules,
-        &ctx,
-        &mut diags,
-        initial_scope,
-        false,
-    );
-
-    // Print diagnostics in a compact format
-    if diags.is_empty() {
-        println!("No diagnostics for {}", path);
-    } else {
-        for d in &diags {
-            let range = &d.range;
-            println!(
-                "{}:{}:{}: {} [{}]",
-                path,
-                range.start.line + 1,
-                range.start.character + 1,
-                d.message,
-                d.code
-                    .as_ref()
-                    .map(|c| match c {
-                        tower_lsp_server::ls_types::NumberOrString::String(s) => s.as_str(),
-                        tower_lsp_server::ls_types::NumberOrString::Number(_) => "?",
-                    })
-                    .unwrap_or("?"),
-            );
-        }
-    }
-
-    // Also show parse errors
-    for (msg, range) in &parse_errors {
-        println!("PARSE {}:{}: {}", path, range.start_line + 1, msg,);
-    }
-}

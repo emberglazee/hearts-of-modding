@@ -224,6 +224,52 @@ pub(crate) struct Backend {
     pub(crate) workspace_problem_uris: DashSet<String>,
 }
 
+impl Backend {
+    /// Build the server state.
+    ///
+    /// Shared by the stdio server and the `analyze` CLI, so both run the same
+    /// scanners over the same structures: a CLI result that disagrees with the
+    /// editor is a bug in one of them, not a difference in setup.
+    pub(crate) fn new(client: Client) -> Self {
+        let base_keywords = Arc::new(build_static_semantic_keywords());
+        // Bound the scan pool to 2/3 of logical cores (min 4). Rayon's
+        // default = all logical cores, which pegs the CPU during large-file
+        // validation and starves VS Code's extension host, causing UI
+        // stuttering. Leaving headroom keeps the editor responsive.
+        let num_threads = std::thread::available_parallelism()
+            .map(|n| (n.get() * 2 / 3).max(4))
+            .unwrap_or(8);
+        let compute_pool = rayon::ThreadPoolBuilder::new()
+            .num_threads(num_threads)
+            .thread_name(|i| format!("hom-scan-{i}"))
+            .build()
+            .expect("rayon scan pool");
+        Backend {
+            client,
+            documents: Arc::new(DashMap::new()),
+            document_asts: Arc::new(DashMap::new()),
+            document_cancellation_tokens: DashMap::new(),
+            document_locs: Arc::new(DashMap::new()),
+            scanner_data: Arc::new(ScannerData::new()),
+            config: Arc::new(Config::new()),
+            // `System::new()` became fallible in sysinfo 0.40. A failure here
+            // only costs the `hoi4/getMemoryUsage` status-bar readout (the
+            // client hides the item on an empty response), so it must not take
+            // the server down.
+            system_info: Mutex::new(sysinfo::System::new().ok()),
+            workspace_roots: ArcSwap::from_pointee(Vec::new()),
+            client_workspace_roots: ArcSwap::from_pointee(Vec::new()),
+            compute_pool,
+            pending_tasks: AtomicU64::new(0),
+            base_token_keywords: base_keywords.clone(),
+            token_keywords: ArcSwap::from_pointee((*base_keywords).clone()),
+            entity_token_context: ArcSwap::from_pointee(HashMap::new()),
+            completion_entity_cache: ArcSwap::from_pointee(Vec::new()),
+            workspace_problem_uris: DashSet::new(),
+        }
+    }
+}
+
 /// Cheap-clone handle for CPU-bound validation work.
 ///
 /// Clones of this struct can be sent to thread pools (`spawn_blocking`, Rayon)

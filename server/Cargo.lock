@@ -320,6 +320,7 @@ dependencies = [
  "tokio",
  "tokio-util",
  "tower-lsp-server",
+ "tower-service",
 ]
 
 [[package]]
