@@ -593,6 +593,11 @@ impl Backend {
         let mut files: Vec<std::path::PathBuf> = Vec::new();
         files.extend(overlay.winning_files_in("common/modifiers"));
         files.extend(overlay.winning_files_in("common/dynamic_modifiers"));
+        // `common/modifier_definitions` declares custom modifier tokens: one
+        // top-level key per token, used as a modifier key in dynamic modifiers
+        // and as `modifier@token` in effects. Same shape the scanner already
+        // reads, so it joins the same scan.
+        files.extend(overlay.winning_files_in("common/modifier_definitions"));
         // Only .txt files contain modifier definitions
         files.retain(|p| p.extension().is_some_and(|ext| ext == "txt"));
         let result = tokio::task::spawn_blocking(move || {

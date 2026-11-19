@@ -399,7 +399,10 @@ pub(crate) fn classify_file(path: &str, definitions_file: &str) -> Vec<FileCateg
         if lower.contains("/common/achievements/") {
             cats.push(FileCategory::Achievements);
         }
-        if lower.contains("/common/modifiers/") || lower.contains("/common/dynamic_modifiers/") {
+        if lower.contains("/common/modifiers/")
+            || lower.contains("/common/dynamic_modifiers/")
+            || lower.contains("/common/modifier_definitions/")
+        {
             cats.push(FileCategory::Modifiers);
         }
         if lower.contains("/common/ideologies/") {

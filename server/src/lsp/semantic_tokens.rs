@@ -166,6 +166,40 @@ fn entity_kind_to_token_type(kind: EntityKind) -> u32 {
     }
 }
 
+/// The resource id in a per-resource modifier name, when the key has that
+/// shape. The engine builds these names from `common/resources/*.txt`, so they
+/// never appear in the static modifier table. The shapes are `state_resource_`
+/// plus the id, `temporary_state_resource_` plus the id (a dynamic modifier on a
+/// state), `country_resource_` plus the id, and `local_resources_` plus the id
+/// plus `_factor`.
+fn resource_modifier_id(key: &str) -> Option<&str> {
+    if let Some(rest) = key
+        .strip_prefix("temporary_state_resource_")
+        .or_else(|| key.strip_prefix("state_resource_"))
+        .or_else(|| key.strip_prefix("country_resource_"))
+    {
+        return (!rest.is_empty()).then_some(rest);
+    }
+    key.strip_prefix("local_resources_")
+        .and_then(|rest| rest.strip_suffix("_factor"))
+        .filter(|rest| !rest.is_empty())
+}
+
+/// The sub-unit in a `modifier_army_sub_unit_<unit>_<stat>` key, when the key
+/// has that shape and the unit is one the scanner found. The engine builds one
+/// key per sub-unit and stat from `common/units/*.txt`, so a mod's own sub-units
+/// (Hearts of Minecraft's `penal_battalion`) produce keys no table can list.
+///
+/// Unit ids contain underscores, so every split point is tried from the right
+/// and the first whose left side is a sub-unit wins.
+fn sub_unit_modifier_unit<'a>(ctx: &SemanticTokenContext, key: &'a str) -> Option<&'a str> {
+    let rest = key.strip_prefix("modifier_army_sub_unit_")?;
+    rest.match_indices('_')
+        .rev()
+        .map(|(i, _)| &rest[..i])
+        .find(|unit| matches!(resolve_entity_kind(ctx, unit), Some(EntityKind::UnitType)))
+}
+
 /// Resolve an entity name to its `EntityKind`, handling scoped forms
 /// like `ROOT.faction_members` / `global.stability` and case-insensitive
 /// builtin matches. `entity_names` is keyed by base names (lowercase for
@@ -892,6 +926,16 @@ fn push_entry_tokens(
             .map(|(owner, _)| owner);
             let is_block_param = param_owner.is_some();
 
+            // Per-resource modifiers. The engine generates one key per entry in
+            // `common/resources/*.txt` (`state_resource_<id>`,
+            // `temporary_state_resource_<id>`, `country_resource_<id>`,
+            // `local_resources_<id>_factor`), so the names cannot live in a
+            // fixed table and a mod's own resources are legal. Classified as a
+            // modifier when the id is a resource the scanner found.
+            let is_resource_modifier = resource_modifier_id(key_text).is_some_and(|id| {
+                matches!(resolve_entity_kind(ctx, id), Some(EntityKind::Resource))
+            }) || sub_unit_modifier_unit(ctx, key_text).is_some();
+
             if is_event_type {
                 tokens.push(RawToken {
                     line: key_line,
@@ -941,7 +985,7 @@ fn push_entry_tokens(
                     length: key_len,
                     token_type: TokenType::Keyword as u32,
                 });
-            } else if is_keyword {
+            } else if is_resource_modifier || is_keyword {
                 tokens.push(RawToken {
                     line: key_line,
                     start: key_start,
@@ -3348,5 +3392,76 @@ bwc_cat = {
             "file-variable use in a range request must be variable, got {:#?}",
             toks
         );
+    }
+
+    #[test]
+    fn per_resource_modifiers_are_keywords() {
+        use crate::data::entity_lookup::EntityKind;
+        use crate::lsp::semantic_tokens::{SemanticTokenContext, get_semantic_tokens};
+        use crate::parser::parser::parse_script;
+        use std::collections::{HashMap, HashSet};
+        use std::sync::Arc;
+
+        // The engine generates one modifier per entry in `common/resources/*.txt`,
+        // so a mod's own resources produce keys no table can list (Hearts of
+        // Minecraft ships hom_coal, lazurite, redstone, gunpowder, wood, ...).
+        let content = r#"sabotaged_resources = {
+    remove_trigger = {
+        always = no
+    }
+    temporary_state_resource_iron = 1
+    temporary_state_resource_hom_coal = 2
+    state_resource_iron = 3
+    country_resource_iron = 4
+    local_resources_iron_factor = 5
+    modifier_army_sub_unit_penal_battalion_attack_factor = 6
+    modifier_army_sub_unit_penal_battalion_defence_factor = 7
+    temporary_state_resource_unobtainium = 8
+    modifier_army_sub_unit_not_a_unit_attack_factor = 9
+}
+"#;
+        let (script, _) = parse_script(content);
+        let mut keywords: HashSet<String> = HashSet::new();
+        keywords.insert("remove_trigger".to_string());
+        let mut entity_names: HashMap<String, EntityKind> = HashMap::new();
+        entity_names.insert("iron".to_string(), EntityKind::Resource);
+        entity_names.insert("hom_coal".to_string(), EntityKind::Resource);
+        entity_names.insert("penal_battalion".to_string(), EntityKind::UnitType);
+        let ctx = SemanticTokenContext::new(Arc::new(keywords), Arc::new(entity_names));
+        let SemanticTokensResult::Tokens(t) = get_semantic_tokens(&script, &ctx) else {
+            panic!("expected tokens");
+        };
+        let toks = decode_script_tokens(content, &t.data);
+        let ty = |text: &str| {
+            toks.iter()
+                .find(|(_, t, _)| t == text)
+                .map(|(_, _, ty)| ty.clone())
+        };
+        for key in [
+            "remove_trigger",
+            "temporary_state_resource_iron",
+            "temporary_state_resource_hom_coal",
+            "state_resource_iron",
+            "country_resource_iron",
+            "local_resources_iron_factor",
+            "modifier_army_sub_unit_penal_battalion_attack_factor",
+            "modifier_army_sub_unit_penal_battalion_defence_factor",
+        ] {
+            assert_eq!(
+                ty(key).as_deref(),
+                Some("keyword"),
+                "{key} must be a keyword, got {toks:#?}"
+            );
+        }
+        for key in [
+            "temporary_state_resource_unobtainium",
+            "modifier_army_sub_unit_not_a_unit_attack_factor",
+        ] {
+            assert_eq!(
+                ty(key),
+                None,
+                "{key} names no scanned resource or sub-unit and must stay uncoloured"
+            );
+        }
     }
 }

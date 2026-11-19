@@ -2103,6 +2103,12 @@ pub(crate) fn build_static_semantic_keywords() -> HashSet<String> {
     keywords.insert("start_province".to_string());
     keywords.insert("target_province".to_string());
 
+    // Structural block names that carry no trigger/effect entry: a dynamic
+    // modifier's `remove_trigger`, and the tooltip override every modifier
+    // container accepts. Both are block keys, so they read as keywords.
+    keywords.insert("remove_trigger".to_string());
+    keywords.insert("custom_modifier_tooltip".to_string());
+
     // Structural flow control keywords (transparent blocks)
     keywords.insert("and".to_string());
     keywords.insert("or".to_string());

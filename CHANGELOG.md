@@ -15,6 +15,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **Completion inside an equipment block offers only what belongs there**, instead of every trigger and effect in the game.
 
+- **Keys the engine builds from data now highlight.** `remove_trigger` and `custom_modifier_tooltip` read as block keywords, custom modifier tokens from `common/modifier_definitions` are recognised, and generated modifiers such as `temporary_state_resource_iron` or `modifier_army_sub_unit_cavalry_attack_factor` colour for a mod's own resources and sub-units, not just vanilla's.
+
 - **Leader trait bodies highlight, hover and complete.** Traits in `common/country_leader` and `common/unit_leader` are documented now.
 
 - **Leader role blocks complete their keys.** `corps_commander`, `field_marshal`, `navy_leader` and `country_leader` list what each block accepts.
