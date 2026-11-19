@@ -41,11 +41,9 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### 🧹 Internal
 
-- **Bumped extension dependencies:**
+- **Bumped extension dev dependencies:** `vsce` v4.1.0 -> v4.1.1, `eslint` v10.14.0 -> v10.15.0.
 
-  - Dev dependencies:
-    - `vsce` v4.1.0 -> v4.1.1
-    - `eslint` v10.14.0 -> v10.15.0
+- **Bumped LSP dependencies:** `regex` 1.13.1 -> 1.13.2, `sysinfo` 0.40.1 -> 0.40.4, `arc-swap` 1.9.3 -> 1.9.5, `smallvec` 1.16.4 -> 1.16.6.
 
 ## [v0.33.0] - 2026-11-17
 
