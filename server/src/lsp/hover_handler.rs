@@ -590,7 +590,8 @@ impl Backend {
                     Some(&self.scanner_data.characters),
                     Some(achievements),
                     Some(&self.scanner_data.variables),
-                );
+                )
+                .with_unit_types(Some(&self.scanner_data.unit_types));
                 if let Some((identifier, final_scopes, assigned_value, context_key)) =
                     find_identifier_at(&script, position, &mut scope_stack, &sctx)
                 {

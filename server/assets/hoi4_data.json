@@ -31613,7 +31613,8 @@
 			"description": "Modifies the defence value of our military, navy, and airforce.\n\n**Example:**\n```paradox\ndefence = 0.5\n```",
 			"scopes": {
 				"usage": [
-					"Country"
+					"Country",
+					"Unit"
 				],
 				"usage_restriction": ""
 			}
@@ -31977,7 +31978,8 @@
 			"description": "Modifies the combat equipment capture ratio.\n\n**Example:**\n```paradox\nequipment_capture_factor = 0.5\n```",
 			"scopes": {
 				"usage": [
-					"Country"
+					"Country",
+					"Unit"
 				],
 				"usage_restriction": ""
 			}
@@ -32182,7 +32184,8 @@
 			"description": "Changes the loss in divisions' experience in combat.\n\n**Example:**\n```paradox\nexperience_loss_factor = 0.3\n```",
 			"scopes": {
 				"usage": [
-					"Country"
+					"Country",
+					"Unit"
 				],
 				"usage_restriction": ""
 			}
@@ -35269,7 +35272,8 @@
 			"description": "Modifies the rate at which army consumes supply.\n\n**Example:**\n```paradox\nsupply_consumption_factor = 0.3\n```",
 			"scopes": {
 				"usage": [
-					"Country"
+					"Country",
+					"Unit"
 				],
 				"usage_restriction": ""
 			}
@@ -36058,7 +36062,8 @@
 			"description": "",
 			"scopes": {
 				"usage": [
-					"Country"
+					"Country",
+					"Unit"
 				],
 				"usage_restriction": ""
 			},
@@ -36619,7 +36624,8 @@
 			"description": "",
 			"scopes": {
 				"usage": [
-					"Country"
+					"Country",
+					"Unit"
 				],
 				"usage_restriction": ""
 			},

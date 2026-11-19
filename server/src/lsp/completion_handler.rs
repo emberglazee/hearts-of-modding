@@ -391,7 +391,8 @@ impl Backend {
                 Some(&self.scanner_data.characters),
                 Some(&self.scanner_data.achievements),
                 Some(&self.scanner_data.variables),
-            );
+            )
+            .with_unit_types(Some(&self.scanner_data.unit_types));
             let (ctx, scopes) = find_scope_context_at(&script, position, initial_scope, &sctx);
             current_scopes = scopes;
 

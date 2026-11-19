@@ -470,3 +470,73 @@ fn prev_inside_a_limit_is_not_the_state_being_iterated() {
         "is_capital is State-only and PREV is the country, got {bad:#?}"
     );
 }
+
+/// A technology's per-sub-unit blocks run in Unit scope.
+///
+/// `mechanised_infantry = { motorized = { hardness = 1.0 } }` is vanilla
+/// (`common/technologies/infantry.txt:2347`): the block is keyed by a sub-unit
+/// and the entries inside are that sub-unit's stats. Validated in Country scope
+/// `hardness` (Unit-only) was reported, on 5 vanilla lines and every mod copy.
+#[test]
+fn technology_subunit_block_runs_in_unit_scope() {
+    const UNITS: &str = r#"sub_units = {
+    motorized = {
+        abbreviation = "MOT"
+        group = mobile
+        combat_width = 2
+    }
+}"#;
+    const TECH: &str = r#"technologies = {
+    mechanised_infantry = {
+        enable_subunits = {
+            motorized
+        }
+        motorized = {
+            hardness = 1.0
+        }
+    }
+}"#;
+    const URI: &str = "/mod/common/technologies/00_test.txt";
+    let ctx = TestCtx::new()
+        .with_scope_validation(true)
+        .with_file("/mod/common/units/00_units.txt", UNITS);
+    let diags = ctx.walk(
+        TECH,
+        URI,
+        initial_scope_for_uri(URI),
+        vec![Box::new(V2ScopeRule)],
+        vec![],
+    );
+    let bad = mismatched(&diags);
+    assert!(
+        bad.is_empty(),
+        "expected no scope diagnostics, got {bad:#?}"
+    );
+}
+
+/// The sub-unit rule is keyed on the block, not on the file: a unit stat written
+/// straight into a technology body is still Country scope and still reported.
+#[test]
+fn unit_stat_outside_a_subunit_block_still_reports() {
+    const TECH: &str = r#"technologies = {
+    mechanised_infantry = {
+        hardness = 1.0
+    }
+}"#;
+    const URI: &str = "/mod/common/technologies/00_test.txt";
+    let ctx = TestCtx::new()
+        .with_scope_validation(true)
+        .with_unit_types(&["motorized"]);
+    let diags = ctx.walk(
+        TECH,
+        URI,
+        initial_scope_for_uri(URI),
+        vec![Box::new(V2ScopeRule)],
+        vec![],
+    );
+    let bad = mismatched(&diags);
+    assert!(
+        bad.iter().any(|m| m.contains("hardness")),
+        "expected 'hardness' to be reported in Country scope, got {bad:#?}"
+    );
+}

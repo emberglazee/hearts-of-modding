@@ -1329,7 +1329,8 @@ impl LanguageServer for Backend {
                     Some(&self.scanner_data.characters),
                     Some(&self.scanner_data.achievements),
                     Some(&self.scanner_data.variables),
-                );
+                )
+                .with_unit_types(Some(&self.scanner_data.unit_types));
                 match find_identifier_at(&script, position, &mut scope_stack, &sctx) {
                     Some((id, _, assigned_value, context_key)) => {
                         (Some(id), assigned_value, context_key)
@@ -1393,7 +1394,8 @@ impl LanguageServer for Backend {
                 Some(&self.scanner_data.characters),
                 Some(&self.scanner_data.achievements),
                 Some(&self.scanner_data.variables),
-            );
+            )
+            .with_unit_types(Some(&self.scanner_data.unit_types));
             if let Some((identifier, _, _, _)) =
                 find_identifier_at(&script, position, &mut scope_stack, &sctx)
             {

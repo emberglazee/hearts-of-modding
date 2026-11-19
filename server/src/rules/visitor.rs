@@ -189,6 +189,7 @@ fn walk_entries(
                         characters: Some(ctx.characters),
                         achievements: None,
                         variables: Some(ctx.variables),
+                        unit_types: Some(ctx.unit_types),
                         in_random_list,
                         state_targeted,
                     },

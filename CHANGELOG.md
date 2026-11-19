@@ -27,6 +27,8 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 - **`has_trait` inside `start_civil_war` is no longer reported.**
 
+- **Unit stats inside a technology's sub-unit blocks are no longer reported.** A technology can key a block by the sub-unit it improves (`motorized = { hardness = 1.0 }`), and the stats inside belong to that sub-unit.
+
 - **`PREV` inside a `limit` is no longer reported as the wrong scope.**
 
 - **A leader role grant no longer flags its own stat keys.**

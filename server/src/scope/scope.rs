@@ -3,6 +3,7 @@ use crate::data::layered_value::LayeredValue;
 use crate::parser::ast;
 use crate::scanner::achievement_scanner::Achievement;
 use crate::scanner::character_scanner::Character;
+use crate::scanner::unit_scanner::UnitType;
 use crate::scanner::variable_scanner::{EventTarget, Variable};
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
@@ -485,6 +486,10 @@ pub struct ScopeCtx<'a> {
     /// `temp_var:name = { }` scope blocks. `None` simply means "no data for
     /// this lookup" (unknown vars keep resolving `Unknown`, as before).
     pub variables: Option<&'a DashMap<InternedStr, Vec<Variable>>>,
+    /// Sub-unit definitions from `common/units/*.txt`. A technology body keys
+    /// blocks by these ids (`motorized = { hardness = 1.0 }`), and the entries
+    /// inside are unit stats. `None` simply means "no data for this lookup".
+    pub unit_types: Option<&'a DashMap<InternedStr, LayeredValue<UnitType>>>,
     /// True when the keys of the block being resolved are `random_list` /
     /// `random_events` weights. A numeric weight is not a state id.
     pub in_random_list: bool,
@@ -510,9 +515,28 @@ impl<'a> ScopeCtx<'a> {
             characters,
             achievements,
             variables,
+            unit_types: None,
             in_random_list: false,
             state_targeted: false,
         }
+    }
+
+    /// Attach the sub-unit registry. Callers that resolve blocks inside
+    /// `common/technologies/*.txt` pass it so a technology's per-sub-unit
+    /// blocks validate in Unit scope; callers that cannot (tests, loc paths)
+    /// leave it `None` and the rule simply does not fire.
+    #[must_use]
+    pub fn with_unit_types(
+        mut self,
+        unit_types: Option<&'a DashMap<InternedStr, LayeredValue<UnitType>>>,
+    ) -> Self {
+        self.unit_types = unit_types;
+        self
+    }
+
+    /// Whether `key` names a sub-unit from `common/units/*.txt`.
+    fn is_sub_unit(&self, key: &str) -> bool {
+        self.unit_types.is_some_and(|m| m.contains_key(key))
     }
 
     #[must_use]
@@ -1070,6 +1094,32 @@ impl ScopeStack {
                 || ctx.uri.contains("/common/opinion_modifiers/"))
         {
             return (Scope::ModifierBag, true);
+        }
+
+        // 1c'. Technology definitions run in Country scope. The file marker is
+        // `Technologies`, whose runtime root is Country, so the body already
+        // validated as Country; pushing the scope makes `current()` honest and
+        // lets a per-block rule tell a technology definition from a block
+        // inside one. Several technology ids are also sub-unit ids
+        // (`camelry`, `elephantry`), so without the distinction a rule keyed on
+        // the sub-unit registry cannot tell `camelry = { research_cost = 1 }`
+        // from `camelry = { hardness = 1.0 }`.
+        if self.current() == Scope::Technologies && !key.eq_ignore_ascii_case("technologies") {
+            return (Scope::Country, false);
+        }
+
+        // 1e. Technology sub-unit blocks. A technology keys a block by the
+        // sub-unit it improves (`motorized = { hardness = 1.0 }`, vanilla
+        // `common/technologies/infantry.txt:2347`) and the entries inside are
+        // unit stats. The tech body itself is Country, so without this the
+        // stats validate in Country scope and `hardness` (Unit-only) is
+        // reported. Keyed on the sub-unit registry rather than a hardcoded
+        // list, so sub-units a mod defines work the same way.
+        if matches!(self.current(), Scope::Technologies | Scope::Country)
+            && ctx.uri.contains("/common/technologies/")
+            && ctx.is_sub_unit(key)
+        {
+            return (Scope::Unit, false);
         }
 
         // 1d'. `complete_tooltip` is display-only: its entries are effect names the
