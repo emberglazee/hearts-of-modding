@@ -50,6 +50,34 @@ const CATEGORY_FIELD_BLOCKS: [&str; 2] = ["allowed", "visible"];
 /// # HOM5009 — Decision has both cost and custom_cost_trigger
 pub(crate) struct DecisionsRule;
 
+/// True when a condition block is a literal `always = no`, including when it is
+/// wrapped in `hidden_trigger` or `custom_trigger_tooltip` (the usual way to keep
+/// the "cannot be taken" gate out of the tooltip).
+fn condition_says_always_no(entries: &[ast::Entry], src: &str) -> bool {
+    entries.iter().any(|entry| {
+        let ast::Entry::Assignment(ass) = entry else {
+            return false;
+        };
+        let key = ass.key_text(src);
+        if key == "always" {
+            return match &ass.value.value {
+                ast::Value::Boolean(b) => !b,
+                ast::Value::String(span) => span.resolve(src).trim().eq_ignore_ascii_case("no"),
+                ast::Value::QuotedString(text) => text.trim().eq_ignore_ascii_case("no"),
+                _ => false,
+            };
+        }
+        match &ass.value.value {
+            ast::Value::Block(inner)
+                if key == "hidden_trigger" || key == "custom_trigger_tooltip" =>
+            {
+                condition_says_always_no(inner, src)
+            }
+            _ => false,
+        }
+    })
+}
+
 fn is_non_decision_block(key: &str) -> bool {
     let lower = key.to_ascii_lowercase();
     lower == "country_event"
@@ -147,6 +175,10 @@ struct DecisionsVisitor {
     has_timeout_effect: bool,
     has_remove_effect: bool,
     has_modifier: bool,
+    /// The decision's `allowed` or `available` block is a literal `always = no`,
+    /// so the player can never select it. Set per decision, cleared with the
+    /// other flags.
+    unselectable: bool,
 }
 
 impl DecisionsVisitor {
@@ -162,6 +194,7 @@ impl DecisionsVisitor {
             has_timeout_effect: false,
             has_remove_effect: false,
             has_modifier: false,
+            unselectable: false,
         }
     }
 
@@ -189,6 +222,7 @@ impl DecisionsVisitor {
         self.has_timeout_effect = false;
         self.has_remove_effect = false;
         self.has_modifier = false;
+        self.unselectable = false;
     }
 }
 
@@ -243,6 +277,20 @@ impl AstVisitor for DecisionsVisitor {
                 "timeout_effect" => self.has_timeout_effect = true,
                 "remove_effect" => self.has_remove_effect = true,
                 _ => {}
+            }
+
+            // A decision that can never be selected has no selection for an
+            // effect to fire on. Timer missions ship this way on purpose:
+            // `available = { always = no }` (or `allowed`) keeps the player from
+            // clicking, and the mission itself is a visible countdown that other
+            // script reads, or just a banner explaining the cooldown. HOM5008's
+            // claim, "it does nothing when selected", has no subject there.
+            if matches!(key, "available" | "allowed") {
+                if let ast::Value::Block(inner) = &ass.value.value {
+                    if condition_says_always_no(inner, ctx.source) {
+                        self.unselectable = true;
+                    }
+                }
             }
         }
         // `modifier` / `targeted_modifier` are only a decision-level payload
@@ -336,7 +384,7 @@ impl AstVisitor for DecisionsVisitor {
                 || self.has_remove_effect
                 || self.has_timeout_effect
                 || self.has_modifier;
-            if is_real_decision && !has_payload {
+            if is_real_decision && !has_payload && !self.unselectable {
                 diags.push(Diagnostic {
                     range: ctx.range(&ass.key_range),
                     severity: Some(DiagnosticSeverity::WARNING),
@@ -1005,6 +1053,65 @@ mod tests {
         assert!(
             h7.is_empty(),
             "category-level visible_when_empty wrongly flagged as HOM5007: {h7:?}"
+        );
+    }
+
+    /// A timer mission the player can never click is not a decision with a
+    /// missing reward. `NWL_BWC_raid_cooldown_timer` in Hearts of Minecraft is
+    /// the shape: `available = { always = no }`, 37 days on the clock, and no
+    /// effect at all, because the mission is the cooldown banner and the real
+    /// gate is `days_re_enable` on the raid decision. HOM5008 must not fire.
+    #[test]
+    fn test_unselectable_timer_mission_no_missing_complete_diag() {
+        let data = ScannerData::new();
+        let key: InternedStr = InternedStr::from("test_hom_decision");
+        data.decisions.insert(
+            key,
+            LayeredValue::new(Decision {
+                key: "raid_cooldown_timer".to_string(),
+                category: "hom_test_cat".to_string(),
+                path: InternedStr::from("test.txt"),
+                range: dummy_range(),
+            }),
+        );
+        let source = r#"hom_test_cat = { raid_cooldown_timer = { icon = GFX_decision_revolt priority = 996 fire_only_once = no days_mission_timeout = 37 is_good = yes allowed = { always = no } available = { always = no } } }"#;
+        let diags = visitor_diags(source, "/common/decisions/test.txt", &data);
+        let h8: Vec<&Diagnostic> = diags
+            .iter()
+            .filter(|d| d.code == Some(NumberOrString::String("HOM5008".to_string())))
+            .collect();
+        assert!(
+            h8.is_empty(),
+            "an unselectable timer mission was flagged as having no effect: {h8:?}"
+        );
+    }
+
+    /// The negative control for the rule above: an `available` block that is not
+    /// a literal `always = no` leaves the decision selectable, so a decision with
+    /// no payload is still a real defect.
+    #[test]
+    fn test_selectable_decision_without_payload_still_reports() {
+        let data = ScannerData::new();
+        let key: InternedStr = InternedStr::from("test_hom_decision");
+        data.decisions.insert(
+            key,
+            LayeredValue::new(Decision {
+                key: "clickable_no_effect".to_string(),
+                category: "hom_test_cat".to_string(),
+                path: InternedStr::from("test.txt"),
+                range: dummy_range(),
+            }),
+        );
+        let source = r#"hom_test_cat = { clickable_no_effect = { icon = generic_research available = { has_war = yes } visible = { always = yes } } }"#;
+        let diags = visitor_diags(source, "/common/decisions/test.txt", &data);
+        let h8: Vec<&Diagnostic> = diags
+            .iter()
+            .filter(|d| d.code == Some(NumberOrString::String("HOM5008".to_string())))
+            .collect();
+        assert_eq!(
+            h8.len(),
+            1,
+            "a selectable decision with no effect must still be reported"
         );
     }
 }
