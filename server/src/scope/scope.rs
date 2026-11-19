@@ -71,6 +71,14 @@ pub enum Scope {
     /// so neither scope describes it. `V2ScopeRule` skips scope checks here —
     /// a false negative is cheaper than flagging valid vanilla content.
     CharacterCondition,
+    /// A block whose runtime scope is decided where it is *used*, not where it
+    /// is written. `ROOT` inside a dynamic modifier's `enable` /
+    /// `remove_trigger` is the scope the modifier was added to: Country for a
+    /// modifier added to a country, State for one added to a state (vanilla
+    /// `common/dynamic_modifiers/bba_dynamic_modifiers.txt`: "ROOT refers to the
+    /// state on which the modifier is added"). No single scope describes it, so
+    /// `V2ScopeRule` skips scope checks here.
+    Polymorphic,
     /// Structural container for `common/on_actions/*.txt` (`on_actions = { }`). Its children are individual `on_*` blocks, each with its own runtime
     /// scope (Country / State / Character / Unit / Global).
     OnActions,
@@ -122,6 +130,7 @@ impl Scope {
             Scope::TechnologyFolders => "Technology Folders",
             Scope::ModifierBag => "Modifier Bag",
             Scope::CharacterCondition => "Character Condition",
+            Scope::Polymorphic => "Polymorphic",
             Scope::OnActions => "On Actions",
             Scope::ScriptedEffect => "Scripted Effect",
             Scope::ScriptedTrigger => "Scripted Trigger",
@@ -145,6 +154,7 @@ impl Scope {
             // `Character` gives the most useful completion filtering (character
             // triggers dominate them).
             Scope::CharacterCondition => Scope::Character,
+            Scope::Polymorphic => Scope::Country,
             Scope::Unknown => Scope::Global,
             other => *other,
         }
@@ -182,7 +192,10 @@ impl Scope {
             | Scope::ScriptedLocalisation
             | Scope::FocusTree
             | Scope::NationalFocus => 1,
-            Scope::Unknown | Scope::ModifierBag | Scope::CharacterCondition => 0,
+            Scope::Unknown
+            | Scope::ModifierBag
+            | Scope::CharacterCondition
+            | Scope::Polymorphic => 0,
         }
     }
 
@@ -1120,6 +1133,26 @@ impl ScopeStack {
             && ctx.is_sub_unit(key)
         {
             return (Scope::Unit, false);
+        }
+
+        // 1f. Dynamic modifier conditions are polymorphic. `enable` and
+        // `remove_trigger` inside `common/dynamic_modifiers/*.txt` run in the
+        // scope the modifier was added to, and the definition does not say which
+        // that is: vanilla writes bare country triggers in one file
+        // (`has_civil_war = yes`, `is_subject = yes`) and bare state triggers in
+        // another (`compliance > 60`, `is_core_of = controller`,
+        // SEA_dynamic_modifiers.txt:1316), with the file's own comment "ROOT
+        // refers to the state on which the modifier is added" marking the
+        // state-attached case. Where `add_dynamic_modifier` ran decides it, so
+        // both the block and ROOT inside it resolve to Polymorphic and go
+        // unchecked rather than being guessed.
+        if ctx.uri.contains("/common/dynamic_modifiers/") {
+            if key.eq_ignore_ascii_case("enable")
+                || key.eq_ignore_ascii_case("remove_trigger")
+                || key.eq_ignore_ascii_case("ROOT")
+            {
+                return (Scope::Polymorphic, false);
+            }
         }
 
         // 1d'. `complete_tooltip` is display-only: its entries are effect names the

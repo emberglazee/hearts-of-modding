@@ -183,7 +183,10 @@ impl ValidationRule for V2ScopeRule {
             // CharacterCondition blocks (character `allowed`/`available`/
             // `visible`) are likewise polymorphic: vanilla mixes country and
             // character triggers in them, so no single scope fits.
-            if raw_scope == Scope::ModifierBag || raw_scope == Scope::CharacterCondition {
+            if raw_scope == Scope::ModifierBag
+                || raw_scope == Scope::CharacterCondition
+                || raw_scope == Scope::Polymorphic
+            {
                 return;
             }
 

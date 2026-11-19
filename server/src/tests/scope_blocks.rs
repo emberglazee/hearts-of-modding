@@ -540,3 +540,87 @@ fn unit_stat_outside_a_subunit_block_still_reports() {
         "expected 'hardness' to be reported in Country scope, got {bad:#?}"
     );
 }
+
+/// A dynamic modifier's `enable` / `remove_trigger` are polymorphic: the
+/// modifier runs in whatever scope it was added to, and the definition does not
+/// say which. Vanilla has both shapes, so neither may be reported.
+#[test]
+fn dynamic_modifier_conditions_are_polymorphic() {
+    // Country-shaped: bare country triggers, `ROOT` for the attached scope.
+    const COUNTRY_DM: &str = r#"sabotaged_resources = {
+    enable = {
+        has_civil_war = yes
+        ROOT = {
+            has_resistance = no
+        }
+    }
+    remove_trigger = {
+        ROOT = {
+            has_resistance = yes
+        }
+    }
+    icon = GFX_modifiers_sabotaged_resource
+}"#;
+    // State-shaped: bare state triggers, no ROOT wrapper at all
+    // (SEA_dynamic_modifiers.txt:1316).
+    const STATE_DM: &str = r#"PRC_guerilla_cells_active_1 = {
+    enable = { always = yes }
+    remove_trigger = {
+        OR = {
+            controller = {
+                NOT = { has_war_with = PRC }
+            }
+            AND = {
+                NOT = { is_core_of = controller }
+                compliance > 60
+            }
+        }
+    }
+    resistance_decay = -0.1
+}"#;
+    const URI: &str = "/mod/common/dynamic_modifiers/00_dm.txt";
+    for src in [COUNTRY_DM, STATE_DM] {
+        let ctx = TestCtx::new().with_scope_validation(true);
+        let diags = ctx.walk(
+            src,
+            URI,
+            initial_scope_for_uri(URI),
+            vec![Box::new(V2ScopeRule)],
+            vec![],
+        );
+        let bad = mismatched(&diags);
+        assert!(
+            bad.is_empty(),
+            "expected no scope diagnostics, got {bad:#?}"
+        );
+    }
+}
+
+/// The dynamic-modifier rule is gated on the file: a state-only trigger written
+/// in an idea's country block is still reported.
+#[test]
+fn state_trigger_in_an_idea_still_reports() {
+    const IDEA: &str = r#"ideas = {
+    country = {
+        my_idea = {
+            allowed = { always = yes }
+            modifier = { stability_factor = 0.1 }
+            has_resistance = no
+        }
+    }
+}"#;
+    const URI: &str = "/mod/common/ideas/00_ideas.txt";
+    let ctx = TestCtx::new().with_scope_validation(true);
+    let diags = ctx.walk(
+        IDEA,
+        URI,
+        initial_scope_for_uri(URI),
+        vec![Box::new(V2ScopeRule)],
+        vec![],
+    );
+    let bad = mismatched(&diags);
+    assert!(
+        bad.iter().any(|m| m.contains("has_resistance")),
+        "expected 'has_resistance' to be reported outside dynamic modifiers, got {bad:#?}"
+    );
+}
