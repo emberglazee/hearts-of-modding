@@ -9,35 +9,35 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 
 ### ✨ Added
 
-- **Equipment names are indexed.** Go to definition, find references, rename and hover now work on equipment in `equipment_bonus`, `has_equipment`, `send_equipment`, `add_equipment_to_stockpile` and `create_equipment_variant`, and `send_equipment` documents the key vanilla writes (`equipment`, not `type`).
+- **Equipment names are indexed.** Go to definition, find references, rename and hover work on equipment in `equipment_bonus`, `has_equipment`, `send_equipment`, `add_equipment_to_stockpile` and `create_equipment_variant`.
 
-- **Equipment definitions and bonus blocks highlight, hover and complete.** That covers the definition body (year, module slots, build cost, reliability, combat stats) and the stat body inside `equipment_bonus`, including the `add_equipment_bonus` form special projects use.
+- **Equipment definitions and bonus blocks highlight, hover and complete**, including inside `add_equipment_bonus`.
 
-- **Completion inside an equipment block offers only what belongs there.** Equipment names inside `has_equipment`, unit types and archetypes inside `equipment_bonus`, stats inside a bonus group. Before, it offered every trigger and effect in the game.
+- **Completion inside an equipment block offers only what belongs there**, instead of every trigger and effect in the game.
 
-- **Leader trait bodies highlight, hover and complete.** Traits in `common/country_leader` and `common/unit_leader` had no schema, so `sprite`, `trait_type`, `gui_row` and the modifier bags stayed plain text.
+- **Leader trait bodies highlight, hover and complete.** Traits in `common/country_leader` and `common/unit_leader` are documented now.
 
-- **Leader role blocks complete their keys.** `corps_commander`, `field_marshal`, `navy_leader` and `country_leader` list what each block accepts, stats and traits first.
+- **Leader role blocks complete their keys.** `corps_commander`, `field_marshal`, `navy_leader` and `country_leader` list what each block accepts.
 
-- **New diagnostic `HOM1005`:** a leader role block setting a stat that belongs to a different role, such as `planning_skill` on an admiral. The engine drops the stat and the leader keeps the default, with nothing in the log.
+- **New diagnostic `HOM1005`:** a leader role block that sets a stat belonging to a different role, such as `planning_skill` on an admiral.
 
-- **`hom-lsp analyze <file>` checks one file without an editor.** Same scanners and rules, a readable report or `--json`, `--tokens` for semantic tokens, `--game` to point at an install. Exit code 0 clean, 1 diagnostics, 2 could not analyse.
+- **`hom-lsp analyze <file>` checks one file without an editor.** Readable report or `--json`, `--tokens` for the semantic tokens, `--game` to point at an install. Exit code 0 means clean, 1 means diagnostics, 2 means the file could not be analysed.
 
 ### 🩹 Fixed
 
-- **`has_trait` inside `start_civil_war` is no longer reported.** `keep_unit_leaders_trigger` runs once per unit leader, and a unit leader is a character, not the country that starts the war. `states_filter` and `keep_scientists_trigger` had the same bug. 45 false diagnostics gone from vanilla.
+- **`has_trait` inside `start_civil_war` is no longer reported.**
 
-- **`PREV` inside a `limit` is the scope the iterator was called from.** `random_owned_controlled_state = { limit = { PREV = { has_full_control_of_state = PREV } } }` is legal script and no longer flagged. 59 false diagnostics gone from vanilla.
+- **`PREV` inside a `limit` is no longer reported as the wrong scope.**
 
-- **A leader role grant no longer flags its own stat keys.** `add_corps_commander_role = { skill = 2 attack_skill = 1 ... }` reported every stat as out of scope. All 79 occurrences in vanilla are gone.
+- **A leader role grant no longer flags its own stat keys.**
 
-- **`complete_tooltip` no longer flags the effects it lists.** The block renders them into the tooltip and never runs them, so scope does not apply.
+- **`complete_tooltip` no longer flags the effects it lists.**
 
 - **A leader trait whose id is also a character id no longer reports its own modifiers.**
 
-- **The modifier table covers what vanilla writes.** `political_advisor_cost_factor`, `mobilization_laws_cost_factor` and 156 more no longer show as unknown, and the table went from 722 entries to 880.
+- **Modifiers that vanilla uses are documented**, so they highlight and hover instead of showing as unknown.
 
-- **A decision that can never be selected is no longer told it does nothing.** Countdown missions with `available = { always = no }` stop tripping `HOM5008`.
+- **A decision that can never be selected is no longer told it does nothing.**
 
 ### 🧹 Internal
 
