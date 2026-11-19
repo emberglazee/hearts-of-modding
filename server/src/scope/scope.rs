@@ -741,6 +741,36 @@ impl ScopeStack {
         self.nodes.len()
     }
 
+    /// The N-th scope above the one the content currently runs in.
+    ///
+    /// The node that *provides* the current scope is the topmost non-transparent
+    /// one; transparent frames above it (`limit`, `trigger`, `if`, `AND` /
+    /// `OR` / `NOT`) do not shift PREV. Walking one node back from the top
+    /// instead made `every_state = { limit = { PREV = { ... } } }` resolve PREV
+    /// to the state being iterated rather than the country that called
+    /// `every_state`, which is what the engine evaluates. The file-level marker
+    /// is not a scope script can run in, so the search stops below it.
+    fn prev_nth(&self, depth: usize) -> Option<Scope> {
+        let provider = self.nodes.iter().rposition(|n| !n.is_transparent)?;
+        let mut count = 0;
+        for (idx, node) in self.nodes[..provider].iter().enumerate().rev() {
+            if node.is_transparent {
+                continue;
+            }
+            if idx == 0 && node.scope_type.is_file_level_marker() {
+                break;
+            }
+            count += 1;
+            if count == depth {
+                return Some(node.scope_type);
+            }
+        }
+        // Nothing below the provider: the current scope was entered straight
+        // from the file, so PREV is the scope the file's content runs in (the
+        // country for an event or a decision), not the bare marker.
+        (depth == 1).then(|| self.nodes[provider].scope_type.runtime_root_scope())
+    }
+
     /// Resolve ROOT/THIS/PREV pointers, using transparency-aware semantics.
     /// - ROOT: First non-transparent scope in the stack
     /// - THIS: Current (top) scope
@@ -763,13 +793,7 @@ impl ScopeStack {
                 })
                 .map_or(Scope::Global, |(_, n)| n.scope_type.runtime_root_scope()),
             "THIS" => self.current(),
-            "PREV" => self
-                .nodes
-                .iter()
-                .rev()
-                .skip(1)
-                .find(|n| !n.is_transparent)
-                .map_or(Scope::Global, |n| n.scope_type),
+            "PREV" => self.prev_nth(1).unwrap_or(Scope::Global),
             _ => Scope::Unknown,
         }
     }
@@ -863,16 +887,7 @@ impl ScopeStack {
             // We handle any string made of consecutive "PREV" parts.
             "PREV" | "PREVPREV" | "PREVPREVPREV" | "PREVPREVPREVPREV" => {
                 let depth = upper.matches("PREV").count();
-                let mut count = 0;
-                for node in self.nodes.iter().rev().skip(1) {
-                    if !node.is_transparent {
-                        count += 1;
-                        if count == depth {
-                            return Some(node.scope_type);
-                        }
-                    }
-                }
-                Some(Scope::Unknown)
+                Some(self.prev_nth(depth).unwrap_or(Scope::Unknown))
             }
 
             // FROM = source scope in events / targeted effects.

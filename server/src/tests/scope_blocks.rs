@@ -418,3 +418,55 @@ fn per_target_filter_blocks_push_their_scope() {
         "the block is evaluated once per state"
     );
 }
+
+/// `PREV` inside a `limit` is the scope the iterator was called from, not the
+/// scope being iterated. `every_state = { limit = { PREV = { tag = X } } }`
+/// therefore checks the country that called `every_state`; the transparent
+/// `limit` frame must not shift PREV onto the state.
+#[test]
+fn prev_inside_a_limit_is_the_calling_scope() {
+    assert_no_mismatch(
+        DECISIONS_URI,
+        r#"TEST_category = {
+            TEST_decision = {
+                remove_effect = {
+                    random_country = {
+                        limit = { always = yes }
+                        every_state = {
+                            limit = {
+                                is_core_of = prev
+                                OR = { PREV = { tag = ASP } }
+                            }
+                        }
+                    }
+                }
+            }
+        }"#,
+    );
+}
+
+/// The other half of the rule: PREV inside a state iterator's limit is a
+/// country, so a state-only trigger there is a real error. Without this, the
+/// fix above could have been "make PREV Country everywhere".
+#[test]
+fn prev_inside_a_limit_is_not_the_state_being_iterated() {
+    let bad = mismatched(&walk(
+        DECISIONS_URI,
+        r#"TEST_category = {
+            TEST_decision = {
+                remove_effect = {
+                    random_country = {
+                        every_state = {
+                            limit = { PREV = { is_capital = yes } }
+                        }
+                    }
+                }
+            }
+        }"#,
+    ));
+    assert_eq!(
+        bad.len(),
+        1,
+        "is_capital is State-only and PREV is the country, got {bad:#?}"
+    );
+}
