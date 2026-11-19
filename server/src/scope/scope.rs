@@ -955,6 +955,22 @@ impl ScopeStack {
             }
         }
 
+        // 1b. Leader-trait condition blocks. A trait's `allowed` / `available` /
+        // `visible` inside `leader_traits` or `unit_leader_traits` is a gate on
+        // the leader who would receive the trait, not on a country: vanilla
+        // writes `has_trait` there (`substance_addict` gates on
+        // `substance_abuser`), which only exists in Character and Unit scope.
+        // As with a character body, country and character triggers mix in these
+        // blocks, so neither scope is right and validation is skipped.
+        if matches!(
+            key.to_ascii_lowercase().as_str(),
+            "allowed" | "available" | "visible"
+        ) && (ctx.uri.contains("/common/country_leader/")
+            || ctx.uri.contains("/common/unit_leader/"))
+        {
+            return (Scope::CharacterCondition, true);
+        }
+
         // 1a'. Hook blocks evaluated on the owning country everywhere else —
         // idea and decision `on_add` / `on_remove` apply to the country.
         if matches!(key.to_ascii_lowercase().as_str(), "on_add" | "on_remove") {

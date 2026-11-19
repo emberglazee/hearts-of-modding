@@ -42525,6 +42525,30 @@
 					"repeated": false
 				}
 			}
+		},
+		"keep_unit_leaders_trigger": {
+			"name": "keep_unit_leaders_trigger",
+			"description": "Per-leader filter inside start_civil_war and transfer_units_fraction. The engine evaluates it once for every unit leader, so its body holds Character-scope triggers — a unit leader IS a character (`has_character_flag`, `is_character`, `has_unit_leader_flag` all work there); ROOT is the country receiving the leaders.",
+			"file_types": [],
+			"parameters": {},
+			"param_container": false,
+			"pushes_scope": "Character"
+		},
+		"keep_scientists_trigger": {
+			"name": "keep_scientists_trigger",
+			"description": "Per-scientist filter inside start_civil_war. The engine evaluates it once for every scientist, so its body holds Character-scope triggers.",
+			"file_types": [],
+			"parameters": {},
+			"param_container": false,
+			"pushes_scope": "Character"
+		},
+		"states_filter": {
+			"name": "states_filter",
+			"description": "Per-state filter inside start_civil_war. The engine evaluates it once for every state that would be transferred, so its body holds State-scope triggers.",
+			"file_types": [],
+			"parameters": {},
+			"param_container": false,
+			"pushes_scope": "State"
 		}
 	},
 	"scopes": {

@@ -332,3 +332,89 @@ fn keyword_blocks_are_a_superset_of_transparent_blocks() {
         );
     }
 }
+
+/// `keep_unit_leaders_trigger` is evaluated once per unit leader, not on the
+/// country running `start_civil_war`. A unit leader IS a character, so its body
+/// is Character scope: vanilla writes `has_trait`, `has_character_flag`,
+/// `is_character` and `has_unit_leader_flag` there, and only `has_trait` would
+/// also be legal in a division (Unit) scope.
+#[test]
+fn keep_unit_leaders_trigger_runs_in_character_scope() {
+    assert_no_mismatch(
+        DECISIONS_URI,
+        r#"TEST_category = {
+            TEST_decision = {
+                allowed = { always = yes }
+                complete_effect = {
+                    start_civil_war = {
+                        ruling_party = communism
+                        size = 0.3
+                        keep_unit_leaders_trigger = {
+                            has_trait = hidden_sympathies
+                            has_unit_leader_flag = is_loyal
+                        }
+                    }
+                }
+            }
+        }"#,
+    );
+}
+
+/// The negative control for the rule above: a decision's own `allowed` block is
+/// still Country scope, so a character trigger there stays an error. Without
+/// this, `has_trait` could have been blanket-allowed instead of scoped.
+#[test]
+fn has_trait_is_still_rejected_in_a_decision_condition() {
+    let bad = mismatched(&walk(
+        DECISIONS_URI,
+        r#"TEST_category = {
+            TEST_decision = {
+                allowed = { has_trait = hidden_sympathies }
+            }
+        }"#,
+    ));
+    assert_eq!(
+        bad.len(),
+        1,
+        "a decision's allowed block is Country scope, got {bad:#?}"
+    );
+}
+
+/// A leader trait's `allowed` block gates the leader who would receive it, so
+/// `has_trait` is legal there even though `allowed` pushes Country elsewhere.
+#[test]
+fn a_leader_trait_gate_runs_against_the_leader() {
+    assert_no_mismatch(
+        "/mod/common/unit_leader/00_traits.txt",
+        r#"leader_traits = {
+            substance_addict = {
+                type = all
+                trait_type = status_trait
+                allowed = { has_trait = substance_abuser }
+            }
+        }"#,
+    );
+}
+
+/// The three per-target filter blocks carry an explicit pushed scope in the
+/// data; the resolver reads it through `lookup_pushes_scope`.
+#[test]
+fn per_target_filter_blocks_push_their_scope() {
+    use crate::data::hoi4_data::lookup_pushes_scope;
+
+    assert_eq!(
+        lookup_pushes_scope("keep_unit_leaders_trigger"),
+        Some(Scope::Character),
+        "the block is evaluated once per unit leader, and a leader is a character"
+    );
+    assert_eq!(
+        lookup_pushes_scope("keep_scientists_trigger"),
+        Some(Scope::Character),
+        "the block is evaluated once per scientist"
+    );
+    assert_eq!(
+        lookup_pushes_scope("states_filter"),
+        Some(Scope::State),
+        "the block is evaluated once per state"
+    );
+}
