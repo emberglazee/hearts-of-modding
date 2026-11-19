@@ -12,7 +12,7 @@ All changes to the **Hearts of Modding** extension will be documented in this fi
 > to 2,712, 98 removed and none added. The equipment work that follows changes tokens and
 > completion only, so it moves the corpus not at all. A DLC landed in the install partway
 > through the release (8,347 files became 8,419, where the same binary reports 2,866); the
-> scope fixes at the bottom of this section take that to 2,821, 45 removed and none added.
+> scope fixes at the bottom of this section take that to 2,763, 104 removed and one added.
 
 ### ✨ Added
 
